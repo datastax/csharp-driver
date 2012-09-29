@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{EBDA82A2-EF6F-450E-8F31-10D057BADEED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{52F4F02D-03A1-4CE7-B557-8ECC2A9F5186}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{9205D997-2DFC-4E02-A466-AB8E22D641CE}"
+	ProjectSection(SolutionItems) = preProject
+		Data\Dynamo.pdf = Data\Dynamo.pdf
+		Data\LoremIpsum.txt = Data\LoremIpsum.txt
+		Data\Saturn.jpg = Data\Saturn.jpg
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EBDA82A2-EF6F-450E-8F31-10D057BADEED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBDA82A2-EF6F-450E-8F31-10D057BADEED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBDA82A2-EF6F-450E-8F31-10D057BADEED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBDA82A2-EF6F-450E-8F31-10D057BADEED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52F4F02D-03A1-4CE7-B557-8ECC2A9F5186}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52F4F02D-03A1-4CE7-B557-8ECC2A9F5186}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52F4F02D-03A1-4CE7-B557-8ECC2A9F5186}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52F4F02D-03A1-4CE7-B557-8ECC2A9F5186}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

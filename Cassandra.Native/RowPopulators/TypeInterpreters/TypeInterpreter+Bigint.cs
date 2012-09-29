@@ -1,0 +1,25 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Cassandra.Native
+{
+    internal static partial class TypeInerpreter
+    {
+        public static object ConvertFromBigint(Metadata.ColumnInfo type_info, byte[] value)
+        {
+            return ConversionHelper.FromBytesToInt64(value, 0);
+        }
+
+        public static Type GetTypeFromBigint(Metadata.ColumnInfo type_info)
+        {
+            return typeof(long);
+        }
+
+        public static byte[] InvConvertFromBigint(Metadata.ColumnInfo type_info, object value)
+        {
+            checkArgument<long>(value);
+            return ConversionHelper.ToBytesFromInt64((long)value);
+        }
+    }
+}
