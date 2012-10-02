@@ -8,7 +8,8 @@ namespace Cassandra.Native
     {
         public static object ConvertFromBigint(Metadata.ColumnInfo type_info, byte[] value)
         {
-            return ConversionHelper.FromBytesToInt64(value, 0);
+            Array.Reverse(value);
+            return BitConverter.ToInt64(value, 0);            
         }
 
         public static Type GetTypeFromBigint(Metadata.ColumnInfo type_info)

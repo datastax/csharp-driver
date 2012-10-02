@@ -45,21 +45,13 @@ namespace Cassandra.Native
         }
 
         public static DateTimeOffset FromUnixTime(long ms)
-        {
+        {                       
             return UnixStart.AddMilliseconds(ms);
         }
 
         public static int FromBytesToInt32(byte[] _buffer, int idx)
         {
             return (int)((_buffer[idx] << 24) | (_buffer[idx + 1] << 16 & 0xffffff) | (_buffer[idx + 2] << 8 & 0xffff) | (_buffer[idx + 3] & 0xff));
-        }
-
-        public static long FromBytesToInt64(byte[] _buffer, int idx)
-        {
-            long intU = FromBytesToInt32(_buffer, 0);
-            long intL = FromBytesToInt32(_buffer, 4);
-            long ret = intL | (intU << 32 & 0xffffffffL);
-            return ret;
         }
 
         public static byte[] ToBytesFromInt32(int value)

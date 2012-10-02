@@ -40,8 +40,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommonBasicTests.cs" />
     <Compile Include="MyUTExt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Randomm.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Cassandra.Native\Cassandra.Native.csproj">

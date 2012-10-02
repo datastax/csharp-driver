@@ -8,7 +8,8 @@ namespace Cassandra.Native
     {
         public static object ConvertFromTimestamp(Metadata.ColumnInfo type_info, byte[] value)
         {
-            return ConversionHelper.FromUnixTime(ConversionHelper.FromBytesToInt64(value, 0));
+            Array.Reverse(value);
+            return ConversionHelper.FromUnixTime(BitConverter.ToInt64(value, 0));
         }
 
         public static Type GetTypeFromTimestamp(Metadata.ColumnInfo type_info)
