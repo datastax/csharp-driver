@@ -75,7 +75,7 @@ namespace Cassandra.Native
             this.credentialsDelegate = credentialsDelegate;
             this.clientPool = new ClientsPool(dispatchThreadCount);
         }
-        //public CassandraManagedConnection Connect(CassandraCompressionType compression = CassandraCompressionType.NoCompression, BufferingMode mode = BufferingMode.FrameBuffering, int abortTimeout = Timeout.Infinite)
+        
         
                 
         public CassandraManagedConnection Connect()

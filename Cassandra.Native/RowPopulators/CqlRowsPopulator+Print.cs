@@ -7,7 +7,7 @@ namespace Cassandra.Native
 {
     public partial class CqlRowsPopulator
     {
-        public delegate string CellEncoder(string text);
+        public delegate string CellEncoder(object val);
 
         public void PrintTo(TextWriter stream,
             string delim = "\t|",
@@ -44,7 +44,7 @@ namespace Cassandra.Native
                     else
                         stream.Write(delim);
 
-                    stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j].ToString()));
+                    stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
                 }
                 stream.Write(rowDelim);
                 i++;

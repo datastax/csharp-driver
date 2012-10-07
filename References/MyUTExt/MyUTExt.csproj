@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MyUTExt</RootNamespace>
     <AssemblyName>MyUTExt</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -34,6 +34,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
     <Reference Include="xunit">
       <HintPath>..\xunit\xunit.dll</HintPath>
@@ -46,6 +47,14 @@
     <Compile Include="Randomm.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Cassandra.Data\Cassandra.Data.csproj">
+      <Project>{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}</Project>
+      <Name>Cassandra.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Cassandra.Native.BigNumbers\Cassandra.Native.BigNumbers.csproj">
+      <Project>{23C840A5-4DA7-4902-852F-5D447CAA0929}</Project>
+      <Name>Cassandra.Native.BigNumbers</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Cassandra.Native\Cassandra.Native.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra.Native</Name>

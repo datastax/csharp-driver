@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Numerics;
 
 namespace MyUTExt
 {
@@ -28,5 +29,33 @@ namespace MyUTExt
             this.NextBytes(buffer);
             return BitConverter.ToInt64(buffer, 0);
         }
+        public decimal NextDecimal()
+        {
+            byte scale = (byte)this.Next(29);
+            bool sign = this.Next(2) == 1;
+            return new decimal(this.NextInt32(),
+                               this.NextInt32(),
+                               this.NextInt32(),
+                               sign,
+                               scale);
+        }
+        public BigInteger NextBigInteger()
+        {
+            return new BigInteger(Int64.MaxValue) * 10;
+        }
+
+        public string NextChar()
+        {            
+            string asciiString = String.Empty;
+            for (int i = 0; i < 128; i++)
+                if (i == 34 || i == 39)
+                    continue;
+                else 
+                    asciiString += (char)i;
+
+            return asciiString;
+        }
+
+
     }
 }

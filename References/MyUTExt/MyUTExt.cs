@@ -14,6 +14,7 @@ namespace Dev
     public class SettingsFixture
     {
         ISettings settings;
+
         public SettingsFixture()
         {
         }
@@ -52,4 +53,6 @@ namespace Dev
             Xunit.Assert.Equal<T>(expected, actual);
         }
     }
+
+    
 }

@@ -5,6 +5,8 @@ using Xunit;
 using System.Threading;
 using System.Net;
 using MyUTExt;
+using System.Numerics;
+using System.Globalization;
 
 namespace Cassandra.Native.Test
 {        
@@ -12,6 +14,24 @@ namespace Cassandra.Native.Test
     {
         public NativeBasicTests() : base(false,true)
         {            
+        }
+
+        [Fact]
+        public void testDecimal()
+        {
+            inputingSingleValue(typeof(System.Decimal));
+        }
+
+        [Fact]
+        public void testASCII()
+        {
+            inputingSingleValue(typeof(Char));
+        }
+
+        [Fact]
+        public void testVarInt()
+        {
+            inputingSingleValue(typeof(BigInteger));
         }
 
         [Fact]
@@ -75,7 +95,6 @@ namespace Cassandra.Native.Test
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int64), false);
         }
-
         [Fact]
         public void ExceedingCassandra_FLOAT()
         {

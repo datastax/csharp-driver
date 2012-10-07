@@ -29,7 +29,7 @@ namespace TestRunner
 
 
             var mysetting = new Dev.SettingsFixture();
-            var setting = new MySettings();
+            var setting = new MySettings();           
             mysetting.Initialize(setting);
 
             var tstDir = setting["TestFolder"].Replace("$TEST_ROOT", Directory.GetCurrentDirectory());

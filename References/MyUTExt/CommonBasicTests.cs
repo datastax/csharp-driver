@@ -5,6 +5,8 @@ using Xunit;
 using System.Threading;
 using System.Net;
 using Cassandra.Native;
+using System.Numerics;
+using System.Globalization;
  
 
 namespace MyUTExt
@@ -38,6 +40,8 @@ namespace MyUTExt
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+
             var serverSp = setFix.Settings["CassandraServer"].Split(':');
 
             string ip = serverSp[0];
@@ -88,7 +92,7 @@ namespace MyUTExt
                     if (expectedValue != null)
                         Dev.Assert.Equal((int)expectedValue, (ret as OutputRows).Rows);
                     CqlRowsPopulator rowPopulator = new CqlRowsPopulator(ret as OutputRows);
-                    rowPopulator.PrintTo(Console.Out);
+                    rowPopulator.PrintTo(stream: Console.Out, cellEncoder: CellEncoder);
                     Console.WriteLine("CQL> Done.");
                 }
                 else
@@ -97,6 +101,23 @@ namespace MyUTExt
                 }
             }
         }
+
+        private static string CellEncoder(object col)
+        {
+            if (col is VarintBuffer)
+            {
+                Array.Reverse(((VarintBuffer)col).BigIntegerBytes);                
+                return ((VarintBuffer) col).ToBigInteger().ToString();
+            }
+            else if (col is DecimalBuffer)
+            {
+                //Array.Reverse(((DecimalBuffer)col).BigIntegerBytes);
+                return ((DecimalBuffer)col).ToDecimal().ToString();
+            }
+            else
+                return col.ToString();
+        }
+
 
         public void ExecuteSync(CassandraManagedConnection conn, string query, string messageInstead = null, object expectedValue = null)
         {
@@ -174,9 +195,18 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          label text,
          number {1}
          );", tableName, cassandraDataTypeName));
+                
+                var Minimum = toExceedWith.GetField("MinValue").GetValue(this);
+                var Maximum = toExceedWith.GetField("MaxValue").GetValue(this);
 
-                ExecuteSync(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Minimum", toExceedWith.GetField("MinValue").GetValue(this)), null, shouldPass ? null : new OutputInvalid());
-                ExecuteSync(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Maximum", toExceedWith.GetField("MaxValue").GetValue(this)), null, shouldPass ? null : new OutputInvalid()); 
+                if (toExceedWith == typeof(Double) || toExceedWith == typeof(Single))
+                {
+                    Minimum = Minimum.GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(Minimum, new object[1] { "r" });
+                    Maximum = Maximum.GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(Maximum, new object[1] { "r" });
+                }
+
+                ExecuteSync(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Minimum", Minimum), null, shouldPass ? null : new OutputInvalid());
+                ExecuteSync(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Maximum", Maximum), null, shouldPass ? null : new OutputInvalid()); 
                 ExecuteSync(conn, string.Format("SELECT * FROM {0};", tableName));
                 ExecuteSync(conn, string.Format("DROP TABLE {0};", tableName));
             }
@@ -197,15 +227,41 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 case "Double":
                     return "double";
 
+                case "Decimal":
+                    return "decimal";
+
+                case "BigInteger":
+                    return "varint";
+
+                case "Char":
+                    return "ascii";
+
                 default:
                     throw new InvalidOperationException();                    
             }
         }
-        
-        public void inputingSingleValue(Type tp)
-        {            
+
+
+        public void inputingBigIntegerValue()
+        {
+            
             Randomm rndm = new Randomm();
-            string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(tp);                        
+
+            BigInteger x = rndm.NextBigInteger();
+            BigInteger y = 0;
+
+            VarintBuffer vib;
+            vib = x.ToVarintBuffer(x);
+            y = vib.ToBigInteger();
+
+            Assert.True(x.Equals(y));
+        }
+
+
+        public void inputingSingleValue(Type tp)
+        {
+            Randomm rndm = new Randomm();
+            string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(tp);
             CassandraManagedConnection conn = ConnectToTestServer();
             using (conn)
             {
@@ -215,7 +271,6 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          tweet_id uuid PRIMARY KEY,
          number {1}
          );", tableName, cassandraDataTypeName));
-               
                 ExecuteSync(conn, string.Format("INSERT INTO {0}(tweet_id,number) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })), null);
                 ExecuteSync(conn, string.Format("SELECT * FROM {0};", tableName), null, 1);
                 ExecuteSync(conn, string.Format("DROP TABLE {0};", tableName));
