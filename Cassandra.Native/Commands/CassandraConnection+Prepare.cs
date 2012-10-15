@@ -4,13 +4,13 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public partial class CassandraConnection : IDisposable
+    internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state)
+        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
         {
             var socketStream = CreateSocketStream();
 
-            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, this, "PREPARE");
+            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, owner, "PREPARE");
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
@@ -28,16 +28,16 @@ namespace Cassandra.Native
             return ar;
         }
 
-        public IOutput EndPrepareQuery(IAsyncResult result)
+        public IOutput EndPrepareQuery(IAsyncResult result, object owner)
         {
-            return Internal.AsyncResult<IOutput>.End(result, this, "PREPARE");
+            return Internal.AsyncResult<IOutput>.End(result, owner, "PREPARE");
         }
 
         public IOutput PrepareQuery(string cqlQuery)
         {
-            var r = BeginPrepareQuery(cqlQuery, null, null);
+            var r = BeginPrepareQuery(cqlQuery, null, null, this);
             r.AsyncWaitHandle.WaitOne();
-            return EndPrepareQuery(r);
+            return EndPrepareQuery(r, this);
         }
     }
 }

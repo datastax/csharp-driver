@@ -13,11 +13,7 @@ namespace Cassandra.Native
     {
         public static object ConvertFromVarint(Metadata.ColumnInfo type_info, byte[] value)
         {
-            byte[] number = new byte[value.Length];
-
-            Buffer.BlockCopy(value, 0, number, 0, number.Length);
-
-            return new VarintBuffer() { BigIntegerBytes = number };
+            return new VarintBuffer() { BigIntegerBytes = value };
         }
 
         public static Type GetTypeFromVarint(Metadata.ColumnInfo type_info)
@@ -27,10 +23,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromVarint(Metadata.ColumnInfo type_info, object value)
         {
-            checkArgument<VarintBuffer>(value);
-            byte[] ret = new byte[((VarintBuffer)value).BigIntegerBytes.Length];
-            Buffer.BlockCopy(((DecimalBuffer)value).BigIntegerBytes, 0, ret, 0, ret.Length);
-            return ret;
+            return  ((VarintBuffer)value).BigIntegerBytes;
         }
     }
 }

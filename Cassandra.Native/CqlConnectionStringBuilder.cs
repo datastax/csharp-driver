@@ -17,7 +17,6 @@ namespace Cassandra
         public string Username { get; private set; }
         public string Password { get; private set; }
         public CassandraCompressionType CompressionType { get; private set; }
-        public BufferingMode BufferingMode { get; private set; }
         public CqlConsistencyLevel ReadCqlConsistencyLevel { get; private set; }
         public CqlConsistencyLevel WriteCqlConsistencyLevel { get; private set; }
 
@@ -31,7 +30,6 @@ namespace Cassandra
             string Username = null,
             string Password = null,
             CassandraCompressionType CompressionType = CassandraCompressionType.NoCompression,
-            BufferingMode BufferingMode = BufferingMode.FrameBuffering,
             CqlConsistencyLevel ReadCqlConsistencyLevel = CqlConsistencyLevel.QUORUM,
             CqlConsistencyLevel WriteCqlConsistencyLevel = CqlConsistencyLevel.QUORUM,
             int ConnectionTimeout = Timeout.Infinite,
@@ -44,7 +42,6 @@ namespace Cassandra
             this.Username = Username;
             this.Password = Password;
             this.CompressionType = CompressionType;
-            this.BufferingMode = BufferingMode;
             this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
             this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
             this.ConnectionTimeout = ConnectionTimeout;
@@ -110,12 +107,6 @@ namespace Cassandra
 
                 ConnectionTimeout = connectionTimeout * 1000;
             }
-
-            if (!pairs.ContainsKey("Buffering Mode"))
-                BufferingMode = Native.BufferingMode.FrameBuffering;
-            else
-                BufferingMode = (Native.BufferingMode)Enum.Parse(typeof(Native.BufferingMode), pairs["Buffering Mode"]);
-
 
             if (!pairs.ContainsKey("Read"))
                 ReadCqlConsistencyLevel = CqlConsistencyLevel.QUORUM;
@@ -196,9 +187,6 @@ namespace Cassandra
             if(ConnectionTimeout!=Timeout.Infinite)
                 b.AppendFormat(format, "Connection Timeout", Convert.ToInt32(ConnectionTimeout / 1000));
     
-            if(BufferingMode != Native.BufferingMode.FrameBuffering)
-                b.AppendFormat(format, "Buffering Mode", BufferingMode);
-
             if(ReadCqlConsistencyLevel != CqlConsistencyLevel.QUORUM)
                 b.AppendFormat(format, "Read", ReadCqlConsistencyLevel);
     

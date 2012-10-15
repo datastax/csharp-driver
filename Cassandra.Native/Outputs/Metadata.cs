@@ -112,6 +112,7 @@ namespace Cassandra.Native
         ColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)
         {
             ColumnTypeCode innercode;
+            ColumnTypeCode vinnercode;
             switch (code)
             {
                 case ColumnTypeCode.Custom:
@@ -124,11 +125,14 @@ namespace Cassandra.Native
                     };
                 case ColumnTypeCode.Map:
                     innercode = (ColumnTypeCode)reader.ReadUInt16();
+                    var kci = GetColumnInfo(reader, innercode);
+                    vinnercode = (ColumnTypeCode)reader.ReadUInt16();
+                    var vci = GetColumnInfo(reader, vinnercode);
                     return new MapColumnInfo() {
                         key_type_code = innercode,
-                        key_type_info = GetColumnInfo(reader, innercode),
-                        value_type_code = innercode, 
-                        value_type_info = GetColumnInfo(reader, innercode)
+                        key_type_info = kci,
+                        value_type_code = vinnercode, 
+                        value_type_info = vci
                     };
                 case ColumnTypeCode.Set:
                     innercode = (ColumnTypeCode)reader.ReadUInt16();

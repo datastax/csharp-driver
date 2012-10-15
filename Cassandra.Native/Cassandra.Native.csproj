@@ -65,11 +65,9 @@
       <Link>Snappy\Snappy.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
-    <Compile Include="CassandraClient.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraException.cs" />
-    <Compile Include="CassandraManagedConnection.cs" />
-    <Compile Include="CassandraManager.cs" />
+    <Compile Include="CassandraSession.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
     <Compile Include="Commands\CassandraConnection+Execute.cs" />
@@ -79,7 +77,6 @@
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="FrameBuffering.cs" />
     <Compile Include="IBuffering.cs" />
-    <Compile Include="ICassandraConnection.cs" />
     <Compile Include="IOutput.cs" />
     <Compile Include="IProtoBufComporessor.cs" />
     <Compile Include="NoBuffering.cs" />
@@ -113,8 +110,8 @@
     <Compile Include="IResponse.cs" />
     <Compile Include="Requests\StartupRequest.cs" />
     <Compile Include="Outputs\OutputRows.cs" />
-    <Compile Include="RowPopulators\CqlRowsPopulator+Print.cs" />
-    <Compile Include="RowPopulators\CqlRowsPopulator.cs" />
+    <Compile Include="RowPopulators\CqlRowSet+Print.cs" />
+    <Compile Include="RowPopulators\CqlRowSet.cs" />
     <Compile Include="RowPopulators\CqlRow.cs" />
     <Compile Include="RowPopulators\TypeInterpreter.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Set.cs" />

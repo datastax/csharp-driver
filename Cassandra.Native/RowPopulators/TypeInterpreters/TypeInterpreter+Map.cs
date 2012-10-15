@@ -20,7 +20,7 @@ namespace Cassandra.Native
                 var value_type = TypeInerpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
                 int count = ConversionHelper.FromBytestToUInt16(value, 0);
                 int idx = 2;
-                var openType = typeof(Dictionary<,>);
+                var openType = typeof(SortedDictionary<,>);
                 var dicType = openType.MakeGenericType(key_type, value_type);
                 object ret = Activator.CreateInstance(dicType);
                 var addM = dicType.GetMethod("Add");

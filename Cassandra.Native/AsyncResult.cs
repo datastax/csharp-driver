@@ -157,6 +157,7 @@ namespace Cassandra.Native.Internal
         #region Implementation of IAsyncResult
 
         public Object AsyncState { get { return m_AsyncState; } }
+        public Object AsyncOwner { get { return m_owner; } }
 
         public bool CompletedSynchronously
         {

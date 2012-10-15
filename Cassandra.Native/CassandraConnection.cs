@@ -9,21 +9,21 @@ using System.Diagnostics;
 
 namespace Cassandra.Native
 {
-    public enum BufferingMode { NoBuffering, FrameBuffering }
+    internal enum BufferingMode { NoBuffering, FrameBuffering }
     public delegate IDictionary<string, string> CredentialsDelegate(string Authenticator);
     public enum CassandraCompressionType { NoCompression, Snappy }
 
-    public partial class CassandraConnection : ICassandraConnection
+    internal partial class CassandraConnection 
     {
 
         EndPoint serverAddress;
-        Wrapper<Socket> socket = new Wrapper<Socket>(null);
-        Stack<int> freeStreamIDs = new Stack<int>();
-        Locked<bool> isStreamOpened = new Locked<bool>(false);
+        Guarded<Socket> socket = new Guarded<Socket>(null);
+        Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
+        AtomicValue<bool> isStreamOpened = new AtomicValue<bool>(false);
 
-        volatile Action<ResponseFrame>[] frameReadCallback = new Action<ResponseFrame>[sbyte.MaxValue + 1];
-        volatile Action<ResponseFrame> frameEventCallback = null;
-        volatile Internal.AsyncResult<IOutput>[] frameReadAsyncResult = new Internal.AsyncResult<IOutput>[sbyte.MaxValue + 1];
+        AtomicValue<Action<ResponseFrame>> frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
+        AtomicArray<Action<ResponseFrame>> frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
+        AtomicArray<Internal.AsyncResult<IOutput>> frameReadAsyncResult = new AtomicArray<Internal.AsyncResult<IOutput>>(sbyte.MaxValue + 1);
 
         struct ErrorActionParam
         {
@@ -35,24 +35,17 @@ namespace Cassandra.Native
         Action<ErrorActionParam> ProtocolErrorHandlerAction;
 
         CredentialsDelegate credentialsDelegate;
-        CassandraClient client;
 
-        internal CassandraConnection(CassandraClient client, IPEndPoint serverAddress, CredentialsDelegate credentialsDelegate = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, BufferingMode mode = BufferingMode.FrameBuffering, int abortTimeout = Timeout.Infinite)
+        internal CassandraConnection(IPEndPoint serverAddress, CredentialsDelegate credentialsDelegate = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite)
         {
-            this.client = client;
             bufferingMode = null;
-            switch (mode)
+            switch (compression)
             {
-                case BufferingMode.FrameBuffering:
+                case CassandraCompressionType.Snappy:
                     bufferingMode = new FrameBuffering();
                     break;
-                case BufferingMode.NoBuffering:
-                    {
-                        if (compression != CassandraCompressionType.NoCompression)
-                            throw new InvalidOperationException();
-
-                        bufferingMode = new NoBuffering();
-                    }
+                case CassandraCompressionType.NoCompression:
+                    bufferingMode = new NoBuffering();
                     break;
                 default:
                     throw new InvalidOperationException();
@@ -68,11 +61,16 @@ namespace Cassandra.Native
             this.abortTimeout = abortTimeout;
             abortTimer = new Timer(abortTimerProc, null, Timeout.Infinite, Timeout.Infinite);
             createConnection();
+            again();
         }
 
         private void createConnection()
         {
-            for (int i = 0; i < 127; i++) freeStreamIDs.Push(i);
+            lock (freeStreamIDs)
+            {
+                for (int i = 0; i <= sbyte.MaxValue; i++)
+                    freeStreamIDs.Value.Push(i);
+            }
 
             ProtocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
                {
@@ -82,7 +80,7 @@ namespace Cassandra.Native
                            (param.Response as ErrorResponse).Output);
                });
 
-            frameEventCallback = new Action<ResponseFrame>(EventOccured);
+            frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
 
             buffer = new byte[][] { 
                     new byte[bufferingMode.PreferedBufferSize()], 
@@ -108,8 +106,8 @@ namespace Cassandra.Native
             lock (freeStreamIDs)
             {
                 while (true)
-                    if (freeStreamIDs.Count > 0)
-                        return freeStreamIDs.Pop();
+                    if (freeStreamIDs.Value.Count > 0)
+                        return freeStreamIDs.Value.Pop();
                     else
                         Monitor.Wait(freeStreamIDs);
             }
@@ -119,7 +117,7 @@ namespace Cassandra.Native
         {
             lock (freeStreamIDs)
             {
-                freeStreamIDs.Push(streamId);
+                freeStreamIDs.Value.Push(streamId);
                 Monitor.Pulse(freeStreamIDs);
             }
         }
@@ -215,7 +213,7 @@ namespace Cassandra.Native
 
         int abortTimeout = Timeout.Infinite;
 
-        Wrapper<bool> processed = new Wrapper<bool>(false);
+        Guarded<bool> processed = new Guarded<bool>(false);
 
         private void abortTimerProc(object _)
         {
@@ -254,7 +252,7 @@ namespace Cassandra.Native
                 {
                 }
                 readerSocketExceptionOccured = true;
-                client.PulseReadyToRead(this);
+                again();
             }
         }        
 
@@ -295,46 +293,43 @@ namespace Cassandra.Native
                         }
                         else
                         {
-                            lock (client.DispatchSync)
+                            foreach (var frame in bufferingMode.Process(buffer[bufNo], bytesReadCount, readerSocketStream, compressor))
                             {
-                                foreach (var frame in bufferingMode.Process(buffer[bufNo], bytesReadCount, readerSocketStream, compressor))
+                                Action<ResponseFrame> act = null;
+                                if (frame.FrameHeader.streamId == 0xFF)
+                                    act = frameEventCallback.Value;
+                                else
+                                    act = frameReadCallback[frame.FrameHeader.streamId];
+
+                                if (act == null)
+                                    throw new InvalidOperationException();
+
+                                act.BeginInvoke(frame, (tar) =>
                                 {
-                                    Action<ResponseFrame> act = null;
-                                    if (frame.FrameHeader.streamId == 0xFF)
-                                        act = frameEventCallback;
-                                    else
-                                        act = frameReadCallback[frame.FrameHeader.streamId];
-
-                                    if (act == null)
-                                        throw new InvalidOperationException();
-
-                                    act.BeginInvoke(frame, (tar) =>
+                                    Debug.WriteLine("! act.BeginInvoke");
+                                    try
                                     {
-                                        Debug.WriteLine("! act.BeginInvoke");
-                                        try
+                                        (tar.AsyncState as Action<ResponseFrame>).EndInvoke(tar);
+                                        Debug.WriteLine("! act.EndInvoke");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.WriteLine(ex.Message, "CassandraConnection.BeginReading");
+                                        if (setupReaderException(ex))
                                         {
-                                            (tar.AsyncState as Action<ResponseFrame>).EndInvoke(tar);
-                                            Debug.WriteLine("! act.EndInvoke");
+                                            bufferingMode.Close();
+                                            readerSocketExceptionOccured = true;
                                         }
-                                        catch (Exception ex)
-                                        {
-                                            Debug.WriteLine(ex.Message, "CassandraConnection.BeginReading");
-                                            if (setupReaderException(ex))
-                                            {
-                                                bufferingMode.Close();
-                                                readerSocketExceptionOccured = true;
-                                            }
-                                        }
-                                        finally
-                                        {
-                                            if (!(bufferingMode is FrameBuffering))
-                                                client.PulseReadyToRead(this);
-                                        }
-                                    }, act);
+                                    }
+                                    finally
+                                    {
+                                        if (!(bufferingMode is FrameBuffering))
+                                            again();
+                                    }
+                                }, act);
 
-                                }
-                                bufNo = 1 - bufNo;
                             }
+                            bufNo = 1 - bufNo;
                         }
                     }
                     catch (Exception ex)
@@ -346,12 +341,12 @@ namespace Cassandra.Native
                             readerSocketExceptionOccured = true;
                         }
                         if (!(bufferingMode is FrameBuffering))
-                            client.PulseReadyToRead(this);
+                            again();
                     }
                     finally
                     {
                         if (bufferingMode is FrameBuffering)
-                            client.PulseReadyToRead(this);
+                            again();
                     }
                 }), null);
 
@@ -381,7 +376,7 @@ namespace Cassandra.Native
             return (ex.InnerException != null && ex.InnerException is SocketException) || ex is IOCassandraException;
         }
 
-        Wrapper<bool> alreadyDisposed = new Wrapper<bool>(false);
+        Guarded<bool> alreadyDisposed = new Guarded<bool>(false);
 
         private bool setupWriterException(Exception ex, int streamId, Internal.AsyncResult<IOutput> ar)
         {
@@ -404,7 +399,6 @@ namespace Cassandra.Native
                 if (alreadyDisposed.Value)
                     return;
 
-                client.CloseConnection(this);
                 lock (socket)
                     if (socket.Value != null)
                     {
@@ -427,6 +421,19 @@ namespace Cassandra.Native
             }
         }
 
+        private void again()
+        {
+            if (IsHealthy)
+            {
+                BeginReading();
+            }
+            else
+            {
+                Debug.WriteLine("!!!!");
+            }
+        }
+
+
         ~CassandraConnection()
         {
             Dispose();
@@ -440,9 +447,11 @@ namespace Cassandra.Native
                 frameReadAsyncResult[streamId] = ar;
 
                 var frame = req.GetFrame();
-                socketStream.Write(frame.buffer, 0, frame.buffer.Length);
-                socketStream.Flush();
-
+                lock (socketStream)
+                {
+                    socketStream.Write(frame.buffer, 0, frame.buffer.Length);
+                    socketStream.Flush();
+                }
             }
             catch (Exception ex)
             {

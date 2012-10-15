@@ -22,5 +22,7 @@ namespace Cassandra.Native
             checkArgument<float>(value);
             return BitConverter.GetBytes((float)value);
         }
+
+
     }
 }

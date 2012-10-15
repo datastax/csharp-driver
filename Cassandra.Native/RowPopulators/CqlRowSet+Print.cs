@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Cassandra.Native
 {
-    public partial class CqlRowsPopulator
+    public partial class CqlRowSet
     {
         public delegate string CellEncoder(object val);
 
@@ -44,6 +44,15 @@ namespace Cassandra.Native
                     else
                         stream.Write(delim);
 
+                    if (row[j].GetType().IsGenericType && row[j] is System.Collections.IEnumerable)
+                        cellEncoder = delegate(object collection)
+                        {
+                            string result = String.Empty;
+                            foreach (var val in (collection as System.Collections.IEnumerable))
+                                result += val.ToString() + ",";
+                            return result.Substring(0,result.Length-1);
+                        };
+                    
                     stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
                 }
                 stream.Write(rowDelim);

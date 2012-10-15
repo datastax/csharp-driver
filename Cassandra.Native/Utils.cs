@@ -3,23 +3,66 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Globalization;
+using System.Threading;
 
 namespace Cassandra.Native
 {
-    internal class Locked<T>
+    internal class AtomicValue<T>
     {
         T val;
-        public Locked(T val)
+        public AtomicValue(T val)
         {
             this.val = val;
+            Thread.MemoryBarrier();
         }
-        public T Value { get { lock (this) return val; } set { lock (this) val = value; } }
+        public T Value
+        {
+            get
+            {
+                Thread.MemoryBarrier();
+                var r = this.val;
+                Thread.MemoryBarrier();
+                return r;
+            }
+            set
+            {
+                Thread.MemoryBarrier();
+                this.val = value;
+                Thread.MemoryBarrier();
+            }
+        }
     }
 
-    internal class Wrapper<T>
+    internal class AtomicArray<T>
+    {
+        T[] arr = null;
+        public AtomicArray(int size)
+        {
+            arr = new T[size];
+            Thread.MemoryBarrier();
+        }
+        public T this[int idx]
+        {
+            get
+            {
+                Thread.MemoryBarrier();
+                var r = this.arr[idx];
+                Thread.MemoryBarrier();
+                return r;
+            }
+            set
+            {
+                Thread.MemoryBarrier();
+                arr[idx] = value;
+                Thread.MemoryBarrier();
+            }
+        }
+    }
+
+    internal class Guarded<T>
     {
         T val;
-        public Wrapper(T val)
+        public Guarded(T val)
         {
             this.val = val;
         }

@@ -10,56 +10,53 @@ using System.Globalization;
 
 namespace Cassandra.Native.Test
 {        
-    public class NativeBasicTests : MyUTExt.CommonBasicTests
+    public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
-        public NativeBasicTests() : base(false,true)
-        {            
-        }
-
-        [Fact]
-        public void testDecimal()
+        public CommonBasicTests() : base(false)
         {
-            inputingSingleValue(typeof(System.Decimal));
+            System.Globalization.CultureInfo ci = new System.Globalization.CultureInfo("en-GB");
+            System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
 
         [Fact]
         public void testASCII()
         {
-            inputingSingleValue(typeof(Char));
+            insertingSingleValue(typeof(Char));
         }
-
-        [Fact]
-        public void testVarInt()
-        {
-            inputingSingleValue(typeof(BigInteger));
-        }
-
         [Fact]
         public void Test()
         {
             base.Test();
         }
-
+        [Fact]
+        public void testDecimal()
+        {
+            insertingSingleValue(typeof(System.Decimal));
+        }
+        [Fact]
+        public void testVarInt()
+        {
+            insertingSingleValue(typeof(BigInteger));
+        }
         [Fact]
         public void testBigInt()
         {
-            base.inputingSingleValue(typeof(System.Int64));
+            base.insertingSingleValue(typeof(System.Int64));
         }
-
         [Fact]
         public void testDouble()
         {
-            base.inputingSingleValue(typeof(System.Double));
+            base.insertingSingleValue(typeof(System.Double));
         }
         [Fact]
         public void testFloat()
         {
-            base.inputingSingleValue(typeof(System.Single));
+            base.insertingSingleValue(typeof(System.Single));
         }
         [Fact]
         public void testInt()
         {
-            base.inputingSingleValue(typeof(System.Int32));
+            base.insertingSingleValue(typeof(System.Int32));
         }
 
 
@@ -90,6 +87,7 @@ namespace Cassandra.Native.Test
         {
             base.TimestampTest();
         }
+
         [Fact]
         public void ExceedingCassandra_INT()
         {
@@ -99,6 +97,6 @@ namespace Cassandra.Native.Test
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Double), false);
-        }                      
+        }
     }
 }

@@ -15,14 +15,16 @@ namespace Cassandra.Native
         public Metadata.ColumnInfo DataTypeInfo;
     }
 
-    public partial class CqlRowsPopulator
+    public partial class CqlRowSet : IDisposable
     {
         OutputRows rawrows;
         CqlColumn[] columns;
+        bool ownRows;
 
-        public CqlRowsPopulator(OutputRows rawrows)
+        public CqlRowSet(OutputRows rawrows, bool ownRows=true)
         {
             this.rawrows = rawrows;
+            this.ownRows = ownRows;
             columns = new CqlColumn[rawrows.Metadata.Columns.Length];
             for (int i = 0; i < rawrows.Metadata.Columns.Length; i++)
             {
@@ -48,6 +50,11 @@ namespace Cassandra.Native
             }
         }
 
+        public int RowsCount
+        {
+            get { return rawrows.Rows; }
+        }
+
         public IEnumerable<CqlRow> GetRows()
         {
             for (int i = 0; i < rawrows.Rows; i++)
@@ -56,5 +63,11 @@ namespace Cassandra.Native
             }
         }
 
+
+        public void Dispose()
+        {
+            if (ownRows)
+                rawrows.Dispose();
+        }
     }
 }

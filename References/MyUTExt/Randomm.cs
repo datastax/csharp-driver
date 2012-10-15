@@ -43,7 +43,10 @@ namespace MyUTExt
         {
             return new BigInteger(Int64.MaxValue) * 10;
         }
-
+        public string NextString()
+        {
+            return NextChar();
+        }
         public string NextChar()
         {            
             string asciiString = String.Empty;
@@ -55,7 +58,9 @@ namespace MyUTExt
 
             return asciiString;
         }
-
-
+        public DateTimeOffset NextDateTimeOffset()
+        {
+            return DateTimeOffset.Now.DateTime;
+        }
     }
 }

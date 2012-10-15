@@ -9,14 +9,14 @@ namespace Cassandra.Native.Test
     public class MTTests : MyUTExt.CommonBasicTests 
     {        
         public MTTests()
-            : base(false, true)
+            : base(false)
         {
         }
 
-        [Fact]
-        public void ConnectionsTestBufferedCompressed()
-        {
-            ConnectionsTest();
-        }     
+        //[Fact]
+        //public void ConnectionsTestBufferedCompressed()
+        //{
+        //    ConnectionsTest();
+        //}     
     }
 }

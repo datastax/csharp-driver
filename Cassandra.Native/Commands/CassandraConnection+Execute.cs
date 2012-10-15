@@ -4,13 +4,13 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public partial class CassandraConnection : IDisposable
+    internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteExecute(int Id, Metadata Metadata, object[] values, AsyncCallback callback, object state)
+        public IAsyncResult BeginExecuteQuery(int Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, object owner)
         {
             var socketStream = CreateSocketStream();
 
-            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, this, "EXECUTE");
+            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, owner, "EXECUTE");
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
@@ -28,16 +28,16 @@ namespace Cassandra.Native
             return ar;
         }
 
-        public IOutput EndExecuteExecute(IAsyncResult result)
+        public IOutput EndExecuteQuery(IAsyncResult result, object owner)
         {
-            return Internal.AsyncResult<IOutput>.End(result, this, "EXECUTE");
+            return Internal.AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteExecute(int Id, Metadata Metadata, object[] values)
+        public IOutput ExecuteQuery(int Id, Metadata Metadata, object[] values)
         {
-            var r = BeginExecuteExecute(Id, Metadata, values, null, null);
+            var r = BeginExecuteQuery(Id, Metadata, values, null, null, this);
             r.AsyncWaitHandle.WaitOne();
-            return EndExecuteExecute(r);
+            return EndExecuteQuery(r, this);
         }
     }
 }

@@ -5,13 +5,13 @@ using System.Threading;
 
 namespace Cassandra.Native
 {
-    public partial class CassandraConnection : IDisposable
+    internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteQuery(string cqlQuery, AsyncCallback callback, object state)
+        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
         {
             var socketStream = CreateSocketStream();
 
-            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, this, "QUERY");
+            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, owner, "QUERY");
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
@@ -29,16 +29,16 @@ namespace Cassandra.Native
             return ar;
         }
 
-        public IOutput EndExecuteQuery(IAsyncResult result)
+        public IOutput EndQuery(IAsyncResult result, object owner)
         {
-            return Internal.AsyncResult<IOutput>.End(result, this, "QUERY");
+            return Internal.AsyncResult<IOutput>.End(result, owner, "QUERY");
         }
 
-        public IOutput ExecuteQuery(string cqlQuery)
+        public IOutput Query(string cqlQuery)
         {
-            var r = BeginExecuteQuery(cqlQuery, null, null);
+            var r = BeginQuery(cqlQuery, null, null, this);
             r.AsyncWaitHandle.WaitOne();
-            return EndExecuteQuery(r);
+            return EndQuery(r, this);
         }
     }
 }

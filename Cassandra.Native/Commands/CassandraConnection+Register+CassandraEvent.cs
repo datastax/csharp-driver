@@ -17,7 +17,7 @@ namespace Cassandra.Native
     [Flags]
     public enum CassandraEventType { TopologyChange = 0x01, StatusChange = 0x02 }
 
-    public partial class CassandraConnection : IDisposable
+    internal partial class CassandraConnection : IDisposable
     {
 
         public event CassandraEventHandler CassandraEvent;
@@ -25,20 +25,20 @@ namespace Cassandra.Native
         private void EventOccured(ResponseFrame frame)
         {
             var response = FrameParser.Parse(frame);
-            if(response is EventResponse)
+            if (response is EventResponse)
             {
-                if(CassandraEvent!=null)
+                if (CassandraEvent != null)
                     CassandraEvent.Invoke(this, (response as EventResponse).CassandraEventArgs);
                 return;
             }
             throw new InvalidOperationException();
         }
 
-        public IAsyncResult BeginRegisterForCassandraEvent(CassandraEventType eventTypes, AsyncCallback callback, object state)
+        public IAsyncResult BeginRegisterForCassandraEvent(CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
         {
             var socketStream = CreateSocketStream();
 
-            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, this, "REGISTER");
+            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, owner, "REGISTER");
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
@@ -56,16 +56,16 @@ namespace Cassandra.Native
             return ar;
         }
 
-        public IOutput EndRegisterForCassandraEvent(IAsyncResult result)
+        public IOutput EndRegisterForCassandraEvent(IAsyncResult result, object owner)
         {
-            return Internal.AsyncResult<IOutput>.End(result, this, "REGISTER");
+            return Internal.AsyncResult<IOutput>.End(result, owner, "REGISTER");
         }
 
         public IOutput RegisterForCassandraEvent(CassandraEventType eventTypes)
         {
-            var r = BeginRegisterForCassandraEvent(eventTypes, null, null);
+            var r = BeginRegisterForCassandraEvent(eventTypes, null, null, this);
             r.AsyncWaitHandle.WaitOne();
-            return EndRegisterForCassandraEvent(r);
+            return EndRegisterForCassandraEvent(r, this);
         }
     }
 }
