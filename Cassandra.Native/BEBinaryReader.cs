@@ -26,6 +26,13 @@ namespace Cassandra.Native
             return (ushort)((_buffer[0] << 8) | (_buffer[1] & 0xff));
         }
 
+        public short ReadInt16()
+        {
+            _stream.Read(_buffer, 0, 2);
+            return (short)((_buffer[0] << 8) | (_buffer[1] & 0xff)); 
+        }
+
+
         public int ReadInt32()
         {
             _stream.Read(_buffer, 0, 4);

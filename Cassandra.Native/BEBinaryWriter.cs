@@ -25,6 +25,15 @@ namespace Cassandra.Native
             _base.Write(bytes[0]);
         }
 
+        public void WriteInt16(short value)
+        {
+            byte[] bytes = BitConverter.GetBytes(value);
+            Debug.Assert(bytes.Length == 2);
+
+            _base.Write(bytes[1]);
+            _base.Write(bytes[0]);
+        }
+
         public void WriteInt32(int value)
         {
             byte[] bytes = BitConverter.GetBytes(value);

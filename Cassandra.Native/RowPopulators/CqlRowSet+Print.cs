@@ -7,7 +7,7 @@ namespace Cassandra.Native
 {
     public partial class CqlRowSet
     {
-        public delegate string CellEncoder(object val);
+        public delegate string CellEncoder(object val);                
 
         public void PrintTo(TextWriter stream,
             string delim = "\t|",
@@ -16,7 +16,7 @@ namespace Cassandra.Native
             bool printFooter = true,
             string separ = "-------------------------------------------------------------------------------",
             string lasLFrm = "Returned {0} rows.",
-            CellEncoder cellEncoder = null
+            CellEncoder cellEncoder = null             
             )
         {
             if (printHeader)
@@ -46,11 +46,11 @@ namespace Cassandra.Native
 
                     if (row[j].GetType().IsGenericType && row[j] is System.Collections.IEnumerable)
                         cellEncoder = delegate(object collection)
-                        {
-                            string result = String.Empty;
+                        {                            
+                            string result = "<Collection>";
                             foreach (var val in (collection as System.Collections.IEnumerable))
                                 result += val.ToString() + ",";
-                            return result.Substring(0,result.Length-1);
+                            return result.Substring(0, result.Length - 1) + "</Collection>";
                         };
                     
                     stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
@@ -64,7 +64,7 @@ namespace Cassandra.Native
                 stream.Write(rowDelim);
                 stream.Write(string.Format(lasLFrm, i));
                 stream.Write(rowDelim);
-            }
+            }            
         }
     }
 }

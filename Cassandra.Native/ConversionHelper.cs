@@ -80,5 +80,17 @@ namespace Cassandra.Native
             return bytes;
         }
 
+        public static short FromBytestToInt16(byte[] _buffer, int idx)
+        {
+            return (short)((_buffer[idx] << 8) | (_buffer[idx + 1] & 0xff));
+        }
+
+        public static byte[] ToBytesFromInt16(short value)
+        {
+            byte[] bytes = BitConverter.GetBytes((short)value);
+            Array.Reverse(bytes);
+            return bytes;
+        }
+
     }
 }

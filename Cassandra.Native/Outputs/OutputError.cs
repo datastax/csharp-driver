@@ -19,7 +19,8 @@ namespace Cassandra.Native
         Unauthorized = 0x2100,
         Invalid = 0x2200,
         ConfigError = 0x2300,
-        AlreadyExists = 0x2400
+        AlreadyExists = 0x2400,
+        Unprepared = 0x2500
     }
 
     public abstract class OutputError : IOutput, IWaitableForDispose
@@ -124,12 +125,16 @@ namespace Cassandra.Native
         public string ConsistencyLevel;
         public int Received;
         public int BlockFor;
+        public string WriteType;
+
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             ConsistencyLevel = cb.ReadString();
             Received = cb.ReadInt32();
             BlockFor = cb.ReadInt32();
+            WriteType = cb.ReadString();
         }
+
         public override CassandraException CreateException()
         {
             return new CassandraOutputException<OutputWriteTimeout>(this);
@@ -199,6 +204,20 @@ namespace Cassandra.Native
         public override CassandraException CreateException()
         {
             return new CassandraOutputException<OutputAlreadyExists>(this);
+        }
+    }
+
+    public class OutputUnprepared : OutputError
+    {
+        public byte[] UnknownID;
+        internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
+        {
+            UnknownID = new byte[2];
+            cb.Read(UnknownID,0,2);       
+        }
+        public override CassandraException CreateException()
+        {
+            return new CassandraOutputException<OutputUnprepared>(this);
         }
     }
 

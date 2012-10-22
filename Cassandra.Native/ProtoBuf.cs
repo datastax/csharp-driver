@@ -64,6 +64,8 @@ namespace Cassandra.Native
 
         public void Read(byte[] buffer, int offset, int count)
         {
+            if (count == 0) return;
+
             if (ioError) throw new IOCassandraException();
 
             int curOffset = offset;
@@ -179,6 +181,7 @@ namespace Cassandra.Native
 
         public void Read(byte[] buffer, int offset, int count)
         {
+            if (count == 0) return;
             lock (guard)
             {
                 if (writePos == -1) throw new IOCassandraException();

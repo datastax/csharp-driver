@@ -6,7 +6,7 @@ namespace Cassandra.Native
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteQuery(int Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, object owner)
         {
             var socketStream = CreateSocketStream();
 
@@ -33,7 +33,7 @@ namespace Cassandra.Native
             return Internal.AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteQuery(int Id, Metadata Metadata, object[] values)
+        public IOutput ExecuteQuery(byte[] Id, Metadata Metadata, object[] values)
         {
             var r = BeginExecuteQuery(Id, Metadata, values, null, null, this);
             r.AsyncWaitHandle.WaitOne();

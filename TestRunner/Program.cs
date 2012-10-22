@@ -26,8 +26,6 @@ namespace TestRunner
 
         static void Main(string[] args)
         {
-
-
             var mysetting = new Dev.SettingsFixture();
             var setting = new MySettings();           
             mysetting.Initialize(setting);

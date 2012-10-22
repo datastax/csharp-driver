@@ -83,6 +83,7 @@
     <Compile Include="Outputs\OutputOptions.cs" />
     <Compile Include="Outputs\Metadata.cs" />
     <Compile Include="Outputs\OutputPrepared.cs" />
+    <Compile Include="Outputs\OutputSchemaChange.cs" />
     <Compile Include="Outputs\OutputVoid.cs" />
     <Compile Include="Outputs\OutputSetKeyspace.cs" />
     <Compile Include="Outputs\OutputError.cs" />

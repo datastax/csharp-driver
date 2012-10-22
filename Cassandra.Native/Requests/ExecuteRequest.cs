@@ -10,10 +10,10 @@ namespace Cassandra.Native
 
         int streamId;
         object[] values;
-        int id;
+        byte[] id;
         Metadata Metadata;
 
-        public ExecuteRequest(int streamId, int Id, Metadata Metadata, object[] values)
+        public ExecuteRequest(int streamId, byte[] Id, Metadata Metadata, object[] values)
         {
             this.streamId = streamId;
             this.values = values;
@@ -24,7 +24,8 @@ namespace Cassandra.Native
         {
             BEBinaryWriter wb = new BEBinaryWriter();
             wb.WriteFrameHeader(0x01, 0x00, (byte)streamId, OpCode);
-            wb.WriteInt32(id);
+            wb.WriteInt16((short)id.Length);
+            wb.WriteBytes(id);
             wb.WriteUInt16((ushort) values.Length);
             for(int i =0;i<Metadata.Columns.Length;i++)
             {

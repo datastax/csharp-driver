@@ -109,7 +109,7 @@ namespace Cassandra.Native
                     if (freeStreamIDs.Value.Count > 0)
                         return freeStreamIDs.Value.Pop();
                     else
-                        Monitor.Wait(freeStreamIDs);
+                        return -1;
             }
         }
 
@@ -118,7 +118,6 @@ namespace Cassandra.Native
             lock (freeStreamIDs)
             {
                 freeStreamIDs.Value.Push(streamId);
-                Monitor.Pulse(freeStreamIDs);
             }
         }
 
@@ -144,9 +143,16 @@ namespace Cassandra.Native
 
         static FrameParser FrameParser = new FrameParser();
 
+        internal class StreamAllocationException : Exception
+        {
+        }
+
         private void BeginJob(Internal.AsyncResult<IOutput> ar, Action<int> job, NetworkStream socketStream, bool startup = true)
         {
             var streamId = allocateStreamId();
+            if (streamId == -1)
+                throw new StreamAllocationException();
+
             try
             {
                 if (startup && !isStreamOpened.Value)

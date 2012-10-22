@@ -18,7 +18,7 @@ namespace Cassandra.Native
                 var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
                 var key_type = TypeInerpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInerpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
-                int count = ConversionHelper.FromBytestToUInt16(value, 0);
+                int count = ConversionHelper.FromBytestToInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(SortedDictionary<,>);
                 var dicType = openType.MakeGenericType(key_type, value_type);
@@ -26,13 +26,13 @@ namespace Cassandra.Native
                 var addM = dicType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    var key_buf_len = ConversionHelper.FromBytestToUInt16(value, idx);
+                    var key_buf_len = ConversionHelper.FromBytestToInt16(value, idx);
                     idx += 2;
                     byte[] key_buf = new byte[key_buf_len];
                     Buffer.BlockCopy(value, idx, key_buf, 0, key_buf_len);
                     idx += key_buf_len;
 
-                    var value_buf_len = ConversionHelper.FromBytestToUInt16(value, idx);
+                    var value_buf_len = ConversionHelper.FromBytestToInt16(value, idx);
                     idx += 2;
                     byte[] value_buf = new byte[value_buf_len];
                     Buffer.BlockCopy(value, idx, value_buf, 0, value_buf_len);
@@ -103,7 +103,7 @@ namespace Cassandra.Native
             }
             var ret = new byte[bsize];
 
-            var cntbuf = ConversionHelper.ToBytesFromUInt16((ushort)cnt);
+            var cntbuf = ConversionHelper.ToBytesFromInt16((short)cnt); // short or ushort ? 
 
             int idx = 0;
             Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);

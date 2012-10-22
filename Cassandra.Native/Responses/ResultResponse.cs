@@ -6,7 +6,7 @@ namespace Cassandra.Native
 {
     internal class ResultResponse : IResponse
     {
-        public enum ResultResponseKind { Void = 1, Rows = 2, SetKeyspace = 3, Prepared = 4 };
+        public enum ResultResponseKind { Void = 1, Rows = 2, SetKeyspace = 3, Prepared = 4, SchemaChange = 5 };
 
         public const byte OpCode = 0x08;
         public ResultResponseKind Kind;
@@ -28,6 +28,9 @@ namespace Cassandra.Native
                     break;
                 case ResultResponseKind.Prepared:
                     Output = new OutputPrepared(rd);
+                    break;
+                case ResultResponseKind.SchemaChange:
+                    Output = new OutputSchemaChange(rd);
                     break;
                 default:
                     throw new InvalidOperationException();

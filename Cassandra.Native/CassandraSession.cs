@@ -17,10 +17,9 @@ namespace Cassandra.Native
 
         List<string> loadedClusterEndpoints;
         List<string> upClusterEndpoints;
-        Queue<WeakReference<CassandraConnection>> connectionQueue = new Queue<WeakReference<CassandraConnection>>();
-        int createdConnections = 0;
+        List<WeakReference<CassandraConnection>> connectionPool = new List<WeakReference<CassandraConnection>>();
         int maxConnectionsInPool = int.MaxValue;
-        string keyspace = "";
+        string keyspace = string.Empty;
 
         CassandraConnection eventRaisingConnection = null;
 
@@ -40,15 +39,7 @@ namespace Cassandra.Native
 
             this.credentialsDelegate = credentialsDelegate;
             this.keyspace = keyspace;
-            var conn = connect();
-            try
-            {
-                setupEventListeners(conn);
-            }
-            finally
-            {
-                releaseConnection(conn);
-            }
+            setupEventListeners(connect());
         }
 
         private void setupEventListeners(CassandraConnection nconn)
@@ -78,18 +69,32 @@ namespace Cassandra.Native
         {
             checkDisposed();
 
-            lock (connectionQueue)
+            lock (connectionPool)
             {
             retry:
-                if (connectionQueue.Count > 0)
+                if (connectionPool.Count > 0)
                 {
-                    var conn = connectionQueue.Dequeue();
+                    var conn = connectionPool[StaticRandom.Instance.Next(connectionPool.Count)];
                     if (!conn.IsAlive)
+                    {
+                        connectionPool.Remove(conn);
                         goto retry;
-                    return conn.Value;
+                    }
+                    else
+                    {
+                        if (!conn.Value.IsHealthy)
+                        {
+                            var recoveryEvents = (eventRaisingConnection == conn.Value);
+                            conn.Value.Dispose();
+                            connectionPool.Remove(conn);
+                            if (recoveryEvents)
+                                setupEventListeners(connect());
+                            goto retry;
+                        }
+                        else
+                            return conn.Value;
+                    }
                 }
-                if (createdConnections >= maxConnectionsInPool - 1)
-                    throw new InvalidOperationException();
             }
 
             IPEndPoint endPoint = null;
@@ -106,7 +111,8 @@ namespace Cassandra.Native
 
                 if (!string.IsNullOrEmpty(keyspace))
                 {
-                    var outp = nconn.Query("USE \"" + keyspace.Replace("\"", "\"\""));
+                    if (processScallar(nconn.Query("USE " + CqlQueryTools.CqlIdentifier(keyspace))).ToString() != keyspace)
+                        throw new InvalidOperationException();
                 }
 
             }
@@ -118,36 +124,34 @@ namespace Cassandra.Native
                 throw new CassandraConnectionException("Cannot connect", ex);
             }
 
-            lock (connectionQueue)
+            lock (connectionPool)
             {
-                createdConnections++;
+                connectionPool.Add(new WeakReference<CassandraConnection>(nconn));
                 return nconn;
             }
         }
 
-        private void releaseConnection(CassandraConnection conn)
+        public void ChangeKeyspace(string keyspace)
         {
-            lock (connectionQueue)
+            lock (connectionPool)
             {
-                if (conn.IsHealthy)
-                    connectionQueue.Enqueue(new WeakReference<CassandraConnection>(conn));
-                else
+                foreach (var conn in connectionPool)
                 {
-                    if (eventRaisingConnection == conn)
+                    if (conn.IsAlive && conn.Value.IsHealthy)
                     {
-                        var nconn = connect();
+                    retry:
                         try
                         {
-                            setupEventListeners(nconn);
+                            if (processScallar(conn.Value.Query("USE \"" + keyspace.Replace("\"", "\"\"") + "\"")).ToString() != keyspace)
+                                throw new InvalidOperationException();
                         }
-                        finally
+                        catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
                         {
-                            releaseConnection(nconn);
+                            goto retry;
                         }
                     }
-                    createdConnections--;
-                    conn.Dispose();
                 }
+                this.keyspace = keyspace;
             }
         }
 
@@ -189,15 +193,10 @@ namespace Cassandra.Native
                 if (alreadyDisposed.Value)
                     return;
                 alreadyDisposed.Value = true;
-                lock (connectionQueue)
+                lock (connectionPool)
                 {
-                    if (createdConnections != connectionQueue.Count)
+                    foreach (var conn in connectionPool)
                     {
-                        throw new InvalidOperationException();
-                    }
-                    while (connectionQueue.Count > 0)
-                    {
-                        var conn = connectionQueue.Dequeue();
                         if (conn.IsAlive)
                             conn.Value.Dispose();
                     }
@@ -213,7 +212,6 @@ namespace Cassandra.Native
         class ConnectionWrapper
         {
             public CassandraConnection connection;
-            public bool delayedRelease;
         }
 
         private void processNonQuery(IOutput outp)
@@ -223,6 +221,8 @@ namespace Cassandra.Native
                 if (outp is OutputError)
                     throw (outp as OutputError).CreateException();
                 else if (outp is OutputVoid)
+                    return;
+                else if (outp is OutputSchemaChange)
                     return;
                 else
                     throw new InvalidOperationException();
@@ -243,7 +243,6 @@ namespace Cassandra.Native
                     throw new InvalidOperationException();
             }
         }
-
 
         private CqlRowSet processRowset(IOutput outp)
         {
@@ -266,208 +265,173 @@ namespace Cassandra.Native
                 throw new InvalidOperationException();
         }
 
-        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state, bool delayedRelease = false)
+        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state)
         {
-            var c = new ConnectionWrapper() { connection = connect(), delayedRelease = delayedRelease };
+        retry:
             try
             {
+                var c = new ConnectionWrapper() { connection = connect() };
                 return c.connection.BeginQuery(cqlQuery, callback, state, c);
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                if (!delayedRelease)
-                    releaseConnection(c.connection);
+                goto retry;
             }
         }
 
         public void EndNonQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                processNonQuery(c.connection.EndQuery(result, c));
-            }
-            finally
-            {
-                if (c.delayedRelease)
-                    releaseConnection(c.connection);
-            }
+            processNonQuery(c.connection.EndQuery(result, c));
         }
 
         public void NonQuery(string cqlQuery)
         {
-            var connection = connect();
+        retry:
             try
             {
+                var connection = connect();
                 processNonQuery(connection.Query(cqlQuery));
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                releaseConnection(connection);
+                goto retry;
             }
         }
-        
-        public IAsyncResult BeginScalar(string cqlQuery, AsyncCallback callback, object state, bool delayedRelease = false)
+
+        public IAsyncResult BeginScalar(string cqlQuery, AsyncCallback callback, object state)
         {
-            var c = new ConnectionWrapper() { connection = connect(), delayedRelease = delayedRelease };
+        retry:
             try
             {
+                var c = new ConnectionWrapper() { connection = connect() };
                 return c.connection.BeginQuery(cqlQuery, callback, state, c);
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                if (!delayedRelease)
-                    releaseConnection(c.connection);
+                goto retry;
             }
         }
 
         public object EndScalar(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                return processScallar(c.connection.EndQuery(result, c));
-            }
-            finally
-            {
-                if (c.delayedRelease)
-                    releaseConnection(c.connection);
-            }
+            return processScallar(c.connection.EndQuery(result, c));
         }
 
         public object Scalar(string cqlQuery)
         {
-            var connection = connect();
+        retry:
             try
             {
+                var connection = connect();
                 return processScallar(connection.Query(cqlQuery));
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                releaseConnection(connection);
+                goto retry;
             }
         }
 
         public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, bool delayedRelease = false)
         {
-            var c = new ConnectionWrapper() { connection = connect(), delayedRelease = delayedRelease };
+        retry:
             try
             {
+                var c = new ConnectionWrapper() { connection = connect() };
                 return c.connection.BeginQuery(cqlQuery, callback, state, c);
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                if (!delayedRelease)
-                    releaseConnection(c.connection);
+                goto retry;
             }
         }
 
         public CqlRowSet EndQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                return processRowset(c.connection.EndQuery(result, c));
-            }
-            finally
-            {
-                if (c.delayedRelease)
-                    releaseConnection(c.connection);
-            }
+            return processRowset(c.connection.EndQuery(result, c));
         }
 
         public CqlRowSet Query(string cqlQuery)
         {
-            var connection = connect();
+        retry:
             try
             {
+                var connection = connect();
                 return processRowset(connection.Query(cqlQuery));
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                releaseConnection(connection);
+                goto retry;
             }
         }
 
         public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, bool delayedRelease = false)
         {
-            var c = new ConnectionWrapper() { connection = connect(), delayedRelease = delayedRelease };
+        retry:
             try
             {
+                var c = new ConnectionWrapper() { connection = connect() };
                 return c.connection.BeginPrepareQuery(cqlQuery, callback, state, c);
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                if (!delayedRelease)
-                    releaseConnection(c.connection);
+                goto retry;
             }
         }
 
         public int EndPrepareQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                return (int)processScallar(c.connection.EndPrepareQuery(result, c));
-            }
-            finally
-            {
-                if (c.delayedRelease)
-                    releaseConnection(c.connection);
-            }
+            return (int)processScallar(c.connection.EndPrepareQuery(result, c));
         }
 
         public int PrepareQuery(string cqlQuery)
         {
-            var connection = connect();
+        retry:
             try
             {
+                var connection = connect();
                 return (int)processScallar(connection.PrepareQuery(cqlQuery));
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                releaseConnection(connection);
+                goto retry;
             }
         }
 
-        public IAsyncResult BeginExecuteQuery(int Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease)
+        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease)
         {
-            var c = new ConnectionWrapper() { connection = connect(), delayedRelease = delayedRelease };
+        retry:
             try
             {
+                var c = new ConnectionWrapper() { connection = connect() };
                 return c.connection.BeginExecuteQuery(Id, Metadata, values, callback, state, c);
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                if (!delayedRelease)
-                    releaseConnection(c.connection);
+                goto retry;
             }
         }
 
         public CqlRowSet EndExecuteQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                return processRowset(c.connection.EndExecuteQuery(result, c));
-            }
-            finally
-            {
-                if (c.delayedRelease)
-                    releaseConnection(c.connection);
-            }
+            return processRowset(c.connection.EndExecuteQuery(result, c));
         }
 
-        public CqlRowSet ExecuteQuery(int Id, Metadata Metadata, object[] values)
+        public CqlRowSet ExecuteQuery(byte[] Id, Metadata Metadata, object[] values)
         {
-            var connection = connect();
+        retry:
             try
             {
+                var connection = connect();
                 return processRowset(connection.ExecuteQuery(Id, Metadata, values));
             }
-            finally
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
-                releaseConnection(connection);
+                goto retry;
             }
         }
     }

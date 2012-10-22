@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Net;
 using System.Globalization;
 using System.Threading;
+
 
 namespace Cassandra.Native
 {
@@ -117,6 +119,26 @@ namespace Cassandra.Native
                 throw new FormatException("Invalid port");
             }
             return new IPEndPoint(ip, port);
+        }
+    }
+
+    public static class CqlQueryTools
+    {
+        static Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
+        public static string CqlIdentifier(string id)
+        {
+            if (!string.IsNullOrEmpty(id))
+            {
+                if (!IdentifierRx.IsMatch(id))
+                {
+                    return "\"" + id.Replace("\"", "\"\"") + "\"";
+                }
+                else
+                {
+                    return id;
+                }
+            }
+            throw new ArgumentException("invalid identifier");
         }
     }
 }

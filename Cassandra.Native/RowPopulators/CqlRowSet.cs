@@ -69,5 +69,10 @@ namespace Cassandra.Native
             if (ownRows)
                 rawrows.Dispose();
         }
+
+        ~CqlRowSet()
+        {
+            Dispose();
+        }
     }
 }
