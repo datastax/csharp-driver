@@ -7,6 +7,7 @@ using System.Net;
 using Cassandra.Native;
 using System.Numerics;
 using System.Globalization;
+using Cassandra;
  
 
 namespace MyUTExt
@@ -110,13 +111,13 @@ namespace MyUTExt
                 return col.ToString();
         }
 
-        public void ExecuteSyncQuery(CassandraSession session, string query, string messageInstead = null)
+        public void ExecuteSyncQuery(CassandraSession session, string query, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, string messageInstead = null)
         {            
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-            using (var ret = session.Query(query))
+            using (var ret = session.Query(query,consistency))
             {                
                 ret.PrintTo(stream: Console.Out, cellEncoder: CellEncoder);                
                 Console.WriteLine("CQL> Done.");
@@ -135,27 +136,38 @@ namespace MyUTExt
             Console.WriteLine("CQL> Done.");
         }
 
-        public void ExecuteSyncNonQuery(CassandraSession session, string query, string messageInstead = null)
+        public void ExecuteSyncNonQuery(CassandraSession session, string query, string messageInstead = null, CqlConsistencyLevel consistency= CqlConsistencyLevel.DEFAULT)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-            session.NonQuery(query);
+            session.NonQuery(query, consistency);
             Console.WriteLine("CQL> (OK).");
         }
 
 
-        public void PrepareQuery(CassandraSession session, string query, string messageInstead = null)
+        public void PrepareQuery(CassandraSession session, string query, out byte[] preparedID, out Metadata metadata, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Prepared Query:\t" + query);
-            session.PrepareQuery(query);
-            Console.WriteLine("CQL> (OK).");
+            Metadata md;
+            preparedID = session.PrepareQuery(query, out md);
+            metadata = md;
+            Console.WriteLine("CQL> (OK).");             
         }
 
+        public void ExecutePreparedQuery(CassandraSession session, byte[] preparedID, Metadata metadata, object[] values, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, string messageInstead = null)
+        {
+            if (messageInstead != null)
+                Console.WriteLine("CQL<\t" + messageInstead);
+            else
+                Console.WriteLine("CQL< Executing Prepared Query:\t");
+            session.ExecuteQuery(preparedID, metadata, values, consistency);
+            Console.WriteLine("CQL> (OK).");
+        }
 
         public CassandraSession ConnectToTestServer()
         {
@@ -200,7 +212,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             }
             longQ.AppendLine("APPLY BATCH;");
             ExecuteSyncNonQuery(conn, longQ.ToString(), "Inserting...");
-            ExecuteSyncQuery(conn, string.Format(@"SELECT * from {0} LIMIT 5000;", tableName), null);
+            ExecuteSyncQuery(conn, string.Format(@"SELECT * from {0} LIMIT 5000;", tableName));
             ExecuteSyncNonQuery(conn, string.Format(@"DROP TABLE {0};", tableName));
 
             ExecuteSyncNonQuery(conn, string.Format(@"DROP KEYSPACE {0};", keyspaceName));
@@ -288,7 +300,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          number {1}
          );", tableName, cassandraDataTypeName));
             ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id,number) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), RandomVal(tp)), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
-            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName), null);
+            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -302,8 +314,13 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          number {1}
          );", tableName, "int"));
 
-            PrepareQuery(this.Session, string.Format("INSERT INTO {0}() VALUES (?,?);", tableName));
-            
+            byte[] preparedID;
+            Metadata md;
+            object[] values = new object[2];
+            values[0] = (string)"LSD";
+            values[1] = (int)1410;
+            PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, ?, ?);", tableName, Guid.NewGuid()), out preparedID, out md);
+            ExecutePreparedQuery(this.Session, preparedID, md, values);                
         }
 
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null, string pendingMode="")
@@ -340,7 +357,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             StringBuilder longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
-            int CollectionElementsNo = 10000;
+            int CollectionElementsNo = 1000;
             List<Int32> orderedAsInputed = new List<Int32>(CollectionElementsNo);
 
             string inputSide = "some_collection + {1}";
@@ -366,7 +383,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
                 
-            CqlRowSet rs = Session.Query(string.Format("SELECT * FROM {0};", tableName));
+            CqlRowSet rs = Session.Query(string.Format("SELECT * FROM {0};", tableName),CqlConsistencyLevel.DEFAULT);
 
             using (rs)
             {
@@ -379,7 +396,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                     }
             }
 
-            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName), null);
+            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -430,7 +447,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             longQ.AppendLine("APPLY BATCH;");
             ExecuteSyncNonQuery(conn, longQ.ToString(), "Inserting...");
 
-            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName), null );
+            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }        
 
@@ -448,7 +465,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 220898707200000), null);
             ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 0), null);
 
-            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName), null);
+            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }
         private Randomm rndm = new Randomm();

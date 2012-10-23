@@ -7,7 +7,7 @@ namespace Cassandra.Native
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, object owner, CqlConsistencyLevel consistency)
         {
             var socketStream = CreateSocketStream();
 
@@ -15,7 +15,7 @@ namespace Cassandra.Native
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
-                Evaluate(new QueryRequest(streamId, cqlQuery), ar, streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new QueryRequest(streamId, cqlQuery, consistency), ar, streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
@@ -34,9 +34,9 @@ namespace Cassandra.Native
             return Internal.AsyncResult<IOutput>.End(result, owner, "QUERY");
         }
 
-        public IOutput Query(string cqlQuery)
+        public IOutput Query(string cqlQuery, CqlConsistencyLevel consistency)
         {
-            var r = BeginQuery(cqlQuery, null, null, this);
+            var r = BeginQuery(cqlQuery, null, null, this, consistency);
             r.AsyncWaitHandle.WaitOne();
             return EndQuery(r, this);
         }

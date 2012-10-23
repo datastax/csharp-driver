@@ -18,11 +18,11 @@ namespace Cassandra.Native.Test
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
 
-        //[Fact]
-        //public void preparedStatements()
-        //{
-        //    prepareTest();
-        //}
+        [Fact]
+        public void preparedStatements()
+        {
+            prepareTest();
+        }
 
         [Fact]
         public void testASCII()

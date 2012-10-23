@@ -11,11 +11,14 @@ namespace Cassandra.Native
 
         int streamId;
         string cqlQuery;
+        CqlConsistencyLevel consistency;
 
-        public QueryRequest(int streamId, string cqlQuery)
+        public QueryRequest(int streamId, string cqlQuery, CqlConsistencyLevel consistency)
         {
             this.streamId = streamId;
             this.cqlQuery = cqlQuery;
+            this.consistency = consistency;
+            
         }
 
         public RequestFrame GetFrame()
@@ -23,6 +26,7 @@ namespace Cassandra.Native
             BEBinaryWriter wb = new BEBinaryWriter();
             wb.WriteFrameHeader(0x01, 0x00, (byte)streamId, OpCode);
             wb.WriteLongString(cqlQuery);
+            wb.WriteInt16((short)consistency);
             return wb.GetFrame();
         }
     }

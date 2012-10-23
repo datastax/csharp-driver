@@ -12,13 +12,16 @@ namespace Cassandra.Native
         object[] values;
         byte[] id;
         Metadata Metadata;
+        CqlConsistencyLevel consistency;
 
-        public ExecuteRequest(int streamId, byte[] Id, Metadata Metadata, object[] values)
+        public ExecuteRequest(int streamId, byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency)
         {
             this.streamId = streamId;
             this.values = values;
             this.id = Id;
             this.Metadata = Metadata;
+            this.consistency = consistency;
+
         }
         public RequestFrame GetFrame()
         {
@@ -32,6 +35,7 @@ namespace Cassandra.Native
                 var bytes = TypeInerpreter.InvCqlConvert(values[i], Metadata.Columns[i].type_code, Metadata.Columns[i].type_info);
                 wb.WriteBytes(bytes);
             }
+            wb.WriteInt16((short)consistency);
             return wb.GetFrame();
         }
     }

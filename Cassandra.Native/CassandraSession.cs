@@ -21,13 +21,15 @@ namespace Cassandra.Native
         int maxConnectionsInPool = int.MaxValue;
         string keyspace = string.Empty;
 
+
+
         CassandraConnection eventRaisingConnection = null;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
             int abortTimeout = Timeout.Infinite, CredentialsDelegate credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue)
         {
             this.maxConnectionsInPool = maxConnectionsInPool;
-
+            
             this.loadedClusterEndpoints = new List<string>();
             foreach (var ep in clusterEndpoints)
                 loadedClusterEndpoints.Add(ep.ToString());
@@ -111,7 +113,7 @@ namespace Cassandra.Native
 
                 if (!string.IsNullOrEmpty(keyspace))
                 {
-                    if (processScallar(nconn.Query("USE " + CqlQueryTools.CqlIdentifier(keyspace))).ToString() != keyspace)
+                    if (processScallar(nconn.Query("USE " + CqlQueryTools.CqlIdentifier(keyspace),CqlConsistencyLevel.DEFAULT)).ToString() != keyspace)
                         throw new InvalidOperationException();
                 }
 
@@ -142,7 +144,7 @@ namespace Cassandra.Native
                     retry:
                         try
                         {
-                            if (processScallar(conn.Value.Query("USE \"" + keyspace.Replace("\"", "\"\"") + "\"")).ToString() != keyspace)
+                            if (processScallar(conn.Value.Query("USE \"" + keyspace.Replace("\"", "\"\"") + "\"", CqlConsistencyLevel.DEFAULT)).ToString() != keyspace)
                                 throw new InvalidOperationException();
                         }
                         catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
@@ -235,14 +237,29 @@ namespace Cassandra.Native
             {
                 if (outp is OutputError)
                     throw (outp as OutputError).CreateException();
-                else if (outp is OutputPrepared)
-                    return (outp as OutputPrepared).QueryID;
                 else if (outp is OutputSetKeyspace)
                     return (outp as OutputSetKeyspace).Value;
                 else
                     throw new InvalidOperationException();
             }
         }
+
+        private byte[] processEndPrepare(IOutput outp, out Metadata metadata)
+        {
+            using (outp)
+            {
+                if (outp is OutputError)
+                    throw (outp as OutputError).CreateException();
+                else if (outp is OutputPrepared)
+                {
+                    metadata = (outp as OutputPrepared).Metadata;
+                    return (outp as OutputPrepared).QueryID;
+                }
+                else
+                    throw new InvalidOperationException();
+            }
+        }
+        
 
         private CqlRowSet processRowset(IOutput outp)
         {
@@ -265,13 +282,13 @@ namespace Cassandra.Native
                 throw new InvalidOperationException();
         }
 
-        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state)
+        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency)
         {
         retry:
             try
             {
                 var c = new ConnectionWrapper() { connection = connect() };
-                return c.connection.BeginQuery(cqlQuery, callback, state, c);
+                return c.connection.BeginQuery(cqlQuery, callback, state, c, consistency);
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -285,13 +302,13 @@ namespace Cassandra.Native
             processNonQuery(c.connection.EndQuery(result, c));
         }
 
-        public void NonQuery(string cqlQuery)
+        public void NonQuery(string cqlQuery, CqlConsistencyLevel consistency)
         {
         retry:
             try
-            {
+             {
                 var connection = connect();
-                processNonQuery(connection.Query(cqlQuery));
+                processNonQuery(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -299,13 +316,13 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginScalar(string cqlQuery, AsyncCallback callback, object state)
+        public IAsyncResult BeginScalar(string cqlQuery, CqlConsistencyLevel consistency, AsyncCallback callback, object state)
         {
         retry:
             try
             {
                 var c = new ConnectionWrapper() { connection = connect() };
-                return c.connection.BeginQuery(cqlQuery, callback, state, c);
+                return c.connection.BeginQuery(cqlQuery, callback, state, c, consistency);
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -325,7 +342,7 @@ namespace Cassandra.Native
             try
             {
                 var connection = connect();
-                return processScallar(connection.Query(cqlQuery));
+                return processScallar(connection.Query(cqlQuery,CqlConsistencyLevel.DEFAULT));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -333,13 +350,13 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, bool delayedRelease = false)
+        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency, bool delayedRelease = false)
         {
         retry:
             try
             {
                 var c = new ConnectionWrapper() { connection = connect() };
-                return c.connection.BeginQuery(cqlQuery, callback, state, c);
+                return c.connection.BeginQuery(cqlQuery, callback, state, c, consistency);
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -353,13 +370,13 @@ namespace Cassandra.Native
             return processRowset(c.connection.EndQuery(result, c));
         }
 
-        public CqlRowSet Query(string cqlQuery)
+        public CqlRowSet Query(string cqlQuery, CqlConsistencyLevel consistency)
         {
         retry:
             try
             {
                 var connection = connect();
-                return processRowset(connection.Query(cqlQuery));
+                return processRowset(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -381,19 +398,19 @@ namespace Cassandra.Native
             }
         }
 
-        public int EndPrepareQuery(IAsyncResult result)
+        public byte[] EndPrepareQuery(IAsyncResult result, out Metadata metadata)
         {
             var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
-            return (int)processScallar(c.connection.EndPrepareQuery(result, c));
+            return processEndPrepare(c.connection.EndPrepareQuery(result, c), out metadata);
         }
 
-        public int PrepareQuery(string cqlQuery)
+        public byte[] PrepareQuery(string cqlQuery, out Metadata metadata)
         {
         retry:
             try
             {
                 var connection = connect();
-                return (int)processScallar(connection.PrepareQuery(cqlQuery));
+                return processEndPrepare(connection.PrepareQuery(cqlQuery), out metadata);
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -401,13 +418,13 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease)
+        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease, CqlConsistencyLevel consistency)
         {
         retry:
             try
             {
                 var c = new ConnectionWrapper() { connection = connect() };
-                return c.connection.BeginExecuteQuery(Id, Metadata, values, callback, state, c);
+                return c.connection.BeginExecuteQuery(Id, Metadata, values, callback, state, c, consistency);
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -421,18 +438,21 @@ namespace Cassandra.Native
             return processRowset(c.connection.EndExecuteQuery(result, c));
         }
 
-        public CqlRowSet ExecuteQuery(byte[] Id, Metadata Metadata, object[] values)
+        public void ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency)
         {
         retry:
             try
             {
                 var connection = connect();
-                return processRowset(connection.ExecuteQuery(Id, Metadata, values));
+                //return processRowset(connection.ExecuteQuery(Id, Metadata, values));
+                processNonQuery(connection.ExecuteQuery(Id, Metadata, values, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
                 goto retry;
             }
         }
+
+
     }
 }

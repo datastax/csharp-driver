@@ -25,6 +25,8 @@ namespace Cassandra.Native
         AtomicArray<Action<ResponseFrame>> frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
         AtomicArray<Internal.AsyncResult<IOutput>> frameReadAsyncResult = new AtomicArray<Internal.AsyncResult<IOutput>>(sbyte.MaxValue + 1);
 
+        Action<ResponseFrame> defaultFatalErrorAction;
+
         struct ErrorActionParam
         {
             public Internal.AsyncResult<IOutput> AsyncResult;
@@ -152,6 +154,12 @@ namespace Cassandra.Native
             var streamId = allocateStreamId();
             if (streamId == -1)
                 throw new StreamAllocationException();
+
+            defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
+            {
+                var response2 = FrameParser.Parse(frame2);
+                ProtocolErrorHandlerAction(new ErrorActionParam() { AsyncResult = ar, Response = response2, streamId = streamId });
+            });
 
             try
             {
@@ -304,11 +312,11 @@ namespace Cassandra.Native
                                 Action<ResponseFrame> act = null;
                                 if (frame.FrameHeader.streamId == 0xFF)
                                     act = frameEventCallback.Value;
-                                else
+                                else if(frame.FrameHeader.streamId>=0)
                                     act = frameReadCallback[frame.FrameHeader.streamId];
 
                                 if (act == null)
-                                    throw new InvalidOperationException();
+                                    act = defaultFatalErrorAction; //TODO: what to do here? this is a protocol valiation
 
                                 act.BeginInvoke(frame, (tar) =>
                                 {

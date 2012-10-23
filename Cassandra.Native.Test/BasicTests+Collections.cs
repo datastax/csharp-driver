@@ -8,17 +8,17 @@ namespace Cassandra.Native.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
-        //[Fact]
-        //public void testListOrderPrepending()
-        //{
-        //    checkingOrderOfCollection("list", typeof(System.Int32), null, "prepending");
-        //}
+        [Fact]
+        public void testListOrderPrepending()
+        {
+            checkingOrderOfCollection("list", typeof(System.Int32), null, "prepending");
+        }
 
-        //[Fact]
-        //public void testListOrderAppending()
-        //{
-        //    checkingOrderOfCollection("list", typeof(System.Int32), null, "appending");
-        //}
+        [Fact]
+        public void testListOrderAppending()
+        {
+            checkingOrderOfCollection("list", typeof(System.Int32), null, "appending");
+        }
 
         [Fact]
         public void testSetOrder()

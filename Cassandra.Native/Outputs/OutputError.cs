@@ -81,12 +81,12 @@ namespace Cassandra.Native
 
     public class OutputUnavailableException : OutputError
     {
-        public string ConsistencyLevel;
+        public CqlConsistencyLevel ConsistencyLevel;
         public int Required;
         public int Alive;
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            ConsistencyLevel = cb.ReadString();
+            ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
             Required = cb.ReadInt32();
             Alive = cb.ReadInt32();
         }
@@ -122,14 +122,14 @@ namespace Cassandra.Native
 
     public class OutputWriteTimeout : OutputError
     {
-        public string ConsistencyLevel;
+        public CqlConsistencyLevel ConsistencyLevel;
         public int Received;
         public int BlockFor;
         public string WriteType;
 
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            ConsistencyLevel = cb.ReadString();
+            ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
             Received = cb.ReadInt32();
             BlockFor = cb.ReadInt32();
             WriteType = cb.ReadString();
@@ -143,13 +143,13 @@ namespace Cassandra.Native
 
     public class OutputReadTimeout : OutputError
     {
-        public string ConsistencyLevel;
+        public CqlConsistencyLevel ConsistencyLevel;
         public int Received;
         public int BlockFor;
         public bool IsDataPresent;
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            ConsistencyLevel = cb.ReadString();
+            ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
             Received = cb.ReadInt32();
             BlockFor = cb.ReadInt32();
             IsDataPresent = cb.ReadByte() != 0;
