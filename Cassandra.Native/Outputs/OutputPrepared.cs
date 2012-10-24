@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public class OutputPrepared : IOutput, IWaitableForDispose
+    internal class OutputPrepared : IOutput, IWaitableForDispose
     {
         public byte[] QueryID;
         public Metadata Metadata;

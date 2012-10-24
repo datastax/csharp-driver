@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Cassandra.Native
 {
-    public class OutputRows : IOutput, IWaitableForDispose
+    internal class OutputRows : IOutput, IWaitableForDispose
     {
         public Metadata Metadata;
         public int Rows;

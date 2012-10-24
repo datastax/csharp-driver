@@ -4,7 +4,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Threading;
 
-namespace Cassandra.Native.Internal
+namespace Cassandra.Native
 {
     internal partial class AsyncResultNoResult : IAsyncResult
     {

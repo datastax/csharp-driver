@@ -9,7 +9,7 @@ namespace Cassandra.Native
         void WaitForDispose();
     }
 
-    public interface IOutput :IDisposable
+    internal interface IOutput : IDisposable
     {
     }
 }

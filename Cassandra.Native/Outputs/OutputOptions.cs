@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public class OutputOptions : IOutput, IWaitableForDispose
+    internal class OutputOptions : IOutput, IWaitableForDispose
     {
         Dictionary<string, string[]> options;
 

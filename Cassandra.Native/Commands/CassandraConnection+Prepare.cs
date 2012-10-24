@@ -10,7 +10,7 @@ namespace Cassandra.Native
         {
             var socketStream = CreateSocketStream();
 
-            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, owner, "PREPARE");
+            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "PREPARE");
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
@@ -30,7 +30,7 @@ namespace Cassandra.Native
 
         public IOutput EndPrepareQuery(IAsyncResult result, object owner)
         {
-            return Internal.AsyncResult<IOutput>.End(result, owner, "PREPARE");
+            return AsyncResult<IOutput>.End(result, owner, "PREPARE");
         }
 
         public IOutput PrepareQuery(string cqlQuery)

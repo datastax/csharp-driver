@@ -38,7 +38,7 @@ namespace Cassandra.Native
         {
             var socketStream = CreateSocketStream();
 
-            Internal.AsyncResult<IOutput> ar = new Internal.AsyncResult<IOutput>(callback, state, owner, "REGISTER");
+            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "REGISTER");
 
             BeginJob(ar, new Action<int>((streamId) =>
             {
@@ -58,7 +58,7 @@ namespace Cassandra.Native
 
         public IOutput EndRegisterForCassandraEvent(IAsyncResult result, object owner)
         {
-            return Internal.AsyncResult<IOutput>.End(result, owner, "REGISTER");
+            return AsyncResult<IOutput>.End(result, owner, "REGISTER");
         }
 
         public IOutput RegisterForCassandraEvent(CassandraEventType eventTypes)

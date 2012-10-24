@@ -22,7 +22,7 @@ namespace Cassandra.Native
         Dictionary<string, int> columnIdxes ;
         bool ownRows;
 
-        public CqlRowSet(OutputRows rawrows, bool ownRows = true)
+        internal CqlRowSet(OutputRows rawrows, bool ownRows = true)
         {
             this.rawrows = rawrows;
             this.ownRows = ownRows;

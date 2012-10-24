@@ -7,11 +7,15 @@ using System.IO;
 using System.Threading;
 using System.Diagnostics;
 
+namespace Cassandra
+{
+    public delegate IDictionary<string, string> CredentialsDelegate(string Authenticator);
+    public enum CassandraCompressionType { NoCompression, Snappy }
+}
+
 namespace Cassandra.Native
 {
     internal enum BufferingMode { NoBuffering, FrameBuffering }
-    public delegate IDictionary<string, string> CredentialsDelegate(string Authenticator);
-    public enum CassandraCompressionType { NoCompression, Snappy }
 
     internal partial class CassandraConnection 
     {
@@ -23,13 +27,13 @@ namespace Cassandra.Native
 
         AtomicValue<Action<ResponseFrame>> frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
         AtomicArray<Action<ResponseFrame>> frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
-        AtomicArray<Internal.AsyncResult<IOutput>> frameReadAsyncResult = new AtomicArray<Internal.AsyncResult<IOutput>>(sbyte.MaxValue + 1);
+        AtomicArray<AsyncResult<IOutput>> frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
 
         Action<ResponseFrame> defaultFatalErrorAction;
 
         struct ErrorActionParam
         {
-            public Internal.AsyncResult<IOutput> AsyncResult;
+            public AsyncResult<IOutput> AsyncResult;
             public IResponse Response;
             public int streamId;
         }
@@ -123,7 +127,7 @@ namespace Cassandra.Native
             }
         }
 
-        private void JobFinished(Internal.AsyncResult<IOutput> ar, int streamId, IOutput outp)
+        private void JobFinished(AsyncResult<IOutput> ar, int streamId, IOutput outp)
         {
             frameReadAsyncResult[streamId] = null;
             ar.SetResult(outp);
@@ -149,7 +153,7 @@ namespace Cassandra.Native
         {
         }
 
-        private void BeginJob(Internal.AsyncResult<IOutput> ar, Action<int> job, NetworkStream socketStream, bool startup = true)
+        private void BeginJob(AsyncResult<IOutput> ar, Action<int> job, NetworkStream socketStream, bool startup = true)
         {
             var streamId = allocateStreamId();
             if (streamId == -1)
@@ -392,7 +396,7 @@ namespace Cassandra.Native
 
         Guarded<bool> alreadyDisposed = new Guarded<bool>(false);
 
-        private bool setupWriterException(Exception ex, int streamId, Internal.AsyncResult<IOutput> ar)
+        private bool setupWriterException(Exception ex, int streamId, AsyncResult<IOutput> ar)
         {
             ar.Complete(ex);
             freeStreamId(streamId);
@@ -453,7 +457,7 @@ namespace Cassandra.Native
             Dispose();
         }
 
-        private void Evaluate(IRequest req, Internal.AsyncResult<IOutput> ar, int streamId, Action<ResponseFrame> nextAction, NetworkStream socketStream)
+        private void Evaluate(IRequest req, AsyncResult<IOutput> ar, int streamId, Action<ResponseFrame> nextAction, NetworkStream socketStream)
         {
             try
             {

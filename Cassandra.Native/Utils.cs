@@ -122,7 +122,7 @@ namespace Cassandra.Native
         }
     }
 
-    public static class CqlQueryTools
+    internal static class CqlQueryTools
     {
         static Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
         public static string CqlIdentifier(string id)

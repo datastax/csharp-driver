@@ -298,7 +298,7 @@ namespace Cassandra.Native
 
         public void EndNonQuery(IAsyncResult result)
         {
-            var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
+            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
             processNonQuery(c.connection.EndQuery(result, c));
         }
 
@@ -332,7 +332,7 @@ namespace Cassandra.Native
 
         public object EndScalar(IAsyncResult result)
         {
-            var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
+            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
             return processScallar(c.connection.EndQuery(result, c));
         }
 
@@ -366,7 +366,7 @@ namespace Cassandra.Native
 
         public CqlRowSet EndQuery(IAsyncResult result)
         {
-            var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
+            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
             return processRowset(c.connection.EndQuery(result, c));
         }
 
@@ -400,7 +400,7 @@ namespace Cassandra.Native
 
         public byte[] EndPrepareQuery(IAsyncResult result, out Metadata metadata)
         {
-            var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
+            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
             return processEndPrepare(c.connection.EndPrepareQuery(result, c), out metadata);
         }
 
@@ -434,7 +434,7 @@ namespace Cassandra.Native
 
         public CqlRowSet EndExecuteQuery(IAsyncResult result)
         {
-            var c = (ConnectionWrapper)((Internal.AsyncResult<IOutput>)result).AsyncOwner;
+            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
             return processRowset(c.connection.EndExecuteQuery(result, c));
         }
 

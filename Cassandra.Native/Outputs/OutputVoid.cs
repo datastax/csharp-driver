@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public class OutputVoid : IOutput, IWaitableForDispose
+    internal class OutputVoid : IOutput, IWaitableForDispose
     {
         public void Dispose()
         {

@@ -245,7 +245,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Minimum", Minimum), null);
                 ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Maximum", Maximum), null);
             }
-            catch (CassandraOutputException<OutputInvalid>) { }
+            catch (CassandraInvalidException) { }
             
             ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));

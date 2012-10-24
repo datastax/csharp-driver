@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public class OutputSetKeyspace : IOutput, IWaitableForDispose
+    internal class OutputSetKeyspace : IOutput, IWaitableForDispose
     {
         public string Value;
         internal OutputSetKeyspace(string val) { Value = val; }
