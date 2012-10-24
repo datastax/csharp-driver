@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace MyUTExt
 {
-    class Randomm : Random
+    public class Randomm : Random
     {
         public Randomm()
             : base(5)

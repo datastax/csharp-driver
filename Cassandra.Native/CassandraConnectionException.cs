@@ -22,8 +22,16 @@ namespace Cassandra
 
     public class CassandraConncectionIOException : CassandraConnectionException
     {
-        public CassandraConncectionIOException(Exception innerException)
-            : base("cassandra io exception", innerException)
+        public CassandraConncectionIOException(Exception innerException = null)
+            : base("cassandra connection io exception", innerException)
+        {
+        }
+    }
+
+    public class CassandraConnectionTimeoutException : CassandraConnectionException
+    {
+        public CassandraConnectionTimeoutException()
+            : base("cassandra connection timeout exception")
         {
         }
     }

@@ -8,24 +8,18 @@ namespace Cassandra.Native
     {
         public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, object owner, CqlConsistencyLevel consistency)
         {
-            var socketStream = CreateSocketStream();
-
-            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "EXECUTE");
-
-            BeginJob(ar, new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "EXECUTE", new Action<int>((streamId) =>
             {
-                Evaluate(new ExecuteRequest(streamId, Id, Metadata, values, consistency), ar, streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new ExecuteRequest(streamId, Id, Metadata, values, consistency), streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
-                        JobFinished(ar, streamId, (response as ResultResponse).Output);
+                        JobFinished(streamId, (response as ResultResponse).Output);
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { AsyncResult = ar, Response = response, streamId = streamId });
+                        ProtocolErrorHandlerAction(new ErrorActionParam() {  Response = response, streamId = streamId });
 
-                }), socketStream);
-            }), socketStream);
-
-            return ar;
+                }));
+            }));
         }
 
         public IOutput EndExecuteQuery(IAsyncResult result, object owner)

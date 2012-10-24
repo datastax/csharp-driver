@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Cassandra.Native
 {
@@ -9,24 +10,18 @@ namespace Cassandra.Native
     {
         public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, object owner, CqlConsistencyLevel consistency)
         {
-            var socketStream = CreateSocketStream();
-
-            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "QUERY");
-
-            BeginJob(ar, new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "QUERY", new Action<int>((streamId) =>
             {
-                Evaluate(new QueryRequest(streamId, cqlQuery, consistency), ar, streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new QueryRequest(streamId, cqlQuery, consistency), streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
-                        JobFinished(ar, streamId, (response as ResultResponse).Output);
+                        JobFinished(streamId, (response as ResultResponse).Output);
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { AsyncResult = ar, Response = response, streamId = streamId });
+                        ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, streamId = streamId });
 
-                }), socketStream);
-            }), socketStream);
-
-            return ar;
+                }));
+            }));
         }
 
         public IOutput EndQuery(IAsyncResult result, object owner)

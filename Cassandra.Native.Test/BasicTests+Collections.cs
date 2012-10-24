@@ -8,7 +8,7 @@ namespace Cassandra.Native.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
-        [Fact]
+        //[Fact]
         public void testListOrderPrepending()
         {
             checkingOrderOfCollection("list", typeof(System.Int32), null, "prepending");

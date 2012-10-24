@@ -31,29 +31,23 @@ namespace Cassandra.Native
                     CassandraEvent.Invoke(this, (response as EventResponse).CassandraEventArgs);
                 return;
             }
-            throw new InvalidOperationException();
+            throw new CassandraClientProtocolViolationException("Unexpected response frame");
         }
 
         public IAsyncResult BeginRegisterForCassandraEvent(CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
         {
-            var socketStream = CreateSocketStream();
-
-            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "REGISTER");
-
-            BeginJob(ar, new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "REGISTER", new Action<int>((streamId) =>
             {
-                Evaluate(new RegisterForEventRequest(streamId, eventTypes), ar, streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new RegisterForEventRequest(streamId, eventTypes),streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
-                        JobFinished(ar, streamId, new OutputVoid());
+                        JobFinished( streamId, new OutputVoid());
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { AsyncResult = ar, Response = response, streamId = streamId });
+                        ProtocolErrorHandlerAction(new ErrorActionParam() {Response = response, streamId = streamId });
 
-                }), socketStream);
-            }), socketStream);
-
-            return ar;
+                }));
+            }));
         }
 
         public IOutput EndRegisterForCassandraEvent(IAsyncResult result, object owner)

@@ -18,7 +18,7 @@ namespace Cassandra.Native.Test
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
 
-        [Fact]
+       // [Fact]
         public void preparedStatements()
         {
             prepareTest();

@@ -91,6 +91,9 @@ namespace Cassandra.Native
 
                 result = true;
             }
+            else
+            {
+            }
             /*
                 else
                 {

@@ -8,24 +8,18 @@ namespace Cassandra.Native
     {
         public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
         {
-            var socketStream = CreateSocketStream();
-
-            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "PREPARE");
-
-            BeginJob(ar, new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "PREPARE", new Action<int>((streamId) =>
             {
-                Evaluate(new PrepareRequest(streamId, cqlQuery), ar, streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new PrepareRequest(streamId, cqlQuery), streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
-                        JobFinished(ar, streamId, (response as ResultResponse).Output);
+                        JobFinished(streamId, (response as ResultResponse).Output);
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { AsyncResult = ar, Response = response, streamId = streamId });
+                        ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, streamId = streamId });
 
-                }), socketStream);
-            }), socketStream);
-
-            return ar;
+                }));
+            }));
         }
 
         public IOutput EndPrepareQuery(IAsyncResult result, object owner)

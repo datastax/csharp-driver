@@ -8,13 +8,6 @@ using System.Diagnostics;
 namespace Cassandra.Native
 {
 
-    internal class IOCassandraException : Exception
-    {
-        public IOCassandraException(Exception innerException = null)
-            : base("cassandra io exception",innerException)
-        {
-        }
-    }
 
     internal interface IProtoBuf
     {
@@ -37,7 +30,7 @@ namespace Cassandra.Native
 
         public void Write(byte[] buffer, int offset, int count)
         {
-            if (ioError) throw new IOCassandraException();
+            if (ioError) throw new CassandraConncectionIOException();
 
             if (buffer == null)
                 ioError = true;
@@ -45,38 +38,44 @@ namespace Cassandra.Native
             {
                 try
                 {
-                    stream.Write(buffer, offset, count);
+                    lock(stream)
+                        stream.Write(buffer, offset, count);
                 }
                 catch (IOException ex)
                 {
                     Debug.WriteLine(ex.Message, "StreamProtoBuf.Write");
                     ioError = true;
-                    throw new IOCassandraException(ex);
+                    throw new CassandraConncectionIOException(ex);
                 }
             }
         }
 
         public void WriteByte(byte b)
         {
-            if (ioError) throw new IOCassandraException();
-            stream.WriteByte(b);
+            if (ioError) throw new CassandraConncectionIOException();
+            lock (stream)
+                stream.WriteByte(b);
         }
 
         public void Read(byte[] buffer, int offset, int count)
         {
             if (count == 0) return;
 
-            if (ioError) throw new IOCassandraException();
+            if (ioError) throw new CassandraConncectionIOException();
 
             int curOffset = offset;
             while (true)
             {
                 try
                 {
-                    var redl = stream.Read(buffer, curOffset, count - curOffset - offset);
+                    int redl;
+                    lock (stream)
+                    {
+                        redl = stream.Read(buffer, curOffset, count - curOffset - offset);
+                    }
                     if (redl == 0)
                     {
-                        throw new IOCassandraException();
+                        throw new CassandraConncectionIOException();
                     }
                     else if (redl == count - curOffset - offset)
                     {
@@ -91,7 +90,7 @@ namespace Cassandra.Native
                 {
                     Debug.WriteLine(ex.Message, "StreamProtoBuf.Read");
                     ioError = true;
-                    throw new IOCassandraException(ex);
+                    throw new CassandraConncectionIOException(ex);
                 }
             }
         }
@@ -108,10 +107,14 @@ namespace Cassandra.Native
                 try
                 {
 
-                    var redl = stream.Read(trashBuf, curOffset, count - curOffset);
+                    int redl;
+                    lock (stream)
+                    {
+                        redl = stream.Read(trashBuf, curOffset, count - curOffset);
+                    }
                     if (redl == 0)
                     {
-                        throw new IOCassandraException();
+                        throw new CassandraConncectionIOException();
                     }
                     else if (redl == count - curOffset)
                     {
@@ -126,7 +129,7 @@ namespace Cassandra.Native
                 {
                     Debug.WriteLine(ex.Message, "StreamProtoBuf.Skip");
                     ioError = true;
-                    throw new IOCassandraException(ex);
+                    throw new CassandraConncectionIOException(ex);
                 }
             }
         }
@@ -154,7 +157,7 @@ namespace Cassandra.Native
         {
             lock (guard)
             {
-                if (writePos == -1) throw new IOCassandraException();
+                if (writePos == -1) throw new CassandraConncectionIOException();
 
                 if (buffer != null)
                 {
@@ -171,7 +174,7 @@ namespace Cassandra.Native
         {
             lock (guard)
             {
-                if (writePos == -1) throw new IOCassandraException();
+                if (writePos == -1) throw new CassandraConncectionIOException();
 
                 buffer[writePos] = b;
                 writePos++;
@@ -184,21 +187,21 @@ namespace Cassandra.Native
             if (count == 0) return;
             lock (guard)
             {
-                if (writePos == -1) throw new IOCassandraException();
+                if (writePos == -1) throw new CassandraConncectionIOException();
 
                 if (compressor != null)
                 {
                     while (writePos != -1 && writePos < this.buffer.Length)
                         Monitor.Wait(guard);
 
-                    if (writePos == -1) throw new IOCassandraException();
+                    if (writePos == -1) throw new CassandraConncectionIOException();
 
                     if (decompressedBuffer == null)
                         decompressedBuffer = compressor.Decompress(this.buffer);
                     
                     if (count > decompressedBuffer.Length - readPos)
-                        throw new InvalidOperationException();
-
+                        throw new CassandraClientProtocolViolationException("Invalid decompression state");
+                    
                     Buffer.BlockCopy(this.decompressedBuffer, readPos, buffer, offset, count);
                 }
                 else
@@ -206,7 +209,7 @@ namespace Cassandra.Native
                     while (writePos != -1 && readPos + count > writePos)
                         Monitor.Wait(guard);
 
-                    if (writePos == -1) throw new IOCassandraException();
+                    if (writePos == -1) throw new CassandraConncectionIOException();
 
                     Buffer.BlockCopy(this.buffer, readPos, buffer, offset, count);
                 }
@@ -219,7 +222,7 @@ namespace Cassandra.Native
         {
             lock (guard)
             {
-                if (writePos == -1) throw new IOCassandraException();
+                if (writePos == -1) throw new CassandraConncectionIOException();
 
                 readPos += count;
             }

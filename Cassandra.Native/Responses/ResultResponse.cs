@@ -33,7 +33,7 @@ namespace Cassandra.Native
                     Output = new OutputSchemaChange(rd);
                     break;
                 default:
-                    throw new InvalidOperationException();
+                    throw new CassandraClientProtocolViolationException("Unknown Event Type");
             }
         }
     }

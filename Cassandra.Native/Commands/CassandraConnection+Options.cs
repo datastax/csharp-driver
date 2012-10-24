@@ -8,24 +8,18 @@ namespace Cassandra.Native
     {
         public IAsyncResult BeginExecuteQueryOptions(AsyncCallback callback, object state, object owner)
         {
-            var socketStream = CreateSocketStream();
-
-            AsyncResult<IOutput> ar = new AsyncResult<IOutput>(callback, state, owner, "OPTIONS");
-
-            BeginJob(ar, new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "OPTIONS", new Action<int>((streamId) =>
             {
-                Evaluate(new OptionsRequest(streamId), ar, streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new OptionsRequest(streamId), streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is SupportedResponse)
-                        JobFinished(ar, streamId, (response as SupportedResponse).Output);
+                        JobFinished( streamId, (response as SupportedResponse).Output);
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { AsyncResult = ar, Response = response, streamId = streamId });
+                        ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, streamId = streamId });
 
-                }), socketStream);
-            }), socketStream, true);
-
-            return ar;
+                }));
+            }), true);
         }
 
         public IOutput EndExecuteQueryOptions(IAsyncResult result, object owner)

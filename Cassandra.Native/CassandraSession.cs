@@ -57,7 +57,7 @@ namespace Cassandra.Native
                     if (ret is OutputError)
                         theExc = new Exception("CQL Error [" + (ret as OutputError).CassandraErrorType.ToString() + "] " + (ret as OutputError).Message);
                     else
-                        theExc = new InvalidOperationException();
+                        theExc = new CassandraClientProtocolViolationException("Expected Error on Output");
                 }
             }
 
@@ -70,35 +70,51 @@ namespace Cassandra.Native
         private CassandraConnection connect()
         {
             checkDisposed();
-
             lock (connectionPool)
             {
-            retry:
-                if (connectionPool.Count > 0)
+                while (true)
                 {
-                    var conn = connectionPool[StaticRandom.Instance.Next(connectionPool.Count)];
-                    if (!conn.IsAlive)
+                    if (connectionPool.Count > 0)
                     {
-                        connectionPool.Remove(conn);
-                        goto retry;
-                    }
-                    else
-                    {
-                        if (!conn.Value.IsHealthy)
+                        var conn = connectionPool[StaticRandom.Instance.Next(connectionPool.Count)];
+                        if (!conn.IsAlive)
                         {
-                            var recoveryEvents = (eventRaisingConnection == conn.Value);
-                            conn.Value.Dispose();
                             connectionPool.Remove(conn);
-                            if (recoveryEvents)
-                                setupEventListeners(connect());
-                            goto retry;
+                            continue;
                         }
                         else
-                            return conn.Value;
+                        {
+                            if (!conn.Value.IsHealthy)
+                            {
+                                var recoveryEvents = (eventRaisingConnection == conn.Value);
+                                conn.Value.Dispose();
+                                connectionPool.Remove(conn);
+                                Monitor.Exit(connectionPool);
+                                try
+                                {
+                                    if (recoveryEvents)
+                                        setupEventListeners(connect());
+                                }
+                                finally
+                                {
+                                    Monitor.Enter(connectionPool);
+                                }
+                                continue;
+                            }
+                            else
+                            {
+                                if (!conn.Value.isBusy())
+                                    return conn.Value;
+                            }
+                        }
                     }
+                    connectionPool.Add(new WeakReference<CassandraConnection>(allocateConnection()));
                 }
             }
+        }
 
+        CassandraConnection allocateConnection()
+        {
             IPEndPoint endPoint = null;
             lock (upClusterEndpoints)
                 endPoint = IPEndPointParser.ParseEndpoint(upClusterEndpoints[StaticRandom.Instance.Next(upClusterEndpoints.Count)]);
@@ -113,8 +129,10 @@ namespace Cassandra.Native
 
                 if (!string.IsNullOrEmpty(keyspace))
                 {
-                    if (processScallar(nconn.Query("USE " + CqlQueryTools.CqlIdentifier(keyspace),CqlConsistencyLevel.DEFAULT)).ToString() != keyspace)
-                        throw new InvalidOperationException();
+                    var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
+                    var retKeyspaceId = processScallar(nconn.Query("USE " + keyspaceId, CqlConsistencyLevel.IGNORE)).ToString();
+                    if (retKeyspaceId != keyspaceId)
+                        throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                 }
 
             }
@@ -126,11 +144,9 @@ namespace Cassandra.Native
                 throw new CassandraConnectionException("Cannot connect", ex);
             }
 
-            lock (connectionPool)
-            {
-                connectionPool.Add(new WeakReference<CassandraConnection>(nconn));
-                return nconn;
-            }
+            Debug.WriteLine("Allocated new connection");
+
+            return nconn;
         }
 
         public void ChangeKeyspace(string keyspace)
@@ -144,8 +160,10 @@ namespace Cassandra.Native
                     retry:
                         try
                         {
-                            if (processScallar(conn.Value.Query("USE \"" + keyspace.Replace("\"", "\"\"") + "\"", CqlConsistencyLevel.DEFAULT)).ToString() != keyspace)
-                                throw new InvalidOperationException();
+                            var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
+                            var retKeyspaceId = processScallar(conn.Value.Query("USE " + keyspaceId, CqlConsistencyLevel.IGNORE)).ToString();
+                            if (retKeyspaceId != keyspaceId)
+                                throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                         }
                         catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
                         {
@@ -176,7 +194,7 @@ namespace Cassandra.Native
                     return;
                 }
             }
-            throw new InvalidOperationException();
+            throw new CassandraClientProtocolViolationException("Unknown Event");
         }
 
         Guarded<bool> alreadyDisposed = new Guarded<bool>(false);
@@ -227,7 +245,7 @@ namespace Cassandra.Native
                 else if (outp is OutputSchemaChange)
                     return;
                 else
-                    throw new InvalidOperationException();
+                    throw new CassandraClientProtocolViolationException("Unexpected output kind");
             }
         }
 
@@ -240,7 +258,7 @@ namespace Cassandra.Native
                 else if (outp is OutputSetKeyspace)
                     return (outp as OutputSetKeyspace).Value;
                 else
-                    throw new InvalidOperationException();
+                    throw new CassandraClientProtocolViolationException("Unexpected output kind");
             }
         }
 
@@ -256,7 +274,7 @@ namespace Cassandra.Native
                     return (outp as OutputPrepared).QueryID;
                 }
                 else
-                    throw new InvalidOperationException();
+                    throw new CassandraClientProtocolViolationException("Unexpected output kind");
             }
         }
         
@@ -279,10 +297,10 @@ namespace Cassandra.Native
                 return new CqlRowSet(outp as OutputRows, true);
             }
             else
-                throw new InvalidOperationException();
+                throw new CassandraClientProtocolViolationException("Unexpected output kind");
         }
 
-        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency)
+        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency= CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
@@ -302,12 +320,12 @@ namespace Cassandra.Native
             processNonQuery(c.connection.EndQuery(result, c));
         }
 
-        public void NonQuery(string cqlQuery, CqlConsistencyLevel consistency)
+        public void NonQuery(string cqlQuery, CqlConsistencyLevel consistency= CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
              {
-                var connection = connect();
+                 var connection = connect();
                 processNonQuery(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
@@ -316,7 +334,7 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginScalar(string cqlQuery, CqlConsistencyLevel consistency, AsyncCallback callback, object state)
+        public IAsyncResult BeginScalar(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
@@ -336,13 +354,13 @@ namespace Cassandra.Native
             return processScallar(c.connection.EndQuery(result, c));
         }
 
-        public object Scalar(string cqlQuery)
+        public object Scalar(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
             {
                 var connection = connect();
-                return processScallar(connection.Query(cqlQuery,CqlConsistencyLevel.DEFAULT));
+                return processScallar(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
@@ -350,7 +368,7 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency, bool delayedRelease = false)
+        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
@@ -370,7 +388,7 @@ namespace Cassandra.Native
             return processRowset(c.connection.EndQuery(result, c));
         }
 
-        public CqlRowSet Query(string cqlQuery, CqlConsistencyLevel consistency)
+        public CqlRowSet Query(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
@@ -384,7 +402,7 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, bool delayedRelease = false)
+        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state)
         {
         retry:
             try
@@ -418,7 +436,7 @@ namespace Cassandra.Native
             }
         }
 
-        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease, CqlConsistencyLevel consistency)
+        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
@@ -438,13 +456,12 @@ namespace Cassandra.Native
             return processRowset(c.connection.EndExecuteQuery(result, c));
         }
 
-        public void ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency)
+        public void ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
             try
             {
                 var connection = connect();
-                //return processRowset(connection.ExecuteQuery(Id, Metadata, values));
                 processNonQuery(connection.ExecuteQuery(Id, Metadata, values, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)

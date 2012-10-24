@@ -174,7 +174,7 @@ namespace MyUTExt
             return Session;
         }
 
-        public void Test()
+        public void Test(int RowsNo=5000)
         {
             var conn = ConnectToTestServer();
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
@@ -198,7 +198,7 @@ namespace MyUTExt
             StringBuilder longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
-            int RowsNo = 5000;
+
             for (int i = 0; i < RowsNo; i++)
             {
                 longQ.AppendFormat(@"INSERT INTO {0} (
@@ -212,7 +212,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             }
             longQ.AppendLine("APPLY BATCH;");
             ExecuteSyncNonQuery(conn, longQ.ToString(), "Inserting...");
-            ExecuteSyncQuery(conn, string.Format(@"SELECT * from {0} LIMIT 5000;", tableName));
+            ExecuteSyncQuery(conn, string.Format(@"SELECT * from {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format(@"DROP TABLE {0};", tableName));
 
             ExecuteSyncNonQuery(conn, string.Format(@"DROP KEYSPACE {0};", keyspaceName));
@@ -245,7 +245,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Minimum", Minimum), null);
                 ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', '{3}');", tableName, Guid.NewGuid().ToString(), "Maximum", Maximum), null);
             }
-            catch (CassandraInvalidException) { }
+            catch (CassandraClusterInvalidException) { }
             
             ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));

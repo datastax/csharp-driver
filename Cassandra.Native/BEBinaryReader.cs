@@ -62,7 +62,7 @@ namespace Cassandra.Native
                 return new IPEndPoint(ip, ReadInt32());
             }
 
-            throw new InvalidOperationException();
+            throw new CassandraClientProtocolViolationException("unknown length of Inet Address");
         }
 
         public string ReadLongString()

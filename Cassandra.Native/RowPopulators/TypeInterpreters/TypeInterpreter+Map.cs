@@ -45,7 +45,7 @@ namespace Cassandra.Native
                 }
                 return ret;
             }
-            throw new InvalidOperationException();
+            throw new CassandraClientProtocolViolationException("Invalid ColumnInfo");
         }
 
         public static Type GetTypeFromMap(Metadata.ColumnInfo type_info)
@@ -64,7 +64,7 @@ namespace Cassandra.Native
                 var dicType = openType.MakeGenericType(kvType.MakeGenericType(key_type, value_type));
                 return dicType;
             }
-            throw new InvalidOperationException();
+            throw new CassandraClientProtocolViolationException("Invalid ColumnInfo");
         }
 
         public static byte[] InvConvertFromMap(Metadata.ColumnInfo type_info, object value)

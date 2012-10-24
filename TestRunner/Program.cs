@@ -43,7 +43,7 @@ namespace TestRunner
                 var asm = Assembly.Load(asmn);
                 foreach (var type in asm.GetTypes())
                 {
-                    if (type.Name.EndsWith("Tests"))
+                    if (type.Name.EndsWith("Tests") && type.IsPublic)
                     {
                         object testObj = null;
                         foreach (var mth in type.GetMethods())

@@ -8,7 +8,8 @@ using System.Data.Common;
 namespace Cassandra
 {
 
-    public enum CqlConsistencyLevel {
+    public enum CqlConsistencyLevel
+    {
         ANY = 0x0000,
         ONE = 0x0001,
         TWO = 0x0002,
@@ -17,7 +18,8 @@ namespace Cassandra
         ALL = 0x0005,
         LOCAL_QUORUM = 0x0006,
         EACH_QUORUM = 0x0007,
-        DEFAULT = QUORUM
+        DEFAULT = QUORUM,
+        IGNORE = ANY
     }
 
     public class CqlConnectionStringBuilder : DbConnectionStringBuilder

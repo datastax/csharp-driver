@@ -30,7 +30,7 @@ namespace Cassandra.Native
                 return;
             }
 
-            throw new InvalidOperationException();
+            throw new CassandraClientProtocolViolationException("Unknown Event Type");
         }
     }
 }

@@ -5,61 +5,61 @@ using System.Reflection;
 
 namespace Cassandra
 {
-    public class CassandraErrorException<ErrorInfoT> : CassandraException
+    public class CassandraClusterException<ErrorInfoT> : CassandraException
     {
         public ErrorInfoT ErrorInfo;
-        public CassandraErrorException(string Message, ErrorInfoT ErrorInfo)
+        public CassandraClusterException(string Message, ErrorInfoT ErrorInfo)
             : base(Message)
         {
             this.ErrorInfo = ErrorInfo;
         }
     }
 
-    public class CassandraEmptyErrorInfo
+    public class CassandraClusterEmptyErrorInfo
     {
-        public static CassandraEmptyErrorInfo Value = new CassandraEmptyErrorInfo();
+        public static CassandraClusterEmptyErrorInfo Value = new CassandraClusterEmptyErrorInfo();
     };
 
-    public class CassandraServerErrorException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterServerErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraServerErrorException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterServerErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraProtocolErrorException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterProtocolErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraProtocolErrorException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterProtocolErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
 
-    public class CassandraUnavailableInfo
+    public class CassandraClusterUnavailableInfo
     {
         public CqlConsistencyLevel ConsistencyLevel;
         public int Required;
         public int Alive;
     };
 
-    public class CassandraUnavailableException : CassandraErrorException<CassandraUnavailableInfo>
+    public class CassandraClusterUnavailableException : CassandraClusterException<CassandraClusterUnavailableInfo>
     {
-        public CassandraUnavailableException(string Message, CassandraUnavailableInfo Info) :
+        public CassandraClusterUnavailableException(string Message, CassandraClusterUnavailableInfo Info) :
             base(Message, Info) { }
     }
 
-    public class CassandraOverloadedException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterOverloadedException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraOverloadedException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterOverloadedException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraIsBootstrappingException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterIsBootstrappingException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraIsBootstrappingException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterIsBootstrappingException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraTruncateException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterTruncateException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraTruncateException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterTruncateException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraWriteTimeoutInfo
+    public class CassandraClusterWriteTimeoutInfo
     {
         public CqlConsistencyLevel ConsistencyLevel;
         public int Received;
@@ -67,13 +67,13 @@ namespace Cassandra
         public string WriteType;
     };
 
-    public class CassandraWriteTimeoutException : CassandraErrorException<CassandraWriteTimeoutInfo>
+    public class CassandraClusterWriteTimeoutException : CassandraClusterException<CassandraClusterWriteTimeoutInfo>
     {
-        public CassandraWriteTimeoutException(string Message, CassandraWriteTimeoutInfo Info) :
+        public CassandraClusterWriteTimeoutException(string Message, CassandraClusterWriteTimeoutInfo Info) :
             base(Message, Info) { }
     }
 
-    public class CassandraReadTimeoutInfo
+    public class CassandraClusterReadTimeoutInfo
     {
         public CqlConsistencyLevel ConsistencyLevel;
         public int Received;
@@ -81,53 +81,53 @@ namespace Cassandra
         public bool IsDataPresent;
     };
 
-    public class CassandraReadTimeoutException : CassandraErrorException<CassandraReadTimeoutInfo>
+    public class CassandraClusterReadTimeoutException : CassandraClusterException<CassandraClusterReadTimeoutInfo>
     {
-        public CassandraReadTimeoutException(string Message, CassandraReadTimeoutInfo Info) :
+        public CassandraClusterReadTimeoutException(string Message, CassandraClusterReadTimeoutInfo Info) :
             base(Message, Info) { }
     }
 
-    public class CassandraSyntaxErrorException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterSyntaxErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraSyntaxErrorException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterSyntaxErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
 
-    public class CassandraUnauthorizedException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterUnauthorizedException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraUnauthorizedException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterUnauthorizedException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraInvalidException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterInvalidException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraInvalidException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterInvalidException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraConfigErrorException : CassandraErrorException<CassandraEmptyErrorInfo>
+    public class CassandraClusterConfigErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
-        public CassandraConfigErrorException(string Message) : base(Message, CassandraEmptyErrorInfo.Value) { }
+        public CassandraClusterConfigErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
     }
 
-    public class CassandraAlreadyExistsInfo
+    public class CassandraClusterAlreadyExistsInfo
     {
         public string Ks;
         public string Table;
     };
 
-    public class CassandraAlreadyExistsException : CassandraErrorException<CassandraAlreadyExistsInfo>
+    public class CassandraClusterAlreadyExistsException : CassandraClusterException<CassandraClusterAlreadyExistsInfo>
     {
-        public CassandraAlreadyExistsException(string Message, CassandraAlreadyExistsInfo Info) :
+        public CassandraClusterAlreadyExistsException(string Message, CassandraClusterAlreadyExistsInfo Info) :
             base(Message, Info) { }
     }
 
-    public class CassandraUnpreparedInfo
+    public class CassandraClusterUnpreparedInfo
     {
         public byte[] UnknownID;
     };
 
-    public class CassandraUnpreparedException : CassandraErrorException<CassandraUnpreparedInfo>
+    public class CassandraClusterUnpreparedException : CassandraClusterException<CassandraClusterUnpreparedInfo>
     {
-        public CassandraUnpreparedException(string Message, CassandraUnpreparedInfo Info) :
+        public CassandraClusterUnpreparedException(string Message, CassandraClusterUnpreparedInfo Info) :
             base(Message, Info) { }
     }
 }
@@ -161,6 +161,8 @@ namespace Cassandra.Native
         internal static OutputError CreateOutputError(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             var tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Native.Output" + code.ToString());
+            if (tpy == null)
+                throw new CassandraClientProtocolViolationException("unknown error" + code.ToString());
             var cnstr = tpy.GetConstructor(new Type[] { });
             var outp = (OutputError)cnstr.Invoke(new object[] { });
             tpy.GetField("CassandraErrorType").SetValue(outp, code);
@@ -186,7 +188,7 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraServerErrorException(Message);
+            return new CassandraClusterServerErrorException(Message);
         }
     }
 
@@ -194,13 +196,13 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraProtocolErrorException(Message);
+            return new CassandraClusterProtocolErrorException(Message);
         }
     }
 
     internal class OutputUnavailableException : OutputError
     {
-        CassandraUnavailableInfo info = new CassandraUnavailableInfo();
+        CassandraClusterUnavailableInfo info = new CassandraClusterUnavailableInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             info.ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
@@ -209,7 +211,7 @@ namespace Cassandra.Native
         }
         public override CassandraException CreateException()
         {
-            return new CassandraUnavailableException(Message, info);
+            return new CassandraClusterUnavailableException(Message, info);
         }
     }
 
@@ -217,7 +219,7 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraOverloadedException(Message);
+            return new CassandraClusterOverloadedException(Message);
         }
     }
 
@@ -225,7 +227,7 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraIsBootstrappingException(Message);
+            return new CassandraClusterIsBootstrappingException(Message);
         }
     }
 
@@ -233,13 +235,13 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraTruncateException(Message);
+            return new CassandraClusterTruncateException(Message);
         }
     }
 
     internal class OutputWriteTimeout : OutputError
     {
-        CassandraWriteTimeoutInfo info = new CassandraWriteTimeoutInfo();
+        CassandraClusterWriteTimeoutInfo info = new CassandraClusterWriteTimeoutInfo();
 
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
@@ -251,13 +253,13 @@ namespace Cassandra.Native
 
         public override CassandraException CreateException()
         {
-            return new CassandraWriteTimeoutException(Message, info);
+            return new CassandraClusterWriteTimeoutException(Message, info);
         }
     }
 
     internal class OutputReadTimeout : OutputError
     {
-        CassandraReadTimeoutInfo info = new CassandraReadTimeoutInfo();
+        CassandraClusterReadTimeoutInfo info = new CassandraClusterReadTimeoutInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             info.ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
@@ -267,7 +269,7 @@ namespace Cassandra.Native
         }
         public override CassandraException CreateException()
         {
-            return new CassandraReadTimeoutException(Message, info);
+            return new CassandraClusterReadTimeoutException(Message, info);
         }
     }
 
@@ -275,7 +277,7 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraSyntaxErrorException(Message);
+            return new CassandraClusterSyntaxErrorException(Message);
         }
     }
 
@@ -283,7 +285,7 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraUnauthorizedException(Message);
+            return new CassandraClusterUnauthorizedException(Message);
         }
     }
 
@@ -291,7 +293,7 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraInvalidException(Message);
+            return new CassandraClusterInvalidException(Message);
         }
     }
 
@@ -300,13 +302,13 @@ namespace Cassandra.Native
     {
         public override CassandraException CreateException()
         {
-            return new CassandraConfigErrorException(Message);
+            return new CassandraClusterConfigErrorException(Message);
         }
     }
 
     internal class OutputAlreadyExists : OutputError
     {
-        CassandraAlreadyExistsInfo info = new CassandraAlreadyExistsInfo();
+        CassandraClusterAlreadyExistsInfo info = new CassandraClusterAlreadyExistsInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             info.Ks = cb.ReadString();
@@ -314,13 +316,13 @@ namespace Cassandra.Native
         }
         public override CassandraException CreateException()
         {
-            return new CassandraAlreadyExistsException(Message, info);
+            return new CassandraClusterAlreadyExistsException(Message, info);
         }
     }
 
     internal class OutputUnprepared : OutputError
     {
-        CassandraUnpreparedInfo info = new CassandraUnpreparedInfo();
+        CassandraClusterUnpreparedInfo info = new CassandraClusterUnpreparedInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             info.UnknownID = new byte[2];
@@ -328,7 +330,7 @@ namespace Cassandra.Native
         }
         public override CassandraException CreateException()
         {
-            return new CassandraUnpreparedException(Message, info);
+            return new CassandraClusterUnpreparedException(Message, info);
         }
     }
 
