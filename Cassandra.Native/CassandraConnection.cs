@@ -19,7 +19,12 @@ namespace Cassandra.Native
 
     internal partial class CassandraConnection 
     {
-
+#if ERRORINJECTION
+        public void KillSocket()
+        {
+            socket.Value.Shutdown(SocketShutdown.Both);
+        }
+#endif
         EndPoint serverAddress;
         Guarded<Socket> socket = new Guarded<Socket>(null);
         Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
@@ -124,9 +129,6 @@ namespace Cassandra.Native
         {
             lock (freeStreamIDs)
             {
-                if (freeStreamIDs.Value.Contains(streamId))
-                {
-                }
                 freeStreamIDs.Value.Push(streamId);
                 if(freeStreamIDs.Value.Count==sbyte.MaxValue)
                     Debug.WriteLine("All streams are free");
@@ -296,12 +298,13 @@ namespace Cassandra.Native
                     return;
             try
             {
-                lock (readerSocketStreamBusy)
-                {
-                    while (readerSocketStreamBusy.Value)
-                        Monitor.Wait(readerSocketStreamBusy);
-                    readerSocketStreamBusy.Value = true;
-                }
+                if (!(bufferingMode is FrameBuffering))
+                    lock (readerSocketStreamBusy)
+                    {
+                        while (readerSocketStreamBusy.Value)
+                            Monitor.Wait(readerSocketStreamBusy);
+                        readerSocketStreamBusy.Value = true;
+                    }
 
                 if (abortTimeout != Timeout.Infinite)
                 {
@@ -331,8 +334,6 @@ namespace Cassandra.Native
                             int bytesReadCount;
                             lock (readerSocketStream)
                                  bytesReadCount = readerSocketStream.EndRead(ar);
-
-//                            Debug.WriteLine(")");
 
                             if (bytesReadCount == 0)
                             {
@@ -395,13 +396,12 @@ namespace Cassandra.Native
                         {
                             if (bufferingMode is FrameBuffering)
                                 again();
-                            
-                            lock (readerSocketStreamBusy)
-                            {
-                                readerSocketStreamBusy.Value = false;
-                                Monitor.PulseAll(readerSocketStreamBusy);
-                            }
-
+                            else
+                                lock (readerSocketStreamBusy)
+                                {
+                                    readerSocketStreamBusy.Value = false;
+                                    Monitor.PulseAll(readerSocketStreamBusy);
+                                }
                         }
                     }), null);
                 }

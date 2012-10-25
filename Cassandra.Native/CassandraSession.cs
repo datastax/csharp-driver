@@ -21,7 +21,32 @@ namespace Cassandra.Native
         int maxConnectionsInPool = int.MaxValue;
         string keyspace = string.Empty;
 
+#if ERRORINJECTION
+        public void SimulateSingleConnectionDown()
+        {
+            while (true)
+                lock (connectionPool)
+                    if (connectionPool.Count > 0)
+                    {
+                        var conn = connectionPool[StaticRandom.Instance.Next(connectionPool.Count)];
+                        if (conn.IsAlive)
+                        {
+                            conn.Value.KillSocket();
+                            return;
+                        }
+                    }
+        }
 
+        public void SimulateAllConnectionsDown()
+        {
+            lock (connectionPool)
+                foreach (var conn in connectionPool)
+                {
+                    if (conn.IsAlive)
+                        conn.Value.KillSocket();
+                }
+        }
+#endif
 
         CassandraConnection eventRaisingConnection = null;
 
@@ -334,6 +359,28 @@ namespace Cassandra.Native
             }
         }
 
+        public void NonQueryWithRerties(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
+        {
+            int retryNo = 0;
+        retry:
+            try
+            {
+                var connection = connect();
+                processNonQuery(connection.Query(cqlQuery, consistency));
+            }
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
+            {
+                goto retry;
+            }
+            catch 
+            {
+                if (retryNo >= 3)
+                    throw;
+                retryNo++;
+                goto retry;
+            }
+        }
+        
         public IAsyncResult BeginScalar(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
         retry:
@@ -402,6 +449,28 @@ namespace Cassandra.Native
             }
         }
 
+        public CqlRowSet QueryWithRerties(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
+        {
+            int retryNo = 0;
+        retry:
+            try
+            {
+                var connection = connect();
+                return processRowset(connection.Query(cqlQuery, consistency));
+            }
+            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
+            {
+                goto retry;
+            }
+            catch (CassandraConnectionException)
+            {
+                if (retryNo >= 3)
+                    throw;
+                retryNo++;
+                goto retry;
+            }
+        }
+        
         public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state)
         {
         retry:

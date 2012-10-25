@@ -39,4 +39,10 @@ namespace Cassandra
         public CassandraClientProtocolViolationException(string message, Exception innerException)
             : base(message, innerException) { }
     }
+
+    public class CassandraClientAsyncOperationException : CassandraClientException
+    {
+        public CassandraClientAsyncOperationException(Exception innerException)
+            : base("Async Operation Failed", innerException) { }
+    }
 }

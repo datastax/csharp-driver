@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="BasicTests+Collections.cs" />
     <Compile Include="BasicTests.cs" />
+    <Compile Include="ErrorInjectionlTests.cs" />
     <Compile Include="MTTests.cs" />
     <Compile Include="PoolTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -93,14 +93,8 @@ namespace Cassandra.Native
             }
             else
             {
+                //already set
             }
-            /*
-                else
-                {
-                    throw new InvalidOperationException(
-                        "You can set a result only once");
-                }
-            */
             return result;
         }
 
@@ -154,7 +148,7 @@ namespace Cassandra.Native
             }
 
             // Operation is done: if an exception occurred, throw it
-            if (asyncResult.m_exception != null) throw new Exception("ASync", asyncResult.m_exception);
+            if (asyncResult.m_exception != null) throw new CassandraClientAsyncOperationException(asyncResult.m_exception);
         }
 
         #region Implementation of IAsyncResult

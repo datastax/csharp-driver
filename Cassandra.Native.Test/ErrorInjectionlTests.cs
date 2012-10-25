@@ -10,23 +10,23 @@ using MyUTExt;
 
 namespace Cassandra.Native.Test
 {
-    public class PoolCompressionTests : PoolTestsBase
+     class ErrrorInjectionCompressionTests : ErrrorInjectionTestsBase
     {
-        public PoolCompressionTests()
+        public ErrrorInjectionCompressionTests()
             : base(true)
         {
         }
     }
 
-    public class PoolNoCompressionTests : PoolTestsBase
+     class ErrrorInjectionNoCompressionTests : ErrrorInjectionTestsBase
     {
-        public PoolNoCompressionTests()
+        public ErrrorInjectionNoCompressionTests()
             : base(false)
         {
         }
     }
     
-    public class PoolTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
+    public class ErrrorInjectionTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;
         CassandraCompressionType Compression
@@ -37,7 +37,7 @@ namespace Cassandra.Native.Test
             }
         }
 
-        public PoolTestsBase(bool compression)
+        public ErrrorInjectionTestsBase(bool compression)
         {
             _compression = compression;
         }
@@ -86,11 +86,24 @@ namespace Cassandra.Native.Test
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
             Randomm rndm = new Randomm();
-            int RowsNo = 1000;
-            IAsyncResult[] ar = new IAsyncResult[RowsNo];
+            int RowsNo = 10;
+            bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
             int readyCnt = 0;
+
+            Thread errorInjector = new Thread(() =>
+            {
+                lock (monit)
+                {
+                    readyCnt++;
+                    Monitor.Wait(monit);
+                }
+                Thread.Sleep(100);
+                Console.Write("#");
+                Session.SimulateSingleConnectionDown();
+            });
+
             Console.WriteLine();
             Console.WriteLine("Preparing...");
 
@@ -109,13 +122,14 @@ namespace Cassandra.Native.Test
                             Monitor.Wait(monit);
                         }
 
-                        ar[i] = Session.BeginNonQuery(string.Format(@"INSERT INTO {0} (
+                        Session.NonQueryWithRerties(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
          body)
 VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                       , null, null);
+                       );
+                        ar[i] = true;
                         Thread.MemoryBarrier();
                     }
                     catch
@@ -129,12 +143,13 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
             {
                 threads[idx].Start();
             }
+            errorInjector.Start();
 
             lock (monit)
             {
                 while (true)
                 {
-                    if (readyCnt < RowsNo)
+                    if (readyCnt < RowsNo+(1))
                     {
                         Monitor.Exit(monit);
                         Thread.Sleep(100);
@@ -157,14 +172,10 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                 for (int i = 0; i < RowsNo; i++)
                 {
                     Thread.MemoryBarrier();
-                    if (!done.Contains(i) &&  ar[i] != null)
+                    if (!done.Contains(i) && ar[i])
                     {
-                        if (ar[i].AsyncWaitHandle.WaitOne(10))
-                        {
-                            Session.EndNonQuery(ar[i]);
-                            done.Add(i);
-                            Console.Write("-");
-                        }
+                        done.Add(i);
+                        Console.Write("-");
                     }
                 }
             }
@@ -185,6 +196,8 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
             {
                 threads[idx].Join();
             }
+
+            errorInjector.Join();
          }
     }
 }
