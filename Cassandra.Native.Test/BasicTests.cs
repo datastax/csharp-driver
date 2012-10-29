@@ -9,19 +9,26 @@ using System.Numerics;
 using System.Globalization;
 
 namespace Cassandra.Native.Test
-{        
+{
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
-        public CommonBasicTests() : base(false)
+        public CommonBasicTests()
+            : base(false)
         {
             System.Globalization.CultureInfo ci = new System.Globalization.CultureInfo("en-GB");
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
 
-       // [Fact]
-        public void preparedStatements()
+        [Fact]
+        public void testBlob()
         {
-            prepareTest();
+            insertingSingleValue(typeof(byte));
+        }
+
+        [Fact]
+        public void creatingSecondaryIndex()
+        {
+            createSecondaryIndexTest();
         }
 
         [Fact]

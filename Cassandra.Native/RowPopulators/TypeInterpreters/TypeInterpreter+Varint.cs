@@ -23,7 +23,8 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromVarint(Metadata.ColumnInfo type_info, object value)
         {
-            return  ((VarintBuffer)value).BigIntegerBytes;
+            checkArgument<VarintBuffer>(value);
+            return ((VarintBuffer)value).BigIntegerBytes;
         }
     }
 }

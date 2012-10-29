@@ -27,8 +27,7 @@ namespace Cassandra.Native
         {
             BEBinaryWriter wb = new BEBinaryWriter();
             wb.WriteFrameHeader(0x01, 0x00, (byte)streamId, OpCode);
-            wb.WriteInt16((short)id.Length);
-            wb.WriteBytes(id);
+            wb.WriteShortBytes(id);
             wb.WriteUInt16((ushort) values.Length);
             for(int i =0;i<Metadata.Columns.Length;i++)
             {

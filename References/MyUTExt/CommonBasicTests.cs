@@ -8,6 +8,7 @@ using Cassandra.Native;
 using System.Numerics;
 using System.Globalization;
 using Cassandra;
+using System.Threading.Tasks;
  
 
 namespace MyUTExt
@@ -34,7 +35,7 @@ namespace MyUTExt
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");
 
             var serverSp = setFix.Settings["CassandraServer"].Split(':');
 
@@ -283,13 +284,16 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 case "DateTimeOffset":
                     return "timestamp";
 
+                case "Byte":
+                    return "blob";
+
                 default:
                     throw new InvalidOperationException();                    
             }
         }
 
         
-        public void insertingSingleValue(Type tp)
+        public void insertingSingleValue(Type tp, bool preparedStatement=false)
         {
             string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(tp);
             CassandraSession conn = ConnectToTestServer();
@@ -297,30 +301,71 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             string tableName = "table" + Guid.NewGuid().ToString("N");
             ExecuteSyncNonQuery(conn, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
-         number {1}
+         value {1}
          );", tableName, cassandraDataTypeName));
-            ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id,number) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), RandomVal(tp)), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
+
+            if (preparedStatement)
+            {
+                byte[] preparedID;
+                Metadata md;
+                object[] values = new object[1];
+
+                if(tp == typeof(Decimal))
+                    values[0] = Extensions.ToDecimalBuffer((Decimal)RandomVal(tp));
+                else if(tp == typeof(BigInteger))
+                    values[0] = Extensions.ToVarintBuffer((BigInteger)RandomVal(tp));
+                else
+                    values[0] = RandomVal(tp);
+
+                PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, Guid.NewGuid().ToString()), out preparedID, out md);
+                ExecutePreparedQuery(this.Session, preparedID, md, values);
+            }
+            else
+                ExecuteSyncNonQuery(conn, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), RandomVal(tp)), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
+            
             ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }
 
 
-        public void prepareTest()
+
+
+        public void massivePreparedStatementTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");
             ExecuteSyncNonQuery(this.Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
-         label text,
-         number {1}
-         );", tableName, "int"));
+         numb1 double,
+         numb2 int
+         );", tableName));
+                                                
+            int numberOfPrepares = 1000;
 
-            byte[] preparedID;
-            Metadata md;
-            object[] values = new object[2];
-            values[0] = (string)"LSD";
-            values[1] = (int)1410;
-            PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, ?, ?);", tableName, Guid.NewGuid()), out preparedID, out md);
-            ExecutePreparedQuery(this.Session, preparedID, md, values);                
+            List<object[]> values = new List<object[]>(numberOfPrepares);
+            Dictionary<byte[], Metadata> prepares = new Dictionary<byte[],Metadata>(numberOfPrepares);
+
+            Parallel.For(0, numberOfPrepares, i =>
+            {
+                byte[] preparedID;
+                Metadata md;
+
+                PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, numb1, numb2) VALUES ({1}, ?, ?);", tableName, Guid.NewGuid()), out preparedID, out md);
+                
+                lock(prepares)
+                    prepares.Add(preparedID,md);
+                
+                lock(values)
+                    values.Add(new object[]{(double)RandomVal(typeof(double)),(int)RandomVal(typeof(int))});                                   
+            });            
+            
+            int j = 0;
+            Parallel.ForEach(prepares, pID =>                
+                {
+                    ExecutePreparedQuery(this.Session, pID.Key, pID.Value, values[j]);
+                    j++;
+                });
+
+            ExecuteSyncQuery(this.Session, string.Format("SELECT * FROM {0};", tableName));
         }
 
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null, string pendingMode="")
@@ -468,11 +513,36 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName));
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }
+
+        public void createSecondaryIndexTest()
+        {
+            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string columns = "tweet_id uuid, name text, surname text, number int";
+
+            ExecuteSyncNonQuery(this.Session, string.Format(@"CREATE TABLE {0}(
+         {1},
+PRIMARY KEY(tweet_id)
+         );", tableName, columns));
+            try
+            {
+                ExecuteSyncNonQuery(this.Session, "DROP INDEX user_name;");
+            }
+            catch (Exception ex)
+            { }
+            ExecuteSyncNonQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, name, surname, number) VALUES(1,'Adam','Małysz',1);", tableName));
+            ExecuteSyncNonQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, name, surname, number) VALUES(2,'Adam','Miałczyński',2);", tableName));
+            ExecuteSyncNonQuery(this.Session, string.Format("CREATE INDEX user_name ON {0}(name);", tableName));
+            ExecuteSyncQuery(this.Session, string.Format("SELECT name FROM {0} WHERE name = 'Adam';", tableName)); 
+        }
+
         private Randomm rndm = new Randomm();
         private object RandomVal(Type tp)
         {
-            if (tp != null)                            
-                return rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { });            
+            if (tp != null)
+                if(tp == typeof(byte))
+                    return Cassandra.Native.CqlQueryTools.ToHex((byte[])rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { }));
+                else
+                    return rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { });            
             else
                 return "";
         }

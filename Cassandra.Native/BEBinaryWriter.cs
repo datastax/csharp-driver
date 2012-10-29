@@ -74,6 +74,12 @@ namespace Cassandra.Native
             _base.Write(buffer);
         }
 
+        public void WriteShortBytes(byte[] buffer)
+        {
+            WriteInt16((short)buffer.Length);
+            _base.Write(buffer);
+        }
+
         int FrameSizePos = -1;
 
         public void WriteFrameSize()

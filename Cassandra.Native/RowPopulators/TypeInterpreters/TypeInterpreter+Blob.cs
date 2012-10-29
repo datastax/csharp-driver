@@ -9,7 +9,7 @@ namespace Cassandra.Native
     {
         public static object ConvertFromBlob(Metadata.ColumnInfo type_info, byte[] value)
         {
-            return value;
+            return "\'" + CqlQueryTools.ToHex(value) + "\'";               
         }
 
         public static Type GetTypeFromBlob(Metadata.ColumnInfo type_info)

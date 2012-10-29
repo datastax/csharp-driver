@@ -41,7 +41,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BasicTests+Collections.cs" />
+    <Compile Include="BasicTests+Collections.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BasicTests+Prepared.cs" />
     <Compile Include="BasicTests.cs" />
     <Compile Include="ErrorInjectionlTests.cs" />
     <Compile Include="MTTests.cs" />

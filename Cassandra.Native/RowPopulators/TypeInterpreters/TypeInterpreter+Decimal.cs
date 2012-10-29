@@ -6,8 +6,7 @@ namespace Cassandra.Native
 {
     public struct DecimalBuffer
     {
-        public byte[] BigIntegerBytes;
-        public int Scale;
+        public byte[] BigIntegerBytes;        
     }
 
     internal static partial class TypeInerpreter
@@ -26,11 +25,7 @@ namespace Cassandra.Native
         public static byte[] InvConvertFromDecimal(Metadata.ColumnInfo type_info, object value)
         {
             checkArgument<DecimalBuffer>(value);
-            byte[] ret = new byte[((DecimalBuffer)value).BigIntegerBytes.Length + 4];
-            Buffer.BlockCopy(((DecimalBuffer)value).BigIntegerBytes, 0, ret, 0, ret.Length - 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(((DecimalBuffer)value).Scale), 0, ret, ret.Length - 4, 4);
-            
-            return ret;
+            return ((DecimalBuffer)value).BigIntegerBytes;
         }
     }
 }

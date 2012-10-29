@@ -18,7 +18,7 @@ namespace Cassandra.Native.Test
         }
     }
 
-     class ErrrorInjectionNoCompressionTests : ErrrorInjectionTestsBase
+    public class ErrrorInjectionNoCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionNoCompressionTests()
             : base(false)
@@ -56,7 +56,7 @@ namespace Cassandra.Native.Test
 
             var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
 
-            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 10 * 60 * 1000);
+            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 20 * 1000);
         }
 
         public void Dispose()
@@ -86,7 +86,7 @@ namespace Cassandra.Native.Test
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
             Randomm rndm = new Randomm();
-            int RowsNo = 10;
+            int RowsNo = 1000;
             bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
@@ -99,6 +99,18 @@ namespace Cassandra.Native.Test
                     readyCnt++;
                     Monitor.Wait(monit);
                 }
+                Thread.Sleep(1000);
+                Console.Write("#");
+                Session.SimulateSingleConnectionDown();
+                Thread.Sleep(100);
+                Console.Write("#");
+                Session.SimulateSingleConnectionDown();
+                Thread.Sleep(100);
+                Console.Write("#");
+                Session.SimulateSingleConnectionDown();
+                Thread.Sleep(100);
+                Console.Write("#");
+                Session.SimulateSingleConnectionDown();
                 Thread.Sleep(100);
                 Console.Write("#");
                 Session.SimulateSingleConnectionDown();

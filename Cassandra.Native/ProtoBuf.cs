@@ -30,12 +30,13 @@ namespace Cassandra.Native
 
         public void Write(byte[] buffer, int offset, int count)
         {
-            if (ioError) throw new CassandraConncectionIOException();
 
             if (buffer == null)
                 ioError = true;
             else
             {
+                if (ioError) throw new CassandraConncectionIOException();
+
                 try
                 {
                     lock(stream)

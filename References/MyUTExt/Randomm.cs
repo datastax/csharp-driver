@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Numerics;
+using Cassandra.Native;
+using System.IO;
 
 namespace MyUTExt
 {
@@ -19,6 +21,10 @@ namespace MyUTExt
             numb *= 2;
             return float.MaxValue * (float)numb;
         }
+        public UInt16 NextUInt16()
+        {
+            return (ushort)this.Next(0, 65535); 
+        }
         public int NextInt32()
         {
             return this.Next();
@@ -29,20 +35,55 @@ namespace MyUTExt
             this.NextBytes(buffer);
             return BitConverter.ToInt64(buffer, 0);
         }
+
         public decimal NextDecimal()
         {
             byte scale = (byte)this.Next(29);
             bool sign = this.Next(2) == 1;
+            
             return new decimal(this.NextInt32(),
                                this.NextInt32(),
                                this.NextInt32(),
                                sign,
                                scale);
         }
+        //public DecimalBuffer NextDecimal()
+        //{
+        //    //byte scale = (byte)this.Next(29);
+        //    //bool sign = this.Next(2) == 1;
+        //    //decimal number = new decimal(this.NextInt32(),
+        //    //       this.NextInt32(),
+        //    //       this.NextInt32(),
+        //    //       sign,
+        //    //       scale);            
+            
+        //    //byte[] bArray = null;
+
+        //    //MemoryStream memStream = new MemoryStream();
+        //    //BinaryWriter writer = new BinaryWriter(memStream);
+        //    //writer.Write(number);
+        //    //bArray = memStream.ToArray();
+        //    //memStream.Close();
+        //    //writer.Close();
+            
+        //    //DecimalBuffer decbuf;
+                
+        //    //decbuf.BigIntegerBytes = bArray;
+        //    //decbuf.Scale = scale;
+
+        //    return Extensions.ToDecimalBuffer(NextDecimalNormal()); ;
+        //}
+
         public BigInteger NextBigInteger()
         {
             return new BigInteger(Int64.MaxValue) * 10;
         }
+
+        //public VarintBuffer NextBigInteger()
+        //{
+        //    return Extensions.ToVarintBuffer(NextBigIntegerNormal());
+        //}
+
         public string NextString()
         {
             return NextChar();
@@ -62,5 +103,14 @@ namespace MyUTExt
         {
             return DateTimeOffset.Now.DateTime;
         }
+
+        public byte[] NextByte()
+        {
+            byte[] btarr = new byte[this.NextUInt16()];            
+            this.NextBytes(btarr);
+            return btarr;
+        }
+
+
     }
 }

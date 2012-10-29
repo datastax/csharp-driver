@@ -13,7 +13,7 @@ namespace Cassandra.Native
             return new BigInteger(varint.BigIntegerBytes);
         }
 
-        public static VarintBuffer ToVarintBuffer(this BigInteger varint, BigInteger value)
+        public static VarintBuffer ToVarintBuffer(this BigInteger value)
         {
             return new VarintBuffer() { BigIntegerBytes = value.ToByteArray() };
         }
@@ -25,7 +25,7 @@ namespace Cassandra.Native
             return new BigDecimal(decim.BigIntegerBytes);
         }
 
-        public static DecimalBuffer ToDecimalBuffer(this BigDecimal decim, BigDecimal value)
+        public static DecimalBuffer ToDecimalBuffer(this BigDecimal value)
         {
             return new DecimalBuffer() { BigIntegerBytes = value.ToByteArray()};            
         }

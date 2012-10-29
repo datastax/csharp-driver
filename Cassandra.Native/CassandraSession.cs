@@ -531,7 +531,7 @@ namespace Cassandra.Native
             try
             {
                 var connection = connect();
-                processNonQuery(connection.ExecuteQuery(Id, Metadata, values, consistency));
+                connection.ExecuteQuery(Id, Metadata, values, consistency);                                
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {

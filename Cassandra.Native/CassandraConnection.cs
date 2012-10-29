@@ -129,6 +129,8 @@ namespace Cassandra.Native
         {
             lock (freeStreamIDs)
             {
+                if (freeStreamIDs.Value.Contains(streamId))
+                    return;
                 freeStreamIDs.Value.Push(streamId);
                 if(freeStreamIDs.Value.Count==sbyte.MaxValue)
                     Debug.WriteLine("All streams are free");
@@ -330,15 +332,14 @@ namespace Cassandra.Native
                         }
 
                         try
-                        {   
+                        {
                             int bytesReadCount;
                             lock (readerSocketStream)
-                                 bytesReadCount = readerSocketStream.EndRead(ar);
+                                bytesReadCount = readerSocketStream.EndRead(ar);
 
                             if (bytesReadCount == 0)
                             {
-                                Debug.WriteLine("!readerSocketStream.0");
-                                readerSocketExceptionOccured = true;
+                                throw new CassandraConncectionIOException();
                             }
                             else
                             {
@@ -499,16 +500,10 @@ namespace Cassandra.Native
         {
             try
             {
-                //                Debug.Write(streamId + ">");
-                //if (frameReadCallback[streamId] != null)
-                //{
-                //}
                 var frame = req.GetFrame();
                 lock (writerSocketStream)
                 {
                     frameReadCallback[streamId] = nextAction;
-
-
                     writerSocketStream.Write(frame.buffer, 0, frame.buffer.Length);
                     writerSocketStream.Flush();
                 }
