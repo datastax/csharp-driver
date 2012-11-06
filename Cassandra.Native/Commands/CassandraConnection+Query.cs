@@ -32,7 +32,6 @@ namespace Cassandra.Native
         public IOutput Query(string cqlQuery, CqlConsistencyLevel consistency)
         {
             var r = BeginQuery(cqlQuery, null, null, this, consistency);
-            r.AsyncWaitHandle.WaitOne();
             return EndQuery(r, this);
         }
     }

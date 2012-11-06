@@ -21,16 +21,22 @@ namespace Cassandra.Native
         {
             get
             {
-                Thread.MemoryBarrier();
-                var r = this.val;
-                Thread.MemoryBarrier();
-                return r;
+                //lock (this)
+                {
+                    Thread.MemoryBarrier();
+                    var r = this.val;
+                    Thread.MemoryBarrier();
+                    return r;
+                }
             }
             set
             {
-                Thread.MemoryBarrier();
-                this.val = value;
-                Thread.MemoryBarrier();
+                //lock (this)
+                {
+                    Thread.MemoryBarrier();
+                    this.val = value;
+                    Thread.MemoryBarrier();
+                }
             }
         }
     }
@@ -47,16 +53,22 @@ namespace Cassandra.Native
         {
             get
             {
-                Thread.MemoryBarrier();
-                var r = this.arr[idx];
-                Thread.MemoryBarrier();
-                return r;
+                //lock (this)
+                {
+                    Thread.MemoryBarrier();
+                    var r = this.arr[idx];
+                    Thread.MemoryBarrier();
+                    return r;
+                }
             }
             set
             {
-                Thread.MemoryBarrier();
-                arr[idx] = value;
-                Thread.MemoryBarrier();
+                //lock (this)
+                {
+                    Thread.MemoryBarrier();
+                    arr[idx] = value;
+                    Thread.MemoryBarrier();
+                }
             }
         }
     }
@@ -64,11 +76,33 @@ namespace Cassandra.Native
     internal class Guarded<T>
     {
         T val;
+
+        void AssureLocked()
+        {
+            if (Monitor.TryEnter(this))
+                Monitor.Exit(this);
+            else
+                throw new System.Threading.SynchronizationLockException();
+        }
+        
         public Guarded(T val)
         {
             this.val = val;
+            Thread.MemoryBarrier();
         }
-        public T Value { get { return val; } set { val = value; } }
+        public T Value
+        {
+            get
+            {
+                AssureLocked();
+                return val;
+            }
+            set
+            {
+                AssureLocked();
+                val = value;
+            }
+        }
     }
 
     internal class WeakReference<T> : WeakReference

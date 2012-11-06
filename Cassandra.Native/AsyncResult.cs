@@ -142,7 +142,7 @@ namespace Cassandra.Native
             if (!asyncResult.IsCompleted)
             {
                 // If the operation isn't done, wait for it
-                asyncResult.AsyncWaitHandle.WaitOne();
+                asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
                 asyncResult.AsyncWaitHandle.Close();
                 asyncResult.m_AsyncWaitHandle = null;  // Allow early GC
             }

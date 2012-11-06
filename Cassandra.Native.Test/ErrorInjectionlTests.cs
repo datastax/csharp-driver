@@ -56,7 +56,7 @@ namespace Cassandra.Native.Test
 
             var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
 
-            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 20 * 1000);
+            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 10*1000);
         }
 
         public void Dispose()
@@ -64,7 +64,7 @@ namespace Cassandra.Native.Test
             Session.Dispose();
         }
 
-       // [Fact]
+        [Fact]
         public void ParallelInsertTest()
         {
             Console.WriteLine("Compression is:"+(Compression== CassandraCompressionType.Snappy?"SNAPPY":"OFF"));
@@ -99,21 +99,16 @@ namespace Cassandra.Native.Test
                     readyCnt++;
                     Monitor.Wait(monit);
                 }
-                Thread.Sleep(1000);
+                Thread.Sleep(5);
                 Console.Write("#");
                 Session.SimulateSingleConnectionDown();
-                Thread.Sleep(100);
-                Console.Write("#");
-                Session.SimulateSingleConnectionDown();
-                Thread.Sleep(100);
-                Console.Write("#");
-                Session.SimulateSingleConnectionDown();
-                Thread.Sleep(100);
-                Console.Write("#");
-                Session.SimulateSingleConnectionDown();
-                Thread.Sleep(100);
-                Console.Write("#");
-                Session.SimulateSingleConnectionDown();
+
+                for (int i = 0; i < 100; i++)
+                {
+                    Thread.Sleep(1);
+                    Console.Write("#");
+                    Session.SimulateSingleConnectionDown();
+                }
             });
 
             Console.WriteLine();
@@ -144,8 +139,11 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                         ar[i] = true;
                         Thread.MemoryBarrier();
                     }
-                    catch
+                    catch(Exception ex)
                     {
+                        Console.WriteLine(ex.Message);
+                        ar[i] = true;
+                        Thread.MemoryBarrier();
                     }
 
                 }));
@@ -192,24 +190,26 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                 }
             }
 
-            Console.WriteLine();
-            Console.WriteLine("Inserted... now we are checking the count");
-
-            using (var ret = Session.Query(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo+100)))
-            {
-                Assert.Equal(RowsNo, ret.RowsCount);
-            }
-           
-            Session.NonQuery(string.Format(@"DROP TABLE {0};", tableName));
-
-            Session.NonQuery(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-
             for (int idx = 0; idx < RowsNo; idx++)
             {
                 threads[idx].Join();
             }
 
             errorInjector.Join();
+
+            Console.WriteLine();
+            Console.WriteLine("Inserted... now we are checking the count");
+
+            using (var ret = Session.QueryWithRerties(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo+100)))
+            {
+                Assert.Equal(RowsNo, ret.RowsCount);
+            }
+
+            Session.NonQuery(string.Format(@"DROP TABLE {0};", tableName));
+
+            Session.NonQuery(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
+
+
          }
     }
 }

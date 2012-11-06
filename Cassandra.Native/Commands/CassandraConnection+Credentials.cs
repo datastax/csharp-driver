@@ -30,7 +30,6 @@ namespace Cassandra.Native
         public IOutput ExecuteCredentials(IDictionary<string, string> credentials)
         {
             var r = BeginExecuteQueryCredentials(credentials, null, null, this);
-            r.AsyncWaitHandle.WaitOne();
             return EndExecuteQueryCredentials(r, this);
         }
     }

@@ -372,9 +372,9 @@ namespace Cassandra.Native
             {
                 goto retry;
             }
-            catch 
+            catch (CassandraException)
             {
-                if (retryNo >= 3)
+                if (retryNo >= 50000)
                     throw;
                 retryNo++;
                 goto retry;
@@ -462,9 +462,9 @@ namespace Cassandra.Native
             {
                 goto retry;
             }
-            catch (CassandraConnectionException)
+            catch (CassandraException)
             {
-                if (retryNo >= 3)
+                if (retryNo >= 50000)
                     throw;
                 retryNo++;
                 goto retry;

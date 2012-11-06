@@ -58,7 +58,6 @@ namespace Cassandra.Native
         public IOutput RegisterForCassandraEvent(CassandraEventType eventTypes)
         {
             var r = BeginRegisterForCassandraEvent(eventTypes, null, null, this);
-            r.AsyncWaitHandle.WaitOne();
             return EndRegisterForCassandraEvent(r, this);
         }
     }

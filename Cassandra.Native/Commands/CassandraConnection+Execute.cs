@@ -30,7 +30,6 @@ namespace Cassandra.Native
         public IOutput ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency)
         {
             var r = BeginExecuteQuery(Id, Metadata, values, null, null, this, consistency);
-            r.AsyncWaitHandle.WaitOne();
             return EndExecuteQuery(r, this);
         }
     }

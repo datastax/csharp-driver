@@ -51,7 +51,8 @@ namespace Cassandra.Native
         }
         public void WaitForDispose()
         {
-            disposed.WaitOne();
+            disposed.WaitOne(Timeout.Infinite);
+            disposed.Close();
         }
     }
 }

@@ -30,7 +30,6 @@ namespace Cassandra.Native
         public IOutput ExecuteOptions()
         {
             var r = BeginExecuteQueryOptions(null, null, this);
-            r.AsyncWaitHandle.WaitOne();
             return EndExecuteQueryOptions(r, this);
         }
     }

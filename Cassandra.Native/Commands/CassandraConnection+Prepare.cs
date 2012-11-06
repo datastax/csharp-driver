@@ -30,7 +30,6 @@ namespace Cassandra.Native
         public IOutput PrepareQuery(string cqlQuery)
         {
             var r = BeginPrepareQuery(cqlQuery, null, null, this);
-            r.AsyncWaitHandle.WaitOne();
             return EndPrepareQuery(r, this);
         }
     }
