@@ -31,7 +31,7 @@ namespace Cassandra.Native
             wb.WriteUInt16((ushort) values.Length);
             for(int i =0;i<Metadata.Columns.Length;i++)
             {
-                var bytes = TypeInerpreter.InvCqlConvert(values[i], Metadata.Columns[i].type_code, Metadata.Columns[i].type_info);
+                var bytes = TypeInterpreter.InvCqlConvert(values[i], Metadata.Columns[i].type_code, Metadata.Columns[i].type_info);
                 wb.WriteBytes(bytes);
             }
             wb.WriteInt16((short)consistency);

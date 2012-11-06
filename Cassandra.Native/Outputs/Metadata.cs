@@ -70,7 +70,7 @@ namespace Cassandra.Native
             public string tablename;
             public string column_name;
             public ColumnTypeCode type_code;
-            public ColumnInfo type_info;
+            public ColumnInfo type_info;            
         }
 
         public ColumnDesc[] Columns;
@@ -83,6 +83,7 @@ namespace Cassandra.Native
             this.Columns = new Metadata.ColumnDesc[numberOfcolums];
             string g_ksname = null;
             string g_tablename = null;
+
             if ((Flags & FlagBits.Global_tables_spec) == FlagBits.Global_tables_spec)
             {
                 g_ksname = reader.ReadString();

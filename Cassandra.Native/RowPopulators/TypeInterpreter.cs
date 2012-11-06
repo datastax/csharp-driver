@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Cassandra.Native
 {
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         [ThreadStatic]
         static Dictionary<Metadata.ColumnTypeCode, MethodInfo> goMethods = null;
@@ -15,7 +15,7 @@ namespace Cassandra.Native
             if (goMethods == null)
                 goMethods = new Dictionary<Metadata.ColumnTypeCode, MethodInfo>();
             if (!goMethods.ContainsKey(type_code))
-                goMethods.Add(type_code, typeof(TypeInerpreter).GetMethod("ConvertFrom" + (type_code.ToString()), new Type[] { typeof(Metadata.ColumnInfo), typeof(byte[]) }));
+                goMethods.Add(type_code, typeof(TypeInterpreter).GetMethod("ConvertFrom" + (type_code.ToString()), new Type[] { typeof(Metadata.ColumnInfo), typeof(byte[]) }));
             return goMethods[type_code].Invoke(null, new object[] { type_info, buffer });
         }
 
@@ -27,7 +27,7 @@ namespace Cassandra.Native
             if (typMethods == null)
                 typMethods = new Dictionary<Metadata.ColumnTypeCode, MethodInfo>();
             if (!typMethods.ContainsKey(type_code))
-                typMethods.Add(type_code, typeof(TypeInerpreter).GetMethod("GetTypeFrom" + (type_code.ToString()), new Type[] { typeof(Metadata.ColumnInfo) }));
+                typMethods.Add(type_code, typeof(TypeInterpreter).GetMethod("GetTypeFrom" + (type_code.ToString()), new Type[] { typeof(Metadata.ColumnInfo) }));
             return (Type)typMethods[type_code].Invoke(null, new object[] { type_info });
         }
 
@@ -39,7 +39,7 @@ namespace Cassandra.Native
             if (invMethods == null)
                 invMethods = new Dictionary<Metadata.ColumnTypeCode, MethodInfo>();
             if (!invMethods.ContainsKey(type_code))
-                invMethods.Add(type_code, typeof(TypeInerpreter).GetMethod("InvConvertFrom" + (type_code.ToString()), new Type[] { typeof(Metadata.ColumnInfo), typeof(byte[]) }));
+                invMethods.Add(type_code, typeof(TypeInterpreter).GetMethod("InvConvertFrom" + (type_code.ToString()), new Type[] { typeof(Metadata.ColumnInfo), typeof(byte[]) }));
             return (byte[])invMethods[type_code].Invoke(null, new object[] { type_info, value });
         }
 

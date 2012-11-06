@@ -100,17 +100,25 @@ namespace MyUTExt
             return asciiString;
         }
         public DateTimeOffset NextDateTimeOffset()
-        {
+        {            
             return DateTimeOffset.Now.DateTime;
         }
-
+        
         public byte[] NextByte()
-        {
+        {            
             byte[] btarr = new byte[this.NextUInt16()];            
             this.NextBytes(btarr);
             return btarr;
         }
 
+        public bool NextBoolean()
+        {
+            return this.NextUInt16() > 127 ? true : false;
+        }
 
+        public Guid NextGuid()
+        {
+            return Guid.NewGuid();
+        }
     }
 }

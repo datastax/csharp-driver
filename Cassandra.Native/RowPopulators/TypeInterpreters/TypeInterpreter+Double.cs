@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         public static object ConvertFromDouble(Metadata.ColumnInfo type_info, byte[] _buffer)
         {
@@ -20,7 +20,9 @@ namespace Cassandra.Native
         public static byte[] InvConvertFromDouble(Metadata.ColumnInfo type_info, object value)
         {
             checkArgument<double>(value);
-            return BitConverter.GetBytes((double)value);
+            byte[] ret = BitConverter.GetBytes((double)value);
+            Array.Reverse(ret);
+            return ret;
         }
     }
 }

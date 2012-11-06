@@ -64,7 +64,7 @@ namespace Cassandra.Native.Test
             Session.Dispose();
         }
 
-        [Fact]
+       // [Fact]
         public void ParallelInsertTest()
         {
             Console.WriteLine("Compression is:"+(Compression== CassandraCompressionType.Snappy?"SNAPPY":"OFF"));

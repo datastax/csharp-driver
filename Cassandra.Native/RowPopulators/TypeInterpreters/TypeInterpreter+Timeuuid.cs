@@ -4,8 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         public static object ConvertFromTimeuuid(Metadata.ColumnInfo type_info, byte[] value)
         {

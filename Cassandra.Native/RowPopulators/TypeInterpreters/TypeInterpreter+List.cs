@@ -6,7 +6,7 @@ using System.Collections;
 namespace Cassandra.Native
 {
 
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         public static object ConvertFromList(Metadata.ColumnInfo type_info, byte[] value)
         {
@@ -14,7 +14,7 @@ namespace Cassandra.Native
             {
                 var list_typecode = (type_info as Metadata.ListColumnInfo).value_type_code;
                 var list_typeinfo = (type_info as Metadata.ListColumnInfo).value_type_info;
-                var value_type = TypeInerpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
+                var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(List<>);
@@ -28,7 +28,7 @@ namespace Cassandra.Native
                     byte[] val_buf = new byte[val_buf_len];
                     Buffer.BlockCopy(value, idx, val_buf, 0, val_buf_len);
                     idx += val_buf_len;
-                    addM.Invoke(ret, new object[] { TypeInerpreter.CqlConvert(val_buf,list_typecode,list_typeinfo) });
+                    addM.Invoke(ret, new object[] { TypeInterpreter.CqlConvert(val_buf,list_typecode,list_typeinfo) });
                 }
                 return ret;
             }
@@ -41,7 +41,7 @@ namespace Cassandra.Native
             {
                 var list_typecode = (type_info as Metadata.ListColumnInfo).value_type_code;
                 var list_typeinfo = (type_info as Metadata.ListColumnInfo).value_type_info;
-                var value_type = TypeInerpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
+                var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
                 var openType = typeof(IEnumerable<>);
                 var listType = openType.MakeGenericType(value_type);
                 return listType;
@@ -61,7 +61,7 @@ namespace Cassandra.Native
             int bsize = 2;
             foreach (var obj in (value as IEnumerable))
             {
-                var buf = TypeInerpreter.InvCqlConvert(obj, list_typecode, list_typeinfo);
+                var buf = TypeInterpreter.InvCqlConvert(obj, list_typecode, list_typeinfo);
                 bufs.Add(buf);
                 bsize += buf.Length;
                 cnt++;

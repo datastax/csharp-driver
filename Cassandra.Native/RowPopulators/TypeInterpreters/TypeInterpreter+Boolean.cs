@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         public static object ConvertFromBoolean(Metadata.ColumnInfo type_info, byte[] _buffer)
         {

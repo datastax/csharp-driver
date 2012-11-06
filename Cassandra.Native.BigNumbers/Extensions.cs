@@ -19,7 +19,6 @@ namespace Cassandra.Native
         }
 
 
-
         public static BigDecimal ToDecimal(this DecimalBuffer decim)
         {
             return new BigDecimal(decim.BigIntegerBytes);

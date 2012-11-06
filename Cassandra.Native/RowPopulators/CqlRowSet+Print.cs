@@ -9,6 +9,8 @@ namespace Cassandra.Native
     {
         public delegate string CellEncoder(object val);                
 
+        
+
         public void PrintTo(TextWriter stream,
             string delim = "\t|",
             string rowDelim = "\r\n",
@@ -44,12 +46,15 @@ namespace Cassandra.Native
                     else
                         stream.Write(delim);
 
-                    if (row[j].GetType().IsGenericType && row[j] is System.Collections.IEnumerable)
+                    if (row[j] is System.Array || (row[j].GetType().IsGenericType && row[j] is System.Collections.IEnumerable))
                         cellEncoder = delegate(object collection)
                         {                            
                             string result = "<Collection>";
-                            foreach (var val in (collection as System.Collections.IEnumerable))
-                                result += val.ToString() + ",";
+                            if(collection.GetType() == typeof(byte[]))
+                                result+=CqlQueryTools.ToHex((byte[])collection);
+                            else
+                                foreach (var val in (collection as System.Collections.IEnumerable))
+                                    result += val.ToString() + ",";
                             return result.Substring(0, result.Length - 1) + "</Collection>";
                         };
                     

@@ -6,7 +6,7 @@ using System.Collections;
 namespace Cassandra.Native
 {
 
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         public static object ConvertFromMap(Metadata.ColumnInfo type_info, byte[] value)
         {
@@ -16,8 +16,8 @@ namespace Cassandra.Native
                 var key_typeinfo = (type_info as Metadata.MapColumnInfo).key_type_info;
                 var value_typecode = (type_info as Metadata.MapColumnInfo).value_type_code;
                 var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
-                var key_type = TypeInerpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
-                var value_type = TypeInerpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
+                var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
+                var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(SortedDictionary<,>);
@@ -39,8 +39,8 @@ namespace Cassandra.Native
                     idx += value_buf_len;
 
                     addM.Invoke(ret, new object[] {
-                        TypeInerpreter.CqlConvert(key_buf, key_typecode, key_typeinfo),
-                        TypeInerpreter.CqlConvert(value_buf, value_typecode, value_typeinfo)
+                        TypeInterpreter.CqlConvert(key_buf, key_typecode, key_typeinfo),
+                        TypeInterpreter.CqlConvert(value_buf, value_typecode, value_typeinfo)
                     });
                 }
                 return ret;
@@ -56,8 +56,8 @@ namespace Cassandra.Native
                 var key_typeinfo = (type_info as Metadata.MapColumnInfo).key_type_info;
                 var value_typecode = (type_info as Metadata.MapColumnInfo).value_type_code;
                 var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
-                var key_type = TypeInerpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
-                var value_type = TypeInerpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
+                var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
+                var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
                 var kvType = typeof(KeyValuePair<,>);
                 var openType = typeof(IEnumerable<>);
@@ -75,8 +75,8 @@ namespace Cassandra.Native
             var key_typeinfo = (type_info as Metadata.MapColumnInfo).key_type_info;
             var value_typecode = (type_info as Metadata.MapColumnInfo).value_type_code;
             var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
-            var key_type = TypeInerpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
-            var value_type = TypeInerpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
+            var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
+            var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
             List<byte[]> bufs = new List<byte[]>();
             int cnt = 0;
@@ -89,13 +89,13 @@ namespace Cassandra.Native
             {
                 {
                     var obj = key_prop.GetValue(kv, new object[] { });
-                    var buf = TypeInerpreter.InvCqlConvert(obj, key_typecode, key_typeinfo);
+                    var buf = TypeInterpreter.InvCqlConvert(obj, key_typecode, key_typeinfo);
                     bufs.Add(buf);
                     bsize += buf.Length;
                 }
                 {
                     var obj = value_prop.GetValue(kv, new object[] { });
-                    var buf = TypeInerpreter.InvCqlConvert(obj, value_typecode, value_typeinfo);
+                    var buf = TypeInterpreter.InvCqlConvert(obj, value_typecode, value_typeinfo);
                     bufs.Add(buf);
                     bsize += buf.Length;
                 }

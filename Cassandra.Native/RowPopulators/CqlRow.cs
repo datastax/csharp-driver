@@ -6,7 +6,7 @@ namespace Cassandra.Native
 {
     public class CqlRow
     {
-        object[] columns;
+        public object[] columns;
         Dictionary<string, int> columnIdxes;
         internal CqlRow(OutputRows rawrows, Dictionary<string, int> columnIdxes)
         {
@@ -22,7 +22,7 @@ namespace Cassandra.Native
                     byte[] buffer = new byte[len];
 
                     rawrows.ReadRawColumnValue(buffer, 0, len);
-                    columns[i] = TypeInerpreter.CqlConvert(buffer,
+                    columns[i] = TypeInterpreter.CqlConvert(buffer,
                         rawrows.Metadata.Columns[i].type_code, rawrows.Metadata.Columns[i].type_info);
                     i++;
                     if (i >= rawrows.Metadata.Columns.Length)

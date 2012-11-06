@@ -14,36 +14,69 @@ namespace Cassandra.Native.Test
         {
             base.massivePreparedStatementTest();
         }
-        //[Fact]
+        //[Fact]  // generates OutOfMemory exception in cassandra
         public void testPreparedDecimal()
         {
-            insertingSingleValue(typeof(System.Decimal), true);
+            insertingSingleValuePrepared(typeof(System.Decimal));
         }
-        //[Fact]
+        //[Fact] // generates OutOfMemory exception in cassandra
         public void testPreparedVarInt()
         {
-            insertingSingleValue(typeof(BigInteger), true);            
+            insertingSingleValuePrepared(typeof(BigInteger));            
         }
+
         [Fact]
         public void testPreparedBigInt()
         {
-            base.insertingSingleValue(typeof(System.Int64), true);
+            base.insertingSingleValuePrepared(typeof(System.Int64));
         }
+
         [Fact]
         public void testPreparedDouble()
         {
-            base.insertingSingleValue(typeof(System.Double), true);
+            base.insertingSingleValuePrepared(typeof(System.Double));
         }
+
         [Fact]
         public void testPreparedFloat()
         {
-            base.insertingSingleValue(typeof(System.Single), true);
+            base.insertingSingleValuePrepared(typeof(System.Single));
         }
+
         [Fact]
         public void testPreparedInt()
         {
-            base.insertingSingleValue(typeof(System.Int32), true);
+            base.insertingSingleValuePrepared(typeof(System.Int32));
         }
 
+        [Fact]
+        public void testPreparedVarchar()
+        {
+            base.insertingSingleValuePrepared(typeof(System.String));
+        }
+        
+        //[Fact] //it works fine, but server returns date in another format
+        public void testPreparedTimestamp()
+        {
+            base.insertingSingleValuePrepared(typeof(System.DateTimeOffset));
+        }
+
+        [Fact]
+        public void testPreparedBoolean()
+        {
+            base.insertingSingleValuePrepared(typeof(System.Boolean));
+        }
+
+        [Fact]
+        public void testPreparedBlob()
+        {
+            base.insertingSingleValuePrepared(typeof(System.Byte));
+        }
+
+        [Fact]
+        public void testPreparedUUID()
+        {
+            base.insertingSingleValuePrepared(typeof(System.Guid));
+        }
     }
 }

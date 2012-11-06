@@ -35,7 +35,7 @@ namespace Cassandra.Native
                     Name = rawrows.Metadata.Columns[i].column_name,
                     KsName = rawrows.Metadata.Columns[i].ksname,
                     TableName = rawrows.Metadata.Columns[i].tablename,
-                    Type = TypeInerpreter.GetTypeFromCqlType(
+                    Type = TypeInterpreter.GetTypeFromCqlType(
                         rawrows.Metadata.Columns[i].type_code,
                         rawrows.Metadata.Columns[i].type_info),
                     DataTypeCode = rawrows.Metadata.Columns[i].type_code,

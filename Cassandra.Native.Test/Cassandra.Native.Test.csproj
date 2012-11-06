@@ -44,11 +44,21 @@
     <Compile Include="BasicTests+Collections.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="BasicTests+Prepared.cs" />
-    <Compile Include="BasicTests.cs" />
-    <Compile Include="ErrorInjectionlTests.cs" />
-    <Compile Include="MTTests.cs" />
-    <Compile Include="PoolTests.cs" />
+    <Compile Include="BasicTests+Prepared.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BasicTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ErrorInjectionlTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MTTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PoolTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

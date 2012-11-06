@@ -71,8 +71,17 @@ namespace Cassandra.Native.Test
         {
             base.insertingSingleValue(typeof(System.Int32));
         }
+        [Fact]
+        public void testBoolean()
+        {
+            base.insertingSingleValue(typeof(System.Boolean));
+        }
 
-
+        [Fact]
+        public void testUUID()
+        {
+            base.insertingSingleValue(typeof(System.Guid));
+        }
 
         [Fact]
         public void MaxingBoundsOf_INT()

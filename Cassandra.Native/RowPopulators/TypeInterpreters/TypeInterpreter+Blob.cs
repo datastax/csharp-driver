@@ -5,11 +5,11 @@ using System.IO;
 
 namespace Cassandra.Native
 {
-    internal static partial class TypeInerpreter
+    internal static partial class TypeInterpreter
     {
         public static object ConvertFromBlob(Metadata.ColumnInfo type_info, byte[] value)
         {
-            return "\'" + CqlQueryTools.ToHex(value) + "\'";               
+            return value;
         }
 
         public static Type GetTypeFromBlob(Metadata.ColumnInfo type_info)
