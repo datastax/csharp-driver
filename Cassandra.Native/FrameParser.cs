@@ -8,15 +8,10 @@ namespace Cassandra.Native
 {
     internal class FrameParser
     {
-        static Dictionary<byte, Type> registeredResponses = new Dictionary<byte, Type>();
+        delegate IResponse MyDel(ResponseFrame frame);
+        static MyDel[] registeredResponses = new MyDel[sbyte.MaxValue + 1];
 
-        static void Register(Type response)
-        {
-            var obj = response.GetField("OpCode").GetValue(response);
-            registeredResponses.Add((byte)obj,response);
-        }
-
-        public FrameParser()
+        static FrameParser()
         {
             Register(typeof(AuthenticateResponse));
             Register(typeof(ErrorResponse));
@@ -26,13 +21,18 @@ namespace Cassandra.Native
             Register(typeof(SupportedResponse));
         }
 
+        static void Register(Type response)
+        {
+            var obj = response.GetField("OpCode").GetValue(response);
+            var mth = response.GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(ResponseFrame) }, null);
+            registeredResponses[(byte)obj] = (MyDel)Delegate.CreateDelegate(typeof(MyDel), mth);
+        }
+
         public IResponse Parse(ResponseFrame frame)
         {
             var opcode = frame.FrameHeader.opcode;
-            if (registeredResponses.ContainsKey(opcode))
-            {
-                return registeredResponses[opcode].GetConstructor(BindingFlags.NonPublic|BindingFlags.Instance,null, new Type[] { typeof(ResponseFrame) } ,null).Invoke(new object[] { frame }) as IResponse;
-            }
+            if (registeredResponses[opcode] != null)
+                return registeredResponses[opcode](frame);
             return null;
         }
     }

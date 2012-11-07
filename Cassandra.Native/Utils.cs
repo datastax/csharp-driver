@@ -111,6 +111,7 @@ namespace Cassandra.Native
         public T Value { get { return (T)this.Target; } set { this.Target = value; } }
     }
 
+
     internal static class StaticRandom
     {
         [ThreadStatic]
@@ -156,7 +157,7 @@ namespace Cassandra.Native
         }
     }
 
-    public static class CqlQueryTools
+    internal static class CqlQueryTools
     {
         static Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
         public static string CqlIdentifier(string id)
@@ -209,7 +210,7 @@ namespace Cassandra.Native
         }
     }
 
-    public static class Utils
+    internal static class Utils
     {
         public static bool ArrEqual(byte[] a1, byte[] a2)
         {

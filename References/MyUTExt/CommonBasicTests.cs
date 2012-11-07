@@ -14,6 +14,7 @@ using System.Linq;
 
 namespace MyUTExt
 {
+
     public class CommonBasicTests : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression;

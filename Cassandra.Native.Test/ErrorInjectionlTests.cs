@@ -56,7 +56,7 @@ namespace Cassandra.Native.Test
 
             var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
 
-            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 10*1000);
+            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress, serverAddress, serverAddress, serverAddress, serverAddress }, this.Keyspace, this.Compression, 10 * 1000);
         }
 
         public void Dispose()

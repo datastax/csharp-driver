@@ -14,5 +14,9 @@ namespace Cassandra.Native
             var rd = new BEBinaryReader(frame);
             Output = new OutputOptions(rd);
         }
+        internal static SupportedResponse Create(ResponseFrame frame)
+        {
+            return new SupportedResponse(frame);
+        }
     }
 }

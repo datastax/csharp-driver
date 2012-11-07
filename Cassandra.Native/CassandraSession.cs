@@ -53,6 +53,7 @@ namespace Cassandra.Native
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
             int abortTimeout = Timeout.Infinite, CredentialsDelegate credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue)
         {
+
             this.maxConnectionsInPool = maxConnectionsInPool;
             
             this.loadedClusterEndpoints = new List<string>();

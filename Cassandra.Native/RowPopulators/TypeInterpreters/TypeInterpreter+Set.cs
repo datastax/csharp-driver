@@ -6,7 +6,7 @@ using System.Collections;
 namespace Cassandra.Native
 {
 
-    internal static partial class TypeInterpreter
+    internal partial class TypeInterpreter
     {
         public static object ConvertFromSet(Metadata.ColumnInfo type_info, byte[] value)
         {

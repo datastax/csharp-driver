@@ -36,5 +36,9 @@ namespace Cassandra.Native
                     throw new CassandraClientProtocolViolationException("Unknown Event Type");
             }
         }
+        internal static ResultResponse Create(ResponseFrame frame)
+        {
+            return new ResultResponse(frame);
+        }
     }
 }

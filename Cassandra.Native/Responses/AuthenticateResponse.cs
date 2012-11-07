@@ -14,5 +14,11 @@ namespace Cassandra.Native
             BEBinaryReader cb = new BEBinaryReader(frame);
             Authenticator = cb.ReadString();
         }
+
+        internal static AuthenticateResponse Create(ResponseFrame frame)
+        {
+            return new AuthenticateResponse(frame);
+        }
+
     }
 }

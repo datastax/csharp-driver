@@ -10,5 +10,9 @@ namespace Cassandra.Native
         internal ReadyResponse(ResponseFrame frame)
         {
         }
+        internal static ReadyResponse Create(ResponseFrame frame)
+        {
+            return new ReadyResponse(frame);
+        }
     }
 }

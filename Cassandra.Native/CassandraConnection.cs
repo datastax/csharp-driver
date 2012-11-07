@@ -39,6 +39,7 @@ namespace Cassandra.Native
         EndPoint serverAddress;
         Guarded<Socket> socket = new Guarded<Socket>(null);
         Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
+        bool[] freeStreamIDtaken = new bool[byte.MaxValue + 1];
         AtomicValue<bool> isStreamOpened = new AtomicValue<bool>(false);
 
         object frameGuardier = new object();
@@ -92,7 +93,10 @@ namespace Cassandra.Native
             lock (freeStreamIDs)
             {
                 for (int i = 0; i <= sbyte.MaxValue; i++)
+                {
                     freeStreamIDs.Value.Push(i);
+                    freeStreamIDtaken[i] = false;
+                }
             }
 
             ProtocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
@@ -131,11 +135,14 @@ namespace Cassandra.Native
         {
             lock (freeStreamIDs)
             {
-                while (true)
-                    if (freeStreamIDs.Value.Count > 0)
-                        return freeStreamIDs.Value.Pop();
-                    else
-                        return -1;
+                if (freeStreamIDs.Value.Count > 0)
+                {
+                    int i = freeStreamIDs.Value.Pop();
+                    freeStreamIDtaken[i] = true;
+                    return i;
+                }
+                else
+                    return -1;
             }
         }
 
@@ -143,8 +150,9 @@ namespace Cassandra.Native
         {
             lock (freeStreamIDs)
             {
-                if (freeStreamIDs.Value.Contains(streamId))
+                if (!freeStreamIDtaken[streamId])
                     return;
+                freeStreamIDtaken[streamId] = false;
                 freeStreamIDs.Value.Push(streamId);
                 if (freeStreamIDs.Value.Count == sbyte.MaxValue + 1)
                     Debug.WriteLine("All streams are free");

@@ -41,6 +41,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Cassandra.Native\Utils.cs">
+      <Link>Utils.cs</Link>
+    </Compile>
     <Compile Include="CommonBasicTests.cs" />
     <Compile Include="MyUTExt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

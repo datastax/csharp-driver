@@ -6,7 +6,7 @@ using System.Net;
 namespace Cassandra.Native
 {
 
-    internal static partial class TypeInterpreter
+    internal partial class TypeInterpreter
     {
         public static object ConvertFromInet(Metadata.ColumnInfo type_info, byte[] value)
         {
