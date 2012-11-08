@@ -174,8 +174,8 @@ namespace Cassandra.Native
                 ar.SetResult(outp);
                 ar.Complete();
                 freeStreamId(streamId);
-                (outp as IWaitableForDispose).WaitForDispose();
-            }
+                (outp as IWaitableForDispose).WaitForDispose();            
+            }            
         }
 
         Dictionary<string, string> startupOptions = new Dictionary<string, string>()

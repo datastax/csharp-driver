@@ -344,7 +344,6 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                     throw new InvalidOperationException();                    
             }
         }
-
         
         public void insertingSingleValuePrepared(Type tp)
         {
@@ -377,6 +376,26 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
         }
 
+        public void testCounters()
+        {
+            CassandraSession conn = ConnectToTestServer();
+            conn.ChangeKeyspace("test");
+            string tableName = "table" + Guid.NewGuid().ToString("N");
+            ExecuteSyncNonQuery(conn, string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid PRIMARY KEY,
+         incdec counter
+         );", tableName));
+
+            Guid tweet_id = Guid.NewGuid();                                    
+            
+            Parallel.For(0, 100, i =>
+                {                     
+                   ExecuteSyncNonQuery(this.Session, string.Format(@"UPDATE {0} SET incdec = incdec {2}  WHERE tweet_id = {1};", tableName, tweet_id, (i%2 == 0 ? "-":"+") + i));
+                });
+
+            ExecuteSyncQuery(conn, string.Format("SELECT * FROM {0};", tableName), new List<object[]>{new object[2]{tweet_id,(Int64)50}});
+            ExecuteSyncNonQuery(conn, string.Format("DROP TABLE {0};", tableName));
+        }
 
         public void insertingSingleValue(Type tp)
         {
@@ -602,23 +621,18 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          {1},
 PRIMARY KEY(tweet_id)
          );", tableName, columns));
-            try
-            {
-                ExecuteSyncNonQuery(this.Session, "DROP INDEX user_name;");
-            }
-            catch (Exception ex)
-            { }
 
             object[] row1 = new object[3] { Guid.NewGuid(), "Adam", "Małysz"}; 
             object[] row2 = new object[3] { Guid.NewGuid(), "Adam", "Miałczyński"};
             
             List<object[]> toInsert = new List<object[]>(2)
-            {row1,row2};
+            {row1, row2};
 
             ExecuteSyncNonQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[0][0], toInsert[0][1], toInsert[0][2]));
-            ExecuteSyncNonQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[1][0], toInsert[1][1], toInsert[1][2]));
-            ExecuteSyncNonQuery(this.Session, string.Format("CREATE INDEX user_name ON {0}(name);", tableName));
-            ExecuteSyncQuery(this.Session, string.Format("SELECT name FROM {0} WHERE name = 'Adam';", tableName),toInsert); 
+            ExecuteSyncNonQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[1][0], toInsert[1][1], toInsert[1][2]));            
+            ExecuteSyncNonQuery(this.Session, string.Format("CREATE INDEX ON {0}(name);", tableName));
+            ExecuteSyncQuery(this.Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName),toInsert);
+            ExecuteSyncNonQuery(this.Session, string.Format("DROP TABLE {0};", tableName));
         }
 
         private Randomm rndm = new Randomm();

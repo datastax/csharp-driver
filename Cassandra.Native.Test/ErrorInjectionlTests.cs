@@ -129,7 +129,7 @@ namespace Cassandra.Native.Test
                             Monitor.Wait(monit);
                         }
 
-                        Session.NonQueryWithRerties(string.Format(@"INSERT INTO {0} (
+                        Session.NonQueryWithRetries(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
@@ -208,8 +208,30 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
             Session.NonQuery(string.Format(@"DROP TABLE {0};", tableName));
 
             Session.NonQuery(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-
-
          }
+
+
+        [Fact]
+        public void executingPreparedStatementWithFakePrepareID()
+        {
+            Session.ChangeKeyspace("test");
+            string tableName = "table" + Guid.NewGuid().ToString("N");
+            Session.NonQuery(string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid PRIMARY KEY,
+         value {1}
+         );", tableName, "int"));
+
+            byte[] preparedID;
+            Metadata md;
+            object[] toInsert = new object[1] { 1 };
+            CommonBasicTests cbt = new CommonBasicTests();
+            cbt.PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, toInsert[0].ToString()), out preparedID, out md);
+            
+            Session.ExecuteQuery(new byte[16], md, toInsert);           
+        
+            var rows = Session.Query(string.Format("SELECT * FROM {0};", tableName));
+            rows.Dispose();
+            Session.NonQuery(string.Format("DROP TABLE {0};", tableName));                     
+        }
     }
 }

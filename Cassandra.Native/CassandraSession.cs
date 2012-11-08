@@ -360,7 +360,7 @@ namespace Cassandra.Native
             }
         }
 
-        public void NonQueryWithRerties(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
+        public void NonQueryWithRetries(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT)
         {
             int retryNo = 0;
         retry:

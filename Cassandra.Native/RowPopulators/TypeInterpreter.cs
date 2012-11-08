@@ -9,12 +9,12 @@ namespace Cassandra.Native
     {
         static TypeInterpreter()
         {
-            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Ascii);
-            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Ascii);
+            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Ascii);            
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Bigint);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Blob);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Boolean);
-//            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Counter);
+            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Counter);
+            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Custom);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Decimal);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Double);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Float);

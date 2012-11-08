@@ -115,6 +115,8 @@
     <Compile Include="RowPopulators\CqlRowSet.cs" />
     <Compile Include="RowPopulators\CqlRow.cs" />
     <Compile Include="RowPopulators\TypeInterpreter.cs" />
+    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Counter.cs" />
+    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Custom.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Set.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Map.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+List.cs" />

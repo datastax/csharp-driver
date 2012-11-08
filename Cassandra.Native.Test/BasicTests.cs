@@ -20,6 +20,12 @@ namespace Cassandra.Native.Test
         }
 
         [Fact]
+        public void testCounter()
+        {
+            base.testCounters();
+        }
+
+        [Fact]
         public void testBlob()
         {
             insertingSingleValue(typeof(byte));
