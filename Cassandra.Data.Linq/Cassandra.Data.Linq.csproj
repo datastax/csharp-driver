@@ -39,8 +39,10 @@
   <ItemGroup>
     <Compile Include="CqlContext.cs" />
     <Compile Include="CqlMutationTracker.cs" />
-    <Compile Include="CqlKeyspace.cs" />
     <Compile Include="CqlQuery.cs" />
+    <Compile Include="CqlKeyspace.cs" />
+    <Compile Include="CqlQueryEvaluator.cs" />
+    <Compile Include="CqlQueryExtensions.cs" />
     <Compile Include="CqlQueryTools.cs" />
     <Compile Include="CqlTable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

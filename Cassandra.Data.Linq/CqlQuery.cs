@@ -53,7 +53,28 @@ namespace Cassandra.Data
         
         public T Execute()
         {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.CountQuery;
+            var alter = eval.AlternativeMapping;
+            var conn = (table as ICqlTable).GetContext();
             throw new NotImplementedException();
+            using (var outp = conn.ExecuteRows(cqlQuery, CqlConsistencyLevel.DEFAULT))
+            {
+                if (outp.RowsCount != 1)
+                    throw new InvalidOperationException();
+
+                var cols = outp.Columns;
+                if (cols.Length != 1)
+                    throw new InvalidOperationException();
+                var rows = outp.GetRows();
+                foreach (var row in rows)
+                {
+                    return (T) row[0];
+                }
+            }
+
+            throw new InvalidOperationException();
         }
     }
 
@@ -106,12 +127,31 @@ namespace Cassandra.Data
 
 		public override string ToString()
 		{
-            throw new NotImplementedException();
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            return eval.Query;
 		}
 
         public IEnumerable<TEntity> Execute() 
         {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.Query;
+            var alter = eval.AlternativeMapping;
+            var conn = (table as ICqlTable).GetContext();
             throw new NotImplementedException();
+            using (var outp = conn.ExecuteRows(cqlQuery,CqlConsistencyLevel.DEFAULT))
+            {
+                var cols = outp.Columns;
+                Dictionary<string, int> colToIdx = new Dictionary<string, int>();
+                for (int idx = 0; idx < cols.Length; idx++)
+                    colToIdx.Add(cols[idx].Name, idx);
+                var rows = outp.GetRows();
+                foreach (var row in rows)
+                {
+                    yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, alter);
+                }
+            }
         }
     }
 }
