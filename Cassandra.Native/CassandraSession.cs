@@ -15,7 +15,6 @@ namespace Cassandra.Native
         CassandraCompressionType compression;
         int abortTimeout;
 
-        List<string> loadedClusterEndpoints;
         List<string> upClusterEndpoints;
         List<WeakReference<CassandraConnection>> connectionPool = new List<WeakReference<CassandraConnection>>();
         int maxConnectionsInPool = int.MaxValue;
@@ -48,19 +47,17 @@ namespace Cassandra.Native
         }
 #endif
 
+
         CassandraConnection eventRaisingConnection = null;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
             int abortTimeout = Timeout.Infinite, CredentialsDelegate credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue)
         {
-
             this.maxConnectionsInPool = maxConnectionsInPool;
             
-            this.loadedClusterEndpoints = new List<string>();
+            this.upClusterEndpoints = new List<string>();
             foreach (var ep in clusterEndpoints)
-                loadedClusterEndpoints.Add(ep.ToString());
-
-            this.upClusterEndpoints = new List<string>(loadedClusterEndpoints);
+                upClusterEndpoints.Add(ep.ToString());
 
             this.compression = compression;
             this.abortTimeout = abortTimeout;
@@ -76,7 +73,7 @@ namespace Cassandra.Native
 
             nconn.CassandraEvent += new CassandraEventHandler(conn_CassandraEvent);
             using (var ret = nconn.RegisterForCassandraEvent(
-                CassandraEventType.TopologyChange | CassandraEventType.StatusChange))
+                CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange))
             {
                 if (!(ret is OutputVoid))
                 {
@@ -134,7 +131,7 @@ namespace Cassandra.Native
                             }
                         }
                     }
-                    connectionPool.Add(new WeakReference<CassandraConnection>(allocateConnection()));
+                   connectionPool.Add(new WeakReference<CassandraConnection>(allocateConnection()));
                 }
             }
         }
@@ -149,7 +146,7 @@ namespace Cassandra.Native
 
             try
             {
-                nconn = new CassandraConnection(endPoint, credentialsDelegate, this.compression, this.abortTimeout);
+                nconn = new CassandraConnection(endPoint, credentialsDelegate, this.compression, this.abortTimeout);               
 
                 var options = nconn.ExecuteOptions();
 
@@ -157,14 +154,14 @@ namespace Cassandra.Native
                 {
                     var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
                     var retKeyspaceId = processScallar(nconn.Query("USE " + keyspaceId, CqlConsistencyLevel.IGNORE)).ToString();
-                    if (retKeyspaceId != keyspaceId)
+                    if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != keyspaceId)
                         throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                 }
 
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message, "CassandraManager.Connect");
+                Debug.WriteLine(ex.Message, "CassandraSession.Connect");
                 if (nconn != null)
                     nconn.Dispose();
                 throw new CassandraConnectionException("Cannot connect", ex);
@@ -208,17 +205,25 @@ namespace Cassandra.Native
                 if (e.Message == "UP" || e.Message == "NEW_NODE")
                 {
                     lock (upClusterEndpoints)
-                        if (!loadedClusterEndpoints.Contains(e.IPEndPoint.ToString()))
+                        if (!upClusterEndpoints.Contains(e.IPEndPoint.ToString()))
                             upClusterEndpoints.Add(e.IPEndPoint.ToString());
                     return;
                 }
                 else if (e.Message == "DOWN" || e.Message == "REMOVED_NODE")
                 {
                     lock (upClusterEndpoints)
-                        if (!upClusterEndpoints.Contains(e.IPEndPoint.ToString()))
+                        if (upClusterEndpoints.Contains(e.IPEndPoint.ToString()))
                             upClusterEndpoints.Remove(e.IPEndPoint.ToString());
                     return;
                 }
+            }
+
+            if (e.CassandraEventType == CassandraEventType.SchemaChange)
+            {
+                if (e.Message.StartsWith("CREATED") || e.Message.StartsWith("UPDATED") || e.Message.StartsWith("DROPPED"))
+                {
+                }
+                return;
             }
             throw new CassandraClientProtocolViolationException("Unknown Event");
         }
@@ -351,7 +356,7 @@ namespace Cassandra.Native
         retry:
             try
              {
-                 var connection = connect();
+                var connection = connect();
                 processNonQuery(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)

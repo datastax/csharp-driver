@@ -10,13 +10,13 @@ namespace Cassandra.Data
     {
         CqlContext context;
         string keyspace;
-        bool selected;
+//        bool selected;
 
         internal CqlKeyspace(CqlContext context, string keyspace)
         {
             this.keyspace = keyspace;
             this.context = context;
-            selected = false;
+//            selected = false;
         }
 
         public void Create()
@@ -38,26 +38,33 @@ namespace Cassandra.Data
 
         public void Delete()
         {
-            context.ExecuteNonQuery(CqlQueryTools.GetDropKeyspaceCQL(keyspace));
-        }
-
-        internal void Select()
-        {
-            if (!selected)
+            try
             {
-                try
-                {
-                    selected = true;
-                    var ks = context.ExecuteScalar(CqlQueryTools.GetUseKeyspaceCQL(keyspace));
-                    if (!ks.Equals(keyspace))
-                        throw new InvalidOperationException();
-                }
-                catch
-                {
-                    selected = false;
-                }
+                context.ExecuteNonQuery(CqlQueryTools.GetDropKeyspaceCQL(keyspace));
+            }
+            catch (Exception ex)
+            {
+                //not exists
             }
         }
+
+        //internal void Select()
+        //{
+        //    if (!selected)
+        //    {
+        //        try
+        //        {
+        //            selected = true;
+        //            var ks = context.ExecuteScalar(CqlQueryTools.GetUseKeyspaceCQL(keyspace));
+        //            if (!ks.Equals(keyspace))
+        //                throw new InvalidOperationException();
+        //        }
+        //        catch
+        //        {
+        //            selected = false;
+        //        }
+        //    }
+        //}
 
     }
 }

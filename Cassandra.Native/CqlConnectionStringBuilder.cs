@@ -157,8 +157,7 @@ namespace Cassandra
                 foreach (var server in servers)
                     ce.Add(ParseEndPoint(server));
                 ClusterEndpoints = ce;
-            }
-
+            }            
         }
 
         public static IPEndPoint ParseEndPoint(string server)

@@ -20,6 +20,8 @@ namespace Cassandra.Native
                 this.eventTypes.Add("STATUS_CHANGE");
             if ((eventTypes & CassandraEventType.TopologyChange) == CassandraEventType.TopologyChange)
                 this.eventTypes.Add("TOPOLOGY_CHANGE");
+            if ((eventTypes & CassandraEventType.SchemaChange) == CassandraEventType.SchemaChange)
+                this.eventTypes.Add("SCHEMA_CHANGE");
         }
 
         public RequestFrame GetFrame()

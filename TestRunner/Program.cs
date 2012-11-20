@@ -21,6 +21,7 @@ namespace TestRunner
     class Program
     {
         static string[] TestPacks = new string[] {
+                "Cassandra.Data.Linq.Test",
                 "Cassandra.Native.Test"
             };
 

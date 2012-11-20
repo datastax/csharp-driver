@@ -26,6 +26,8 @@ namespace Cassandra.Data
         bool releaseOnClose;
         CqlKeyspace keyspace;
         string keyspaceName;
+        CqlConsistencyLevel clRead;
+        CqlConsistencyLevel clWrite;
 
         public CqlContext(CassandraSession cqlConnection, bool releaseOnClose = false, string keyspaceName = null)
         {
@@ -50,6 +52,9 @@ namespace Cassandra.Data
             if (this.keyspaceName == null)
                 this.keyspaceName = this.GetType().Name;
 
+            this.clRead = cqlConnectionParams.ReadCqlConsistencyLevel;
+            this.clWrite = cqlConnectionParams.WriteCqlConsistencyLevel;
+
             ManagedConnection = new CassandraSession(
                 cqlConnectionParams.ClusterEndpoints, keyspaceName, cqlConnectionParams.CompressionType, cqlConnectionParams.ConnectionTimeout, new CredentialsDelegate(getCredentials), cqlConnectionParams.MaxPoolSize);
 
@@ -67,9 +72,22 @@ namespace Cassandra.Data
                 ManagedConnection.Dispose();
         }
 
-        public CqlKeyspace Keyspace { get { return keyspace; } }
+        CqlKeyspace Keyspace { get { return keyspace; } }
 
         Dictionary<string, ICqlTable> tables = new Dictionary<string, ICqlTable>();
+
+
+        public void CreateKeyspaceIfNotExists(string ksname)
+        {
+            var keyspace = new CqlKeyspace(this, ksname);
+            keyspace.CreateIfNotExists();
+        }
+
+        public void DeleteKeyspaceIfExists(string ksname)
+        {
+            var keyspace = new CqlKeyspace(this, ksname);
+            keyspace.Delete();
+        }
 
         public void CreateTablesIfNotExist()
         {
@@ -127,25 +145,24 @@ namespace Cassandra.Data
 
         internal void CreateKeyspace(string keyspace)
         {
-            ManagedConnection.NonQuery(CqlQueryTools.GetCreateKeyspaceCQL(keyspace), CqlConsistencyLevel.ANY); //no need for Consistency lvl ~ Krzysiek 
+            ManagedConnection.NonQuery(CqlQueryTools.GetCreateKeyspaceCQL(keyspace), CqlConsistencyLevel.IGNORE); //no need for Consistency lvl ~ Krzysiek 
         }
 
-        internal CqlRowSet ExecuteRows(string cqlQuery, CqlConsistencyLevel consistency)
+        internal CqlRowSet ExecuteRows(string cqlQuery)
         {
-            Keyspace.Select();
-            return ManagedConnection.Query(cqlQuery, consistency);
+            //Keyspace.Select();
+            return ManagedConnection.Query(cqlQuery, this.clRead);
         }
 
         internal void ExecuteNonQuery(string cqlQuery)
         {
-            Keyspace.Select();
-            throw new NotImplementedException();
-            ManagedConnection.NonQuery(cqlQuery, CqlConsistencyLevel.DEFAULT);
+            //Keyspace.Select();            
+            ManagedConnection.NonQuery(cqlQuery, this.clWrite);
         }
 
         internal object ExecuteScalar(string cqlQuery)
         {
-            Keyspace.Select();
+            //Keyspace.Select();
             return ManagedConnection.Scalar(cqlQuery);
         }
 

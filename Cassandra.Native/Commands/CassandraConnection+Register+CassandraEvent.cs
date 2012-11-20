@@ -9,13 +9,13 @@ namespace Cassandra.Native
     {
         public CassandraEventType CassandraEventType;
         public IPEndPoint IPEndPoint;
-        public string Message;
+        public string Message;        
     }
 
     public delegate void CassandraEventHandler(object sender, CassandraEventArgs e);
 
     [Flags]
-    public enum CassandraEventType { TopologyChange = 0x01, StatusChange = 0x02 }
+    public enum CassandraEventType { TopologyChange = 0x01, StatusChange = 0x02, SchemaChange = 0x03 }
 
     internal partial class CassandraConnection : IDisposable
     {

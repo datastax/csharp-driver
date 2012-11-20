@@ -143,8 +143,8 @@ namespace Cassandra.Native
             {
                 // If the operation isn't done, wait for it
                 asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
-                asyncResult.AsyncWaitHandle.Close();
-                asyncResult.m_AsyncWaitHandle = null;  // Allow early GC
+                asyncResult.AsyncWaitHandle.Close();                
+                asyncResult.m_AsyncWaitHandle = null;  // Allow early GC                
             }
 
             // Operation is done: if an exception occurred, throw it

@@ -167,7 +167,7 @@ namespace Cassandra.Native
             var outp = (OutputError)cnstr.Invoke(new object[] { });
             tpy.GetField("CassandraErrorType").SetValue(outp, code);
             tpy.GetField("Message").SetValue(outp, message);
-            var loadM = tpy.GetMethod("Load", new Type[] { typeof(CassandraErrorType), typeof(string), typeof(BEBinaryReader) });
+            var loadM = tpy.GetMethod("Load", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(CassandraErrorType), typeof(string), typeof(BEBinaryReader) }, null);
             if (loadM != null)
                 loadM.Invoke(outp, new object[] { code, message, cb });
             return outp;

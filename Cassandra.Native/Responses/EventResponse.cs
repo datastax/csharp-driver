@@ -29,6 +29,14 @@ namespace Cassandra.Native
                 CassandraEventArgs.IPEndPoint = rd.ReadInet();
                 return;
             }
+            else if (eventTypeString == "SCHEMA_CHANGE")
+            {
+                CassandraEventArgs.CassandraEventType = CassandraEventType.SchemaChange;
+                CassandraEventArgs.Message = rd.ReadString();
+                CassandraEventArgs.Message += " Affected keyspace:" + rd.ReadString();
+                CassandraEventArgs.Message += " Affected table:" + rd.ReadString();
+                return;
+            }
 
             throw new CassandraClientProtocolViolationException("Unknown Event Type");
         }
