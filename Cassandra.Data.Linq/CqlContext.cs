@@ -19,46 +19,47 @@ namespace Cassandra.Data
         public int Index = -1;
     }
 
+    public class SecondaryIndexAttribute : Attribute
+    {
+    }
+
     public class CqlContext : IDisposable
     {
         internal CassandraSession ManagedConnection = null;
 
-        bool releaseOnClose;
-        CqlKeyspace keyspace;
-        string keyspaceName;
-        CqlConsistencyLevel clRead;
-        CqlConsistencyLevel clWrite;
+        CqlConnectionStringBuilder CqlConnectionStringBuilder = null;
 
-        public CqlContext(CassandraSession cqlConnection, bool releaseOnClose = false, string keyspaceName = null)
+        bool releaseOnClose;
+        string keyspaceName;
+        public string Keyspace { get { return keyspaceName; } }
+
+        public CqlContext(CassandraSession cqlConnection, bool releaseOnClose = false)
         {
             this.ManagedConnection = cqlConnection;
             this.releaseOnClose = releaseOnClose;
-            this.keyspaceName = keyspaceName;
-            if (this.keyspaceName == null)
-                this.keyspaceName = this.GetType().Name;
-
-            this.keyspace = new CqlKeyspace(this, this.keyspaceName);
+            this.keyspaceName = cqlConnection.Keyspace;
         }
 
-        public CqlContext(string connectionString, string keyspaceName = null)
+        public CqlContext(string connectionString, string keyspaceName = null, bool connect = true)
         {
-            var cqlConnectionParams = new CqlConnectionStringBuilder(connectionString);
+            CqlConnectionStringBuilder = new CqlConnectionStringBuilder(connectionString);
             this.releaseOnClose = true;
 
             this.keyspaceName = keyspaceName;
             if (this.keyspaceName == null)
-                this.keyspaceName = cqlConnectionParams.Keyspace;
+                this.keyspaceName = CqlConnectionStringBuilder.Keyspace;
 
-            if (this.keyspaceName == null)
-                this.keyspaceName = this.GetType().Name;
+            if (connect)
+                Connect();
+        }
 
-            this.clRead = cqlConnectionParams.ReadCqlConsistencyLevel;
-            this.clWrite = cqlConnectionParams.WriteCqlConsistencyLevel;
-
-            ManagedConnection = new CassandraSession(
-                cqlConnectionParams.ClusterEndpoints, keyspaceName, cqlConnectionParams.CompressionType, cqlConnectionParams.ConnectionTimeout, new CredentialsDelegate(getCredentials), cqlConnectionParams.MaxPoolSize);
-
-            this.keyspace = new CqlKeyspace(this, this.keyspaceName);
+        public void Connect()
+        {
+            if (ManagedConnection == null)
+            {
+                ManagedConnection = new CassandraSession(
+                    CqlConnectionStringBuilder.ClusterEndpoints, this.keyspaceName, CqlConnectionStringBuilder.CompressionType, CqlConnectionStringBuilder.ConnectionTimeout, new CredentialsDelegate(getCredentials), CqlConnectionStringBuilder.MaxPoolSize);
+            }
         }
 
         private Dictionary<string, string> getCredentials(string auth)
@@ -69,24 +70,43 @@ namespace Cassandra.Data
         public void Dispose()
         {
             if (releaseOnClose)
-                ManagedConnection.Dispose();
+                if (ManagedConnection!=null)
+                    ManagedConnection.Dispose();
         }
-
-        CqlKeyspace Keyspace { get { return keyspace; } }
 
         Dictionary<string, ICqlTable> tables = new Dictionary<string, ICqlTable>();
 
+        public void CreateKeyspace(string ksname)
+        {
+            ManagedConnection.NonQuery(CqlQueryTools.GetCreateKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE); 
+        }
 
         public void CreateKeyspaceIfNotExists(string ksname)
         {
-            var keyspace = new CqlKeyspace(this, ksname);
-            keyspace.CreateIfNotExists();
+            try
+            {
+                CreateKeyspace(ksname);
+            }
+            catch (CassandraClusterAlreadyExistsException)
+            {
+                //already exists
+            }
         }
 
+        public void DeleteKeyspace(string ksname)
+        {
+            ManagedConnection.NonQuery(CqlQueryTools.GetDropKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
+        }
         public void DeleteKeyspaceIfExists(string ksname)
         {
-            var keyspace = new CqlKeyspace(this, ksname);
-            keyspace.Delete();
+            try
+            {
+                DeleteKeyspace(ksname);
+            }
+            catch (CassandraClusterConfigErrorException)
+            {
+                //not exists
+            }
         }
 
         public void CreateTablesIfNotExist()
@@ -97,7 +117,7 @@ namespace Cassandra.Data
                 {
                     CreateTable(table.Value, table.Key);
                 }
-                catch (Cassandra.CassandraClusterInvalidException)
+                catch (CassandraClusterAlreadyExistsException)
                 {
                     //already exists
                 }
@@ -107,7 +127,9 @@ namespace Cassandra.Data
 
         internal void CreateTable(ICqlTable table, string tableName = null)
         {
-            ExecuteNonQuery(CqlQueryTools.GetCreateCQL(table, tableName));
+            var queries = CqlQueryTools.GetCreateCQL(table, tableName);                
+            foreach(var query in queries)
+                ExecuteNonQuery(query);            
         }
 
         public CqlTable<TEntity> AddTable<TEntity>(string tableName = null) where TEntity : class
@@ -143,21 +165,16 @@ namespace Cassandra.Data
             return (CqlTable<TEntity>)tables[tn];
         }
 
-        internal void CreateKeyspace(string keyspace)
-        {
-            ManagedConnection.NonQuery(CqlQueryTools.GetCreateKeyspaceCQL(keyspace), CqlConsistencyLevel.IGNORE); //no need for Consistency lvl ~ Krzysiek 
-        }
-
         internal CqlRowSet ExecuteRows(string cqlQuery)
         {
             //Keyspace.Select();
-            return ManagedConnection.Query(cqlQuery, this.clRead);
+            return ManagedConnection.Query(cqlQuery, CqlConnectionStringBuilder.ReadCqlConsistencyLevel);
         }
 
         internal void ExecuteNonQuery(string cqlQuery)
         {
             //Keyspace.Select();            
-            ManagedConnection.NonQuery(cqlQuery, this.clWrite);
+            ManagedConnection.NonQuery(cqlQuery, CqlConnectionStringBuilder.WriteCqlConsistencyLevel);
         }
 
         internal object ExecuteScalar(string cqlQuery)
@@ -185,5 +202,7 @@ namespace Cassandra.Data
                     table.Value.GetMutationTracker().BatchCompleted();
             }
         }
+
+        
     }
 }

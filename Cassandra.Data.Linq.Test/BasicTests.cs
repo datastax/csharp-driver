@@ -14,13 +14,13 @@ namespace Cassandra.Data.LinqTest
 {
     public class TweetsContext : CqlContext
     {
-        public TweetsContext(CassandraSession connection, bool releaseOnClose = false, string keyspaceName = null)
-            : base(connection, releaseOnClose, keyspaceName)
+        public TweetsContext(CassandraSession connection, bool releaseOnClose = false)
+            : base(connection, releaseOnClose)
         {
             AddTables();
         }
-        public TweetsContext(string connectionString,string keyspaceName = null)
-            : base(connectionString,keyspaceName)
+        public TweetsContext(string connectionString, string keyspaceName = null)
+            : base(connectionString, keyspaceName)
         {
             AddTables();
         }
@@ -36,11 +36,14 @@ namespace Cassandra.Data.LinqTest
         [PartitionKey]
         public Guid tweet_id;        
         public string author;
+        [SecondaryIndex]
         public string body;
-        [RowKey]
+        //[RowKey]
         public bool isok;
         [RowKey]
         public int Key;
+
+        public Dictionary<string, string> exampleMap;
     }
 
     public class BasicTests : IUseFixture<Dev.SettingsFixture>, IDisposable
@@ -54,8 +57,8 @@ namespace Cassandra.Data.LinqTest
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
-            var connectionString = setFix.Settings["CassandraConnectionString"];
-            
+            var connectionString = setFix.Settings["CassandraConnectionString"];            
+
             try
             {
                 ents = new TweetsContext(connectionString, keyspaceName);
@@ -66,8 +69,8 @@ namespace Cassandra.Data.LinqTest
                     ents.CreateKeyspaceIfNotExists(keyspaceName);
                 ents = new TweetsContext(connectionString, keyspaceName);
             }
-
-            ents.CreateTablesIfNotExist();
+            
+            ents.CreateTablesIfNotExist();            
         }
 
         public void Dispose()
@@ -98,6 +101,7 @@ namespace Cassandra.Data.LinqTest
             ents.SaveChanges(CqlSaveChangesMode.Batch);
             
             var cnt = table.Count().Execute();
+            
             Dev.Assert.Equal(RowsNo,cnt);
             
             foreach(var ent in entL)
@@ -123,7 +127,7 @@ namespace Cassandra.Data.LinqTest
             Assert.True(evens.All(ev => ev.Key % 2 == 0));
         }
 
-
+        
 
         //[Fact]
         public void TestBuffering()

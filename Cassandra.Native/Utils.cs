@@ -231,9 +231,23 @@ namespace Cassandra.Native
             return true;
         }
 
-    }
+        public static SortedDictionary<string, int?> ConvertStringToMap(string source)
+        {
+            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
+            SortedDictionary<string,int?> map = new SortedDictionary<string,int?>();
+            
+            foreach (var elem in elements)
+            {
+                int value;
+                if (int.TryParse(elem.Split(':')[1].Replace("\"",""), out value))
+                    map.Add(elem.Split(':')[0], value);
+                else
+                    map.Add(elem.Split(':')[0], null);
+            }
 
-    
+            return map;
+        }
+    }    
 }
 
 

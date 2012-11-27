@@ -18,7 +18,7 @@ namespace Cassandra
         ALL = 0x0005,
         LOCAL_QUORUM = 0x0006,
         EACH_QUORUM = 0x0007,
-        DEFAULT = QUORUM,
+        DEFAULT = ONE,
         IGNORE = ANY
     }
 
@@ -32,7 +32,6 @@ namespace Cassandra
         public CqlConsistencyLevel ReadCqlConsistencyLevel { get; private set; }
         public CqlConsistencyLevel WriteCqlConsistencyLevel { get; private set; }
 
-        public string PoolId { get; private set; }
         public int ConnectionTimeout { get; private set; }
         public int MaxPoolSize { get; private set; }
 
@@ -45,8 +44,7 @@ namespace Cassandra
             CqlConsistencyLevel ReadCqlConsistencyLevel = CqlConsistencyLevel.QUORUM,
             CqlConsistencyLevel WriteCqlConsistencyLevel = CqlConsistencyLevel.QUORUM,
             int ConnectionTimeout = Timeout.Infinite,
-            int MaxPoolSize = int.MaxValue,
-            string PoolId = ""
+            int MaxPoolSize = int.MaxValue
         )
         {
             this.Keyspace = Keyspace;
@@ -58,7 +56,6 @@ namespace Cassandra
             this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
             this.ConnectionTimeout = ConnectionTimeout;
             this.MaxPoolSize = MaxPoolSize;
-            this.PoolId = PoolId;
         }
 
         public CqlConnectionStringBuilder() 
@@ -141,11 +138,6 @@ namespace Cassandra
             if (pairs.ContainsKey("Password"))
                 Password = pairs["Password"];
 
-            if (pairs.ContainsKey("PoolId"))
-                PoolId = pairs["PoolId"];
-            else
-                PoolId = "";
-
             if (!pairs.ContainsKey("Servers"))
             {
                 throw new Exception("There must be specified at least one Cluster Server");
@@ -213,9 +205,6 @@ namespace Cassandra
             if(Password!=null)
                 b.AppendFormat(format, "Password", Password);
     
-            if(!string.IsNullOrEmpty(PoolId))
-                b.AppendFormat(format, "PoolId", PoolId);
-
             b.AppendFormat(format, "Servers", ClusterEndpointsString());
 
             return b.ToString();

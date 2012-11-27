@@ -37,27 +37,24 @@ namespace MyUTExt
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");                       
+            List<IPEndPoint> clusterNodes = new List<IPEndPoint>();            
+
+            GetNodeList(setFix, clusterNodes);
             
-            //var serverSp = setFix.Settings["CassandraServer"].Split(':');
-            //string ip = serverSp[0];
-            //int port = int.Parse(serverSp[1]);
-            //var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
+            Session = new CassandraSession(clusterNodes, this.Keyspace, this.Compression, Timeout.Infinite);
+        }
 
-            List<IPEndPoint> clusterNodes = new List<IPEndPoint>();
-            //clusterNodes.Add(serverAddress);
-
-            string nodeList = setFix.Settings["CassandraConnectionString"].Replace("Servers=","");
-            if(nodeList.EndsWith(";"))
+        public static void GetNodeList(Dev.SettingsFixture setFix, List<IPEndPoint> clusterNodes)
+        {
+            string nodeList = setFix.Settings["CassandraConnectionString"].Replace("Servers=", "");
+            if (nodeList.EndsWith(";"))
                 nodeList = nodeList.Remove(nodeList.LastIndexOf(';'));
-            
+
             var nodes = nodeList.Split(',');
-            
 
             foreach (var node in nodes)
                 clusterNodes.Add(new IPEndPoint(IPAddress.Parse(node.Split(':')[0]), int.Parse(node.Split(':')[1])));
-            //new List<IPEndPoint>() { serverAddress }
-            Session = new CassandraSession(clusterNodes, this.Keyspace, this.Compression, Timeout.Infinite);
         }
 
         public void Dispose()
@@ -340,6 +337,8 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
 
                 case "Guid":
                     return "uuid";
+                case "IPEndPoint":
+                    return "inet";
 
                 default:
                     throw new InvalidOperationException();                    
@@ -650,6 +649,77 @@ PRIMARY KEY(tweet_id)
                 return rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { });            
             else
                 return "";
+        }
+
+        public void checkMetadata(string TableName = null, string KeyspaceName = null)
+        {            
+            Dictionary<string, Metadata.ColumnTypeCode> columns = new Dictionary<string,Metadata.ColumnTypeCode>(){                          
+                         {"q0uuid", Metadata.ColumnTypeCode.Uuid},
+                         {"q1timestamp", Metadata.ColumnTypeCode.Timestamp},
+                         {"q2double", Metadata.ColumnTypeCode.Double},
+                         {"q3int32", Metadata.ColumnTypeCode.Int},                         
+                         {"q4int64", Metadata.ColumnTypeCode.Bigint},
+                         {"q5float", Metadata.ColumnTypeCode.Float},                         
+                         {"q6inet", Metadata.ColumnTypeCode.Inet},
+                         {"q7boolean", Metadata.ColumnTypeCode.Boolean},                         
+                         {"q8inet", Metadata.ColumnTypeCode.Inet},                         
+                         {"q9blob", Metadata.ColumnTypeCode.Blob},
+                         {"q10varint", Metadata.ColumnTypeCode.Varint},
+                         {"q11decimal", Metadata.ColumnTypeCode.Decimal},
+                         {"q12list", Metadata.ColumnTypeCode.List},
+                         {"q13set", Metadata.ColumnTypeCode.Set},
+                         {"q14map", Metadata.ColumnTypeCode.Map}
+                         //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
+                        };
+                          
+            Session.ChangeKeyspace(KeyspaceName ?? Keyspace);
+            string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
+            StringBuilder sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
+            Randomm urndm = new Randomm(DateTimeOffset.Now.Millisecond);
+            
+            foreach(var col in columns)
+                sb.Append(col.Key + " " + col.Value.ToString() + (((col.Value == Metadata.ColumnTypeCode.List) || (col.Value == Metadata.ColumnTypeCode.Set) || (col.Value == Metadata.ColumnTypeCode.Map)) ? "<int" + (col.Value == Metadata.ColumnTypeCode.Map ? ",varchar>" : ">") : "") + ", ");
+
+            sb.Append("PRIMARY KEY(");
+            int rowKeys = urndm.Next(1,columns.Count-3);
+
+            for (int i = 0; i < rowKeys; i++)
+                sb.Append(columns.Keys.Where(key => key.StartsWith("q"+i.ToString())).First() + ((i == rowKeys - 1) ? "" : ", "));            
+            sb.Append("));");
+            
+            ExecuteSyncNonQuery(Session, sb.ToString());                        
+            Metadata md = this.Session.GetTableMetadata(tablename);            
+            foreach( var metaCol in md.Columns)
+            {
+                Assert.True(columns.Keys.Contains(metaCol.column_name));
+                Assert.True(metaCol.type_code == columns.Where(tpc => tpc.Key == metaCol.column_name).First().Value);
+                Assert.True(metaCol.tablename == tablename);
+                Assert.True(metaCol.ksname ==  (KeyspaceName ?? Keyspace));
+            }                                        
+        }
+
+
+        public void checkKSMetadata()
+        {
+            string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+            bool durableWrites = false;
+            Metadata.StrategyClass strgyClass = Metadata.StrategyClass.SimpleStrategy;
+            short rplctnFactor = 1;
+            Session.NonQuery(
+string.Format(@"CREATE KEYSPACE {0} 
+         WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
+         AND durable_writes={3};"
+, keyspacename, Enum.GetName(typeof(Metadata.StrategyClass), strgyClass), rplctnFactor.ToString(), durableWrites.ToString()));
+            
+            Session.ChangeKeyspace(keyspacename);
+
+            for (int i = 0; i < 10; i++)
+                checkMetadata("table" + Guid.NewGuid().ToString("N"),keyspacename);
+
+            Metadata.KeyspaceDesc ksmd = this.Session.GetKeyspaceMetadata(keyspacename);
+            Assert.True(ksmd.durableWrites == durableWrites);
+            Assert.True(ksmd.replicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
+            Assert.True(ksmd.strategyClass == strgyClass);
         }
     }
 }

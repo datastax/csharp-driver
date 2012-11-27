@@ -208,12 +208,17 @@ namespace Cassandra.Data
               , keyspace.CqlIdentifier());
         }
 
-        public static string GetCreateCQL(ICqlTable table, string tablename = null)
+        
+
+        public static List<string> GetCreateCQL(ICqlTable table, string tablename = null)
         {
-            StringBuilder ret = new StringBuilder();
+            List<string> commands = new List<string>();
+            StringBuilder ret = new StringBuilder();            
             ret.Append("CREATE TABLE ");
             ret.Append((tablename ?? table.GetEntityType().Name).CqlIdentifier());
             ret.Append("(");
+            string crtIndex = "CREATE INDEX ON " + table.GetTableName().CqlIdentifier() + "(";
+            string crtIndexAll = String.Empty;
 
             SortedDictionary<int, string> keys = new SortedDictionary<int, string>();
             string partitionKey = null;
@@ -234,7 +239,7 @@ namespace Cassandra.Data
                     partitionKey = prop.Name;
                 }
                 else
-                {
+                {                    
                     var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
                     if (rk != null)
                     {
@@ -243,8 +248,16 @@ namespace Cassandra.Data
                             idx = curLevel++;
                         keys.Add(idx, prop.Name);
                     }
+                    else
+                    {
+                        var si = prop.GetCustomAttributes(typeof(SecondaryIndexAttribute), true).FirstOrDefault() as SecondaryIndexAttribute;
+                        if (si != null)
+                        {
+                            commands.Add(crtIndex + prop.Name.CqlIdentifier() + ");");
+                        }
+                    }
                 }
-            }
+            }            
             ret.Append("PRIMARY KEY(");
             ret.Append(partitionKey.CqlIdentifier());
             foreach (var kv in keys)
@@ -253,8 +266,13 @@ namespace Cassandra.Data
                 ret.Append(kv.Value.CqlIdentifier());
             }
             ret.Append("));");
-            return ret.ToString();
+            commands.Add(ret.ToString());
+            
+            if(commands.Count > 1)
+                commands.Reverse();
+            return commands;
         }
+
 
         public static string GetInsertCQL(object row, string tablename = null)
         {

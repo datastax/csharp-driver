@@ -20,6 +20,18 @@ namespace Cassandra.Native.Test
         }
 
         [Fact]
+        public void checkTableMetadata()
+        {
+            base.checkMetadata();
+        }
+
+        [Fact]
+        public void checkKeyspaceMetadata()
+        {
+            base.checkKSMetadata();
+        }
+
+        [Fact]
         public void testCounter()
         {
             base.testCounters();

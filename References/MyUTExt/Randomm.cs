@@ -13,7 +13,10 @@ namespace MyUTExt
             : base(5)
         {
         }
-
+        public Randomm(int mili)
+            : base(mili)
+        {                 
+        }
         public float NextSingle()
         {
             double numb = this.NextDouble();

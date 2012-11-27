@@ -58,9 +58,6 @@ namespace Cassandra.Data
             var cqlQuery = eval.CountQuery;
             var alter = eval.AlternativeMapping;
             var conn = (table as ICqlTable).GetContext();
-            
-            //throw new NotImplementedException();
-            
             using (var outp = conn.ExecuteRows(cqlQuery))
             {
                 if (outp.RowsCount != 1)
@@ -141,7 +138,6 @@ namespace Cassandra.Data
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
             var conn = (table as ICqlTable).GetContext();
-            //throw new NotImplementedException();
             using (var outp = conn.ExecuteRows(cqlQuery))
             {
                 var cols = outp.Columns;

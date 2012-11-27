@@ -37,50 +37,90 @@ namespace Cassandra.Native
             Map = 0x0021,
             Set = 0x0022
         }
+        
+        public enum KeyType
+        {            
+            PARTITION = 1,
+            ROW = 2,
+            SECONDARY = 3,
+            NOT_A_KEY = 0
+        }
 
+        public enum StrategyClass
+        {
+            Unknown = 0,
+            SimpleStrategy = 1,
+            NetworkTopologyStrategy = 2,
+            OldNetworkTopologyStrategy = 3
+        }
+        
         public interface ColumnInfo
         {
         }
 
         public class CustomColumnInfo : ColumnInfo
-        {
+        {            
             public string custom_type_name;
         }
+        
         public class ListColumnInfo : ColumnInfo
         {
             public ColumnTypeCode value_type_code;
-            public ColumnInfo value_type_info;
+            public ColumnInfo value_type_info;            
         }
-        public class MapColumnInfo : ColumnInfo
-        {
-            public ColumnTypeCode key_type_code;
-            public ColumnInfo key_type_info;
-            public ColumnTypeCode value_type_code;
-            public ColumnInfo value_type_info;
-        }
+
         public class SetColumnInfo : ColumnInfo
         {
             public ColumnTypeCode key_type_code;
             public ColumnInfo key_type_info;
         }
+        
+        public class MapColumnInfo : ColumnInfo
+        {
+            public ColumnTypeCode key_type_code;
+            public ColumnInfo key_type_info;
+            public ColumnTypeCode value_type_code;
+            public ColumnInfo value_type_info;            
+        }
 
+        public struct KeyspaceDesc
+        {
+            public string ksName;
+            public List<Metadata> tables;
+            public bool? durableWrites;
+            public StrategyClass strategyClass;
+            public SortedDictionary<string, int?> replicationOptions;
+        }
+        
         public struct ColumnDesc
         {
             public string ksname;
             public string tablename;
             public string column_name;
+            public ColumnInfo type_info;
+            public string secondary_index_name;
+            public string secondary_index_type;
+            public KeyType key_type;
             public ColumnTypeCode type_code;
-            public ColumnInfo type_info;            
-        }
+            public ListColumnInfo listInfo;
+            public SetColumnInfo setInfo;
+            public MapColumnInfo mapInfo;
+        }        
+
 
         public ColumnDesc[] Columns;
+
+
+        internal Metadata()
+        {
+        }
 
         internal Metadata(BEBinaryReader reader)
         {
             List<ColumnDesc> coldat = new List<ColumnDesc>();
             Flags = (FlagBits)reader.ReadInt32();
-            var numberOfcolums = reader.ReadInt32();
-            this.Columns = new Metadata.ColumnDesc[numberOfcolums];
+            var numberOfcolumns = reader.ReadInt32();
+            this.Columns = new Metadata.ColumnDesc[numberOfcolumns];
             string g_ksname = null;
             string g_tablename = null;
 
@@ -89,7 +129,7 @@ namespace Cassandra.Native
                 g_ksname = reader.ReadString();
                 g_tablename = reader.ReadString();
             }
-            for (int i = 0; i < numberOfcolums; i++)
+            for (int i = 0; i < numberOfcolumns; i++)
             {
                 ColumnDesc col = new ColumnDesc();
                 if ((Flags & FlagBits.Global_tables_spec) != FlagBits.Global_tables_spec)
