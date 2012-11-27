@@ -46,6 +46,12 @@ namespace Playground
 
             var cnt = table.Count().Execute();
 
+
+            foreach (var auth in (from r in table select r.author).Execute()) 
+            {
+                Console.WriteLine(auth);
+            }
+
             foreach (var ent in entL)
                 table.Delete(ent);
 
@@ -55,6 +61,7 @@ namespace Playground
 
             tweets.Drop();
 
+            Console.WriteLine("Done!");
             Console.ReadKey();
         }
     }
