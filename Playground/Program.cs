@@ -16,21 +16,23 @@ namespace Playground
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            CqlConnectionStringBuilder csb = new CqlConnectionStringBuilder(
-                Keyspace: "test"+Guid.NewGuid().ToString("N"),
-                ClusterEndpoints: new IPEndPoint[] { 
-                    new IPEndPoint(IPAddress.Parse("168.63.107.22"), 9042) 
-                },
-                ReadCqlConsistencyLevel: CqlConsistencyLevel.ONE,
-                WriteCqlConsistencyLevel: CqlConsistencyLevel.ANY,
-                ConnectionTimeout: 1000000,
-                CompressionType: CassandraCompressionType.NoCompression,
-                MaxPoolSize: 100,
-                Username: "guest",
-                Password: "guest"
-                );
+            CassandraCluster cluster = CassandraCluster.builder().addContactPoint("168.63.107.22").build();
 
-            TweetsContext tweets = new TweetsContext(csb.GetConnectionString());
+            //CqlConnectionStringBuilder csb = new CqlConnectionStringBuilder(
+            //    Keyspace: "test"+Guid.NewGuid().ToString("N"),
+            //    ClusterEndpoints: new IPEndPoint[] { 
+            //        new IPEndPoint(IPAddress.Parse("168.63.107.22"), 9042) 
+            //    },
+            //    ReadCqlConsistencyLevel: CqlConsistencyLevel.ONE,
+            //    WriteCqlConsistencyLevel: CqlConsistencyLevel.ANY,
+            //    ConnectionTimeout: 1000000,
+            //    CompressionType: CassandraCompressionType.NoCompression,
+            //    MaxPoolSize: 100,
+            //    Username: "guest",
+            //    Password: "guest"
+            //    );
+
+            TweetsContext tweets = new TweetsContext(cluster, "test" + Guid.NewGuid().ToString("N"), CqlConsistencyLevel.ONE, CqlConsistencyLevel.ANY);
 
             var table = tweets.GetTable<Tweets>();
 

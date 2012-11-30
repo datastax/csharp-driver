@@ -65,6 +65,7 @@
       <Link>Snappy\Snappy.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
+    <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraException.cs" />
     <Compile Include="CassandraSession.cs" />
@@ -87,6 +88,14 @@
     <Compile Include="Outputs\OutputVoid.cs" />
     <Compile Include="Outputs\OutputSetKeyspace.cs" />
     <Compile Include="Outputs\OutputError.cs" />
+    <Compile Include="Policies\DefaultRetryPolicy.cs" />
+    <Compile Include="Policies\ExponentialReconnectionPolicy.cs" />
+    <Compile Include="CassandraClusterHost.cs" />
+    <Compile Include="Policies\LoadBalancingPolicy.cs" />
+    <Compile Include="Policies\Policies.cs" />
+    <Compile Include="Policies\ReconnectionPolicy.cs" />
+    <Compile Include="Policies\RetryPolicy.cs" />
+    <Compile Include="Policies\RoundRobinPolicy.cs" />
     <Compile Include="ProtoBuf.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />

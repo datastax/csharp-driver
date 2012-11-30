@@ -27,40 +27,52 @@ namespace Cassandra.Data
     {
         internal CassandraSession ManagedConnection = null;
 
-        CqlConnectionStringBuilder CqlConnectionStringBuilder = null;
+        //CqlConnectionStringBuilder CqlConnectionStringBuilder = null;
+        CqlConsistencyLevel ReadCqlConsistencyLevel;
+        CqlConsistencyLevel WriteCqlConsistencyLevel;
 
         bool releaseOnClose;
         string keyspaceName;
         public string Keyspace { get { return keyspaceName; } }
 
-        public CqlContext(CassandraSession cqlConnection, bool releaseOnClose = false)
+        public CqlContext()
+        {
+        }
+
+        public void Initialize(CassandraSession cqlConnection, bool releaseOnClose , CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
         {
             this.ManagedConnection = cqlConnection;
             this.releaseOnClose = releaseOnClose;
             this.keyspaceName = cqlConnection.Keyspace;
+            this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
+            this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
         }
-
-        public CqlContext(string connectionString, string keyspaceName = null, bool connect = true)
+        public CqlContext(CassandraSession cqlConnection, bool releaseOnClose, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
         {
-            CqlConnectionStringBuilder = new CqlConnectionStringBuilder(connectionString);
-            this.releaseOnClose = true;
-
-            this.keyspaceName = keyspaceName;
-            if (this.keyspaceName == null)
-                this.keyspaceName = CqlConnectionStringBuilder.Keyspace;
-
-            if (connect)
-                Connect();
+            Initialize(cqlConnection, releaseOnClose, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel);
         }
 
-        public void Connect()
-        {
-            if (ManagedConnection == null)
-            {
-                ManagedConnection = new CassandraSession(
-                    CqlConnectionStringBuilder.ClusterEndpoints, this.keyspaceName, CqlConnectionStringBuilder.CompressionType, CqlConnectionStringBuilder.ConnectionTimeout, new CredentialsDelegate(getCredentials), CqlConnectionStringBuilder.MaxPoolSize);
-            }
-        }
+        //public CqlContext(string connectionString, string keyspaceName = null, bool connect = true)
+        //{
+        //    CqlConnectionStringBuilder = new CqlConnectionStringBuilder(connectionString);
+        //    this.releaseOnClose = true;
+
+        //    this.keyspaceName = keyspaceName;
+        //    if (this.keyspaceName == null)
+        //        this.keyspaceName = CqlConnectionStringBuilder.Keyspace;
+
+        //    if (connect)
+        //        Connect();
+        //}
+
+        //public void Connect()
+        //{
+        //    if (ManagedConnection == null)
+        //    {
+        //        ManagedConnection = new CassandraSession(
+        //            CqlConnectionStringBuilder.ClusterEndpoints, this.keyspaceName, CqlConnectionStringBuilder.CompressionType, CqlConnectionStringBuilder.ConnectionTimeout, new CredentialsDelegate(getCredentials), CqlConnectionStringBuilder.MaxPoolSize);
+        //    }
+        //}
 
         private Dictionary<string, string> getCredentials(string auth)
         {
@@ -168,13 +180,13 @@ namespace Cassandra.Data
         internal CqlRowSet ExecuteRows(string cqlQuery)
         {
             //Keyspace.Select();
-            return ManagedConnection.Query(cqlQuery, CqlConnectionStringBuilder.ReadCqlConsistencyLevel);
+            return ManagedConnection.Query(cqlQuery, ReadCqlConsistencyLevel);
         }
 
         internal void ExecuteNonQuery(string cqlQuery)
         {
             //Keyspace.Select();            
-            ManagedConnection.NonQuery(cqlQuery, CqlConnectionStringBuilder.WriteCqlConsistencyLevel);
+            ManagedConnection.NonQuery(cqlQuery, WriteCqlConsistencyLevel);
         }
 
         internal object ExecuteScalar(string cqlQuery)
