@@ -23,11 +23,12 @@ namespace Cassandra.Native
 
                     rawrows.ReadRawColumnValue(buffer, 0, len);
                     columns[i] = TypeInterpreter.CqlConvert(buffer,
-                        rawrows.Metadata.Columns[i].type_code, rawrows.Metadata.Columns[i].type_info);
-                    i++;
-                    if (i >= rawrows.Metadata.Columns.Length)
-                        break;
+                        rawrows.Metadata.Columns[i].type_code, rawrows.Metadata.Columns[i].type_info);                    
                 }
+
+                i++;
+                if (i >= rawrows.Metadata.Columns.Length)
+                    break;                                
             }
         }
 
