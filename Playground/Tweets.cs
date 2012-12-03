@@ -16,7 +16,7 @@ namespace Playground
         [SecondaryIndex]
         public string author;
 
-        public string body;
+        public HashSet<string> body;
     }
 
     public class TweetsContext : CqlContext

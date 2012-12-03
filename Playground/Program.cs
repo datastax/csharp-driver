@@ -40,7 +40,7 @@ namespace Playground
             List<Tweets> entL = new List<Tweets>();
             for (int i = 0; i < RowsNo; i++)
             {
-                var ent = new Tweets() { tweet_id = Guid.NewGuid(), author = "test" + i.ToString(), body = "body" + i.ToString() };
+                var ent = new Tweets() { tweet_id = Guid.NewGuid(), author = "test" + i.ToString(), body = new HashSet<string>() { "body" + i.ToString() } };
                 table.AddNew(ent, CqlEntityTrackingMode.KeepAtachedAfterSave);
                 entL.Add(ent);
             }

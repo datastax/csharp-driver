@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Reflection;
 using Cassandra.Native;
+using System.Collections;
 
 namespace Cassandra.Data
 {
@@ -125,8 +126,46 @@ namespace Cassandra.Data
             else if (obj is Single) return Encode((Single)obj);
             else if (obj is Decimal) return Encode((Decimal)obj);
             else if (obj is DateTimeOffset) return Encode((DateTimeOffset)obj);
-            else return obj.ToString();
+            else if (obj.GetType().IsGenericType)
+            {
+                if (obj.GetType().GetInterface("ISet`1") != null)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach (var el in (IEnumerable)obj)
+                    {
+                        if (sb.ToString() != "")
+                            sb.Append(",");
+                        sb.Append(el.Encode());
+                    }
+                    return "{" + sb.ToString() + "}";
+                }
+                else if (obj.GetType().GetInterface("IDictionary`2") != null)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    IDictionaryEnumerator enn = ((IDictionary)obj).GetEnumerator();
+                    while (enn.MoveNext())
+                    {
+                        if (sb.ToString() != "")
+                            sb.Append(",");
+                        sb.Append(enn.Key.Encode() + ":" + enn.Value.Encode());
+                    }
+                    return "{" + sb.ToString() + "}";
+                }
+                else if (obj.GetType().GetInterface("IEnumerable`1") != null)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach (var el in (IEnumerable)obj)
+                    {
+                        if (sb.ToString() != "")
+                            sb.Append(",");
+                        sb.Append(el.Encode());
+                    }
+                    return "[" + sb.ToString() + "]";
+                }
+            }
+            return obj.ToString();
         }
+
 
         public static string Encode(string str)
         {
@@ -186,6 +225,31 @@ namespace Cassandra.Data
         { typeof(DateTimeOffset), "timestamp" },
         };
 
+        static string GetCqlTypeFromType(Type tpy)
+        {
+            if (CQLTypeNames.ContainsKey(tpy))
+                return CQLTypeNames[tpy];
+            else
+            {
+                if (tpy.IsGenericType)
+                {
+                    if (tpy.GetInterface("ISet`1") != null)
+                    {
+                        return "set<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
+                    }
+                    else if (tpy.GetInterface("IDictionary`2") != null)
+                    {
+                        return "map<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + "," + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
+                    }
+                    else if (tpy.GetInterface("IEnumerable`1") != null)
+                    {
+                        return "list<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
+                    }
+                }
+            }
+            throw new InvalidOperationException();
+        }
+
         public static string GetCreateKeyspaceCQL(string keyspace)
         {
             return string.Format(
@@ -229,7 +293,7 @@ namespace Cassandra.Data
                 Type tpy = prop.GetTypeFromPropertyOrField();
                 ret.Append(prop.Name.CqlIdentifier());
                 ret.Append(" ");
-                ret.Append(CQLTypeNames[tpy]);
+                ret.Append(GetCqlTypeFromType(tpy));
                 ret.Append(",");
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
