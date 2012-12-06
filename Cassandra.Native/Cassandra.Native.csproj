@@ -65,6 +65,7 @@
       <Link>Snappy\Snappy.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
+    <Compile Include="AuthInfoProvider.cs" />
     <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraException.cs" />
@@ -150,6 +151,7 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Bigint.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
+    <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

@@ -31,9 +31,9 @@ namespace Cassandra.Native
         IEnumerable<IPAddress> ContactPoints;
         int port;
         Policies.Policies policies;
-        CredentialsDelegate credentialsDelegate = null;
+        AuthInfoProvider credentialsDelegate = null;
 
-        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, CredentialsDelegate credentialsDelegate = null)
+        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, AuthInfoProvider credentialsDelegate = null)
         {
             this.ContactPoints = ContactPoints;
             this.port = port;
@@ -152,7 +152,7 @@ namespace Cassandra.Native
          * @return the authentication provider to use. Use
          * AuthInfoProvider.NONE if authentication is not to be used.
          */
-        CredentialsDelegate getAuthInfoProvider();
+        AuthInfoProvider getAuthInfoProvider();
     }
 
     /**
@@ -163,7 +163,7 @@ namespace Cassandra.Native
 
         private readonly List<IPAddress> addresses = new List<IPAddress>();
         private int port = CassandraCluster.DEFAULT_PORT;
-        private CredentialsDelegate authProvider = null;
+        private AuthInfoProvider authProvider = null;
 
         private LoadBalancingPolicy loadBalancingPolicy;
         private ReconnectionPolicy reconnectionPolicy;
@@ -346,7 +346,7 @@ namespace Cassandra.Native
          * @param authInfoProvider the authentication info provider to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder withAuthInfoProvider(CredentialsDelegate authInfoProvider)
+        public CassandraClusterBuilder withAuthInfoProvider(AuthInfoProvider authInfoProvider)
         {
             this.authProvider = authInfoProvider;
             return this;
@@ -358,7 +358,7 @@ namespace Cassandra.Native
          * @return the authentication provider set through {@link #withAuthInfoProvider}
          * or AuthInfoProvider.NONE if nothing was set.
          */
-        public CredentialsDelegate getAuthInfoProvider()
+        public AuthInfoProvider getAuthInfoProvider()
         {
             return this.authProvider;
         }

@@ -9,7 +9,6 @@ using System.Diagnostics;
 
 namespace Cassandra
 {
-    public delegate IDictionary<string, string> CredentialsDelegate(string Authenticator);
     public enum CassandraCompressionType { NoCompression, Snappy }
 }
 
@@ -36,7 +35,7 @@ namespace Cassandra.Native
             socket.Value.Shutdown(SocketShutdown.Both);
         }
 #endif
-        EndPoint serverAddress;
+        IPEndPoint serverAddress;
         Guarded<Socket> socket = new Guarded<Socket>(null);
         Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
         bool[] freeStreamIDtaken = new bool[byte.MaxValue + 1];
@@ -58,9 +57,9 @@ namespace Cassandra.Native
 
         Action<ErrorActionParam> ProtocolErrorHandlerAction;
 
-        CredentialsDelegate credentialsDelegate;
+        AuthInfoProvider credentialsDelegate;
 
-        internal CassandraConnection(IPEndPoint serverAddress, CredentialsDelegate credentialsDelegate = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite)
+        internal CassandraConnection(IPEndPoint serverAddress, AuthInfoProvider credentialsDelegate = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite)
         {
             bufferingMode = null;
             switch (compression)
@@ -223,7 +222,8 @@ namespace Cassandra.Native
                             if (credentialsDelegate == null)
                                 throw new CassandraClientConfigurationException("Credentials are required for this connection. Please provide a CredentialsDelegate for it.");
 
-                            var credentials = credentialsDelegate((response as AuthenticateResponse).Authenticator);
+                            //(response as AuthenticateResponse).Authenticator
+                            var credentials = credentialsDelegate.getAuthInfos(serverAddress.Address);
 
                             Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
                             {

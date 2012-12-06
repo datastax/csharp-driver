@@ -11,7 +11,7 @@ namespace Cassandra.Native
 {
     public class CassandraSession : IDisposable
     {
-        CredentialsDelegate credentialsDelegate;
+        AuthInfoProvider credentialsDelegate;
 
         CassandraCompressionType compression;
         int abortTimeout;
@@ -54,7 +54,7 @@ namespace Cassandra.Native
         CassandraConnection eventRaisingConnection = null;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, CredentialsDelegate credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue)
+            int abortTimeout = Timeout.Infinite, AuthInfoProvider credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue)
         {
             this.maxConnectionsInPool = maxConnectionsInPool;
             
