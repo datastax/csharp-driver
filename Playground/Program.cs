@@ -16,11 +16,11 @@ namespace Playground
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            CassandraCluster cluster = CassandraCluster.builder().addContactPoint("168.63.107.22").build();
+            CassandraCluster cluster = CassandraCluster.builder().addContactPoint("168.63.107.22").withPort(9042).build();
 
             //CqlConnectionStringBuilder csb = new CqlConnectionStringBuilder(
             //    Keyspace: "test"+Guid.NewGuid().ToString("N"),
-            //    ClusterEndpoints: new IPEndPoint[] { 
+            //    ContactPoints: new IPEndPoint[] { 
             //        new IPEndPoint(IPAddress.Parse("168.63.107.22"), 9042) 
             //    },
             //    ReadCqlConsistencyLevel: CqlConsistencyLevel.ONE,
@@ -32,7 +32,22 @@ namespace Playground
             //    Password: "guest"
             //    );
 
-            TweetsContext tweets = new TweetsContext(cluster, "test" + Guid.NewGuid().ToString("N"), CqlConsistencyLevel.ONE, CqlConsistencyLevel.ANY);
+            var session = cluster.connect();
+
+            var keyspaceName = "test" + Guid.NewGuid().ToString("N");
+
+            try
+            {
+                session.ChangeKeyspace(keyspaceName);
+            }
+            catch (CassandraClusterInvalidException ex)
+            {
+                session.CreateKeyspaceIfNotExists(keyspaceName);
+                session.ChangeKeyspace(keyspaceName);
+            }
+
+
+            TweetsContext tweets = new TweetsContext(session, CqlConsistencyLevel.ONE, CqlConsistencyLevel.ANY);
 
             var table = tweets.GetTable<Tweets>();
 
@@ -49,9 +64,12 @@ namespace Playground
             var cnt = table.Count().Execute();
 
 
-            foreach (var auth in (from r in table select r.author).Execute()) 
+            foreach (var auth in (from r in table select r.author).Execute())
             {
-                Console.WriteLine(auth);
+                foreach (var auth2 in (from r in table select r.author).Execute())
+                {
+                    Console.WriteLine(auth);
+                }
             }
 
             foreach (var ent in entL)
@@ -61,7 +79,7 @@ namespace Playground
 
             var cnt2 = table.Count().Execute();
 
-            tweets.Drop();
+            session.DeleteKeyspaceIfExists(keyspaceName);
 
             Console.WriteLine("Done!");
             Console.ReadKey();

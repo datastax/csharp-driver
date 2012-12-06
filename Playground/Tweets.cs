@@ -21,24 +21,9 @@ namespace Playground
 
     public class TweetsContext : CqlContext
     {
-        public TweetsContext(CassandraCluster cluster, string keyspaceName, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+        public TweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+            :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
         {
-            try
-            {
-                Initialize(cluster.connect(keyspaceName), true, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel);
-            }
-            catch (CassandraConnectionException ex)
-            {
-                if (ex.InnerException is CassandraClusterInvalidException)
-                {
-                    using (var creatorContext = new CqlContext(cluster.connect(), true, CqlConsistencyLevel.IGNORE, CqlConsistencyLevel.IGNORE))
-                        creatorContext.CreateKeyspaceIfNotExists(keyspaceName);
-                    Initialize(cluster.connect(keyspaceName), true, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel);
-                }
-                else
-                    throw;
-            }
-
             AddTable<Tweets>();
             CreateTablesIfNotExist();
         }
@@ -65,11 +50,6 @@ namespace Playground
         //    AddTable<Tweets>();
         //    CreateTablesIfNotExist();
         //}
-
-        public void Drop()
-        {
-            DeleteKeyspaceIfExists(this.Keyspace);
-        }
 
     }
 }

@@ -36,7 +36,7 @@ namespace Cassandra.Native.Policies
             throw new NotImplementedException();
         }
 
-        public IEnumerable<CassandraClusterHost> newQueryPlan()
+        public IEnumerable<CassandraClusterHost> newQueryPlan(byte routingKey)
         {
             throw new NotImplementedException();
         }

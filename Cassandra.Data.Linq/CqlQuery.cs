@@ -97,10 +97,7 @@ namespace Cassandra.Data
 
         public IEnumerator<TEntity> GetEnumerator()
         {
-            //            var result = CqlQueryEvaluator.GetCql(Expression);
-            //		return context.ExecuteQuery(result).GetEnumerator();
-            //return GetEnumerator();
-            throw new NotImplementedException();
+            throw new InvalidOperationException("Did you forget to Execute()?");
         }
 
         IEnumerator IEnumerable.GetEnumerator()

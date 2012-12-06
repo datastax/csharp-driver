@@ -25,7 +25,8 @@ namespace Cassandra
     public class CqlConnectionStringBuilder : DbConnectionStringBuilder
     {
         public string Keyspace { get; set; }
-        public IEnumerable<IPEndPoint> ClusterEndpoints { get; private set; }
+        public int Port { get; private set; }
+        public IEnumerable<IPAddress> ContactPoints { get; private set; }
         public string Username { get; private set; }
         public string Password { get; private set; }
         public CassandraCompressionType CompressionType { get; private set; }
@@ -37,7 +38,8 @@ namespace Cassandra
 
         public CqlConnectionStringBuilder(
             string Keyspace,
-            IEnumerable<IPEndPoint> ClusterEndpoints,
+            IEnumerable<IPAddress> ContactPoints,
+            int Port = CassandraCluster.DEFAULT_PORT,
             string Username = null,
             string Password = null,
             CassandraCompressionType CompressionType = CassandraCompressionType.NoCompression,
@@ -48,7 +50,8 @@ namespace Cassandra
         )
         {
             this.Keyspace = Keyspace;
-            this.ClusterEndpoints = ClusterEndpoints;
+            this.Port = Port;
+            this.ContactPoints = ContactPoints;
             this.Username = Username;
             this.Password = Password;
             this.CompressionType = CompressionType;
@@ -66,8 +69,6 @@ namespace Cassandra
         {
             InitializeConnectionString(connectionString);
         }
-
-        static int DefaultPort = 8000;
 
         private void InitializeConnectionString(string connectionString)
         {
@@ -100,6 +101,16 @@ namespace Cassandra
                     throw new Exception("Max Pool Size is not valid.");
 
                 MaxPoolSize = maxPoolSize;
+            }
+
+            if (!pairs.ContainsKey("Port"))
+                Port = CassandraCluster.DEFAULT_PORT;
+            else
+            {
+                int port;
+                if (!Int32.TryParse(pairs["Port"], out port))
+                    throw new Exception("Port is not valid.");
+                Port = port;
             }
 
             if (!pairs.ContainsKey("Connection Timeout"))
@@ -144,37 +155,20 @@ namespace Cassandra
             }
             else
             {
-                var ce = new List<IPEndPoint>();
+                var ce = new List<IPAddress>();
                 string[] servers = pairs["Servers"].Split(',');
                 foreach (var server in servers)
-                    ce.Add(ParseEndPoint(server));
-                ClusterEndpoints = ce;
+                    ce.Add(IPAddress.Parse(server));
+                ContactPoints = ce;
             }            
-        }
-
-        public static IPEndPoint ParseEndPoint(string server)
-        {
-            string[] serverParts = server.Split(':');
-            string host = serverParts[0];
-
-            if (serverParts.Length == 2)
-            {
-                int port;
-                if (Int32.TryParse(serverParts[1], out port))
-                    return new IPEndPoint(IPAddress.Parse(host), port);
-                else
-                    throw new Exception("Endpoint port is not valid.");
-            }
-            else
-                return new IPEndPoint(IPAddress.Parse(host), DefaultPort);
         }
 
         public string ClusterEndpointsString()
         {
             List<string> servers = new List<string>();
-            foreach (var n in ClusterEndpoints)
-                servers.Add(n.Address.ToString() + ":" + n.Port.ToString());
-            return  String.Join(",", servers.ToArray());
+            foreach (var n in ContactPoints)
+                servers.Add(n.ToString());
+            return String.Join(",", servers.ToArray());
         }
 
         public string GetConnectionString()
@@ -204,6 +198,9 @@ namespace Cassandra
     
             if(Password!=null)
                 b.AppendFormat(format, "Password", Password);
+
+            if (Port != CassandraCluster.DEFAULT_PORT)
+                b.AppendFormat(format, "Port", Port);
     
             b.AppendFormat(format, "Servers", ClusterEndpointsString());
 

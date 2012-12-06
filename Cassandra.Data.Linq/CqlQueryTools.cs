@@ -250,27 +250,6 @@ namespace Cassandra.Data
             throw new InvalidOperationException();
         }
 
-        public static string GetCreateKeyspaceCQL(string keyspace)
-        {
-            return string.Format(
-  @"CREATE KEYSPACE {0} 
-  WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }}"
-              , keyspace.CqlIdentifier());
-        }
-
-        public static string GetUseKeyspaceCQL(string keyspace)
-        {
-            return string.Format(
-  @"USE {0}"
-              , keyspace.CqlIdentifier());
-        }
-
-        public static string GetDropKeyspaceCQL(string keyspace)
-        {
-            return string.Format(
-  @"DROP KEYSPACE {0}"
-              , keyspace.CqlIdentifier());
-        }
 
         
 

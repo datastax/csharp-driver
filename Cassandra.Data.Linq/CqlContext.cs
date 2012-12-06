@@ -39,7 +39,7 @@ namespace Cassandra.Data
         {
         }
 
-        public void Initialize(CassandraSession cqlConnection, bool releaseOnClose , CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+        void Initialize(CassandraSession cqlConnection, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose)
         {
             this.ManagedConnection = cqlConnection;
             this.releaseOnClose = releaseOnClose;
@@ -47,32 +47,10 @@ namespace Cassandra.Data
             this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
             this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
         }
-        public CqlContext(CassandraSession cqlConnection, bool releaseOnClose, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+        public CqlContext(CassandraSession cqlConnection, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose = true)
         {
-            Initialize(cqlConnection, releaseOnClose, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel);
+            Initialize(cqlConnection, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel, releaseOnClose);
         }
-
-        //public CqlContext(string connectionString, string keyspaceName = null, bool connect = true)
-        //{
-        //    CqlConnectionStringBuilder = new CqlConnectionStringBuilder(connectionString);
-        //    this.releaseOnClose = true;
-
-        //    this.keyspaceName = keyspaceName;
-        //    if (this.keyspaceName == null)
-        //        this.keyspaceName = CqlConnectionStringBuilder.Keyspace;
-
-        //    if (connect)
-        //        Connect();
-        //}
-
-        //public void Connect()
-        //{
-        //    if (ManagedConnection == null)
-        //    {
-        //        ManagedConnection = new CassandraSession(
-        //            CqlConnectionStringBuilder.ClusterEndpoints, this.keyspaceName, CqlConnectionStringBuilder.CompressionType, CqlConnectionStringBuilder.ConnectionTimeout, new CredentialsDelegate(getCredentials), CqlConnectionStringBuilder.MaxPoolSize);
-        //    }
-        //}
 
         private Dictionary<string, string> getCredentials(string auth)
         {
@@ -87,39 +65,6 @@ namespace Cassandra.Data
         }
 
         Dictionary<string, ICqlTable> tables = new Dictionary<string, ICqlTable>();
-
-        public void CreateKeyspace(string ksname)
-        {
-            ManagedConnection.NonQuery(CqlQueryTools.GetCreateKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE); 
-        }
-
-        public void CreateKeyspaceIfNotExists(string ksname)
-        {
-            try
-            {
-                CreateKeyspace(ksname);
-            }
-            catch (CassandraClusterAlreadyExistsException)
-            {
-                //already exists
-            }
-        }
-
-        public void DeleteKeyspace(string ksname)
-        {
-            ManagedConnection.NonQuery(CqlQueryTools.GetDropKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
-        }
-        public void DeleteKeyspaceIfExists(string ksname)
-        {
-            try
-            {
-                DeleteKeyspace(ksname);
-            }
-            catch (CassandraClusterConfigErrorException)
-            {
-                //not exists
-            }
-        }
 
         public void CreateTablesIfNotExist()
         {

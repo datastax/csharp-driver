@@ -28,14 +28,14 @@ namespace Cassandra.Native
     {
         public const int DEFAULT_PORT = 9042;
 
-        IEnumerable<IPAddress> ClusterEndpoints;
+        IEnumerable<IPAddress> ContactPoints;
         int port;
         Policies.Policies policies;
         CredentialsDelegate credentialsDelegate = null;
 
-        private CassandraCluster(IEnumerable<IPAddress> ClusterEndpoints, int port, Policies.Policies policies, CredentialsDelegate credentialsDelegate = null)
+        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, CredentialsDelegate credentialsDelegate = null)
         {
-            this.ClusterEndpoints = ClusterEndpoints;
+            this.ContactPoints = ContactPoints;
             this.port = port;
             this.policies = policies;
             this.credentialsDelegate = credentialsDelegate;
@@ -105,7 +105,7 @@ namespace Cassandra.Native
         public CassandraSession connect(String keyspace)
         {
             var endpoints = new List<IPEndPoint>();
-            foreach (var ip in ClusterEndpoints)
+            foreach (var ip in ContactPoints)
                 endpoints.Add(new IPEndPoint(ip, port));
             return new CassandraSession(
                 clusterEndpoints: endpoints,
@@ -174,6 +174,16 @@ namespace Cassandra.Native
             return addresses;
         }
 
+        public CassandraClusterBuilder withConnectionString(string connectionString)
+        {
+            CqlConnectionStringBuilder cnb = new CqlConnectionStringBuilder(connectionString);
+
+            foreach (var addr in cnb.ContactPoints)
+                addContactPoints(addr);
+            withPort(cnb.Port);
+            return this;
+        }
+        
         /**
          * The port to use to connect to the Cassandra host.
          *

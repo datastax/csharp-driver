@@ -65,6 +65,6 @@ namespace Cassandra.Native.Policies
          * returned by this iterator in order, until the query has been sent
          * successfully to one of the host.
          */
-        IEnumerable<CassandraClusterHost> newQueryPlan();
+        IEnumerable<CassandraClusterHost> newQueryPlan(byte routingKey);
     }
 }

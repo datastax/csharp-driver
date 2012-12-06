@@ -160,8 +160,8 @@ namespace Cassandra.Native
                 if (!string.IsNullOrEmpty(keyspace))
                 {
                     var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
-                    var retKeyspaceId = processScallar(nconn.Query("USE " + keyspaceId, CqlConsistencyLevel.IGNORE)).ToString();
-                    if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != keyspaceId)
+                    var retKeyspaceId = processScallar(nconn.Query(GetUseKeyspaceCQL(keyspaceId), CqlConsistencyLevel.IGNORE)).ToString();
+                    if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != CqlQueryTools.CqlIdentifier(keyspaceId))
                         throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                 }
 
@@ -191,6 +191,61 @@ namespace Cassandra.Native
             return nconn;
         }
 
+        static string GetCreateKeyspaceCQL(string keyspace)
+        {
+            return string.Format(
+  @"CREATE KEYSPACE {0} 
+  WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }}"
+              , CqlQueryTools.CqlIdentifier(keyspace));
+        }
+
+        static string GetUseKeyspaceCQL(string keyspace)
+        {
+            return string.Format(
+  @"USE {0}"
+              , CqlQueryTools.CqlIdentifier(keyspace));
+        }
+
+        static string GetDropKeyspaceCQL(string keyspace)
+        {
+            return string.Format(
+  @"DROP KEYSPACE {0}"
+              , CqlQueryTools.CqlIdentifier(keyspace));
+        }
+
+        public void CreateKeyspace(string ksname)
+        {
+            NonQuery(GetCreateKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
+        }
+
+        public void CreateKeyspaceIfNotExists(string ksname)
+        {
+            try
+            {
+                CreateKeyspace(ksname);
+            }
+            catch (CassandraClusterAlreadyExistsException)
+            {
+                //already exists
+            }
+        }
+
+        public void DeleteKeyspace(string ksname)
+        {
+            NonQuery(GetDropKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
+        }
+        public void DeleteKeyspaceIfExists(string ksname)
+        {
+            try
+            {
+                DeleteKeyspace(ksname);
+            }
+            catch (CassandraClusterConfigErrorException)
+            {
+                //not exists
+            }
+        }
+        
         public void ChangeKeyspace(string keyspace)
         {
             lock (connectionPool)
@@ -203,7 +258,7 @@ namespace Cassandra.Native
                         try
                         {
                             var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
-                            var retKeyspaceId = processScallar(conn.Value.Query("USE " + keyspaceId, CqlConsistencyLevel.IGNORE)).ToString();
+                            var retKeyspaceId = processScallar(conn.Value.Query(GetUseKeyspaceCQL(keyspace), CqlConsistencyLevel.IGNORE)).ToString();
                             if (retKeyspaceId != keyspaceId)
                                 throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                         }

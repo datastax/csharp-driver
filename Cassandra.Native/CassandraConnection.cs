@@ -202,6 +202,7 @@ namespace Cassandra.Native
             });
 
             var ar = new AsyncResult<IOutput>(callback, state, owner, propId);
+
             lock(frameGuardier)
                 frameReadAsyncResult[streamId] = ar;
 
