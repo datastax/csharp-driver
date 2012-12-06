@@ -60,9 +60,7 @@ namespace Cassandra.Native.Policies
          */
         public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
         {
-            List<CassandraClusterHost> copyOfHosts;
-            lock (hosts)
-                copyOfHosts = new List<CassandraClusterHost>(hosts);
+            List<CassandraClusterHost> copyOfHosts = new List<CassandraClusterHost>(hosts);
             if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
                 startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
             for (int i = 0; i < copyOfHosts.Count; i++)

@@ -18,7 +18,6 @@ namespace Cassandra.Native
         int abortTimeout;
 
         Dictionary<IPEndPoint, CassandraClusterHost> hosts = new Dictionary<IPEndPoint, CassandraClusterHost>();
-
         Dictionary<IPEndPoint, List<WeakReference<CassandraConnection>>> connectionPool = new Dictionary<IPEndPoint, List<WeakReference<CassandraConnection>>>();
 
         int maxConnectionsInPool = int.MaxValue;
@@ -57,16 +56,18 @@ namespace Cassandra.Native
 #endif
 
         CassandraConnection eventRaisingConnection = null;
+        bool noBufferingIfPossible;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies.Policies policies = null, AuthInfoProvider credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue)
+            int abortTimeout = Timeout.Infinite, Policies.Policies policies = null, AuthInfoProvider credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue, bool noBufferingIfPossible=false)
         {
             this.policies = policies ?? Policies.Policies.DEFAULT_POLICIES;
             this.maxConnectionsInPool = maxConnectionsInPool;
+            this.noBufferingIfPossible = noBufferingIfPossible;
 
             foreach (var ep in clusterEndpoints)
                 if (!hosts.ContainsKey(ep))
-                    hosts.Add(ep, new CassandraClusterHost(ep));
+                    hosts.Add(ep, new CassandraClusterHost(ep, this.policies.getReconnectionPolicy().newSchedule()));
 
             this.compression = compression;
             this.abortTimeout = abortTimeout;
@@ -105,6 +106,7 @@ namespace Cassandra.Native
             checkDisposed();
             lock (connectionPool)
             {
+            BIGRETRY:
                 var hosts = policies.getLoadBalancingPolicy().newQueryPlan(routingKey);
                 foreach (var host in hosts)
                 {
@@ -114,13 +116,12 @@ namespace Cassandra.Native
                             connectionPool.Add(host.getAddress(), new List<WeakReference<CassandraConnection>>());
                         var pool = connectionPool[host.getAddress()];
                     RETRY:
-                        List<WeakReference<CassandraConnection>> poolcopy = new List<WeakReference<CassandraConnection>>(pool);
-                        foreach (var conn in poolcopy)
+                        foreach (var conn in pool)
                         {
                             if (!conn.IsAlive)
                             {
                                 pool.Remove(conn);
-                                continue;
+                                goto RETRY;
                             }
                             else
                             {
@@ -139,7 +140,7 @@ namespace Cassandra.Native
                                     {
                                         Monitor.Enter(connectionPool);
                                     }
-                                    continue;
+                                    goto BIGRETRY;
                                 }
                                 else
                                 {
@@ -163,13 +164,22 @@ namespace Cassandra.Native
             throw new CassandraConnectionException("Cannot Allocate Connection");
         }
 
+
+        internal void hostIsDown(IPEndPoint endpoint)
+        {
+            lock (connectionPool)
+            {
+                hosts[endpoint].setDown();
+            }
+        }
+        
         CassandraConnection allocateConnection(IPEndPoint endPoint)
         {
             CassandraConnection nconn = null;
 
             try
             {
-                nconn = new CassandraConnection(endPoint, credentialsDelegate, this.compression, this.abortTimeout);
+                nconn = new CassandraConnection(this, endPoint, credentialsDelegate, this.compression, this.abortTimeout, this.noBufferingIfPossible);
 
                 var options = nconn.ExecuteOptions();
 
@@ -292,28 +302,27 @@ namespace Cassandra.Native
             {
                 if (e.Message == "UP" || e.Message == "NEW_NODE")
                 {
-                    lock (hosts)
+                    lock (connectionPool)
                     {
                         if (!hosts.ContainsKey(e.IPEndPoint))
-                            hosts.Add(e.IPEndPoint, new CassandraClusterHost(e.IPEndPoint));
-                        hosts[e.IPEndPoint].bringUp();
+                            hosts.Add(e.IPEndPoint, new CassandraClusterHost(e.IPEndPoint, policies.getReconnectionPolicy().newSchedule()));
+                        else
+                            hosts[e.IPEndPoint].bringUp();
                     }
                     return;
                 }
                 else if (e.Message == "REMOVED_NODE")
                 {
-                    lock (hosts)
+                    lock (connectionPool)
                         if (hosts.ContainsKey(e.IPEndPoint))
                             hosts.Remove(e.IPEndPoint);
                     return;
                 }
                 else if (e.Message == "DOWN")
                 {
-                    lock (hosts)
-                    {
+                    lock (connectionPool)
                         if (hosts.ContainsKey(e.IPEndPoint))
                             hosts[e.IPEndPoint].setDown();
-                    }
                     return;
                 }
             }

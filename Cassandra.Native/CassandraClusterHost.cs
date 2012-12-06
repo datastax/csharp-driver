@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Net;
+using System.Threading;
+using Cassandra.Native.Policies;
 
 namespace Cassandra.Native
 {
@@ -42,17 +44,30 @@ namespace Cassandra.Native
         private volatile String datacenter;
         private volatile String rack;
 
+        private Timer reconnectionTimer;
+        private ReconnectionSchedule reconnectionSchedule;
+
         public bool isUp { get; private set; }
 
-        public void setDown() { isUp = false; }
-        public void bringUp() { isUp = true; }
+        public void setDown() 
+        {
+            isUp = false;
+            reconnectionTimer.Change(reconnectionSchedule.nextDelayMs(), Timeout.Infinite);
+        }
+        public void bringUp() 
+        {
+            reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            isUp = true;
+        }
 
         // ClusterMetadata keeps one Host object per inet address, so don't use
         // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
-        public CassandraClusterHost(IPEndPoint address)
+        public CassandraClusterHost(IPEndPoint address, ReconnectionSchedule reconnectionSchedule)
         {
             this.address = address;
             this.isUp = true;
+            this.reconnectionSchedule = reconnectionSchedule;
+            this.reconnectionTimer = new Timer(reconectionProc, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         void setLocationInfo(String datacenter, String rack)
@@ -99,6 +114,11 @@ namespace Cassandra.Native
         public String getRack()
         {
             return rack;
+        }
+
+        private void reconectionProc(object _)
+        {
+            bringUp();
         }
     }
 }

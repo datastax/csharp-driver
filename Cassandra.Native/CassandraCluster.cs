@@ -32,13 +32,15 @@ namespace Cassandra.Native
         int port;
         Policies.Policies policies;
         AuthInfoProvider credentialsDelegate = null;
+        bool noBufferingIfPossible;
 
-        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, AuthInfoProvider credentialsDelegate = null)
+        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false)
         {
             this.ContactPoints = ContactPoints;
             this.port = port;
             this.policies = policies;
             this.credentialsDelegate = credentialsDelegate;
+            this.noBufferingIfPossible = noBufferingIfPossible;
         }
 
         /**
@@ -66,7 +68,7 @@ namespace Cassandra.Native
             //if (contactPoints.)
             //    throw new IllegalArgumentException("Cannot build a cluster without contact points");
 
-            return new CassandraCluster(contactPoints, initializer.getPort(), initializer.getPolicies(), initializer.getAuthInfoProvider());
+            return new CassandraCluster(contactPoints, initializer.getPort(), initializer.getPolicies(), initializer.getAuthInfoProvider(), initializer.getNoBufferingIfPossible());
         }
 
         /**
@@ -111,7 +113,8 @@ namespace Cassandra.Native
                 clusterEndpoints: endpoints,
                 keyspace: keyspace,
                 credentialsDelegate: credentialsDelegate,
-                policies: policies);
+                policies: policies,
+                noBufferingIfPossible: noBufferingIfPossible);
         }
     }
 
@@ -154,6 +157,8 @@ namespace Cassandra.Native
          * AuthInfoProvider.NONE if authentication is not to be used.
          */
         AuthInfoProvider getAuthInfoProvider();
+
+        bool getNoBufferingIfPossible();
     }
 
     /**
@@ -169,6 +174,7 @@ namespace Cassandra.Native
         private LoadBalancingPolicy loadBalancingPolicy;
         private ReconnectionPolicy reconnectionPolicy;
         private RetryPolicy retryPolicy;
+        private bool noBufferingIfPossible = false;
 
         public IEnumerable<IPAddress> getContactPoints()
         {
@@ -197,6 +203,12 @@ namespace Cassandra.Native
         public CassandraClusterBuilder withPort(int port)
         {
             this.port = port;
+            return this;
+        }
+
+        public CassandraClusterBuilder ommitBufferingIfPossible()
+        {
+            this.noBufferingIfPossible = true;
             return this;
         }
 
@@ -364,6 +376,11 @@ namespace Cassandra.Native
             return this.authProvider;
         }
 
+        public bool getNoBufferingIfPossible()
+        {
+            return noBufferingIfPossible;
+        }
+
         /**
          * Build the cluster with the configured set of initial contact points
          * and policies.
@@ -381,5 +398,7 @@ namespace Cassandra.Native
         {
             return CassandraCluster.buildFrom(this);
         }
+
+
     }
 }

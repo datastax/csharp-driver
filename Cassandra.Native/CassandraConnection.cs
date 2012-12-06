@@ -57,10 +57,18 @@ namespace Cassandra.Native
 
         Action<ErrorActionParam> ProtocolErrorHandlerAction;
 
-        AuthInfoProvider credentialsDelegate;
+        AuthInfoProvider authInfoProvider;
 
-        internal CassandraConnection(IPEndPoint serverAddress, AuthInfoProvider credentialsDelegate = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite)
+        CassandraSession owner;
+
+        void hostIsDown()
         {
+            owner.hostIsDown(serverAddress);
+        }
+
+        internal CassandraConnection(CassandraSession owner, IPEndPoint serverAddress, AuthInfoProvider authInfoProvider = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
+        {
+            this.owner = owner;
             bufferingMode = null;
             switch (compression)
             {
@@ -68,13 +76,13 @@ namespace Cassandra.Native
                     bufferingMode = new FrameBuffering();
                     break;
                 case CassandraCompressionType.NoCompression:
-                    bufferingMode = new NoBuffering();
+                    bufferingMode = noBufferingIfPossible ? new NoBuffering() : new FrameBuffering();
                     break;
                 default:
                     throw new ArgumentException();
             }
 
-            this.credentialsDelegate = credentialsDelegate;
+            this.authInfoProvider = authInfoProvider;
             if (compression == CassandraCompressionType.Snappy)
             {
                 startupOptions.Add("COMPRESSION", "snappy");
@@ -219,11 +227,11 @@ namespace Cassandra.Native
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (credentialsDelegate == null)
+                            if (authInfoProvider == null)
                                 throw new CassandraClientConfigurationException("Credentials are required for this connection. Please provide a CredentialsDelegate for it.");
 
                             //(response as AuthenticateResponse).Authenticator
-                            var credentials = credentialsDelegate.getAuthInfos(serverAddress.Address);
+                            var credentials = authInfoProvider.getAuthInfos(serverAddress.Address);
 
                             Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
                             {
@@ -249,6 +257,7 @@ namespace Cassandra.Native
                 Debug.WriteLine(ex.Message, "CassandraConnection.BeginJob");
                 if (setupWriterException(ex, streamId))
                 {
+                    hostIsDown();
                     lock (statusGuardier)
                         writerSocketExceptionOccured = true;
                 }
@@ -283,12 +292,14 @@ namespace Cassandra.Native
 
         private void abortTimerProc(object _)
         {
-            lock(abortNotNeeded)
+            lock (abortNotNeeded)
             {
                 if(abortNotNeeded.Value)
                     return;
                 abortNotNeeded.Value = true;
             }
+
+            hostIsDown();
 
             lock (socket)
                 if (socket.Value != null)
@@ -372,6 +383,7 @@ namespace Cassandra.Native
 
                             if (bytesReadCount == 0)
                             {
+                                hostIsDown();
                                 throw new CassandraConncectionIOException();
                             }
                             else
@@ -405,6 +417,7 @@ namespace Cassandra.Native
                                             Debug.WriteLine("BeginReading1");
                                             if (setupReaderException(ex))
                                             {
+                                                hostIsDown();
                                                 bufferingMode.Close();
                                                 lock (statusGuardier)
                                                     readerSocketExceptionOccured = true;
@@ -425,6 +438,7 @@ namespace Cassandra.Native
                             Debug.WriteLine("BeginReading2");
                             if (setupReaderException(ex))
                             {
+                                hostIsDown();
                                 bufferingMode.Close();
                                 lock (statusGuardier)
                                     readerSocketExceptionOccured = true;
@@ -454,6 +468,7 @@ namespace Cassandra.Native
                 Debug.WriteLine(e.Message, "CassandraConnection.BeginReading3");
                 if (setupReaderException(e))
                 {
+                    hostIsDown();
                     bufferingMode.Close();
                     lock (statusGuardier)
                         readerSocketExceptionOccured = true;
@@ -570,6 +585,7 @@ namespace Cassandra.Native
                 Debug.WriteLine(ex.Message, "CassandraConnection.Evaluate");
                 if (setupWriterException(ex, streamId))
                 {
+                    hostIsDown();
                     lock (statusGuardier) 
                         writerSocketExceptionOccured = true;
                 }
