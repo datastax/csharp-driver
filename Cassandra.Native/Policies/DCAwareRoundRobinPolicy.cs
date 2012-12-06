@@ -64,7 +64,7 @@ namespace Cassandra.Native.Policies
         }
 
 
-        public void init(CassandraCluster cluster, IEnumerable<CassandraClusterHost> hosts)
+        public void init(ICollection<CassandraClusterHost> hosts)
         {
             throw new NotImplementedException();
         }
@@ -74,7 +74,7 @@ namespace Cassandra.Native.Policies
             throw new NotImplementedException();
         }
 
-        public IEnumerable<CassandraClusterHost> newQueryPlan(byte routingKey)
+        public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
         {
             throw new NotImplementedException();
         }

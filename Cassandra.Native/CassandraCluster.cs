@@ -110,7 +110,8 @@ namespace Cassandra.Native
             return new CassandraSession(
                 clusterEndpoints: endpoints,
                 keyspace: keyspace,
-                credentialsDelegate: credentialsDelegate);
+                credentialsDelegate: credentialsDelegate,
+                policies: policies);
         }
     }
 

@@ -2,25 +2,27 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Data;
 using Cassandra;
 using Cassandra.Native;
+using Cassandra.Data;
 
 namespace Playground
 {
-    public class Tweet
+    public class FollowedTweet
     {
         [PartitionKey]
-        public string author_id;
+        public string user_id;
 
         [RowKey]
         public Guid tweet_id;
-        
-        [SecondaryIndex]        
+                
+        [SecondaryIndex]
         public DateTimeOffset date;
-                        
-        public string body;  
-      
+
+        public string author_id;
+
+        public string body;
+
         public void display()
         {
             Console.WriteLine("Author: " + this.author_id);
@@ -29,14 +31,15 @@ namespace Playground
         }
     }
 
-            
-    public class TweetsContext : CqlContext
+
+    public class FollowingTweetsContext : CqlContext
     {
-        public TweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+        public FollowingTweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
             :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
         {
-            AddTable<Tweet>();
+            AddTable<FollowedTweet>();
             CreateTablesIfNotExist();
         }
+
     }
 }

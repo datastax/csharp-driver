@@ -461,7 +461,34 @@ namespace Cassandra.Data
                         else
                             idx = colToIdx[alter[prop.Name]];
                         var val = cqlRow[idx];
-                        (prop as FieldInfo).SetValue(row, val);
+                        if (val == null)
+                            (prop as FieldInfo).SetValue(row, val);
+                        else
+                        {
+                            var tpy = (prop as FieldInfo).FieldType;
+                            if (tpy.IsGenericType)
+                            {
+                                if (tpy.GetInterface("IDictionary`2") != null)
+                                {
+                                    var openType = typeof(IDictionary<,>);
+                                    var dictType = openType.MakeGenericType(tpy.GetGenericArguments()[0], tpy.GetGenericArguments()[1]);
+                                    var dt = tpy.GetConstructor(new Type[] { dictType });
+                                    (prop as FieldInfo).SetValue(row, dt.Invoke(new object[] { val }));
+                                }                                
+                                else
+                                    if (tpy.GetInterface("IEnumerable`1") != null)
+                                    {
+                                        var openType = typeof(IEnumerable<>);
+                                        var listType = openType.MakeGenericType(tpy.GetGenericArguments().First());
+                                        var dt = tpy.GetConstructor(new Type[] { listType });
+                                        (prop as FieldInfo).SetValue(row, dt.Invoke(new object[] { val }));
+                                    }
+                                else
+                                    throw new InvalidOperationException();
+                            }
+                            else
+                                (prop as FieldInfo).SetValue(row, val);
+                        }
                     }
                 }
                 return row;
@@ -470,7 +497,7 @@ namespace Cassandra.Data
             {
                 if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(String)))
                 {
-                    return (T) cqlRow[0];
+                    return (T)cqlRow[0];
                 }
                 else
                 {

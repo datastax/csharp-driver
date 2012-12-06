@@ -31,7 +31,7 @@ namespace Cassandra.Native.Policies
           * @param cluster the {@code Cluster} instance for which the policy is created.
           * @param hosts the initial hosts to use.
           */
-        void init(CassandraCluster cluster, IEnumerable<CassandraClusterHost> hosts);
+        void init(ICollection<CassandraClusterHost> hosts);
 
         /**
          * Returns the distance assigned by this policy to the provided host.
@@ -65,6 +65,6 @@ namespace Cassandra.Native.Policies
          * returned by this iterator in order, until the query has been sent
          * successfully to one of the host.
          */
-        IEnumerable<CassandraClusterHost> newQueryPlan(byte routingKey);
+        IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey);
     }
 }

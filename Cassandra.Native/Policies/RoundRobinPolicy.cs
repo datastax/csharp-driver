@@ -24,21 +24,49 @@ namespace Cassandra.Native.Policies
      */
         public RoundRobinPolicy() { }
 
+        IEnumerable<CassandraClusterHost> hosts;
+        int startidx=-1;
 
-
-        public void init(CassandraCluster cluster, IEnumerable<CassandraClusterHost> hosts)
+        public void init(ICollection<CassandraClusterHost> hosts)
         {
-            throw new NotImplementedException();
+            this.hosts = hosts;
         }
 
+        /**
+         * Return the HostDistance for the provided host.
+         * <p>
+         * This policy consider all nodes as local. This is generally the right
+         * thing to do in a single datacenter deployement. If you use multiple
+         * datacenter, see {@link DCAwareRoundRobinPolicy} instead.
+         *
+         * @param host the host of which to return the distance of.
+         * @return the HostDistance to {@code host}.
+         */
         public CassandraHostDistance distance(CassandraClusterHost host)
         {
-            throw new NotImplementedException();
+            return CassandraHostDistance.LOCAL;
         }
 
-        public IEnumerable<CassandraClusterHost> newQueryPlan(byte routingKey)
+        /**
+         * Returns the hosts to use for a new query.
+         * <p>
+         * The returned plan will try each known host of the cluster. Upon each
+         * call to this method, the ith host of the plans returned will cycle
+         * over all the host of the cluster in a round-robin fashion.
+         *
+         * @param query the query for which to build the plan.
+         * @return a new query plan, i.e. an iterator indicating which host to
+         * try first for querying, which one to use as failover, etc...
+         */
+        public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
         {
-            throw new NotImplementedException();
+            List<CassandraClusterHost> copyOfHosts;
+            lock (hosts)
+                copyOfHosts = new List<CassandraClusterHost>(hosts);
+            if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
+                startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
+            for (int i = 0; i < copyOfHosts.Count; i++)
+                yield return copyOfHosts[startidx++];
         }
     }
 }

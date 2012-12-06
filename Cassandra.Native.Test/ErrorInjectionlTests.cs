@@ -44,6 +44,7 @@ namespace Cassandra.Native.Test
 
         CassandraSession Session;
         string Keyspace = "";
+        IPEndPoint serverAddress;
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
@@ -54,7 +55,7 @@ namespace Cassandra.Native.Test
             string ip = serverSp[0];
             int port = int.Parse(serverSp[1]);
 
-            var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
+            serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
 
             Session = new CassandraSession(new List<IPEndPoint>() { serverAddress, serverAddress, serverAddress, serverAddress, serverAddress }, this.Keyspace, this.Compression, 10 * 1000);
         }
@@ -101,13 +102,13 @@ namespace Cassandra.Native.Test
                 }
                 Thread.Sleep(5);
                 Console.Write("#");
-                Session.SimulateSingleConnectionDown();
+                Session.SimulateSingleConnectionDown(serverAddress);
 
                 for (int i = 0; i < 100; i++)
                 {
                     Thread.Sleep(1);
                     Console.Write("#");
-                    Session.SimulateSingleConnectionDown();
+                    Session.SimulateSingleConnectionDown(serverAddress);
                 }
             });
 

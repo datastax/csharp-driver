@@ -31,6 +31,9 @@ namespace Cassandra.Native.Policies
          */
         public static readonly RetryPolicy DEFAULT_RETRY_POLICY = DefaultRetryPolicy.INSTANCE;
 
+
+        public static readonly Policies DEFAULT_POLICIES = new Policies(DEFAULT_LOAD_BALANCING_POLICY, DEFAULT_RECONNECTION_POLICY, DEFAULT_RETRY_POLICY);
+
         private readonly LoadBalancingPolicy loadBalancingPolicy;
         private readonly ReconnectionPolicy reconnectionPolicy;
         private readonly RetryPolicy retryPolicy;

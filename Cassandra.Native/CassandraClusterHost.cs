@@ -42,11 +42,17 @@ namespace Cassandra.Native
         private volatile String datacenter;
         private volatile String rack;
 
+        public bool isUp { get; private set; }
+
+        public void setDown() { isUp = false; }
+        public void bringUp() { isUp = true; }
+
         // ClusterMetadata keeps one Host object per inet address, so don't use
         // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
-        CassandraClusterHost(IPEndPoint address)
+        public CassandraClusterHost(IPEndPoint address)
         {
             this.address = address;
+            this.isUp = true;
         }
 
         void setLocationInfo(String datacenter, String rack)
