@@ -14,6 +14,7 @@ namespace Cassandra.Data
         string GetTableName();
         CqlContext GetContext();
         ICqlMutationTracker GetMutationTracker();
+        bool isCounterTable { get;}        
     }
 
     public enum CqlEntityUpdateMode { ModifiedOnly, AllOrNone }
@@ -24,6 +25,9 @@ namespace Cassandra.Data
     {
         CqlContext context;
         string tableName;
+        public bool isCounterTable { get { return _isCounterTable; } }
+        private bool _isCounterTable = false;     
+
         internal CqlTable(CqlContext context, string tableName)
         {
             this.context = context;

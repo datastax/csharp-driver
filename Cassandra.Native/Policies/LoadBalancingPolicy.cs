@@ -31,7 +31,7 @@ namespace Cassandra.Native.Policies
           * @param cluster the {@code Cluster} instance for which the policy is created.
           * @param hosts the initial hosts to use.
           */
-        void init(ICollection<CassandraClusterHost> hosts);
+        void init(ICassandraSessionInfoProvider infoProvider);
 
         /**
          * Returns the distance assigned by this policy to the provided host.

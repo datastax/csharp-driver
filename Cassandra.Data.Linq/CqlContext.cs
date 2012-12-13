@@ -23,6 +23,11 @@ namespace Cassandra.Data
     {
     }
 
+    public class CounterAttribute : Attribute
+    {
+    }
+
+
     public class CqlContext : IDisposable
     {
         internal CassandraSession ManagedConnection = null;
@@ -144,22 +149,36 @@ namespace Cassandra.Data
         {
             if (mode == CqlSaveChangesMode.OneByOne)
             {
-                foreach (var table in tables)
+                foreach (var table in tables)                    
                     table.Value.GetMutationTracker().SaveChangesOneByOne(this, table.Key);
             }
             else
             {
                 StringBuilder batchScript = new StringBuilder();
-                batchScript.AppendLine("BEGIN BATCH");
+                StringBuilder counterBatchScript = new StringBuilder();
                 foreach (var table in tables)
-                    table.Value.GetMutationTracker().AppendChangesToBatch(batchScript, table.Key);
-                batchScript.AppendLine("APPLY BATCH");
-                ExecuteNonQuery(batchScript.ToString());
-                foreach (var table in tables)
-                    table.Value.GetMutationTracker().BatchCompleted();
+                    if(table.Value.isCounterTable)
+                        table.Value.GetMutationTracker().AppendChangesToBatch(counterBatchScript, table.Key);
+                    else
+                        table.Value.GetMutationTracker().AppendChangesToBatch(batchScript, table.Key);
+                                
+
+                if (counterBatchScript.Length != 0)
+                {
+                    ExecuteNonQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH");
+                    foreach (var table in tables)
+                        table.Value.GetMutationTracker().BatchCompleted();
+                }
+                
+                if (batchScript.Length != 0)
+                {
+                    ExecuteNonQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH");
+                    foreach (var table in tables)
+                        table.Value.GetMutationTracker().BatchCompleted();
+                }
+
+
             }
         }
-
-        
     }
 }

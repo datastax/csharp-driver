@@ -9,6 +9,12 @@ using System.Text.RegularExpressions;
 
 namespace Cassandra.Native
 {
+    public interface ICassandraSessionInfoProvider
+    {
+        ICollection<CassandraClusterHost> GetAllHosts();
+        ICollection<CassandraClusterHost> GetReplicas(byte[] routingInfo);
+    }
+
     public class CassandraSession : IDisposable
     {
         AuthInfoProvider credentialsDelegate;
@@ -17,10 +23,28 @@ namespace Cassandra.Native
         CassandraCompressionType compression;
         int abortTimeout;
 
+        class CassandraSessionInfoProvider : ICassandraSessionInfoProvider
+        {
+            CassandraSession owner;
+            internal CassandraSessionInfoProvider(CassandraSession owner)
+            {
+                this.owner = owner;
+            }
+            public ICollection<CassandraClusterHost> GetAllHosts()
+            {
+                return owner.hosts.Values;
+            }
+            public ICollection<CassandraClusterHost> GetReplicas(byte[] routingInfo)
+            {
+                return null;
+            }
+        }
+
+
         Dictionary<IPEndPoint, CassandraClusterHost> hosts = new Dictionary<IPEndPoint, CassandraClusterHost>();
         Dictionary<IPEndPoint, List<WeakReference<CassandraConnection>>> connectionPool = new Dictionary<IPEndPoint, List<WeakReference<CassandraConnection>>>();
 
-        int maxConnectionsInPool = int.MaxValue;
+        PoolingOptions poolingOptions = new PoolingOptions();
         string keyspace = string.Empty;
 
         public string Keyspace { get { return keyspace; } }
@@ -59,10 +83,11 @@ namespace Cassandra.Native
         bool noBufferingIfPossible;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies.Policies policies = null, AuthInfoProvider credentialsDelegate = null, int maxConnectionsInPool = int.MaxValue, bool noBufferingIfPossible=false)
+            int abortTimeout = Timeout.Infinite, Policies.Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions=null, bool noBufferingIfPossible=false)
         {
             this.policies = policies ?? Policies.Policies.DEFAULT_POLICIES;
-            this.maxConnectionsInPool = maxConnectionsInPool;
+            if(poolingOptions!=null)
+                this.poolingOptions = poolingOptions;
             this.noBufferingIfPossible = noBufferingIfPossible;
 
             foreach (var ep in clusterEndpoints)
@@ -74,7 +99,7 @@ namespace Cassandra.Native
 
             this.credentialsDelegate = credentialsDelegate;
             this.keyspace = keyspace;
-            this.policies.getLoadBalancingPolicy().init(hosts.Values);
+            this.policies.getLoadBalancingPolicy().init(new CassandraSessionInfoProvider(this));
             setupEventListeners(connect(null));
         }
 
@@ -101,6 +126,28 @@ namespace Cassandra.Native
             eventRaisingConnection = nconn;
         }
 
+        private void ConnectionDone(CassandraConnection connection)
+        {
+            lock (connectionPool)
+            {
+                IPEndPoint hostaddr = connection.getEndPoint();
+                var host_distance = policies.getLoadBalancingPolicy().distance(hosts[hostaddr]);
+                if (connection.isFree(poolingOptions.getMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                {
+                    var pool = connectionPool[hostaddr];
+                    if (pool.Count >= poolingOptions.getCoreConnectionsPerHost(host_distance))
+                    {
+                        foreach (var conn in pool)
+                            if (conn.Target == connection)
+                            {
+                                pool.Remove(conn);
+                                break;
+                            }
+                    }
+                }
+            }
+        }
+
         private CassandraConnection connect(CassandraRoutingKey routingKey)
         {
             checkDisposed();
@@ -112,6 +159,7 @@ namespace Cassandra.Native
                 {
                     if (host.isUp)
                     {
+                        var host_distance = policies.getLoadBalancingPolicy().distance(host);
                         if (!connectionPool.ContainsKey(host.getAddress()))
                             connectionPool.Add(host.getAddress(), new List<WeakReference<CassandraConnection>>());
                         var pool = connectionPool[host.getAddress()];
@@ -144,18 +192,30 @@ namespace Cassandra.Native
                                 }
                                 else
                                 {
-                                    if (!conn.Value.isBusy())
+                                    if (!conn.Value.isBusy(poolingOptions.getMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
                                         return conn.Value;
                                 }
                             }
                         }
-                        if (pool.Count < maxConnectionsInPool - 1)
+                        if (pool.Count < poolingOptions.getMaxConnectionPerHost(host_distance) - 1)
                         {
                             var conn = allocateConnection(host.getAddress());
                             if (conn != null)
                             {
                                 pool.Add(new WeakReference<CassandraConnection>(conn));
-                                goto RETRY;
+                                bool error = false;
+                                while (pool.Count < poolingOptions.getCoreConnectionsPerHost(host_distance))
+                                {
+                                    var conn2 = allocateConnection(host.getAddress());
+                                    if (conn2 == null)
+                                    {
+                                        error = true;
+                                        break;
+                                    }
+                                    pool.Add(new WeakReference<CassandraConnection>(conn));
+                                }
+                                if (!error)
+                                    goto RETRY;
                             }
                         }
                     }
@@ -458,20 +518,33 @@ namespace Cassandra.Native
         public void EndNonQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            processNonQuery(c.connection.EndQuery(result, c));
+            try
+            {
+                processNonQuery(c.connection.EndQuery(result, c));
+            }
+            finally
+            {
+                ConnectionDone(c.connection);
+            }
         }
 
         public void NonQuery(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
         retry:
+            CassandraConnection connection = null;
             try
-             {
-                var connection = connect(routingKey);
+            {
+                connection = connect(routingKey);
                 processNonQuery(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 
@@ -479,9 +552,10 @@ namespace Cassandra.Native
         {
             int retryNo = 0;
         retry:
+            CassandraConnection connection = null;
             try
             {
-                var connection = connect(routingKey);
+                connection = connect(routingKey);
                 processNonQuery(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
@@ -494,6 +568,11 @@ namespace Cassandra.Native
                     throw;
                 retryNo++;
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 
@@ -514,20 +593,33 @@ namespace Cassandra.Native
         public object EndScalar(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            return processScallar(c.connection.EndQuery(result, c));
+            try
+            {
+                return processScallar(c.connection.EndQuery(result, c));
+            }
+            finally
+            {
+                ConnectionDone(c.connection);
+            }
         }
 
         public object Scalar(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
         retry:
+            CassandraConnection connection = null;
             try
             {
-                var connection = connect(routingKey);
+                connection = connect(routingKey);
                 return processScallar(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 
@@ -548,20 +640,33 @@ namespace Cassandra.Native
         public CqlRowSet EndQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            return processRowset(c.connection.EndQuery(result, c));
+            try
+            {
+                return processRowset(c.connection.EndQuery(result, c));
+            }
+            finally
+            {
+                ConnectionDone(c.connection);
+            }
         }
 
         public CqlRowSet Query(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
         retry:
+            CassandraConnection connection = null;
             try
             {
-                var connection = connect(routingKey);
+                connection = connect(routingKey);
                 return processRowset(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 
@@ -569,9 +674,10 @@ namespace Cassandra.Native
         {
             int retryNo = 0;
         retry:
+            CassandraConnection connection = null;
             try
             {
-                var connection = connect(routingKey);
+                connection = connect(routingKey);
                 return processRowset(connection.Query(cqlQuery, consistency));
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
@@ -584,6 +690,11 @@ namespace Cassandra.Native
                     throw;
                 retryNo++;
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 
@@ -604,20 +715,33 @@ namespace Cassandra.Native
         public byte[] EndPrepareQuery(IAsyncResult result, out Metadata metadata)
         {
             var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            return processEndPrepare(c.connection.EndPrepareQuery(result, c), out metadata);
+            try
+            {
+                return processEndPrepare(c.connection.EndPrepareQuery(result, c), out metadata);
+            }
+            finally
+            {
+                ConnectionDone(c.connection);
+            }
         }
 
         public byte[] PrepareQuery(string cqlQuery, out Metadata metadata, CassandraRoutingKey routingKey = null)
         {
         retry:
+            CassandraConnection connection = null;
             try
             {
-                var connection = connect(routingKey);
+                connection = connect(routingKey);
                 return processEndPrepare(connection.PrepareQuery(cqlQuery), out metadata);
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 
@@ -638,20 +762,33 @@ namespace Cassandra.Native
         public CqlRowSet EndExecuteQuery(IAsyncResult result)
         {
             var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            return processRowset(c.connection.EndExecuteQuery(result, c));
+            try
+            {
+                return processRowset(c.connection.EndExecuteQuery(result, c));
+            }
+            finally
+            {
+                ConnectionDone(c.connection);
+            }
         }
 
         public void ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
         retry:
+            CassandraConnection connection = null;
             try
             {
-                var connection = connect(routingKey);
+                connection = connect(routingKey);
                 connection.ExecuteQuery(Id, Metadata, values, consistency);                                
             }
             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
             {
                 goto retry;
+            }
+            finally
+            {
+                if (connection != null)
+                    ConnectionDone(connection);
             }
         }
 

@@ -29,6 +29,9 @@ namespace Cassandra.Native.Policies
     public class TokenAwarePolicy : LoadBalancingPolicy
     {
 
+        private ICassandraSessionInfoProvider infoProvider;
+        private readonly LoadBalancingPolicy childPolicy;
+    
         /**
          * Creates a new {@code TokenAware} policy that wraps the provided child
          * load balancing policy.
@@ -38,22 +41,27 @@ namespace Cassandra.Native.Policies
          */
         public TokenAwarePolicy(LoadBalancingPolicy childPolicy)
         {
+            this.childPolicy = childPolicy;
         }
 
 
-        public void init(ICollection<CassandraClusterHost> hosts)
+        public void init(ICassandraSessionInfoProvider infoProvider)
         {
-            throw new NotImplementedException();
+            this.infoProvider = infoProvider;
+            childPolicy.init(infoProvider);
         }
 
         public CassandraHostDistance distance(CassandraClusterHost host)
         {
-            throw new NotImplementedException();
+            return childPolicy.distance(host);
         }
 
         public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
         {
-            throw new NotImplementedException();
+            if (routingKey == null)
+                return childPolicy.newQueryPlan(routingKey);
+            return null;
+
         }
     }
 }

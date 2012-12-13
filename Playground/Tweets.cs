@@ -27,16 +27,5 @@ namespace Playground
             Console.WriteLine("Date: " + this.date.ToString());
             Console.WriteLine("Tweet content: " + this.body + Environment.NewLine);
         }
-    }
-
-            
-    public class TweetsContext : CqlContext
-    {
-        public TweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
-            :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
-        {
-            AddTable<Tweet>();
-            CreateTablesIfNotExist();
-        }
-    }
+    }           
 }

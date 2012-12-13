@@ -43,7 +43,9 @@
     <Compile Include="FollowedTweet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Statistics.cs" />
     <Compile Include="Tweets.cs" />
+    <Compile Include="TwitterContext.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

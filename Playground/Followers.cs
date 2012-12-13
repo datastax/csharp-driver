@@ -27,15 +27,15 @@ namespace Playground
     }
     
 
-    public class FollowersContext : CqlContext
-    {
-        public FollowersContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
-            :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
-        {
-            AddTable<Followers>();
-            CreateTablesIfNotExist();
-        }
+    //public class FollowersContext : CqlContext
+    //{
+    //    public FollowersContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+    //        :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
+    //    {
+    //        AddTable<Followers>();
+    //        CreateTablesIfNotExist();
+    //    }
 
 
-    }
+    //}
 }

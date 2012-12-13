@@ -32,14 +32,14 @@ namespace Playground
     }
 
 
-    public class FollowingTweetsContext : CqlContext
-    {
-        public FollowingTweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
-            :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
-        {
-            AddTable<FollowedTweet>();
-            CreateTablesIfNotExist();
-        }
+    //public class FollowingTweetsContext : CqlContext
+    //{
+    //    public FollowingTweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+    //        :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
+    //    {
+    //        AddTable<FollowedTweet>();
+    //        CreateTablesIfNotExist();
+    //    }
 
-    }
+    //}
 }

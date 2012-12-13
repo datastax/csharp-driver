@@ -251,12 +251,13 @@ namespace Cassandra.Data
         }
 
 
-        
 
         public static List<string> GetCreateCQL(ICqlTable table, string tablename = null)
         {
             List<string> commands = new List<string>();
-            StringBuilder ret = new StringBuilder();            
+            StringBuilder ret = new StringBuilder();
+            int countersCount = 0;
+            bool countersSpotted = false;
             ret.Append("CREATE TABLE ");
             ret.Append((tablename ?? table.GetEntityType().Name).CqlIdentifier());
             ret.Append("(");
@@ -272,7 +273,21 @@ namespace Cassandra.Data
                 Type tpy = prop.GetTypeFromPropertyOrField();
                 ret.Append(prop.Name.CqlIdentifier());
                 ret.Append(" ");
-                ret.Append(GetCqlTypeFromType(tpy));
+
+                if (prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute != null)
+                {                    
+                    countersCount++;
+                    countersSpotted = true;
+                    if (prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
+                        throw new CassandraClusterInvalidException("Counter can not be a part of PRIMARY KEY !");
+                    if (tpy != typeof(Int64))
+                        throw new CassandraClusterInvalidException("Counters can be only of Int64(long) type !");
+                    else
+                        ret.Append("counter");
+                }
+                else 
+                    ret.Append(GetCqlTypeFromType(tpy));
+                
                 ret.Append(",");
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
@@ -301,6 +316,13 @@ namespace Cassandra.Data
                     }
                 }
             }            
+                        
+            if(countersSpotted)// validating if table consists only of counters
+                if (countersCount + keys.Count + 1 == props.Count())
+                    table.GetType().GetField("_isCounterTable", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(table, true);
+                else
+                    throw new CassandraClusterInvalidException("Counter table can consist only of counters."); 
+
             ret.Append("PRIMARY KEY(");
             ret.Append(partitionKey.CqlIdentifier());
             foreach (var kv in keys)
@@ -309,8 +331,8 @@ namespace Cassandra.Data
                 ret.Append(kv.Value.CqlIdentifier());
             }
             ret.Append("));");
-            commands.Add(ret.ToString());
-            
+            commands.Add(ret.ToString());                        
+
             if(commands.Count > 1)
                 commands.Reverse();
             return commands;
@@ -360,22 +382,41 @@ namespace Cassandra.Data
                     var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
                     if (rk == null)
                     {
-                        var newVal = prop.GetValueFromPropertyOrField(newRow);
-                        bool areDifferent = !prop.GetValueFromPropertyOrField(row).Equals(newVal);
-                        if (all || (areDifferent))
+                        var counter = prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute;
+                        if (counter != null)
                         {
-                            if (areDifferent)
+                            var diff = (Int64)prop.GetValueFromPropertyOrField(newRow) - (Int64)prop.GetValueFromPropertyOrField(row);
+                            if (diff != 0 || (Int64)prop.GetValueFromPropertyOrField(newRow) == 0)
+                            {
                                 changeDetected = true;
-                            if (firstSet) firstSet = false; else SET.Append(",");
-                            SET.Append(prop.Name.CqlIdentifier());
-                            SET.Append("=");
-                            SET.Append(Encode(newVal));
+                                if (firstSet) firstSet = false; else SET.Append(",");
+                                SET.Append(prop.Name.CqlIdentifier() + "=" + prop.Name.CqlIdentifier());
+                                SET.Append((diff >= 0) ? "+" + diff.ToString() : diff.ToString());
+                            }
+                            continue;
                         }
-                        continue;
+                        else
+                        {
+                            var newVal = prop.GetValueFromPropertyOrField(newRow);
+                            bool areDifferent = !prop.GetValueFromPropertyOrField(row).Equals(newVal);
+                            if (all || (areDifferent))
+                            {
+                                if (areDifferent)
+                                    changeDetected = true;
+                                if (firstSet) firstSet = false; else SET.Append(",");
+                                SET.Append(prop.Name.CqlIdentifier());
+                                SET.Append("=");
+                                SET.Append(Encode(newVal));
+                            }
+                            continue;
+                        }
                     }
                 }
+
+
+
                 var pv = prop.GetValueFromPropertyOrField(row);
-                if (pv != null)
+                if ( pv != null)
                 {
                     if (firstWhere) firstWhere = false; else WHERE.Append(" AND ");
                     WHERE.Append(prop.Name.CqlIdentifier());
@@ -394,7 +435,7 @@ namespace Cassandra.Data
             ret.Append(SET);
             ret.Append(" WHERE ");
             ret.Append(WHERE);
-            ret.Append(";");
+            ret.Append(";");            
             return ret.ToString();
         }
         

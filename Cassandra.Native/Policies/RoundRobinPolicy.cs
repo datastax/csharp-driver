@@ -24,12 +24,12 @@ namespace Cassandra.Native.Policies
      */
         public RoundRobinPolicy() { }
 
-        IEnumerable<CassandraClusterHost> hosts;
-        int startidx=-1;
+        ICassandraSessionInfoProvider infoProvider;
+        int startidx = -1;
 
-        public void init(ICollection<CassandraClusterHost> hosts)
+        public void init(ICassandraSessionInfoProvider infoProvider)
         {
-            this.hosts = hosts;
+            this.infoProvider = infoProvider;
         }
 
         /**
@@ -60,11 +60,15 @@ namespace Cassandra.Native.Policies
          */
         public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
         {
-            List<CassandraClusterHost> copyOfHosts = new List<CassandraClusterHost>(hosts);
+            List<CassandraClusterHost> copyOfHosts = new List<CassandraClusterHost>(infoProvider.GetAllHosts());
             if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
                 startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
             for (int i = 0; i < copyOfHosts.Count; i++)
-                yield return copyOfHosts[startidx++];
+            {
+                var h = copyOfHosts[startidx++];
+                if (h.isUp)
+                    yield return h;
+            }
         }
     }
 }

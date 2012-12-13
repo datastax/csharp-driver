@@ -103,6 +103,7 @@
     <Compile Include="Policies\RetryPolicy.cs" />
     <Compile Include="Policies\RoundRobinPolicy.cs" />
     <Compile Include="Policies\TokenAwarePolicy.cs" />
+    <Compile Include="PoolingOptions.cs" />
     <Compile Include="ProtoBuf.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />

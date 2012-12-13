@@ -23,6 +23,9 @@ namespace Cassandra.Native.Policies
     public class DCAwareRoundRobinPolicy : LoadBalancingPolicy
     {
 
+        private readonly String localDc;
+        private readonly int usedHostsPerRemoteDc;
+        ICassandraSessionInfoProvider infoProvider;
 
         /**
          * Creates a new datacenter aware round robin policy given the name of
@@ -38,6 +41,7 @@ namespace Cassandra.Native.Policies
          * Cassandra).
          */
         public DCAwareRoundRobinPolicy(String localDc)
+            : this(localDc, 0)
         {
         }
 
@@ -61,22 +65,64 @@ namespace Cassandra.Native.Policies
          */
         public DCAwareRoundRobinPolicy(String localDc, int usedHostsPerRemoteDc)
         {
+            this.localDc = localDc;
+            this.usedHostsPerRemoteDc = usedHostsPerRemoteDc;
         }
 
 
-        public void init(ICollection<CassandraClusterHost> hosts)
+        public void init(ICassandraSessionInfoProvider infoProvider)
         {
-            throw new NotImplementedException();
+            this.infoProvider = infoProvider;
+        }
+
+        private String DC(CassandraClusterHost host)
+        {
+            String dc = host.getDatacenter();
+            return dc == null ? localDc : dc;
         }
 
         public CassandraHostDistance distance(CassandraClusterHost host)
         {
-            throw new NotImplementedException();
+            String dc = DC(host);
+            if (dc.Equals(localDc))
+                return CassandraHostDistance.LOCAL;
+
+            int ix = 0;
+            foreach (var h in infoProvider.GetAllHosts())
+            {
+                if (h == host)
+                    return ix < usedHostsPerRemoteDc ? CassandraHostDistance.IGNORED : CassandraHostDistance.REMOTE;
+                else if (dc.Equals(DC(h)))
+                    ix++;
+            }
+            return CassandraHostDistance.IGNORED;
         }
 
         public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
         {
-            throw new NotImplementedException();
+            foreach (var h in infoProvider.GetAllHosts())
+            {
+                if (localDc.Equals(DC(h)))
+                {
+                    if (h.isUp)
+                        yield return h;
+                }
+            }
+            Dictionary<string, int> ixes = new Dictionary<string, int>();
+            foreach (var h in infoProvider.GetAllHosts())
+            {
+                if (!localDc.Equals(DC(h)))
+                {
+                    if (h.isUp && (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < usedHostsPerRemoteDc))
+                    {
+                        yield return h;
+                        if (!ixes.ContainsKey(DC(h)))
+                            ixes.Add(DC(h), 1);
+                        else
+                            ixes[DC(h)] = ixes[DC(h)] + 1;
+                    }
+                }
+            }
         }
     }
 }

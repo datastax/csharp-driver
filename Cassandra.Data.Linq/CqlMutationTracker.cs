@@ -98,6 +98,7 @@ namespace Cassandra.Data
             {
                 table[entity].CqlEntityUpdateMode = updmod;
                 table[entity].CqlEntityTrackingMode = trmod;
+                table[entity].Entity = entity;
             }
             else
                 table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.None, CqlEntityUpdateMode = updmod, CqlEntityTrackingMode = trmod });
@@ -133,7 +134,7 @@ namespace Cassandra.Data
             try
             {
                 foreach (var kv in table)
-                {
+                {                    
                     if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                         throw new InvalidOperationException();
                     var cql = "";
@@ -178,9 +179,10 @@ namespace Cassandra.Data
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
+
                 var cql = "";
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename);
+                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename);                    
                 else if (kv.Value.MutationType == MutationType.Delete)
                     cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                 else if (kv.Value.MutationType == MutationType.None)
@@ -192,8 +194,8 @@ namespace Cassandra.Data
                 }
                 else
                     continue;
-
-                batchScript.AppendLine(cql);
+                if(cql!=null)
+                    batchScript.AppendLine(cql);
             }
           }
 

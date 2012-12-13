@@ -166,10 +166,16 @@ namespace Cassandra.Native
             }
         }
 
-        public bool isBusy()
+        public bool isBusy(int max)
         {
             lock (freeStreamIDs)
-                return freeStreamIDs.Value.Count < 10;
+                return freeStreamIDs.Value.Count <= max;
+        }
+
+        public bool isFree(int min)
+        {
+            lock (freeStreamIDs)
+                return freeStreamIDs.Value.Count >= min;
         }
 
         private void JobFinished(int streamId, IOutput outp)
@@ -592,6 +598,11 @@ namespace Cassandra.Native
                 else
                     throw;
             }
+        }
+
+        internal IPEndPoint getEndPoint()
+        {
+            return serverAddress;
         }
     }
 }

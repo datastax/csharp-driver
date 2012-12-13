@@ -34,6 +34,9 @@ namespace Cassandra.Native
         AuthInfoProvider credentialsDelegate = null;
         bool noBufferingIfPossible;
 
+        PoolingOptions PoolingOptions = new PoolingOptions();
+        public PoolingOptions poolingOptions() { return PoolingOptions; }
+
         private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false)
         {
             this.ContactPoints = ContactPoints;
@@ -114,7 +117,9 @@ namespace Cassandra.Native
                 keyspace: keyspace,
                 credentialsDelegate: credentialsDelegate,
                 policies: policies,
-                noBufferingIfPossible: noBufferingIfPossible);
+                poolingOptions: PoolingOptions,
+                noBufferingIfPossible: noBufferingIfPossible
+                );
         }
     }
 
