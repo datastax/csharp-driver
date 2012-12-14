@@ -60,20 +60,121 @@ namespace Cassandra.Native.Policies
         private DowngradingConsistencyRetryPolicy() { }
 
 
+        private RetryDecision maxLikelyToWorkCL(int knownOk)
+        {
+            if (knownOk >= 3)
+                return RetryDecision.retry(CqlConsistencyLevel.THREE);
+            else if (knownOk >= 2)
+                return RetryDecision.retry(CqlConsistencyLevel.TWO);
+            else if (knownOk >= 1)
+                return RetryDecision.retry(CqlConsistencyLevel.ONE);
+            else
+                return RetryDecision.rethrow();
+        }
 
+        /**
+         * Defines whether to retry and at which consistency level on a read timeout.
+         * <p>
+         * This method triggers a maximum of one retry. If less replica
+         * responsed than required by the consistency level (but at least one
+         * replica did respond), the operation is retried at a lower
+         * consistency level. If enough replica responded but data was not
+         * retrieve, the operation is retried with the initial consistency
+         * level. Otherwise, an exception is thrown.
+         *
+         * @param cl the original consistency level of the read that timeouted.
+         * @param requiredResponses the number of responses that were required to
+         * achieve the requested consistency level.
+         * @param receivedResponses the number of responses that had been received
+         * by the time the timeout exception was raised.
+         * @param dataRetrieved whether actual data (by opposition to data checksum)
+         * was present in the received responses.
+         * @param nbRetry the number of retry already performed for this operation.
+         * @return a RetryDecision as defined above.
+         */
         public RetryDecision onReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
-            throw new NotImplementedException();
+            if (nbRetry != 0)
+                return RetryDecision.rethrow();
+
+            if (receivedResponses < requiredResponses)
+            {
+                // Tries the biggest CL that is expected to work
+                return maxLikelyToWorkCL(receivedResponses);
+            }
+
+            return !dataRetrieved ? RetryDecision.retry(cl) : RetryDecision.rethrow();
         }
 
+        /**
+         * Defines whether to retry and at which consistency level on a write timeout.
+         * <p>
+         * This method triggers a maximum of one retry. If {@code writeType ==
+         * WriteType.BATCH_LOG}, the write is retried with the initial
+         * consistency level. If {@code writeType == WriteType.UNLOGGED_BATCH}
+         * and at least one replica acknowleged, the write is retried with a
+         * lower consistency level (with unlogged batch, a write timeout can
+         * <b>always</b> mean that part of the batch haven't been persisted at
+         * all, even if {@code receivedAcks > 0}). For other {@code writeType},
+         * if we know the write has been persisted on at least one replica, we
+         * ignore the exception. Otherwise, an exception is thrown.
+         *
+         * @param cl the original consistency level of the write that timeouted.
+         * @param writeType the type of the write that timeouted.
+         * @param requiredAcks the number of acknowledgments that were required to
+         * achieve the requested consistency level.
+         * @param receivedAcks the number of acknowledgments that had been received
+         * by the time the timeout exception was raised.
+         * @param nbRetry the number of retry already performed for this operation.
+         * @return a RetryDecision as defined above.
+         */
         public RetryDecision onWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
-            throw new NotImplementedException();
+            if (nbRetry != 0)
+                return RetryDecision.rethrow();
+
+            switch (writeType)
+            {
+                case "SIMPLE":
+                case "BATCH":
+                    // Since we provide atomicity there is no point in retrying
+                    return RetryDecision.ignore();
+                case "COUNTER":
+                    // We should not retry counters, period!
+                    return RetryDecision.ignore();
+                case "UNLOGGED_BATCH":
+                    // Since only part of the batch could have been persisted,
+                    // retry with whatever consistency should allow to persist all
+                    return maxLikelyToWorkCL(receivedAcks);
+                case "BATCH_LOG":
+                    return RetryDecision.retry(cl);
+            }
+            return RetryDecision.rethrow();
         }
 
+        /**
+         * Defines whether to retry and at which consistency level on an
+         * unavailable exception.
+         * <p>
+         * This method triggers a maximum of one retry. If at least one replica
+         * is know to be alive, the operation is retried at a lower consistency
+         * level.
+         *
+         * @param cl the original consistency level for the operation.
+         * @param requiredReplica the number of replica that should have been
+         * (known) alive for the operation to be attempted.
+         * @param aliveReplica the number of replica that were know to be alive by
+         * the coordinator of the operation.
+         * @param nbRetry the number of retry already performed for this operation.
+         * @return a RetryDecision as defined above.
+         */
         public RetryDecision onUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            throw new NotImplementedException();
+            if (nbRetry != 0)
+                return RetryDecision.rethrow();
+
+            // Tries the biggest CL that is expected to work
+            return maxLikelyToWorkCL(aliveReplica);
         }
     }
 

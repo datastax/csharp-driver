@@ -10,7 +10,8 @@ using MyUTExt;
 
 namespace Cassandra.Native.Test
 {
-     class ErrrorInjectionCompressionTests : ErrrorInjectionTestsBase
+    [Dev.Ignore]
+    public class ErrrorInjectionCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionCompressionTests()
             : base(true)
@@ -18,6 +19,7 @@ namespace Cassandra.Native.Test
         }
     }
 
+    [Dev.Ignore]
     public class ErrrorInjectionNoCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionNoCompressionTests()
@@ -130,7 +132,7 @@ namespace Cassandra.Native.Test
                             Monitor.Wait(monit);
                         }
 
-                        Session.NonQueryWithRetries(string.Format(@"INSERT INTO {0} (
+                        Session.NonQuery(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
@@ -201,7 +203,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (var ret = Session.QueryWithRerties(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo+100)))
+            using (var ret = Session.Query(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo+100)))
             {
                 Assert.Equal(RowsNo, ret.RowsCount);
             }

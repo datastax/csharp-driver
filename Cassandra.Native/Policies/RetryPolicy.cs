@@ -90,9 +90,9 @@ namespace Cassandra.Native.Policies
         public enum RetryDecisionType { RETRY, RETHROW, IGNORE };
 
         private readonly RetryDecisionType type;
-        private readonly CqlConsistencyLevel retryCL;
+        private readonly CqlConsistencyLevel? retryCL;
 
-        private RetryDecision(RetryDecisionType type, CqlConsistencyLevel retryCL)
+        private RetryDecision(RetryDecisionType type, CqlConsistencyLevel? retryCL)
         {
             this.type = type;
             this.retryCL = retryCL;
@@ -114,7 +114,7 @@ namespace Cassandra.Native.Policies
          * @return the consistency level for a retry decision or {@code null}
          * if this retry decision is an {@code IGNORE} or a {@code RETHROW}.
          */
-        public CqlConsistencyLevel getRetryConsistencyLevel()
+        public CqlConsistencyLevel? getRetryConsistencyLevel()
         {
             return retryCL;
         }
@@ -135,7 +135,7 @@ namespace Cassandra.Native.Policies
          * @param consistency the consistency level to use for the retry.
          * @return a RETRY with consistency level {@code consistency} retry decision.
          */
-        public static RetryDecision retry(CqlConsistencyLevel consistency)
+        public static RetryDecision retry(CqlConsistencyLevel? consistency)
         {
             return new RetryDecision(RetryDecisionType.RETRY, consistency);
         }

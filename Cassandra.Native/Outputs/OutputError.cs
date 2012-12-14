@@ -2,16 +2,22 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
+using Cassandra.Native.Policies;
 
 namespace Cassandra
 {
-    public class CassandraClusterException<ErrorInfoT> : CassandraException
+    public class CassandraClusterException<ErrorInfoT> : CassandraServerException
     {
         public ErrorInfoT ErrorInfo;
         public CassandraClusterException(string Message, ErrorInfoT ErrorInfo)
             : base(Message)
         {
             this.ErrorInfo = ErrorInfo;
+        }
+
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
         }
     }
 
@@ -42,16 +48,28 @@ namespace Cassandra
     {
         public CassandraClusterUnavailableException(string Message, CassandraClusterUnavailableInfo Info) :
             base(Message, Info) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return policy.onUnavailable(ErrorInfo.ConsistencyLevel, ErrorInfo.Required, ErrorInfo.Alive, queryRetries);
+        }
     }
 
     public class CassandraClusterOverloadedException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterOverloadedException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.retry(null);
+        }
     }
 
     public class CassandraClusterIsBootstrappingException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterIsBootstrappingException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.retry(null);
+        }
     }
 
     public class CassandraClusterTruncateException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
@@ -71,6 +89,10 @@ namespace Cassandra
     {
         public CassandraClusterWriteTimeoutException(string Message, CassandraClusterWriteTimeoutInfo Info) :
             base(Message, Info) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return policy.onWriteTimeout(ErrorInfo.ConsistencyLevel, ErrorInfo.WriteType, ErrorInfo.BlockFor, ErrorInfo.Received, queryRetries);
+        }
     }
 
     public class CassandraClusterReadTimeoutInfo
@@ -85,6 +107,10 @@ namespace Cassandra
     {
         public CassandraClusterReadTimeoutException(string Message, CassandraClusterReadTimeoutInfo Info) :
             base(Message, Info) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return policy.onReadTimeout(ErrorInfo.ConsistencyLevel, ErrorInfo.BlockFor, ErrorInfo.Received, ErrorInfo.IsDataPresent, queryRetries);
+        }
     }
 
     public class CassandraClusterSyntaxErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
@@ -180,13 +206,13 @@ namespace Cassandra.Native
         {
         }
 
-        public abstract CassandraException CreateException();
+        public abstract CassandraServerException CreateException();
     }
 
 
     internal class OutputServerError : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterServerErrorException(Message);
         }
@@ -194,7 +220,7 @@ namespace Cassandra.Native
 
     internal class OutputProtocolError : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterProtocolErrorException(Message);
         }
@@ -209,7 +235,7 @@ namespace Cassandra.Native
             info.Required = cb.ReadInt32();
             info.Alive = cb.ReadInt32();
         }
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterUnavailableException(Message, info);
         }
@@ -217,7 +243,7 @@ namespace Cassandra.Native
 
     internal class OutputOverloaded : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterOverloadedException(Message);
         }
@@ -225,7 +251,7 @@ namespace Cassandra.Native
 
     internal class OutputIsBootstrapping : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterIsBootstrappingException(Message);
         }
@@ -233,7 +259,7 @@ namespace Cassandra.Native
 
     internal class OutputTruncateError : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterTruncateException(Message);
         }
@@ -251,7 +277,7 @@ namespace Cassandra.Native
             info.WriteType = cb.ReadString();
         }
 
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterWriteTimeoutException(Message, info);
         }
@@ -267,7 +293,7 @@ namespace Cassandra.Native
             info.BlockFor = cb.ReadInt32();
             info.IsDataPresent = cb.ReadByte() != 0;
         }
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterReadTimeoutException(Message, info);
         }
@@ -275,7 +301,7 @@ namespace Cassandra.Native
 
     internal class OutputSyntaxError : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterSyntaxErrorException(Message);
         }
@@ -283,7 +309,7 @@ namespace Cassandra.Native
 
     internal class OutputUnauthorized : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterUnauthorizedException(Message);
         }
@@ -291,7 +317,7 @@ namespace Cassandra.Native
 
     internal class OutputInvalid : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterInvalidException(Message);
         }
@@ -300,7 +326,7 @@ namespace Cassandra.Native
 
     internal class OutputConfigError : OutputError
     {
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterConfigErrorException(Message);
         }
@@ -314,7 +340,7 @@ namespace Cassandra.Native
             info.Ks = cb.ReadString();
             info.Table = cb.ReadString();
         }
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterAlreadyExistsException(Message, info);
         }
@@ -328,7 +354,7 @@ namespace Cassandra.Native
             info.UnknownID = new byte[2];
             cb.Read(info.UnknownID, 0, 2);
         }
-        public override CassandraException CreateException()
+        public override CassandraServerException CreateException()
         {
             return new CassandraClusterUnpreparedException(Message, info);
         }

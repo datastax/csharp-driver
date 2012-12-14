@@ -169,13 +169,19 @@ namespace Cassandra.Native
         public bool isBusy(int max)
         {
             lock (freeStreamIDs)
-                return freeStreamIDs.Value.Count <= max;
+                return sbyte.MaxValue + 1 - freeStreamIDs.Value.Count >= max;
         }
 
         public bool isFree(int min)
         {
             lock (freeStreamIDs)
-                return freeStreamIDs.Value.Count >= min;
+                return sbyte.MaxValue + 1 - freeStreamIDs.Value.Count <= min;
+        }
+
+        public bool isEmpty()
+        {
+            lock (freeStreamIDs)
+                return freeStreamIDs.Value.Count == sbyte.MaxValue + 1;
         }
 
         private void JobFinished(int streamId, IOutput outp)

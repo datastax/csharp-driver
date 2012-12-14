@@ -68,7 +68,9 @@ namespace Cassandra.Native.Policies
                 var h = copyOfHosts[startidx++];
                 if (h.isUp)
                     yield return h;
+                startidx = startidx % copyOfHosts.Count;
             }
+            int aa = 0;
         }
     }
 }

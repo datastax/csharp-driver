@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Cassandra.Native.Policies;
 
 namespace Cassandra
 {
@@ -20,6 +21,20 @@ namespace Cassandra
 
         public CassandraClientException(string message, Exception innerException)
             : base(message, innerException) { }
+    }
+
+    public class CassandraServerException : CassandraException
+    {
+        public CassandraServerException(string message)
+            : base(message) { }
+
+        public CassandraServerException(string message, Exception innerException)
+            : base(message, innerException) { }
+
+        public virtual RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class CassandraClientConfigurationException : CassandraClientException

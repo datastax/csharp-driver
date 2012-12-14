@@ -10,6 +10,7 @@ using System.Globalization;
 
 namespace Cassandra.Native.Test
 {
+    [Dev.Ignore]
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
         public CommonBasicTests()

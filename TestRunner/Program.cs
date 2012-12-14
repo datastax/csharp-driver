@@ -21,7 +21,7 @@ namespace TestRunner
     class Program
     {
         static string[] TestPacks = new string[] {
-                "Cassandra.Data.Linq.Test",
+                //"Cassandra.Data.Linq.Test",
                 "Cassandra.Native.Test"
             };
 
@@ -44,6 +44,8 @@ namespace TestRunner
                 var asm = Assembly.Load(asmn);
                 foreach (var type in asm.GetTypes())
                 {
+                    if (type.GetCustomAttributes(typeof(Dev.IgnoreAttribute), true).Length > 0)
+                        continue;
                     if (type.Name.EndsWith("Tests") && type.IsPublic)
                     {
                         object testObj = null;

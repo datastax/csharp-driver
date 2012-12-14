@@ -6,6 +6,7 @@ using System.Net;
 
 namespace Cassandra.Native.Test
 {
+    [Dev.Ignore]
     public class BigInsertCompressedTests : MyUTExt.CommonBasicTests 
     {        
         public BigInsertCompressedTests()
@@ -20,6 +21,7 @@ namespace Cassandra.Native.Test
         }     
     }
 
+    [Dev.Ignore]
     public class BigInsertNoCompressoionTests : MyUTExt.CommonBasicTests
     {
         public BigInsertNoCompressoionTests()
