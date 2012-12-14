@@ -28,18 +28,18 @@ namespace Cassandra.Native
     {
         public const int DEFAULT_PORT = 9042;
 
-        IEnumerable<IPAddress> ContactPoints;
+        IEnumerable<IPAddress> contactPoints;
         int port;
         Policies.Policies policies;
         AuthInfoProvider credentialsDelegate = null;
         bool noBufferingIfPossible;
 
-        PoolingOptions PoolingOptions = new PoolingOptions();
-        public PoolingOptions poolingOptions() { return PoolingOptions; }
+        PoolingOptions poolingOptions = new PoolingOptions();
+        public PoolingOptions PoolingOptions { get { return poolingOptions; } }
 
         private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false)
         {
-            this.ContactPoints = ContactPoints;
+            this.contactPoints = ContactPoints;
             this.port = port;
             this.policies = policies;
             this.credentialsDelegate = credentialsDelegate;
@@ -65,13 +65,13 @@ namespace Cassandra.Native
          * @throws AuthenticationException if while contacting the initial
          * contact points an authencation error occurs.
          */
-        public static CassandraCluster buildFrom(Initializer initializer)
+        public static CassandraCluster BuildFrom(Initializer initializer)
         {
-            IEnumerable<IPAddress> contactPoints = initializer.getContactPoints();
+            IEnumerable<IPAddress> contactPoints = initializer.ContactPoints;
             //if (contactPoints.)
             //    throw new IllegalArgumentException("Cannot build a cluster without contact points");
 
-            return new CassandraCluster(contactPoints, initializer.getPort(), initializer.getPolicies(), initializer.getAuthInfoProvider(), initializer.getNoBufferingIfPossible());
+            return new CassandraCluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible);
         }
 
         /**
@@ -81,9 +81,12 @@ namespace Cassandra.Native
  *
  * @return the new cluster CassandraClusterBuilder.
  */
-        public static CassandraClusterBuilder builder()
+        public static CassandraClusterBuilder Builder
         {
-            return new CassandraClusterBuilder();
+            get
+            {
+                return new CassandraClusterBuilder();
+            }
         }
 
         /**
@@ -91,9 +94,9 @@ namespace Cassandra.Native
          *
          * @return a new session on this cluster sets to no keyspace.
          */
-        public CassandraSession connect()
+        public CassandraSession Connect()
         {
-            return connect("");
+            return Connect("");
         }
 
         /**
@@ -107,17 +110,17 @@ namespace Cassandra.Native
          * @throws NoHostAvailableException if no host can be contacted to set the
          * {@code keyspace}.
          */
-        public CassandraSession connect(String keyspace)
+        public CassandraSession Connect(string keyspace)
         {
             var endpoints = new List<IPEndPoint>();
-            foreach (var ip in ContactPoints)
+            foreach (var ip in contactPoints)
                 endpoints.Add(new IPEndPoint(ip, port));
             return new CassandraSession(
                 clusterEndpoints: endpoints,
                 keyspace: keyspace,
                 credentialsDelegate: credentialsDelegate,
                 policies: policies,
-                poolingOptions: PoolingOptions,
+                poolingOptions: poolingOptions,
                 noBufferingIfPossible: noBufferingIfPossible
                 );
         }
@@ -135,7 +138,7 @@ namespace Cassandra.Native
          * @return the initial Cassandra contact points. See {@link CassandraClusterBuilder#addContactPoint}
          * for more details on contact points.
          */
-        IEnumerable<IPAddress> getContactPoints();
+        IEnumerable<IPAddress> ContactPoints { get; }
 
         /**
          * The port to use to connect to Cassandra hosts.
@@ -146,14 +149,14 @@ namespace Cassandra.Native
          *
          * @return the port to use to connect to Cassandra hosts.
          */
-        int getPort();
+        int Port { get; }
 
         /**
          * Returns the policies to use for this cluster.
          *
          * @return the policies to use for this cluster.
          */
-        Policies.Policies getPolicies();
+        Policies.Policies Policies { get; }
 
         /**
          * The authentication provider to use to connect to the Cassandra cluster.
@@ -161,9 +164,9 @@ namespace Cassandra.Native
          * @return the authentication provider to use. Use
          * AuthInfoProvider.NONE if authentication is not to be used.
          */
-        AuthInfoProvider getAuthInfoProvider();
+        AuthInfoProvider AuthInfoProvider { get; }
 
-        bool getNoBufferingIfPossible();
+        bool UseNoBufferingIfPossible { get; }
     }
 
     /**
@@ -181,18 +184,21 @@ namespace Cassandra.Native
         private RetryPolicy retryPolicy;
         private bool noBufferingIfPossible = false;
 
-        public IEnumerable<IPAddress> getContactPoints()
+        public IEnumerable<IPAddress> ContactPoints
         {
-            return addresses;
+            get
+            {
+                return addresses;
+            }
         }
 
-        public CassandraClusterBuilder withConnectionString(string connectionString)
+        public CassandraClusterBuilder WithConnectionString(string connectionString)
         {
             CqlConnectionStringBuilder cnb = new CqlConnectionStringBuilder(connectionString);
 
             foreach (var addr in cnb.ContactPoints)
-                addContactPoints(addr);
-            withPort(cnb.Port);
+                AddContactPoints(addr);
+            WithPort(cnb.Port);
             return this;
         }
         
@@ -205,13 +211,13 @@ namespace Cassandra.Native
          * @param port the port to set.
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder withPort(int port)
+        public CassandraClusterBuilder WithPort(int port)
         {
             this.port = port;
             return this;
         }
 
-        public CassandraClusterBuilder ommitBufferingIfPossible()
+        public CassandraClusterBuilder OmmitBufferingIfPossible()
         {
             this.noBufferingIfPossible = true;
             return this;
@@ -222,9 +228,12 @@ namespace Cassandra.Native
          *
          * @return the port to use to connect to Cassandra hosts.
          */
-        public int getPort()
+        public int Port
         {
-            return port;
+            get
+            {
+                return port;
+            }
         }
 
         /**
@@ -245,7 +254,7 @@ namespace Cassandra.Native
          * @throws SecurityException if a security manager is present and
          * permission to resolve the host name is denied.
          */
-        public CassandraClusterBuilder addContactPoint(String address)
+        public CassandraClusterBuilder AddContactPoint(string address)
         {
             this.addresses.Add(IPAddress.Parse(address));
             return this;
@@ -267,10 +276,10 @@ namespace Cassandra.Native
          *
          * @see CassandraClusterBuilder#addContactPoint
          */
-        public CassandraClusterBuilder addContactPoints(params String[] addresses)
+        public CassandraClusterBuilder AddContactPoints(params string[] addresses)
         {
-            foreach (String address in addresses)
-                addContactPoint(address);
+            foreach (string address in addresses)
+                AddContactPoint(address);
             return this;
         }
 
@@ -285,7 +294,7 @@ namespace Cassandra.Native
          *
          * @see CassandraClusterBuilder#addContactPoint
          */
-        public CassandraClusterBuilder addContactPoints(params IPAddress[] addresses)
+        public CassandraClusterBuilder AddContactPoints(params IPAddress[] addresses)
         {
             foreach (IPAddress address in addresses)
                 this.addresses.Add(address);
@@ -301,7 +310,7 @@ namespace Cassandra.Native
          * @param policy the load balancing policy to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder withLoadBalancingPolicy(LoadBalancingPolicy policy)
+        public CassandraClusterBuilder WithLoadBalancingPolicy(LoadBalancingPolicy policy)
         {
             this.loadBalancingPolicy = policy;
             return this;
@@ -316,7 +325,7 @@ namespace Cassandra.Native
          * @param policy the reconnection policy to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder withReconnectionPolicy(ReconnectionPolicy policy)
+        public CassandraClusterBuilder WithReconnectionPolicy(ReconnectionPolicy policy)
         {
             this.reconnectionPolicy = policy;
             return this;
@@ -331,7 +340,7 @@ namespace Cassandra.Native
          * @param policy the retry policy to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder withRetryPolicy(RetryPolicy policy)
+        public CassandraClusterBuilder WithRetryPolicy(RetryPolicy policy)
         {
             this.retryPolicy = policy;
             return this;
@@ -346,13 +355,16 @@ namespace Cassandra.Native
          *
          * @return the policies to use for this cluster.
          */
-        public Policies.Policies getPolicies()
+        public Policies.Policies Policies
         {
-            return new Policies.Policies(
-                loadBalancingPolicy == null ? Policies.Policies.DEFAULT_LOAD_BALANCING_POLICY : loadBalancingPolicy,
-                reconnectionPolicy == null ? Policies.Policies.DEFAULT_RECONNECTION_POLICY : reconnectionPolicy,
-                retryPolicy == null ? Policies.Policies.DEFAULT_RETRY_POLICY : retryPolicy
-            );
+            get
+            {
+                return new Policies.Policies(
+                    loadBalancingPolicy == null ? Cassandra.Native.Policies.Policies.DEFAULT_LOAD_BALANCING_POLICY : loadBalancingPolicy,
+                    reconnectionPolicy == null ? Cassandra.Native.Policies.Policies.DEFAULT_RECONNECTION_POLICY : reconnectionPolicy,
+                    retryPolicy == null ? Cassandra.Native.Policies.Policies.DEFAULT_RETRY_POLICY : retryPolicy
+                );
+            }
         }
 
         /**
@@ -364,7 +376,7 @@ namespace Cassandra.Native
          * @param authInfoProvider the authentication info provider to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder withAuthInfoProvider(AuthInfoProvider authInfoProvider)
+        public CassandraClusterBuilder WithAuthInfoProvider(AuthInfoProvider authInfoProvider)
         {
             this.authProvider = authInfoProvider;
             return this;
@@ -376,14 +388,20 @@ namespace Cassandra.Native
          * @return the authentication provider set through {@link #withAuthInfoProvider}
          * or AuthInfoProvider.NONE if nothing was set.
          */
-        public AuthInfoProvider getAuthInfoProvider()
+        public AuthInfoProvider AuthInfoProvider
         {
-            return this.authProvider;
+            get
+            {
+                return this.authProvider;
+            }
         }
 
-        public bool getNoBufferingIfPossible()
+        public bool UseNoBufferingIfPossible
         {
-            return noBufferingIfPossible;
+            get
+            {
+                return noBufferingIfPossible;
+            }
         }
 
         /**
@@ -399,9 +417,9 @@ namespace Cassandra.Native
          * @throws AuthenticationException if while contacting the initial
          * contact points an authencation error occurs.
          */
-        public CassandraCluster build()
+        public CassandraCluster Build()
         {
-            return CassandraCluster.buildFrom(this);
+            return CassandraCluster.BuildFrom(this);
         }
 
 

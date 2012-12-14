@@ -33,7 +33,7 @@ namespace Cassandra.Native.Policies
             * a {@link com.datastax.driver.core.exceptions.ReadTimeoutException} will
             * be thrown for the operation.
             */
-        RetryDecision onReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry);
+        RetryDecision OnReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry);
 
         /**
          * Defines whether to retry and at which consistency level on a write timeout.
@@ -49,7 +49,7 @@ namespace Cassandra.Native.Policies
          * a {@link com.datastax.driver.core.exceptions.WriteTimeoutException} will
          * be thrown for the operation.
          */
-        RetryDecision onWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry);
+        RetryDecision OnWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry);
 
         /**
          * Defines whether to retry and at which consistency level on an
@@ -65,7 +65,7 @@ namespace Cassandra.Native.Policies
          * an {@link com.datastax.driver.core.exceptions.UnavailableException} will
          * be thrown for the operation.
          */
-        RetryDecision onUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry);
+        RetryDecision OnUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry);
     }
 
     /**

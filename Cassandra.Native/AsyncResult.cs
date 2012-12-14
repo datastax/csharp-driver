@@ -46,7 +46,7 @@ namespace Cassandra.Native
             m_AsyncState = state;
             m_owner = owner;
             m_operationId =
-                String.IsNullOrEmpty(operationId) ? String.Empty : operationId;
+                string.IsNullOrEmpty(operationId) ? string.Empty : operationId;
         }
 
         internal bool Complete()
@@ -113,7 +113,7 @@ namespace Cassandra.Native
                     "End was called multiple times for this operation.");
             }
 
-            if (!String.Equals(operationId, m_operationId))
+            if (!string.Equals(operationId, m_operationId))
             {
                 throw new ArgumentException(
                     "End operation type was different than Begin.");
@@ -135,7 +135,7 @@ namespace Cassandra.Native
                     "result");
             }
 
-            asyncResult.CheckUsage(owner, String.IsNullOrEmpty(operationId) ? String.Empty : operationId);
+            asyncResult.CheckUsage(owner, string.IsNullOrEmpty(operationId) ? string.Empty : operationId);
 
             // This method assumes that only 1 thread calls EndInvoke 
             // for this object

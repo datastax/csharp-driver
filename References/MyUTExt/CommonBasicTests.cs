@@ -275,8 +275,8 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             
             if (toExceedWith == typeof(Double) || toExceedWith == typeof(Single))
             {
-                Minimum = Minimum.GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(Minimum, new object[1] { "r" });
-                Maximum = Maximum.GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(Maximum, new object[1] { "r" });
+                Minimum = Minimum.GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(Minimum, new object[1] { "r" });
+                Maximum = Maximum.GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(Maximum, new object[1] { "r" });
             }
 
             object[] row1 = new object[3] { Guid.NewGuid(), "Minimum", Minimum };
@@ -323,7 +323,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 case "Char":
                     return "ascii";
 
-                case "String":
+                case "string":
                     return "text";
                 
                 case "DateTimeOffset":
@@ -417,7 +417,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             {
                 if (tp == typeof(Single) || tp == typeof(Double))
                     isFloatingPoint = true;
-                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), !isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(toInsert[0][1], new object[] { "r" })), null);
+                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), !isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(toInsert[0][1], new object[] { "r" })), null);
             }
 
             ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
@@ -472,7 +472,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             string closeBracket = CassandraCollectionType == "list" ? "']" : "'}";
             string mapSyntax = "";
 
-            string randomKeyValue = String.Empty;
+            string randomKeyValue = string.Empty;
 
             if (TypeOfKeyForMap != null)
             {
@@ -480,7 +480,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
                 if (TypeOfKeyForMap == typeof(DateTimeOffset))
-                    randomKeyValue = (string)(RandomVal(typeof(DateTimeOffset)).GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(RandomVal(typeof(DateTimeOffset)), new object[1] { "yyyy-MM-dd H:mm:sszz00" }) + "' : '");
+                    randomKeyValue = (string)(RandomVal(typeof(DateTimeOffset)).GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(RandomVal(typeof(DateTimeOffset)), new object[1] { "yyyy-MM-dd H:mm:sszz00" }) + "' : '");
                 else
                     randomKeyValue = RandomVal(TypeOfDataToBeInputed) + "' : '";
             }
@@ -550,7 +550,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             string mapSyntax = "";
 
             var randomValue = RandomVal(TypeOfDataToBeInputed);
-            string randomKeyValue = String.Empty;
+            string randomKeyValue = string.Empty;
 
             if (TypeOfKeyForMap != null)
             {
@@ -558,7 +558,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
                 if (TypeOfKeyForMap == typeof(DateTimeOffset))
-                    randomKeyValue = (string)(RandomVal(typeof(DateTimeOffset)).GetType().GetMethod("ToString", new Type[] { typeof(String) }).Invoke(RandomVal(typeof(DateTimeOffset)), new object[1] { "yyyy-MM-dd H:mm:sszz00" }) + "' : '");
+                    randomKeyValue = (string)(RandomVal(typeof(DateTimeOffset)).GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(RandomVal(typeof(DateTimeOffset)), new object[1] { "yyyy-MM-dd H:mm:sszz00" }) + "' : '");
                 else
                     randomKeyValue = RandomVal(TypeOfDataToBeInputed) + "' : '";
             }

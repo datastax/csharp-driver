@@ -45,7 +45,7 @@ namespace Cassandra.Native
             _base.Write(bytes[0]);
         }
 
-        public void WriteString(String str)
+        public void WriteString(string str)
         {
             System.Text.UTF8Encoding encoding = new System.Text.UTF8Encoding();
             var bytes = encoding.GetBytes(str);
@@ -53,7 +53,7 @@ namespace Cassandra.Native
             _base.Write(bytes);
         }
 
-        public void WriteLongString(String str)
+        public void WriteLongString(string str)
         {
             System.Text.UTF8Encoding encoding = new System.Text.UTF8Encoding();
             var bytes = encoding.GetBytes(str);
@@ -61,7 +61,7 @@ namespace Cassandra.Native
             _base.Write(bytes);
         }
 
-        public void WriteStringList(List<String> l)
+        public void WriteStringList(List<string> l)
         {
             WriteUInt16((ushort)l.Count);
             foreach (var str in l)

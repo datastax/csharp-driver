@@ -31,7 +31,7 @@ namespace Cassandra.Native.Policies
          * @param nbRetry the number of retry already performed for this operation.
          * @return {@code RetryDecision.rethrow()}.
          */
-        public RetryDecision onReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             return RetryDecision.rethrow();
         }
@@ -48,7 +48,7 @@ namespace Cassandra.Native.Policies
          * @param nbRetry the number of retry already performed for this operation.
          * @return {@code RetryDecision.rethrow()}.
          */
-        public RetryDecision onWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             return RetryDecision.rethrow();
         }
@@ -65,7 +65,7 @@ namespace Cassandra.Native.Policies
          * @param nbRetry the number of retry already performed for this operation.
          * @return {@code RetryDecision.rethrow()}.
          */
-        public RetryDecision onUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.rethrow();
         }

@@ -22,6 +22,6 @@ namespace Cassandra
          * are requested.
          * @return The authentication informations to use.
          */
-         IDictionary<string, string> getAuthInfos(IPAddress host);
+         IDictionary<string, string> GetAuthInfos(IPAddress host);
     }
 }

@@ -29,7 +29,7 @@ namespace Cassandra.Native.Test
         [Fact]
         public void testMap()
         {
-            insertingSingleCollection("map", typeof(String), typeof(DateTimeOffset));
+            insertingSingleCollection("map", typeof(string), typeof(DateTimeOffset));
         }
 
         [Fact]
@@ -70,13 +70,13 @@ namespace Cassandra.Native.Test
         [Fact]
         public void testListString()
         {
-            insertingSingleCollection("list", typeof(String));
+            insertingSingleCollection("list", typeof(string));
         }
 
         [Fact]
         public void testSetString()
         {
-            insertingSingleCollection("set", typeof(String));
+            insertingSingleCollection("set", typeof(string));
         }
 
         [Fact]

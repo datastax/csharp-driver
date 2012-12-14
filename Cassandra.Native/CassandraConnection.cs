@@ -243,7 +243,7 @@ namespace Cassandra.Native
                                 throw new CassandraClientConfigurationException("Credentials are required for this connection. Please provide a CredentialsDelegate for it.");
 
                             //(response as AuthenticateResponse).Authenticator
-                            var credentials = authInfoProvider.getAuthInfos(serverAddress.Address);
+                            var credentials = authInfoProvider.GetAuthInfos(serverAddress.Address);
 
                             Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
                             {

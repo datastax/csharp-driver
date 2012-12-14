@@ -30,12 +30,12 @@ namespace Cassandra.Data
 				var orderBy = OrderBy;
 				var limit = LimitCount;
 
-				var query = String.Format("SELECT {0} \nFROM {1}", select, from);
+				var query = string.Format("SELECT {0} \nFROM {1}", select, from);
 
-				if (!String.IsNullOrWhiteSpace(where))
+				if (!string.IsNullOrWhiteSpace(where))
 					query += " \nWHERE " + where;
 
-				if (!String.IsNullOrEmpty(orderBy))
+				if (!string.IsNullOrEmpty(orderBy))
 					query += " \nORDER BY " + orderBy;
 
 				if (limit > 0)
@@ -55,12 +55,12 @@ namespace Cassandra.Data
                 var orderBy = OrderBy;
                 var limit = LimitCount;
 
-                var query = String.Format("SELECT count(*) \nFROM {1}", select, from);
+                var query = string.Format("SELECT count(*) \nFROM {1}", select, from);
 
-                if (!String.IsNullOrWhiteSpace(where))
+                if (!string.IsNullOrWhiteSpace(where))
                     query += " \nWHERE " + where;
 
-                if (!String.IsNullOrEmpty(orderBy))
+                if (!string.IsNullOrEmpty(orderBy))
                     query += " \nORDER BY " + orderBy;
 
                 if (limit > 0)
@@ -82,7 +82,7 @@ namespace Cassandra.Data
 		{
 			get
 			{
-				return String.Join(", ", OrderByFieldsArray);
+				return string.Join(", ", OrderByFieldsArray);
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace Cassandra.Data
 					return query;
 				}
 
-				return String.Join(", ", SelectFieldsArray);
+				return string.Join(", ", SelectFieldsArray);
 			}
 		}
 
@@ -137,7 +137,7 @@ namespace Cassandra.Data
 		{
 			string newCriteria = VisitWhereExpression(exp);
 
-			if (!String.IsNullOrEmpty(WhereCriteria))
+			if (!string.IsNullOrEmpty(WhereCriteria))
 				WhereCriteria = "(" + WhereCriteria + " AND " + newCriteria + ")";
 			else
 				WhereCriteria = newCriteria;
@@ -385,7 +385,7 @@ namespace Cassandra.Data
         private string RightObjectToString(object obj)
         {
             if (obj is ICqlToken)
-                return String.Concat("token (", (obj as ICqlToken).Value.Encode(), ")");
+                return string.Concat("token (", (obj as ICqlToken).Value.Encode(), ")");
             else
                 return obj.Encode();
         }
@@ -401,7 +401,7 @@ namespace Cassandra.Data
                     var rightArray = new List<string>();
                     foreach (var obj in values)
                         rightArray.Add(RightObjectToString(obj));
-                    var right = String.Join(",", rightArray);
+                    var right = string.Join(",", rightArray);
                     return left + " IN (" + right + ")";
                 }
                 else
@@ -411,7 +411,7 @@ namespace Cassandra.Data
                     var rightArray = new List<string>();
                     foreach (var obj in values)
                         rightArray.Add(RightObjectToString(obj));
-                    var right = String.Join(",", rightArray);
+                    var right = string.Join(",", rightArray);
                     return left + " IN (" + right + ")";
                 }
             }

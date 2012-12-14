@@ -27,7 +27,7 @@ namespace Cassandra.Native.Policies
         ICassandraSessionInfoProvider infoProvider;
         int startidx = -1;
 
-        public void init(ICassandraSessionInfoProvider infoProvider)
+        public void Initialize(ICassandraSessionInfoProvider infoProvider)
         {
             this.infoProvider = infoProvider;
         }
@@ -42,7 +42,7 @@ namespace Cassandra.Native.Policies
          * @param host the host of which to return the distance of.
          * @return the HostDistance to {@code host}.
          */
-        public CassandraHostDistance distance(CassandraClusterHost host)
+        public CassandraHostDistance Distance(CassandraClusterHost host)
         {
             return CassandraHostDistance.LOCAL;
         }
@@ -58,7 +58,7 @@ namespace Cassandra.Native.Policies
          * @return a new query plan, i.e. an iterator indicating which host to
          * try first for querying, which one to use as failover, etc...
          */
-        public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             List<CassandraClusterHost> copyOfHosts = new List<CassandraClusterHost>(infoProvider.GetAllHosts());
             if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
@@ -66,7 +66,7 @@ namespace Cassandra.Native.Policies
             for (int i = 0; i < copyOfHosts.Count; i++)
             {
                 var h = copyOfHosts[startidx++];
-                if (h.isUp)
+                if (h.IsUp)
                     yield return h;
                 startidx = startidx % copyOfHosts.Count;
             }

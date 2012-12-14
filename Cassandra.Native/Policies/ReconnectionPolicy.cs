@@ -26,7 +26,7 @@ namespace Cassandra.Native.Policies
         /**
          * Creates a new schedule for reconnection attempts.
          */
-        ReconnectionSchedule newSchedule();
+        ReconnectionSchedule NewSchedule();
 
     }
 
@@ -47,6 +47,6 @@ namespace Cassandra.Native.Policies
          * @return a time in milliseconds to wait before attempting the next
          * reconnection.
          */
-        long nextDelayMs();
+        long NextDelayMs();
     }
 }

@@ -96,7 +96,7 @@ namespace Snappy
             if (expectedLength != uncompressedSize)
             {
                 throw new CorruptionException(
-                    String.Format("Recorded length is {0} bytes but actual length after decompression is {1} bytes", expectedLength, uncompressedSize)
+                    string.Format("Recorded length is {0} bytes but actual length after decompression is {1} bytes", expectedLength, uncompressedSize)
                 );
             }
 
@@ -121,7 +121,7 @@ namespace Snappy
             if (expectedLength != uncompressedSize)
             {
                 throw new CorruptionException(
-                    String.Format("Recorded length is {0} bytes but actual length after decompression is {1} bytes", expectedLength, uncompressedSize)
+                    string.Format("Recorded length is {0} bytes but actual length after decompression is {1} bytes", expectedLength, uncompressedSize)
                 );
             }
 

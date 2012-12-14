@@ -41,23 +41,23 @@ namespace Cassandra.Native
     {
         private readonly IPEndPoint address;
 
-        private volatile String datacenter;
-        private volatile String rack;
+        private volatile string datacenter;
+        private volatile string rack;
 
         private Timer reconnectionTimer;
         private ReconnectionSchedule reconnectionSchedule;
 
-        public bool isUp { get; private set; }
+        public bool IsUp { get; private set; }
 
-        public void setDown() 
+        public void SetDown() 
         {
-            isUp = false;
-            reconnectionTimer.Change(reconnectionSchedule.nextDelayMs(), Timeout.Infinite);
+            IsUp = false;
+            reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
         }
-        public void bringUp() 
+        public void BringUp() 
         {
             reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            isUp = true;
+            IsUp = true;
         }
 
         // ClusterMetadata keeps one Host object per inet address, so don't use
@@ -65,12 +65,12 @@ namespace Cassandra.Native
         public CassandraClusterHost(IPEndPoint address, ReconnectionSchedule reconnectionSchedule)
         {
             this.address = address;
-            this.isUp = true;
+            this.IsUp = true;
             this.reconnectionSchedule = reconnectionSchedule;
             this.reconnectionTimer = new Timer(reconectionProc, null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        void setLocationInfo(String datacenter, String rack)
+        void SetLocationInfo(string datacenter, string rack)
         {
             this.datacenter = datacenter;
             this.rack = rack;
@@ -81,9 +81,12 @@ namespace Cassandra.Native
          *
          * @return the node {@link InetAddress}.
          */
-        public IPEndPoint getAddress()
+        public IPEndPoint Address
         {
-            return address;
+            get
+            {
+                return address;
+            }
         }
 
         /**
@@ -96,9 +99,12 @@ namespace Cassandra.Native
          *
          * @return the Cassandra datacenter name.
          */
-        public String getDatacenter()
+        public string Datacenter
         {
-            return datacenter;
+            get
+            {
+                return datacenter;
+            }
         }
 
         /**
@@ -111,14 +117,17 @@ namespace Cassandra.Native
          *
          * @return the Cassandra rack name.
          */
-        public String getRack()
+        public string Rack
         {
-            return rack;
+            get
+            {
+                return rack;
+            }
         }
 
         private void reconectionProc(object _)
         {
-            bringUp();
+            BringUp();
         }
     }
 }

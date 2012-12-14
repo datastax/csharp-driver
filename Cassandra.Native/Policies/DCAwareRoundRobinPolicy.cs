@@ -23,7 +23,7 @@ namespace Cassandra.Native.Policies
     public class DCAwareRoundRobinPolicy : LoadBalancingPolicy
     {
 
-        private readonly String localDc;
+        private readonly string localDc;
         private readonly int usedHostsPerRemoteDc;
         ICassandraSessionInfoProvider infoProvider;
 
@@ -40,7 +40,7 @@ namespace Cassandra.Native.Policies
          * @param localDc the name of the local datacenter (as known by
          * Cassandra).
          */
-        public DCAwareRoundRobinPolicy(String localDc)
+        public DCAwareRoundRobinPolicy(string localDc)
             : this(localDc, 0)
         {
         }
@@ -63,27 +63,27 @@ namespace Cassandra.Native.Policies
          * of the remote datacenters will be ignored (and thus no
          * connections to them will be maintained).
          */
-        public DCAwareRoundRobinPolicy(String localDc, int usedHostsPerRemoteDc)
+        public DCAwareRoundRobinPolicy(string localDc, int usedHostsPerRemoteDc)
         {
             this.localDc = localDc;
             this.usedHostsPerRemoteDc = usedHostsPerRemoteDc;
         }
 
 
-        public void init(ICassandraSessionInfoProvider infoProvider)
+        public void Initialize(ICassandraSessionInfoProvider infoProvider)
         {
             this.infoProvider = infoProvider;
         }
 
-        private String DC(CassandraClusterHost host)
+        private string DC(CassandraClusterHost host)
         {
-            String dc = host.getDatacenter();
+            string dc = host.Datacenter;
             return dc == null ? localDc : dc;
         }
 
-        public CassandraHostDistance distance(CassandraClusterHost host)
+        public CassandraHostDistance Distance(CassandraClusterHost host)
         {
-            String dc = DC(host);
+            string dc = DC(host);
             if (dc.Equals(localDc))
                 return CassandraHostDistance.LOCAL;
 
@@ -98,13 +98,13 @@ namespace Cassandra.Native.Policies
             return CassandraHostDistance.IGNORED;
         }
 
-        public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             foreach (var h in infoProvider.GetAllHosts())
             {
                 if (localDc.Equals(DC(h)))
                 {
-                    if (h.isUp)
+                    if (h.IsUp)
                         yield return h;
                 }
             }
@@ -113,7 +113,7 @@ namespace Cassandra.Native.Policies
             {
                 if (!localDc.Equals(DC(h)))
                 {
-                    if (h.isUp && (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < usedHostsPerRemoteDc))
+                    if (h.IsUp && (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < usedHostsPerRemoteDc))
                     {
                         yield return h;
                         if (!ixes.ContainsKey(DC(h)))

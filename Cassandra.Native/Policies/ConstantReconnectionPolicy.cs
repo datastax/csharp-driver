@@ -39,7 +39,7 @@ namespace Cassandra.Native.Policies
          *
          * @return the newly created schedule.
          */
-        public ReconnectionSchedule newSchedule()
+        public ReconnectionSchedule NewSchedule()
         {
             return new ConstantSchedule(this);
         }
@@ -49,7 +49,7 @@ namespace Cassandra.Native.Policies
             ConstantReconnectionPolicy owner;
             internal ConstantSchedule(ConstantReconnectionPolicy owner) { this.owner = owner; }
 
-            public long nextDelayMs()
+            public long NextDelayMs()
             {
                 return owner.delayMs;
             }

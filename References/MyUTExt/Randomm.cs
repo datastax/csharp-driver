@@ -93,7 +93,7 @@ namespace MyUTExt
         }
         public string NextChar()
         {            
-            string asciiString = String.Empty;
+            string asciiString = string.Empty;
             for (int i = 0; i < 128; i++)
                 if (i == 34 || i == 39)
                     continue;

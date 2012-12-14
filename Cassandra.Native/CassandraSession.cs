@@ -86,14 +86,14 @@ namespace Cassandra.Native
 
             foreach (var ep in clusterEndpoints)
                 if (!hosts.ContainsKey(ep))
-                    hosts.Add(ep, new CassandraClusterHost(ep, this.policies.getReconnectionPolicy().newSchedule()));
+                    hosts.Add(ep, new CassandraClusterHost(ep, this.policies.ReconnectionPolicy.NewSchedule()));
 
             this.compression = compression;
             this.abortTimeout = abortTimeout;
 
             this.credentialsDelegate = credentialsDelegate;
             this.keyspace = keyspace;
-            this.policies.getLoadBalancingPolicy().init(new CassandraSessionInfoProvider(this));
+            this.policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
             setupEventListeners(connect(null));
         }
 
@@ -127,13 +127,13 @@ namespace Cassandra.Native
             lock (connectionPool)
             {
                 IPEndPoint hostaddr = connection.getEndPoint();
-                var host_distance = policies.getLoadBalancingPolicy().distance(hosts[hostaddr]);
+                var host_distance = policies.LoadBalancingPolicy.Distance(hosts[hostaddr]);
                 if (connection != eventRaisingConnection)
                 {
-                    if (connection.isFree(poolingOptions.getMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                    if (connection.isFree(poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
                     {
                         var pool = connectionPool[hostaddr];
-                        if (pool.Count > poolingOptions.getCoreConnectionsPerHost(host_distance))
+                        if (pool.Count > poolingOptions.GetCoreConnectionsPerHost(host_distance))
                         {
                             trashList.Add(connection);
                             pool.Remove(connection);
@@ -157,16 +157,16 @@ namespace Cassandra.Native
                 for (int bigretryidx = 0; bigretryidx < 1000; bigretryidx++)
                 {
                 BIGRETRY:
-                    var hosts = policies.getLoadBalancingPolicy().newQueryPlan(routingKey);
+                    var hosts = policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
                     foreach (var host in hosts)
                     {
-                        if (host.isUp)
+                        if (host.IsUp)
                         {
-                            var host_distance = policies.getLoadBalancingPolicy().distance(host);
-                            if (!connectionPool.ContainsKey(host.getAddress()))
-                                connectionPool.Add(host.getAddress(), new List<CassandraConnection>());
+                            var host_distance = policies.LoadBalancingPolicy.Distance(host);
+                            if (!connectionPool.ContainsKey(host.Address))
+                                connectionPool.Add(host.Address, new List<CassandraConnection>());
                         RETRY:
-                            var pool = connectionPool[host.getAddress()];
+                            var pool = connectionPool[host.Address];
                             foreach (var conn in pool)
                             {
                                 if (!conn.IsHealthy)
@@ -188,22 +188,22 @@ namespace Cassandra.Native
                                 }
                                 else
                                 {
-                                    if (!conn.isBusy(poolingOptions.getMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                                    if (!conn.isBusy(poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
                                         return conn;
                                 }
                             }
-                            if (pool.Count < poolingOptions.getMaxConnectionPerHost(host_distance) - 1)
+                            if (pool.Count < poolingOptions.GetMaxConnectionPerHost(host_distance) - 1)
                             {
                                 try
                                 {
-                                    var conn = allocateConnection(host.getAddress());
+                                    var conn = allocateConnection(host.Address);
                                     if (conn != null)
                                     {
                                         pool.Add(conn);
                                         bool error = false;
-                                        while (pool.Count < poolingOptions.getCoreConnectionsPerHost(host_distance))
+                                        while (pool.Count < poolingOptions.GetCoreConnectionsPerHost(host_distance))
                                         {
-                                            var conn2 = allocateConnection(host.getAddress());
+                                            var conn2 = allocateConnection(host.Address);
                                             if (conn2 == null)
                                             {
                                                 error = true;
@@ -234,7 +234,7 @@ namespace Cassandra.Native
         {
             lock (connectionPool)
             {
-                hosts[endpoint].setDown();
+                hosts[endpoint].SetDown();
             }
         }
         
@@ -377,9 +377,9 @@ namespace Cassandra.Native
                     lock (connectionPool)
                     {
                         if (!hosts.ContainsKey(e.IPEndPoint))
-                            hosts.Add(e.IPEndPoint, new CassandraClusterHost(e.IPEndPoint, policies.getReconnectionPolicy().newSchedule()));
+                            hosts.Add(e.IPEndPoint, new CassandraClusterHost(e.IPEndPoint, policies.ReconnectionPolicy.NewSchedule()));
                         else
-                            hosts[e.IPEndPoint].bringUp();
+                            hosts[e.IPEndPoint].BringUp();
                     }
                     return;
                 }
@@ -394,7 +394,7 @@ namespace Cassandra.Native
                 {
                     lock (connectionPool)
                         if (hosts.ContainsKey(e.IPEndPoint))
-                            hosts[e.IPEndPoint].setDown();
+                            hosts[e.IPEndPoint].SetDown();
                     return;
                 }
             }
@@ -557,7 +557,7 @@ namespace Cassandra.Native
                 var exc = processNonQuery(connection.Query(cqlQuery, consistency));
                 if (exc != null)
                 {
-                    var decision = exc.GetRetryDecition(policies.getRetryPolicy(), queryRetries);
+                    var decision = exc.GetRetryDecition(policies.RetryPolicy, queryRetries);
                     switch (decision.getType())
                     {
                         case Policies.RetryDecision.RetryDecisionType.RETHROW:
@@ -612,7 +612,7 @@ namespace Cassandra.Native
                 var exc = processScallar(connection.Query(cqlQuery, consistency), out scalar);
                 if (exc != null)
                 {
-                    var decision = exc.GetRetryDecition(policies.getRetryPolicy(),queryRetries);
+                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
                         case Policies.RetryDecision.RetryDecisionType.RETHROW:
@@ -668,7 +668,7 @@ namespace Cassandra.Native
                 var exc = processRowset(connection.Query(cqlQuery, consistency), out rowset);
                 if (exc != null)
                 {
-                    var decision = exc.GetRetryDecition(policies.getRetryPolicy(),queryRetries);
+                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
                         case Policies.RetryDecision.RetryDecisionType.RETHROW:
@@ -724,7 +724,7 @@ namespace Cassandra.Native
                 var exc = processEndPrepare(connection.PrepareQuery(cqlQuery), out metadata, out queryId);
                 if (exc != null)
                 {
-                    var decision = exc.GetRetryDecition(policies.getRetryPolicy(),queryRetries);
+                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
                         case Policies.RetryDecision.RetryDecisionType.RETHROW:
@@ -780,7 +780,7 @@ namespace Cassandra.Native
                 var exc = processRowset(connection.ExecuteQuery(Id, Metadata, values, consistency), out rowset);
                 if (exc != null)
                 {
-                    var decision = exc.GetRetryDecition(policies.getRetryPolicy(),queryRetries);
+                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
                         case Policies.RetryDecision.RetryDecisionType.RETHROW:
@@ -892,7 +892,7 @@ namespace Cassandra.Native
                         }
                     }
                     
-                    if (rowKeys.Length> 0 && rowKeys[0] != String.Empty)
+                    if (rowKeys.Length> 0 && rowKeys[0] != string.Empty)
                     {
                         Regex rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");                        
                         

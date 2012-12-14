@@ -119,7 +119,7 @@ namespace Cassandra.Data
 
         public static string Encode(this object obj)
         {
-            if (obj is String) return Encode(obj as String);
+            if (obj is string) return Encode(obj as string);
             else if (obj is Boolean) return Encode((Boolean)obj);
             else if (obj is byte[]) return Encode((byte[])obj);
             else if (obj is Double) return Encode((Double)obj);
@@ -214,7 +214,7 @@ namespace Cassandra.Data
         static readonly Dictionary<Type, string> CQLTypeNames = new Dictionary<Type, string>() {
         { typeof(Int32), "int" }, 
         { typeof(Int64), "bigint" }, 
-        { typeof(String), "text" }, 
+        { typeof(string), "text" }, 
         { typeof(byte[]), "blob" },
         { typeof(Boolean), "boolean" },
         { typeof(Decimal), "decimal" },
@@ -262,7 +262,7 @@ namespace Cassandra.Data
             ret.Append((tablename ?? table.GetEntityType().Name).CqlIdentifier());
             ret.Append("(");
             string crtIndex = "CREATE INDEX ON " + table.GetTableName().CqlIdentifier() + "(";
-            string crtIndexAll = String.Empty;
+            string crtIndexAll = string.Empty;
 
             SortedDictionary<int, string> keys = new SortedDictionary<int, string>();
             string partitionKey = null;
@@ -536,7 +536,7 @@ namespace Cassandra.Data
             }
             else
             {
-                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(String)))
+                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string)))
                 {
                     return (T)cqlRow[0];
                 }

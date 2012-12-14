@@ -81,7 +81,7 @@ namespace Cassandra.Native
         public List<string> ReadStringList()
         {
             var length = ReadUInt16();
-            List<String> l = new List<String>();
+            List<string> l = new List<string>();
             for (int i = 0; i < length; i++)
                 l.Add(ReadString());
             return l;

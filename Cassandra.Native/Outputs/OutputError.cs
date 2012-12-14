@@ -50,7 +50,7 @@ namespace Cassandra
             base(Message, Info) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return policy.onUnavailable(ErrorInfo.ConsistencyLevel, ErrorInfo.Required, ErrorInfo.Alive, queryRetries);
+            return policy.OnUnavailable(ErrorInfo.ConsistencyLevel, ErrorInfo.Required, ErrorInfo.Alive, queryRetries);
         }
     }
 
@@ -91,7 +91,7 @@ namespace Cassandra
             base(Message, Info) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return policy.onWriteTimeout(ErrorInfo.ConsistencyLevel, ErrorInfo.WriteType, ErrorInfo.BlockFor, ErrorInfo.Received, queryRetries);
+            return policy.OnWriteTimeout(ErrorInfo.ConsistencyLevel, ErrorInfo.WriteType, ErrorInfo.BlockFor, ErrorInfo.Received, queryRetries);
         }
     }
 
@@ -109,7 +109,7 @@ namespace Cassandra
             base(Message, Info) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return policy.onReadTimeout(ErrorInfo.ConsistencyLevel, ErrorInfo.BlockFor, ErrorInfo.Received, ErrorInfo.IsDataPresent, queryRetries);
+            return policy.OnReadTimeout(ErrorInfo.ConsistencyLevel, ErrorInfo.BlockFor, ErrorInfo.Received, ErrorInfo.IsDataPresent, queryRetries);
         }
     }
 

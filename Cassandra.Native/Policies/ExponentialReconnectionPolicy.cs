@@ -33,9 +33,12 @@ namespace Cassandra.Native.Policies
          *
          * @return the base delay in milliseconds for this policy.
          */
-        public long getBaseDelayMs()
+        public long BaseDelayMs
         {
-            return baseDelayMs;
+            get
+            {
+                return baseDelayMs;
+            }
         }
 
         /**
@@ -43,12 +46,15 @@ namespace Cassandra.Native.Policies
          *
          * @return the maximum delay in milliseconds between reconnection attempts for this policy.
          */
-        public long getMaxDelayMs()
+        public long MaxDelayMs
         {
-            return maxDelayMs;
+            get
+            {
+                return maxDelayMs;
+            }
         }
 
-        public ReconnectionSchedule newSchedule()
+        public ReconnectionSchedule NewSchedule()
         {
             return new ExponentialSchedule(this);
         }
@@ -61,7 +67,7 @@ namespace Cassandra.Native.Policies
             }
             private int attempts;
 
-            public long nextDelayMs()
+            public long NextDelayMs()
             {
                 // We "overflow" at 64 attempts but I doubt this matter
                 if (attempts >= 64)

@@ -168,7 +168,7 @@ namespace Cassandra
             List<string> servers = new List<string>();
             foreach (var n in ContactPoints)
                 servers.Add(n.ToString());
-            return String.Join(",", servers.ToArray());
+            return string.Join(",", servers.ToArray());
         }
 
         public string GetConnectionString()

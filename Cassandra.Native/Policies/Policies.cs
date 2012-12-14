@@ -62,9 +62,12 @@ namespace Cassandra.Native.Policies
          *
          * @return the load balancing policy in use.
          */
-        public LoadBalancingPolicy getLoadBalancingPolicy()
+        public LoadBalancingPolicy LoadBalancingPolicy
         {
-            return loadBalancingPolicy;
+            get
+            {
+                return loadBalancingPolicy;
+            }
         }
 
         /**
@@ -74,9 +77,12 @@ namespace Cassandra.Native.Policies
          *
          * @return the reconnection policy in use.
          */
-        public ReconnectionPolicy getReconnectionPolicy()
+        public ReconnectionPolicy ReconnectionPolicy
         {
-            return reconnectionPolicy;
+            get
+            {
+                return reconnectionPolicy;
+            }
         }
 
         /**
@@ -87,9 +93,12 @@ namespace Cassandra.Native.Policies
          *
          * @return the retry policy in use.
          */
-        public RetryPolicy getRetryPolicy()
+        public RetryPolicy RetryPolicy
         {
-            return retryPolicy;
+            get
+            {
+                return retryPolicy;
+            }
         }
     }
 }

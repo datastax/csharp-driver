@@ -29,10 +29,10 @@ namespace Cassandra
          */
         public SimpleAuthInfoProvider(Dictionary<string, string> properties)
         {
-            addAll(properties);
+            AddAll(properties);
         }
 
-        public IDictionary<string, string> getAuthInfos(IPAddress host)
+        public IDictionary<string, string> GetAuthInfos(IPAddress host)
         {
             return credentials;
         }
@@ -45,7 +45,7 @@ namespace Cassandra
          * @param value the value to add for {@code property}.
          * @return {@code this} object.
          */
-        public SimpleAuthInfoProvider add(string property, string value)
+        public SimpleAuthInfoProvider Add(string property, string value)
         {
             credentials.Add(property, value);
             return this;
@@ -58,7 +58,7 @@ namespace Cassandra
          * @param properties a map of authentication information to add.
          * @return {@code this} object.
          */
-        public SimpleAuthInfoProvider addAll(Dictionary<string, string> properties)
+        public SimpleAuthInfoProvider AddAll(Dictionary<string, string> properties)
         {
             foreach (var kv in properties)
                 credentials[kv.Key] = kv.Value;

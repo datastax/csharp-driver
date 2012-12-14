@@ -45,21 +45,21 @@ namespace Cassandra.Native.Policies
         }
 
 
-        public void init(ICassandraSessionInfoProvider infoProvider)
+        public void Initialize(ICassandraSessionInfoProvider infoProvider)
         {
             this.infoProvider = infoProvider;
-            childPolicy.init(infoProvider);
+            childPolicy.Initialize(infoProvider);
         }
 
-        public CassandraHostDistance distance(CassandraClusterHost host)
+        public CassandraHostDistance Distance(CassandraClusterHost host)
         {
-            return childPolicy.distance(host);
+            return childPolicy.Distance(host);
         }
 
-        public IEnumerable<CassandraClusterHost> newQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             if (routingKey == null)
-                return childPolicy.newQueryPlan(routingKey);
+                return childPolicy.NewQueryPlan(routingKey);
             return null;
 
         }
