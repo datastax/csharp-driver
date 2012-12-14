@@ -20,7 +20,7 @@ using System;
 
 namespace Snappy
 {
-    public static class Snappy
+    internal static class Snappy
     {
         public static int MaxCompressedLength(int dataLength)
         {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Cassandra.Native.Policies;
+using Cassandra;
 
 namespace Cassandra
 {

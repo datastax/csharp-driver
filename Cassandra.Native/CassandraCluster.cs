@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Net;
-using Cassandra.Native.Policies;
+using Cassandra;
+using Cassandra.Native;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     /**
      * Informations and known state of a Cassandra cluster.
@@ -30,14 +31,14 @@ namespace Cassandra.Native
 
         IEnumerable<IPAddress> contactPoints;
         int port;
-        Policies.Policies policies;
+        Policies policies;
         AuthInfoProvider credentialsDelegate = null;
         bool noBufferingIfPossible;
 
         PoolingOptions poolingOptions = new PoolingOptions();
         public PoolingOptions PoolingOptions { get { return poolingOptions; } }
 
-        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies.Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false)
+        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false)
         {
             this.contactPoints = ContactPoints;
             this.port = port;
@@ -156,7 +157,7 @@ namespace Cassandra.Native
          *
          * @return the policies to use for this cluster.
          */
-        Policies.Policies Policies { get; }
+        Policies Policies { get; }
 
         /**
          * The authentication provider to use to connect to the Cassandra cluster.
@@ -355,14 +356,14 @@ namespace Cassandra.Native
          *
          * @return the policies to use for this cluster.
          */
-        public Policies.Policies Policies
+        public Policies Policies
         {
             get
             {
-                return new Policies.Policies(
-                    loadBalancingPolicy == null ? Cassandra.Native.Policies.Policies.DEFAULT_LOAD_BALANCING_POLICY : loadBalancingPolicy,
-                    reconnectionPolicy == null ? Cassandra.Native.Policies.Policies.DEFAULT_RECONNECTION_POLICY : reconnectionPolicy,
-                    retryPolicy == null ? Cassandra.Native.Policies.Policies.DEFAULT_RETRY_POLICY : retryPolicy
+                return new Policies(
+                    loadBalancingPolicy == null ? Cassandra.Policies.DEFAULT_LOAD_BALANCING_POLICY : loadBalancingPolicy,
+                    reconnectionPolicy == null ? Cassandra.Policies.DEFAULT_RECONNECTION_POLICY : reconnectionPolicy,
+                    retryPolicy == null ? Cassandra.Policies.DEFAULT_RETRY_POLICY : retryPolicy
                 );
             }
         }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     /**
      * Policies configured for a {@link CassandraCluster} instance.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Threading;
-using Cassandra.Native.Policies;
+using Cassandra;
 
 namespace Cassandra.Native
 {

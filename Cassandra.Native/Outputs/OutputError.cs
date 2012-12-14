@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
-using Cassandra.Native.Policies;
+using Cassandra;
 
 namespace Cassandra
 {

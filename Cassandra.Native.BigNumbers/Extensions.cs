@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Numerics;
+using Cassandra.Native;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     public static class Extensions
     {

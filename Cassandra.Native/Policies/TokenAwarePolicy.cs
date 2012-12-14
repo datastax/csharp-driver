@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Cassandra.Native;
 
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     /**
      * A wrapper load balancing policy that add token awareness to a child policy.

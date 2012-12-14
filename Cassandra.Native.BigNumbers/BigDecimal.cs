@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Numerics;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
         public struct BigDecimal : IConvertible, IFormattable, IComparable, IComparable<BigDecimal>, IEquatable<BigDecimal>
         {

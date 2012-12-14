@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     /**
      * A reconnection policy that waits a constant time between each reconnection attempt.

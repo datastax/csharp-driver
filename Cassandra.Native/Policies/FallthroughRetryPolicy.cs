@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     /**
      * A retry policy that never retry (nor ignore).

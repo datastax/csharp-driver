@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Cassandra.Native;
 
 /**
  * A Round-robin load balancing policy.
@@ -14,7 +15,7 @@ using System.Text;
  * datacenter this will be inefficient and you will want to use the
  * {@link DCAwareRoundRobinPolicy} load balancing policy instead.
  */
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     public class RoundRobinPolicy : LoadBalancingPolicy
     {

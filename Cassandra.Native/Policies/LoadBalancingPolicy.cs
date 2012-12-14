@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Cassandra.Native;
 
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     /**
      * The policy that decides which Cassandra hosts to contact for each new query.

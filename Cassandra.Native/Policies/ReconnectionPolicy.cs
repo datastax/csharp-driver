@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native.Policies
+namespace Cassandra
 {
     /**
      * Policy that decides how often the reconnection to a dead node is attempted.

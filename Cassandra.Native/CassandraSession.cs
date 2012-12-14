@@ -6,8 +6,10 @@ using System.Threading;
 using System.IO;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Cassandra.Native;
+using Cassandra;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     public interface ICassandraSessionInfoProvider
     {
@@ -18,7 +20,7 @@ namespace Cassandra.Native
     public class CassandraSession : IDisposable
     {
         AuthInfoProvider credentialsDelegate;
-        Policies.Policies policies;
+        Policies policies;
 
         CassandraCompressionType compression;
         int abortTimeout;
@@ -77,9 +79,9 @@ namespace Cassandra.Native
         bool noBufferingIfPossible;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies.Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions=null, bool noBufferingIfPossible=false)
+            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions=null, bool noBufferingIfPossible=false)
         {
-            this.policies = policies ?? Policies.Policies.DEFAULT_POLICIES;
+            this.policies = policies ?? Policies.DEFAULT_POLICIES;
             if(poolingOptions!=null)
                 this.poolingOptions = poolingOptions;
             this.noBufferingIfPossible = noBufferingIfPossible;
@@ -560,9 +562,9 @@ namespace Cassandra.Native
                     var decision = exc.GetRetryDecition(policies.RetryPolicy, queryRetries);
                     switch (decision.getType())
                     {
-                        case Policies.RetryDecision.RetryDecisionType.RETHROW:
+                        case RetryDecision.RetryDecisionType.RETHROW:
                             throw exc;
-                        case Policies.RetryDecision.RetryDecisionType.RETRY:
+                        case RetryDecision.RetryDecisionType.RETRY:
                             consistency = decision.getRetryConsistencyLevel() ?? consistency;
                             queryRetries++;
                             goto RETRY;
@@ -615,9 +617,9 @@ namespace Cassandra.Native
                     var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
-                        case Policies.RetryDecision.RetryDecisionType.RETHROW:
+                        case RetryDecision.RetryDecisionType.RETHROW:
                             throw exc;
-                        case Policies.RetryDecision.RetryDecisionType.RETRY:
+                        case RetryDecision.RetryDecisionType.RETRY:
                             consistency = decision.getRetryConsistencyLevel() ?? consistency;
                             queryRetries++;
                             goto RETRY;
@@ -671,9 +673,9 @@ namespace Cassandra.Native
                     var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
-                        case Policies.RetryDecision.RetryDecisionType.RETHROW:
+                        case RetryDecision.RetryDecisionType.RETHROW:
                             throw exc;
-                        case Policies.RetryDecision.RetryDecisionType.RETRY:
+                        case RetryDecision.RetryDecisionType.RETRY:
                             consistency = decision.getRetryConsistencyLevel() ?? consistency;
                             queryRetries++;
                             goto RETRY;
@@ -727,9 +729,9 @@ namespace Cassandra.Native
                     var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
-                        case Policies.RetryDecision.RetryDecisionType.RETHROW:
+                        case RetryDecision.RetryDecisionType.RETHROW:
                             throw exc;
-                        case Policies.RetryDecision.RetryDecisionType.RETRY:
+                        case RetryDecision.RetryDecisionType.RETRY:
                             queryRetries++;
                             goto RETRY;
                         default: break;
@@ -783,9 +785,9 @@ namespace Cassandra.Native
                     var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
                     switch (decision.getType())
                     {
-                        case Policies.RetryDecision.RetryDecisionType.RETHROW:
+                        case RetryDecision.RetryDecisionType.RETHROW:
                             throw exc;
-                        case Policies.RetryDecision.RetryDecisionType.RETRY:
+                        case RetryDecision.RetryDecisionType.RETRY:
                             consistency = decision.getRetryConsistencyLevel() ?? consistency;
                             queryRetries++;
                             goto RETRY;
