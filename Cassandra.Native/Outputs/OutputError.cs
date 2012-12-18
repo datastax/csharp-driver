@@ -17,7 +17,7 @@ namespace Cassandra
 
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.rethrow();
+            return null;
         }
     }
 

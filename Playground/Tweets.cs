@@ -13,7 +13,7 @@ namespace Playground
         [PartitionKey]
         public string author_id;
 
-        [RowKey]
+        [ClusteringKey(0)]
         public Guid tweet_id;
         
         [SecondaryIndex]        

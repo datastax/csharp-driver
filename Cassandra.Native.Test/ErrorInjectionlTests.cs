@@ -74,7 +74,7 @@ namespace Cassandra.Native.Test
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
-            Session.NonQuery(
+            Session.Query(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                 , keyspaceName));
@@ -82,7 +82,7 @@ namespace Cassandra.Native.Test
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.NonQuery(string.Format(@"CREATE TABLE {0}(
+            Session.Query(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
@@ -132,7 +132,7 @@ namespace Cassandra.Native.Test
                             Monitor.Wait(monit);
                         }
 
-                        Session.NonQuery(string.Format(@"INSERT INTO {0} (
+                        Session.Query(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
@@ -208,9 +208,9 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                 Assert.Equal(RowsNo, ret.RowsCount);
             }
 
-            Session.NonQuery(string.Format(@"DROP TABLE {0};", tableName));
+            Session.Query(string.Format(@"DROP TABLE {0};", tableName));
 
-            Session.NonQuery(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
+            Session.Query(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
          }
 
 
@@ -219,7 +219,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
         {
             Session.ChangeKeyspace("test");
             string tableName = "table" + Guid.NewGuid().ToString("N");
-            Session.NonQuery(string.Format(@"CREATE TABLE {0}(
+            Session.Query(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, "int"));
@@ -234,7 +234,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
         
             var rows = Session.Query(string.Format("SELECT * FROM {0};", tableName));
             rows.Dispose();
-            Session.NonQuery(string.Format("DROP TABLE {0};", tableName));                     
+            Session.Query(string.Format("DROP TABLE {0};", tableName));                     
         }
     }
 }

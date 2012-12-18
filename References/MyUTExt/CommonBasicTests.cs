@@ -170,25 +170,14 @@ namespace MyUTExt
         }
 
 
-        public void ExecuteSyncScalar(CassandraSession session, string query, string messageInstead = null)
-        {
-            if (messageInstead != null)
-                Console.WriteLine("CQL<\t" + messageInstead);
-            else
-                Console.WriteLine("CQL< Query:\t" + query);
-            var ret = session.Scalar(query);
-            Console.Write("CQL> ");
-            Console.WriteLine(ret);
-            Console.WriteLine("CQL> Done.");
-        }
-
         public void ExecuteSyncNonQuery(CassandraSession session, string query, string messageInstead = null, CqlConsistencyLevel consistency= CqlConsistencyLevel.DEFAULT)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-            session.NonQuery(query, consistency);
+            var ret = session.Query(query, consistency);
+            Assert.Equal(ret, null);
             Console.WriteLine("CQL> (OK).");
         }
 
@@ -324,6 +313,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                     return "ascii";
 
                 case "string":
+                case "String":
                     return "text";
                 
                 case "DateTimeOffset":
@@ -705,7 +695,7 @@ PRIMARY KEY(tweet_id)
             bool durableWrites = false;
             Metadata.StrategyClass strgyClass = Metadata.StrategyClass.SimpleStrategy;
             short rplctnFactor = 1;
-            Session.NonQuery(
+            Session.Query(
 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"

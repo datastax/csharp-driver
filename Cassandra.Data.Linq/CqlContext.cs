@@ -12,10 +12,13 @@ namespace Cassandra.Data
 {
     public class PartitionKeyAttribute : Attribute
     {
+        public PartitionKeyAttribute(int Index=0) { this.Index = Index; }
+        public int Index = -1;
     }
 
-    public class RowKeyAttribute : Attribute
+    public class ClusteringKeyAttribute : Attribute
     {
+        public ClusteringKeyAttribute(int Index) { this.Index = Index; }
         public int Index = -1;
     }
 
@@ -27,22 +30,16 @@ namespace Cassandra.Data
     {
     }
 
-
     public class CqlContext : IDisposable
     {
         internal CassandraSession ManagedConnection = null;
 
-        //CqlConnectionStringBuilder CqlConnectionStringBuilder = null;
         CqlConsistencyLevel ReadCqlConsistencyLevel;
         CqlConsistencyLevel WriteCqlConsistencyLevel;
 
         bool releaseOnClose;
         string keyspaceName;
         public string Keyspace { get { return keyspaceName; } }
-
-        public CqlContext()
-        {
-        }
 
         void Initialize(CassandraSession cqlConnection, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose)
         {
@@ -52,14 +49,9 @@ namespace Cassandra.Data
             this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
             this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
         }
-        public CqlContext(CassandraSession cqlConnection, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose = true)
+        public CqlContext(CassandraSession cqlSession, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose = true)
         {
-            Initialize(cqlConnection, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel, releaseOnClose);
-        }
-
-        private Dictionary<string, string> getCredentials(string auth)
-        {
-            return null;
+            Initialize(cqlSession, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel, releaseOnClose);
         }
 
         public void Dispose()
@@ -91,7 +83,7 @@ namespace Cassandra.Data
         {
             var queries = CqlQueryTools.GetCreateCQL(table, tableName);                
             foreach(var query in queries)
-                ExecuteNonQuery(query);            
+                ExecuteWriteQuery(query);            
         }
 
         public CqlTable<TEntity> AddTable<TEntity>(string tableName = null) where TEntity : class
@@ -127,22 +119,16 @@ namespace Cassandra.Data
             return (CqlTable<TEntity>)tables[tn];
         }
 
-        internal CqlRowSet ExecuteRows(string cqlQuery)
+        internal CqlRowSet ExecuteReadQuery(string cqlQuery)
         {
-            //Keyspace.Select();
             return ManagedConnection.Query(cqlQuery, ReadCqlConsistencyLevel);
         }
 
-        internal void ExecuteNonQuery(string cqlQuery)
+        internal void ExecuteWriteQuery(string cqlQuery)
         {
-            //Keyspace.Select();            
-            ManagedConnection.NonQuery(cqlQuery, WriteCqlConsistencyLevel);
-        }
-
-        internal object ExecuteScalar(string cqlQuery)
-        {
-            //Keyspace.Select();
-            return ManagedConnection.Scalar(cqlQuery);
+            var ret = ManagedConnection.Query(cqlQuery, WriteCqlConsistencyLevel);
+            if (ret != null)
+                throw new InvalidOperationException();
         }
 
         public void SaveChanges(CqlSaveChangesMode mode = CqlSaveChangesMode.OneByOne)
@@ -165,19 +151,17 @@ namespace Cassandra.Data
 
                 if (counterBatchScript.Length != 0)
                 {
-                    ExecuteNonQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH");
+                    ExecuteWriteQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH");
                     foreach (var table in tables)
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
                 
                 if (batchScript.Length != 0)
                 {
-                    ExecuteNonQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH");
+                    ExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH");
                     foreach (var table in tables)
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
-
-
             }
         }
     }

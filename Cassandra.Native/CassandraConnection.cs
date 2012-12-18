@@ -395,6 +395,9 @@ namespace Cassandra.Native
 
                             if (bytesReadCount == 0)
                             {
+                                lock (statusGuardier) 
+                                    if (alreadyDisposed)
+                                        return; 
                                 hostIsDown();
                                 throw new CassandraConncectionIOException();
                             }

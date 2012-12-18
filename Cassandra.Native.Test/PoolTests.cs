@@ -10,6 +10,7 @@ using MyUTExt;
 
 namespace Cassandra.Native.Test
 {
+    [Dev.Ignore]
     public class PoolCompressionTests : PoolTestsBase
     {
         public PoolCompressionTests()
@@ -18,6 +19,7 @@ namespace Cassandra.Native.Test
         }
     }
 
+//    [Dev.Ignore]
     public class PoolNoCompressionTests : PoolTestsBase
     {
         public PoolNoCompressionTests()
@@ -25,7 +27,8 @@ namespace Cassandra.Native.Test
         {
         }
     }
-    
+
+//    [Dev.Ignore]
     public class PoolTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;
@@ -71,7 +74,7 @@ namespace Cassandra.Native.Test
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
-            Session.NonQuery(
+            Session.Query(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                 , keyspaceName));
@@ -79,14 +82,14 @@ namespace Cassandra.Native.Test
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.NonQuery(string.Format(@"CREATE TABLE {0}(
+            Session.Query(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
             Randomm rndm = new Randomm();
-            int RowsNo = 1000;
+            int RowsNo = 3000;
             IAsyncResult[] ar = new IAsyncResult[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
@@ -109,7 +112,7 @@ namespace Cassandra.Native.Test
                             Monitor.Wait(monit);
                         }
 
-                        ar[i] = Session.BeginNonQuery(string.Format(@"INSERT INTO {0} (
+                        ar[i] = Session.BeginQuery(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
@@ -120,6 +123,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                     }
                     catch
                     {
+                        Console.Write("@");
                     }
 
                 }));
@@ -161,7 +165,14 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                     {
                         if (ar[i].AsyncWaitHandle.WaitOne(10))
                         {
-                            Session.EndNonQuery(ar[i]);
+                            try
+                            {
+                                Session.EndQuery(ar[i]);
+                            }
+                            catch
+                            {
+                                Console.Write("!");
+                            }
                             done.Add(i);
                             Console.Write("-");
                         }
@@ -177,9 +188,9 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                 Assert.Equal(RowsNo, ret.RowsCount);
             }
            
-            Session.NonQuery(string.Format(@"DROP TABLE {0};", tableName));
+            Session.Query(string.Format(@"DROP TABLE {0};", tableName));
 
-            Session.NonQuery(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
+            Session.Query(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
 
             for (int idx = 0; idx < RowsNo; idx++)
             {

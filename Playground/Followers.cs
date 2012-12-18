@@ -25,17 +25,5 @@ namespace Playground
                 Console.WriteLine("Nobody!");
         }
     }
-    
 
-    //public class FollowersContext : CqlContext
-    //{
-    //    public FollowersContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
-    //        :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
-    //    {
-    //        AddTable<Followers>();
-    //        CreateTablesIfNotExist();
-    //    }
-
-
-    //}
 }

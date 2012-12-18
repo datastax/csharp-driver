@@ -264,8 +264,8 @@ namespace Cassandra.Data
             string crtIndex = "CREATE INDEX ON " + table.GetTableName().CqlIdentifier() + "(";
             string crtIndexAll = string.Empty;
 
-            SortedDictionary<int, string> keys = new SortedDictionary<int, string>();
-            string partitionKey = null;
+            SortedDictionary<int, string> clusteringKeys = new SortedDictionary<int, string>();
+            SortedDictionary<int, string> partitionKeys = new SortedDictionary<int, string>();
             var props = table.GetEntityType().GetPropertiesOrFields();
             int curLevel = 0;
             foreach (var prop in props)
@@ -278,7 +278,7 @@ namespace Cassandra.Data
                 {                    
                     countersCount++;
                     countersSpotted = true;
-                    if (prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
+                    if (prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
                         throw new CassandraClusterInvalidException("Counter can not be a part of PRIMARY KEY !");
                     if (tpy != typeof(Int64))
                         throw new CassandraClusterInvalidException("Counters can be only of Int64(long) type !");
@@ -292,19 +292,20 @@ namespace Cassandra.Data
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
                 {
-                    if (partitionKey != null)
-                        throw new ArgumentException();
-                    partitionKey = prop.Name;
+                    var idx = pk.Index;
+                    if (idx == -1)
+                        idx = curLevel++;
+                    partitionKeys.Add(idx, prop.Name); 
                 }
                 else
                 {                    
-                    var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
                         var idx = rk.Index;
                         if (idx == -1)
                             idx = curLevel++;
-                        keys.Add(idx, prop.Name);
+                        clusteringKeys.Add(idx, prop.Name);
                     }
                     else
                     {
@@ -318,14 +319,26 @@ namespace Cassandra.Data
             }            
                         
             if(countersSpotted)// validating if table consists only of counters
-                if (countersCount + keys.Count + 1 == props.Count())
+                if (countersCount + clusteringKeys.Count + 1 == props.Count())
                     table.GetType().GetField("_isCounterTable", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(table, true);
                 else
                     throw new CassandraClusterInvalidException("Counter table can consist only of counters."); 
 
             ret.Append("PRIMARY KEY(");
-            ret.Append(partitionKey.CqlIdentifier());
-            foreach (var kv in keys)
+            if (partitionKeys.Count > 1)
+                ret.Append("(");
+            bool fisrtParKey = true;
+            foreach (var kv in partitionKeys)
+            {
+                if (!fisrtParKey)
+                    ret.Append(",");
+                else
+                    fisrtParKey = false;
+                ret.Append(kv.Value.CqlIdentifier());
+            }
+            if (partitionKeys.Count > 1)
+                ret.Append(")");
+            foreach (var kv in clusteringKeys)
             {
                 ret.Append(",");
                 ret.Append(kv.Value.CqlIdentifier());
@@ -379,7 +392,7 @@ namespace Cassandra.Data
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk == null)
                 {
-                    var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk == null)
                     {
                         var counter = prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute;
@@ -455,7 +468,7 @@ namespace Cassandra.Data
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk == null)
                 {
-                    var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk == null)
                     {
                         continue;

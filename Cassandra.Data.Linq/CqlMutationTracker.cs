@@ -31,7 +31,7 @@ namespace Cassandra.Data
                 }
                 else
                 {
-                    var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
                         if (!prop.GetValueFromPropertyOrField(x).Equals(prop.GetValueFromPropertyOrField(y)))
@@ -55,7 +55,7 @@ namespace Cassandra.Data
                 }
                 else
                 {
-                    var rk = prop.GetCustomAttributes(typeof(RowKeyAttribute), true).FirstOrDefault() as RowKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
                         hashCode ^= prop.GetValueFromPropertyOrField(obj).GetHashCode();
@@ -153,7 +153,7 @@ namespace Cassandra.Data
                         continue;
 
                     if (cql != null) // null if nothing to update
-                        context.ExecuteNonQuery(cql);
+                        context.ExecuteWriteQuery(cql);
 
                     var nkv = kv;
                     commitActions.Add(() =>

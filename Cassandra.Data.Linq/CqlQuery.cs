@@ -31,7 +31,7 @@ namespace Cassandra.Data
         public void Execute()
         {
             foreach(var cql in cqlCommands)
-                table.GetContext().ExecuteNonQuery(cql);
+                table.GetContext().ExecuteWriteQuery(cql);
         }
     }
 
@@ -58,7 +58,7 @@ namespace Cassandra.Data
             var cqlQuery = eval.CountQuery;
             var alter = eval.AlternativeMapping;
             var conn = (table as ICqlTable).GetContext();
-            using (var outp = conn.ExecuteRows(cqlQuery))
+            using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 if (outp.RowsCount != 1)
                     throw new InvalidOperationException();
@@ -135,7 +135,7 @@ namespace Cassandra.Data
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
             var conn = (table as ICqlTable).GetContext();
-            using (var outp = conn.ExecuteRows(cqlQuery))
+            using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 var cols = outp.Columns;
                 Dictionary<string, int> colToIdx = new Dictionary<string, int>();

@@ -18,7 +18,7 @@ namespace Playground
             Console.WriteLine("Connecting, setting keyspace and creating tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            CassandraCluster cluster = CassandraCluster.Builder.AddContactPoint("168.63.107.22").Build();
+            CassandraCluster cluster = CassandraCluster.Builder.AddContactPoint("137.116.194.96").Build();
 
             var session = cluster.Connect();
 

@@ -79,10 +79,10 @@ namespace Cassandra
         bool noBufferingIfPossible;
 
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions=null, bool noBufferingIfPossible=false)
+            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
         {
             this.policies = policies ?? Policies.DEFAULT_POLICIES;
-            if(poolingOptions!=null)
+            if (poolingOptions != null)
                 this.poolingOptions = poolingOptions;
             this.noBufferingIfPossible = noBufferingIfPossible;
 
@@ -96,7 +96,8 @@ namespace Cassandra
             this.credentialsDelegate = credentialsDelegate;
             this.keyspace = keyspace;
             this.policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
-            setupEventListeners(connect(null));
+            CassandraClusterHost current = null;
+            setupEventListeners(connect(null, ref current));
         }
 
         private void setupEventListeners(CassandraConnection nconn)
@@ -122,113 +123,124 @@ namespace Cassandra
             eventRaisingConnection = nconn;
         }
 
-        List<CassandraConnection> trashList = new List<CassandraConnection>();
+        List<CassandraConnection> trahscan = new List<CassandraConnection>();
 
-        private void ConnectionDone(CassandraConnection connection)
-        {
-            lock (connectionPool)
-            {
-                IPEndPoint hostaddr = connection.getEndPoint();
-                var host_distance = policies.LoadBalancingPolicy.Distance(hosts[hostaddr]);
-                if (connection != eventRaisingConnection)
-                {
-                    if (connection.isFree(poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
-                    {
-                        var pool = connectionPool[hostaddr];
-                        if (pool.Count > poolingOptions.GetCoreConnectionsPerHost(host_distance))
-                        {
-                            trashList.Add(connection);
-                            pool.Remove(connection);
-                        }
-                    }
-                    if (connection.isEmpty())
-                        if (trashList.Contains(connection))
-                        {
-                            connection.Dispose();
-                            trashList.Remove(connection);
-                        }
-                }
-            }
-        }
-
-        private CassandraConnection connect(CassandraRoutingKey routingKey)
+        private CassandraConnection connect(CassandraRoutingKey routingKey, ref CassandraClusterHost current, bool getNext=false)
         {
             checkDisposed();
+            lock (trahscan)
+            {
+                foreach (var conn in trahscan)
+                {
+                    if (conn.isEmpty())
+                    {
+                        Debug.WriteLine("Connection trashed");
+                        conn.Dispose();
+                    }
+                }
+            }
             lock (connectionPool)
             {
-                for (int bigretryidx = 0; bigretryidx < 1000; bigretryidx++)
-                {
-                BIGRETRY:
-                    var hosts = policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
-                    foreach (var host in hosts)
+            BIGRETRY:
+                var hosts = policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
+                var hostsIter = hosts.GetEnumerator();
+
+                if (current != null)
+                    while (hostsIter.MoveNext())
                     {
-                        if (host.IsUp)
+                        if (current == hostsIter.Current)
                         {
-                            var host_distance = policies.LoadBalancingPolicy.Distance(host);
-                            if (!connectionPool.ContainsKey(host.Address))
-                                connectionPool.Add(host.Address, new List<CassandraConnection>());
-                        RETRY:
-                            var pool = connectionPool[host.Address];
-                            foreach (var conn in pool)
+                            if (getNext)
+                                if (!hostsIter.MoveNext())
+                                    throw new CassandraNoHostAvaliableException("No host is avaliable");
+                            break;
+                        }
+                    }
+
+                while (hostsIter.MoveNext())
+                {
+                    current = hostsIter.Current;
+                    if (current.IsUp)
+                    {
+                        var host_distance = policies.LoadBalancingPolicy.Distance(current);
+                        if (!connectionPool.ContainsKey(current.Address))
+                            connectionPool.Add(current.Address, new List<CassandraConnection>());
+
+                        var pool = connectionPool[current.Address];
+                        List<CassandraConnection> poolCpy = new List<CassandraConnection>(pool);
+                        CassandraConnection toReturn = null;
+                        foreach (var conn in poolCpy)
+                        {
+                            if (!conn.IsHealthy)
                             {
-                                if (!conn.IsHealthy)
+                                var recoveryEvents = (eventRaisingConnection == conn);
+                                conn.Dispose();
+                                pool.Remove(conn);
+                                Monitor.Exit(connectionPool);
+                                try
                                 {
-                                    var recoveryEvents = (eventRaisingConnection == conn);
-                                    conn.Dispose();
-                                    pool.Remove(conn);
-                                    Monitor.Exit(connectionPool);
-                                    try
-                                    {
-                                        if (recoveryEvents)
-                                            setupEventListeners(connect(null));
-                                    }
-                                    finally
-                                    {
-                                        Monitor.Enter(connectionPool);
-                                    }
-                                    goto BIGRETRY;
+                                    if (recoveryEvents)
+                                        setupEventListeners(connect(null, ref current, false));
+                                }
+                                finally
+                                {
+                                    Monitor.Enter(connectionPool);
+                                }
+                                goto BIGRETRY;
+                            }
+                            else
+                            {
+                                if (toReturn == null)
+                                {
+                                    if (!conn.isBusy(poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                                        toReturn = conn;
                                 }
                                 else
                                 {
-                                    if (!conn.isBusy(poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
-                                        return conn;
-                                }
-                            }
-                            if (pool.Count < poolingOptions.GetMaxConnectionPerHost(host_distance) - 1)
-                            {
-                                try
-                                {
-                                    var conn = allocateConnection(host.Address);
-                                    if (conn != null)
+                                    if (pool.Count > poolingOptions.GetCoreConnectionsPerHost(host_distance))
                                     {
-                                        pool.Add(conn);
-                                        bool error = false;
-                                        while (pool.Count < poolingOptions.GetCoreConnectionsPerHost(host_distance))
+                                        if (conn.isFree(poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
                                         {
-                                            var conn2 = allocateConnection(host.Address);
-                                            if (conn2 == null)
-                                            {
-                                                error = true;
-                                                break;
-                                            }
-                                            else
-                                                pool.Add(conn2);
+                                            lock (trahscan)
+                                                trahscan.Add(conn);
+                                            pool.Remove(conn);
                                         }
-                                        if (!error)
-                                            goto RETRY;
                                     }
-                                }
-                                catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
-                                {
-                                    goto RETRY;
                                 }
                             }
                         }
+                        if (toReturn != null)
+                            return toReturn;
+                        if (pool.Count < poolingOptions.GetMaxConnectionPerHost(host_distance) - 1)
+                        {
+                            try
+                            {
+                                bool error = false;
+                                CassandraConnection conn = null;
+                                do
+                                {
+                                    conn = allocateConnection(current.Address);
+                                    if (conn != null)
+                                        pool.Add(conn);
+                                    else
+                                    {
+                                        error = true;
+                                        break;
+                                    }
+                                }
+                                while (pool.Count < poolingOptions.GetCoreConnectionsPerHost(host_distance));
+                                if (!error)
+                                    return conn;
+                            }
+                            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
+                            {
+                                //try another host
+                            }
+                        }
                     }
-                    Thread.Sleep(100);
                 }
             }
-            throw new CassandraConnectionException("Cannot Allocate Connection");
+            throw new CassandraNoHostAvaliableException("No host is avaliable");
         }
 
 
@@ -253,11 +265,10 @@ namespace Cassandra
                 if (!string.IsNullOrEmpty(keyspace))
                 {
                     var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
-                    object scalar;
-                    var exc = processScallar(nconn.Query(GetUseKeyspaceCQL(keyspaceId), CqlConsistencyLevel.IGNORE), out scalar);
+                    string retKeyspaceId;
+                    var exc = processSetKeyspace(nconn.Query(GetUseKeyspaceCQL(keyspaceId), CqlConsistencyLevel.IGNORE), out retKeyspaceId);
                     if (exc != null)
                         throw exc;
-                    var retKeyspaceId = scalar.ToString();
                     if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != CqlQueryTools.CqlIdentifier(keyspaceId))
                         throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                 }
@@ -306,7 +317,7 @@ namespace Cassandra
 
         public void CreateKeyspace(string ksname)
         {
-            NonQuery(GetCreateKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
+            Query(GetCreateKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
         }
 
         public void CreateKeyspaceIfNotExists(string ksname)
@@ -323,7 +334,7 @@ namespace Cassandra
 
         public void DeleteKeyspace(string ksname)
         {
-            NonQuery(GetDropKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
+            Query(GetDropKeyspaceCQL(ksname), CqlConsistencyLevel.IGNORE);
         }
         public void DeleteKeyspaceIfExists(string ksname)
         {
@@ -351,11 +362,10 @@ namespace Cassandra
                             try
                             {
                                 var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
-                                object scalar;
-                                var exc = processScallar(conn.Query(GetUseKeyspaceCQL(keyspace), CqlConsistencyLevel.IGNORE), out scalar);
+                                string retKeyspaceId;
+                                var exc = processSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace), CqlConsistencyLevel.IGNORE), out retKeyspaceId);
                                 if (exc != null)
                                     throw exc;
-                                var retKeyspaceId = scalar.ToString();
                                 if (retKeyspaceId != keyspaceId)
                                     throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                             }
@@ -432,8 +442,6 @@ namespace Cassandra
                     foreach (var kv in connectionPool)
                         foreach (var conn in kv.Value)
                             conn.Dispose();
-                    foreach (var conn in trashList)
-                        conn.Dispose();
                 }
             }
         }
@@ -443,38 +451,18 @@ namespace Cassandra
             Dispose();
         }
 
-        class ConnectionWrapper
-        {
-            public CassandraConnection connection;
-        }
-
-        private CassandraServerException processNonQuery(IOutput outp)
-        {
-            using (outp)
-            {
-                if (outp is OutputError)
-                    return (outp as OutputError).CreateException();
-                else if (outp is OutputVoid)
-                    return null;
-                else if (outp is OutputSchemaChange)
-                    return null;
-                else
-                    throw new CassandraClientProtocolViolationException("Unexpected output kind");
-            }
-        }
-
-        private CassandraServerException processScallar(IOutput outp, out object scalar)
+        private CassandraServerException processSetKeyspace(IOutput outp, out string keyspacename)
         {
             using (outp)
             {
                 if (outp is OutputError)
                 {
-                    scalar = null;
+                    keyspacename = null;
                     return (outp as OutputError).CreateException();
                 }
                 else if (outp is OutputSetKeyspace)
                 {
-                    scalar = (outp as OutputSetKeyspace).Value;
+                    keyspacename = (outp as OutputSetKeyspace).Value;
                     return null;
                 }
                 else
@@ -482,7 +470,7 @@ namespace Cassandra
             }
         }
 
-        private CassandraServerException processEndPrepare(IOutput outp, out Metadata metadata, out byte[] queryId)
+        private CassandraServerException processPrepareQuery(IOutput outp, out Metadata metadata, out byte[] queryId)
         {
             using (outp)
             {
@@ -506,11 +494,11 @@ namespace Cassandra
 
         private CassandraServerException processRowset(IOutput outp, out CqlRowSet rowset)
         {
+            rowset = null;
             if (outp is OutputError)
             {
                 try
                 {
-                    rowset = null;
                     return (outp as OutputError).CreateException();
                 }
                 finally
@@ -518,6 +506,10 @@ namespace Cassandra
                     outp.Dispose();
                 }
             }
+            else if (outp is OutputVoid)
+                return null;
+            else if (outp is OutputSchemaChange)
+                return null;
             else if (outp is OutputRows)
             {
                 rowset = new CqlRowSet(outp as OutputRows, true);
@@ -527,281 +519,298 @@ namespace Cassandra
                 throw new CassandraClientProtocolViolationException("Unexpected output kind");
         }
 
-        public IAsyncResult BeginNonQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        abstract class LongToken
         {
-            var c = new ConnectionWrapper() { connection = connect(routingKey) };
-            return c.connection.BeginQuery(cqlQuery, callback, state, c, consistency);
+            public CassandraConnection connection;
+            public CqlConsistencyLevel consistency;
+            public CassandraRoutingKey routingKey;
+            public CassandraClusterHost current = null;
+            public IAsyncResult longActionAc;
+            public int queryRetries = 0;
+            virtual public void Connect(CassandraSession owner, bool moveNext)
+            {
+                connection = owner.connect(routingKey, ref current, moveNext);
+            }
+            abstract public void Begin(CassandraSession owner);
+            abstract public CassandraServerException Process(CassandraSession owner, IAsyncResult ar, out object value);
+            abstract public void Complete(object value, CassandraServerException exc = null);
         }
 
-        public void EndNonQuery(IAsyncResult result)
+        void ExecConn(LongToken token, bool moveNext)
         {
-            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
+            token.Connect(this, moveNext);
             try
             {
-                var exc = processNonQuery(c.connection.EndQuery(result, c));
-                if (exc != null)
-                    throw exc;
+                token.Begin(this);
             }
-            finally
+            catch (Exception ex)
             {
-                ConnectionDone(c.connection);
-            }
-        }
-
-        public void NonQuery(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
-        {
-            int queryRetries = 0;
-        RETRY:
-            CassandraConnection connection = null;
-            try
-            {
-                connection = connect(routingKey);
-                var exc = processNonQuery(connection.Query(cqlQuery, consistency));
-                if (exc != null)
+                if (ex is Cassandra.Native.CassandraConnection.StreamAllocationException
+                 || ex is CassandraConncectionIOException
+                 || ex is IOException
+                 || ex is ObjectDisposedException)
                 {
-                    var decision = exc.GetRetryDecition(policies.RetryPolicy, queryRetries);
+                    ExecConn(token, true);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        void ClbNoQuery(IAsyncResult ar)
+        {
+            var token = ar.AsyncState as LongToken;
+            CassandraServerException exc;
+            object value;
+            exc = token.Process(this, ar, out value);
+            if (exc != null)
+            {
+                var decision = exc.GetRetryDecition(policies.RetryPolicy, token.queryRetries);
+                if (decision == null)
+                {
+                    ExecConn(token, true);
+                }
+                else
+                {
                     switch (decision.getType())
                     {
                         case RetryDecision.RetryDecisionType.RETHROW:
-                            throw exc;
+                            token.Complete(null, exc);
+                            return;
                         case RetryDecision.RetryDecisionType.RETRY:
-                            consistency = decision.getRetryConsistencyLevel() ?? consistency;
-                            queryRetries++;
-                            goto RETRY;
-                        default: break;
+                            token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
+                            token.queryRetries++;
+                            ExecConn(token, false);
+                            return;
+                        default:
+                            break;
                     }
                 }
             }
-            finally
+            token.Complete(value);
+        }
+
+        #region SetKeyspace
+
+        class LongSetKeyspaceToken : LongToken
+        {
+            public string cqlQuery;
+            override public void Begin(CassandraSession owner)
             {
-                if (connection != null)
-                    ConnectionDone(connection);
+                connection.BeginQuery(cqlQuery, owner.ClbNoQuery, this, owner, consistency);
             }
-        }
-
-        public IAsyncResult BeginScalar(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
-        {
-            var c = new ConnectionWrapper() { connection = connect(routingKey) };
-            return c.connection.BeginQuery(cqlQuery, callback, state, c, consistency);
-        }
-
-        public object EndScalar(IAsyncResult result)
-        {
-            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            try
+            override public CassandraServerException Process(CassandraSession owner, IAsyncResult ar, out object value)
             {
-                object scalar;
-                var exc = processScallar(c.connection.EndQuery(result, c), out scalar);
+                string keyspace;
+                var exc = owner.processSetKeyspace(connection.EndQuery(ar, owner), out keyspace);
+                value = keyspace;
+                return exc;
+            }
+            override public void Complete(object value, CassandraServerException exc = null)
+            {
+                var ar = longActionAc as AsyncResult<string>;
                 if (exc != null)
-                    throw exc;
-                return scalar;
-            }
-            finally
-            {
-                ConnectionDone(c.connection);
-            }
-        }
-
-        public object Scalar(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
-        {
-            int queryRetries = 0;
-        RETRY:
-            CassandraConnection connection = null;
-            try
-            {
-                connection = connect(routingKey);
-                object scalar;
-                var exc = processScallar(connection.Query(cqlQuery, consistency), out scalar);
-                if (exc != null)
+                    ar.Complete(exc);
+                else
                 {
-                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
-                    switch (decision.getType())
-                    {
-                        case RetryDecision.RetryDecisionType.RETHROW:
-                            throw exc;
-                        case RetryDecision.RetryDecisionType.RETRY:
-                            consistency = decision.getRetryConsistencyLevel() ?? consistency;
-                            queryRetries++;
-                            goto RETRY;
-                        default: break;
-                    }
+                    ar.SetResult(value as string);
+                    ar.Complete();
                 }
-                return scalar;
             }
-            finally
+        }
+
+        internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        {
+            AsyncResult<string> longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace");
+            var token = new LongSetKeyspaceToken() { consistency = consistency, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
+
+            ExecConn(token, false);
+
+            return longActionAc;
+        }
+
+        internal object EndSetKeyspace(IAsyncResult ar)
+        {
+            var longActionAc = ar as AsyncResult<string>;
+            return AsyncResult<string>.End(ar, this, "SessionSetKeyspace");
+        }
+
+        internal object SetKeyspace(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        {
+            var ar = BeginSetKeyspace(cqlQuery, null, null, consistency, routingKey);
+            return EndSetKeyspace(ar);
+        }
+
+        #endregion
+
+        #region Query
+
+        class LongQueryToken : LongToken
+        {
+            public string cqlQuery;
+            override public void Begin(CassandraSession owner)
             {
-                if (connection != null)
-                    ConnectionDone(connection);
+                connection.BeginQuery(cqlQuery, owner.ClbNoQuery, this, owner, consistency);
+            }
+            override public CassandraServerException Process(CassandraSession owner, IAsyncResult ar, out object value)
+            {
+                CqlRowSet rowset;
+                var exc = owner.processRowset(connection.EndQuery(ar, owner), out rowset);
+                value = rowset;
+                return exc;
+            }
+            override public void Complete(object value, CassandraServerException exc = null)
+            {
+                CqlRowSet rowset = value as CqlRowSet;
+                var ar = longActionAc as AsyncResult<CqlRowSet>;
+                if (exc != null)
+                    ar.Complete(exc);
+                else
+                {
+                    ar.SetResult(rowset);
+                    ar.Complete();
+                }
             }
         }
 
         public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
-            var c = new ConnectionWrapper() { connection = connect(routingKey) };
-            return c.connection.BeginQuery(cqlQuery, callback, state, c, consistency);
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery");
+            var token = new LongQueryToken() { consistency = consistency, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
+
+            ExecConn(token, false);
+
+            return longActionAc;
         }
 
-        public CqlRowSet EndQuery(IAsyncResult result)
+        public CqlRowSet EndQuery(IAsyncResult ar)
         {
-            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                CqlRowSet rowset;
-                var exc = processRowset(c.connection.EndQuery(result, c), out rowset);
-                if (exc != null)
-                    throw exc;
-                return rowset;
-            }
-            finally
-            {
-                ConnectionDone(c.connection);
-            }
+            var longActionAc = ar as AsyncResult<CqlRowSet>;
+            return AsyncResult<CqlRowSet>.End(ar, this, "SessionQuery");
         }
 
         public CqlRowSet Query(string cqlQuery, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
-            int queryRetries = 0;
-        RETRY:
-            CassandraConnection connection = null;
-            try
+            var ar = BeginQuery(cqlQuery, null, null, consistency, routingKey);
+            return EndQuery(ar);
+        }
+
+        #endregion
+
+        #region Prepare
+
+        class LongPrepareQueryToken : LongToken
+        {
+            public string cqlQuery;
+            override public void Begin(CassandraSession owner)
             {
-                connection = connect(routingKey);
-                CqlRowSet rowset;
-                var exc = processRowset(connection.Query(cqlQuery, consistency), out rowset);
-                if (exc != null)
-                {
-                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
-                    switch (decision.getType())
-                    {
-                        case RetryDecision.RetryDecisionType.RETHROW:
-                            throw exc;
-                        case RetryDecision.RetryDecisionType.RETRY:
-                            consistency = decision.getRetryConsistencyLevel() ?? consistency;
-                            queryRetries++;
-                            goto RETRY;
-                        default: break;
-                    }
-                }
-                return rowset;
+                connection.BeginPrepareQuery(cqlQuery, owner.ClbNoQuery, this, owner);
             }
-            finally
+            override public CassandraServerException Process(CassandraSession owner, IAsyncResult ar, out object value)
             {
-                if (connection != null)
-                    ConnectionDone(connection);
+                byte[] id;
+                Metadata metadata;
+                var exc = owner.processPrepareQuery(connection.EndPrepareQuery(ar, owner), out metadata, out id);
+                value = new KeyValuePair<Metadata, byte[]>(metadata, id);
+                return exc;
+            }
+            override public void Complete(object value, CassandraServerException exc = null)
+            {
+                KeyValuePair<Metadata, byte[]> kv = (KeyValuePair<Metadata, byte[]>)value;
+                var ar = longActionAc as AsyncResult<KeyValuePair<Metadata, byte[]>>;
+                if (exc != null)
+                    ar.Complete(exc);
+                else
+                {
+                    ar.SetResult(kv);
+                    ar.Complete();
+                }
             }
         }
 
         public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, CassandraRoutingKey routingKey = null)
         {
-            var c = new ConnectionWrapper() { connection = connect(routingKey) };
-            return c.connection.BeginPrepareQuery(cqlQuery, callback, state, c);
+            AsyncResult<KeyValuePair<Metadata, byte[]>> longActionAc = new AsyncResult<KeyValuePair<Metadata, byte[]>>(callback, state, this, "SessionPrepareQuery");
+            var token = new LongPrepareQueryToken() { consistency = CqlConsistencyLevel.IGNORE, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
+
+            ExecConn(token, false);
+
+            return longActionAc;
         }
 
-        public byte[] EndPrepareQuery(IAsyncResult result, out Metadata metadata)
+        public byte[] EndPrepareQuery(IAsyncResult ar, out Metadata metadata)
         {
-            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            try
-            {
-                byte[] queryId;
-                var exc = processEndPrepare(c.connection.EndPrepareQuery(result, c), out metadata, out queryId);
-                if (exc != null)
-                    throw exc;
-                return queryId;
-            }
-            finally
-            {
-                ConnectionDone(c.connection);
-            }
+            var longActionAc = ar as AsyncResult<KeyValuePair<Metadata, byte[]>>;
+            var ret = AsyncResult<KeyValuePair<Metadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
+            metadata = ret.Key;
+            return ret.Value;
         }
 
         public byte[] PrepareQuery(string cqlQuery, out Metadata metadata, CassandraRoutingKey routingKey = null)
         {
-            int queryRetries = 0;
-        RETRY:
-            CassandraConnection connection = null;
-            try
-            {
-                byte[] queryId;
-                connection = connect(routingKey);
-                var exc = processEndPrepare(connection.PrepareQuery(cqlQuery), out metadata, out queryId);
-                if (exc != null)
-                {
-                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
-                    switch (decision.getType())
-                    {
-                        case RetryDecision.RetryDecisionType.RETHROW:
-                            throw exc;
-                        case RetryDecision.RetryDecisionType.RETRY:
-                            queryRetries++;
-                            goto RETRY;
-                        default: break;
-                    }
-                }
-                return queryId;
-            }
-
-            finally
-            {
-                if (connection != null)
-                    ConnectionDone(connection);
-            }
+            var ar = BeginPrepareQuery(cqlQuery, null, null, routingKey);
+            return EndPrepareQuery(ar, out metadata);
         }
 
-        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, bool delayedRelease, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
-        {
-            var c = new ConnectionWrapper() { connection = connect(routingKey) };
-            return c.connection.BeginExecuteQuery(Id, Metadata, values, callback, state, c, consistency);
-        }
+        #endregion
 
-        public CqlRowSet EndExecuteQuery(IAsyncResult result)
+        #region ExecuteQuery
+
+        class LongExecuteQueryToken : LongToken
         {
-            var c = (ConnectionWrapper)((AsyncResult<IOutput>)result).AsyncOwner;
-            try
+            public byte[] id;
+            public Metadata metadata;
+            public object[] values;
+            override public void Begin(CassandraSession owner)
+            {
+                connection.BeginExecuteQuery(id, metadata, values, owner.ClbNoQuery, this, owner, consistency);
+            }
+            override public CassandraServerException Process(CassandraSession owner, IAsyncResult ar, out object value)
             {
                 CqlRowSet rowset;
-                var exc = processRowset(c.connection.EndExecuteQuery(result, c), out rowset);
-                if (exc != null)
-                    throw exc;
-                return rowset;
+                var exc = owner.processRowset(connection.EndExecuteQuery(ar, owner), out rowset);
+                value = rowset;
+                return exc;
             }
-            finally
+            override public void Complete(object value, CassandraServerException exc = null)
             {
-                ConnectionDone(c.connection);
+                CqlRowSet rowset = value as CqlRowSet;
+                var ar = longActionAc as AsyncResult<CqlRowSet>;
+                if (exc != null)
+                    ar.Complete(exc);
+                else
+                {
+                    ar.SetResult(rowset);
+                    ar.Complete();
+                }
             }
+        }
+
+        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        {
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery");
+            var token = new LongExecuteQueryToken() { consistency = consistency, id = Id, metadata = Metadata, values = values, routingKey = routingKey, longActionAc = longActionAc };
+
+            ExecConn(token, false);
+
+            return longActionAc;
+        }
+
+        public CqlRowSet EndExecuteQuery(IAsyncResult ar)
+        {
+            var longActionAc = ar as AsyncResult<CqlRowSet>;
+            return AsyncResult<CqlRowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
         public CqlRowSet ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
-            int queryRetries = 0;
-        RETRY:
-            CassandraConnection connection = null;
-            try
-            {
-                connection = connect(routingKey);
-                CqlRowSet rowset;
-                var exc = processRowset(connection.ExecuteQuery(Id, Metadata, values, consistency), out rowset);
-                if (exc != null)
-                {
-                    var decision = exc.GetRetryDecition(policies.RetryPolicy,queryRetries);
-                    switch (decision.getType())
-                    {
-                        case RetryDecision.RetryDecisionType.RETHROW:
-                            throw exc;
-                        case RetryDecision.RetryDecisionType.RETRY:
-                            consistency = decision.getRetryConsistencyLevel() ?? consistency;
-                            queryRetries++;
-                            goto RETRY;
-                        default: break;
-                    }
-                }
-                return rowset;
-            }
-            finally
-            {
-                if (connection != null)
-                    ConnectionDone(connection);
-            }
+            var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, routingKey);
+            return EndExecuteQuery(ar);
         }
+
+        #endregion
 
         public Metadata.KeyspaceDesc GetKeyspaceMetadata(string keyspaceName)
         {

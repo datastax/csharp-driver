@@ -23,6 +23,15 @@ namespace Cassandra
             : base(message, innerException) { }
     }
 
+    public class CassandraNoHostAvaliableException : CassandraClientException
+    {
+        public CassandraNoHostAvaliableException(string message)
+            : base(message) { }
+
+        public CassandraNoHostAvaliableException(string message, Exception innerException)
+            : base(message, innerException) { }
+    }
+
     public class CassandraServerException : CassandraException
     {
         public CassandraServerException(string message)

@@ -12,8 +12,8 @@ using System.Linq;
 using Cassandra.Native;
 namespace Cassandra.Data.LinqTest
 {
-    public class TweetsContext : CqlContext
-    {
+    //public class TweetsContext : CqlContext
+    //{
         //public TweetsContext(CassandraSession connection, bool releaseOnClose = false)
         //    : base(connection, releaseOnClose,false,)
         //{
@@ -25,26 +25,26 @@ namespace Cassandra.Data.LinqTest
         //    AddTables();
         //}
 
-        private void AddTables()
-        {
-            AddTable<Tweets>();
-        }
-    }
+    //    private void AddTables()
+    //    {
+    //        AddTable<Tweets>();
+    //    }
+    //}
 
-    public class Tweets
-    {
-        [PartitionKey]
-        public Guid tweet_id;        
-        public string author;
-        [SecondaryIndex]
-        public string body;
-        //[RowKey]
-        public bool isok;
-        [RowKey]
-        public int Key;
+    //public class Tweets
+    //{
+    //    [PartitionKey]
+    //    public Guid tweet_id;        
+    //    public string author;
+    //    [SecondaryIndex]
+    //    public string body;
+    //    //[RowKey]
+    //    public bool isok;
+    //    [ClusteringKey(0)]
+    //    public int Key;
 
-        public Dictionary<string, string> exampleMap;
-    }
+    //    public Dictionary<string, string> exampleMap;
+    //}
 
     //public class BasicTests : IUseFixture<Dev.SettingsFixture>, IDisposable
     //{
