@@ -75,6 +75,7 @@
     <Compile Include="Commands\CassandraConnection+Execute.cs" />
     <Compile Include="Commands\CassandraConnection+Options.cs" />
     <Compile Include="Commands\CassandraConnection+Credentials.cs" />
+    <Compile Include="ControlConnection.cs" />
     <Compile Include="ConversionHelper.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="FrameBuffering.cs" />

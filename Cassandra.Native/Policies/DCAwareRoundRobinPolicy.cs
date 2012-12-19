@@ -105,7 +105,7 @@ namespace Cassandra
             {
                 if (localDc.Equals(DC(h)))
                 {
-                    if (h.IsUp)
+                    if (h.IsConsiderablyUp)
                         yield return h;
                 }
             }
@@ -114,7 +114,7 @@ namespace Cassandra
             {
                 if (!localDc.Equals(DC(h)))
                 {
-                    if (h.IsUp && (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < usedHostsPerRemoteDc))
+                    if (h.IsConsiderablyUp && (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < usedHostsPerRemoteDc))
                     {
                         yield return h;
                         if (!ixes.ContainsKey(DC(h)))

@@ -44,30 +44,38 @@ namespace Cassandra.Native
         private volatile string datacenter;
         private volatile string rack;
 
-        private Timer reconnectionTimer;
+        private bool isUpNow = true;
+        private DateTime nextUpTime;
+        ReconnectionPolicy reconnectionPolicy;
         private ReconnectionSchedule reconnectionSchedule;
 
-        public bool IsUp { get; private set; }
+        public bool IsConsiderablyUp
+        {
+            get
+            {
+                return isUpNow || nextUpTime <= DateTime.Now;
+            }
+        }
 
         public void SetDown() 
         {
-            IsUp = false;
-            reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+            isUpNow = false;
+            nextUpTime = DateTime.Now.AddMilliseconds(reconnectionSchedule.NextDelayMs());
         }
-        public void BringUp() 
+
+        public void BringUpIfDown()
         {
-            reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            IsUp = true;
+            this.reconnectionSchedule = reconnectionPolicy.NewSchedule();
+            isUpNow = true;
         }
 
         // ClusterMetadata keeps one Host object per inet address, so don't use
         // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
-        public CassandraClusterHost(IPEndPoint address, ReconnectionSchedule reconnectionSchedule)
+        public CassandraClusterHost(IPEndPoint address, ReconnectionPolicy reconnectionPolicy)
         {
             this.address = address;
-            this.IsUp = true;
-            this.reconnectionSchedule = reconnectionSchedule;
-            this.reconnectionTimer = new Timer(reconectionProc, null, Timeout.Infinite, Timeout.Infinite);
+            this.reconnectionPolicy = reconnectionPolicy;
+            this.reconnectionSchedule = reconnectionPolicy.NewSchedule();
         }
 
         void SetLocationInfo(string datacenter, string rack)
@@ -125,9 +133,5 @@ namespace Cassandra.Native
             }
         }
 
-        private void reconectionProc(object _)
-        {
-            BringUp();
-        }
     }
 }

@@ -67,7 +67,7 @@ namespace Cassandra
             for (int i = 0; i < copyOfHosts.Count; i++)
             {
                 var h = copyOfHosts[startidx++];
-                if (h.IsUp)
+                if (h.IsConsiderablyUp)
                     yield return h;
                 startidx = startidx % copyOfHosts.Count;
             }

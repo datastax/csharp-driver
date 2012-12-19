@@ -10,7 +10,7 @@ using MyUTExt;
 
 namespace Cassandra.Native.Test
 {
-    [Dev.Ignore]
+//    [Dev.Ignore]
     public class PoolCompressionTests : PoolTestsBase
     {
         public PoolCompressionTests()

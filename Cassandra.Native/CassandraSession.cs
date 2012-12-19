@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Cassandra.Native;
 using Cassandra;
+using System.Net.Sockets;
 
 namespace Cassandra
 {
@@ -75,11 +76,12 @@ namespace Cassandra
         }
 #endif
 
-        CassandraConnection eventRaisingConnection = null;
         bool noBufferingIfPossible;
 
+        ControlConnection control;
+
         public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
+            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false, bool noContoller = false)
         {
             this.policies = policies ?? Policies.DEFAULT_POLICIES;
             if (poolingOptions != null)
@@ -88,7 +90,7 @@ namespace Cassandra
 
             foreach (var ep in clusterEndpoints)
                 if (!hosts.ContainsKey(ep))
-                    hosts.Add(ep, new CassandraClusterHost(ep, this.policies.ReconnectionPolicy.NewSchedule()));
+                    hosts.Add(ep, new CassandraClusterHost(ep, this.policies.ReconnectionPolicy));
 
             this.compression = compression;
             this.abortTimeout = abortTimeout;
@@ -96,36 +98,17 @@ namespace Cassandra
             this.credentialsDelegate = credentialsDelegate;
             this.keyspace = keyspace;
             this.policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
+
             CassandraClusterHost current = null;
-            setupEventListeners(connect(null, ref current));
-        }
+            connect(null, ref current);
 
-        private void setupEventListeners(CassandraConnection nconn)
-        {
-            Exception theExc = null;
-
-            nconn.CassandraEvent += new CassandraEventHandler(conn_CassandraEvent);
-            using (var ret = nconn.RegisterForCassandraEvent(
-                CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange))
-            {
-                if (!(ret is OutputVoid))
-                {
-                    if (ret is OutputError)
-                        theExc = new Exception("CQL Error [" + (ret as OutputError).CassandraErrorType.ToString() + "] " + (ret as OutputError).Message);
-                    else
-                        theExc = new CassandraClientProtocolViolationException("Expected Error on Output");
-                }
-            }
-
-            if (theExc != null)
-                throw new CassandraConnectionException("Register event", theExc);
-
-            eventRaisingConnection = nconn;
+            if (!noContoller)
+                control = new ControlConnection(this, clusterEndpoints, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
         }
 
         List<CassandraConnection> trahscan = new List<CassandraConnection>();
 
-        private CassandraConnection connect(CassandraRoutingKey routingKey, ref CassandraClusterHost current, bool getNext=false)
+        internal CassandraConnection connect(CassandraRoutingKey routingKey, ref CassandraClusterHost current, bool getNext=false)
         {
             checkDisposed();
             lock (trahscan)
@@ -141,7 +124,6 @@ namespace Cassandra
             }
             lock (connectionPool)
             {
-            BIGRETRY:
                 var hosts = policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
                 var hostsIter = hosts.GetEnumerator();
 
@@ -160,7 +142,7 @@ namespace Cassandra
                 while (hostsIter.MoveNext())
                 {
                     current = hostsIter.Current;
-                    if (current.IsUp)
+                    if (current.IsConsiderablyUp)
                     {
                         var host_distance = policies.LoadBalancingPolicy.Distance(current);
                         if (!connectionPool.ContainsKey(current.Address))
@@ -173,20 +155,8 @@ namespace Cassandra
                         {
                             if (!conn.IsHealthy)
                             {
-                                var recoveryEvents = (eventRaisingConnection == conn);
-                                conn.Dispose();
                                 pool.Remove(conn);
-                                Monitor.Exit(connectionPool);
-                                try
-                                {
-                                    if (recoveryEvents)
-                                        setupEventListeners(connect(null, ref current, false));
-                                }
-                                finally
-                                {
-                                    Monitor.Enter(connectionPool);
-                                }
-                                goto BIGRETRY;
+                                conn.Dispose();
                             }
                             else
                             {
@@ -213,29 +183,28 @@ namespace Cassandra
                             return toReturn;
                         if (pool.Count < poolingOptions.GetMaxConnectionPerHost(host_distance) - 1)
                         {
-                            try
+                            bool error = false;
+                            CassandraConnection conn = null;
+                            do
                             {
-                                bool error = false;
-                                CassandraConnection conn = null;
-                                do
+                                conn = allocateConnection(current.Address);
+                                if (conn != null)
                                 {
-                                    conn = allocateConnection(current.Address);
-                                    if (conn != null)
-                                        pool.Add(conn);
-                                    else
-                                    {
-                                        error = true;
-                                        break;
-                                    }
+                                    current.BringUpIfDown();
+                                    if (control != null)
+                                        control.ownerHostBringUpIfDown(current.Address);
+                                    pool.Add(conn);
                                 }
-                                while (pool.Count < poolingOptions.GetCoreConnectionsPerHost(host_distance));
-                                if (!error)
-                                    return conn;
+                                else
+                                {
+                                    Debug.WriteLine("new connection attempt failed - goto another host");
+                                    error = true;
+                                    break;
+                                }
                             }
-                            catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
-                            {
-                                //try another host
-                            }
+                            while (pool.Count < poolingOptions.GetCoreConnectionsPerHost(host_distance));
+                            if (!error)
+                                return conn;
                         }
                     }
                 }
@@ -243,15 +212,44 @@ namespace Cassandra
             throw new CassandraNoHostAvaliableException("No host is avaliable");
         }
 
+        internal void OnAddHost(IPEndPoint endpoint)
+        {
+            lock (connectionPool)
+            {
+                if (!hosts.ContainsKey(endpoint))
+                    hosts.Add(endpoint, new CassandraClusterHost(endpoint, policies.ReconnectionPolicy));
+                else
+                    hosts[endpoint].BringUpIfDown();
+            }
+        }
+
+        internal void OnDownHost(IPEndPoint endpoint)
+        {
+            lock (connectionPool)
+                if (hosts.ContainsKey(endpoint))
+                    hosts[endpoint].SetDown();
+        }
+
+        internal void OnRemovedHost(IPEndPoint endpoint)
+        {
+            lock (connectionPool)
+                if (hosts.ContainsKey(endpoint))
+                    hosts.Remove(endpoint);
+        }
 
         internal void hostIsDown(IPEndPoint endpoint)
         {
             lock (connectionPool)
             {
-                hosts[endpoint].SetDown();
+                if (hosts.ContainsKey(endpoint))
+                {
+                    hosts[endpoint].SetDown();
+                    if (control != null)
+                        control.ownerHostIsDown(endpoint);
+                }
             }
         }
-        
+
         CassandraConnection allocateConnection(IPEndPoint endPoint)
         {
             CassandraConnection nconn = null;
@@ -268,24 +266,43 @@ namespace Cassandra
                     string retKeyspaceId;
                     var exc = processSetKeyspace(nconn.Query(GetUseKeyspaceCQL(keyspaceId), CqlConsistencyLevel.IGNORE), out retKeyspaceId);
                     if (exc != null)
-                        throw exc;
+                    {
+                        if (exc is CassandraClusterInvalidException)
+                            throw exc;
+                        else
+                            return null;
+                    }
+                    
                     if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != CqlQueryTools.CqlIdentifier(keyspaceId))
                         throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+
+                    lock(preparedQueries)
+                        foreach (var prepQ in preparedQueries)
+                        {
+                            byte[] queryid;
+                            Metadata metadata;
+                            var exc2 = processPrepareQuery(nconn.PrepareQuery(prepQ.Key), out metadata, out queryid);
+                            if (exc2 != null)
+                                return null;
+                            //TODO: makesure that ids are equal;
+                        }
                 }
-            }
-            catch (System.Net.Sockets.SocketException ex)
-            {
-                Debug.WriteLine(ex.Message, "CassandraSession.Connect");
-                if (nconn != null)
-                    nconn.Dispose();
-                return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message, "CassandraSession.Connect");
                 if (nconn != null)
                     nconn.Dispose();
-                throw new CassandraConnectionException("Cannot connect", ex);
+
+                if (ex is SocketException
+                    || ex is CassandraConncectionIOException
+                    || ex is IOException
+                    || ex is ObjectDisposedException
+                    || ex is CassandraConnection.StreamAllocationException)
+                {
+                    return null;
+                }
+                else
+                    throw ex;
             }
 
             Debug.WriteLine("Allocated new connection");
@@ -378,47 +395,6 @@ namespace Cassandra
                 }
                 this.keyspace = keyspace;
             }
-        }
-
-        void conn_CassandraEvent(object sender, CassandraEventArgs e)
-        {
-            if (e.CassandraEventType == CassandraEventType.StatusChange || e.CassandraEventType == CassandraEventType.TopologyChange)
-            {
-                if (e.Message == "UP" || e.Message == "NEW_NODE")
-                {
-                    lock (connectionPool)
-                    {
-                        if (!hosts.ContainsKey(e.IPEndPoint))
-                            hosts.Add(e.IPEndPoint, new CassandraClusterHost(e.IPEndPoint, policies.ReconnectionPolicy.NewSchedule()));
-                        else
-                            hosts[e.IPEndPoint].BringUp();
-                    }
-                    return;
-                }
-                else if (e.Message == "REMOVED_NODE")
-                {
-                    lock (connectionPool)
-                        if (hosts.ContainsKey(e.IPEndPoint))
-                            hosts.Remove(e.IPEndPoint);
-                    return;
-                }
-                else if (e.Message == "DOWN")
-                {
-                    lock (connectionPool)
-                        if (hosts.ContainsKey(e.IPEndPoint))
-                            hosts[e.IPEndPoint].SetDown();
-                    return;
-                }
-            }
-
-            if (e.CassandraEventType == CassandraEventType.SchemaChange)
-            {
-                if (e.Message.StartsWith("CREATED") || e.Message.StartsWith("UPDATED") || e.Message.StartsWith("DROPPED"))
-                {
-                }
-                return;
-            }
-            throw new CassandraClientProtocolViolationException("Unknown Event");
         }
 
         Guarded<bool> alreadyDisposed = new Guarded<bool>(false);
@@ -533,7 +509,7 @@ namespace Cassandra
             }
             abstract public void Begin(CassandraSession owner);
             abstract public CassandraServerException Process(CassandraSession owner, IAsyncResult ar, out object value);
-            abstract public void Complete(object value, CassandraServerException exc = null);
+            abstract public void Complete(CassandraSession owner, object value, CassandraServerException exc = null);
         }
 
         void ExecConn(LongToken token, bool moveNext)
@@ -577,7 +553,7 @@ namespace Cassandra
                     switch (decision.getType())
                     {
                         case RetryDecision.RetryDecisionType.RETHROW:
-                            token.Complete(null, exc);
+                            token.Complete(this, null, exc);
                             return;
                         case RetryDecision.RetryDecisionType.RETRY:
                             token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
@@ -589,7 +565,7 @@ namespace Cassandra
                     }
                 }
             }
-            token.Complete(value);
+            token.Complete(this,value);
         }
 
         #region SetKeyspace
@@ -608,7 +584,7 @@ namespace Cassandra
                 value = keyspace;
                 return exc;
             }
-            override public void Complete(object value, CassandraServerException exc = null)
+            override public void Complete(CassandraSession owner, object value, CassandraServerException exc = null)
             {
                 var ar = longActionAc as AsyncResult<string>;
                 if (exc != null)
@@ -661,7 +637,7 @@ namespace Cassandra
                 value = rowset;
                 return exc;
             }
-            override public void Complete(object value, CassandraServerException exc = null)
+            override public void Complete(CassandraSession owner, object value, CassandraServerException exc = null)
             {
                 CqlRowSet rowset = value as CqlRowSet;
                 var ar = longActionAc as AsyncResult<CqlRowSet>;
@@ -701,6 +677,9 @@ namespace Cassandra
 
         #region Prepare
 
+        Dictionary<string, KeyValuePair<Metadata, byte[]>> preparedQueries = new Dictionary<string, KeyValuePair<Metadata, byte[]>>();
+
+
         class LongPrepareQueryToken : LongToken
         {
             public string cqlQuery;
@@ -716,7 +695,7 @@ namespace Cassandra
                 value = new KeyValuePair<Metadata, byte[]>(metadata, id);
                 return exc;
             }
-            override public void Complete(object value, CassandraServerException exc = null)
+            override public void Complete(CassandraSession owner, object value, CassandraServerException exc = null)
             {
                 KeyValuePair<Metadata, byte[]> kv = (KeyValuePair<Metadata, byte[]>)value;
                 var ar = longActionAc as AsyncResult<KeyValuePair<Metadata, byte[]>>;
@@ -725,6 +704,8 @@ namespace Cassandra
                 else
                 {
                     ar.SetResult(kv);
+                    lock (owner.preparedQueries)
+                        owner.preparedQueries[cqlQuery] = kv;
                     ar.Complete();
                 }
             }
@@ -774,7 +755,7 @@ namespace Cassandra
                 value = rowset;
                 return exc;
             }
-            override public void Complete(object value, CassandraServerException exc = null)
+            override public void Complete(CassandraSession owner, object value, CassandraServerException exc = null)
             {
                 CqlRowSet rowset = value as CqlRowSet;
                 var ar = longActionAc as AsyncResult<CqlRowSet>;
