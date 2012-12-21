@@ -38,13 +38,17 @@ namespace Cassandra
         PoolingOptions poolingOptions = new PoolingOptions();
         public PoolingOptions PoolingOptions { get { return poolingOptions; } }
 
-        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false)
+        CassandraCompressionType compression = CassandraCompressionType.NoCompression;
+        public CassandraCompressionType Compression { get { return compression; } }
+
+        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CassandraCompressionType compression = CassandraCompressionType.NoCompression)
         {
             this.contactPoints = ContactPoints;
             this.port = port;
             this.policies = policies;
             this.credentialsDelegate = credentialsDelegate;
             this.noBufferingIfPossible = noBufferingIfPossible;
+            this.compression = compression;
         }
 
         /**
@@ -120,7 +124,8 @@ namespace Cassandra
                 credentialsDelegate: credentialsDelegate,
                 policies: policies,
                 poolingOptions: poolingOptions,
-                noBufferingIfPossible: noBufferingIfPossible
+                noBufferingIfPossible: noBufferingIfPossible,
+                compression: compression
                 );
         }
     }
@@ -177,6 +182,7 @@ namespace Cassandra
         private readonly List<IPAddress> addresses = new List<IPAddress>();
         private int port = CassandraCluster.DEFAULT_PORT;
         private AuthInfoProvider authProvider = null;
+        private CassandraCompressionType compression = CassandraCompressionType.NoCompression;
 
         private LoadBalancingPolicy loadBalancingPolicy;
         private ReconnectionPolicy reconnectionPolicy;
@@ -213,6 +219,21 @@ namespace Cassandra
         public CassandraClusterBuilder WithPort(int port)
         {
             this.port = port;
+            return this;
+        }
+
+
+        /**
+         * Sets the compression to use for the transport.
+         *
+         * @param compression the compression to set
+         * @return this Builder
+         *
+         * @see ProtocolOptions.Compression
+         */
+        public CassandraClusterBuilder withCompression(CassandraCompressionType compression)
+        {
+            this.compression = compression;
             return this;
         }
 

@@ -244,7 +244,6 @@ namespace Cassandra.Native
                             if (authInfoProvider == null)
                                 throw new CassandraClientConfigurationException("Credentials are required for this connection. Please provide a CredentialsDelegate for it.");
 
-                            //(response as AuthenticateResponse).Authenticator
                             var credentials = authInfoProvider.GetAuthInfos(serverAddress);
 
                             Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
@@ -365,14 +364,6 @@ namespace Cassandra.Native
                             Monitor.Wait(readerSocketStreamBusy);
                         readerSocketStreamBusy.Value = true;
                     }
-
-                if (abortTimeout != Timeout.Infinite)
-                {
-                    lock (abortNotNeeded)
-                        abortNotNeeded.Value = false;
-                    abortTimer.Change(abortTimeout, Timeout.Infinite);
-                }
-
 
                 lock (readerSocketStream)
                 {
@@ -591,10 +582,16 @@ namespace Cassandra.Native
                 var frame = req.GetFrame();
                 lock (writerSocketStream)
                 {
-                    lock(frameGuardier)
+                    lock (frameGuardier)
                         frameReadCallback[streamId] = nextAction;
                     writerSocketStream.Write(frame.buffer, 0, frame.buffer.Length);
                     writerSocketStream.Flush();
+                    if (abortTimeout != Timeout.Infinite)
+                    {
+                        lock (abortNotNeeded)
+                            abortNotNeeded.Value = false;
+                        abortTimer.Change(abortTimeout, Timeout.Infinite);
+                    }
                 }
             }
             catch (Exception ex)
@@ -603,7 +600,7 @@ namespace Cassandra.Native
                 if (setupWriterException(ex, streamId))
                 {
                     hostIsDown();
-                    lock (statusGuardier) 
+                    lock (statusGuardier)
                         writerSocketExceptionOccured = true;
                 }
                 else

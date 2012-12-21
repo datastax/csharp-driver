@@ -46,18 +46,17 @@ namespace Cassandra
             this.tokenMap = TokenMap.build(partitioner, allTokens);
         }
 
-        private TokenMap tokenMap;
+        private volatile TokenMap tokenMap;
 
         public IEnumerable<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            TokenMap current = tokenMap;
-            if (current == null)
+            if(tokenMap==null)
             {
                 return new List<IPAddress>();
             }
             else
             {
-                return current.GetReplicas(current.factory.hash(partitionKey));
+                return tokenMap.GetReplicas(tokenMap.factory.hash(partitionKey));
             }
         }
     }

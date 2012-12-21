@@ -18,7 +18,7 @@ namespace Cassandra.Native
             this.reconnectionTimer = new Timer(reconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
             session = new CassandraSession(clusterEndpoints, port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
             metadata = new ClusterMetadata(owner.Hosts);
-            go();
+            go(true);
         }
 
         private void setupEventListeners(CassandraConnection nconn)
@@ -97,7 +97,7 @@ namespace Cassandra.Native
 
         void reconnectionClb(object state)
         {
-            go();
+            go(true);
         }
         ReconnectionPolicy reconnectionPolicy = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000);
         ReconnectionSchedule reconnectionSchedule = null;
@@ -106,14 +106,15 @@ namespace Cassandra.Native
         internal        ClusterMetadata metadata;
 
 
-        void go()
+        void go(bool refresh)
         {
             try
             {
                 reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
                 connection =session.connect(null, ref current);
                 setupEventListeners(connection);
-                refreshNodeListAndTokenMap(connection);
+                if(refresh)
+                    refreshNodeListAndTokenMap(connection);
             }
             catch (CassandraNoHostAvaliableException)
             {
@@ -127,7 +128,7 @@ namespace Cassandra.Native
             if (current.Address == endpoint)
             {
                 reconnectionSchedule = reconnectionPolicy.NewSchedule();
-                go();
+                go(false);
             }
         }
         void checkConnectionUp(IPAddress endpoint)
@@ -135,7 +136,7 @@ namespace Cassandra.Native
             if (isDiconnected)
             {
                 reconnectionSchedule = reconnectionPolicy.NewSchedule();
-                go();
+                go(true);
             }
         }
 

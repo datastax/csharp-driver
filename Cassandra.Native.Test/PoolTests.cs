@@ -52,7 +52,10 @@ namespace Cassandra.Native.Test
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var cluster = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]).Build();
+            var clusterb = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            if (_compression)
+                clusterb.withCompression(CassandraCompressionType.Snappy);
+            var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
             //var serverSp = setFix.Settings["CassandraServer"].Split(':');
 

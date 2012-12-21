@@ -144,7 +144,12 @@ namespace Cassandra.Native
             get
             {
                 lock (hosts)
-                    return hosts[endpoint];
+                {
+                    if (hosts.ContainsKey(endpoint))
+                        return hosts[endpoint];
+                    else
+                        return null;
+                }
             }
         }
 
