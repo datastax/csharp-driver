@@ -46,20 +46,23 @@ namespace Cassandra.Native.Test
 
         CassandraSession Session;
         string Keyspace = "";
-        IPEndPoint serverAddress;
+        IPAddress serverAddress;
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var serverSp = setFix.Settings["CassandraServer"].Split(':');
+            var cluster = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]).Build();
+            Session = cluster.Connect(this.Keyspace);
 
-            string ip = serverSp[0];
-            int port = int.Parse(serverSp[1]);
+            //var serverSp = setFix.Settings["CassandraServer"].Split(':');
 
-            serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
+            //string ip = serverSp[0];
+            //int port = int.Parse(serverSp[1]);
 
-            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress, serverAddress, serverAddress, serverAddress, serverAddress }, this.Keyspace, this.Compression, 10 * 1000);
+            //serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
+
+            //Session = new CassandraSession(new List<IPEndPoint>() { serverAddress, serverAddress, serverAddress, serverAddress, serverAddress }, this.Keyspace, this.Compression, 10 * 1000);
         }
 
         public void Dispose()

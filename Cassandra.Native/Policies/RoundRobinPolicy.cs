@@ -71,7 +71,6 @@ namespace Cassandra
                     yield return h;
                 startidx = startidx % copyOfHosts.Count;
             }
-            int aa = 0;
         }
     }
 }

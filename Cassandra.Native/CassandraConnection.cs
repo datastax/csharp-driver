@@ -35,7 +35,8 @@ namespace Cassandra.Native
             socket.Value.Shutdown(SocketShutdown.Both);
         }
 #endif
-        IPEndPoint serverAddress;
+        IPAddress serverAddress;
+        int port;
         Guarded<Socket> socket = new Guarded<Socket>(null);
         Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
         bool[] freeStreamIDtaken = new bool[byte.MaxValue + 1];
@@ -66,7 +67,7 @@ namespace Cassandra.Native
             owner.hostIsDown(serverAddress);
         }
 
-        internal CassandraConnection(CassandraSession owner, IPEndPoint serverAddress, AuthInfoProvider authInfoProvider = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
+        internal CassandraConnection(CassandraSession owner, IPAddress serverAddress, int port, AuthInfoProvider authInfoProvider = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
         {
             this.owner = owner;
             bufferingMode = null;
@@ -89,6 +90,7 @@ namespace Cassandra.Native
                 compressor = new SnappyProtoBufCompressor();
             }
             this.serverAddress = serverAddress;
+            this.port = port;
             this.abortTimeout = abortTimeout;
             abortTimer = new Timer(abortTimerProc, null, Timeout.Infinite, Timeout.Infinite);
             createConnection();
@@ -114,7 +116,7 @@ namespace Cassandra.Native
                            (param.Response as ErrorResponse).Output);
                });
 
-            lock(frameGuardier)
+            lock (frameGuardier)
                 frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
 
             buffer = new byte[][] { 
@@ -122,8 +124,8 @@ namespace Cassandra.Native
                     new byte[bufferingMode.PreferedBufferSize()] };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            
-            newSock.Connect(serverAddress);
+
+            newSock.Connect(new IPEndPoint(serverAddress, port));
             socket.Value = newSock;
             bufferingMode.Reset();
             readerSocketStream = new NetworkStream(socket.Value);
@@ -243,7 +245,7 @@ namespace Cassandra.Native
                                 throw new CassandraClientConfigurationException("Credentials are required for this connection. Please provide a CredentialsDelegate for it.");
 
                             //(response as AuthenticateResponse).Authenticator
-                            var credentials = authInfoProvider.GetAuthInfos(serverAddress.Address);
+                            var credentials = authInfoProvider.GetAuthInfos(serverAddress);
 
                             Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
                             {
@@ -609,7 +611,7 @@ namespace Cassandra.Native
             }
         }
 
-        internal IPEndPoint getEndPoint()
+        internal IPAddress getAdress()
         {
             return serverAddress;
         }

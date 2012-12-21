@@ -31,7 +31,7 @@ namespace Cassandra.Native
         REMOTE,
         IGNORED
     }
-    
+
     /**
      * A Cassandra node.
      *
@@ -39,7 +39,7 @@ namespace Cassandra.Native
      */
     public class CassandraClusterHost
     {
-        private readonly IPEndPoint address;
+        private readonly IPAddress address;
 
         private volatile string datacenter;
         private volatile string rack;
@@ -57,7 +57,7 @@ namespace Cassandra.Native
             }
         }
 
-        public void SetDown() 
+        public void SetDown()
         {
             isUpNow = false;
             nextUpTime = DateTime.Now.AddMilliseconds(reconnectionSchedule.NextDelayMs());
@@ -71,14 +71,14 @@ namespace Cassandra.Native
 
         // ClusterMetadata keeps one Host object per inet address, so don't use
         // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
-        public CassandraClusterHost(IPEndPoint address, ReconnectionPolicy reconnectionPolicy)
+        public CassandraClusterHost(IPAddress address, ReconnectionPolicy reconnectionPolicy)
         {
             this.address = address;
             this.reconnectionPolicy = reconnectionPolicy;
             this.reconnectionSchedule = reconnectionPolicy.NewSchedule();
         }
 
-        void SetLocationInfo(string datacenter, string rack)
+        public void SetLocationInfo(string datacenter, string rack)
         {
             this.datacenter = datacenter;
             this.rack = rack;
@@ -89,7 +89,7 @@ namespace Cassandra.Native
          *
          * @return the node {@link InetAddress}.
          */
-        public IPEndPoint Address
+        public IPAddress Address
         {
             get
             {
@@ -133,5 +133,56 @@ namespace Cassandra.Native
             }
         }
 
+    }
+
+    internal class Hosts
+    {
+        public Dictionary<IPAddress, CassandraClusterHost> hosts = new Dictionary<IPAddress, CassandraClusterHost>();
+
+        public CassandraClusterHost this[IPAddress endpoint]
+        {
+            get
+            {
+                lock (hosts)
+                    return hosts[endpoint];
+            }
+        }
+
+        public ICollection<CassandraClusterHost> All()
+        {
+            lock (hosts)
+                return new List<CassandraClusterHost>(hosts.Values);
+        }
+
+        public void AddIfNotExistsOrBringUpIfDown(IPAddress ep, ReconnectionPolicy rp)
+        {
+            lock (hosts)
+            {
+                if (!hosts.ContainsKey(ep))
+                    hosts.Add(ep, new CassandraClusterHost(ep, rp));
+                else
+                    hosts[ep].BringUpIfDown();
+            }
+        }
+
+        public void SetDownIfExists(IPAddress ep)
+        {
+            lock (hosts)
+                if (hosts.ContainsKey(ep))
+                    hosts[ep].SetDown();
+        }
+
+        public void RemoveIfExists(IPAddress ep)
+        {
+            lock (hosts)
+                if (hosts.ContainsKey(ep))
+                    hosts.Remove(ep);
+        }
+
+        public IEnumerable<IPAddress> AllEndPoints()
+        {
+            lock (hosts)
+                return new List<IPAddress>(hosts.Keys);
+        }
     }
 }

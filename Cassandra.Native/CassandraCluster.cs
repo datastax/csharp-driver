@@ -113,11 +113,9 @@ namespace Cassandra
          */
         public CassandraSession Connect(string keyspace)
         {
-            var endpoints = new List<IPEndPoint>();
-            foreach (var ip in contactPoints)
-                endpoints.Add(new IPEndPoint(ip, port));
             return new CassandraSession(
-                clusterEndpoints: endpoints,
+                clusterEndpoints: contactPoints,
+                port: port,
                 keyspace: keyspace,
                 credentialsDelegate: credentialsDelegate,
                 policies: policies,

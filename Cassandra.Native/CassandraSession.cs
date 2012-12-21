@@ -21,7 +21,7 @@ namespace Cassandra
     public class CassandraSession : IDisposable
     {
         AuthInfoProvider credentialsDelegate;
-        Policies policies;
+        public Policies Policies { get; private set; }
 
         CassandraCompressionType compression;
         int abortTimeout;
@@ -35,17 +35,22 @@ namespace Cassandra
             }
             public ICollection<CassandraClusterHost> GetAllHosts()
             {
-                return owner.hosts.Values;
+                return owner.Hosts.All();
             }
             public ICollection<CassandraClusterHost> GetReplicas(byte[] routingInfo)
             {
-                return null;
+                var replicas = owner.control.metadata.GetReplicas(routingInfo);
+                List<CassandraClusterHost> ret = new List<CassandraClusterHost>();
+                foreach (var repl in replicas)
+                    ret.Add(owner.Hosts[repl]);
+                return ret;
             }
         }
 
 
-        Dictionary<IPEndPoint, CassandraClusterHost> hosts = new Dictionary<IPEndPoint, CassandraClusterHost>();
-        Dictionary<IPEndPoint, List<CassandraConnection>> connectionPool = new Dictionary<IPEndPoint, List<CassandraConnection>>();
+        internal Hosts Hosts;
+
+        Dictionary<IPAddress, List<CassandraConnection>> connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
 
         PoolingOptions poolingOptions = new PoolingOptions();
         string keyspace = string.Empty;
@@ -53,7 +58,7 @@ namespace Cassandra
         public string Keyspace { get { return keyspace; } }
 
 #if ERRORINJECTION
-        public void SimulateSingleConnectionDown(IPEndPoint endpoint)
+        public void SimulateSingleConnectionDown(IPAddress endpoint)
         {
             while (true)
                 lock (connectionPool)
@@ -80,30 +85,35 @@ namespace Cassandra
 
         ControlConnection control;
 
-        public CassandraSession(IEnumerable<IPEndPoint> clusterEndpoints, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false, bool noContoller = false)
+        int port;
+
+        internal CassandraSession(IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
+            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false, Hosts hosts = null)
         {
-            this.policies = policies ?? Policies.DEFAULT_POLICIES;
+            this.Policies = policies ?? Policies.DEFAULT_POLICIES;
             if (poolingOptions != null)
                 this.poolingOptions = poolingOptions;
             this.noBufferingIfPossible = noBufferingIfPossible;
 
+            Hosts = hosts ?? new Hosts();
+
+            this.port = port;
+
             foreach (var ep in clusterEndpoints)
-                if (!hosts.ContainsKey(ep))
-                    hosts.Add(ep, new CassandraClusterHost(ep, this.policies.ReconnectionPolicy));
+                Hosts.AddIfNotExistsOrBringUpIfDown(ep, this.Policies.ReconnectionPolicy);
 
             this.compression = compression;
             this.abortTimeout = abortTimeout;
 
             this.credentialsDelegate = credentialsDelegate;
             this.keyspace = keyspace;
-            this.policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
+            this.Policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
 
             CassandraClusterHost current = null;
             connect(null, ref current);
 
-            if (!noContoller)
-                control = new ControlConnection(this, clusterEndpoints, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
+            if (hosts==null)
+                control = new ControlConnection(this, clusterEndpoints,port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
         }
 
         List<CassandraConnection> trahscan = new List<CassandraConnection>();
@@ -124,7 +134,7 @@ namespace Cassandra
             }
             lock (connectionPool)
             {
-                var hosts = policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
+                var hosts = Policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
                 var hostsIter = hosts.GetEnumerator();
 
                 if (current != null)
@@ -144,7 +154,7 @@ namespace Cassandra
                     current = hostsIter.Current;
                     if (current.IsConsiderablyUp)
                     {
-                        var host_distance = policies.LoadBalancingPolicy.Distance(current);
+                        var host_distance = Policies.LoadBalancingPolicy.Distance(current);
                         if (!connectionPool.ContainsKey(current.Address))
                             connectionPool.Add(current.Address, new List<CassandraConnection>());
 
@@ -212,51 +222,38 @@ namespace Cassandra
             throw new CassandraNoHostAvaliableException("No host is avaliable");
         }
 
-        internal void OnAddHost(IPEndPoint endpoint)
+        internal void OnAddHost(IPAddress endpoint)
+        {
+            Hosts.AddIfNotExistsOrBringUpIfDown(endpoint, Policies.ReconnectionPolicy);
+        }
+
+        internal void OnDownHost(IPAddress endpoint)
+        {
+            Hosts.SetDownIfExists(endpoint);
+        }
+
+        internal void OnRemovedHost(IPAddress endpoint)
+        {
+            Hosts.RemoveIfExists(endpoint);
+        }
+
+        internal void hostIsDown(IPAddress endpoint)
         {
             lock (connectionPool)
             {
-                if (!hosts.ContainsKey(endpoint))
-                    hosts.Add(endpoint, new CassandraClusterHost(endpoint, policies.ReconnectionPolicy));
-                else
-                    hosts[endpoint].BringUpIfDown();
+                Hosts.SetDownIfExists(endpoint);
+                if (control != null)
+                    control.ownerHostIsDown(endpoint);
             }
         }
 
-        internal void OnDownHost(IPEndPoint endpoint)
-        {
-            lock (connectionPool)
-                if (hosts.ContainsKey(endpoint))
-                    hosts[endpoint].SetDown();
-        }
-
-        internal void OnRemovedHost(IPEndPoint endpoint)
-        {
-            lock (connectionPool)
-                if (hosts.ContainsKey(endpoint))
-                    hosts.Remove(endpoint);
-        }
-
-        internal void hostIsDown(IPEndPoint endpoint)
-        {
-            lock (connectionPool)
-            {
-                if (hosts.ContainsKey(endpoint))
-                {
-                    hosts[endpoint].SetDown();
-                    if (control != null)
-                        control.ownerHostIsDown(endpoint);
-                }
-            }
-        }
-
-        CassandraConnection allocateConnection(IPEndPoint endPoint)
+        CassandraConnection allocateConnection(IPAddress endPoint)
         {
             CassandraConnection nconn = null;
 
             try
             {
-                nconn = new CassandraConnection(this, endPoint, credentialsDelegate, this.compression, this.abortTimeout, this.noBufferingIfPossible);
+                nconn = new CassandraConnection(this, endPoint, port, credentialsDelegate, this.compression, this.abortTimeout, this.noBufferingIfPossible);
 
                 var options = nconn.ExecuteOptions();
 
@@ -543,7 +540,7 @@ namespace Cassandra
             exc = token.Process(this, ar, out value);
             if (exc != null)
             {
-                var decision = exc.GetRetryDecition(policies.RetryPolicy, token.queryRetries);
+                var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.queryRetries);
                 if (decision == null)
                 {
                     ExecConn(token, true);

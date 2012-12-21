@@ -8,7 +8,7 @@ namespace Cassandra.Native
     public class CassandraEventArgs : EventArgs
     {
         public CassandraEventType CassandraEventType;
-        public IPEndPoint IPEndPoint;
+        public IPAddress IPAddress;
         public string Message;        
     }
 

@@ -38,23 +38,11 @@ namespace MyUTExt
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");                       
-            List<IPEndPoint> clusterNodes = new List<IPEndPoint>();            
+//            List<IPEndPoint> clusterNodes = new List<IPEndPoint>();            
 
-            GetNodeList(setFix, clusterNodes);
-            
-            Session = new CassandraSession(clusterNodes, this.Keyspace, this.Compression, Timeout.Infinite);
-        }
-
-        public static void GetNodeList(Dev.SettingsFixture setFix, List<IPEndPoint> clusterNodes)
-        {
-            string nodeList = setFix.Settings["CassandraConnectionString"].Replace("Servers=", "");
-            if (nodeList.EndsWith(";"))
-                nodeList = nodeList.Remove(nodeList.LastIndexOf(';'));
-
-            var nodes = nodeList.Split(',');
-
-            foreach (var node in nodes)
-                clusterNodes.Add(new IPEndPoint(IPAddress.Parse(node.Split(':')[0]), int.Parse(node.Split(':')[1])));
+            var cluster = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]).Build();
+            Session = cluster.Connect(this.Keyspace);
+//            Session = new CassandraSession(clusterNodes, this.Keyspace, this.Compression, Timeout.Infinite);
         }
 
         public void Dispose()

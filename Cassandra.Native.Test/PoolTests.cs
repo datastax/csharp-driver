@@ -52,14 +52,16 @@ namespace Cassandra.Native.Test
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var serverSp = setFix.Settings["CassandraServer"].Split(':');
+            var cluster = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]).Build();
+            Session = cluster.Connect(this.Keyspace);
+            //var serverSp = setFix.Settings["CassandraServer"].Split(':');
 
-            string ip = serverSp[0];
-            int port = int.Parse(serverSp[1]);
+            //string ip = serverSp[0];
+            //int port = int.Parse(serverSp[1]);
 
-            var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
+            //var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
 
-            Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 10 * 60 * 1000);
+            //Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 10 * 60 * 1000);
         }
 
         public void Dispose()

@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Net;
+using Cassandra.Native;
+using System.Threading;
+using System.Data.Common;
+
+namespace Cassandra
+{
+    // We really only use the generic for type safety and it's not an interface because we don't want to expose
+    // Note: we may want to expose this later if people use custom partitioner and want to be able to extend that. This is way premature however.
+    abstract class TokenFactory
+    {
+        public static TokenFactory getFactory(string partitionerName)
+        {
+            if (partitionerName.EndsWith("Murmur3Partitioner"))
+                return M3PToken.FACTORY;
+            //else if (partitionerName.EndsWith("RandomPartitioner"))
+            //    return RPToken.FACTORY;
+            //else if (partitionerName.EndsWith("OrderedPartitioner"))
+            //    return OPPToken.FACTORY;
+            else
+                return null;
+        }
+
+        public abstract Token fromString(String tokenStr);
+        public abstract Token hash(byte[] partitionKey);
+    }
+
+    interface Token : IComparable
+    {
+    }
+
+    // Murmur3Partitioner tokens
+    class M3PToken : Token
+    {
+        private readonly ulong value;
+
+        class M3PTokenFactory : TokenFactory
+        {
+            public override Token fromString(string tokenStr)
+            {
+                return new M3PToken(ulong.Parse(tokenStr));
+            }
+
+            public override Token hash(byte[] partitionKey)
+            {
+                ulong v = MurmurHash.hash3_x64_128(partitionKey, 0, (uint)partitionKey.Length, 0)[0];
+                return new M3PToken(v == ulong.MinValue ? ulong.MaxValue : v);
+            }
+        }
+
+        public static readonly TokenFactory FACTORY = new M3PTokenFactory();
+
+        private M3PToken(ulong value)
+        {
+            this.value = value;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (this == obj)
+                return true;
+            if (obj == null || this.GetType() != obj.GetType())
+                return false;
+
+            return value == ((M3PToken)obj).value;
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)(value ^ (value >> 32));
+        }
+
+        public int CompareTo(object obj)
+        {
+            var other = obj as M3PToken;
+            ulong otherValue = other.value;
+            return value < otherValue ? -1 : (value == otherValue) ? 0 : 1;
+        }
+    }
+}

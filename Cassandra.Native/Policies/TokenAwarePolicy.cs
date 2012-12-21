@@ -32,7 +32,7 @@ namespace Cassandra
 
         private ICassandraSessionInfoProvider infoProvider;
         private readonly LoadBalancingPolicy childPolicy;
-    
+
         /**
          * Creates a new {@code TokenAware} policy that wraps the provided child
          * load balancing policy.
@@ -60,8 +60,33 @@ namespace Cassandra
         public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             if (routingKey == null)
-                return childPolicy.NewQueryPlan(routingKey);
-            return null;
+            {
+                foreach (var iter in childPolicy.NewQueryPlan(routingKey))
+                    yield return iter;
+                yield break;
+            }
+
+            var replicas = infoProvider.GetReplicas(routingKey.rawRoutingKey);
+            if (replicas.Count == 0)
+            {
+                foreach (var iter in childPolicy.NewQueryPlan(routingKey))
+                    yield return iter;
+                yield break;
+            }
+
+            var iterator = replicas.GetEnumerator();
+            while (iterator.MoveNext())
+            {
+                var host = iterator.Current;
+                if (host.IsConsiderablyUp && childPolicy.Distance(host) == CassandraHostDistance.LOCAL)
+                    yield return host;
+            }
+
+            foreach (var host in childPolicy.NewQueryPlan(routingKey))
+            {
+                if (!replicas.Contains(host) || childPolicy.Distance(host) != CassandraHostDistance.LOCAL)
+                    yield return host;
+            }
 
         }
     }

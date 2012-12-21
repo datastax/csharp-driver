@@ -19,14 +19,14 @@ namespace Cassandra.Native
             {
                 CassandraEventArgs.CassandraEventType = CassandraEventType.TopologyChange;
                 CassandraEventArgs.Message = rd.ReadString();
-                CassandraEventArgs.IPEndPoint = rd.ReadInet();
+                CassandraEventArgs.IPAddress = rd.ReadInet().Address;
                 return;
             }
             else if (eventTypeString == "STATUS_CHANGE")
             {
                 CassandraEventArgs.CassandraEventType = CassandraEventType.StatusChange;
                 CassandraEventArgs.Message = rd.ReadString();
-                CassandraEventArgs.IPEndPoint = rd.ReadInet();
+                CassandraEventArgs.IPAddress = rd.ReadInet().Address;
                 return;
             }
             else if (eventTypeString == "SCHEMA_CHANGE")
