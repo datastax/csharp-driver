@@ -148,7 +148,7 @@ namespace Cassandra.Native
             }
 
             // Operation is done: if an exception occurred, throw it
-            if (asyncResult.m_exception != null) throw new CassandraClientAsyncOperationException(asyncResult.m_exception);
+            if (asyncResult.m_exception != null) throw asyncResult.m_exception;
         }
 
         #region Implementation of IAsyncResult

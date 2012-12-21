@@ -27,38 +27,38 @@ namespace Cassandra
         public string Keyspace { get; set; }
         public int Port { get; private set; }
         public IEnumerable<IPAddress> ContactPoints { get; private set; }
-        public string Username { get; private set; }
-        public string Password { get; private set; }
+        //public string Username { get; private set; }
+        //public string Password { get; private set; }
         public CompressionType CompressionType { get; private set; }
-        public ConsistencyLevel ReadCqlConsistencyLevel { get; private set; }
-        public ConsistencyLevel WriteCqlConsistencyLevel { get; private set; }
+        //public ConsistencyLevel ReadCqlConsistencyLevel { get; private set; }
+        //public ConsistencyLevel WriteCqlConsistencyLevel { get; private set; }
 
-        public int ConnectionTimeout { get; private set; }
-        public int MaxPoolSize { get; private set; }
+        //public int ConnectionTimeout { get; private set; }
+        //public int MaxPoolSize { get; private set; }
 
         public ConnectionStringBuilder(
             string Keyspace,
             IEnumerable<IPAddress> ContactPoints,
             int Port = Cluster.DEFAULT_PORT,
-            string Username = null,
-            string Password = null,
-            CompressionType CompressionType = CompressionType.NoCompression,
-            ConsistencyLevel ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM,
-            ConsistencyLevel WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM,
-            int ConnectionTimeout = Timeout.Infinite,
-            int MaxPoolSize = int.MaxValue
+            //string Username = null,
+            //string Password = null,
+            CompressionType CompressionType = CompressionType.NoCompression
+            //ConsistencyLevel ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM,
+            //ConsistencyLevel WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM,
+            //int ConnectionTimeout = Timeout.Infinite,
+            //int MaxPoolSize = int.MaxValue
         )
         {
             this.Keyspace = Keyspace;
             this.Port = Port;
             this.ContactPoints = ContactPoints;
-            this.Username = Username;
-            this.Password = Password;
+            //this.Username = Username;
+            //this.Password = Password;
             this.CompressionType = CompressionType;
-            this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
-            this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
-            this.ConnectionTimeout = ConnectionTimeout;
-            this.MaxPoolSize = MaxPoolSize;
+            //this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
+            //this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
+            //this.ConnectionTimeout = ConnectionTimeout;
+            //this.MaxPoolSize = MaxPoolSize;
         }
 
         public ConnectionStringBuilder() 
@@ -88,20 +88,20 @@ namespace Cassandra
             if (pairs.ContainsKey("Keyspace"))
                 Keyspace = pairs["Keyspace"];
 
-            if (!pairs.ContainsKey("Max Pool Size"))
-                MaxPoolSize = int.MaxValue;
-            else
-            {
-                int maxPoolSize;
+            //if (!pairs.ContainsKey("Max Pool Size"))
+            //    MaxPoolSize = int.MaxValue;
+            //else
+            //{
+            //    int maxPoolSize;
 
-                if (!Int32.TryParse(pairs["Max Pool Size"], out maxPoolSize))
-                    throw new Exception("Max Pool Size is not valid.");
+            //    if (!Int32.TryParse(pairs["Max Pool Size"], out maxPoolSize))
+            //        throw new Exception("Max Pool Size is not valid.");
 
-                if (maxPoolSize < 0)
-                    throw new Exception("Max Pool Size is not valid.");
+            //    if (maxPoolSize < 0)
+            //        throw new Exception("Max Pool Size is not valid.");
 
-                MaxPoolSize = maxPoolSize;
-            }
+            //    MaxPoolSize = maxPoolSize;
+            //}
 
             if (!pairs.ContainsKey("Port"))
                 Port = Cluster.DEFAULT_PORT;
@@ -113,41 +113,41 @@ namespace Cassandra
                 Port = port;
             }
 
-            if (!pairs.ContainsKey("Connection Timeout"))
-                ConnectionTimeout = Timeout.Infinite;
-            else
-            {
-                int connectionTimeout;
+            //if (!pairs.ContainsKey("Connection Timeout"))
+            //    ConnectionTimeout = Timeout.Infinite;
+            //else
+            //{
+            //    int connectionTimeout;
 
-                if (!Int32.TryParse(pairs["Connection Timeout"], out connectionTimeout))
-                    throw new Exception("Connection Timeout is not valid.");
+            //    if (!Int32.TryParse(pairs["Connection Timeout"], out connectionTimeout))
+            //        throw new Exception("Connection Timeout is not valid.");
 
-                if (connectionTimeout < 0)
-                    throw new Exception("Connection Timeout is not valid.");
+            //    if (connectionTimeout < 0)
+            //        throw new Exception("Connection Timeout is not valid.");
 
-                ConnectionTimeout = connectionTimeout * 1000;
-            }
+            //    ConnectionTimeout = connectionTimeout * 1000;
+            //}
 
-            if (!pairs.ContainsKey("Read"))
-                ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM;
-            else
-                ReadCqlConsistencyLevel = (ConsistencyLevel)Enum.Parse(typeof(ConsistencyLevel), pairs["Read"]);
+            //if (!pairs.ContainsKey("Read"))
+            //    ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM;
+            //else
+            //    ReadCqlConsistencyLevel = (ConsistencyLevel)Enum.Parse(typeof(ConsistencyLevel), pairs["Read"]);
 
-            if (!pairs.ContainsKey("Write"))
-                WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM;
-            else
-                WriteCqlConsistencyLevel = (ConsistencyLevel)Enum.Parse(typeof(ConsistencyLevel), pairs["Write"]);
+            //if (!pairs.ContainsKey("Write"))
+            //    WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM;
+            //else
+            //    WriteCqlConsistencyLevel = (ConsistencyLevel)Enum.Parse(typeof(ConsistencyLevel), pairs["Write"]);
 
             if (!pairs.ContainsKey("Compression Type"))
                 CompressionType = CompressionType.NoCompression;
             else
                 CompressionType = (CompressionType)Enum.Parse(typeof(CompressionType), pairs["Compression Type"]);
 
-            if (pairs.ContainsKey("Username"))
-                Username = pairs["Username"];
+            //if (pairs.ContainsKey("Username"))
+            //    Username = pairs["Username"];
 
-            if (pairs.ContainsKey("Password"))
-                Password = pairs["Password"];
+            //if (pairs.ContainsKey("Password"))
+            //    Password = pairs["Password"];
 
             if (!pairs.ContainsKey("Servers"))
             {
@@ -178,26 +178,26 @@ namespace Cassandra
 
             b.AppendFormat(format, "Keyspace", Keyspace);
 
-            if(MaxPoolSize != int.MaxValue)
-                b.AppendFormat(format, "Max Pool Size", MaxPoolSize);
+            //if(MaxPoolSize != int.MaxValue)
+            //    b.AppendFormat(format, "Max Pool Size", MaxPoolSize);
     
-            if(ConnectionTimeout!=Timeout.Infinite)
-                b.AppendFormat(format, "Connection Timeout", Convert.ToInt32(ConnectionTimeout / 1000));
+            //if(ConnectionTimeout!=Timeout.Infinite)
+            //    b.AppendFormat(format, "Connection Timeout", Convert.ToInt32(ConnectionTimeout / 1000));
     
-            if(ReadCqlConsistencyLevel != ConsistencyLevel.QUORUM)
-                b.AppendFormat(format, "Read", ReadCqlConsistencyLevel);
+            //if(ReadCqlConsistencyLevel != ConsistencyLevel.QUORUM)
+            //    b.AppendFormat(format, "Read", ReadCqlConsistencyLevel);
     
-            if(WriteCqlConsistencyLevel != ConsistencyLevel.QUORUM)
-                b.AppendFormat(format, "Write", WriteCqlConsistencyLevel);
+            //if(WriteCqlConsistencyLevel != ConsistencyLevel.QUORUM)
+            //    b.AppendFormat(format, "Write", WriteCqlConsistencyLevel);
 
             if( CompressionType != CompressionType.NoCompression)
                 b.AppendFormat(format, "Compression Type", CompressionType);
 
-            if(Username!=null)
-                b.AppendFormat(format, "Username", Username);
+            //if(Username!=null)
+            //    b.AppendFormat(format, "Username", Username);
     
-            if(Password!=null)
-                b.AppendFormat(format, "Password", Password);
+            //if(Password!=null)
+            //    b.AppendFormat(format, "Password", Password);
 
             if (Port != Cluster.DEFAULT_PORT)
                 b.AppendFormat(format, "Port", Port);

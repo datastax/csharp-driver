@@ -41,7 +41,10 @@ namespace Cassandra
         CompressionType compression = CompressionType.NoCompression;
         public CompressionType Compression { get { return compression; } }
 
-        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression)
+        string defaultKeyspace = "";
+        public string DefaultKeyspace { get { return defaultKeyspace; } }
+
+        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression, string defaultKeyspace = "")
         {
             this.contactPoints = contactPoints;
             this.port = port;
@@ -49,6 +52,7 @@ namespace Cassandra
             this.credentialsDelegate = credentialsDelegate;
             this.noBufferingIfPossible = noBufferingIfPossible;
             this.compression = compression;
+            this.defaultKeyspace = defaultKeyspace;
         }
 
         /**
@@ -76,7 +80,7 @@ namespace Cassandra
             //if (contactPoints.)
             //    throw new IllegalArgumentException("Cannot build a cluster without contact points");
 
-            return new Cluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible);
+            return new Cluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible, initializer.CompressionType, initializer.DefaultKeyspace);
         }
 
         /**
@@ -101,7 +105,7 @@ namespace Cassandra
          */
         public Session Connect()
         {
-            return Connect("");
+            return Connect(defaultKeyspace);
         }
 
         /**
@@ -127,6 +131,21 @@ namespace Cassandra
                 noBufferingIfPossible: noBufferingIfPossible,
                 compression: compression
                 );
+        }
+
+        public Session ConnectAndCreateDefaultKeyspaceIfNotExists()
+        {
+            var session = Connect();
+            try
+            {
+                session.ChangeKeyspace(defaultKeyspace);
+            }
+            catch (CassandraClusterInvalidException)
+            {
+                session.CreateKeyspaceIfNotExists(defaultKeyspace);
+                session.ChangeKeyspace(defaultKeyspace);
+            }
+            return session;
         }
     }
 
@@ -171,6 +190,10 @@ namespace Cassandra
         AuthInfoProvider AuthInfoProvider { get; }
 
         bool UseNoBufferingIfPossible { get; }
+
+        string DefaultKeyspace { get; }
+
+        CompressionType CompressionType { get; }
     }
 
     /**
@@ -189,6 +212,8 @@ namespace Cassandra
         private RetryPolicy retryPolicy;
         private bool noBufferingIfPossible = false;
 
+        private string defaultKeyspace = null;
+
         public IEnumerable<IPAddress> ContactPoints
         {
             get
@@ -204,9 +229,16 @@ namespace Cassandra
             foreach (var addr in cnb.ContactPoints)
                 AddContactPoints(addr);
             WithPort(cnb.Port);
+            WithCompression(cnb.CompressionType);
+            WithDefaultKeyspace(cnb.Keyspace);
             return this;
         }
-        
+
+        public ClusterBuilder WithDefaultKeyspace(string defaultKeyspace)
+        {
+            this.defaultKeyspace = defaultKeyspace;
+            return this;
+        }
         /**
          * The port to use to connect to the Cassandra host.
          *
@@ -231,7 +263,7 @@ namespace Cassandra
          *
          * @see ProtocolOptions.Compression
          */
-        public ClusterBuilder withCompression(CompressionType compression)
+        public ClusterBuilder WithCompression(CompressionType compression)
         {
             this.compression = compression;
             return this;
@@ -442,6 +474,15 @@ namespace Cassandra
             return Cluster.BuildFrom(this);
         }
 
+        public string DefaultKeyspace
+        {
+            get { return defaultKeyspace; }
+        }
 
+
+        public CompressionType CompressionType
+        {
+            get { return compression; }
+        }
     }
 }

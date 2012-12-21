@@ -506,7 +506,7 @@ namespace Cassandra
             }
             abstract public void Begin(Session owner);
             abstract public CassandraServerException Process(Session owner, IAsyncResult ar, out object value);
-            abstract public void Complete(Session owner, object value, CassandraServerException exc = null);
+            abstract public void Complete(Session owner, object value, Exception exc = null);
         }
 
         void ExecConn(LongToken token, bool moveNext)
@@ -534,35 +534,42 @@ namespace Cassandra
 
         void ClbNoQuery(IAsyncResult ar)
         {
-            var token = ar.AsyncState as LongToken;
-            CassandraServerException exc;
-            object value;
-            exc = token.Process(this, ar, out value);
-            if (exc != null)
+                var token = ar.AsyncState as LongToken;
+            try
             {
-                var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.queryRetries);
-                if (decision == null)
+                CassandraServerException exc;
+                object value;
+                exc = token.Process(this, ar, out value);
+                if (exc != null)
                 {
-                    ExecConn(token, true);
-                }
-                else
-                {
-                    switch (decision.getType())
+                    var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.queryRetries);
+                    if (decision == null)
                     {
-                        case RetryDecision.RetryDecisionType.RETHROW:
-                            token.Complete(this, null, exc);
-                            return;
-                        case RetryDecision.RetryDecisionType.RETRY:
-                            token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
-                            token.queryRetries++;
-                            ExecConn(token, false);
-                            return;
-                        default:
-                            break;
+                        ExecConn(token, true);
+                    }
+                    else
+                    {
+                        switch (decision.getType())
+                        {
+                            case RetryDecision.RetryDecisionType.RETHROW:
+                                token.Complete(this, null, exc);
+                                return;
+                            case RetryDecision.RetryDecisionType.RETRY:
+                                token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
+                                token.queryRetries++;
+                                ExecConn(token, false);
+                                return;
+                            default:
+                                break;
+                        }
                     }
                 }
+                token.Complete(this, value);
             }
-            token.Complete(this,value);
+            catch (Exception ex)
+            {
+                token.Complete(this, null, ex);
+            }
         }
 
         #region SetKeyspace
@@ -581,7 +588,7 @@ namespace Cassandra
                 value = keyspace;
                 return exc;
             }
-            override public void Complete(Session owner, object value, CassandraServerException exc = null)
+            override public void Complete(Session owner, object value, Exception exc = null)
             {
                 var ar = longActionAc as AsyncResult<string>;
                 if (exc != null)
@@ -634,7 +641,7 @@ namespace Cassandra
                 value = rowset;
                 return exc;
             }
-            override public void Complete(Session owner, object value, CassandraServerException exc = null)
+            override public void Complete(Session owner, object value, Exception exc = null)
             {
                 CqlRowSet rowset = value as CqlRowSet;
                 var ar = longActionAc as AsyncResult<CqlRowSet>;
@@ -692,7 +699,7 @@ namespace Cassandra
                 value = new KeyValuePair<Metadata, byte[]>(metadata, id);
                 return exc;
             }
-            override public void Complete(Session owner, object value, CassandraServerException exc = null)
+            override public void Complete(Session owner, object value, Exception exc = null)
             {
                 KeyValuePair<Metadata, byte[]> kv = (KeyValuePair<Metadata, byte[]>)value;
                 var ar = longActionAc as AsyncResult<KeyValuePair<Metadata, byte[]>>;
@@ -752,7 +759,7 @@ namespace Cassandra
                 value = rowset;
                 return exc;
             }
-            override public void Complete(Session owner, object value, CassandraServerException exc = null)
+            override public void Complete(Session owner, object value, Exception exc = null)
             {
                 CqlRowSet rowset = value as CqlRowSet;
                 var ar = longActionAc as AsyncResult<CqlRowSet>;

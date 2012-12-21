@@ -6,18 +6,13 @@ using Cassandra;
 
 namespace Cassandra
 {
-    public class CassandraClusterException<ErrorInfoT> : CassandraServerException
+    public abstract class CassandraClusterException<ErrorInfoT> : CassandraServerException
     {
         public ErrorInfoT ErrorInfo;
         public CassandraClusterException(string Message, ErrorInfoT ErrorInfo)
             : base(Message)
         {
             this.ErrorInfo = ErrorInfo;
-        }
-
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return null;
         }
     }
 
@@ -29,11 +24,19 @@ namespace Cassandra
     public class CassandraClusterServerErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterServerErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
     public class CassandraClusterProtocolErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterProtocolErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
 
@@ -75,6 +78,10 @@ namespace Cassandra
     public class CassandraClusterTruncateException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterTruncateException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.retry(null);
+        }
     }
 
     public class CassandraClusterWriteTimeoutInfo
@@ -116,22 +123,39 @@ namespace Cassandra
     public class CassandraClusterSyntaxErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterSyntaxErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
 
     public class CassandraClusterUnauthorizedException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterUnauthorizedException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
     public class CassandraClusterInvalidException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterInvalidException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
     public class CassandraClusterConfigErrorException : CassandraClusterException<CassandraClusterEmptyErrorInfo>
     {
         public CassandraClusterConfigErrorException(string Message) : base(Message, CassandraClusterEmptyErrorInfo.Value) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
     public class CassandraClusterAlreadyExistsInfo
@@ -144,6 +168,10 @@ namespace Cassandra
     {
         public CassandraClusterAlreadyExistsException(string Message, CassandraClusterAlreadyExistsInfo Info) :
             base(Message, Info) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 
     public class CassandraClusterUnpreparedInfo
@@ -155,6 +183,10 @@ namespace Cassandra
     {
         public CassandraClusterUnpreparedException(string Message, CassandraClusterUnpreparedInfo Info) :
             base(Message, Info) { }
+        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
+        {
+            return RetryDecision.rethrow();
+        }
     }
 }
 

@@ -32,7 +32,7 @@ namespace Cassandra
             : base(message, innerException) { }
     }
 
-    public class CassandraServerException : CassandraException
+    public abstract class CassandraServerException : CassandraException
     {
         public CassandraServerException(string message)
             : base(message) { }
@@ -40,10 +40,7 @@ namespace Cassandra
         public CassandraServerException(string message, Exception innerException)
             : base(message, innerException) { }
 
-        public virtual RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries);
     }
 
     public class CassandraClientConfigurationException : CassandraClientException
