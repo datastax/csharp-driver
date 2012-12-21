@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace Cassandra
 {
-    public enum CassandraCompressionType { NoCompression, Snappy }
+    public enum CompressionType { NoCompression, Snappy }
 }
 
 namespace Cassandra.Native
@@ -60,23 +60,23 @@ namespace Cassandra.Native
 
         AuthInfoProvider authInfoProvider;
 
-        CassandraSession owner;
+        Session owner;
 
         void hostIsDown()
         {
             owner.hostIsDown(serverAddress);
         }
 
-        internal CassandraConnection(CassandraSession owner, IPAddress serverAddress, int port, AuthInfoProvider authInfoProvider = null, CassandraCompressionType compression = CassandraCompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
+        internal CassandraConnection(Session owner, IPAddress serverAddress, int port, AuthInfoProvider authInfoProvider = null, CompressionType compression = CompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
         {
             this.owner = owner;
             bufferingMode = null;
             switch (compression)
             {
-                case CassandraCompressionType.Snappy:
+                case CompressionType.Snappy:
                     bufferingMode = new FrameBuffering();
                     break;
-                case CassandraCompressionType.NoCompression:
+                case CompressionType.NoCompression:
                     bufferingMode = noBufferingIfPossible ? new NoBuffering() : new FrameBuffering();
                     break;
                 default:
@@ -84,7 +84,7 @@ namespace Cassandra.Native
             }
 
             this.authInfoProvider = authInfoProvider;
-            if (compression == CassandraCompressionType.Snappy)
+            if (compression == CompressionType.Snappy)
             {
                 startupOptions.Add("COMPRESSION", "snappy");
                 compressor = new SnappyProtoBufCompressor();

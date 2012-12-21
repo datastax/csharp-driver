@@ -8,15 +8,15 @@ namespace Cassandra.Native
 {
     internal class ControlConnection
     {
-        CassandraSession session;
-        CassandraSession owner;
+        Session session;
+        Session owner;
         CassandraClusterHost current = null;
-        public ControlConnection(CassandraSession owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CassandraCompressionType compression = CassandraCompressionType.NoCompression,
+        public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
             int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
         {
             this.owner = owner;
             this.reconnectionTimer = new Timer(reconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
-            session = new CassandraSession(clusterEndpoints, port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
+            session = new Session(clusterEndpoints, port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
             metadata = new ClusterMetadata(owner.Hosts);
             go(true);
         }
@@ -161,7 +161,7 @@ namespace Cassandra.Native
             Dictionary<IPAddress, DictSet<string>> tokenMap = new Dictionary<IPAddress, DictSet<string>>();
             string partitioner = null;
 
-            using (var rowset = session.Query(SELECT_LOCAL, CqlConsistencyLevel.DEFAULT))
+            using (var rowset = session.Query(SELECT_LOCAL, ConsistencyLevel.DEFAULT))
             {
                 // Update cluster name, DC and rack for the one node we are connected to
                 foreach (var localRow in rowset.GetRows())
@@ -193,7 +193,7 @@ namespace Cassandra.Native
             List<string> racks = new List<string>();
             List<DictSet<string>> allTokens = new List<DictSet<string>>();
 
-            using (var rowset = session.Query(SELECT_PEERS, CqlConsistencyLevel.DEFAULT))
+            using (var rowset = session.Query(SELECT_PEERS, ConsistencyLevel.DEFAULT))
             {
                 foreach (var row in rowset.GetRows())
                 {

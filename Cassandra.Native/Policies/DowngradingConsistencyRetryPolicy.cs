@@ -63,11 +63,11 @@ namespace Cassandra
         private RetryDecision maxLikelyToWorkCL(int knownOk)
         {
             if (knownOk >= 3)
-                return RetryDecision.retry(CqlConsistencyLevel.THREE);
+                return RetryDecision.retry(ConsistencyLevel.THREE);
             else if (knownOk >= 2)
-                return RetryDecision.retry(CqlConsistencyLevel.TWO);
+                return RetryDecision.retry(ConsistencyLevel.TWO);
             else if (knownOk >= 1)
-                return RetryDecision.retry(CqlConsistencyLevel.ONE);
+                return RetryDecision.retry(ConsistencyLevel.ONE);
             else
                 return RetryDecision.rethrow();
         }
@@ -92,7 +92,7 @@ namespace Cassandra
          * @param nbRetry the number of retry already performed for this operation.
          * @return a RetryDecision as defined above.
          */
-        public RetryDecision OnReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.rethrow();
@@ -128,7 +128,7 @@ namespace Cassandra
          * @param nbRetry the number of retry already performed for this operation.
          * @return a RetryDecision as defined above.
          */
-        public RetryDecision OnWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.rethrow();
@@ -168,7 +168,7 @@ namespace Cassandra
          * @param nbRetry the number of retry already performed for this operation.
          * @return a RetryDecision as defined above.
          */
-        public RetryDecision OnUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.rethrow();

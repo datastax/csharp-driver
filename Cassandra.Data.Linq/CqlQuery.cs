@@ -8,49 +8,49 @@ using System.Collections;
 namespace Cassandra.Data
 {
 
-    public class CqlExecutable
-    {
-        List<string> cqlCommands = new List<string>();
-        ICqlTable table;
-        internal CqlExecutable(string cql, ICqlTable table)
-        {
-            this.table = table;
-            cqlCommands.Add(cql);
-        }
+    //public class CqlExecutable
+    //{
+    //    List<string> cqlCommands = new List<string>();
+    //    ICqlTable table;
+    //    internal CqlExecutable(string cql, ICqlTable table)
+    //    {
+    //        this.table = table;
+    //        cqlCommands.Add(cql);
+    //    }
         
-        internal CqlExecutable(ICqlTable table)
-        {
-            this.table = table;
-        }
+    //    internal CqlExecutable(ICqlTable table)
+    //    {
+    //        this.table = table;
+    //    }
 
-        internal void AddCql(string cql)
-        {
-            cqlCommands.Add(cql);
-        }
+    //    internal void AddCql(string cql)
+    //    {
+    //        cqlCommands.Add(cql);
+    //    }
 
-        public void Execute()
-        {
-            foreach(var cql in cqlCommands)
-                table.GetContext().ExecuteWriteQuery(cql);
-        }
-    }
+    //    public void Execute()
+    //    {
+    //        foreach(var cql in cqlCommands)
+    //            table.GetContext().ExecuteWriteQuery(cql);
+    //    }
+    //}
 
-    public class CqlScalar<T> 
+    public class CqlScalar<T>
     {
         private readonly Expression expression;
         private readonly IQueryProvider table;
 
         internal CqlScalar(Expression expression, IQueryProvider table)
-		{
-			this.expression = expression;
+        {
+            this.expression = expression;
             this.table = table;
-		}
+        }
 
         public System.Linq.Expressions.Expression Expression
         {
             get { return expression; }
         }
-        
+
         public T Execute()
         {
             CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
@@ -69,7 +69,7 @@ namespace Cassandra.Data
                 var rows = outp.GetRows();
                 foreach (var row in rows)
                 {
-                    return (T) row[0];
+                    return (T)row[0];
                 }
             }
 

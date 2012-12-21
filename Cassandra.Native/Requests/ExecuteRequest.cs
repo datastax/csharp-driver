@@ -12,9 +12,9 @@ namespace Cassandra.Native
         object[] values;
         byte[] id;
         Metadata Metadata;
-        CqlConsistencyLevel consistency;
+        ConsistencyLevel consistency;
 
-        public ExecuteRequest(int streamId, byte[] Id, Metadata Metadata, object[] values, CqlConsistencyLevel consistency)
+        public ExecuteRequest(int streamId, byte[] Id, Metadata Metadata, object[] values, ConsistencyLevel consistency)
         {
             this.streamId = streamId;
             this.values = values;

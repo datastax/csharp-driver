@@ -32,7 +32,7 @@ namespace Cassandra
           * @param cluster the {@code Cluster} instance for which the policy is created.
           * @param hosts the initial hosts to use.
           */
-        void Initialize(ICassandraSessionInfoProvider infoProvider);
+        void Initialize(ISessionInfoProvider infoProvider);
 
         /**
          * Returns the distance assigned by this policy to the provided host.

@@ -30,7 +30,7 @@ namespace Cassandra
     public class TokenAwarePolicy : LoadBalancingPolicy
     {
 
-        private ICassandraSessionInfoProvider infoProvider;
+        private ISessionInfoProvider infoProvider;
         private readonly LoadBalancingPolicy childPolicy;
 
         /**
@@ -46,7 +46,7 @@ namespace Cassandra
         }
 
 
-        public void Initialize(ICassandraSessionInfoProvider infoProvider)
+        public void Initialize(ISessionInfoProvider infoProvider)
         {
             this.infoProvider = infoProvider;
             childPolicy.Initialize(infoProvider);

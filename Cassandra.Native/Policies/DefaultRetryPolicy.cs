@@ -48,7 +48,7 @@ namespace Cassandra
          * @return {@code RetryDecision.retry(cl)} if no retry attempt has yet been tried and
          * {@code receivedResponses >= requiredResponses && !dataRetrieved}, {@code RetryDecision.rethrow()} otherwise.
          */
-        public RetryDecision OnReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.rethrow();
@@ -79,7 +79,7 @@ namespace Cassandra
          * @return {@code RetryDecision.retry(cl)} if no retry attempt has yet been tried and
          * {@code writeType == WriteType.BATCH_LOG}, {@code RetryDecision.rethrow()} otherwise.
          */
-        public RetryDecision OnWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.rethrow();
@@ -103,7 +103,7 @@ namespace Cassandra
          * @param nbRetry the number of retry already performed for this operation.
          * @return {@code RetryDecision.rethrow()}.
          */
-        public RetryDecision OnUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.rethrow();
         }

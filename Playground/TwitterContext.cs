@@ -8,9 +8,9 @@ using Cassandra.Native;
 
 namespace Playground
 {
-    public class TwitterContext : CqlContext
+    public class TwitterContext : Context
     {
-        public TwitterContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
+        public TwitterContext(Session session, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
             : base(session, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel)
         {
             AddTable<Tweet>();

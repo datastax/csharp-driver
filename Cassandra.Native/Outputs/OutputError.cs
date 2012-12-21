@@ -39,7 +39,7 @@ namespace Cassandra
 
     public class CassandraClusterUnavailableInfo
     {
-        public CqlConsistencyLevel ConsistencyLevel;
+        public ConsistencyLevel ConsistencyLevel;
         public int Required;
         public int Alive;
     };
@@ -79,7 +79,7 @@ namespace Cassandra
 
     public class CassandraClusterWriteTimeoutInfo
     {
-        public CqlConsistencyLevel ConsistencyLevel;
+        public ConsistencyLevel ConsistencyLevel;
         public int Received;
         public int BlockFor;
         public string WriteType;
@@ -97,7 +97,7 @@ namespace Cassandra
 
     public class CassandraClusterReadTimeoutInfo
     {
-        public CqlConsistencyLevel ConsistencyLevel;
+        public ConsistencyLevel ConsistencyLevel;
         public int Received;
         public int BlockFor;
         public bool IsDataPresent;
@@ -231,7 +231,7 @@ namespace Cassandra.Native
         CassandraClusterUnavailableInfo info = new CassandraClusterUnavailableInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
+            info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
             info.Required = cb.ReadInt32();
             info.Alive = cb.ReadInt32();
         }
@@ -271,7 +271,7 @@ namespace Cassandra.Native
 
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
+            info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
             info.Received = cb.ReadInt32();
             info.BlockFor = cb.ReadInt32();
             info.WriteType = cb.ReadString();
@@ -288,7 +288,7 @@ namespace Cassandra.Native
         CassandraClusterReadTimeoutInfo info = new CassandraClusterReadTimeoutInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.ConsistencyLevel = (CqlConsistencyLevel)cb.ReadInt16();
+            info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
             info.Received = cb.ReadInt32();
             info.BlockFor = cb.ReadInt32();
             info.IsDataPresent = cb.ReadByte() != 0;

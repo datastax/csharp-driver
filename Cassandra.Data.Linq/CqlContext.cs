@@ -30,18 +30,18 @@ namespace Cassandra.Data
     {
     }
 
-    public class CqlContext : IDisposable
+    public class Context : IDisposable
     {
-        internal CassandraSession ManagedConnection = null;
+        internal Session ManagedConnection = null;
 
-        CqlConsistencyLevel ReadCqlConsistencyLevel;
-        CqlConsistencyLevel WriteCqlConsistencyLevel;
+        ConsistencyLevel ReadCqlConsistencyLevel;
+        ConsistencyLevel WriteCqlConsistencyLevel;
 
         bool releaseOnClose;
         string keyspaceName;
         public string Keyspace { get { return keyspaceName; } }
 
-        void Initialize(CassandraSession cqlConnection, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose)
+        void Initialize(Session cqlConnection, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose)
         {
             this.ManagedConnection = cqlConnection;
             this.releaseOnClose = releaseOnClose;
@@ -49,7 +49,7 @@ namespace Cassandra.Data
             this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
             this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
         }
-        public CqlContext(CassandraSession cqlSession, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose = true)
+        public Context(Session cqlSession, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose = true)
         {
             Initialize(cqlSession, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel, releaseOnClose);
         }
@@ -131,9 +131,9 @@ namespace Cassandra.Data
                 throw new InvalidOperationException();
         }
 
-        public void SaveChanges(CqlSaveChangesMode mode = CqlSaveChangesMode.OneByOne)
+        public void SaveChanges(SaveChangesMode mode = SaveChangesMode.OneByOne)
         {
-            if (mode == CqlSaveChangesMode.OneByOne)
+            if (mode == SaveChangesMode.OneByOne)
             {
                 foreach (var table in tables)                    
                     table.Value.GetMutationTracker().SaveChangesOneByOne(this, table.Key);

@@ -12,23 +12,23 @@ namespace Cassandra.Data
     {
         Type GetEntityType();
         string GetTableName();
-        CqlContext GetContext();
+        Context GetContext();
         ICqlMutationTracker GetMutationTracker();
         bool isCounterTable { get;}        
     }
 
-    public enum CqlEntityUpdateMode { ModifiedOnly, AllOrNone }
-    public enum CqlSaveChangesMode { Batch, OneByOne }
-    public enum CqlEntityTrackingMode { KeepAtachedAfterSave, DetachAfterSave }
+    public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
+    public enum SaveChangesMode { Batch, OneByOne }
+    public enum EntityTrackingMode { KeepAtachedAfterSave, DetachAfterSave }
 
     public class CqlTable<TEntity> : CqlQuery<TEntity>, ICqlTable, IQueryProvider
     {
-        CqlContext context;
+        Context context;
         string tableName;
         public bool isCounterTable { get { return _isCounterTable; } }
         private bool _isCounterTable = false;     
 
-        internal CqlTable(CqlContext context, string tableName)
+        internal CqlTable(Context context, string tableName)
         {
             this.context = context;
             this.tableName = tableName;
@@ -63,7 +63,7 @@ namespace Cassandra.Data
             throw new NotImplementedException();
         }
 
-        public CqlContext GetContext()
+        public Context GetContext()
         {
             return context;
         }
@@ -75,7 +75,7 @@ namespace Cassandra.Data
 
         CqlMutationTracker<TEntity> mutationTracker = new CqlMutationTracker<TEntity>();
 
-        public void Attach(TEntity entity, CqlEntityUpdateMode updmod = CqlEntityUpdateMode.AllOrNone, CqlEntityTrackingMode trmod = CqlEntityTrackingMode.KeepAtachedAfterSave)
+        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAtachedAfterSave)
         {
             mutationTracker.Attach(entity, updmod, trmod);
         }
@@ -90,7 +90,7 @@ namespace Cassandra.Data
             mutationTracker.Delete(entity);
         }
 
-        public void AddNew(TEntity entity, CqlEntityTrackingMode trmod = CqlEntityTrackingMode.DetachAfterSave)
+        public void AddNew(TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
         {
             mutationTracker.AddNew(entity, trmod);
         }

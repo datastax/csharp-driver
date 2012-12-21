@@ -26,7 +26,7 @@ namespace Cassandra
 
         private readonly string localDc;
         private readonly int usedHostsPerRemoteDc;
-        ICassandraSessionInfoProvider infoProvider;
+        ISessionInfoProvider infoProvider;
 
         /**
          * Creates a new datacenter aware round robin policy given the name of
@@ -71,7 +71,7 @@ namespace Cassandra
         }
 
 
-        public void Initialize(ICassandraSessionInfoProvider infoProvider)
+        public void Initialize(ISessionInfoProvider infoProvider)
         {
             this.infoProvider = infoProvider;
         }

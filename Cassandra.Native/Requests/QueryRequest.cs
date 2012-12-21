@@ -11,9 +11,9 @@ namespace Cassandra.Native
 
         int streamId;
         string cqlQuery;
-        CqlConsistencyLevel consistency;
+        ConsistencyLevel consistency;
 
-        public QueryRequest(int streamId, string cqlQuery, CqlConsistencyLevel consistency)
+        public QueryRequest(int streamId, string cqlQuery, ConsistencyLevel consistency)
         {
             this.streamId = streamId;
             this.cqlQuery = cqlQuery;

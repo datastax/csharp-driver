@@ -25,10 +25,10 @@ namespace Cassandra
      */
         public RoundRobinPolicy() { }
 
-        ICassandraSessionInfoProvider infoProvider;
+        ISessionInfoProvider infoProvider;
         int startidx = -1;
 
-        public void Initialize(ICassandraSessionInfoProvider infoProvider)
+        public void Initialize(ISessionInfoProvider infoProvider)
         {
             this.infoProvider = infoProvider;
         }

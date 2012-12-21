@@ -25,7 +25,7 @@ namespace Cassandra
      * topology of the cluster. Using the connection, the driver will discover all
      * the nodes composing the cluster as well as new nodes joining the cluster.
      */
-    public class CassandraCluster
+    public class Cluster
     {
         public const int DEFAULT_PORT = 9042;
 
@@ -38,12 +38,12 @@ namespace Cassandra
         PoolingOptions poolingOptions = new PoolingOptions();
         public PoolingOptions PoolingOptions { get { return poolingOptions; } }
 
-        CassandraCompressionType compression = CassandraCompressionType.NoCompression;
-        public CassandraCompressionType Compression { get { return compression; } }
+        CompressionType compression = CompressionType.NoCompression;
+        public CompressionType Compression { get { return compression; } }
 
-        private CassandraCluster(IEnumerable<IPAddress> ContactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CassandraCompressionType compression = CassandraCompressionType.NoCompression)
+        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression)
         {
-            this.contactPoints = ContactPoints;
+            this.contactPoints = contactPoints;
             this.port = port;
             this.policies = policies;
             this.credentialsDelegate = credentialsDelegate;
@@ -70,13 +70,13 @@ namespace Cassandra
          * @throws AuthenticationException if while contacting the initial
          * contact points an authencation error occurs.
          */
-        public static CassandraCluster BuildFrom(Initializer initializer)
+        public static Cluster BuildFrom(Initializer initializer)
         {
             IEnumerable<IPAddress> contactPoints = initializer.ContactPoints;
             //if (contactPoints.)
             //    throw new IllegalArgumentException("Cannot build a cluster without contact points");
 
-            return new CassandraCluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible);
+            return new Cluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible);
         }
 
         /**
@@ -86,11 +86,11 @@ namespace Cassandra
  *
  * @return the new cluster CassandraClusterBuilder.
  */
-        public static CassandraClusterBuilder Builder
+        public static ClusterBuilder Builder
         {
             get
             {
-                return new CassandraClusterBuilder();
+                return new ClusterBuilder();
             }
         }
 
@@ -99,7 +99,7 @@ namespace Cassandra
          *
          * @return a new session on this cluster sets to no keyspace.
          */
-        public CassandraSession Connect()
+        public Session Connect()
         {
             return Connect("");
         }
@@ -115,9 +115,9 @@ namespace Cassandra
          * @throws NoHostAvailableException if no host can be contacted to set the
          * {@code keyspace}.
          */
-        public CassandraSession Connect(string keyspace)
+        public Session Connect(string keyspace)
         {
-            return new CassandraSession(
+            return new Session(
                 clusterEndpoints: contactPoints,
                 port: port,
                 keyspace: keyspace,
@@ -176,13 +176,13 @@ namespace Cassandra
     /**
      * Helper class to build {@link Cluster} instances.
      */
-    public class CassandraClusterBuilder : Initializer
+    public class ClusterBuilder : Initializer
     {
 
         private readonly List<IPAddress> addresses = new List<IPAddress>();
-        private int port = CassandraCluster.DEFAULT_PORT;
+        private int port = Cluster.DEFAULT_PORT;
         private AuthInfoProvider authProvider = null;
-        private CassandraCompressionType compression = CassandraCompressionType.NoCompression;
+        private CompressionType compression = CompressionType.NoCompression;
 
         private LoadBalancingPolicy loadBalancingPolicy;
         private ReconnectionPolicy reconnectionPolicy;
@@ -197,9 +197,9 @@ namespace Cassandra
             }
         }
 
-        public CassandraClusterBuilder WithConnectionString(string connectionString)
+        public ClusterBuilder WithConnectionString(string connectionString)
         {
-            CqlConnectionStringBuilder cnb = new CqlConnectionStringBuilder(connectionString);
+            ConnectionStringBuilder cnb = new ConnectionStringBuilder(connectionString);
 
             foreach (var addr in cnb.ContactPoints)
                 AddContactPoints(addr);
@@ -216,7 +216,7 @@ namespace Cassandra
          * @param port the port to set.
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder WithPort(int port)
+        public ClusterBuilder WithPort(int port)
         {
             this.port = port;
             return this;
@@ -231,13 +231,13 @@ namespace Cassandra
          *
          * @see ProtocolOptions.Compression
          */
-        public CassandraClusterBuilder withCompression(CassandraCompressionType compression)
+        public ClusterBuilder withCompression(CompressionType compression)
         {
             this.compression = compression;
             return this;
         }
 
-        public CassandraClusterBuilder OmmitBufferingIfPossible()
+        public ClusterBuilder OmmitBufferingIfPossible()
         {
             this.noBufferingIfPossible = true;
             return this;
@@ -274,7 +274,7 @@ namespace Cassandra
          * @throws SecurityException if a security manager is present and
          * permission to resolve the host name is denied.
          */
-        public CassandraClusterBuilder AddContactPoint(string address)
+        public ClusterBuilder AddContactPoint(string address)
         {
             this.addresses.Add(IPAddress.Parse(address));
             return this;
@@ -296,7 +296,7 @@ namespace Cassandra
          *
          * @see CassandraClusterBuilder#addContactPoint
          */
-        public CassandraClusterBuilder AddContactPoints(params string[] addresses)
+        public ClusterBuilder AddContactPoints(params string[] addresses)
         {
             foreach (string address in addresses)
                 AddContactPoint(address);
@@ -314,7 +314,7 @@ namespace Cassandra
          *
          * @see CassandraClusterBuilder#addContactPoint
          */
-        public CassandraClusterBuilder AddContactPoints(params IPAddress[] addresses)
+        public ClusterBuilder AddContactPoints(params IPAddress[] addresses)
         {
             foreach (IPAddress address in addresses)
                 this.addresses.Add(address);
@@ -330,7 +330,7 @@ namespace Cassandra
          * @param policy the load balancing policy to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder WithLoadBalancingPolicy(LoadBalancingPolicy policy)
+        public ClusterBuilder WithLoadBalancingPolicy(LoadBalancingPolicy policy)
         {
             this.loadBalancingPolicy = policy;
             return this;
@@ -345,7 +345,7 @@ namespace Cassandra
          * @param policy the reconnection policy to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder WithReconnectionPolicy(ReconnectionPolicy policy)
+        public ClusterBuilder WithReconnectionPolicy(ReconnectionPolicy policy)
         {
             this.reconnectionPolicy = policy;
             return this;
@@ -360,7 +360,7 @@ namespace Cassandra
          * @param policy the retry policy to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder WithRetryPolicy(RetryPolicy policy)
+        public ClusterBuilder WithRetryPolicy(RetryPolicy policy)
         {
             this.retryPolicy = policy;
             return this;
@@ -396,7 +396,7 @@ namespace Cassandra
          * @param authInfoProvider the authentication info provider to use
          * @return this CassandraClusterBuilder
          */
-        public CassandraClusterBuilder WithAuthInfoProvider(AuthInfoProvider authInfoProvider)
+        public ClusterBuilder WithAuthInfoProvider(AuthInfoProvider authInfoProvider)
         {
             this.authProvider = authInfoProvider;
             return this;
@@ -437,9 +437,9 @@ namespace Cassandra
          * @throws AuthenticationException if while contacting the initial
          * contact points an authencation error occurs.
          */
-        public CassandraCluster Build()
+        public Cluster Build()
         {
-            return CassandraCluster.BuildFrom(this);
+            return Cluster.BuildFrom(this);
         }
 
 

@@ -18,11 +18,11 @@ namespace MyUTExt
     public class CommonBasicTests : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression;
-        CassandraCompressionType Compression
+        CompressionType Compression
         {
             get
             {
-                return _compression ? CassandraCompressionType.Snappy : CassandraCompressionType.NoCompression;
+                return _compression ? CompressionType.Snappy : CompressionType.NoCompression;
             }
         }
 
@@ -33,16 +33,16 @@ namespace MyUTExt
             this._compression = compression;
         }
 
-        CassandraSession Session;
+        Session Session;
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");                       
             //            List<IPEndPoint> clusterNodes = new List<IPEndPoint>();            
 
-            var clusterb = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             if (_compression)
-                clusterb.withCompression(CassandraCompressionType.Snappy);
+                clusterb.withCompression(CompressionType.Snappy);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
             //            Session = new CassandraSession(clusterNodes, this.Keyspace, this.Compression, Timeout.Infinite);
@@ -111,7 +111,7 @@ namespace MyUTExt
                 return col.ToString();
         }
 
-        public void ExecuteSyncQuery(CassandraSession session, string query, List<object[]> expectedValues = null, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, string messageInstead = null)
+        public void ExecuteSyncQuery(Session session, string query, List<object[]> expectedValues = null, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -161,7 +161,7 @@ namespace MyUTExt
         }
 
 
-        public void ExecuteSyncNonQuery(CassandraSession session, string query, string messageInstead = null, CqlConsistencyLevel consistency= CqlConsistencyLevel.DEFAULT)
+        public void ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel consistency= ConsistencyLevel.DEFAULT)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -173,7 +173,7 @@ namespace MyUTExt
         }
 
 
-        public void PrepareQuery(CassandraSession session, string query, out byte[] preparedID, out Metadata metadata, string messageInstead = null)
+        public void PrepareQuery(Session session, string query, out byte[] preparedID, out Metadata metadata, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -185,7 +185,7 @@ namespace MyUTExt
             Console.WriteLine("CQL> (OK).");             
         }
 
-        public void ExecutePreparedQuery(CassandraSession session, byte[] preparedID, Metadata metadata, object[] values, CqlConsistencyLevel consistency = CqlConsistencyLevel.DEFAULT, string messageInstead = null)
+        public void ExecutePreparedQuery(Session session, byte[] preparedID, Metadata metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -504,7 +504,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
                 
-            CqlRowSet rs = Session.Query(string.Format("SELECT * FROM {0};", tableName),CqlConsistencyLevel.DEFAULT);
+            CqlRowSet rs = Session.Query(string.Format("SELECT * FROM {0};", tableName),ConsistencyLevel.DEFAULT);
 
             using (rs)
             {

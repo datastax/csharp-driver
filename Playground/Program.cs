@@ -18,7 +18,7 @@ namespace Playground
             Console.WriteLine("Connecting, setting keyspace and creating tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            CassandraCluster cluster = CassandraCluster.Builder.AddContactPoint("137.116.194.96").Build();
+            Cluster cluster = Cluster.Builder.AddContactPoint("137.116.194.96").Build();
 
             var session = cluster.Connect();
 
@@ -34,7 +34,7 @@ namespace Playground
                 session.ChangeKeyspace(keyspaceName);
             }
 
-            TwitterContext twitterContext = new TwitterContext(session, CqlConsistencyLevel.ONE, CqlConsistencyLevel.ONE);
+            TwitterContext twitterContext = new TwitterContext(session, ConsistencyLevel.ONE, ConsistencyLevel.ONE);
             var tweetsTable = twitterContext.GetTable<Tweet>();
             var followersTable = twitterContext.GetTable<Followers>();
             var followedTweetsTable = twitterContext.GetTable<FollowedTweet>();
@@ -59,13 +59,13 @@ namespace Playground
                 
                 //We will also add authors to table with statistics: 
                 var statEnt = new Statistics() { author_id = author_ID };
-                statisticsTable.Attach(statEnt, CqlEntityUpdateMode.ModifiedOnly, CqlEntityTrackingMode.KeepAtachedAfterSave);                
+                statisticsTable.Attach(statEnt, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAtachedAfterSave);                
                 
                 //And increment number of followers for each of them: 
                 followerEnt.followers.ForEach(folo => statEnt.followers_count += 1);
                 StatisticsLocal.Add(statEnt);
             }
-            twitterContext.SaveChanges(CqlSaveChangesMode.Batch);            
+            twitterContext.SaveChanges(SaveChangesMode.Batch);            
             Console.WriteLine("Done!");
 
             //Now every author will add a single tweet:
@@ -94,7 +94,7 @@ namespace Playground
                         }
             }
 
-            twitterContext.SaveChanges(CqlSaveChangesMode.Batch);            
+            twitterContext.SaveChanges(SaveChangesMode.Batch);            
             Console.WriteLine("Done!");
 
             string separator = Environment.NewLine + "--------------------------------------------------------------------" + Environment.NewLine;
@@ -139,7 +139,7 @@ namespace Playground
                 TweetsLocal.Where(twt => twt.tweet_id == tweet.tweet_id).First().body += ".";
                 tweet.body += ".";
             }            
-            twitterContext.SaveChanges(CqlSaveChangesMode.Batch);
+            twitterContext.SaveChanges(SaveChangesMode.Batch);
         
                         
             //Deleting all tweets from "Tweet" table
@@ -148,7 +148,7 @@ namespace Playground
                 tweetsTable.Delete(ent);
                 StatisticsLocal.Where(auth => auth.author_id == ent.author_id).First().tweets_count -= 1; 
             }
-            twitterContext.SaveChanges(CqlSaveChangesMode.Batch);
+            twitterContext.SaveChanges(SaveChangesMode.Batch);
 
             //Statistics after deletion of tweets:
             Console.WriteLine(separator + "After deletion of all tweets our \"Statistics\" table looks like:" + separator);

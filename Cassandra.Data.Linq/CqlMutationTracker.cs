@@ -9,7 +9,7 @@ namespace Cassandra.Data
 {
     public interface ICqlMutationTracker
     {
-        void SaveChangesOneByOne(CqlContext context, string tablename);
+        void SaveChangesOneByOne(Context context, string tablename);
         void AppendChangesToBatch(StringBuilder batchScript, string tablename);
         void BatchCompleted();
     }
@@ -86,13 +86,13 @@ namespace Cassandra.Data
         {
             public TEntity Entity;
             public MutationType MutationType;
-            public CqlEntityUpdateMode CqlEntityUpdateMode = CqlEntityUpdateMode.AllOrNone;
-            public CqlEntityTrackingMode CqlEntityTrackingMode = CqlEntityTrackingMode.DetachAfterSave;
+            public EntityUpdateMode CqlEntityUpdateMode = EntityUpdateMode.AllOrNone;
+            public EntityTrackingMode CqlEntityTrackingMode = EntityTrackingMode.DetachAfterSave;
         }
 
         Dictionary<TEntity, TableEntry<TEntity>> table = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
 
-        public void Attach(TEntity entity, CqlEntityUpdateMode updmod, CqlEntityTrackingMode trmod)
+        public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
         {
             if (table.ContainsKey(entity))
             {
@@ -117,7 +117,7 @@ namespace Cassandra.Data
                 table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Delete });
         }
 
-        public void AddNew(TEntity entity,CqlEntityTrackingMode trmod)
+        public void AddNew(TEntity entity,EntityTrackingMode trmod)
         {
             if (table.ContainsKey(entity))
             {
@@ -128,7 +128,7 @@ namespace Cassandra.Data
                 table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
         }
 
-        public void SaveChangesOneByOne(CqlContext context, string tablename)
+        public void SaveChangesOneByOne(Context context, string tablename)
         {
             List<Action> commitActions = new List<Action>();
             try
@@ -144,7 +144,7 @@ namespace Cassandra.Data
                         cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                     else if (kv.Value.MutationType == MutationType.None)
                     {
-                        if (kv.Value.CqlEntityUpdateMode == CqlEntityUpdateMode.AllOrNone)
+                        if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
                             cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, true);
                         else
                             cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, false);
@@ -159,7 +159,7 @@ namespace Cassandra.Data
                     commitActions.Add(() =>
                     {
                         table.Remove(nkv.Key);
-                        if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != CqlEntityTrackingMode.DetachAfterSave)
+                        if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
                             table.Add(Clone(nkv.Value.Entity), new TableEntry<TEntity>() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
                     });
                 }
@@ -187,7 +187,7 @@ namespace Cassandra.Data
                     cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                 else if (kv.Value.MutationType == MutationType.None)
                 {
-                    if (kv.Value.CqlEntityUpdateMode == CqlEntityUpdateMode.AllOrNone)
+                    if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
                         cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, true);
                     else
                         cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, false);

@@ -29,12 +29,12 @@ namespace Cassandra
             this.policy = policy;
         }
 
-        private static CqlConsistencyLevel CL(CqlConsistencyLevel cl, RetryDecision decision)
+        private static ConsistencyLevel CL(ConsistencyLevel cl, RetryDecision decision)
         {
             return decision.getRetryConsistencyLevel() ?? cl;
         }
 
-        public RetryDecision OnReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             RetryDecision decision = policy.OnReadTimeout(cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
             switch (decision.getType())
@@ -51,7 +51,7 @@ namespace Cassandra
             return decision;
         }
 
-        public RetryDecision OnWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             RetryDecision decision = policy.OnWriteTimeout(cl, writeType, requiredAcks, receivedAcks, nbRetry);
             switch (decision.getType())
@@ -68,7 +68,7 @@ namespace Cassandra
             return decision;
         }
 
-        public RetryDecision OnUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             RetryDecision decision = policy.OnUnavailable(cl, requiredReplica, aliveReplica, nbRetry);
             switch (decision.getType())

@@ -8,7 +8,7 @@ namespace Cassandra.Native
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, object owner, CqlConsistencyLevel consistency)
+        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, object owner, ConsistencyLevel consistency)
         {
             return BeginJob(callback, state, owner, "QUERY", new Action<int>((streamId) =>
             {
@@ -29,7 +29,7 @@ namespace Cassandra.Native
             return AsyncResult<IOutput>.End(result, owner, "QUERY");
         }
 
-        public IOutput Query(string cqlQuery, CqlConsistencyLevel consistency)
+        public IOutput Query(string cqlQuery, ConsistencyLevel consistency)
         {
             var r = BeginQuery(cqlQuery, null, null, this, consistency);
             return EndQuery(r, this);

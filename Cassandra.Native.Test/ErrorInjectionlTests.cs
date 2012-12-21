@@ -31,11 +31,11 @@ namespace Cassandra.Native.Test
     public class ErrrorInjectionTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;
-        CassandraCompressionType Compression
+        CompressionType Compression
         {
             get
             {
-                return _compression ? CassandraCompressionType.Snappy : CassandraCompressionType.NoCompression;
+                return _compression ? CompressionType.Snappy : CompressionType.NoCompression;
             }
         }
 
@@ -44,7 +44,7 @@ namespace Cassandra.Native.Test
             _compression = compression;
         }
 
-        CassandraSession Session;
+        Session Session;
         string Keyspace = "";
         IPAddress serverAddress;
 
@@ -52,9 +52,9 @@ namespace Cassandra.Native.Test
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var clusterb = CassandraCluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             if (_compression)
-                clusterb.withCompression(CassandraCompressionType.Snappy);
+                clusterb.withCompression(CompressionType.Snappy);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
 
@@ -76,7 +76,7 @@ namespace Cassandra.Native.Test
         [Fact]
         public void ParallelInsertTest()
         {
-            Console.WriteLine("Compression is:"+(Compression== CassandraCompressionType.Snappy?"SNAPPY":"OFF"));
+            Console.WriteLine("Compression is:"+(Compression== CompressionType.Snappy?"SNAPPY":"OFF"));
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 

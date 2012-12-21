@@ -33,7 +33,7 @@ namespace Cassandra
             * a {@link com.datastax.driver.core.exceptions.ReadTimeoutException} will
             * be thrown for the operation.
             */
-        RetryDecision OnReadTimeout(CqlConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry);
+        RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry);
 
         /**
          * Defines whether to retry and at which consistency level on a write timeout.
@@ -49,7 +49,7 @@ namespace Cassandra
          * a {@link com.datastax.driver.core.exceptions.WriteTimeoutException} will
          * be thrown for the operation.
          */
-        RetryDecision OnWriteTimeout(CqlConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry);
+        RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry);
 
         /**
          * Defines whether to retry and at which consistency level on an
@@ -65,7 +65,7 @@ namespace Cassandra
          * an {@link com.datastax.driver.core.exceptions.UnavailableException} will
          * be thrown for the operation.
          */
-        RetryDecision OnUnavailable(CqlConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry);
+        RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry);
     }
 
     /**
@@ -90,9 +90,9 @@ namespace Cassandra
         public enum RetryDecisionType { RETRY, RETHROW, IGNORE };
 
         private readonly RetryDecisionType type;
-        private readonly CqlConsistencyLevel? retryCL;
+        private readonly ConsistencyLevel? retryCL;
 
-        private RetryDecision(RetryDecisionType type, CqlConsistencyLevel? retryCL)
+        private RetryDecision(RetryDecisionType type, ConsistencyLevel? retryCL)
         {
             this.type = type;
             this.retryCL = retryCL;
@@ -114,7 +114,7 @@ namespace Cassandra
          * @return the consistency level for a retry decision or {@code null}
          * if this retry decision is an {@code IGNORE} or a {@code RETHROW}.
          */
-        public CqlConsistencyLevel? getRetryConsistencyLevel()
+        public ConsistencyLevel? getRetryConsistencyLevel()
         {
             return retryCL;
         }
@@ -126,7 +126,7 @@ namespace Cassandra
          */
         public static RetryDecision rethrow()
         {
-            return new RetryDecision(RetryDecisionType.RETHROW, CqlConsistencyLevel.IGNORE);
+            return new RetryDecision(RetryDecisionType.RETHROW, ConsistencyLevel.IGNORE);
         }
 
         /**
@@ -135,7 +135,7 @@ namespace Cassandra
          * @param consistency the consistency level to use for the retry.
          * @return a RETRY with consistency level {@code consistency} retry decision.
          */
-        public static RetryDecision retry(CqlConsistencyLevel? consistency)
+        public static RetryDecision retry(ConsistencyLevel? consistency)
         {
             return new RetryDecision(RetryDecisionType.RETRY, consistency);
         }
@@ -147,7 +147,7 @@ namespace Cassandra
          */
         public static RetryDecision ignore()
         {
-            return new RetryDecision(RetryDecisionType.IGNORE, CqlConsistencyLevel.IGNORE);
+            return new RetryDecision(RetryDecisionType.IGNORE, ConsistencyLevel.IGNORE);
         }
     }
 }
