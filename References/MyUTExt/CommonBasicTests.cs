@@ -42,7 +42,7 @@ namespace MyUTExt
 
             var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             if (_compression)
-                clusterb.withCompression(CompressionType.Snappy);
+                clusterb.WithCompression(CompressionType.Snappy);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
             //            Session = new CassandraSession(clusterNodes, this.Keyspace, this.Compression, Timeout.Infinite);

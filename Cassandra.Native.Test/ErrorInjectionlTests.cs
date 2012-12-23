@@ -54,7 +54,7 @@ namespace Cassandra.Native.Test
 
             var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             if (_compression)
-                clusterb.withCompression(CompressionType.Snappy);
+                clusterb.WithCompression(CompressionType.Snappy);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
 

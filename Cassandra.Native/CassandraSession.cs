@@ -112,8 +112,14 @@ namespace Cassandra
             CassandraClusterHost current = null;
             connect(null, ref current);
 
-            if (hosts==null)
-                control = new ControlConnection(this, clusterEndpoints,port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
+            if (hosts == null)
+            {
+                var controlpolicies = new Cassandra.Policies(
+                    new RoundRobinPolicy(),
+                    new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
+                    Cassandra.Policies.DEFAULT_RETRY_POLICY);
+                control = new ControlConnection(this, clusterEndpoints, port, null, compression, abortTimeout, controlpolicies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
+            }
         }
 
         List<CassandraConnection> trahscan = new List<CassandraConnection>();
