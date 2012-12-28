@@ -119,10 +119,10 @@ namespace MyUTExt
                 Console.WriteLine("CQL< Query:\t" + query);
 
             if (expectedValues != null)
-                using (var ret = session.Query(query, consistency))                                 
+                using (var ret = session.Execute(query, consistency))                                 
                     valueComparator(ret, expectedValues);
 
-            using (var ret = session.Query(query, consistency))
+            using (var ret = session.Execute(query, consistency))
                 ret.PrintTo(stream: Console.Out, cellEncoder: CellEncoder);
              
                 Console.WriteLine("CQL> Done.");                   
@@ -167,31 +167,32 @@ namespace MyUTExt
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-            var ret = session.Query(query, consistency);
+            var ret = session.Execute(query, consistency);
             Assert.Equal(ret, null);
             Console.WriteLine("CQL> (OK).");
         }
 
 
-        public void PrepareQuery(Session session, string query, out byte[] preparedID, out Metadata metadata, string messageInstead = null)
+        public PreparedStatement PrepareQuery(Session session, string query, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Prepared Query:\t" + query);
-            Metadata md;
-            preparedID = session.PrepareQuery(query, out md);
-            metadata = md;
-            Console.WriteLine("CQL> (OK).");             
+            var ret = session.Prepare(query);
+            Console.WriteLine("CQL> (OK).");
+            return ret;
         }
 
-        public void ExecutePreparedQuery(Session session, byte[] preparedID, Metadata metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, string messageInstead = null)
+        public void ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Executing Prepared Query:\t");
-            session.ExecuteQuery(preparedID, metadata, values, consistency);
+            var bnd = prepared.Bind(values);
+            bnd.Consistency = consistency;
+            session.Execute(bnd);
             Console.WriteLine("CQL> (OK).");
         }
 
@@ -325,7 +326,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                     throw new InvalidOperationException();                    
             }
         }
-        
+
         public void insertingSingleValuePrepared(Type tp)
         {
             string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(tp);
@@ -337,11 +338,8 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          );", tableName, cassandraDataTypeName));
 
             List<object[]> toInsert = new List<object[]>(1);
-            object[] row1 = new object[2] { Guid.NewGuid(), RandomVal(tp) };            
+            object[] row1 = new object[2] { Guid.NewGuid(), RandomVal(tp) };
 
-            byte[] preparedID;
-            Metadata md;
-            
             if (tp == typeof(Decimal))
                 row1[1] = Extensions.ToDecimalBuffer((Decimal)RandomVal(tp));
             else if (tp == typeof(BigInteger))
@@ -349,8 +347,8 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
 
             toInsert.Add(row1);
 
-            PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, toInsert[0][0].ToString()), out preparedID, out md);
-            ExecutePreparedQuery(this.Session, preparedID, md, new object[1] { toInsert[0][1] });
+            var prep = PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, toInsert[0][0].ToString()));
+            ExecutePreparedQuery(this.Session, prep, new object[1] { toInsert[0][1] });
 
             ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
             ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
@@ -414,31 +412,25 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
          numb1 double,
          numb2 int
          );", tableName));
-                                                
+
             int numberOfPrepares = 1000;
 
             List<object[]> values = new List<object[]>(numberOfPrepares);
-            Dictionary<byte[], Metadata> prepares = new Dictionary<byte[],Metadata>(numberOfPrepares);
+            List<PreparedStatement> prepares = new List<PreparedStatement>();
 
             Parallel.For(0, numberOfPrepares, i =>
             {
-                byte[] preparedID;
-                Metadata md;
 
-                PrepareQuery(Session, string.Format("INSERT INTO {0}(tweet_id, numb1, numb2) VALUES ({1}, ?, ?);", tableName, Guid.NewGuid()), out preparedID, out md);
-                
-                lock(prepares)
-                    prepares.Add(preparedID,md);
-                
-                lock(values)
-                    values.Add(new object[]{(double)RandomVal(typeof(double)),(int)RandomVal(typeof(int))});                                   
-            });            
-            
-            int j = 0;
-            Parallel.ForEach(prepares, pID =>                
+                var prep = PrepareQuery(Session, string.Format("INSERT INTO {0}(tweet_id, numb1, numb2) VALUES ({1}, ?, ?);", tableName, Guid.NewGuid()));
+
+                lock (prepares)
+                    prepares.Add(prep);
+
+            });
+
+            Parallel.ForEach(prepares, prep =>
                 {
-                    ExecutePreparedQuery(this.Session, pID.Key, pID.Value, values[j]);
-                    j++;
+                    ExecutePreparedQuery(this.Session, prep, new object[] { (double)RandomVal(typeof(double)), (int)RandomVal(typeof(int)) });
                 });
 
             ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
@@ -503,8 +495,8 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             }
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
-                
-            CqlRowSet rs = Session.Query(string.Format("SELECT * FROM {0};", tableName),ConsistencyLevel.DEFAULT);
+
+            CqlRowSet rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.DEFAULT);
 
             using (rs)
             {
@@ -686,7 +678,7 @@ PRIMARY KEY(tweet_id)
             bool durableWrites = false;
             Metadata.StrategyClass strgyClass = Metadata.StrategyClass.SimpleStrategy;
             short rplctnFactor = 1;
-            Session.Query(
+            Session.Execute(
 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"

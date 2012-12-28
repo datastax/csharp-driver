@@ -36,17 +36,24 @@ namespace Cassandra.Native
         /// </summary>
         private string m_operationId;
 
+        /// <summary>
+        /// The object which is a source of the operation.
+        /// </summary>
+        private object m_sender;
+        
         internal AsyncResultNoResult(
             AsyncCallback asyncCallback,
             object state,
-            object owner,
-            string operationId)
+            object owner,            
+            string operationId,
+            object sender = null)
         {
             m_AsyncCallback = asyncCallback;
             m_AsyncState = state;
             m_owner = owner;
             m_operationId =
                 string.IsNullOrEmpty(operationId) ? string.Empty : operationId;
+            m_sender = sender;
         }
 
         internal bool Complete()
@@ -155,6 +162,7 @@ namespace Cassandra.Native
 
         public Object AsyncState { get { return m_AsyncState; } }
         public Object AsyncOwner { get { return m_owner; } }
+        public Object AsyncSender { get { return m_sender; } }
 
         public bool CompletedSynchronously
         {
@@ -238,8 +246,8 @@ namespace Cassandra.Native
             m_result = result;
         }
 
-        internal AsyncResult(AsyncCallback asyncCallback, object state, object owner, string operationId) :
-            base(asyncCallback, state, owner, operationId)
+        internal AsyncResult(AsyncCallback asyncCallback, object state, object owner, string operationId, object sender = null) :
+            base(asyncCallback, state, owner, operationId, sender )
         {
         }
 

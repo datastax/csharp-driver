@@ -66,6 +66,7 @@
     </Compile>
     <Compile Include="AsyncResult.cs" />
     <Compile Include="AuthInfoProvider.cs" />
+    <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraException.cs" />
@@ -108,7 +109,9 @@
     <Compile Include="Policies\RoundRobinPolicy.cs" />
     <Compile Include="Policies\TokenAwarePolicy.cs" />
     <Compile Include="PoolingOptions.cs" />
+    <Compile Include="PreparedStatement.cs" />
     <Compile Include="ProtoBuf.cs" />
+    <Compile Include="Query.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
     <Compile Include="Responses\AuthenticateResponse.cs" />
@@ -158,7 +161,9 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
     <Compile Include="SimpleAuthInfoProvider.cs" />
+    <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
+    <Compile Include="Statement.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

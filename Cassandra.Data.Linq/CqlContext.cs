@@ -121,12 +121,12 @@ namespace Cassandra.Data
 
         internal CqlRowSet ExecuteReadQuery(string cqlQuery)
         {
-            return ManagedConnection.Query(cqlQuery, ReadCqlConsistencyLevel);
+            return ManagedConnection.Execute(cqlQuery, ReadCqlConsistencyLevel);
         }
 
         internal void ExecuteWriteQuery(string cqlQuery)
         {
-            var ret = ManagedConnection.Query(cqlQuery, WriteCqlConsistencyLevel);
+            var ret = ManagedConnection.Execute(cqlQuery, WriteCqlConsistencyLevel);
             if (ret != null)
                 throw new InvalidOperationException();
         }

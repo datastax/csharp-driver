@@ -430,6 +430,58 @@ namespace Cassandra
             Dispose();
         }
 
+        #region Execute
+
+        public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state)
+        {
+            return query.BeginExecute(this, callback, state);
+        }
+
+        public CqlRowSet EndExecute(IAsyncResult ar)
+        {
+            var longActionAc = ar as AsyncResult<CqlRowSet>;
+            return (longActionAc.AsyncSender as Query).EndExecute(this, ar);
+        }
+
+        public CqlRowSet Execute(Query query)
+        {
+            return EndExecute(BeginExecute(query, null, null));
+        }
+
+        public IAsyncResult BeginExecute(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT)
+        {
+            return BeginExecute(new SimpleStatement(cqlQuery) { Consistency = consistency }, callback, state);
+        }
+
+        public CqlRowSet Execute(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT)
+        {
+            return Execute(new SimpleStatement(cqlQuery) { Consistency = consistency });
+        }
+
+
+        #endregion
+
+        #region Prepare
+
+        public IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state)
+        {
+            return BeginPrepareQuery(cqlQuery, callback, state);
+        }
+
+        public PreparedStatement EndPrepare(IAsyncResult ar)
+        {
+            Metadata metadata;
+            var id = EndPrepareQuery(ar, out metadata);
+            return new PreparedStatement(metadata, id);
+        }
+
+        public PreparedStatement Prepare(string cqlQuery)
+        {
+            return EndPrepare(BeginPrepare(cqlQuery, null, null));
+        }
+        
+        #endregion
+
         private CassandraServerException processSetKeyspace(IOutput outp, out string keyspacename)
         {
             using (outp)
@@ -661,9 +713,9 @@ namespace Cassandra
             }
         }
 
-        public IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
         {
-            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery");
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender);
             var token = new LongQueryToken() { consistency = consistency, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -671,16 +723,14 @@ namespace Cassandra
             return longActionAc;
         }
 
-        public CqlRowSet EndQuery(IAsyncResult ar)
+        internal CqlRowSet EndQuery(IAsyncResult ar)
         {
-            var longActionAc = ar as AsyncResult<CqlRowSet>;
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionQuery");
         }
 
-        public CqlRowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
-            var ar = BeginQuery(cqlQuery, null, null, consistency, routingKey);
-            return EndQuery(ar);
+            return EndQuery(BeginQuery(cqlQuery, null, null, consistency, routingKey));
         }
 
         #endregion
@@ -721,17 +771,17 @@ namespace Cassandra
             }
         }
 
-        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, CassandraRoutingKey routingKey = null)
+        internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null)
         {
-            AsyncResult<KeyValuePair<Metadata, byte[]>> longActionAc = new AsyncResult<KeyValuePair<Metadata, byte[]>>(callback, state, this, "SessionPrepareQuery");
-            var token = new LongPrepareQueryToken() { consistency = ConsistencyLevel.IGNORE, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
+            AsyncResult<KeyValuePair<Metadata, byte[]>> longActionAc = new AsyncResult<KeyValuePair<Metadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender);
+            var token = new LongPrepareQueryToken() { consistency = ConsistencyLevel.IGNORE, cqlQuery = cqlQuery, longActionAc = longActionAc };
 
             ExecConn(token, false);
 
             return longActionAc;
         }
 
-        public byte[] EndPrepareQuery(IAsyncResult ar, out Metadata metadata)
+        internal byte[] EndPrepareQuery(IAsyncResult ar, out Metadata metadata)
         {
             var longActionAc = ar as AsyncResult<KeyValuePair<Metadata, byte[]>>;
             var ret = AsyncResult<KeyValuePair<Metadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
@@ -739,11 +789,12 @@ namespace Cassandra
             return ret.Value;
         }
 
-        public byte[] PrepareQuery(string cqlQuery, out Metadata metadata, CassandraRoutingKey routingKey = null)
+        internal byte[] PrepareQuery(string cqlQuery, out Metadata metadata, CassandraRoutingKey routingKey = null)
         {
             var ar = BeginPrepareQuery(cqlQuery, null, null, routingKey);
             return EndPrepareQuery(ar, out metadata);
         }
+
 
         #endregion
 
@@ -779,7 +830,7 @@ namespace Cassandra
             }
         }
 
-        public IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
             AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery");
             var token = new LongExecuteQueryToken() { consistency = consistency, id = Id, metadata = Metadata, values = values, routingKey = routingKey, longActionAc = longActionAc };
@@ -789,13 +840,13 @@ namespace Cassandra
             return longActionAc;
         }
 
-        public CqlRowSet EndExecuteQuery(IAsyncResult ar)
+        internal CqlRowSet EndExecuteQuery(IAsyncResult ar)
         {
             var longActionAc = ar as AsyncResult<CqlRowSet>;
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        public CqlRowSet ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
             var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, routingKey);
             return EndExecuteQuery(ar);

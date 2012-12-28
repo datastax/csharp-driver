@@ -18,7 +18,7 @@ namespace Playground
             Console.WriteLine("Connecting, setting keyspace and creating tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            Cluster cluster = Cluster.Builder.AddContactPoint("137.116.194.96").Build();
+            Cluster cluster = Cluster.Builder.AddContactPoint("168.63.13.195").Build();
 
             var session = cluster.Connect();
 
@@ -28,7 +28,7 @@ namespace Playground
             {
                 session.ChangeKeyspace(keyspaceName);
             }
-            catch (CassandraClusterInvalidException ex)
+            catch (CassandraClusterInvalidException)
             {
                 session.CreateKeyspaceIfNotExists(keyspaceName);
                 session.ChangeKeyspace(keyspaceName);

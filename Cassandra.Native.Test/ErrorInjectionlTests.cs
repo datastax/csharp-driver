@@ -80,7 +80,7 @@ namespace Cassandra.Native.Test
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
-            Session.Query(
+            Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                 , keyspaceName));
@@ -88,7 +88,7 @@ namespace Cassandra.Native.Test
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Query(string.Format(@"CREATE TABLE {0}(
+            Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
@@ -138,7 +138,7 @@ namespace Cassandra.Native.Test
                             Monitor.Wait(monit);
                         }
 
-                        Session.Query(string.Format(@"INSERT INTO {0} (
+                        Session.Execute(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
@@ -209,38 +209,38 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (var ret = Session.Query(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo+100)))
+            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100)))
             {
                 Assert.Equal(RowsNo, ret.RowsCount);
             }
 
-            Session.Query(string.Format(@"DROP TABLE {0};", tableName));
+            Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
 
-            Session.Query(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
+            Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
          }
 
 
-        [Fact]
-        public void executingPreparedStatementWithFakePrepareID()
-        {
-            Session.ChangeKeyspace("test");
-            string tableName = "table" + Guid.NewGuid().ToString("N");
-            Session.Query(string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         value {1}
-         );", tableName, "int"));
+//        [Fact]
+//        public void executingPreparedStatementWithFakePrepareID()
+//        {
+//            Session.ChangeKeyspace("test");
+//            string tableName = "table" + Guid.NewGuid().ToString("N");
+//            Session.Execute(string.Format(@"CREATE TABLE {0}(
+//         tweet_id uuid PRIMARY KEY,
+//         value {1}
+//         );", tableName, "int"));
 
-            byte[] preparedID;
-            Metadata md;
-            object[] toInsert = new object[1] { 1 };
-            CommonBasicTests cbt = new CommonBasicTests();
-            cbt.PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, toInsert[0].ToString()), out preparedID, out md);
-            
-            Session.ExecuteQuery(new byte[16], md, toInsert);           
-        
-            var rows = Session.Query(string.Format("SELECT * FROM {0};", tableName));
-            rows.Dispose();
-            Session.Query(string.Format("DROP TABLE {0};", tableName));                     
-        }
+//            byte[] preparedID;
+//            Metadata md;
+//            object[] toInsert = new object[1] { 1 };
+//            CommonBasicTests cbt = new CommonBasicTests();
+//            cbt.PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, toInsert[0].ToString()), out preparedID, out md);
+
+//            Session.ExecuteQuery(new byte[16], md, toInsert);
+
+//            var rows = Session.Execute(string.Format("SELECT * FROM {0};", tableName));
+//            rows.Dispose();
+//            Session.Execute(string.Format("DROP TABLE {0};", tableName));
+//        }
     }
 }
