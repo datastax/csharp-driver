@@ -450,12 +450,12 @@ namespace Cassandra
 
         public IAsyncResult BeginExecute(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT)
         {
-            return BeginExecute(new SimpleStatement(cqlQuery) { Consistency = consistency }, callback, state);
+            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), callback, state);
         }
 
         public CqlRowSet Execute(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT)
         {
-            return Execute(new SimpleStatement(cqlQuery) { Consistency = consistency });
+            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency));
         }
 
 

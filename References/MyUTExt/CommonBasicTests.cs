@@ -190,9 +190,7 @@ namespace MyUTExt
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Executing Prepared Query:\t");
-            var bnd = prepared.Bind(values);
-            bnd.Consistency = consistency;
-            session.Execute(bnd);
+            session.Execute(prepared.Bind(values).SetConsistencyLevel(consistency));
             Console.WriteLine("CQL> (OK).");
         }
 
