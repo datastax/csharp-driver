@@ -26,6 +26,10 @@ namespace Cassandra.Data
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
                 {
+                    if (prop.GetValueFromPropertyOrField(x) == null)
+                        throw new InvalidOperationException("Partition Key is not set");
+                    if (prop.GetValueFromPropertyOrField(y) == null)
+                        throw new InvalidOperationException("Partition Key is not set");
                     if (!prop.GetValueFromPropertyOrField(x).Equals(prop.GetValueFromPropertyOrField(y)))
                         return false;
                 }
@@ -34,6 +38,10 @@ namespace Cassandra.Data
                     var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
+                        if (prop.GetValueFromPropertyOrField(x) == null)
+                            throw new InvalidOperationException("Clustering Key is not set");
+                        if (prop.GetValueFromPropertyOrField(y) == null)
+                            throw new InvalidOperationException("Clustering Key is not set");
                         if (!prop.GetValueFromPropertyOrField(x).Equals(prop.GetValueFromPropertyOrField(y)))
                             return false;
                     }
@@ -51,6 +59,8 @@ namespace Cassandra.Data
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
                 {
+                    if (prop.GetValueFromPropertyOrField(obj) == null)
+                        throw new InvalidOperationException("Partition Key is not set"); 
                     hashCode ^= prop.GetValueFromPropertyOrField(obj).GetHashCode();
                 }
                 else
@@ -58,6 +68,8 @@ namespace Cassandra.Data
                     var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
+                        if (prop.GetValueFromPropertyOrField(obj) == null)
+                            throw new InvalidOperationException("Clustering Key is not set");
                         hashCode ^= prop.GetValueFromPropertyOrField(obj).GetHashCode();
                     }
                 }

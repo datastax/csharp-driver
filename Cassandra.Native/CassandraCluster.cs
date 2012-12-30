@@ -135,7 +135,7 @@ namespace Cassandra
 
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists()
         {
-            var session = Connect();
+            Session session = Connect("");
             try
             {
                 session.ChangeKeyspace(defaultKeyspace);

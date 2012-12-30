@@ -45,6 +45,25 @@ namespace Cassandra.Data
 			}
 		}
 
+        public string DeleteQuery
+        {
+            get
+            {
+                var select = Fields;
+                var from = table.GetTableName().CqlIdentifier();
+                var where = WhereCriteria;
+                var orderBy = OrderBy;
+                var limit = LimitCount;
+
+                var query = string.Format("Delete \nFROM {0}", from);
+
+                if (!string.IsNullOrWhiteSpace(where))
+                    query += " \nWHERE " + where;
+
+                return query;
+            }
+        }
+        
         public string CountQuery
         {
             get
@@ -110,12 +129,6 @@ namespace Cassandra.Data
 		}
 
 		private string WhereCriteria { get; set; }
-
-        //private void AddTable(ICassandraColumnFamilyInfo provider)
-        //{
-        //    _columnFamily = provider.FamilyName;
-        //    _schema = provider.GetSchema();
-        //}
 
 		private void AddOrderByFieldDescending(Expression exp)
 		{
@@ -184,14 +197,6 @@ namespace Cassandra.Data
 					var memExp = (MemberExpression)exp;
 					var name = memExp.Member.Name;
 
-					// if object queries
-//					if (GetBaseType(memExp) != typeof(ICqlRow))
-	//					return name;
-
-//					if (name != "Key")
-	//					throw new NotSupportedException(name + " is not a supported property.");
-
-		//			return _schema.KeyName.GetValue<string>();
                     return name.CqlIdentifier();
 
 				case ExpressionType.Call:
@@ -232,9 +237,6 @@ namespace Cassandra.Data
 
 				case ExpressionType.Constant:
 					var obj = ((ConstantExpression)exp).Value;
-//					var family = obj as ICassandraColumnFamilyInfo;
-
-//					AddTable(family);
 					break;
 			}
 		}
@@ -317,8 +319,18 @@ namespace Cassandra.Data
 
             foreach (var binding in exp.Bindings)
             {
-                var e = (binding as MemberAssignment).Expression as MemberExpression;
-                var name = e.Member.Name;
+                var e = (binding as MemberAssignment).Expression;
+
+                string name = null;
+                if (e is MemberExpression)
+                {
+                    name = (e as MemberExpression).Member.Name;
+                }
+                else 
+                {
+                    throw new NotSupportedException("Only simple assignments are supported. " + binding.ToString() + " is not supported.");
+                }
+
                 list.Add(name);
                 AlternativeMapping.Add( binding.Member.Name,name);
             }
@@ -419,55 +431,40 @@ namespace Cassandra.Data
                 throw new NotSupportedException("Method call to " + exp.Method.Name + " is not supported.");
 		}
 
-		private string VisitWhereRelationalExpression(BinaryExpression exp)
-		{
-			string criteria;
+        private string VisitWhereRelationalExpression(BinaryExpression exp)
+        {
+            string criteria;
 
-			string left = GetPropertyName(exp.Left);
-			object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
-			string right = RightObjectToString(rightObj);
+            string left = GetPropertyName(exp.Left);
+            object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
+            string right = RightObjectToString(rightObj);
 
-			//if (left == "KEY")
-			{
-				switch (exp.NodeType)
-				{
-					case ExpressionType.Equal:
-						criteria = left + " = " + right;
-						break;
-					case ExpressionType.GreaterThan:
-						criteria = left + " > " + right;
-						break;
-					case ExpressionType.GreaterThanOrEqual:
-						criteria = left + " >= " + right;
-						break;
-					case ExpressionType.LessThan:
-						criteria = left + " < " + right;
-						break;
-					case ExpressionType.LessThanOrEqual:
-						criteria = left + " <= " + right;
-						break;
+            switch (exp.NodeType)
+            {
+                case ExpressionType.Equal:
+                    criteria = left + " = " + right;
+                    break;
+                case ExpressionType.GreaterThan:
+                    criteria = left + " > " + right;
+                    break;
+                case ExpressionType.GreaterThanOrEqual:
+                    criteria = left + " >= " + right;
+                    break;
+                case ExpressionType.LessThan:
+                    criteria = left + " < " + right;
+                    break;
+                case ExpressionType.LessThanOrEqual:
+                    criteria = left + " <= " + right;
+                    break;
 
-					default:
-						throw new NotSupportedException(
-							exp.NodeType.ToString() + " is not a supported relational criteria for KEY.");
-				}
-			}
-            //else
-            //{
-            //    switch (exp.NodeType)
-            //    {
-            //        case ExpressionType.Equal:
-            //            criteria = left + " = " + right;
-            //            break;
+                default:
+                    throw new NotSupportedException(
+                        exp.NodeType.ToString() + " is not a supported relational criteria for KEY.");
+            }
 
-            //        default:
-            //            throw new NotSupportedException(
-            //                exp.NodeType.ToString() + " is not a supported relational criteria for Columns.");
-            //    }
-            //}
 
-			return criteria;
-		}
+            return criteria;
+        }
 
 		private string VisitWhereConditionalExpression(BinaryExpression exp)
 		{

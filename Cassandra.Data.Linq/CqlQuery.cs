@@ -148,5 +148,14 @@ namespace Cassandra.Data
                 }
             }
         }
+        public void Delete()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.DeleteQuery;
+            var alter = eval.AlternativeMapping;
+            var conn = (table as ICqlTable).GetContext();
+            conn.ExecuteWriteQuery(cqlQuery);
+        }
     }
 }

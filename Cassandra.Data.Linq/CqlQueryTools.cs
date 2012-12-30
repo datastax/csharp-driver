@@ -549,7 +549,7 @@ namespace Cassandra.Data
             }
             else
             {
-                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string)))
+                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string) || typeof(T) == typeof(byte[])))
                 {
                     return (T)cqlRow[0];
                 }
