@@ -63,6 +63,25 @@ namespace Cassandra.Data
                 return query;
             }
         }
+
+        public string UpdateQuery
+        {
+            get
+            {
+                var select = Fields;
+                var from = table.GetTableName().CqlIdentifier();
+                var where = WhereCriteria;
+                var orderBy = OrderBy;
+                var limit = LimitCount;
+
+                var query = string.Format("Upadate {0}", from);
+
+                if (!string.IsNullOrWhiteSpace(where))
+                    query += " \nWHERE " + where;
+
+                return query;
+            }
+        }
         
         public string CountQuery
         {

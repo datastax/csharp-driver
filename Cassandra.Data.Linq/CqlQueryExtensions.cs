@@ -33,6 +33,11 @@ namespace Cassandra.Data
         {
             return new CqlDelete(source.Expression, source.Provider);
         }
+
+        public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
+        {
+            return new CqlUpdate(source.Expression, source.Provider);
+        }
         
         public static CqlQuery<TSource> Take<TSource>(this CqlQuery<TSource> source, int count)
         {

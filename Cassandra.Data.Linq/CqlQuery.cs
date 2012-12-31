@@ -158,4 +158,39 @@ namespace Cassandra.Data
             conn.ExecuteWriteQuery(cqlQuery); 
         }
     }
+
+    public class CqlUpdate
+    {
+        private readonly Expression expression;
+        private readonly IQueryProvider table;
+
+        internal CqlUpdate(Expression expression, IQueryProvider table)
+        {
+            this.expression = expression;
+            this.table = table;
+        }
+
+        public System.Linq.Expressions.Expression Expression
+        {
+            get { return expression; }
+        }
+
+        public override string ToString()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.DeleteQuery;
+            return cqlQuery;
+        }
+
+        public void Execute()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.UpdateQuery;
+            var alter = eval.AlternativeMapping;
+            var conn = (table as ICqlTable).GetContext();
+            conn.ExecuteWriteQuery(cqlQuery);
+        }
+    }
 }
