@@ -124,7 +124,13 @@ namespace Cassandra.Data
 
     }
 
-    public class CqlDelete
+    public interface ICqlCommand
+    {
+        string GetCql();
+        void Execute();
+    }
+
+    public class CqlDelete : ICqlCommand
     {
         private readonly Expression expression;
         private readonly IQueryProvider table;
@@ -142,10 +148,7 @@ namespace Cassandra.Data
 
         public override string ToString()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.DeleteQuery;
-            return cqlQuery;
+            return GetCql();
         }
 
         public void Execute()
@@ -157,9 +160,18 @@ namespace Cassandra.Data
             var conn = (table as ICqlTable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery); 
         }
+
+        public string GetCql()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.DeleteQuery;
+            return cqlQuery;
+        }
+
     }
 
-    public class CqlUpdate
+    public class CqlUpdate : ICqlCommand
     {
         private readonly Expression expression;
         private readonly IQueryProvider table;
@@ -177,10 +189,7 @@ namespace Cassandra.Data
 
         public override string ToString()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.DeleteQuery;
-            return cqlQuery;
+            return GetCql();
         }
 
         public void Execute()
@@ -191,6 +200,14 @@ namespace Cassandra.Data
             var alter = eval.AlternativeMapping;
             var conn = (table as ICqlTable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery);
+        }
+
+        public string GetCql()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.UpdateQuery;
+            return cqlQuery;
         }
     }
 }

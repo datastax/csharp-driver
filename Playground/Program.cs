@@ -48,7 +48,7 @@ namespace Playground
             List<Followers> FollowersLocal = new List<Followers>();
             List<Statistics> StatisticsLocal = new List<Statistics>();
             List<string> AuthorsID = new List<string>();
-            
+
             for (int i = 0; i < AuthorsNo; i++)
             {
                 var author_ID = "Author" + i.ToString();

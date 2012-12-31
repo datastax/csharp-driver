@@ -74,7 +74,17 @@ namespace Cassandra.Data
                 var orderBy = OrderBy;
                 var limit = LimitCount;
 
-                var query = string.Format("Upadate {0}", from);
+                var query = string.Format("Update {0}", from);
+                query += " \nSET ";
+                foreach (var al in AlternativeMapping)
+                {
+                    if(AlternativeMappingVals.ContainsKey(al.Key))
+                    {
+                        var o = AlternativeMappingVals[al.Key];
+                        var val = o.GetType().GetField(al.Value).GetValue(o);
+                        query += al.Key.CqlIdentifier() + "=" + val.Encode();
+                    }
+                }
 
                 if (!string.IsNullOrWhiteSpace(where))
                     query += " \nWHERE " + where;
@@ -331,6 +341,7 @@ namespace Cassandra.Data
 		}
 
         public Dictionary<string, string> AlternativeMapping = new Dictionary<string, string>();
+        public Dictionary<string, object> AlternativeMappingVals = new Dictionary<string, object>();
 
         private IEnumerable<object> VisitSelectMemberInit(MemberInitExpression exp)
         {
@@ -344,6 +355,10 @@ namespace Cassandra.Data
                 if (e is MemberExpression)
                 {
                     name = (e as MemberExpression).Member.Name;
+                    if (((e as MemberExpression).Expression is ConstantExpression))
+                    {
+                        AlternativeMappingVals.Add(binding.Member.Name, ((e as MemberExpression).Expression as ConstantExpression).Value);
+                    }
                 }
                 else 
                 {

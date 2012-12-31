@@ -137,7 +137,7 @@ namespace Cassandra.Data
             {
                 foreach (var table in tables)
                     table.Value.GetMutationTracker().SaveChangesOneByOne(this, table.Key);
-                foreach (var cplDels in deleteCommands)
+                foreach (var cplDels in additionalCommands)
                     cplDels.Execute();
             }
             else
@@ -151,8 +151,8 @@ namespace Cassandra.Data
                         table.Value.GetMutationTracker().AppendChangesToBatch(batchScript, table.Key);
 
 
-                foreach (var cplDels in deleteCommands)
-                    batchScript.AppendLine(cplDels.ToString() + ";");
+                foreach (var cplDels in additionalCommands)
+                    batchScript.AppendLine(cplDels.GetCql() + ";");
                 if (counterBatchScript.Length != 0)
                 {
                     ExecuteWriteQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH");
@@ -168,14 +168,14 @@ namespace Cassandra.Data
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
             }
-            deleteCommands.Clear();
+            additionalCommands.Clear();
         }
 
-        List<CqlDelete> deleteCommands = new List<CqlDelete>();
+        List<ICqlCommand> additionalCommands = new List<ICqlCommand>();
 
-        public void AppendCommand(CqlDelete cqlDelete)
+        public void AppendCommand(ICqlCommand cqlCommand)
         {
-            deleteCommands.Add(cqlDelete);
+            additionalCommands.Add(cqlCommand);
         }
     }
 }
