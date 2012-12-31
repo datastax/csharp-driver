@@ -29,6 +29,11 @@ namespace Cassandra.Data
             return new CqlScalar<long>(source.Expression, source.Provider);
         }
 
+        public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source)
+        {
+            return new CqlDelete(source.Expression, source.Provider);
+        }
+        
         public static CqlQuery<TSource> Take<TSource>(this CqlQuery<TSource> source, int count)
         {
             return (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(

@@ -557,6 +557,7 @@ namespace Cassandra
             public CassandraRoutingKey routingKey;
             public CassandraClusterHost current = null;
             public IAsyncResult longActionAc;
+            public List<Exception> innerExceptions = new List<Exception>();
             public int queryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
             {
@@ -592,7 +593,7 @@ namespace Cassandra
 
         void ClbNoQuery(IAsyncResult ar)
         {
-                var token = ar.AsyncState as LongToken;
+            var token = ar.AsyncState as LongToken;
             try
             {
                 CassandraServerException exc;
@@ -615,6 +616,7 @@ namespace Cassandra
                             case RetryDecision.RetryDecisionType.RETRY:
                                 token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
                                 token.queryRetries++;
+                                token.innerExceptions.Add(exc);
                                 ExecConn(token, false);
                                 return;
                             default:
@@ -626,7 +628,13 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                token.Complete(this, null, ex);
+                if (CassandraConnection.IsStreamRelatedException(ex))
+                {
+                    token.innerExceptions.Add(ex);
+                    ExecConn(token, true);
+                }
+                else
+                    token.Complete(this, null, ex);
             }
         }
 
@@ -650,7 +658,7 @@ namespace Cassandra
             {
                 var ar = longActionAc as AsyncResult<string>;
                 if (exc != null)
-                    ar.Complete(exc);
+                    ar.Complete(new CassandraQueryException("Unable to complete the query.", exc, innerExceptions));
                 else
                 {
                     ar.SetResult(value as string);

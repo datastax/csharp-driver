@@ -8,33 +8,6 @@ using System.Collections;
 namespace Cassandra.Data
 {
 
-    //public class CqlExecutable
-    //{
-    //    List<string> cqlCommands = new List<string>();
-    //    ICqlTable table;
-    //    internal CqlExecutable(string cql, ICqlTable table)
-    //    {
-    //        this.table = table;
-    //        cqlCommands.Add(cql);
-    //    }
-        
-    //    internal CqlExecutable(ICqlTable table)
-    //    {
-    //        this.table = table;
-    //    }
-
-    //    internal void AddCql(string cql)
-    //    {
-    //        cqlCommands.Add(cql);
-    //    }
-
-    //    public void Execute()
-    //    {
-    //        foreach(var cql in cqlCommands)
-    //            table.GetContext().ExecuteWriteQuery(cql);
-    //    }
-    //}
-
     public class CqlScalar<T>
     {
         private readonly Expression expression;
@@ -148,14 +121,41 @@ namespace Cassandra.Data
                 }
             }
         }
-        public void Delete()
+
+    }
+
+    public class CqlDelete
+    {
+        private readonly Expression expression;
+        private readonly IQueryProvider table;
+
+        internal CqlDelete(Expression expression, IQueryProvider table)
+        {
+            this.expression = expression;
+            this.table = table;
+        }
+
+        public System.Linq.Expressions.Expression Expression
+        {
+            get { return expression; }
+        }
+
+        public override string ToString()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.DeleteQuery;
+            return cqlQuery;
+        }
+
+        public void Execute()
         {
             CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
             var alter = eval.AlternativeMapping;
             var conn = (table as ICqlTable).GetContext();
-            conn.ExecuteWriteQuery(cqlQuery);
+            conn.ExecuteWriteQuery(cqlQuery); 
         }
     }
 }

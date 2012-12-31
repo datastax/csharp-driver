@@ -4,6 +4,16 @@ using System.Text;
 
 namespace Cassandra
 {
+    public class CassandraQueryException : CassandraException
+    {
+        public List<Exception> InnerInnerExceptions { get; private set; }
+        public CassandraQueryException(string message, Exception innerException = null, List<Exception> innerInnerExceptions = null)
+            : base(message, innerException)
+        {
+            InnerInnerExceptions = innerInnerExceptions;
+        }
+    }
+
     public class CassandraConnectionException : CassandraException
     {
         public CassandraConnectionException(string message, Exception innerException = null)

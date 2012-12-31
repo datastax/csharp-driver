@@ -135,27 +135,32 @@ namespace Cassandra.Data
         {
             if (mode == SaveChangesMode.OneByOne)
             {
-                foreach (var table in tables)                    
+                foreach (var table in tables)
                     table.Value.GetMutationTracker().SaveChangesOneByOne(this, table.Key);
+                foreach (var cplDels in deleteCommands)
+                    cplDels.Execute();
             }
             else
             {
                 StringBuilder batchScript = new StringBuilder();
                 StringBuilder counterBatchScript = new StringBuilder();
                 foreach (var table in tables)
-                    if(table.Value.isCounterTable)
+                    if (table.Value.isCounterTable)
                         table.Value.GetMutationTracker().AppendChangesToBatch(counterBatchScript, table.Key);
                     else
                         table.Value.GetMutationTracker().AppendChangesToBatch(batchScript, table.Key);
-                                
 
+
+                foreach (var cplDels in deleteCommands)
+                    batchScript.AppendLine(cplDels.ToString() + ";");
                 if (counterBatchScript.Length != 0)
                 {
                     ExecuteWriteQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH");
                     foreach (var table in tables)
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
-                
+
+
                 if (batchScript.Length != 0)
                 {
                     ExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH");
@@ -163,6 +168,14 @@ namespace Cassandra.Data
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
             }
+            deleteCommands.Clear();
+        }
+
+        List<CqlDelete> deleteCommands = new List<CqlDelete>();
+
+        public void AppendCommand(CqlDelete cqlDelete)
+        {
+            deleteCommands.Add(cqlDelete);
         }
     }
 }

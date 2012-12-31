@@ -486,7 +486,7 @@ namespace Cassandra.Native
             }
         }
 
-        private bool isStreamRelatedException(Exception ex)
+        internal static bool IsStreamRelatedException(Exception ex)
         {
             return ex is SocketException
             || ex is CassandraConncectionIOException
@@ -506,7 +506,7 @@ namespace Cassandra.Native
                         freeStreamId(streamId);
                     }
             }
-            return (ex.InnerException != null && isStreamRelatedException(ex.InnerException)) || isStreamRelatedException(ex);
+            return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
         }
 
         object statusGuardier = new object();
@@ -519,7 +519,7 @@ namespace Cassandra.Native
                 var ar = frameReadAsyncResult[streamId];
                 ar.Complete(ex);
                 freeStreamId(streamId);
-                return (ex.InnerException != null && isStreamRelatedException(ex.InnerException)) || isStreamRelatedException(ex);
+                return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
             }
         }
 
