@@ -32,12 +32,10 @@ namespace Cassandra
         public Dictionary<IPAddress, Exception> Errors { get; private set; }
 
         public NoHostAvailableException(Dictionary<IPAddress, Exception> Errors)
-            : base(string.Format("All host tried for query are in error (tried: {0})", Errors.Keys))
+            : base("All host tried for query are in error")
         {
             this.Errors = Errors;
         }
 
     }
-
-
 }

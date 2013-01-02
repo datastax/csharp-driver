@@ -269,13 +269,7 @@ namespace Cassandra.Native
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message, "CassandraConnection.BeginJob");
-                if (setupWriterException(ex, streamId))
-                {
-                    hostIsDown();
-                    lock (statusGuardier)
-                        writerSocketExceptionOccured = true;
-                }
-                else
+                if (!setupWriterException(ex, streamId))
                     throw;
             }
 
@@ -518,8 +512,11 @@ namespace Cassandra.Native
             lock (frameGuardier)
             {
                 var ar = frameReadAsyncResult[streamId];
-                ar.Complete(ex);
                 freeStreamId(streamId);
+                hostIsDown();
+                lock (statusGuardier)
+                    writerSocketExceptionOccured = true;
+                ar.Complete(ex);
                 return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
             }
         }
@@ -598,13 +595,7 @@ namespace Cassandra.Native
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message, "CassandraConnection.Evaluate");
-                if (setupWriterException(ex, streamId))
-                {
-                    hostIsDown();
-                    lock (statusGuardier)
-                        writerSocketExceptionOccured = true;
-                }
-                else
+                if (!setupWriterException(ex, streamId))
                     throw;
             }
         }

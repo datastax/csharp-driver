@@ -143,21 +143,31 @@ namespace Cassandra
                 var hosts = Policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
                 var hostsIter = hosts.GetEnumerator();
 
-                if (current != null)
+                if (current == null)
+                {
+                    if (hostsIter.MoveNext())
+                        current = hostsIter.Current;
+                    else
+                        throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                }
+                else
+                {
                     while (hostsIter.MoveNext())
                     {
                         if (current == hostsIter.Current)
                         {
                             if (getNext)
-                                if (!hostsIter.MoveNext())
+                                if (hostsIter.MoveNext())
+                                    current = hostsIter.Current;
+                                else
                                     throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
                             break;
                         }
                     }
+                }
 
-                while (hostsIter.MoveNext())
+                while (true)
                 {
-                    current = hostsIter.Current;
                     if (current.IsConsiderablyUp)
                     {
                         var host_distance = Policies.LoadBalancingPolicy.Distance(current);
@@ -203,7 +213,8 @@ namespace Cassandra
                             CassandraConnection conn = null;
                             do
                             {
-                                conn = allocateConnection(current.Address);
+                                Exception outExc;
+                                conn = allocateConnection(current.Address, out outExc);
                                 if (conn != null)
                                 {
                                     current.BringUpIfDown();
@@ -213,6 +224,9 @@ namespace Cassandra
                                 }
                                 else
                                 {
+                                    if (innerExceptions == null)
+                                        innerExceptions = new Dictionary<IPAddress, Exception>();
+                                    innerExceptions[current.Address] = outExc;
                                     Debug.WriteLine("new connection attempt failed - goto another host");
                                     error = true;
                                     break;
@@ -223,9 +237,12 @@ namespace Cassandra
                                 return conn;
                         }
                     }
+                    if (hostsIter.MoveNext())
+                        current = hostsIter.Current;
+                    else
+                        throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
                 }
             }
-            throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
         }
 
         internal void OnAddHost(IPAddress endpoint)
@@ -253,9 +270,10 @@ namespace Cassandra
             }
         }
 
-        CassandraConnection allocateConnection(IPAddress endPoint)
+        CassandraConnection allocateConnection(IPAddress endPoint, out Exception outExc)
         {
             CassandraConnection nconn = null;
+            outExc = null;
 
             try
             {
@@ -302,6 +320,7 @@ namespace Cassandra
                     || ex is ObjectDisposedException
                     || ex is CassandraConnection.StreamAllocationException)
                 {
+                    outExc = ex;
                     return null;
                 }
                 else
@@ -481,6 +500,22 @@ namespace Cassandra
         }
         
         #endregion
+
+        private QueryValidationException processRegisterForEvent(IOutput outp)
+        {
+            using (outp)
+            {
+                if (!(outp is OutputVoid))
+                {
+                    if (outp is OutputError)
+                        return (outp as OutputError).CreateException();
+                    else
+                        throw new DriverInternalError("Unexpected output kind");
+                }
+                else
+                    return null;
+            }
+        }
 
         private QueryValidationException processSetKeyspace(IOutput outp, out string keyspacename)
         {

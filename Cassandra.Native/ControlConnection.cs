@@ -120,6 +120,16 @@ namespace Cassandra.Native
                 isDiconnected = true;
                 reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
             }
+            catch (Exception ex)
+            {
+                if (CassandraConnection.IsStreamRelatedException(ex))
+                {
+                    isDiconnected = true;
+                    reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                }
+                else
+                    throw;
+            }
         }
 
         void checkConnectionDown(IPAddress endpoint)
