@@ -16,7 +16,7 @@ namespace Cassandra.Native
 {
     internal enum BufferingMode { NoBuffering, FrameBuffering }
 
-    internal partial class CassandraConnection 
+    internal partial class CassandraConnection
     {
         //static class Debug
         //{
@@ -124,6 +124,7 @@ namespace Cassandra.Native
                     new byte[bufferingMode.PreferedBufferSize()] };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            newSock.SendTimeout = this.abortTimeout;
 
             newSock.Connect(new IPEndPoint(serverAddress, port));
             socket.Value = newSock;
@@ -195,8 +196,8 @@ namespace Cassandra.Native
                 ar.SetResult(outp);
                 ar.Complete();
                 freeStreamId(streamId);
-                (outp as IWaitableForDispose).WaitForDispose();            
-            }            
+                (outp as IWaitableForDispose).WaitForDispose();
+            }
         }
 
         Dictionary<string, string> startupOptions = new Dictionary<string, string>()
@@ -224,7 +225,7 @@ namespace Cassandra.Native
 
             var ar = new AsyncResult<IOutput>(callback, state, owner, propId);
 
-            lock(frameGuardier)
+            lock (frameGuardier)
                 frameReadAsyncResult[streamId] = ar;
 
             try
@@ -297,7 +298,7 @@ namespace Cassandra.Native
             }
         }
 
-        Timer abortTimer =null;
+        Timer abortTimer = null;
 
         int abortTimeout = Timeout.Infinite;
 
@@ -307,7 +308,7 @@ namespace Cassandra.Native
         {
             lock (abortNotNeeded)
             {
-                if(abortNotNeeded.Value)
+                if (abortNotNeeded.Value)
                     return;
                 abortNotNeeded.Value = true;
             }
@@ -342,7 +343,7 @@ namespace Cassandra.Native
                 catch (CassandraConncectionIOException)
                 {
                 }
-                lock (statusGuardier) 
+                lock (statusGuardier)
                     readerSocketExceptionOccured = true;
                 again();
             }
@@ -352,7 +353,7 @@ namespace Cassandra.Native
 
         internal void BeginReading()
         {
-            lock (statusGuardier) 
+            lock (statusGuardier)
                 if (alreadyDisposed)
                     return;
             try
@@ -388,9 +389,9 @@ namespace Cassandra.Native
 
                             if (bytesReadCount == 0)
                             {
-                                lock (statusGuardier) 
+                                lock (statusGuardier)
                                     if (alreadyDisposed)
-                                        return; 
+                                        return;
                                 hostIsDown();
                                 throw new CassandraConncectionIOException();
                             }
