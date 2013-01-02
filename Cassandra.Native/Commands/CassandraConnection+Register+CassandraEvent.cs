@@ -31,7 +31,7 @@ namespace Cassandra.Native
                     CassandraEvent.Invoke(this, (response as EventResponse).CassandraEventArgs);
                 return;
             }
-            throw new CassandraClientProtocolViolationException("Unexpected response frame");
+            throw new DriverInternalError("Unexpected response frame");
         }
 
         public IAsyncResult BeginRegisterForCassandraEvent(CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)

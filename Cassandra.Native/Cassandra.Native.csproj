@@ -69,7 +69,6 @@
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
-    <Compile Include="CassandraException.cs" />
     <Compile Include="CassandraSession.cs" />
     <Compile Include="ClusterMetadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />

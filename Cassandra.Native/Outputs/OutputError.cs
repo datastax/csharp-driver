@@ -7,7 +7,7 @@ using Cassandra;
 namespace Cassandra
 {
 
-    public class ServerErrorException : CassandraServerException
+    public class ServerErrorException : QueryValidationException
     {
         public ServerErrorException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
@@ -16,7 +16,7 @@ namespace Cassandra
         }
     }
 
-    public class ProtocolErrorException : CassandraServerException
+    public class ProtocolErrorException : QueryValidationException
     {
         public ProtocolErrorException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
@@ -25,7 +25,7 @@ namespace Cassandra
         }
     }
 
-    public class OverloadedException : CassandraServerException
+    public class OverloadedException : QueryValidationException
     {
         public OverloadedException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
@@ -34,7 +34,7 @@ namespace Cassandra
         }
     }
 
-    public class IsBootstrappingException : CassandraServerException
+    public class IsBootstrappingException : QueryValidationException
     {
         public IsBootstrappingException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
@@ -43,7 +43,7 @@ namespace Cassandra
         }
     }
 
-    public class InvalidException : CassandraServerException
+    public class InvalidException : QueryValidationException
     {
         public InvalidException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
@@ -84,7 +84,7 @@ namespace Cassandra.Native
         {
             var tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Native.Output" + code.ToString());
             if (tpy == null)
-                throw new CassandraClientProtocolViolationException("unknown error" + code.ToString());
+                throw new DriverInternalError("unknown error" + code.ToString());
             var cnstr = tpy.GetConstructor(new Type[] { });
             var outp = (OutputError)cnstr.Invoke(new object[] { });
             tpy.GetField("CassandraErrorType").SetValue(outp, code);
@@ -102,13 +102,13 @@ namespace Cassandra.Native
         {
         }
 
-        public abstract CassandraServerException CreateException();
+        public abstract QueryValidationException CreateException();
     }
 
 
     internal class OutputServerError : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new ServerErrorException(Message);
         }
@@ -116,7 +116,7 @@ namespace Cassandra.Native
 
     internal class OutputProtocolError : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new ProtocolErrorException(Message);
         }
@@ -138,7 +138,7 @@ namespace Cassandra.Native
             info.Required = cb.ReadInt32();
             info.Alive = cb.ReadInt32();
         }
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new UnavailableException(Message, info.ConsistencyLevel, info.Required, info.Alive);
         }
@@ -146,7 +146,7 @@ namespace Cassandra.Native
 
     internal class OutputOverloaded : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new OverloadedException(Message);
         }
@@ -154,7 +154,7 @@ namespace Cassandra.Native
 
     internal class OutputIsBootstrapping : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new IsBootstrappingException(Message);
         }
@@ -162,7 +162,7 @@ namespace Cassandra.Native
 
     internal class OutputTruncateError : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new TruncateException(Message);
         }
@@ -189,7 +189,7 @@ namespace Cassandra.Native
             info.WriteType = cb.ReadString();
         }
 
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new WriteTimeoutException(Message, info.ConsistencyLevel, info.Received, info.BlockFor, info.WriteType);
         }
@@ -214,7 +214,7 @@ namespace Cassandra.Native
             info.BlockFor = cb.ReadInt32();
             info.IsDataPresent = cb.ReadByte() != 0;
         }
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new ReadTimeoutException(Message, info.ConsistencyLevel, info.Received, info.BlockFor, info.IsDataPresent);
         }
@@ -222,7 +222,7 @@ namespace Cassandra.Native
 
     internal class OutputSyntaxError : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new SyntaxError(Message);
         }
@@ -230,7 +230,7 @@ namespace Cassandra.Native
 
     internal class OutputUnauthorized : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new UnauthorizedException(Message);
         }
@@ -238,7 +238,7 @@ namespace Cassandra.Native
 
     internal class OutputInvalid : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new InvalidException(Message);
         }
@@ -247,7 +247,7 @@ namespace Cassandra.Native
 
     internal class OutputConfigError : OutputError
     {
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new CassandraClusterConfigErrorException(Message);
         }
@@ -267,7 +267,7 @@ namespace Cassandra.Native
             info.Ks = cb.ReadString();
             info.Table = cb.ReadString();
         }
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new AlreadyExistsException(Message, info.Ks, info.Table);
         }
@@ -287,7 +287,7 @@ namespace Cassandra.Native
             info.UnknownID = new byte[len];
             cb.Read(info.UnknownID, 0, len);
         }
-        public override CassandraServerException CreateException()
+        public override QueryValidationException CreateException()
         {
             return new PreparedQueryNotFoundException(Message, info.UnknownID);
         }

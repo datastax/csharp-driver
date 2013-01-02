@@ -277,7 +277,7 @@ namespace Cassandra
                     }
                     
                     if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != CqlQueryTools.CqlIdentifier(keyspaceId))
-                        throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+                        throw new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
 
                     lock(preparedQueries)
                         foreach (var prepQ in preparedQueries)
@@ -387,7 +387,7 @@ namespace Cassandra
                                 if (exc != null)
                                     throw exc;
                                 if (retKeyspaceId != keyspaceId)
-                                    throw new CassandraClientProtocolViolationException("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+                                    throw new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                             }
                             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)
                             {
@@ -482,7 +482,7 @@ namespace Cassandra
         
         #endregion
 
-        private CassandraServerException processSetKeyspace(IOutput outp, out string keyspacename)
+        private QueryValidationException processSetKeyspace(IOutput outp, out string keyspacename)
         {
             using (outp)
             {
@@ -497,11 +497,11 @@ namespace Cassandra
                     return null;
                 }
                 else
-                    throw new CassandraClientProtocolViolationException("Unexpected output kind");
+                    throw new DriverInternalError("Unexpected output kind");
             }
         }
 
-        private CassandraServerException processPrepareQuery(IOutput outp, out Metadata metadata, out byte[] queryId)
+        private QueryValidationException processPrepareQuery(IOutput outp, out Metadata metadata, out byte[] queryId)
         {
             using (outp)
             {
@@ -518,12 +518,12 @@ namespace Cassandra
                     return null;
                 }
                 else
-                    throw new CassandraClientProtocolViolationException("Unexpected output kind");
+                    throw new DriverInternalError("Unexpected output kind");
             }
         }
 
 
-        private CassandraServerException processRowset(IOutput outp, out CqlRowSet rowset)
+        private QueryValidationException processRowset(IOutput outp, out CqlRowSet rowset)
         {
             rowset = null;
             if (outp is OutputError)
@@ -547,7 +547,7 @@ namespace Cassandra
                 return null;
             }
             else
-                throw new CassandraClientProtocolViolationException("Unexpected output kind");
+                throw new DriverInternalError("Unexpected output kind");
         }
 
         abstract class LongToken
@@ -564,7 +564,7 @@ namespace Cassandra
                 connection = owner.connect(routingKey, ref current, moveNext, innerExceptions);
             }
             abstract public void Begin(Session owner);
-            abstract public CassandraServerException Process(Session owner, IAsyncResult ar, out object value);
+            abstract public QueryValidationException Process(Session owner, IAsyncResult ar, out object value);
             abstract public void Complete(Session owner, object value, Exception exc = null);
         }
 
@@ -596,7 +596,7 @@ namespace Cassandra
             var token = ar.AsyncState as LongToken;
             try
             {
-                CassandraServerException exc;
+                QueryValidationException exc;
                 object value;
                 exc = token.Process(this, ar, out value);
                 if (exc != null)
@@ -647,7 +647,7 @@ namespace Cassandra
             {
                 connection.BeginQuery(cqlQuery, owner.ClbNoQuery, this, owner, consistency);
             }
-            override public CassandraServerException Process(Session owner, IAsyncResult ar, out object value)
+            override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 string keyspace;
                 var exc = owner.processSetKeyspace(connection.EndQuery(ar, owner), out keyspace);
@@ -700,7 +700,7 @@ namespace Cassandra
             {
                 connection.BeginQuery(cqlQuery, owner.ClbNoQuery, this, owner, consistency);
             }
-            override public CassandraServerException Process(Session owner, IAsyncResult ar, out object value)
+            override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 CqlRowSet rowset;
                 var exc = owner.processRowset(connection.EndQuery(ar, owner), out rowset);
@@ -755,7 +755,7 @@ namespace Cassandra
             {
                 connection.BeginPrepareQuery(cqlQuery, owner.ClbNoQuery, this, owner);
             }
-            override public CassandraServerException Process(Session owner, IAsyncResult ar, out object value)
+            override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 byte[] id;
                 Metadata metadata;
@@ -817,7 +817,7 @@ namespace Cassandra
             {
                 connection.BeginExecuteQuery(id, metadata, values, owner.ClbNoQuery, this, owner, consistency);
             }
-            override public CassandraServerException Process(Session owner, IAsyncResult ar, out object value)
+            override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 CqlRowSet rowset;
                 var exc = owner.processRowset(connection.EndExecuteQuery(ar, owner), out rowset);

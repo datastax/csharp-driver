@@ -19,7 +19,7 @@ namespace Cassandra.Native
         {
             var bodyLen = ConversionHelper.FromBytesToInt32(len, 0);
 
-            if (MaxFrameSize - 8 < bodyLen) throw new CassandraClientProtocolViolationException("Frame length mismatch");
+            if (MaxFrameSize - 8 < bodyLen) throw new DriverInternalError("Frame length mismatch");
 
             var frame = new ResponseFrame() { FrameHeader = this, RawStream = stream };
             return frame;

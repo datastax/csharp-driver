@@ -33,7 +33,7 @@ namespace Cassandra.Native
                     Output = new OutputSchemaChange(rd);
                     break;
                 default:
-                    throw new CassandraClientProtocolViolationException("Unknown Event Type");
+                    throw new DriverInternalError("Unknown Event Type");
             }
         }
         internal static ResultResponse Create(ResponseFrame frame)

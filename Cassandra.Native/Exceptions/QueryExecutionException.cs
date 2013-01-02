@@ -10,7 +10,7 @@ namespace Cassandra
      * This correspond to the exception that Cassandra throw when a (valid) query
      * cannot be executed (TimeoutException, UnavailableException, ...).
      */
-    public abstract class QueryExecutionException : CassandraServerException
+    public abstract class QueryExecutionException : QueryValidationException
     {
         public QueryExecutionException(string message)
             : base(message) { }

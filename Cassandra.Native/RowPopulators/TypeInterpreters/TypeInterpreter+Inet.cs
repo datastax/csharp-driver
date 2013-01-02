@@ -28,7 +28,7 @@ namespace Cassandra.Native
                 port = ConversionHelper.FromBytesToInt32(buf, 1 + 16);
                 return new IPEndPoint(ip, port);
             }
-            throw new CassandraClientProtocolViolationException("Invalid lenght of Inet Addr");
+            throw new DriverInternalError("Invalid lenght of Inet Addr");
         }
 
         public static Type GetTypeFromInet(Metadata.ColumnInfo type_info)

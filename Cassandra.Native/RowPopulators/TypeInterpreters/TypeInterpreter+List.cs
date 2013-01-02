@@ -32,7 +32,7 @@ namespace Cassandra.Native
                 }
                 return ret;
             }
-            throw new CassandraClientProtocolViolationException("Invalid ColumnInfo");
+            throw new DriverInternalError("Invalid ColumnInfo");
         }
 
         public static Type GetTypeFromList(Metadata.ColumnInfo type_info)
@@ -46,7 +46,7 @@ namespace Cassandra.Native
                 var listType = openType.MakeGenericType(value_type);
                 return listType;
             }
-            throw new CassandraClientProtocolViolationException("Invalid ColumnInfo");
+            throw new DriverInternalError("Invalid ColumnInfo");
         }
 
         public static byte[] InvConvertFromList(Metadata.ColumnInfo type_info, object value)

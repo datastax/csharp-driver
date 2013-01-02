@@ -201,7 +201,7 @@ namespace Cassandra.Native
                         decompressedBuffer = compressor.Decompress(this.buffer);
                     
                     if (count > decompressedBuffer.Length - readPos)
-                        throw new CassandraClientProtocolViolationException("Invalid decompression state");
+                        throw new DriverInternalError("Invalid decompression state");
                     
                     Buffer.BlockCopy(this.decompressedBuffer, readPos, buffer, offset, count);
                 }

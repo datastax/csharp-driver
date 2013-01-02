@@ -1,28 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 namespace Cassandra
 {
-
-
-    public class CassandraConnectionException : CassandraException
-    {
-        public CassandraConnectionException(string message, Exception innerException = null)
-            : base(message, innerException)
-        {
-        }
-    }
-
-    public class CassandraConncectionClosedUnexpectedlyException : CassandraConnectionException
-    {
-        public CassandraConncectionClosedUnexpectedlyException()
-            : base("cassandra connection closed unexpectedly")
-        {
-        }
-    }
-
-    public class CassandraConncectionIOException : CassandraConnectionException
+    internal class CassandraConncectionIOException : IOException
     {
         public CassandraConncectionIOException(Exception innerException = null)
             : base("cassandra connection io exception", innerException)
@@ -30,7 +13,7 @@ namespace Cassandra
         }
     }
 
-    public class CassandraConnectionTimeoutException : CassandraConnectionException
+    internal class CassandraConnectionTimeoutException : TimeoutException
     {
         public CassandraConnectionTimeoutException()
             : base("cassandra connection timeout exception")

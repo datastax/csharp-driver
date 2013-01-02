@@ -38,7 +38,7 @@ namespace Cassandra.Native
                 return;
             }
 
-            throw new CassandraClientProtocolViolationException("Unknown Event Type");
+            throw new DriverInternalError("Unknown Event Type");
         }
 
         internal static EventResponse Create(ResponseFrame frame)

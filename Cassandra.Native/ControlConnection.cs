@@ -32,15 +32,14 @@ namespace Cassandra.Native
                 if (!(ret is OutputVoid))
                 {
                     if (ret is OutputError)
-                        theExc = new Exception("CQL Error [" + (ret as OutputError).CassandraErrorType.ToString() + "] " + (ret as OutputError).Message);
+                        theExc = (ret as OutputError).CreateException();
                     else
-                        theExc = new CassandraClientProtocolViolationException("Expected Error on Output");
+                        theExc = new DriverInternalError("Expected Error on Output");
                 }
             }
 
             if (theExc != null)
-                throw new CassandraConnectionException("Register event", theExc);
-
+                throw theExc;
         }
 
         void conn_CassandraEvent(object sender, CassandraEventArgs e)
@@ -77,7 +76,7 @@ namespace Cassandra.Native
                 }
                 return;
             }
-            throw new CassandraClientProtocolViolationException("Unknown Event");
+            throw new DriverInternalError("Unknown Event");
         }
 
         internal void ownerHostIsDown(IPAddress endpoint)

@@ -84,7 +84,7 @@ namespace Cassandra.Native
                         yield return tmpFrame;
                         break;
                     default:
-                        throw new CassandraClientProtocolViolationException("Invalid state");
+                        throw new DriverInternalError("Invalid state");
                 }
 
                 byteIdx++;
