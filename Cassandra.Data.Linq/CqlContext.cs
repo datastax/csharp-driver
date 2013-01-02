@@ -71,7 +71,7 @@ namespace Cassandra.Data
                 {
                     CreateTable(table.Value, table.Key);
                 }
-                catch (CassandraClusterAlreadyExistsException)
+                catch (AlreadyExistsException)
                 {
                     //already exists
                 }

@@ -20,12 +20,12 @@ namespace Cassandra
             this.hosts = hosts;
         }
 
-        public CassandraClusterHost GetHost(IPAddress address)
+        public Host GetHost(IPAddress address)
         {
             return hosts[address];
         }
 
-        public CassandraClusterHost AddHost(IPAddress address, ReconnectionPolicy rp)
+        public Host AddHost(IPAddress address, ReconnectionPolicy rp)
         {
              hosts.AddIfNotExistsOrBringUpIfDown(address, rp);
              return hosts[address];

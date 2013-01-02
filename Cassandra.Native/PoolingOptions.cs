@@ -71,13 +71,13 @@ namespace Cassandra.Native
          * @param distance the {@code HostDistance} for which to return this threshold.
          * @return the configured threshold, or the default one if none have been set.
          */
-        public int GetMinSimultaneousRequestsPerConnectionTreshold(CassandraHostDistance distance)
+        public int GetMinSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     return minSimultaneousRequestsForLocal;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     return minSimultaneousRequestsForRemote;
                 default:
                     return 0;
@@ -94,14 +94,14 @@ namespace Cassandra.Native
          *
          * @throws IllegalArgumentException if {@code distance == HostDistance.IGNORED}.
          */
-        public PoolingOptions SetMinSimultaneousRequestsPerConnectionTreshold(CassandraHostDistance distance, int minSimultaneousRequests)
+        public PoolingOptions SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance distance, int minSimultaneousRequests)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     minSimultaneousRequestsForLocal = minSimultaneousRequests;
                     break;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     minSimultaneousRequestsForRemote = minSimultaneousRequests;
                     break;
                 default:
@@ -129,13 +129,13 @@ namespace Cassandra.Native
          * @param distance the {@code HostDistance} for which to return this threshold.
          * @return the configured threshold, or the default one if none have been set.
          */
-        public int GetMaxSimultaneousRequestsPerConnectionTreshold(CassandraHostDistance distance)
+        public int GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     return maxSimultaneousRequestsForLocal;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     return maxSimultaneousRequestsForRemote;
                 default:
                     return 0;
@@ -152,14 +152,14 @@ namespace Cassandra.Native
          *
          * @throws IllegalArgumentException if {@code distance == HostDistance.IGNORED}.
          */
-        public PoolingOptions SetMaxSimultaneousRequestsPerConnectionTreshold(CassandraHostDistance distance, int maxSimultaneousRequests)
+        public PoolingOptions SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance, int maxSimultaneousRequests)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     maxSimultaneousRequestsForLocal = maxSimultaneousRequests;
                     break;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     maxSimultaneousRequestsForRemote = maxSimultaneousRequests;
                     break;
                 default:
@@ -178,13 +178,13 @@ namespace Cassandra.Native
          * @param distance the {@code HostDistance} for which to return this threshold.
          * @return the core number of connections per host at distance {@code distance}.
          */
-        public int GetCoreConnectionsPerHost(CassandraHostDistance distance)
+        public int GetCoreConnectionsPerHost(HostDistance distance)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     return coreConnectionsForLocal;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     return coreConnectionsForRemote;
                 default:
                     return 0;
@@ -200,14 +200,14 @@ namespace Cassandra.Native
          *
          * @throws IllegalArgumentException if {@code distance == HostDistance.IGNORED}.
          */
-        public PoolingOptions SetCoreConnectionsPerHost(CassandraHostDistance distance, int coreConnections)
+        public PoolingOptions SetCoreConnectionsPerHost(HostDistance distance, int coreConnections)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     coreConnectionsForLocal = coreConnections;
                     break;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     coreConnectionsForRemote = coreConnections;
                     break;
                 default:
@@ -225,13 +225,13 @@ namespace Cassandra.Native
          * @param distance the {@code HostDistance} for which to return this threshold.
          * @return the maximum number of connections per host at distance {@code distance}.
          */
-        public int GetMaxConnectionPerHost(CassandraHostDistance distance)
+        public int GetMaxConnectionPerHost(HostDistance distance)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     return maxConnectionsForLocal;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     return maxConnectionsForRemote;
                 default:
                     return 0;
@@ -247,14 +247,14 @@ namespace Cassandra.Native
          *
          * @throws IllegalArgumentException if {@code distance == HostDistance.IGNORED}.
          */
-        public PoolingOptions SetMaxConnectionsPerHost(CassandraHostDistance distance, int maxConnections)
+        public PoolingOptions SetMaxConnectionsPerHost(HostDistance distance, int maxConnections)
         {
             switch (distance)
             {
-                case CassandraHostDistance.LOCAL:
+                case HostDistance.LOCAL:
                     maxConnectionsForLocal = maxConnections;
                     break;
-                case CassandraHostDistance.REMOTE:
+                case HostDistance.REMOTE:
                     maxConnectionsForRemote = maxConnections;
                     break;
                 default:

@@ -266,7 +266,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert[0][0].ToString(), toInsert[0][1], toInsert[0][2]), null);
                 ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert[1][0].ToString(), toInsert[1][1], toInsert[1][2]), null);
             }
-            catch (CassandraClusterInvalidException) { }
+            catch (InvalidException) { }
                         
             if(shouldPass)
                 ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);

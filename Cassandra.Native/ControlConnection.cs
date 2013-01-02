@@ -10,7 +10,7 @@ namespace Cassandra.Native
     {
         Session session;
         Session owner;
-        CassandraClusterHost current = null;
+        Host current = null;
         public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
             int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
         {
@@ -116,7 +116,7 @@ namespace Cassandra.Native
                 if(refresh)
                     refreshNodeListAndTokenMap(connection);
             }
-            catch (CassandraNoHostAvaliableException)
+            catch (NoHostAvailableException)
             {
                 isDiconnected = true;
                 reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);

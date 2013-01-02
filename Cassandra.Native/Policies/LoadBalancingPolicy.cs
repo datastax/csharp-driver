@@ -50,7 +50,7 @@ namespace Cassandra
          * @param host the host of which to return the distance of.
          * @return the HostDistance to {@code host}.
          */
-        CassandraHostDistance Distance(CassandraClusterHost host);
+        HostDistance Distance(Host host);
 
         /**
          * Returns the hosts to use for a new query.
@@ -66,6 +66,6 @@ namespace Cassandra
          * returned by this iterator in order, until the query has been sent
          * successfully to one of the host.
          */
-        IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey);
+        IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey);
     }
 }

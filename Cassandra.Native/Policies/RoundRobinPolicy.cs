@@ -43,9 +43,9 @@ namespace Cassandra
          * @param host the host of which to return the distance of.
          * @return the HostDistance to {@code host}.
          */
-        public CassandraHostDistance Distance(CassandraClusterHost host)
+        public HostDistance Distance(Host host)
         {
-            return CassandraHostDistance.LOCAL;
+            return HostDistance.LOCAL;
         }
 
         /**
@@ -59,9 +59,9 @@ namespace Cassandra
          * @return a new query plan, i.e. an iterator indicating which host to
          * try first for querying, which one to use as failover, etc...
          */
-        public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
         {
-            List<CassandraClusterHost> copyOfHosts = new List<CassandraClusterHost>(infoProvider.GetAllHosts());
+            List<Host> copyOfHosts = new List<Host>(infoProvider.GetAllHosts());
             if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
                 startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
             for (int i = 0; i < copyOfHosts.Count; i++)

@@ -279,9 +279,9 @@ namespace Cassandra.Data
                     countersCount++;
                     countersSpotted = true;
                     if (prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
-                        throw new CassandraClusterInvalidException("Counter can not be a part of PRIMARY KEY !");
+                        throw new InvalidException("Counter can not be a part of PRIMARY KEY !");
                     if (tpy != typeof(Int64))
-                        throw new CassandraClusterInvalidException("Counters can be only of Int64(long) type !");
+                        throw new InvalidException("Counters can be only of Int64(long) type !");
                     else
                         ret.Append("counter");
                 }
@@ -322,7 +322,7 @@ namespace Cassandra.Data
                 if (countersCount + clusteringKeys.Count + 1 == props.Count())
                     table.GetType().GetField("_isCounterTable", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(table, true);
                 else
-                    throw new CassandraClusterInvalidException("Counter table can consist only of counters."); 
+                    throw new InvalidException("Counter table can consist only of counters."); 
 
             ret.Append("PRIMARY KEY(");
             if (partitionKeys.Count > 1)

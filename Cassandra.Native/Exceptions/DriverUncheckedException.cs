@@ -1,0 +1,17 @@
+using System;
+namespace Cassandra
+{
+/**
+ * Top level class for unchecked exceptions thrown by the driver.
+ */
+    public class DriverUncheckedException : Exception
+    {
+
+        public DriverUncheckedException(string message)
+            : base(message) { }
+
+        public DriverUncheckedException(string message, Exception innerException)
+            : base(message, innerException) { }
+    }
+}
+

@@ -14,8 +14,8 @@ namespace Cassandra
 {
     public interface ISessionInfoProvider
     {
-        ICollection<CassandraClusterHost> GetAllHosts();
-        ICollection<CassandraClusterHost> GetReplicas(byte[] routingInfo);
+        ICollection<Host> GetAllHosts();
+        ICollection<Host> GetReplicas(byte[] routingInfo);
     }
 
     public class Session : IDisposable
@@ -33,14 +33,14 @@ namespace Cassandra
             {
                 this.owner = owner;
             }
-            public ICollection<CassandraClusterHost> GetAllHosts()
+            public ICollection<Host> GetAllHosts()
             {
                 return owner.Hosts.All();
             }
-            public ICollection<CassandraClusterHost> GetReplicas(byte[] routingInfo)
+            public ICollection<Host> GetReplicas(byte[] routingInfo)
             {
                 var replicas = owner.control.metadata.GetReplicas(routingInfo);
-                List<CassandraClusterHost> ret = new List<CassandraClusterHost>();
+                List<Host> ret = new List<Host>();
                 foreach (var repl in replicas)
                     ret.Add(owner.Hosts[repl]);
                 return ret;
@@ -109,7 +109,7 @@ namespace Cassandra
             this.keyspace = keyspace;
             this.Policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
 
-            CassandraClusterHost current = null;
+            Host current = null;
             connect(null, ref current);
 
             if (hosts == null)
@@ -124,7 +124,7 @@ namespace Cassandra
 
         List<CassandraConnection> trahscan = new List<CassandraConnection>();
 
-        internal CassandraConnection connect(CassandraRoutingKey routingKey, ref CassandraClusterHost current, bool getNext=false)
+        internal CassandraConnection connect(CassandraRoutingKey routingKey, ref Host current, bool getNext=false)
         {
             checkDisposed();
             lock (trahscan)
@@ -150,7 +150,7 @@ namespace Cassandra
                         {
                             if (getNext)
                                 if (!hostsIter.MoveNext())
-                                    throw new CassandraNoHostAvaliableException("No host is avaliable");
+                                    throw new NoHostAvailableException(new Dictionary<IPAddress,Exception>());
                             break;
                         }
                     }
@@ -225,7 +225,7 @@ namespace Cassandra
                     }
                 }
             }
-            throw new CassandraNoHostAvaliableException("No host is avaliable");
+            throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
         }
 
         internal void OnAddHost(IPAddress endpoint)
@@ -270,7 +270,7 @@ namespace Cassandra
                     var exc = processSetKeyspace(nconn.Query(GetUseKeyspaceCQL(keyspaceId), ConsistencyLevel.IGNORE), out retKeyspaceId);
                     if (exc != null)
                     {
-                        if (exc is CassandraClusterInvalidException)
+                        if (exc is InvalidException)
                             throw exc;
                         else
                             return null;
@@ -346,7 +346,7 @@ namespace Cassandra
             {
                 CreateKeyspace(ksname);
             }
-            catch (CassandraClusterAlreadyExistsException)
+            catch (AlreadyExistsException)
             {
                 //already exists
             }
@@ -555,9 +555,9 @@ namespace Cassandra
             public CassandraConnection connection;
             public ConsistencyLevel consistency;
             public CassandraRoutingKey routingKey;
-            public CassandraClusterHost current = null;
+            public Host current = null;
             public IAsyncResult longActionAc;
-            public List<Exception> innerExceptions = new List<Exception>();
+            public Dictionary<IPAddress, Exception> innerExceptions = new Dictionary<IPAddress, Exception>();
             public int queryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
             {
@@ -616,7 +616,7 @@ namespace Cassandra
                             case RetryDecision.RetryDecisionType.RETRY:
                                 token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
                                 token.queryRetries++;
-                                token.innerExceptions.Add(exc);
+                                token.innerExceptions[token.connection.getAdress()]=exc;
                                 ExecConn(token, false);
                                 return;
                             default:
@@ -630,7 +630,7 @@ namespace Cassandra
             {
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
-                    token.innerExceptions.Add(ex);
+                    token.innerExceptions[token.connection.getAdress()] = ex;
                     ExecConn(token, true);
                 }
                 else
@@ -658,7 +658,7 @@ namespace Cassandra
             {
                 var ar = longActionAc as AsyncResult<string>;
                 if (exc != null)
-                    ar.Complete(new CassandraQueryException("Unable to complete the query.", exc, innerExceptions));
+                    ar.Complete(new ExecutionException("Unable to complete the query.", exc, innerExceptions));
                 else
                 {
                     ar.SetResult(value as string);

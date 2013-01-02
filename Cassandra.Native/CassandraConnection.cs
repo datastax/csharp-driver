@@ -243,7 +243,7 @@ namespace Cassandra.Native
                         else if (response is AuthenticateResponse)
                         {
                             if (authInfoProvider == null)
-                                throw new CassandraClientConfigurationException("Credentials are required for this connection. Please provide a CredentialsDelegate for it.");
+                                throw new AuthenticationException("Credentials are required.", serverAddress);
 
                             var credentials = authInfoProvider.GetAuthInfos(serverAddress);
 

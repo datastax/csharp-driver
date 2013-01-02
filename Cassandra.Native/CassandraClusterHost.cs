@@ -5,7 +5,7 @@ using System.Net;
 using System.Threading;
 using Cassandra;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     /**
      * The distance to a Cassandra node as assigned by a
@@ -25,7 +25,7 @@ namespace Cassandra.Native
      * be assigned to hosts that should not be used by this driver (because they
      * are in a remote datacenter for instance).
      */
-    public enum CassandraHostDistance
+    public enum HostDistance
     {
         LOCAL,
         REMOTE,
@@ -37,7 +37,7 @@ namespace Cassandra.Native
      *
      * This class keeps the informations the driver maintain on a given Cassandra node.
      */
-    public class CassandraClusterHost
+    public class Host
     {
         private readonly IPAddress address;
 
@@ -71,7 +71,7 @@ namespace Cassandra.Native
 
         // ClusterMetadata keeps one Host object per inet address, so don't use
         // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
-        public CassandraClusterHost(IPAddress address, ReconnectionPolicy reconnectionPolicy)
+        public Host(IPAddress address, ReconnectionPolicy reconnectionPolicy)
         {
             this.address = address;
             this.reconnectionPolicy = reconnectionPolicy;
@@ -137,9 +137,9 @@ namespace Cassandra.Native
 
     internal class Hosts
     {
-        public Dictionary<IPAddress, CassandraClusterHost> hosts = new Dictionary<IPAddress, CassandraClusterHost>();
+        public Dictionary<IPAddress, Host> hosts = new Dictionary<IPAddress, Host>();
 
-        public CassandraClusterHost this[IPAddress endpoint]
+        public Host this[IPAddress endpoint]
         {
             get
             {
@@ -153,10 +153,10 @@ namespace Cassandra.Native
             }
         }
 
-        public ICollection<CassandraClusterHost> All()
+        public ICollection<Host> All()
         {
             lock (hosts)
-                return new List<CassandraClusterHost>(hosts.Values);
+                return new List<Host>(hosts.Values);
         }
 
         public void AddIfNotExistsOrBringUpIfDown(IPAddress ep, ReconnectionPolicy rp)
@@ -164,7 +164,7 @@ namespace Cassandra.Native
             lock (hosts)
             {
                 if (!hosts.ContainsKey(ep))
-                    hosts.Add(ep, new CassandraClusterHost(ep, rp));
+                    hosts.Add(ep, new Host(ep, rp));
                 else
                     hosts[ep].BringUpIfDown();
             }

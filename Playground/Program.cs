@@ -28,7 +28,7 @@ namespace Playground
             {
                 session.ChangeKeyspace(keyspaceName);
             }
-            catch (CassandraClusterInvalidException)
+            catch (InvalidException)
             {
                 session.CreateKeyspaceIfNotExists(keyspaceName);
                 session.ChangeKeyspace(keyspaceName);

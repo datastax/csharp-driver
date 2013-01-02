@@ -140,7 +140,7 @@ namespace Cassandra
             {
                 session.ChangeKeyspace(defaultKeyspace);
             }
-            catch (CassandraClusterInvalidException)
+            catch (InvalidException)
             {
                 session.CreateKeyspaceIfNotExists(defaultKeyspace);
                 session.ChangeKeyspace(defaultKeyspace);

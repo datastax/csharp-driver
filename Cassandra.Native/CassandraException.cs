@@ -23,16 +23,7 @@ namespace Cassandra
             : base(message, innerException) { }
     }
 
-    public class CassandraNoHostAvaliableException : CassandraClientException
-    {
-        public CassandraNoHostAvaliableException(string message)
-            : base(message) { }
-
-        public CassandraNoHostAvaliableException(string message, Exception innerException)
-            : base(message, innerException) { }
-    }
-
-    public abstract class CassandraServerException : CassandraException
+    public abstract class CassandraServerException : DriverUncheckedException
     {
         public CassandraServerException(string message)
             : base(message) { }
@@ -41,15 +32,6 @@ namespace Cassandra
             : base(message, innerException) { }
 
         public abstract RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries);
-    }
-
-    public class CassandraClientConfigurationException : CassandraClientException
-    {
-        public CassandraClientConfigurationException(string message)
-            : base(message) { }
-
-        public CassandraClientConfigurationException(string message, Exception innerException)
-            : base(message, innerException) { }
     }
 
     public class CassandraClientProtocolViolationException : CassandraClientException

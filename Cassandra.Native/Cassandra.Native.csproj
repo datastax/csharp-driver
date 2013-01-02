@@ -81,6 +81,51 @@
     <Compile Include="ConversionHelper.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="DictSet.cs" />
+    <Compile Include="Exceptions\AlreadyExistsException.cs" />
+    <Compile Include="Exceptions\AuthenticationException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\DriverException.cs" />
+    <Compile Include="Exceptions\DriverInternalError.cs" />
+    <Compile Include="Exceptions\DriverUncheckedException.cs" />
+    <Compile Include="Exceptions\ExecutionException.cs" />
+    <Compile Include="Exceptions\InvalidConfigurationInQueryException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\InvalidQueryException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\NoHostAvailableException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\PreparedQueryNotFoundException.cs" />
+    <Compile Include="Exceptions\QueryExecutionException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\QueryTimeoutException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\QueryValidationException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\ReadTimeoutException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\SyntaxError.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\TruncateException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\UnauthorizedException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\UnavailableException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\WriteTimeoutException.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="FrameBuffering.cs" />
     <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />

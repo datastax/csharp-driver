@@ -76,30 +76,30 @@ namespace Cassandra
             this.infoProvider = infoProvider;
         }
 
-        private string DC(CassandraClusterHost host)
+        private string DC(Host host)
         {
             string dc = host.Datacenter;
             return dc == null ? localDc : dc;
         }
 
-        public CassandraHostDistance Distance(CassandraClusterHost host)
+        public HostDistance Distance(Host host)
         {
             string dc = DC(host);
             if (dc.Equals(localDc))
-                return CassandraHostDistance.LOCAL;
+                return HostDistance.LOCAL;
 
             int ix = 0;
             foreach (var h in infoProvider.GetAllHosts())
             {
                 if (h == host)
-                    return ix < usedHostsPerRemoteDc ? CassandraHostDistance.IGNORED : CassandraHostDistance.REMOTE;
+                    return ix < usedHostsPerRemoteDc ? HostDistance.IGNORED : HostDistance.REMOTE;
                 else if (dc.Equals(DC(h)))
                     ix++;
             }
-            return CassandraHostDistance.IGNORED;
+            return HostDistance.IGNORED;
         }
 
-        public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             foreach (var h in infoProvider.GetAllHosts())
             {

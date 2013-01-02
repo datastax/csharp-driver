@@ -52,12 +52,12 @@ namespace Cassandra
             childPolicy.Initialize(infoProvider);
         }
 
-        public CassandraHostDistance Distance(CassandraClusterHost host)
+        public HostDistance Distance(Host host)
         {
             return childPolicy.Distance(host);
         }
 
-        public IEnumerable<CassandraClusterHost> NewQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             if (routingKey == null)
             {
@@ -78,13 +78,13 @@ namespace Cassandra
             while (iterator.MoveNext())
             {
                 var host = iterator.Current;
-                if (host.IsConsiderablyUp && childPolicy.Distance(host) == CassandraHostDistance.LOCAL)
+                if (host.IsConsiderablyUp && childPolicy.Distance(host) == HostDistance.LOCAL)
                     yield return host;
             }
 
             foreach (var host in childPolicy.NewQueryPlan(routingKey))
             {
-                if (!replicas.Contains(host) || childPolicy.Distance(host) != CassandraHostDistance.LOCAL)
+                if (!replicas.Contains(host) || childPolicy.Distance(host) != HostDistance.LOCAL)
                     yield return host;
             }
 
