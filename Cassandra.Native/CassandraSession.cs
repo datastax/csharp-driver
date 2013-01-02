@@ -124,7 +124,7 @@ namespace Cassandra
 
         List<CassandraConnection> trahscan = new List<CassandraConnection>();
 
-        internal CassandraConnection connect(CassandraRoutingKey routingKey, ref Host current, bool getNext=false)
+        internal CassandraConnection connect(CassandraRoutingKey routingKey, ref Host current, bool getNext = false, Dictionary<IPAddress, Exception> innerExceptions = null)
         {
             checkDisposed();
             lock (trahscan)
@@ -150,7 +150,7 @@ namespace Cassandra
                         {
                             if (getNext)
                                 if (!hostsIter.MoveNext())
-                                    throw new NoHostAvailableException(new Dictionary<IPAddress,Exception>());
+                                    throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
                             break;
                         }
                     }
@@ -225,7 +225,7 @@ namespace Cassandra
                     }
                 }
             }
-            throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+            throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
         }
 
         internal void OnAddHost(IPAddress endpoint)
@@ -561,7 +561,7 @@ namespace Cassandra
             public int queryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
             {
-                connection = owner.connect(routingKey, ref current, moveNext);
+                connection = owner.connect(routingKey, ref current, moveNext, innerExceptions);
             }
             abstract public void Begin(Session owner);
             abstract public CassandraServerException Process(Session owner, IAsyncResult ar, out object value);
