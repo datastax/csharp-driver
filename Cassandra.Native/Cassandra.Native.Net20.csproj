@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Cassandra.Native</RootNamespace>
     <AssemblyName>Cassandra.Native</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -40,7 +40,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -67,7 +66,6 @@
     </Compile>
     <Compile Include="AsyncResult.cs" />
     <Compile Include="AuthInfoProvider.cs" />
-    <Compile Include="BigDecimal.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
@@ -127,7 +125,6 @@
     <Compile Include="Exceptions\WriteTimeoutException.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Extensions.cs" />
     <Compile Include="FrameBuffering.cs" />
     <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />

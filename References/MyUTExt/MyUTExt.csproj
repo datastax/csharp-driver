@@ -50,10 +50,6 @@
     <Compile Include="Randomm.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Cassandra.Native.BigNumbers\Cassandra.Native.BigNumbers.csproj">
-      <Project>{23C840A5-4DA7-4902-852F-5D447CAA0929}</Project>
-      <Name>Cassandra.Native.BigNumbers</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\Cassandra.Native\Cassandra.Native.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra.Native</Name>

@@ -16,10 +16,12 @@ namespace Cassandra
         {
             if (partitionerName.EndsWith("Murmur3Partitioner"))
                 return M3PToken.FACTORY;
-            //else if (partitionerName.EndsWith("RandomPartitioner"))
-            //    return RPToken.FACTORY;
-            //else if (partitionerName.EndsWith("OrderedPartitioner"))
-            //    return OPPToken.FACTORY;
+//#if NET_40_OR_GREATER
+//            else if (partitionerName.EndsWith("RandomPartitioner"))
+//                return RPToken.FACTORY;
+//#endif
+            else if (partitionerName.EndsWith("OrderedPartitioner"))
+                return OPPToken.FACTORY;
             else
                 return null;
         }
@@ -79,5 +81,61 @@ namespace Cassandra
             long otherValue = other.value;
             return value < otherValue ? -1 : (value == otherValue) ? 0 : 1;
         }
+    }
+
+    // OPPartitioner tokens
+    class OPPToken : Token
+    {
+        private readonly byte[] value;
+
+        class OPPTokenFactory : TokenFactory
+        {
+            public override Token fromString(string tokenStr)
+            {
+                return new OPPToken(System.Text.Encoding.UTF8.GetBytes(tokenStr));
+            }
+
+            public override Token hash(byte[] partitionKey)
+            {
+                return new OPPToken(partitionKey);
+            }
+        }
+
+        public static readonly TokenFactory FACTORY = new OPPTokenFactory();
+
+
+        private OPPToken(byte[] value)
+        {
+            this.value = value;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (this == obj)
+                return true;
+            if (obj == null || this.GetType() != obj.GetType())
+                return false;
+
+            return value == ((OPPToken)obj).value;
+        }
+
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
+
+        public int CompareTo(object obj)
+        {
+            var other = obj as OPPToken;
+            for (int i = 0; i < value.Length && i < other.value.Length; i++)
+            {
+                int a = (value[i] & 0xff);
+                int b = (other.value[i] & 0xff);
+                if (a != b)
+                    return a - b;
+            }
+            return 0;
+        }
+
     }
 }
