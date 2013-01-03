@@ -35,25 +35,25 @@ namespace Cassandra
     // Murmur3Partitioner tokens
     class M3PToken : Token
     {
-        private readonly ulong value;
+        private readonly long value;
 
         class M3PTokenFactory : TokenFactory
         {
             public override Token fromString(string tokenStr)
             {
-                return new M3PToken(ulong.Parse(tokenStr));
+                return new M3PToken(long.Parse(tokenStr));
             }
 
             public override Token hash(byte[] partitionKey)
             {
-                ulong v = MurmurHash.hash3_x64_128(partitionKey, 0, (uint)partitionKey.Length, 0)[0];
-                return new M3PToken(v == ulong.MinValue ? ulong.MaxValue : v);
+                long v = (long)MurmurHash.hash3_x64_128(partitionKey, 0, partitionKey.Length, 0)[0];
+                return new M3PToken(v == long.MinValue ? long.MaxValue : v);
             }
         }
 
         public static readonly TokenFactory FACTORY = new M3PTokenFactory();
 
-        private M3PToken(ulong value)
+        private M3PToken(long value)
         {
             this.value = value;
         }
@@ -70,13 +70,13 @@ namespace Cassandra
 
         public override int GetHashCode()
         {
-            return (int)(value ^ (value >> 32));
+            return (int)(value ^ ((long)((ulong)value >> 32)));
         }
 
         public int CompareTo(object obj)
         {
             var other = obj as M3PToken;
-            ulong otherValue = other.value;
+            long otherValue = other.value;
             return value < otherValue ? -1 : (value == otherValue) ? 0 : 1;
         }
     }
