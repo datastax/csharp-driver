@@ -6,6 +6,10 @@ using Cassandra.Native;
 using System.Threading;
 using System.Data.Common;
 
+#if NET_40_OR_GREATER
+using System.Numerics;
+#endif
+
 namespace Cassandra
 {
     // We really only use the generic for type safety and it's not an interface because we don't want to expose
@@ -16,10 +20,10 @@ namespace Cassandra
         {
             if (partitionerName.EndsWith("Murmur3Partitioner"))
                 return M3PToken.FACTORY;
-//#if NET_40_OR_GREATER
-//            else if (partitionerName.EndsWith("RandomPartitioner"))
-//                return RPToken.FACTORY;
-//#endif
+#if NET_40_OR_GREATER
+            else if (partitionerName.EndsWith("RandomPartitioner"))
+                return RPToken.FACTORY;
+#endif
             else if (partitionerName.EndsWith("OrderedPartitioner"))
                 return OPPToken.FACTORY;
             else
@@ -136,6 +140,59 @@ namespace Cassandra
             }
             return 0;
         }
-
     }
+
+#if NET_40_OR_GREATER
+
+    // RandomPartitioner tokens
+    class RPToken : Token
+    {
+        private readonly BigInteger value;
+
+        class RPTokenFactory : TokenFactory
+        {
+            public override Token fromString(string tokenStr)
+            {
+                return new RPToken(BigInteger.Parse(tokenStr));
+            }
+
+            public override Token hash(byte[] partitionKey)
+            {
+                throw new NotImplementedException();
+//                return new RPToken(FBUtilities.hashToBigInteger(partitionKey));
+            }
+
+        }
+
+        public static readonly TokenFactory FACTORY = new RPTokenFactory();
+
+
+        private RPToken(BigInteger value)
+        {
+            this.value = value;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (this == obj)
+                return true;
+            if (obj == null || this.GetType() != obj.GetType())
+                return false;
+
+            return value == ((RPToken)obj).value;
+        }
+
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
+
+        public int CompareTo(object obj)
+        {
+            var other = obj as RPToken;
+            return value.CompareTo(other.value);
+        }
+    }
+
+#endif
 }
