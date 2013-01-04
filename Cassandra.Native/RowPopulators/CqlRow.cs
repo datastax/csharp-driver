@@ -6,23 +6,23 @@ namespace Cassandra.Native
 {
     public class CqlRow
     {
-        public object[] columns;
+        public readonly object[] Columns;
         Dictionary<string, int> columnIdxes;
         internal CqlRow(OutputRows rawrows, Dictionary<string, int> columnIdxes)
         {
-            columns = new object[rawrows.Metadata.Columns.Length];
+            Columns = new object[rawrows.Metadata.Columns.Length];
             this.columnIdxes = columnIdxes;
             int i = 0;
             foreach (var len in rawrows.GetRawColumnLengths())
             {
                 if (len < 0)
-                    columns[i] = null;
+                    Columns[i] = null;
                 else
                 {
                     byte[] buffer = new byte[len];
 
                     rawrows.ReadRawColumnValue(buffer, 0, len);
-                    columns[i] = TypeInterpreter.CqlConvert(buffer,
+                    Columns[i] = TypeInterpreter.CqlConvert(buffer,
                         rawrows.Metadata.Columns[i].type_code, rawrows.Metadata.Columns[i].type_info);                    
                 }
 
@@ -36,7 +36,7 @@ namespace Cassandra.Native
         {
             get
             {
-                return columns.Length;
+                return Columns.Length;
             }
         }
 
@@ -44,7 +44,7 @@ namespace Cassandra.Native
         {
             get
             {
-                return columns[idx];
+                return Columns[idx];
             }
         }
 
@@ -52,7 +52,7 @@ namespace Cassandra.Native
         {
             get
             {
-                return columns[columnIdxes[name]];
+                return Columns[columnIdxes[name]];
             }
         }
 

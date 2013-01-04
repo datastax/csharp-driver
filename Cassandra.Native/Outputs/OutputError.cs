@@ -12,7 +12,7 @@ namespace Cassandra
         public ServerErrorException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
     }
 
@@ -21,7 +21,7 @@ namespace Cassandra
         public ProtocolErrorException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
     }
 
@@ -30,7 +30,7 @@ namespace Cassandra
         public OverloadedException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.retry(null);
+            return RetryDecision.Retry(null);
         }
     }
 
@@ -39,7 +39,7 @@ namespace Cassandra
         public IsBootstrappingException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.retry(null);
+            return RetryDecision.Retry(null);
         }
     }
 
@@ -48,7 +48,7 @@ namespace Cassandra
         public InvalidException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
     }
 

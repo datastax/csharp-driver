@@ -10,14 +10,14 @@ namespace Cassandra.Native
     {
         public const int MaxFrameSize = 256 * 1024 * 1024;
         public const int Size = 8;
-        public byte version;
-        public byte flags;
-        public byte streamId;
-        public byte opcode;
-        public byte[] len = new byte[4];
-        public ResponseFrame makeFrame(IProtoBuf stream)
+        public byte Version;
+        public byte Flags;
+        public byte StreamId;
+        public byte Opcode;
+        public byte[] Len = new byte[4];
+        public ResponseFrame MakeFrame(IProtoBuf stream)
         {
-            var bodyLen = ConversionHelper.FromBytesToInt32(len, 0);
+            var bodyLen = ConversionHelper.FromBytesToInt32(Len, 0);
 
             if (MaxFrameSize - 8 < bodyLen) throw new DriverInternalError("Frame length mismatch");
 
@@ -34,14 +34,14 @@ namespace Cassandra.Native
 
     internal struct RequestFrame
     {
-        public byte[] buffer;
+        public byte[] Buffer;
 
-        public const int versionIdx = 0;
-        public const int flagsIdx = 1;
-        public const int streamIdIdx = 2;
-        public const int opcodeIdIdx = 3;
-        public const int lenIdx = 4;
-        public const int bodyIdx = 8;
+        public const int VersionIdx = 0;
+        public const int FlagsIdx = 1;
+        public const int StreamIdIdx = 2;
+        public const int OpcodeIdIdx = 3;
+        public const int LenIdx = 4;
+        public const int BodyIdx = 8;
 
     }
 

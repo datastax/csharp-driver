@@ -8,6 +8,7 @@ using System.Data.Common;
 
 #if NET_40_OR_GREATER
 using System.Numerics;
+using System.Security.Cryptography;
 #endif
 
 namespace Cassandra
@@ -16,7 +17,7 @@ namespace Cassandra
     // Note: we may want to expose this later if people use custom partitioner and want to be able to extend that. This is way premature however.
     abstract class TokenFactory
     {
-        public static TokenFactory getFactory(string partitionerName)
+        public static TokenFactory GetFactory(string partitionerName)
         {
             if (partitionerName.EndsWith("Murmur3Partitioner"))
                 return M3PToken.FACTORY;
@@ -30,8 +31,8 @@ namespace Cassandra
                 return null;
         }
 
-        public abstract Token fromString(String tokenStr);
-        public abstract Token hash(byte[] partitionKey);
+        public abstract Token Parse(String tokenStr);
+        public abstract Token Hash(byte[] partitionKey);
     }
 
     interface Token : IComparable
@@ -45,14 +46,14 @@ namespace Cassandra
 
         class M3PTokenFactory : TokenFactory
         {
-            public override Token fromString(string tokenStr)
+            public override Token Parse(string tokenStr)
             {
                 return new M3PToken(long.Parse(tokenStr));
             }
 
-            public override Token hash(byte[] partitionKey)
+            public override Token Hash(byte[] partitionKey)
             {
-                long v = (long)MurmurHash.hash3_x64_128(partitionKey, 0, partitionKey.Length, 0)[0];
+                long v = (long)MurmurHash.Hash3_x64_128(partitionKey, 0, partitionKey.Length, 0)[0];
                 return new M3PToken(v == long.MinValue ? long.MaxValue : v);
             }
         }
@@ -94,12 +95,12 @@ namespace Cassandra
 
         class OPPTokenFactory : TokenFactory
         {
-            public override Token fromString(string tokenStr)
+            public override Token Parse(string tokenStr)
             {
                 return new OPPToken(System.Text.Encoding.UTF8.GetBytes(tokenStr));
             }
 
-            public override Token hash(byte[] partitionKey)
+            public override Token Hash(byte[] partitionKey)
             {
                 return new OPPToken(partitionKey);
             }
@@ -151,17 +152,18 @@ namespace Cassandra
 
         class RPTokenFactory : TokenFactory
         {
-            public override Token fromString(string tokenStr)
+            public override Token Parse(string tokenStr)
             {
                 return new RPToken(BigInteger.Parse(tokenStr));
             }
 
-            public override Token hash(byte[] partitionKey)
+            [ThreadStatic]
+            static MD5 md5 = null;
+            public override Token Hash(byte[] partitionKey)
             {
-                throw new NotImplementedException();
-//                return new RPToken(FBUtilities.hashToBigInteger(partitionKey));
+                if (md5 == null) md5 = MD5.Create();
+                return new RPToken(new BigInteger(md5.ComputeHash(partitionKey)));
             }
-
         }
 
         public static readonly TokenFactory FACTORY = new RPTokenFactory();

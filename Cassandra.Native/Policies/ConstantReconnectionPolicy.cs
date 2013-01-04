@@ -28,10 +28,7 @@ namespace Cassandra
          *
          * @return the constant delay used by this reconnection policy.
          */
-        public long getConstantDelayMs()
-        {
-            return delayMs;
-        }
+        public long ConstantDelayMs { get { return delayMs; } }
 
         /**
          * A new schedule that uses a constant {@code getConstantDelayMs()} delay

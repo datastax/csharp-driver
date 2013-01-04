@@ -66,7 +66,7 @@ namespace Cassandra
                 yield break;
             }
 
-            var replicas = infoProvider.GetReplicas(routingKey.rawRoutingKey);
+            var replicas = infoProvider.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
                 foreach (var iter in childPolicy.NewQueryPlan(routingKey))

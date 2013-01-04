@@ -134,12 +134,12 @@ namespace MyUTExt
             int i = 0;            
             foreach (var row in rowset.GetRows())
             {                
-                if (row.columns.Any(col => col.GetType() == typeof(byte[])))
+                if (row.Columns.Any(col => col.GetType() == typeof(byte[])))
                     for (int j = 0; j < row.Length; j++)
                         Assert.True(row[j].GetType() == typeof(byte[]) ? Utils.ArrEqual((byte[])row[j], (byte[])insertedRows[i][j]) : row[j].Equals(insertedRows[i][j]));                        
                 else
                 {
-                    for (int m = 0; m < row.columns.Length; m++)
+                    for (int m = 0; m < row.Columns.Length; m++)
                     {                     
                         if (insertedRows[i][m].GetType() == typeof(decimal))
                             insertedRows[i][m] = Extensions.ToDecimalBuffer((decimal)insertedRows[i][m]);
@@ -147,13 +147,13 @@ namespace MyUTExt
                             if (insertedRows[i][m].GetType() == typeof(BigInteger))
                                 insertedRows[i][m] = Extensions.ToVarintBuffer((BigInteger)insertedRows[i][m]);
 
-                        if (!row.columns[m].Equals(insertedRows[i][m]))
+                        if (!row.Columns[m].Equals(insertedRows[i][m]))
                         {
                             insertedRows.Reverse();// To check if needed and why 
-                            if (!row.columns[m].Equals(insertedRows[i][m]))
+                            if (!row.Columns[m].Equals(insertedRows[i][m]))
                                 insertedRows.Reverse();
                         }
-                        Assert.True(row.columns[m].Equals(insertedRows[i][m]), "Inserted data !Equals with returned data.");
+                        Assert.True(row.Columns[m].Equals(insertedRows[i][m]), "Inserted data !Equals with returned data.");
                     }
                 }
                 i++;

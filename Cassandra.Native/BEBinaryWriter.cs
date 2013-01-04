@@ -105,7 +105,7 @@ namespace Cassandra.Native
             WriteInt32(len - 8);
             var buffer = new byte[len];
             Buffer.BlockCopy((_base.BaseStream as MemoryStream).GetBuffer(), 0, buffer, 0, len);
-            return new RequestFrame() { buffer = buffer };
+            return new RequestFrame() { Buffer = buffer };
         }
 
     }

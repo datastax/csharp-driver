@@ -53,7 +53,7 @@ internal class MurmurHash
         return k;
     }
 
-    public static long[] hash3_x64_128(byte[] key, int offset, int length, long seed)
+    public static long[] Hash3_x64_128(byte[] key, int offset, int length, long seed)
     {
         int nblocks = length >> 4; // Process as 128-bit blocks.
 

@@ -14,7 +14,6 @@ namespace Cassandra.Data
         string GetTableName();
         Context GetContext();
         ICqlMutationTracker GetMutationTracker();
-        bool isCounterTable { get;}        
     }
 
     public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
@@ -25,8 +24,6 @@ namespace Cassandra.Data
     {
         Context context;
         string tableName;
-        public bool isCounterTable { get { return _isCounterTable; } }
-        private bool _isCounterTable = false;     
 
         internal CqlTable(Context context, string tableName)
         {
@@ -146,7 +143,12 @@ namespace Cassandra.Data
         {
             throw new NotImplementedException();
         }
-        
+
+        public override bool Equals(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
         public static bool operator ==(CqlToken<T> a, CqlToken<T> b)
         {
             throw new NotImplementedException();
@@ -167,8 +169,5 @@ namespace Cassandra.Data
         {
             throw new NotImplementedException();
         }
-
-
-
     }
 }

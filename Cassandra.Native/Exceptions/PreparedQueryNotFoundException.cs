@@ -11,7 +11,7 @@ namespace Cassandra
             base(Message) { this.UnknownID = UnknownId; }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
     }
 

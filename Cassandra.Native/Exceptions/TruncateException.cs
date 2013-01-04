@@ -12,7 +12,7 @@ namespace Cassandra
         public TruncateException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.retry(null);
+            return RetryDecision.Retry(null);
         }
     }
 }

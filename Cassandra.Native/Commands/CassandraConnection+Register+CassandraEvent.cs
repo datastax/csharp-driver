@@ -44,7 +44,7 @@ namespace Cassandra.Native
                     if (response is ReadyResponse)
                         JobFinished( streamId, new OutputVoid());
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() {Response = response, streamId = streamId });
+                        ProtocolErrorHandlerAction(new ErrorActionParam() {Response = response, StreamId = streamId });
 
                 }));
             }));

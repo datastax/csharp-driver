@@ -20,19 +20,19 @@ namespace Cassandra.Native
 
                 switch (byteIdx)
                 {
-                    case 0: tmpFrameHeader.version = b; break;
-                    case 1: tmpFrameHeader.flags = b; break;
-                    case 2: tmpFrameHeader.streamId = b; break;
-                    case 3: tmpFrameHeader.opcode = b; break;
+                    case 0: tmpFrameHeader.Version = b; break;
+                    case 1: tmpFrameHeader.Flags = b; break;
+                    case 2: tmpFrameHeader.StreamId = b; break;
+                    case 3: tmpFrameHeader.Opcode = b; break;
                     case 4:
                         {
-                            tmpFrameHeader.len[0] = b;
+                            tmpFrameHeader.Len[0] = b;
                         } break;
-                    case 5: tmpFrameHeader.len[1] = b; break;
-                    case 6: tmpFrameHeader.len[2] = b; break;
-                    case 7: tmpFrameHeader.len[3] = b;
-                        bodyLen = ConversionHelper.FromBytesToInt32(tmpFrameHeader.len, 0);
-                        tmpFrame = tmpFrameHeader.makeFrame(new BufferedProtoBuf(bodyLen, ((tmpFrameHeader.flags & 0x01) == 0x01) ? compressor : null));
+                    case 5: tmpFrameHeader.Len[1] = b; break;
+                    case 6: tmpFrameHeader.Len[2] = b; break;
+                    case 7: tmpFrameHeader.Len[3] = b;
+                        bodyLen = ConversionHelper.FromBytesToInt32(tmpFrameHeader.Len, 0);
+                        tmpFrame = tmpFrameHeader.MakeFrame(new BufferedProtoBuf(bodyLen, ((tmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
                         yield return tmpFrame;
                         break;
                     default:

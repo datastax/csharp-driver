@@ -63,13 +63,13 @@ namespace Cassandra
         private RetryDecision maxLikelyToWorkCL(int knownOk)
         {
             if (knownOk >= 3)
-                return RetryDecision.retry(ConsistencyLevel.THREE);
+                return RetryDecision.Retry(ConsistencyLevel.THREE);
             else if (knownOk >= 2)
-                return RetryDecision.retry(ConsistencyLevel.TWO);
+                return RetryDecision.Retry(ConsistencyLevel.TWO);
             else if (knownOk >= 1)
-                return RetryDecision.retry(ConsistencyLevel.ONE);
+                return RetryDecision.Retry(ConsistencyLevel.ONE);
             else
-                return RetryDecision.rethrow();
+                return RetryDecision.Rethrow();
         }
 
         /**
@@ -95,7 +95,7 @@ namespace Cassandra
         public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             if (nbRetry != 0)
-                return RetryDecision.rethrow();
+                return RetryDecision.Rethrow();
 
             if (receivedResponses < requiredResponses)
             {
@@ -103,7 +103,7 @@ namespace Cassandra
                 return maxLikelyToWorkCL(receivedResponses);
             }
 
-            return !dataRetrieved ? RetryDecision.retry(cl) : RetryDecision.rethrow();
+            return !dataRetrieved ? RetryDecision.Retry(cl) : RetryDecision.Rethrow();
         }
 
         /**
@@ -131,25 +131,25 @@ namespace Cassandra
         public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             if (nbRetry != 0)
-                return RetryDecision.rethrow();
+                return RetryDecision.Rethrow();
 
             switch (writeType)
             {
                 case "SIMPLE":
                 case "BATCH":
                     // Since we provide atomicity there is no point in retrying
-                    return RetryDecision.ignore();
+                    return RetryDecision.Ignore();
                 case "COUNTER":
                     // We should not retry counters, period!
-                    return RetryDecision.ignore();
+                    return RetryDecision.Ignore();
                 case "UNLOGGED_BATCH":
                     // Since only part of the batch could have been persisted,
                     // retry with whatever consistency should allow to persist all
                     return maxLikelyToWorkCL(receivedAcks);
                 case "BATCH_LOG":
-                    return RetryDecision.retry(cl);
+                    return RetryDecision.Retry(cl);
             }
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
 
         /**
@@ -171,7 +171,7 @@ namespace Cassandra
         public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             if (nbRetry != 0)
-                return RetryDecision.rethrow();
+                return RetryDecision.Rethrow();
 
             // Tries the biggest CL that is expected to work
             return maxLikelyToWorkCL(aliveReplica);

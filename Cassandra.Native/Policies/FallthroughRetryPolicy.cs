@@ -33,7 +33,7 @@ namespace Cassandra
          */
         public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
 
         /**
@@ -50,7 +50,7 @@ namespace Cassandra
          */
         public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
 
         /**
@@ -67,7 +67,7 @@ namespace Cassandra
          */
         public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
     }
 

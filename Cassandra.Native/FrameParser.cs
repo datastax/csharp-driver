@@ -30,7 +30,7 @@ namespace Cassandra.Native
 
         public IResponse Parse(ResponseFrame frame)
         {
-            var opcode = frame.FrameHeader.opcode;
+            var opcode = frame.FrameHeader.Opcode;
             if (registeredResponses[opcode] != null)
                 return registeredResponses[opcode](frame);
             return null;

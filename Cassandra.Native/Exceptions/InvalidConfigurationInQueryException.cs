@@ -16,7 +16,7 @@ namespace Cassandra
         public CassandraClusterConfigErrorException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.rethrow();
+            return RetryDecision.Rethrow();
         }
     }
 }

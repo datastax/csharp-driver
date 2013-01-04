@@ -316,12 +316,10 @@ namespace Cassandra.Data
                         }
                     }
                 }
-            }            
-                        
-            if(countersSpotted)// validating if table consists only of counters
-                if (countersCount + clusteringKeys.Count + 1 == props.Count())
-                    table.GetType().GetField("_isCounterTable", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(table, true);
-                else
+            }
+
+            if (countersSpotted)// validating if table consists only of counters
+                if (countersCount + clusteringKeys.Count + 1 != props.Count())
                     throw new InvalidException("Counter table can consist only of counters."); 
 
             ret.Append("PRIMARY KEY(");

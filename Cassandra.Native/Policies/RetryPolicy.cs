@@ -103,10 +103,7 @@ namespace Cassandra
          *
          * @return the type of this retry decision.
          */
-        public RetryDecisionType getType()
-        {
-            return type;
-        }
+        public RetryDecisionType DecisionType { get { return type; } }
 
         /**
          * The consistency level for a retry decision.
@@ -114,17 +111,14 @@ namespace Cassandra
          * @return the consistency level for a retry decision or {@code null}
          * if this retry decision is an {@code IGNORE} or a {@code RETHROW}.
          */
-        public ConsistencyLevel? getRetryConsistencyLevel()
-        {
-            return retryCL;
-        }
+        public ConsistencyLevel? RetryConsistencyLevel { get { return retryCL; } }
 
         /**
          * Creates a RETHROW retry decision.
          *
          * @return a RETHROW retry decision.
          */
-        public static RetryDecision rethrow()
+        public static RetryDecision Rethrow()
         {
             return new RetryDecision(RetryDecisionType.RETHROW, ConsistencyLevel.IGNORE);
         }
@@ -135,7 +129,7 @@ namespace Cassandra
          * @param consistency the consistency level to use for the retry.
          * @return a RETRY with consistency level {@code consistency} retry decision.
          */
-        public static RetryDecision retry(ConsistencyLevel? consistency)
+        public static RetryDecision Retry(ConsistencyLevel? consistency)
         {
             return new RetryDecision(RetryDecisionType.RETRY, consistency);
         }
@@ -145,7 +139,7 @@ namespace Cassandra
          *
          * @return an IGNORE retry decision.
          */
-        public static RetryDecision ignore()
+        public static RetryDecision Ignore()
         {
             return new RetryDecision(RetryDecisionType.IGNORE, ConsistencyLevel.IGNORE);
         }

@@ -53,7 +53,7 @@ namespace Cassandra.Native
         struct ErrorActionParam
         {
             public IResponse Response;
-            public int streamId;
+            public int StreamId;
         }
 
         Action<ErrorActionParam> ProtocolErrorHandlerAction;
@@ -112,7 +112,7 @@ namespace Cassandra.Native
                {
                    if (param.Response is ErrorResponse)
                        JobFinished(
-                           param.streamId,
+                           param.StreamId,
                            (param.Response as ErrorResponse).Output);
                });
 
@@ -169,19 +169,19 @@ namespace Cassandra.Native
             }
         }
 
-        public bool isBusy(int max)
+        public bool IsBusy(int max)
         {
             lock (freeStreamIDs)
                 return sbyte.MaxValue + 1 - freeStreamIDs.Value.Count >= max;
         }
 
-        public bool isFree(int min)
+        public bool IsFree(int min)
         {
             lock (freeStreamIDs)
                 return sbyte.MaxValue + 1 - freeStreamIDs.Value.Count <= min;
         }
 
-        public bool isEmpty()
+        public bool IsEmpty()
         {
             lock (freeStreamIDs)
                 return freeStreamIDs.Value.Count == sbyte.MaxValue + 1;
@@ -220,7 +220,7 @@ namespace Cassandra.Native
             defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
-                ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, streamId = streamId });
+                ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
             var ar = new AsyncResult<IOutput>(callback, state, owner, propId);
@@ -256,11 +256,11 @@ namespace Cassandra.Native
                                     job(streamId);
                                 }
                                 else
-                                    ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, streamId = streamId });
+                                    ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
                             }));
                         }
                         else
-                            ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, streamId = streamId });
+                            ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
                     });
                 }
                 else
@@ -396,12 +396,12 @@ namespace Cassandra.Native
                                     Action<ResponseFrame> act = null;
                                     lock (frameGuardier)
                                     {
-                                        if (frame.FrameHeader.streamId == 0xFF)
+                                        if (frame.FrameHeader.StreamId == 0xFF)
                                             act = frameEventCallback.Value;
-                                        else if (frame.FrameHeader.streamId >= 0)
+                                        else if (frame.FrameHeader.StreamId >= 0)
                                         {
-                                            act = frameReadCallback[frame.FrameHeader.streamId];
-                                            frameReadCallback[frame.FrameHeader.streamId] = null;
+                                            act = frameReadCallback[frame.FrameHeader.StreamId];
+                                            frameReadCallback[frame.FrameHeader.StreamId] = null;
                                         }
                                     }
 
@@ -582,7 +582,7 @@ namespace Cassandra.Native
                 {
                     lock (frameGuardier)
                         frameReadCallback[streamId] = nextAction;
-                    writerSocketStream.Write(frame.buffer, 0, frame.buffer.Length);
+                    writerSocketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
                     writerSocketStream.Flush();
                     if (abortTimeout != Timeout.Infinite)
                     {
@@ -600,7 +600,7 @@ namespace Cassandra.Native
             }
         }
 
-        internal IPAddress getAdress()
+        internal IPAddress GetHostAdress()
         {
             return serverAddress;
         }

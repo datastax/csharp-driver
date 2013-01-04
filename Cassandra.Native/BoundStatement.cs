@@ -39,7 +39,7 @@ namespace Cassandra
          *
          * @return the prepared statement on which this BoundStatement is based.
          */
-        public PreparedStatement preparedStatement()
+        public PreparedStatement PreparedStatement()
         {
             return statement;
         }
@@ -91,7 +91,7 @@ namespace Cassandra
 
         internal override IAsyncResult BeginExecute(Session session, AsyncCallback callback, object state)
         {
-            return session.BeginExecuteQuery(preparedStatement().id, preparedStatement().metadata, values, callback, state, ConsistencyLevel, RoutingKey);
+            return session.BeginExecuteQuery(PreparedStatement().id, PreparedStatement().metadata, values, callback, state, ConsistencyLevel, RoutingKey);
         }
 
         internal override CqlRowSet EndExecute(Session session, IAsyncResult ar)

@@ -43,7 +43,7 @@ namespace Cassandra
 
         internal void rebuildTokenMap(string partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
         {
-            this.tokenMap = TokenMap.build(partitioner, allTokens);
+            this.tokenMap = TokenMap.Build(partitioner, allTokens);
         }
 
         private volatile TokenMap tokenMap;
@@ -56,7 +56,7 @@ namespace Cassandra
             }
             else
             {
-                return tokenMap.GetReplicas(tokenMap.factory.hash(partitionKey));
+                return tokenMap.GetReplicas(tokenMap.factory.Hash(partitionKey));
             }
         }
     }
@@ -75,10 +75,10 @@ namespace Cassandra
             this.ring = ring;
         }
 
-        public static TokenMap build(String partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
+        public static TokenMap Build(String partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
         {
 
-            TokenFactory factory = TokenFactory.getFactory(partitioner);
+            TokenFactory factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
                 return null;
 
@@ -92,7 +92,7 @@ namespace Cassandra
                 {
                     try
                     {
-                        Token t = factory.fromString(tokenStr);
+                        Token t = factory.Parse(tokenStr);
                         allSorted.Add(t);
                         if (!tokenToCassandraClusterHosts.ContainsKey(t))
                             tokenToCassandraClusterHosts.Add(t, new DictSet<IPAddress>());

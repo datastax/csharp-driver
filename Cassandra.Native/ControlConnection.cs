@@ -179,7 +179,7 @@ namespace Cassandra.Native
                     if (clusterName != null)
                         metadata.clusterName = clusterName;
 
-                    var host = metadata.GetHost(connection.getAdress());
+                    var host = metadata.GetHost(connection.GetHostAdress());
                     // In theory host can't be null. However there is no point in risking a NPE in case we
                     // have a race between a node removal and this.
                     if (host != null)
@@ -234,7 +234,7 @@ namespace Cassandra.Native
             // Removes all those that seems to have been removed (since we lost the control connection)
             DictSet<IPAddress> foundHostsSet = new DictSet<IPAddress>(foundHosts);
             foreach (var host in metadata.AllHosts())
-                if (!host.Equals(connection.getAdress()) && !foundHostsSet.Contains(host))
+                if (!host.Equals(connection.GetHostAdress()) && !foundHostsSet.Contains(host))
                     metadata.RemoveHost(host);
 
             if (partitioner != null)

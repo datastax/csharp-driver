@@ -31,13 +31,13 @@ namespace Cassandra
 
         private static ConsistencyLevel CL(ConsistencyLevel cl, RetryDecision decision)
         {
-            return decision.getRetryConsistencyLevel() ?? cl;
+            return decision.RetryConsistencyLevel ?? cl;
         }
 
         public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             RetryDecision decision = policy.OnReadTimeout(cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
-            switch (decision.getType())
+            switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.IGNORE:
                     string f1 = "Ignoring read timeout (initial consistency: {0}, required responses: {1}, received responses: {2}, data retrieved: {3}, retries: {4})";
@@ -54,7 +54,7 @@ namespace Cassandra
         public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             RetryDecision decision = policy.OnWriteTimeout(cl, writeType, requiredAcks, receivedAcks, nbRetry);
-            switch (decision.getType())
+            switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.IGNORE:
                     string f1 = "Ignoring write timeout (initial consistency: {0}, write type: {1} required acknowledgments: {2}, received acknowledgments: {3}, retries: {4})";
@@ -71,7 +71,7 @@ namespace Cassandra
         public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             RetryDecision decision = policy.OnUnavailable(cl, requiredReplica, aliveReplica, nbRetry);
-            switch (decision.getType())
+            switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.IGNORE:
                     string f1 = "Ignoring unavailable exception (initial consistency: {0}, required replica: {1}, alive replica: {2}, retries: {3})";

@@ -137,7 +137,7 @@ namespace Cassandra
 
     internal class Hosts
     {
-        public Dictionary<IPAddress, Host> hosts = new Dictionary<IPAddress, Host>();
+        private Dictionary<IPAddress, Host> hosts = new Dictionary<IPAddress, Host>();
 
         public Host this[IPAddress endpoint]
         {

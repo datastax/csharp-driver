@@ -145,11 +145,24 @@ namespace Cassandra.Data
                 StringBuilder batchScript = new StringBuilder();
                 StringBuilder counterBatchScript = new StringBuilder();
                 foreach (var table in tables)
-                    if (table.Value.isCounterTable)
+                {
+                    bool isCounter = false;
+                    var props = table.Value.GetEntityType().GetPropertiesOrFields();
+                    foreach (var prop in props)
+                    {
+                        Type tpy = prop.GetTypeFromPropertyOrField();
+                        if (prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute != null)
+                        {
+                            isCounter = true;
+                            break;
+                        }
+                    }
+                    if (isCounter)
                         table.Value.GetMutationTracker().AppendChangesToBatch(counterBatchScript, table.Key);
                     else
                         table.Value.GetMutationTracker().AppendChangesToBatch(batchScript, table.Key);
 
+                }
 
                 foreach (var cplDels in additionalCommands)
                     batchScript.AppendLine(cplDels.GetCql() + ";");

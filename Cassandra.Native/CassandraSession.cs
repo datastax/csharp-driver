@@ -131,7 +131,7 @@ namespace Cassandra
             {
                 foreach (var conn in trahscan)
                 {
-                    if (conn.isEmpty())
+                    if (conn.IsEmpty())
                     {
                         Debug.WriteLine("Connection trashed");
                         conn.Dispose();
@@ -188,14 +188,14 @@ namespace Cassandra
                             {
                                 if (toReturn == null)
                                 {
-                                    if (!conn.isBusy(poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                                    if (!conn.IsBusy(poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
                                         toReturn = conn;
                                 }
                                 else
                                 {
                                     if (pool.Count > poolingOptions.GetCoreConnectionsPerHost(host_distance))
                                     {
-                                        if (conn.isFree(poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                                        if (conn.IsFree(poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
                                         {
                                             lock (trahscan)
                                                 trahscan.Add(conn);
@@ -587,16 +587,16 @@ namespace Cassandra
 
         abstract class LongToken
         {
-            public CassandraConnection connection;
-            public ConsistencyLevel consistency;
-            public CassandraRoutingKey routingKey;
-            public Host current = null;
-            public IAsyncResult longActionAc;
-            public Dictionary<IPAddress, Exception> innerExceptions = new Dictionary<IPAddress, Exception>();
-            public int queryRetries = 0;
+            public CassandraConnection Connection;
+            public ConsistencyLevel Consistency;
+            public CassandraRoutingKey RoutingKey;
+            public Host Current = null;
+            public IAsyncResult LongActionAc;
+            public Dictionary<IPAddress, Exception> InnerExceptions = new Dictionary<IPAddress, Exception>();
+            public int QueryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
             {
-                connection = owner.connect(routingKey, ref current, moveNext, innerExceptions);
+                Connection = owner.connect(RoutingKey, ref Current, moveNext, InnerExceptions);
             }
             abstract public void Begin(Session owner);
             abstract public QueryValidationException Process(Session owner, IAsyncResult ar, out object value);
@@ -636,22 +636,22 @@ namespace Cassandra
                 exc = token.Process(this, ar, out value);
                 if (exc != null)
                 {
-                    var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.queryRetries);
+                    var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
                     {
                         ExecConn(token, true);
                     }
                     else
                     {
-                        switch (decision.getType())
+                        switch (decision.DecisionType)
                         {
                             case RetryDecision.RetryDecisionType.RETHROW:
                                 token.Complete(this, null, exc);
                                 return;
                             case RetryDecision.RetryDecisionType.RETRY:
-                                token.consistency = decision.getRetryConsistencyLevel() ?? token.consistency;
-                                token.queryRetries++;
-                                token.innerExceptions[token.connection.getAdress()]=exc;
+                                token.Consistency = decision.RetryConsistencyLevel ?? token.Consistency;
+                                token.QueryRetries++;
+                                token.InnerExceptions[token.Connection.GetHostAdress()]=exc;
                                 ExecConn(token, false);
                                 return;
                             default:
@@ -665,7 +665,7 @@ namespace Cassandra
             {
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
-                    token.innerExceptions[token.connection.getAdress()] = ex;
+                    token.InnerExceptions[token.Connection.GetHostAdress()] = ex;
                     ExecConn(token, true);
                 }
                 else
@@ -677,23 +677,23 @@ namespace Cassandra
 
         class LongSetKeyspaceToken : LongToken
         {
-            public string cqlQuery;
+            public string CqlQuery;
             override public void Begin(Session owner)
             {
-                connection.BeginQuery(cqlQuery, owner.ClbNoQuery, this, owner, consistency);
+                Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency);
             }
             override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 string keyspace;
-                var exc = owner.processSetKeyspace(connection.EndQuery(ar, owner), out keyspace);
+                var exc = owner.processSetKeyspace(Connection.EndQuery(ar, owner), out keyspace);
                 value = keyspace;
                 return exc;
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                var ar = longActionAc as AsyncResult<string>;
+                var ar = LongActionAc as AsyncResult<string>;
                 if (exc != null)
-                    ar.Complete(new ExecutionException("Unable to complete the query.", exc, innerExceptions));
+                    ar.Complete(new ExecutionException("Unable to complete the query.", exc, InnerExceptions));
                 else
                 {
                     ar.SetResult(value as string);
@@ -705,7 +705,7 @@ namespace Cassandra
         internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
             AsyncResult<string> longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace");
-            var token = new LongSetKeyspaceToken() { consistency = consistency, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
+            var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -730,22 +730,22 @@ namespace Cassandra
 
         class LongQueryToken : LongToken
         {
-            public string cqlQuery;
+            public string CqlQuery;
             override public void Begin(Session owner)
             {
-                connection.BeginQuery(cqlQuery, owner.ClbNoQuery, this, owner, consistency);
+                Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency);
             }
             override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 CqlRowSet rowset;
-                var exc = owner.processRowset(connection.EndQuery(ar, owner), out rowset);
+                var exc = owner.processRowset(Connection.EndQuery(ar, owner), out rowset);
                 value = rowset;
                 return exc;
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
                 CqlRowSet rowset = value as CqlRowSet;
-                var ar = longActionAc as AsyncResult<CqlRowSet>;
+                var ar = LongActionAc as AsyncResult<CqlRowSet>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
@@ -759,7 +759,7 @@ namespace Cassandra
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
         {
             AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender);
-            var token = new LongQueryToken() { consistency = consistency, cqlQuery = cqlQuery, routingKey = routingKey, longActionAc = longActionAc };
+            var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -785,30 +785,30 @@ namespace Cassandra
 
         class LongPrepareQueryToken : LongToken
         {
-            public string cqlQuery;
+            public string CqlQuery;
             override public void Begin(Session owner)
             {
-                connection.BeginPrepareQuery(cqlQuery, owner.ClbNoQuery, this, owner);
+                Connection.BeginPrepareQuery(CqlQuery, owner.ClbNoQuery, this, owner);
             }
             override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 byte[] id;
                 Metadata metadata;
-                var exc = owner.processPrepareQuery(connection.EndPrepareQuery(ar, owner), out metadata, out id);
+                var exc = owner.processPrepareQuery(Connection.EndPrepareQuery(ar, owner), out metadata, out id);
                 value = new KeyValuePair<Metadata, byte[]>(metadata, id);
                 return exc;
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
                 KeyValuePair<Metadata, byte[]> kv = (KeyValuePair<Metadata, byte[]>)value;
-                var ar = longActionAc as AsyncResult<KeyValuePair<Metadata, byte[]>>;
+                var ar = LongActionAc as AsyncResult<KeyValuePair<Metadata, byte[]>>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
                 {
                     ar.SetResult(kv);
                     lock (owner.preparedQueries)
-                        owner.preparedQueries[cqlQuery] = kv;
+                        owner.preparedQueries[CqlQuery] = kv;
                     ar.Complete();
                 }
             }
@@ -817,7 +817,7 @@ namespace Cassandra
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null)
         {
             AsyncResult<KeyValuePair<Metadata, byte[]>> longActionAc = new AsyncResult<KeyValuePair<Metadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender);
-            var token = new LongPrepareQueryToken() { consistency = ConsistencyLevel.IGNORE, cqlQuery = cqlQuery, longActionAc = longActionAc };
+            var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.IGNORE, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -845,24 +845,24 @@ namespace Cassandra
 
         class LongExecuteQueryToken : LongToken
         {
-            public byte[] id;
-            public Metadata metadata;
-            public object[] values;
+            public byte[] Id;
+            public Metadata Metadata;
+            public object[] Values;
             override public void Begin(Session owner)
             {
-                connection.BeginExecuteQuery(id, metadata, values, owner.ClbNoQuery, this, owner, consistency);
+                Connection.BeginExecuteQuery(Id, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency);
             }
             override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 CqlRowSet rowset;
-                var exc = owner.processRowset(connection.EndExecuteQuery(ar, owner), out rowset);
+                var exc = owner.processRowset(Connection.EndExecuteQuery(ar, owner), out rowset);
                 value = rowset;
                 return exc;
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
                 CqlRowSet rowset = value as CqlRowSet;
-                var ar = longActionAc as AsyncResult<CqlRowSet>;
+                var ar = LongActionAc as AsyncResult<CqlRowSet>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
@@ -876,7 +876,7 @@ namespace Cassandra
         internal IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
             AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery");
-            var token = new LongExecuteQueryToken() { consistency = consistency, id = Id, metadata = Metadata, values = values, routingKey = routingKey, longActionAc = longActionAc };
+            var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 

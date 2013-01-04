@@ -6,15 +6,15 @@ namespace Cassandra.Native
 {
     internal class OutputSchemaChange : IOutput, IWaitableForDispose
     {
-        public string change;
-        public string keyspace;
-        public string table;
+        public string Change;
+        public string Keyspace;
+        public string Table;
 
         internal OutputSchemaChange(BEBinaryReader reader)
         {
-            this.change = reader.ReadString();
-            this.keyspace= reader.ReadString();
-            this.table = reader.ReadString();
+            this.Change = reader.ReadString();
+            this.Keyspace= reader.ReadString();
+            this.Table = reader.ReadString();
         }
 
         public void Dispose()

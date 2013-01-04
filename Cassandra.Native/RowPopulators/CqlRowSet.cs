@@ -7,7 +7,7 @@ namespace Cassandra.Native
 {
     public class CqlColumn
     {
-        public string KsName;
+        public string Keyspace;
         public string TableName;
         public string Name;
         public Type Type;
@@ -33,7 +33,7 @@ namespace Cassandra.Native
                 columns[i] = new CqlColumn()
                 {
                     Name = rawrows.Metadata.Columns[i].column_name,
-                    KsName = rawrows.Metadata.Columns[i].ksname,
+                    Keyspace = rawrows.Metadata.Columns[i].ksname,
                     TableName = rawrows.Metadata.Columns[i].tablename,
                     Type = TypeInterpreter.GetTypeFromCqlType(
                         rawrows.Metadata.Columns[i].type_code,
