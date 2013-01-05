@@ -10,7 +10,7 @@ namespace Cassandra.Native
     {
         Session session;
         Session owner;
-        Host current = null;
+        IEnumerator<Host> hostsIter = null;
         public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
             int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
         {
@@ -102,22 +102,35 @@ namespace Cassandra.Native
         ReconnectionSchedule reconnectionSchedule = null;
 
         CassandraConnection connection = null;
-        internal        ClusterMetadata metadata;
+        internal ClusterMetadata metadata;
 
 
         void go(bool refresh)
         {
             try
             {
-                reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                connection =session.connect(null, ref current);
-                setupEventListeners(connection);
-                if(refresh)
-                    refreshNodeListAndTokenMap(connection);
+                if (hostsIter == null)
+                    hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+
+                if (!hostsIter.MoveNext())
+                {
+                    isDiconnected = true;
+                    hostsIter = null;
+                    reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                }
+                else
+                {
+                    reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    connection = session.connect(null, hostsIter);
+                    setupEventListeners(connection);
+                    if (refresh)
+                        refreshNodeListAndTokenMap(connection);
+                }
             }
             catch (NoHostAvailableException)
             {
                 isDiconnected = true;
+                hostsIter = null;
                 reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
             }
             catch (Exception ex)
@@ -125,6 +138,7 @@ namespace Cassandra.Native
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
                     isDiconnected = true;
+                    hostsIter = null;
                     reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
                 else
@@ -134,7 +148,7 @@ namespace Cassandra.Native
 
         void checkConnectionDown(IPAddress endpoint)
         {
-            if (current.Address == endpoint)
+            if (hostsIter.Current.Address == endpoint)
             {
                 reconnectionSchedule = reconnectionPolicy.NewSchedule();
                 go(false);

@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;CASSANDRA_NET_40_OR_GREATER</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -29,7 +29,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;CASSANDRA_NET_40_OR_GREATER</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -56,24 +56,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cassandra.Data.Linq.Test\Cassandra.Data.Linq.Test.csproj">
-      <Project>{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}</Project>
-      <Name>Cassandra.Data.Linq.Test</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
-      <Project>{7FD62B8B-365D-48D6-8C21-2EF215294F64}</Project>
-      <Name>Cassandra.Data.Linq</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Native.Test\Cassandra.Native.Test.csproj">
-      <Project>{D222E239-F11B-487E-819F-73FB732B6AD8}</Project>
-      <Name>Cassandra.Native.Test</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\References\MyUTExt\MyUTExt.csproj">
-      <Project>{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}</Project>
-      <Name>MyUTExt</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
@@ -81,6 +63,16 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cassandra.Data.Linq.Test\Cassandra.Data.Linq.Test.csproj">
+      <Project>{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}</Project>
+      <Name>Cassandra.Data.Linq.Test</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra.Native.Test\Cassandra.Native.Test.csproj">
+      <Project>{D222E239-F11B-487E-819F-73FB732B6AD8}</Project>
+      <Name>Cassandra.Native.Test</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

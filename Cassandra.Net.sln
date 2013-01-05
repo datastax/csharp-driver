@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyUTExt", "References\MyUTExt\MyUTExt.csproj", "{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRunner", "TestRunner\TestRunner.csproj", "{BE029DEE-B993-404B-8AB0-09EF84355C7E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Native.Test", "Cassandra.Native.Test\Cassandra.Native.Test.csproj", "{D222E239-F11B-487E-819F-73FB732B6AD8}"
@@ -25,16 +23,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{A397D468-E8BC-4B2A-A5A5-4ED69ED81328}.Release|x86.ActiveCfg = Release|Any CPU
 		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|Any CPU.ActiveCfg = Debug|x86
 		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
 		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|Mixed Platforms.Build.0 = Debug|x86

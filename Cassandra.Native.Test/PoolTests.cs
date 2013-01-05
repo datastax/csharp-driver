@@ -10,7 +10,6 @@ using MyUTExt;
 
 namespace Cassandra.Native.Test
 {
-//    [Dev.Ignore]
     public class PoolCompressionTests : PoolTestsBase
     {
         public PoolCompressionTests()
@@ -19,7 +18,6 @@ namespace Cassandra.Native.Test
         }
     }
 
-//    [Dev.Ignore]
     public class PoolNoCompressionTests : PoolTestsBase
     {
         public PoolNoCompressionTests()
@@ -28,7 +26,6 @@ namespace Cassandra.Native.Test
         }
     }
 
-//    [Dev.Ignore]
     public class PoolTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;

@@ -91,12 +91,12 @@ namespace Cassandra
 
         internal override IAsyncResult BeginExecute(Session session, AsyncCallback callback, object state)
         {
-            return session.BeginExecuteQuery(PreparedStatement().id, PreparedStatement().metadata, values, callback, state, ConsistencyLevel, RoutingKey);
+            return session.BeginExecuteQuery(PreparedStatement().id, PreparedStatement().metadata, values, callback, state, ConsistencyLevel, RoutingKey, this);
         }
 
         internal override CqlRowSet EndExecute(Session session, IAsyncResult ar)
         {
-            return session.EndExecute(ar);
+            return session.EndExecuteQuery(ar);
         }
     }
 }

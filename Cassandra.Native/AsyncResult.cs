@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using System.Threading;
+using System.Reflection;
 
 namespace Cassandra.Native
 {
@@ -19,6 +20,7 @@ namespace Cassandra.Native
         private const Int32 c_StateCompletedSynchronously = 1;
         private const Int32 c_StateCompletedAsynchronously = 2;
         private Int32 m_CompletedState = c_StatePending;
+        private object m_CompletedStateGuard = new object();
 
         // Field that may or may not get set depending on usage
         private ManualResetEvent m_AsyncWaitHandle;
@@ -73,36 +75,39 @@ namespace Cassandra.Native
 
         internal bool Complete(Exception exception, bool completedSynchronously)
         {
-            bool result = false;
-
-            // The m_CompletedState field MUST be set prior calling the callback
-            Int32 prevState = Interlocked.Exchange(ref m_CompletedState,
-                completedSynchronously ? c_StateCompletedSynchronously :
-                c_StateCompletedAsynchronously);
-            if (prevState == c_StatePending)
+            lock (m_CompletedStateGuard)
             {
-                // Passing null for exception means no error occurred. 
-                // This is the common case
-                m_exception = exception;
+                bool result = false;
 
-                // Do any processing before completion.
-                this.Completing(exception, completedSynchronously);
+                // The m_CompletedState field MUST be set prior calling the callback
+                Int32 prevState = Interlocked.Exchange(ref m_CompletedState,
+                    completedSynchronously ? c_StateCompletedSynchronously :
+                    c_StateCompletedAsynchronously);
+                if (prevState == c_StatePending)
+                {
+                    // Passing null for exception means no error occurred. 
+                    // This is the common case
+                    m_exception = exception;
 
-                // If the event exists, set it
-                if (m_AsyncWaitHandle != null) m_AsyncWaitHandle.Set();
+                    // Do any processing before completion.
+                    this.Completing(exception, completedSynchronously);
 
-                this.MakeCallback(m_AsyncCallback, this);
+                    // If the event exists, set it
+                    if (m_AsyncWaitHandle != null) m_AsyncWaitHandle.Set();
 
-                // Do any final processing after completion
-                this.Completed(exception, completedSynchronously);
+                    this.MakeCallback(m_AsyncCallback, this);
 
-                result = true;
+                    // Do any final processing after completion
+                    this.Completed(exception, completedSynchronously);
+
+                    result = true;
+                }
+                else
+                {
+                    //already set
+                }
+                return result;
             }
-            else
-            {
-                //already set
-            }
-            return result;
         }
 
         private void CheckUsage(object owner, string operationId)
@@ -155,7 +160,11 @@ namespace Cassandra.Native
             }
 
             // Operation is done: if an exception occurred, throw it
-            if (asyncResult.m_exception != null) throw asyncResult.m_exception;
+            if (asyncResult.m_exception != null)
+            {
+                typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(asyncResult.m_exception, null);
+                throw asyncResult.m_exception;
+            }
         }
 
         #region Implementation of IAsyncResult
@@ -168,8 +177,11 @@ namespace Cassandra.Native
         {
             get
             {
-                return Thread.VolatileRead(ref m_CompletedState) ==
-                    c_StateCompletedSynchronously;
+                lock (m_CompletedStateGuard)
+                {
+                    return Thread.VolatileRead(ref m_CompletedState) ==
+                        c_StateCompletedSynchronously;
+                }
             }
         }
 
@@ -179,22 +191,25 @@ namespace Cassandra.Native
             {
                 if (m_AsyncWaitHandle == null)
                 {
-                    bool done = IsCompleted;
-                    ManualResetEvent mre = new ManualResetEvent(done);
-                    if (Interlocked.CompareExchange(ref m_AsyncWaitHandle,
-                        mre, null) != null)
+                    lock (m_CompletedStateGuard)
                     {
-                        // Another thread created this object's event; dispose 
-                        // the event we just created
-                        mre.Close();
-                    }
-                    else
-                    {
-                        if (!done && IsCompleted)
+                        bool done = IsCompleted;
+                        ManualResetEvent mre = new ManualResetEvent(done);
+                        if (Interlocked.CompareExchange(ref m_AsyncWaitHandle,
+                            mre, null) != null)
                         {
-                            // If the operation wasn't done when we created 
-                            // the event but now it is done, set the event
-                            m_AsyncWaitHandle.Set();
+                            // Another thread created this object's event; dispose 
+                            // the event we just created
+                            mre.Close();
+                        }
+                        else
+                        {
+                            if (!done && IsCompleted)
+                            {
+                                // If the operation wasn't done when we created 
+                                // the event but now it is done, set the event
+                                m_AsyncWaitHandle.Set();
+                            }
                         }
                     }
                 }
@@ -206,8 +221,11 @@ namespace Cassandra.Native
         {
             get
             {
-                return Thread.VolatileRead(ref m_CompletedState) !=
-                    c_StatePending;
+                lock (m_CompletedStateGuard)
+                {
+                    return Thread.VolatileRead(ref m_CompletedState) !=
+                        c_StatePending;
+                }
             }
         }
         #endregion

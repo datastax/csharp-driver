@@ -10,7 +10,6 @@ using MyUTExt;
 
 namespace Cassandra.Native.Test
 {
-    [Dev.Ignore]
     public class ErrrorInjectionCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionCompressionTests()
@@ -19,7 +18,6 @@ namespace Cassandra.Native.Test
         }
     }
 
-    [Dev.Ignore]
     public class ErrrorInjectionNoCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionNoCompressionTests()
@@ -27,7 +25,7 @@ namespace Cassandra.Native.Test
         {
         }
     }
-    
+
     public class ErrrorInjectionTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;
@@ -46,26 +44,24 @@ namespace Cassandra.Native.Test
 
         Session Session;
         string Keyspace = "";
-        IPAddress serverAddress;
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
             var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            clusterb.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);
+
+            var rp = new RoundRobinPolicyWithReconnectionRetries(new ConstantReconnectionPolicy(100));
+            rp.ReconnectionEvent += new EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs>((s, ev) => {
+                Console.Write("o");
+                Thread.Sleep((int)ev.DelayMs);
+            });
+            clusterb.WithLoadBalancingPolicy(rp);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
-
-            //var serverSp = setFix.Settings["CassandraServer"].Split(':');
-
-            //string ip = serverSp[0];
-            //int port = int.Parse(serverSp[1]);
-
-            //serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
-
-            //Session = new CassandraSession(new List<IPEndPoint>() { serverAddress, serverAddress, serverAddress, serverAddress, serverAddress }, this.Keyspace, this.Compression, 10 * 1000);
         }
 
         public void Dispose()
@@ -110,13 +106,13 @@ namespace Cassandra.Native.Test
                 }
                 Thread.Sleep(5);
                 Console.Write("#");
-                Session.SimulateSingleConnectionDown(serverAddress);
+                Session.SimulateSingleConnectionDown();
 
                 for (int i = 0; i < 100; i++)
                 {
                     Thread.Sleep(1);
                     Console.Write("#");
-                    Session.SimulateSingleConnectionDown(serverAddress);
+                    Session.SimulateSingleConnectionDown();
                 }
             });
 
@@ -151,6 +147,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                     catch(Exception ex)
                     {
                         Console.WriteLine(ex.Message);
+                        Console.WriteLine(ex.StackTrace);
                         ar[i] = true;
                         Thread.MemoryBarrier();
                     }

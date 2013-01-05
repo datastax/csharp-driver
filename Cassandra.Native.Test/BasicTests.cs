@@ -5,12 +5,13 @@ using Xunit;
 using System.Threading;
 using System.Net;
 using MyUTExt;
+#if CASSANDRA_NET_40_OR_GREATER
 using System.Numerics;
+#endif
 using System.Globalization;
 
 namespace Cassandra.Native.Test
 {
-    [Dev.Ignore]
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
         public CommonBasicTests()
@@ -65,11 +66,13 @@ namespace Cassandra.Native.Test
         {
             insertingSingleValue(typeof(System.Decimal));
         }
+#if CASSANDRA_NET_40_OR_GREATER
         [Fact]
         public void testVarInt()
         {
             insertingSingleValue(typeof(BigInteger));
         }
+#endif
         [Fact]
         public void testBigInt()
         {

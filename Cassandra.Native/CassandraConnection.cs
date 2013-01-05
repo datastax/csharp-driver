@@ -486,22 +486,33 @@ namespace Cassandra.Native
             return ex is SocketException
             || ex is CassandraConncectionIOException
             || ex is IOException
-            || ex is ObjectDisposedException;
+            || ex is ObjectDisposedException
+            || ex is StreamAllocationException;
         }
 
         private bool setupReaderException(Exception ex)
         {
             isStreamOpened.Value = false;
-            lock (frameGuardier)
+            List<AsyncResult<IOutput>> toCompl = new List<AsyncResult<IOutput>>();
+            try
             {
-                for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
-                    if (frameReadAsyncResult[streamId] != null)
-                    {
-                        frameReadAsyncResult[streamId].Complete(ex);
-                        freeStreamId(streamId);
-                    }
+                lock (frameGuardier)
+                {
+                    for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
+                        if (frameReadAsyncResult[streamId] != null)
+                        {
+                            toCompl.Add(frameReadAsyncResult[streamId]);
+                            freeStreamId(streamId);
+                        }
+                }
+                return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
             }
-            return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
+            finally
+            {
+                foreach (var ar in toCompl)
+                    if(!ar.IsCompleted)
+                        ar.Complete(ex);
+            }
         }
 
         object statusGuardier = new object();
@@ -509,15 +520,24 @@ namespace Cassandra.Native
 
         private bool setupWriterException(Exception ex, int streamId)
         {
-            lock (frameGuardier)
+            AsyncResult<IOutput> ar = null;
+            try
             {
-                var ar = frameReadAsyncResult[streamId];
-                freeStreamId(streamId);
-                hostIsDown();
-                lock (statusGuardier)
-                    writerSocketExceptionOccured = true;
-                ar.Complete(ex);
-                return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
+                lock (frameGuardier)
+                {
+                    ar = frameReadAsyncResult[streamId];
+                    freeStreamId(streamId);
+                    hostIsDown();
+                    lock (statusGuardier)
+                        writerSocketExceptionOccured = true;
+                    return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
+                }
+            }
+            finally
+            {
+                if(ar!=null)
+                    if (!ar.IsCompleted)
+                        ar.Complete(ex);
             }
         }
 

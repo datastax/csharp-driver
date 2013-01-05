@@ -70,13 +70,16 @@ namespace Cassandra
             while (true)
             {
                 List<Host> copyOfHosts = new List<Host>(infoProvider.GetAllHosts());
-                if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
-                    startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
                 for (int i = 0; i < copyOfHosts.Count; i++)
                 {
-                    var h = copyOfHosts[startidx++];
+                    if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
+                        startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+
+                    var h = copyOfHosts[startidx];
                     if (h.IsConsiderablyUp)
                         yield return h;
+
+                    startidx++;
                     startidx = startidx % copyOfHosts.Count;
                 }
                 if (ReconnectionEvent != null)

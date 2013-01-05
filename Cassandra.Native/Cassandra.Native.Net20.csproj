@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</ProjectGuid>
+    <ProjectGuid>{FEB5DABD-3857-4A60-8A1D-306A4C8B7A0C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Cassandra.Native</RootNamespace>

@@ -58,16 +58,19 @@ namespace Cassandra
         public string Keyspace { get { return keyspace; } }
 
 #if ERRORINJECTION
-        public void SimulateSingleConnectionDown(IPAddress endpoint)
+        public void SimulateSingleConnectionDown()
         {
-            while (true)
-                lock (connectionPool)
+            lock (connectionPool)
+                if (connectionPool.Count > 0)
+                {
+                    var hostidx = StaticRandom.Instance.Next(connectionPool.Keys.Count);
+                    var endpoint  = new List<IPAddress>(connectionPool.Keys)[hostidx];
                     if (connectionPool.Count > 0)
                     {
                         var conn = connectionPool[endpoint][StaticRandom.Instance.Next(connectionPool[endpoint].Count)];
                         conn.KillSocket();
-                        return;
                     }
+                }
         }
 
         public void SimulateAllConnectionsDown()
@@ -109,8 +112,11 @@ namespace Cassandra
             this.keyspace = keyspace;
             this.Policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
 
-            Host current = null;
-            connect(null, ref current);
+            var ci =this.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+            if(!ci.MoveNext())
+                throw new NoHostAvailableException(new Dictionary<IPAddress,Exception>());
+
+            connect(null, ci);
 
             if (hosts == null)
             {
@@ -124,7 +130,7 @@ namespace Cassandra
 
         List<CassandraConnection> trahscan = new List<CassandraConnection>();
 
-        internal CassandraConnection connect(CassandraRoutingKey routingKey, ref Host current, bool getNext = false, Dictionary<IPAddress, Exception> innerExceptions = null)
+        internal CassandraConnection connect(CassandraRoutingKey routingKey, IEnumerator<Host> hostsIter, Dictionary<IPAddress, Exception> innerExceptions = null)
         {
             checkDisposed();
             lock (trahscan)
@@ -140,34 +146,9 @@ namespace Cassandra
             }
             lock (connectionPool)
             {
-                var hosts = Policies.LoadBalancingPolicy.NewQueryPlan(routingKey);
-                var hostsIter = hosts.GetEnumerator();
-
-                if (current == null)
-                {
-                    if (hostsIter.MoveNext())
-                        current = hostsIter.Current;
-                    else
-                        throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
-                }
-                else
-                {
-                    while (hostsIter.MoveNext())
-                    {
-                        if (current == hostsIter.Current)
-                        {
-                            if (getNext)
-                                if (hostsIter.MoveNext())
-                                    current = hostsIter.Current;
-                                else
-                                    throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
-                            break;
-                        }
-                    }
-                }
-
                 while (true)
                 {
+                    var current = hostsIter.Current;
                     if (current.IsConsiderablyUp)
                     {
                         var host_distance = Policies.LoadBalancingPolicy.Distance(current);
@@ -314,11 +295,7 @@ namespace Cassandra
                 if (nconn != null)
                     nconn.Dispose();
 
-                if (ex is SocketException
-                    || ex is CassandraConncectionIOException
-                    || ex is IOException
-                    || ex is ObjectDisposedException
-                    || ex is CassandraConnection.StreamAllocationException)
+                if (CassandraConnection.IsStreamRelatedException(ex))
                 {
                     outExc = ex;
                     return null;
@@ -590,13 +567,26 @@ namespace Cassandra
             public CassandraConnection Connection;
             public ConsistencyLevel Consistency;
             public CassandraRoutingKey RoutingKey;
-            public Host Current = null;
+            public IEnumerator<Host> hostsIter = null;
             public IAsyncResult LongActionAc;
             public Dictionary<IPAddress, Exception> InnerExceptions = new Dictionary<IPAddress, Exception>();
             public int QueryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
             {
-                Connection = owner.connect(RoutingKey, ref Current, moveNext, InnerExceptions);
+                if (hostsIter == null)
+                {
+                    hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(RoutingKey).GetEnumerator();
+                    if (!hostsIter.MoveNext())
+                        throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                }
+                else
+                {
+                    if (moveNext)
+                        if (!hostsIter.MoveNext())
+                            throw new NoHostAvailableException(InnerExceptions ?? new Dictionary<IPAddress, Exception>());
+                }
+
+                Connection = owner.connect(RoutingKey, hostsIter, InnerExceptions);
             }
             abstract public void Begin(Session owner);
             abstract public QueryValidationException Process(Session owner, IAsyncResult ar, out object value);
@@ -605,23 +595,23 @@ namespace Cassandra
 
         void ExecConn(LongToken token, bool moveNext)
         {
-            token.Connect(this, moveNext);
-            try
+            while (true)
             {
-                token.Begin(this);
-            }
-            catch (Exception ex)
-            {
-                if (ex is Cassandra.Native.CassandraConnection.StreamAllocationException
-                 || ex is CassandraConncectionIOException
-                 || ex is IOException
-                 || ex is ObjectDisposedException)
+                try
                 {
-                    ExecConn(token, true);
+                    token.Connect(this, moveNext);
+                    token.Begin(this);
+                    return;
                 }
-                else
+                catch (Exception ex)
                 {
-                    throw;
+                    if (!CassandraConnection.IsStreamRelatedException(ex))
+                    {
+                        token.Complete(this, null, ex);
+                        return;
+                    }
+                    //else
+                        //retry
                 }
             }
         }
@@ -634,13 +624,16 @@ namespace Cassandra
                 QueryValidationException exc;
                 object value;
                 exc = token.Process(this, ar, out value);
-                if (exc != null)
+                if (exc == null)
+                {
+                    token.Complete(this, value);
+                    return;
+                }
+                else
                 {
                     var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
-                    {
                         ExecConn(token, true);
-                    }
                     else
                     {
                         switch (decision.DecisionType)
@@ -659,7 +652,6 @@ namespace Cassandra
                         }
                     }
                 }
-                token.Complete(this, value);
             }
             catch (Exception ex)
             {
@@ -873,9 +865,9 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
         {
-            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery");
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);

@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Xunit;
+#if CASSANDRA_NET_40_OR_GREATER
 using System.Numerics;
-
+#endif
 namespace Cassandra.Native.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
@@ -19,12 +20,13 @@ namespace Cassandra.Native.Test
         {
             insertingSingleValuePrepared(typeof(System.Decimal));
         }
+#if CASSANDRA_NET_40_OR_GREATER
         //[Fact] // generates OutOfMemory exception in cassandra
         public void testPreparedVarInt()
         {
             insertingSingleValuePrepared(typeof(BigInteger));            
         }
-
+#endif
         [Fact]
         public void testPreparedBigInt()
         {

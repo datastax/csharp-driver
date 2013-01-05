@@ -20,10 +20,13 @@ namespace TestRunner
 
     class Program
     {
-        static string[] TestPacks = new string[] {
-                //"Cassandra.Data.Linq.Test",
-                "Cassandra.Native.Test"
-            };
+        static string[] TestPacks = new string[] 
+        {
+#if CASSANDRA_NET_40_OR_GREATER
+            "Cassandra.Data.Linq.Test",
+#endif
+            "Cassandra.Native.Test"
+        };
 
         static void Main(string[] args)
         {
