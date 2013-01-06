@@ -12,7 +12,7 @@ namespace Cassandra
         public ServerErrorException(string Message) : base(Message) { }
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
-            return RetryDecision.Rethrow();
+            return null;
         }
     }
 

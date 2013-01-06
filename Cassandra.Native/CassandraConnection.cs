@@ -321,10 +321,6 @@ namespace Cassandra.Native
             }
 
             setupReaderException(new CassandraConnectionTimeoutException());
-            lock (statusGuardier)
-                readerSocketExceptionOccured = true;
-
-            hostIsDown();
 
             lock (socket)
                 if (socket.Value != null)
@@ -358,9 +354,6 @@ namespace Cassandra.Native
 
         internal void BeginReading()
         {
-            lock (statusGuardier)
-                if (alreadyDisposed)
-                    return;
             try
             {
                 if (!(bufferingMode is FrameBuffering))
@@ -391,10 +384,6 @@ namespace Cassandra.Native
 
                             if (bytesReadCount == 0)
                             {
-                                lock (statusGuardier)
-                                    if (alreadyDisposed)
-                                        return;
-                                hostIsDown();
                                 throw new CassandraConncectionIOException();
                             }
                             else
@@ -415,7 +404,6 @@ namespace Cassandra.Native
 
                                     if (act == null)
                                         throw new InvalidOperationException();
-                                    //                                        act = defaultFatalErrorAction; //TODO: what to do here? this is a protocol valiation
 
                                     act.BeginInvoke(frame, (tar) =>
                                     {
@@ -426,14 +414,7 @@ namespace Cassandra.Native
                                         catch (Exception ex)
                                         {
                                             Debug.WriteLine("BeginReading1");
-                                            if (setupReaderException(ex))
-                                            {
-                                                hostIsDown();
-                                                try { bufferingMode.Close(); }
-                                                catch { }
-                                                lock (statusGuardier)
-                                                    readerSocketExceptionOccured = true;
-                                            }
+                                            setupReaderException(ex);
                                         }
                                         finally
                                         {
@@ -448,14 +429,7 @@ namespace Cassandra.Native
                         catch (Exception ex)
                         {
                             Debug.WriteLine("BeginReading2");
-                            if (setupReaderException(ex))
-                            {
-                                hostIsDown();
-                                try { bufferingMode.Close(); }
-                                catch { }
-                                lock (statusGuardier)
-                                    readerSocketExceptionOccured = true;
-                            }
+                            setupReaderException(ex);
                         }
                         finally
                         {
@@ -468,9 +442,6 @@ namespace Cassandra.Native
                                     readerSocketStreamBusy.Value = false;
                                     Monitor.PulseAll(readerSocketStreamBusy);
                                 }
-                                lock (statusGuardier)
-                                    if (readerSocketExceptionOccured)
-                                        again();
                             }
                         }
                     }), null);
@@ -479,14 +450,7 @@ namespace Cassandra.Native
             catch (IOException e)
             {
                 Debug.WriteLine(e.Message, "CassandraConnection.BeginReading3");
-                if (setupReaderException(e))
-                {
-                    hostIsDown();
-                    bufferingMode.Close();
-                    lock (statusGuardier)
-                        readerSocketExceptionOccured = true;
-                }
-                else
+                if (!setupReaderException(e))
                     throw;
             }
         }
@@ -515,6 +479,12 @@ namespace Cassandra.Native
                             toCompl.Add(frameReadAsyncResult[streamId]);
                             freeStreamId(streamId);
                         }
+
+                    hostIsDown();
+                    try { bufferingMode.Close(); }
+                    catch { }
+                    lock (statusGuardier)
+                        readerSocketExceptionOccured = true;
                 }
                 return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
             }

@@ -633,7 +633,10 @@ namespace Cassandra
                 {
                     var decision = exc.GetRetryDecition(Policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
+                    {
+                        token.InnerExceptions[token.Connection.GetHostAdress()] = exc;
                         ExecConn(token, true);
+                    }
                     else
                     {
                         switch (decision.DecisionType)
@@ -644,10 +647,11 @@ namespace Cassandra
                             case RetryDecision.RetryDecisionType.RETRY:
                                 token.Consistency = decision.RetryConsistencyLevel ?? token.Consistency;
                                 token.QueryRetries++;
-                                token.InnerExceptions[token.Connection.GetHostAdress()]=exc;
+                                token.InnerExceptions[token.Connection.GetHostAdress()] = exc;
                                 ExecConn(token, false);
                                 return;
                             default:
+                                token.Complete(this, value);
                                 break;
                         }
                     }
