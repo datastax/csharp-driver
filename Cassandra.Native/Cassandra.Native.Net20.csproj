@@ -192,10 +192,8 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+List.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Inet.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Timeuuid.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Varint.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Float.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Double.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Decimal.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Timestamp.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Boolean.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Blob.cs" />

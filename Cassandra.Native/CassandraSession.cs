@@ -1061,12 +1061,16 @@ namespace Cassandra
                     return Metadata.ColumnTypeCode.Inet;
                 case "org.apache.cassandra.db.marshal.DateType":
                     return Metadata.ColumnTypeCode.Timestamp;
+#if NET_40_OR_GREATER
                 case "org.apache.cassandra.db.marshal.DecimalType":
                     return Metadata.ColumnTypeCode.Decimal;
+#endif
                 case "org.apache.cassandra.db.marshal.LongType":
                     return Metadata.ColumnTypeCode.Bigint;
+#if NET_40_OR_GREATER
                 case "org.apache.cassandra.db.marshal.IntegerType":
                     return Metadata.ColumnTypeCode.Varint;
+#endif
                 default: throw new InvalidOperationException();
             }
         }

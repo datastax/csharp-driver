@@ -127,7 +127,6 @@
     <Compile Include="Exceptions\WriteTimeoutException.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Extensions.cs" />
     <Compile Include="FrameBuffering.cs" />
     <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />

@@ -22,7 +22,9 @@ namespace Cassandra.Native
             Blob = 0x0003,
             Boolean = 0x0004,
             Counter = 0x0005,
+#if NET_40_OR_GREATER
             Decimal = 0x0006,
+#endif
             Double = 0x0007,
             Float = 0x0008,
             Int = 0x0009,
@@ -30,7 +32,9 @@ namespace Cassandra.Native
             Timestamp = 0x000B,
             Uuid = 0x000C,
             Varchar = 0x000D,
+#if NET_40_OR_GREATER
             Varint = 0x000E,
+#endif
             Timeuuid = 0x000F,
             Inet = 0x0010,
             List = 0x0020,

@@ -15,7 +15,6 @@ namespace Cassandra.Native
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Boolean);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Counter);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Custom);
-            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Decimal);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Double);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Float);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Int);
@@ -23,12 +22,15 @@ namespace Cassandra.Native
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Timestamp);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Uuid);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Varchar);
-            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Varint);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Timeuuid);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Inet);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.List);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Map);
             RegisterTypeInterpreter(Metadata.ColumnTypeCode.Set);
+#if NET_40_OR_GREATER
+            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Decimal);
+            RegisterTypeInterpreter(Metadata.ColumnTypeCode.Varint);
+#endif
         }
 
         delegate object CqlConvertDel(Metadata.ColumnInfo type_info, byte[] buffer);
