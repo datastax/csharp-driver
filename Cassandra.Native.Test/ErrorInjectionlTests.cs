@@ -26,6 +26,7 @@ namespace Cassandra.Native.Test
         }
     }
 
+    [Dev.Ignore]
     public class ErrrorInjectionTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;
@@ -60,6 +61,7 @@ namespace Cassandra.Native.Test
                 Thread.Sleep((int)ev.DelayMs);
             });
             clusterb.WithLoadBalancingPolicy(rp);
+            clusterb.WithConnectionTimeout(3*60*1000);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
         }
@@ -72,24 +74,34 @@ namespace Cassandra.Native.Test
         [Fact]
         public void ParallelInsertTest()
         {
-            Console.WriteLine("Compression is:"+(Compression== CompressionType.Snappy?"SNAPPY":"OFF"));
+            Console.WriteLine("Compression is:" + (Compression == CompressionType.Snappy ? "SNAPPY" : "OFF"));
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
-            Session.Execute(
-            string.Format(@"CREATE KEYSPACE {0} 
+            try
+            {
+                Session.Execute(
+                string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                , keyspaceName));
+                    , keyspaceName));
+            }
+            catch(Exception ex) 
+            {
+            }
 
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Execute(string.Format(@"CREATE TABLE {0}(
+            try
+            {
+                Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
+            }
+            catch { }
             Randomm rndm = new Randomm();
             int RowsNo = 1000;
             bool[] ar = new bool[RowsNo];
@@ -144,7 +156,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                         ar[i] = true;
                         Thread.MemoryBarrier();
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Console.WriteLine(ex.Message);
                         Console.WriteLine(ex.StackTrace);
@@ -165,7 +177,7 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
             {
                 while (true)
                 {
-                    if (readyCnt < RowsNo+(1))
+                    if (readyCnt < RowsNo + (1))
                     {
                         Monitor.Exit(monit);
                         Thread.Sleep(100);
@@ -211,10 +223,18 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                 Assert.Equal(RowsNo, ret.RowsCount);
             }
 
-            Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
+            try
+            {
+                Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
+            }
+            catch { }
 
-            Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-         }
+            try
+            {
+                Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
+            }
+            catch { }
+        }
 
 
 //        [Fact]

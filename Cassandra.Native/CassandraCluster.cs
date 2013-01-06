@@ -4,6 +4,7 @@ using System.Text;
 using System.Net;
 using Cassandra;
 using Cassandra.Native;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -44,7 +45,9 @@ namespace Cassandra
         string defaultKeyspace = "";
         public string DefaultKeyspace { get { return defaultKeyspace; } }
 
-        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression, string defaultKeyspace = "")
+        int abortTimeout = Timeout.Infinite;
+
+        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression, string defaultKeyspace = "", int abortTimeout=Timeout.Infinite)
         {
             this.contactPoints = contactPoints;
             this.port = port;
@@ -53,6 +56,7 @@ namespace Cassandra
             this.noBufferingIfPossible = noBufferingIfPossible;
             this.compression = compression;
             this.defaultKeyspace = defaultKeyspace;
+            this.abortTimeout = abortTimeout;
         }
 
         /**
@@ -80,7 +84,7 @@ namespace Cassandra
             //if (contactPoints.)
             //    throw new IllegalArgumentException("Cannot build a cluster without contact points");
 
-            return new Cluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible, initializer.CompressionType, initializer.DefaultKeyspace);
+            return new Cluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible, initializer.CompressionType, initializer.DefaultKeyspace, initializer.AbortTimeout);
         }
 
         /**
@@ -129,7 +133,8 @@ namespace Cassandra
                 policies: policies,
                 poolingOptions: poolingOptions,
                 noBufferingIfPossible: noBufferingIfPossible,
-                compression: compression
+                compression: compression,
+                abortTimeout: abortTimeout
                 );
         }
 
@@ -194,6 +199,8 @@ namespace Cassandra
         string DefaultKeyspace { get; }
 
         CompressionType CompressionType { get; }
+
+        int AbortTimeout { get; }
     }
 
     /**
@@ -214,6 +221,8 @@ namespace Cassandra
 
         private string defaultKeyspace = null;
 
+        private int abortTimeout = Timeout.Infinite;
+
         public IEnumerable<IPAddress> ContactPoints
         {
             get
@@ -233,6 +242,13 @@ namespace Cassandra
             WithDefaultKeyspace(cnb.Keyspace);
             return this;
         }
+
+        public ClusterBuilder WithConnectionTimeout(int abortTimeout)
+        {
+            this.abortTimeout = abortTimeout;
+            return this;
+        }
+
 
         public ClusterBuilder WithDefaultKeyspace(string defaultKeyspace)
         {
@@ -483,6 +499,12 @@ namespace Cassandra
         public CompressionType CompressionType
         {
             get { return compression; }
+        }
+
+
+        public int AbortTimeout
+        {
+            get { return abortTimeout; }
         }
     }
 }

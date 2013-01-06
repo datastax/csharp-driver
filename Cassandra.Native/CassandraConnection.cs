@@ -92,7 +92,10 @@ namespace Cassandra.Native
             this.serverAddress = serverAddress;
             this.port = port;
             this.abortTimeout = abortTimeout;
-            abortTimer = new Timer(abortTimerProc, null, Timeout.Infinite, Timeout.Infinite);
+    
+            if(abortTimeout!=Timeout.Infinite)
+                abortTimer = new Timer(abortTimerProc, null, Timeout.Infinite, Timeout.Infinite);
+            
             createConnection();
             again();
         }
@@ -164,8 +167,8 @@ namespace Cassandra.Native
                     return;
                 freeStreamIDtaken[streamId] = false;
                 freeStreamIDs.Value.Push(streamId);
-                if (freeStreamIDs.Value.Count == sbyte.MaxValue + 1)
-                    Debug.WriteLine("All streams are free");
+                //if (freeStreamIDs.Value.Count == sbyte.MaxValue + 1)
+                //    Debug.WriteLine("All streams are free");
             }
         }
 
@@ -189,14 +192,24 @@ namespace Cassandra.Native
 
         private void JobFinished(int streamId, IOutput outp)
         {
-            lock (frameGuardier)
+            AsyncResult<IOutput> ar = null;
+            try
             {
-                var ar = frameReadAsyncResult[streamId];
-                frameReadAsyncResult[streamId] = null;
-                ar.SetResult(outp);
-                ar.Complete();
-                freeStreamId(streamId);
-                (outp as IWaitableForDispose).WaitForDispose();
+                lock (frameGuardier)
+                {
+                    ar = frameReadAsyncResult[streamId];
+                    frameReadAsyncResult[streamId] = null;
+                    freeStreamId(streamId);
+                }
+            }
+            finally
+            {
+                if (ar != null)
+                {
+                    ar.SetResult(outp);
+                    (outp as IWaitableForDispose).WaitForDispose();
+                    ar.Complete();
+                }
             }
         }
 
@@ -307,6 +320,10 @@ namespace Cassandra.Native
                 abortNotNeeded.Value = true;
             }
 
+            setupReaderException(new CassandraConnectionTimeoutException());
+            lock (statusGuardier)
+                readerSocketExceptionOccured = true;
+
             hostIsDown();
 
             lock (socket)
@@ -319,27 +336,21 @@ namespace Cassandra.Native
                         socket.Value.Shutdown(SocketShutdown.Both);
                         socket.Value.Disconnect(false);
                     }
-                    catch (ObjectDisposedException ex)
+                    catch (Exception ex)
                     {
-                        Debug.WriteLine(ex.Message, "CassandraConnection.abortTimer1");
-                    }
-                    catch (SocketException ex)
-                    {
-                        Debug.WriteLine(ex.Message, "CassandraConnection.abortTimer2");
+                        if (!IsStreamRelatedException(ex))
+                            throw;
                     }
                 }
-            if (setupReaderException(new CassandraConnectionTimeoutException()))
+
+            try
             {
-                try
-                {
-                    bufferingMode.Close();
-                }
-                catch (CassandraConncectionIOException)
-                {
-                }
-                lock (statusGuardier)
-                    readerSocketExceptionOccured = true;
-                again();
+                bufferingMode.Close();
+            }
+            catch (Exception ex)
+            {
+                if (!IsStreamRelatedException(ex))
+                    throw;
             }
         }
 
@@ -367,11 +378,8 @@ namespace Cassandra.Native
                         if (abortTimeout != Timeout.Infinite)
                         {
                             lock (abortNotNeeded)
-                            {
-                                if (abortNotNeeded.Value)
-                                    return;
                                 abortNotNeeded.Value = true;
-                            }
+
                             abortTimer.Change(Timeout.Infinite, Timeout.Infinite);
                         }
 
@@ -421,7 +429,8 @@ namespace Cassandra.Native
                                             if (setupReaderException(ex))
                                             {
                                                 hostIsDown();
-                                                bufferingMode.Close();
+                                                try { bufferingMode.Close(); }
+                                                catch { }
                                                 lock (statusGuardier)
                                                     readerSocketExceptionOccured = true;
                                             }
@@ -442,7 +451,8 @@ namespace Cassandra.Native
                             if (setupReaderException(ex))
                             {
                                 hostIsDown();
-                                bufferingMode.Close();
+                                try { bufferingMode.Close(); }
+                                catch { }
                                 lock (statusGuardier)
                                     readerSocketExceptionOccured = true;
                             }
@@ -487,7 +497,8 @@ namespace Cassandra.Native
             || ex is CassandraConncectionIOException
             || ex is IOException
             || ex is ObjectDisposedException
-            || ex is StreamAllocationException;
+            || ex is StreamAllocationException
+            || ex is CassandraConnectionTimeoutException;
         }
 
         private bool setupReaderException(Exception ex)

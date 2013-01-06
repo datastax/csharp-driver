@@ -20,7 +20,7 @@ namespace Cassandra.Native
         private const Int32 c_StateCompletedSynchronously = 1;
         private const Int32 c_StateCompletedAsynchronously = 2;
         private Int32 m_CompletedState = c_StatePending;
-        private object m_CompletedStateGuard = new object();
+        internal object m_CompletedStateGuard = new object();
 
         // Field that may or may not get set depending on usage
         private ManualResetEvent m_AsyncWaitHandle;
@@ -147,24 +147,35 @@ namespace Cassandra.Native
                     "result");
             }
 
-            asyncResult.CheckUsage(owner, string.IsNullOrEmpty(operationId) ? string.Empty : operationId);
+                asyncResult.CheckUsage(owner, string.IsNullOrEmpty(operationId) ? string.Empty : operationId);
 
-            // This method assumes that only 1 thread calls EndInvoke 
-            // for this object
-            if (!asyncResult.IsCompleted)
-            {
-                // If the operation isn't done, wait for it
-                asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
-                asyncResult.AsyncWaitHandle.Close();
-                asyncResult.m_AsyncWaitHandle = null;  // Allow early GC                
-            }
+                // This method assumes that only 1 thread calls EndInvoke 
+                // for this object
+                lock (asyncResult.m_CompletedStateGuard)
+                {
+                    if (!asyncResult.IsCompleted)
+                    {
+                        // If the operation isn't done, wait for it
+                        Monitor.Exit(asyncResult.m_CompletedStateGuard);
+                        try
+                        {
+                            asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
+                        }
+                        finally
+                        {
+                            Monitor.Enter(asyncResult.m_CompletedStateGuard);
+                            asyncResult.AsyncWaitHandle.Close();
+                            asyncResult.m_AsyncWaitHandle = null;  // Allow early GC                
+                        }
+                    }
+                }
 
-            // Operation is done: if an exception occurred, throw it
-            if (asyncResult.m_exception != null)
-            {
-                typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(asyncResult.m_exception, null);
-                throw asyncResult.m_exception;
-            }
+                // Operation is done: if an exception occurred, throw it
+                if (asyncResult.m_exception != null)
+                {
+                    typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(asyncResult.m_exception, null);
+                    throw asyncResult.m_exception;
+                }
         }
 
         #region Implementation of IAsyncResult

@@ -148,7 +148,7 @@ namespace Cassandra.Native
 
         void checkConnectionDown(IPAddress endpoint)
         {
-            if (hostsIter.Current.Address == endpoint)
+            if (hostsIter!=null && hostsIter.Current.Address == endpoint)
             {
                 reconnectionSchedule = reconnectionPolicy.NewSchedule();
                 go(false);
