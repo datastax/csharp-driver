@@ -21,13 +21,13 @@ namespace Cassandra.Native.Test
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
 
-        [Fact]
+        //[Fact]
         public void checkTableMetadata()
         {
             base.checkMetadata();
         }
 
-        [Fact]
+        //[Fact]
         public void checkKeyspaceMetadata()
         {
             base.checkKSMetadata();
@@ -45,7 +45,7 @@ namespace Cassandra.Native.Test
             insertingSingleValue(typeof(byte));
         }
 
-        [Fact]
+//        [Fact]
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();

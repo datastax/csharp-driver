@@ -101,7 +101,9 @@ namespace Cassandra.Native.Test
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
             }
-            catch { }
+            catch (AlreadyExistsException)
+            {
+            }
             Randomm rndm = new Randomm();
             int RowsNo = 1000;
             bool[] ar = new bool[RowsNo];

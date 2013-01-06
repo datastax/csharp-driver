@@ -84,12 +84,18 @@ namespace Cassandra.Native.Test
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Execute(string.Format(@"CREATE TABLE {0}(
+            try
+            {
+                Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
+            }
+            catch (AlreadyExistsException)
+            {
+            }
             Randomm rndm = new Randomm();
             int RowsNo = 3000;
             IAsyncResult[] ar = new IAsyncResult[RowsNo];
