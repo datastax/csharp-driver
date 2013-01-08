@@ -26,6 +26,7 @@ namespace Cassandra.Native.Test
         }
     }
 
+    [Dev.Ignore]
     public class ErrrorInjectionTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;

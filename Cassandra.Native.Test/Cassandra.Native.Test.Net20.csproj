@@ -59,7 +59,6 @@
     <Compile Include="MTTests.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MyUTExt.cs" />
     <Compile Include="PoolTests.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -70,6 +69,10 @@
     <ProjectReference Include="..\Cassandra.Native\Cassandra.Native.Net20.csproj">
       <Project>{FEB5DABD-3857-4A60-8A1D-306A4C8B7A0C}</Project>
       <Name>Cassandra.Native.Net20</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TestRunner\TestRunner4XUnit\TestRunner4XUnit.csproj">
+      <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
+      <Name>TestRunner4XUnit</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
