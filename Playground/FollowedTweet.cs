@@ -30,16 +30,4 @@ namespace Playground
             Console.WriteLine("Tweet content: " + this.body + Environment.NewLine);
         }
     }
-
-
-    //public class FollowingTweetsContext : CqlContext
-    //{
-    //    public FollowingTweetsContext(CassandraSession session, CqlConsistencyLevel ReadCqlConsistencyLevel, CqlConsistencyLevel WriteCqlConsistencyLevel)
-    //        :base(session,ReadCqlConsistencyLevel,WriteCqlConsistencyLevel)
-    //    {
-    //        AddTable<FollowedTweet>();
-    //        CreateTablesIfNotExist();
-    //    }
-
-    //}
 }

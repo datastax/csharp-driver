@@ -10,29 +10,38 @@ using System.Reflection;
 
 namespace Cassandra.Data
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+    public class AllowFilteringAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class PartitionKeyAttribute : Attribute
     {
-        public PartitionKeyAttribute(int Index=0) { this.Index = Index; }
+        public PartitionKeyAttribute(int Index = 0) { this.Index = Index; }
         public int Index = -1;
     }
 
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class ClusteringKeyAttribute : Attribute
     {
         public ClusteringKeyAttribute(int Index) { this.Index = Index; }
         public int Index = -1;
     }
 
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class SecondaryIndexAttribute : Attribute
     {
     }
 
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class CounterAttribute : Attribute
     {
     }
 
     public class Context : IDisposable
     {
-        internal Session ManagedConnection = null;
+        internal Session ManagedSession = null;
 
         ConsistencyLevel ReadCqlConsistencyLevel;
         ConsistencyLevel WriteCqlConsistencyLevel;
@@ -43,7 +52,7 @@ namespace Cassandra.Data
 
         void Initialize(Session cqlConnection, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose)
         {
-            this.ManagedConnection = cqlConnection;
+            this.ManagedSession = cqlConnection;
             this.releaseOnClose = releaseOnClose;
             this.keyspaceName = cqlConnection.Keyspace;
             this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
@@ -57,8 +66,8 @@ namespace Cassandra.Data
         public void Dispose()
         {
             if (releaseOnClose)
-                if (ManagedConnection!=null)
-                    ManagedConnection.Dispose();
+                if (ManagedSession!=null)
+                    ManagedSession.Dispose();
         }
 
         Dictionary<string, ICqlTable> tables = new Dictionary<string, ICqlTable>();
@@ -121,12 +130,12 @@ namespace Cassandra.Data
 
         internal CqlRowSet ExecuteReadQuery(string cqlQuery)
         {
-            return ManagedConnection.Execute(cqlQuery, ReadCqlConsistencyLevel);
+            return ManagedSession.Execute(cqlQuery, ReadCqlConsistencyLevel);
         }
 
         internal void ExecuteWriteQuery(string cqlQuery)
         {
-            var ret = ManagedConnection.Execute(cqlQuery, WriteCqlConsistencyLevel);
+            var ret = ManagedSession.Execute(cqlQuery, WriteCqlConsistencyLevel);
             if (ret != null)
                 throw new InvalidOperationException();
         }

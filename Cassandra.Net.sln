@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Playground\Pl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Native", "Cassandra.Native\Cassandra.Native.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRunner4XUnit", "TestRunner\TestRunner4XUnit\TestRunner4XUnit.csproj", "{E8876ACA-CFC9-43B5-892A-8A1B772B0406}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,16 @@ Global
 		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|x86.ActiveCfg = Release|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

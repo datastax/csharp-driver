@@ -73,6 +73,10 @@
       <Project>{D222E239-F11B-487E-819F-73FB732B6AD8}</Project>
       <Name>Cassandra.Native.Test</Name>
     </ProjectReference>
+    <ProjectReference Include="TestRunner4XUnit\TestRunner4XUnit.csproj">
+      <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
+      <Name>TestRunner4XUnit</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

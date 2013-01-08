@@ -382,7 +382,7 @@ namespace Cassandra
                                 var exc = processSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace), ConsistencyLevel.IGNORE), out retKeyspaceId);
                                 if (exc != null)
                                     throw exc;
-                                if (retKeyspaceId != keyspaceId)
+                                if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != keyspaceId)
                                     throw new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
                             }
                             catch (Cassandra.Native.CassandraConnection.StreamAllocationException)

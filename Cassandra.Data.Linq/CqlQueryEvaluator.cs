@@ -41,6 +41,9 @@ namespace Cassandra.Data
 				if (limit > 0)
 					query += " \nLIMIT " + limit;
 
+                if(table.GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute),false).Count()>0)
+                    query += " \nALLOW FILTERING";
+
 				return query;
 			}
 		}
