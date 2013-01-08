@@ -18,7 +18,7 @@ namespace Cassandra.Data
 
     public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
     public enum SaveChangesMode { Batch, OneByOne }
-    public enum EntityTrackingMode { KeepAtachedAfterSave, DetachAfterSave }
+    public enum EntityTrackingMode { KeepAttachedAfterSave, DetachAfterSave }
 
     public class CqlTable<TEntity> : CqlQuery<TEntity>, ICqlTable, IQueryProvider
     {
@@ -72,7 +72,7 @@ namespace Cassandra.Data
 
         CqlMutationTracker<TEntity> mutationTracker = new CqlMutationTracker<TEntity>();
 
-        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAtachedAfterSave)
+        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
         {
             mutationTracker.Attach(entity, updmod, trmod);
         }

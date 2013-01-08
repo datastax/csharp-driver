@@ -39,35 +39,26 @@ namespace Cassandra.Data
     {
     }
 
-    public class Context : IDisposable
+    public class Context
     {
         internal Session ManagedSession = null;
 
         ConsistencyLevel ReadCqlConsistencyLevel;
         ConsistencyLevel WriteCqlConsistencyLevel;
 
-        bool releaseOnClose;
         string keyspaceName;
         public string Keyspace { get { return keyspaceName; } }
 
-        void Initialize(Session cqlConnection, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose)
+        void Initialize(Session cqlConnection, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
         {
             this.ManagedSession = cqlConnection;
-            this.releaseOnClose = releaseOnClose;
             this.keyspaceName = cqlConnection.Keyspace;
             this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
             this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
         }
-        public Context(Session cqlSession, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel, bool releaseOnClose = true)
+        public Context(Session cqlSession, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
         {
-            Initialize(cqlSession, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel, releaseOnClose);
-        }
-
-        public void Dispose()
-        {
-            if (releaseOnClose)
-                if (ManagedSession!=null)
-                    ManagedSession.Dispose();
+            Initialize(cqlSession, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel);
         }
 
         Dictionary<string, ICqlTable> tables = new Dictionary<string, ICqlTable>();

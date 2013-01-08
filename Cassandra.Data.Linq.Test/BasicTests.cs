@@ -82,7 +82,7 @@ namespace Cassandra.Data.LinqTest
                 ent.exampleSet.Add(i.ToString());
                 ent.exampleSet.Add((i + 1).ToString());
                 ent.exampleSet.Add((i - 1).ToString());
-                table.AddNew(ent, EntityTrackingMode.KeepAtachedAfterSave);
+                table.AddNew(ent, EntityTrackingMode.KeepAttachedAfterSave);
                 entL.Add(ent);                
             }
             ents.SaveChanges(SaveChangesMode.Batch);
@@ -128,10 +128,10 @@ namespace Cassandra.Data.LinqTest
             for (int i = 0; i < RowsNb; i++)
             {
                 var ent = new Tweets() { tweet_id = Guid.NewGuid(), author = "author" + i.ToString(), isok =i%2 == 0, body = "blablabla", idx = i};
-                table.AddNew(ent, EntityTrackingMode.KeepAtachedAfterSave);
+                table.AddNew(ent, EntityTrackingMode.KeepAttachedAfterSave);
             }
             var ent2 = new Tweets() { tweet_id = Guid.NewGuid(), author = "author" + RowsNb+1, isok = false, body = "blablabla", idx = RowsNb + 1 };
-            table.AddNew(ent2, EntityTrackingMode.KeepAtachedAfterSave);
+            table.AddNew(ent2, EntityTrackingMode.KeepAttachedAfterSave);
             ents.SaveChanges(SaveChangesMode.OneByOne);
 
             table.Attach(ent2, EntityUpdateMode.ModifiedOnly);
