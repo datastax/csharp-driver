@@ -18,17 +18,6 @@ namespace Cassandra.Native
 
     internal partial class CassandraConnection
     {
-        //static class Debug
-        //{
-        //    public static void WriteLine(string str)
-        //    {
-        //        Console.WriteLine(str);
-        //    }
-        //    public static void WriteLine(string str,string str2)
-        //    {
-        //        Console.WriteLine(str,":",str2);
-        //    }
-        //}
 #if ERRORINJECTION
         public void KillSocket()
         {
@@ -97,7 +86,8 @@ namespace Cassandra.Native
                 abortTimer = new Timer(abortTimerProc, null, Timeout.Infinite, Timeout.Infinite);
             
             createConnection();
-            again();
+            if (IsHealthy)
+                BeginReading();
         }
 
         private void createConnection()
@@ -127,6 +117,8 @@ namespace Cassandra.Native
                     new byte[bufferingMode.PreferedBufferSize()] };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+
             newSock.SendTimeout = this.abortTimeout;
 
             newSock.Connect(new IPEndPoint(serverAddress, port));
@@ -167,8 +159,6 @@ namespace Cassandra.Native
                     return;
                 freeStreamIDtaken[streamId] = false;
                 freeStreamIDs.Value.Push(streamId);
-                //if (freeStreamIDs.Value.Count == sbyte.MaxValue + 1)
-                //    Debug.WriteLine("All streams are free");
             }
         }
 
@@ -236,7 +226,7 @@ namespace Cassandra.Native
                 ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
-            var ar = new AsyncResult<IOutput>(callback, state, owner, propId);
+            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, abortTimeout);
 
             lock (frameGuardier)
                 frameReadAsyncResult[streamId] = ar;
@@ -281,7 +271,6 @@ namespace Cassandra.Native
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message, "CassandraConnection.BeginJob");
                 if (!setupWriterException(ex, streamId))
                     throw;
             }
@@ -291,8 +280,7 @@ namespace Cassandra.Native
 
         IProtoBufComporessor compressor = null;
 
-        private bool readerSocketExceptionOccured = false;
-        private bool writerSocketExceptionOccured = false;
+        private bool socketExceptionOccured = false;
 
         public bool IsHealthy
         {
@@ -300,7 +288,7 @@ namespace Cassandra.Native
             {
                 lock (statusGuardier)
                 {
-                    return !alreadyDisposed && !readerSocketExceptionOccured && !writerSocketExceptionOccured;
+                    return !alreadyDisposed && !socketExceptionOccured;
                 }
             }
         }
@@ -384,6 +372,12 @@ namespace Cassandra.Native
 
                             if (bytesReadCount == 0)
                             {
+                                if (alreadyDisposed)
+                                {
+                                    completeReader();
+                                    return;
+                                }
+
                                 throw new CassandraConncectionIOException();
                             }
                             else
@@ -413,13 +407,13 @@ namespace Cassandra.Native
                                         }
                                         catch (Exception ex)
                                         {
-                                            Debug.WriteLine("BeginReading1");
                                             setupReaderException(ex);
                                         }
                                         finally
                                         {
                                             if (!(bufferingMode is FrameBuffering))
-                                                again();
+                                                if (IsHealthy)
+                                                    BeginReading();
                                         }
                                     }, act);
                                 }
@@ -428,13 +422,15 @@ namespace Cassandra.Native
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine("BeginReading2");
                             setupReaderException(ex);
                         }
                         finally
                         {
                             if (bufferingMode is FrameBuffering)
-                                again();
+                            {
+                                if (IsHealthy)
+                                    BeginReading();
+                            }
                             else
                             {
                                 lock (readerSocketStreamBusy)
@@ -449,7 +445,6 @@ namespace Cassandra.Native
             }
             catch (IOException e)
             {
-                Debug.WriteLine(e.Message, "CassandraConnection.BeginReading3");
                 if (!setupReaderException(e))
                     throw;
             }
@@ -465,9 +460,31 @@ namespace Cassandra.Native
             || ex is CassandraConnectionTimeoutException;
         }
 
+        private void completeReader()
+        {
+            List<AsyncResult<IOutput>> toCompl = new List<AsyncResult<IOutput>>();
+            try
+            {
+                lock (frameGuardier)
+                {
+                    for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
+                        if (frameReadAsyncResult[streamId] != null)
+                        {
+                            toCompl.Add(frameReadAsyncResult[streamId]);
+                            freeStreamId(streamId);
+                        }
+                }
+            }
+            finally
+            {
+                foreach (var ar in toCompl)
+                    if (!ar.IsCompleted)
+                        ar.Complete(new CassandraConncectionIOException());
+            }
+        }
+
         private bool setupReaderException(Exception ex)
         {
-            isStreamOpened.Value = false;
             List<AsyncResult<IOutput>> toCompl = new List<AsyncResult<IOutput>>();
             try
             {
@@ -483,8 +500,9 @@ namespace Cassandra.Native
                     hostIsDown();
                     try { bufferingMode.Close(); }
                     catch { }
+
                     lock (statusGuardier)
-                        readerSocketExceptionOccured = true;
+                        socketExceptionOccured = true;
                 }
                 return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
             }
@@ -510,7 +528,7 @@ namespace Cassandra.Native
                     freeStreamId(streamId);
                     hostIsDown();
                     lock (statusGuardier)
-                        writerSocketExceptionOccured = true;
+                        socketExceptionOccured = true;
                     return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
                 }
             }
@@ -536,6 +554,8 @@ namespace Cassandra.Native
                 if (alreadyDisposed)
                     return;
 
+                alreadyDisposed = true;
+
                 lock (socket)
                     if (socket.Value != null)
                     {
@@ -546,28 +566,14 @@ namespace Cassandra.Native
                         }
                         catch (ObjectDisposedException ex)
                         {
-                            Debug.WriteLine(ex.Message, "CassandraConnection.Dispose1");
                         }
                         catch (SocketException ex)
                         {
-                            Debug.WriteLine(ex.Message, "CassandraConnection.Dispose2");
                         }
                     }
 
-                alreadyDisposed = true;
             }
         }
-
-        private void again()
-        {
-            if (IsHealthy)
-            {
-                BeginReading();
-            }
-            else
-                Debug.WriteLine("!!!!");
-        }
-
 
         ~CassandraConnection()
         {
@@ -595,7 +601,6 @@ namespace Cassandra.Native
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message, "CassandraConnection.Evaluate");
                 if (!setupWriterException(ex, streamId))
                     throw;
             }

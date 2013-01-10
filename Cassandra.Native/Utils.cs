@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Net;
 using System.Globalization;
 using System.Threading;
+using System.Net.Sockets;
 
 
 namespace Cassandra.Native
@@ -127,35 +128,56 @@ namespace Cassandra.Native
         }
     }
 
-    //internal static class IPEndPointParser
-    //{
-    //    public static IPEndPoint ParseEndpoint(string endPoint)
-    //    {
-    //        string[] ep = endPoint.Split(':');
-    //        if (ep.Length < 2) throw new FormatException("Invalid endpoint format");
-    //        IPAddress ip;
-    //        if (ep.Length > 2)
-    //        {
-    //            if (!IPAddress.TryParse(string.Join(":", ep, 0, ep.Length - 1), out ip))
-    //            {
-    //                throw new FormatException("Invalid ip-adress");
-    //            }
-    //        }
-    //        else
-    //        {
-    //            if (!IPAddress.TryParse(ep[0], out ip))
-    //            {
-    //                throw new FormatException("Invalid ip-adress");
-    //            }
-    //        }
-    //        int port;
-    //        if (!int.TryParse(ep[ep.Length - 1], NumberStyles.None, NumberFormatInfo.CurrentInfo, out port))
-    //        {
-    //            throw new FormatException("Invalid port");
-    //        }
-    //        return new IPEndPoint(ip, port);
-    //    }
-    //}
+    public static class SocketTools
+    {
+        private const int BytesPerLong = 4; // 32 / 8
+        private const int BitsPerByte = 8;
+
+        /// &lt;summary&gt;
+        /// Sets the keep-alive interval for the socket.
+        /// &lt;/summary&gt;
+        /// &lt;param name="socket"&gt;The socket.&lt;/param&gt;
+        /// &lt;param name="time"&gt;Time between two keep alive "pings".&lt;/param&gt;
+        /// &lt;param name="interval"&gt;Time between two keep alive "pings" when first one fails.&lt;/param&gt;
+        /// &lt;returns&gt;If the keep alive infos were succefully modified.&lt;/returns&gt;
+        public static bool SetKeepAlive(Socket socket, ulong time, ulong interval)
+        {
+            try
+            {
+                // Array to hold input values.
+                var input = new[]
+                {
+                    (time == 0 || interval == 0) ? 0UL : 1UL, // on or off
+                    time,
+                    interval
+                };
+ 
+                // Pack input into byte struct.
+                byte[] inValue = new byte[3 * BytesPerLong];
+                for (int i = 0; i < input.Length; i++)
+                {
+                    inValue[i * BytesPerLong + 3] = (byte)(input[i] >> ((BytesPerLong - 1) * BitsPerByte) & 0xff);
+                    inValue[i * BytesPerLong + 2] = (byte)(input[i] >> ((BytesPerLong - 2) * BitsPerByte) & 0xff);
+                    inValue[i * BytesPerLong + 1] = (byte)(input[i] >> ((BytesPerLong - 3) * BitsPerByte) & 0xff);
+                    inValue[i * BytesPerLong + 0] = (byte)(input[i] >> ((BytesPerLong - 4) * BitsPerByte) & 0xff);
+                }
+ 
+                // Create bytestruct for result (bytes pending on server socket).
+                byte[] outValue = BitConverter.GetBytes(0);
+ 
+                // Write SIO_VALS to Socket IOControl.
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.KeepAlive, true);
+                socket.IOControl(IOControlCode.KeepAliveValues, inValue, outValue);
+            }
+            catch (SocketException e)
+            {
+                Console.WriteLine("Failed to set keep-alive: {0} {1}", e.ErrorCode, e);
+                return false;
+            }
+ 
+            return true;
+        }
+    }
 
     internal static class CqlQueryTools
     {
@@ -248,6 +270,8 @@ namespace Cassandra.Native
 
             return map;
         }
+
+
     }    
 }
 

@@ -9,12 +9,23 @@ namespace TestRunner
 {
     class MySettings : Dev.ISettings
     {
+        Action<string> wrt; 
+        public MySettings(Action<string> wrt)
+        {
+            this.wrt = wrt;
+        }
         public string this[string name]
         {
             get
             {
                 return (string)Settings.Default[name];
             }
+        }
+
+
+        public Action<string> GetWriter()
+        {
+            return wrt;
         }
     }
 
@@ -31,13 +42,16 @@ namespace TestRunner
         static void Main(string[] args)
         {
             var mysetting = new Dev.SettingsFixture();
-            var setting = new MySettings();           
+
+            StreamWriter output = null;
+
+            var setting = new MySettings((str) => { output.WriteLine(str); });           
             mysetting.Initialize(setting);
 
             var tstDir = setting["TestFolder"].Replace("$TEST_ROOT", Directory.GetCurrentDirectory());
             Directory.CreateDirectory(tstDir);
 
-            StreamWriter output = new StreamWriter(tstDir + "/" + DateTime.Now.ToShortDateString().Replace("/", "_") + "+" + DateTime.Now.ToShortTimeString().Replace(":", "_") + ".log");
+            output = new StreamWriter(tstDir + "/" + DateTime.Now.ToShortDateString().Replace("/", "_") + "+" + DateTime.Now.ToShortTimeString().Replace(":", "_") + ".log");
 
             int Passed = 0;
             int Failed = 0;

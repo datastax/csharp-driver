@@ -12,6 +12,7 @@ namespace Dev
     public interface ISettings
     {
         string this[string name] { get; }
+        Action<string> GetWriter();
     }
 
     public class SettingsFixture
@@ -31,6 +32,13 @@ namespace Dev
             {
                 return settings;
             }
+        }
+
+        public void InfoMessage(string msg)
+        {
+            var we = settings.GetWriter();
+            if (we != null)
+                we(msg);
         }
     }
 
@@ -56,6 +64,5 @@ namespace Dev
             Xunit.Assert.Equal<T>(expected, actual);
         }
     }
-
     
 }

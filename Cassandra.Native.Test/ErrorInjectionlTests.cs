@@ -26,7 +26,6 @@ namespace Cassandra.Native.Test
         }
     }
 
-    [Dev.Ignore]
     public class ErrrorInjectionTestsBase : IUseFixture<Dev.SettingsFixture>, IDisposable
     {
         bool _compression = true;
@@ -46,6 +45,8 @@ namespace Cassandra.Native.Test
         Session Session;
         string Keyspace = "";
 
+        Action<string> Message;
+
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
@@ -64,6 +65,8 @@ namespace Cassandra.Native.Test
             clusterb.WithConnectionTimeout(3*60*1000);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
+
+            Message = setFix.InfoMessage;
         }
 
         public void Dispose()
@@ -105,7 +108,7 @@ namespace Cassandra.Native.Test
             {
             }
             Randomm rndm = new Randomm();
-            int RowsNo = 1000;
+            int RowsNo = 3000;
             bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
@@ -160,6 +163,8 @@ VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), 
                     }
                     catch (Exception ex)
                     {
+                        Message(ex.Message);
+                        Message(ex.StackTrace);
                         Console.WriteLine(ex.Message);
                         Console.WriteLine(ex.StackTrace);
                         ar[i] = true;
