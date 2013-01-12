@@ -4,38 +4,36 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * A reconnection policy that waits a constant time between each reconnection attempt.
-     */
+    ///<summary>
+    /// A reconnection policy that waits a constant time between each reconnection attempt.
+    ///</summary>
     public class ConstantReconnectionPolicy : ReconnectionPolicy
     {
 
         private readonly long delayMs;
 
-        /**
-         * Creates a reconnection policy that creates with the provided constant wait
-         * time between reconnection attempts.
-         *
-         * @param constantDelayMs the constant delay in milliseconds to use.
-         */
+        ///<summary>
+        /// Creates a reconnection policy that creates with the provided constant wait
+        /// time between reconnection attempts.
+        ///
+        /// <param name="constantDelayMs">the constant delay in milliseconds to use</param>
+        ///</summary>
         public ConstantReconnectionPolicy(long constantDelayMs)
         {
             this.delayMs = constantDelayMs;
         }
 
-        /**
-         * The constant delay used by this reconnection policy.
-         *
-         * @return the constant delay used by this reconnection policy.
-         */
+        ///<summary>
+        /// The constant delay used by this reconnection policy.
+        ///</summary>
         public long ConstantDelayMs { get { return delayMs; } }
 
-        /**
-         * A new schedule that uses a constant {@code getConstantDelayMs()} delay
-         * between reconnection attempt.
-         *
-         * @return the newly created schedule.
-         */
+        ///<summary>
+        /// A new schedule that uses a constant {@code getConstantDelayMs()} delay
+        /// between reconnection attempt.
+        ///
+        /// <returns>the newly created schedule</returns>
+        ///</summary>
         public ReconnectionSchedule NewSchedule()
         {
             return new ConstantSchedule(this);

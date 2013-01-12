@@ -14,7 +14,7 @@ namespace Cassandra.Native
         {
         }
     }
-    
+
     internal partial class AsyncResultNoResult : IAsyncResult
     {
         // Fields set at construction which never change while 
@@ -28,7 +28,6 @@ namespace Cassandra.Native
         private const Int32 c_StateCompletedSynchronously = 1;
         private const Int32 c_StateCompletedAsynchronously = 2;
         private Int32 m_CompletedState = c_StatePending;
-//        internal object m_CompletedStateGuard = new object();
 
         // Field that may or may not get set depending on usage
         private MyWaitHandle m_AsyncWaitHandle;
@@ -82,7 +81,7 @@ namespace Cassandra.Native
         {
             return this.Complete(null, completedSynchronously);
         }
-        
+
         internal bool Complete(Exception exception)
         {
             return this.Complete(exception, false /*completedSynchronously*/);
@@ -90,39 +89,36 @@ namespace Cassandra.Native
 
         internal bool Complete(Exception exception, bool completedSynchronously)
         {
-//            lock (m_CompletedStateGuard)
+            bool result = false;
+
+            // The m_CompletedState field MUST be set prior calling the callback
+            Int32 prevState = Interlocked.Exchange(ref m_CompletedState,
+                completedSynchronously ? c_StateCompletedSynchronously :
+                c_StateCompletedAsynchronously);
+            if (prevState == c_StatePending)
             {
-                bool result = false;
+                // Passing null for exception means no error occurred. 
+                // This is the common case
+                m_exception = exception;
 
-                // The m_CompletedState field MUST be set prior calling the callback
-                Int32 prevState = Interlocked.Exchange(ref m_CompletedState,
-                    completedSynchronously ? c_StateCompletedSynchronously :
-                    c_StateCompletedAsynchronously);
-                if (prevState == c_StatePending)
-                {
-                    // Passing null for exception means no error occurred. 
-                    // This is the common case
-                    m_exception = exception;
+                // Do any processing before completion.
+                this.Completing(exception, completedSynchronously);
 
-                    // Do any processing before completion.
-                    this.Completing(exception, completedSynchronously);
+                // If the event exists, set it
+                if (m_AsyncWaitHandle != null) m_AsyncWaitHandle.Set();
 
-                    // If the event exists, set it
-                    if (m_AsyncWaitHandle != null) m_AsyncWaitHandle.Set();
+                this.MakeCallback(m_AsyncCallback, this);
 
-                    this.MakeCallback(m_AsyncCallback, this);
+                // Do any final processing after completion
+                this.Completed(exception, completedSynchronously);
 
-                    // Do any final processing after completion
-                    this.Completed(exception, completedSynchronously);
-
-                    result = true;
-                }
-                else
-                {
-                    //already set
-                }
-                return result;
+                result = true;
             }
+            else
+            {
+                //already set
+            }
+            return result;
         }
 
         private void CheckUsage(object owner, string operationId)
@@ -162,38 +158,27 @@ namespace Cassandra.Native
                     "result");
             }
 
-                asyncResult.CheckUsage(owner, string.IsNullOrEmpty(operationId) ? string.Empty : operationId);
+            asyncResult.CheckUsage(owner, string.IsNullOrEmpty(operationId) ? string.Empty : operationId);
 
-                // This method assumes that only 1 thread calls EndInvoke 
-                // for this object
-//                lock (asyncResult.m_CompletedStateGuard)
+            // This method assumes that only 1 thread calls EndInvoke 
+            // for this object
+            if (!asyncResult.IsCompleted)
+            {
+                // If the operation isn't done, wait for it
+                asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
+                asyncResult.AsyncWaitHandle.Close();
+                if (!asyncResult.IsCompleted)
                 {
-                    if (!asyncResult.IsCompleted)
-                    {
-                        // If the operation isn't done, wait for it
-//                        Monitor.Exit(asyncResult.m_CompletedStateGuard);
-//                        try
-                        {
-                            asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
-                        }
-//                        finally
-                        {
-//                            Monitor.Enter(asyncResult.m_CompletedStateGuard);
-                            asyncResult.AsyncWaitHandle.Close();
-                            if (!asyncResult.IsCompleted)
-                            {
-                                asyncResult.Complete(new AsyncTimeoutException());
-                            }
-                            asyncResult.m_AsyncWaitHandle = null;  // Allow early GC                
-                        }
-                    }
+                    asyncResult.Complete(new AsyncTimeoutException());
                 }
-                // Operation is done: if an exception occurred, throw it
-                if (asyncResult.m_exception != null)
-                {
-                    typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(asyncResult.m_exception, null);
-                    throw asyncResult.m_exception;
-                }
+                asyncResult.m_AsyncWaitHandle = null;  // Allow early GC                
+            }
+            // Operation is done: if an exception occurred, throw it
+            if (asyncResult.m_exception != null)
+            {
+                typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(asyncResult.m_exception, null);
+                throw asyncResult.m_exception;
+            }
         }
 
         #region Implementation of IAsyncResult
@@ -206,11 +191,8 @@ namespace Cassandra.Native
         {
             get
             {
-//                lock (m_CompletedStateGuard)
-                {
-                    return Thread.VolatileRead(ref m_CompletedState) ==
-                        c_StateCompletedSynchronously;
-                }
+                return Thread.VolatileRead(ref m_CompletedState) ==
+                    c_StateCompletedSynchronously;
             }
         }
 
@@ -260,25 +242,22 @@ namespace Cassandra.Native
             {
                 if (m_AsyncWaitHandle == null)
                 {
-//                    lock (m_CompletedStateGuard)
+                    bool done = IsCompleted;
+                    MyWaitHandle mre = new MyWaitHandle(done, m_started, m_timeout);
+                    if (Interlocked.CompareExchange(ref m_AsyncWaitHandle,
+                        mre, null) != null)
                     {
-                        bool done = IsCompleted;
-                        MyWaitHandle mre = new MyWaitHandle(done, m_started, m_timeout);
-                        if (Interlocked.CompareExchange(ref m_AsyncWaitHandle,
-                            mre, null) != null)
+                        // Another thread created this object's event; dispose 
+                        // the event we just created
+                        mre.Close();
+                    }
+                    else
+                    {
+                        if (!done && IsCompleted)
                         {
-                            // Another thread created this object's event; dispose 
-                            // the event we just created
-                            mre.Close();
-                        }
-                        else
-                        {
-                            if (!done && IsCompleted)
-                            {
-                                // If the operation wasn't done when we created 
-                                // the event but now it is done, set the event
-                                m_AsyncWaitHandle.Set();
-                            }
+                            // If the operation wasn't done when we created 
+                            // the event but now it is done, set the event
+                            m_AsyncWaitHandle.Set();
                         }
                     }
                 }
@@ -290,11 +269,8 @@ namespace Cassandra.Native
         {
             get
             {
-//                lock (m_CompletedStateGuard)
-                {
-                    return Thread.VolatileRead(ref m_CompletedState) !=
-                        c_StatePending;
-                }
+                return Thread.VolatileRead(ref m_CompletedState) !=
+                    c_StatePending;
             }
         }
         #endregion

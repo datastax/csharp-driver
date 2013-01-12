@@ -8,12 +8,12 @@ namespace Cassandra.Native
 
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromList(Metadata.ColumnInfo type_info, byte[] value)
+        public static object ConvertFromList(TableMetadata.ColumnInfo type_info, byte[] value)
         {
-            if (type_info is Metadata.ListColumnInfo)
+            if (type_info is TableMetadata.ListColumnInfo)
             {
-                var list_typecode = (type_info as Metadata.ListColumnInfo).value_type_code;
-                var list_typeinfo = (type_info as Metadata.ListColumnInfo).value_type_info;
+                var list_typecode = (type_info as TableMetadata.ListColumnInfo).value_type_code;
+                var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).value_type_info;
                 var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
                 int idx = 2;
@@ -35,12 +35,12 @@ namespace Cassandra.Native
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetTypeFromList(Metadata.ColumnInfo type_info)
+        public static Type GetTypeFromList(TableMetadata.ColumnInfo type_info)
         {
-            if (type_info is Metadata.ListColumnInfo)
+            if (type_info is TableMetadata.ListColumnInfo)
             {
-                var list_typecode = (type_info as Metadata.ListColumnInfo).value_type_code;
-                var list_typeinfo = (type_info as Metadata.ListColumnInfo).value_type_info;
+                var list_typecode = (type_info as TableMetadata.ListColumnInfo).value_type_code;
+                var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).value_type_info;
                 var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
                 var openType = typeof(IEnumerable<>);
                 var listType = openType.MakeGenericType(value_type);
@@ -49,12 +49,12 @@ namespace Cassandra.Native
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static byte[] InvConvertFromList(Metadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromList(TableMetadata.ColumnInfo type_info, object value)
         {
             var listType = GetTypeFromList(type_info);
             checkArgument(listType, value);
-            var list_typecode = (type_info as Metadata.ListColumnInfo).value_type_code;
-            var list_typeinfo = (type_info as Metadata.ListColumnInfo).value_type_info;
+            var list_typecode = (type_info as TableMetadata.ListColumnInfo).value_type_code;
+            var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).value_type_info;
 
             List<byte[]> bufs = new List<byte[]>();
             int cnt = 0;

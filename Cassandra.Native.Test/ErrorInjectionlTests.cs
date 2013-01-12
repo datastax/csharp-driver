@@ -62,7 +62,7 @@ namespace Cassandra.Native.Test
                 Thread.Sleep((int)ev.DelayMs);
             });
             clusterb.WithLoadBalancingPolicy(rp);
-            clusterb.WithConnectionTimeout(3*60*1000);
+            clusterb.WithConnectionTimeout(60*1000);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
 
@@ -108,7 +108,7 @@ namespace Cassandra.Native.Test
             {
             }
             Randomm rndm = new Randomm();
-            int RowsNo = 3000;
+            int RowsNo = 1000;
             bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();

@@ -4,10 +4,10 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * An exception indicating that a query cannot be executed because it is
-     * incorrect syntaxically, invalid, unauthorized or any other reason.
-     */
+    /// <summary>
+    /// An exception indicating that a query cannot be executed because it is
+    /// incorrect syntaxically, invalid, unauthorized or any other reason.
+    /// </summary>
     public abstract class QueryValidationException : DriverUncheckedException
     {
         public QueryValidationException(string message)

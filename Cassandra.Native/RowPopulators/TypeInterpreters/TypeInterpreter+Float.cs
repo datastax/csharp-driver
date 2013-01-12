@@ -6,18 +6,18 @@ namespace Cassandra.Native
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromFloat(Metadata.ColumnInfo type_info, byte[] _buffer)
+        public static object ConvertFromFloat(TableMetadata.ColumnInfo type_info, byte[] _buffer)
         {
             Array.Reverse(_buffer);
             return BitConverter.ToSingle(_buffer, 0);
         }
 
-        public static Type GetTypeFromFloat(Metadata.ColumnInfo type_info)
+        public static Type GetTypeFromFloat(TableMetadata.ColumnInfo type_info)
         {
             return typeof(float);
         }
 
-        public static byte[] InvConvertFromFloat(Metadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromFloat(TableMetadata.ColumnInfo type_info, object value)
         {
             checkArgument<float>(value);
             byte[] ret = BitConverter.GetBytes((float)value);

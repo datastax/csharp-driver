@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * A Cassandra timeout during a read query.
-     */
+    /// <summary>
+    /// A Cassandra timeout during a read query.
+    /// </summary>
     public class ReadTimeoutException : QueryTimeoutException
     {
         public bool IsDataPresent { get; private set; }

@@ -24,7 +24,8 @@ namespace Cassandra
         public Policies Policies { get; private set; }
 
         CompressionType compression;
-        int abortTimeout;
+        readonly int abortTimeout = Timeout.Infinite;
+        readonly int clientAbortAsyncCommandTimeout = Timeout.Infinite;
 
         class CassandraSessionInfoProvider : ISessionInfoProvider
         {
@@ -282,7 +283,7 @@ namespace Cassandra
                         foreach (var prepQ in preparedQueries)
                         {
                             byte[] queryid;
-                            Metadata metadata;
+                            TableMetadata metadata;
                             var exc2 = processPrepareQuery(nconn.PrepareQuery(prepQ.Key), out metadata, out queryid);
                             if (exc2 != null)
                                 return null;
@@ -466,7 +467,7 @@ namespace Cassandra
 
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
-            Metadata metadata;
+            TableMetadata metadata;
             var id = EndPrepareQuery(ar, out metadata);
             return new PreparedStatement(metadata, id);
         }
@@ -513,7 +514,7 @@ namespace Cassandra
             }
         }
 
-        private QueryValidationException processPrepareQuery(IOutput outp, out Metadata metadata, out byte[] queryId)
+        private QueryValidationException processPrepareQuery(IOutput outp, out TableMetadata metadata, out byte[] queryId)
         {
             using (outp)
             {
@@ -700,7 +701,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
-            AsyncResult<string> longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, abortTimeout);
+            AsyncResult<string> longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, clientAbortAsyncCommandTimeout);
             var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -754,7 +755,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
         {
-            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender, abortTimeout);
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender, clientAbortAsyncCommandTimeout);
             var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -776,7 +777,7 @@ namespace Cassandra
 
         #region Prepare
 
-        Dictionary<string, KeyValuePair<Metadata, byte[]>> preparedQueries = new Dictionary<string, KeyValuePair<Metadata, byte[]>>();
+        Dictionary<string, KeyValuePair<TableMetadata, byte[]>> preparedQueries = new Dictionary<string, KeyValuePair<TableMetadata, byte[]>>();
 
 
         class LongPrepareQueryToken : LongToken
@@ -789,15 +790,15 @@ namespace Cassandra
             override public QueryValidationException Process(Session owner, IAsyncResult ar, out object value)
             {
                 byte[] id;
-                Metadata metadata;
+                TableMetadata metadata;
                 var exc = owner.processPrepareQuery(Connection.EndPrepareQuery(ar, owner), out metadata, out id);
-                value = new KeyValuePair<Metadata, byte[]>(metadata, id);
+                value = new KeyValuePair<TableMetadata, byte[]>(metadata, id);
                 return exc;
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                KeyValuePair<Metadata, byte[]> kv = (KeyValuePair<Metadata, byte[]>)value;
-                var ar = LongActionAc as AsyncResult<KeyValuePair<Metadata, byte[]>>;
+                KeyValuePair<TableMetadata, byte[]> kv = (KeyValuePair<TableMetadata, byte[]>)value;
+                var ar = LongActionAc as AsyncResult<KeyValuePair<TableMetadata, byte[]>>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
@@ -812,7 +813,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null)
         {
-            AsyncResult<KeyValuePair<Metadata, byte[]>> longActionAc = new AsyncResult<KeyValuePair<Metadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender, abortTimeout);
+            AsyncResult<KeyValuePair<TableMetadata, byte[]>> longActionAc = new AsyncResult<KeyValuePair<TableMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender, clientAbortAsyncCommandTimeout);
             var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.IGNORE, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -820,15 +821,15 @@ namespace Cassandra
             return longActionAc;
         }
 
-        internal byte[] EndPrepareQuery(IAsyncResult ar, out Metadata metadata)
+        internal byte[] EndPrepareQuery(IAsyncResult ar, out TableMetadata metadata)
         {
-            var longActionAc = ar as AsyncResult<KeyValuePair<Metadata, byte[]>>;
-            var ret = AsyncResult<KeyValuePair<Metadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
+            var longActionAc = ar as AsyncResult<KeyValuePair<TableMetadata, byte[]>>;
+            var ret = AsyncResult<KeyValuePair<TableMetadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
             metadata = ret.Key;
             return ret.Value;
         }
 
-        internal byte[] PrepareQuery(string cqlQuery, out Metadata metadata, CassandraRoutingKey routingKey = null)
+        internal byte[] PrepareQuery(string cqlQuery, out TableMetadata metadata, CassandraRoutingKey routingKey = null)
         {
             var ar = BeginPrepareQuery(cqlQuery, null, null, routingKey);
             return EndPrepareQuery(ar, out metadata);
@@ -842,7 +843,7 @@ namespace Cassandra
         class LongExecuteQueryToken : LongToken
         {
             public byte[] Id;
-            public Metadata Metadata;
+            public TableMetadata Metadata;
             public object[] Values;
             override public void Begin(Session owner)
             {
@@ -869,9 +870,9 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] Id, Metadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
+        internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
         {
-            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender, abortTimeout);
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender, clientAbortAsyncCommandTimeout);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, RoutingKey = routingKey, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -885,7 +886,7 @@ namespace Cassandra
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal CqlRowSet ExecuteQuery(byte[] Id, Metadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet ExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
         {
             var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, routingKey);
             return EndExecuteQuery(ar);
@@ -893,9 +894,9 @@ namespace Cassandra
 
         #endregion
 
-        public Metadata.KeyspaceDesc GetKeyspaceMetadata(string keyspaceName)
+        public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
         {
-            List<Metadata> tables = new List<Metadata>();
+            List<TableMetadata> tables = new List<TableMetadata>();
             List<string> tablesNames = new List<string>();
             using( var rows = Query(string.Format("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name='{0}';", keyspaceName)))
             {
@@ -906,7 +907,7 @@ namespace Cassandra
             foreach (var tblName in tablesNames)
                 tables.Add(GetTableMetadata(tblName));
                         
-            Metadata.StrategyClass strClass = Metadata.StrategyClass.Unknown;
+            StrategyClass strClass = StrategyClass.Unknown;
             bool? drblWrites = null;
             SortedDictionary<string, int?> rplctOptions = new SortedDictionary<string, int?>();
 
@@ -920,7 +921,7 @@ namespace Cassandra
                 }
             }
 
-            return new Metadata.KeyspaceDesc()
+            return new KeyspaceMetadata()
             {
                 ksName = keyspaceName,
                 tables = tables,
@@ -931,42 +932,55 @@ namespace Cassandra
     
         }
 
-        public Metadata.StrategyClass GetStrategyClass(string strClass)
+        public StrategyClass GetStrategyClass(string strClass)
         {
             if( strClass != null)
             {                
                 strClass = strClass.Replace("org.apache.cassandra.locator.", "");                
-                List<Metadata.StrategyClass> strategies = new List<Metadata.StrategyClass>((Metadata.StrategyClass[])Enum.GetValues(typeof(Metadata.StrategyClass)));
+                List<StrategyClass> strategies = new List<StrategyClass>((StrategyClass[])Enum.GetValues(typeof(StrategyClass)));
                 foreach(var stratg in strategies)
                     if(strClass == stratg.ToString())
                         return stratg;
             }
 
-            return Metadata.StrategyClass.Unknown;
+            return StrategyClass.Unknown;
         }
 
-        public Metadata GetTableMetadata(string tableName, string keyspaceName = null)
+        public TableMetadata GetTableMetadata(string tableName, string keyspaceName = null)
         {
             object[] collectionValuesTypes;
-            List<Metadata.ColumnDesc> cols = new List<Metadata.ColumnDesc>();
+            List<TableMetadata.ColumnDesc> cols = new List<TableMetadata.ColumnDesc>();
             using (var rows = Query(string.Format("SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName ?? keyspace)))
             {
                 foreach (var row in rows.GetRows())
-                {                    
+                {
                     var tp_code = convertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
-                    cols.Add(new Metadata.ColumnDesc()
-                    {            
+                    var dsc = new TableMetadata.ColumnDesc()
+                    {
                         column_name = row.GetValue<string>("column_name"),
                         ksname = row.GetValue<string>("keyspace_name"),
                         tablename = row.GetValue<string>("columnfamily_name"),
                         type_code = tp_code,
                         secondary_index_name = row.GetValue<string>("index_name"),
                         secondary_index_type = row.GetValue<string>("index_type"),
-                        key_type = row.GetValue<string>("index_name")!= null ? Metadata.KeyType.SECONDARY : Metadata.KeyType.NOT_A_KEY,
-                        listInfo = (tp_code == Metadata.ColumnTypeCode.List) ? new Metadata.ListColumnInfo() { value_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[0] } : null,
-                        mapInfo = (tp_code == Metadata.ColumnTypeCode.Map) ? new Metadata.MapColumnInfo() { key_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[0], value_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[1]} : null,
-                        setInfo = (tp_code == Metadata.ColumnTypeCode.Set) ? new Metadata.SetColumnInfo() { key_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[0] } : null
-                    });
+                        key_type = row.GetValue<string>("index_name") != null ? TableMetadata.KeyType.SECONDARY : TableMetadata.KeyType.NOT_A_KEY,
+                    };
+
+                    if(tp_code == TableMetadata.ColumnTypeCode.List)
+                        dsc.type_info = new TableMetadata.ListColumnInfo() { 
+                            value_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0] 
+                        };
+                    else if(tp_code == TableMetadata.ColumnTypeCode.Map)
+                        dsc.type_info = new TableMetadata.MapColumnInfo() { 
+                            key_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0], 
+                            value_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[1] 
+                        };
+                    else if(tp_code == TableMetadata.ColumnTypeCode.Set)
+                        dsc.type_info = new TableMetadata.SetColumnInfo() { 
+                            key_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0] 
+                        } ;
+
+                    cols.Add(dsc);
                 }
             }
 
@@ -983,97 +997,110 @@ namespace Cassandra
                             rowKeys[i]=rowKeys[i].Substring(1,rowKeys[i].Length-2).Replace("\"\"","\"");
                         }
                     }
-                    
-                    if (rowKeys.Length> 0 && rowKeys[0] != string.Empty)
+
+                    if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
                     {
-                        Regex rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");                        
-                        
-                        var rowKeysTypes = rg.Matches(row.GetValue<string>("comparator"));                        
+                        Regex rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+"); 
+
+                        var rowKeysTypes = rg.Matches(row.GetValue<string>("comparator"));
                         int i = 0;
                         foreach (var keyName in rowKeys)
                         {
-                            var tp_code = convertToColumnTypeCode(rowKeysTypes[i+1].ToString(),out collectionValuesTypes);
-                            cols.Add(new Metadata.ColumnDesc()
+                            var tp_code = convertToColumnTypeCode(rowKeysTypes[i + 1].ToString(), out collectionValuesTypes);
+                            var dsc = new TableMetadata.ColumnDesc()
                             {
                                 column_name = keyName.ToString(),
                                 ksname = row.GetValue<string>("keyspace_name"),
                                 tablename = row.GetValue<string>("columnfamily_name"),
                                 type_code = tp_code,
-                                key_type = Metadata.KeyType.ROW,
-                                listInfo = (tp_code == Metadata.ColumnTypeCode.List) ? new Metadata.ListColumnInfo() { value_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[0] } : null,
-                                mapInfo = (tp_code == Metadata.ColumnTypeCode.Map) ? new Metadata.MapColumnInfo() { key_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[0], value_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[1] } : null,
-                                setInfo = (tp_code == Metadata.ColumnTypeCode.Set) ? new Metadata.SetColumnInfo() { key_type_code = (Metadata.ColumnTypeCode)collectionValuesTypes[0] } : null
-
-                            });
+                                key_type = TableMetadata.KeyType.ROW,
+                            };
+                            if (tp_code == TableMetadata.ColumnTypeCode.List)
+                                dsc.type_info = new TableMetadata.ListColumnInfo()
+                                {
+                                    value_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
+                                };
+                            else if (tp_code == TableMetadata.ColumnTypeCode.Map)
+                                dsc.type_info = new TableMetadata.MapColumnInfo()
+                                {
+                                    key_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0],
+                                    value_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[1]
+                                };
+                            else if (tp_code == TableMetadata.ColumnTypeCode.Set)
+                                dsc.type_info = new TableMetadata.SetColumnInfo()
+                                {
+                                    key_type_code = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
+                                };
+                            cols.Add(dsc);
                             i++;
                         }
                     }
-                    cols.Add(new Metadata.ColumnDesc()
+                    cols.Add(new TableMetadata.ColumnDesc()
                     {
                         column_name = row.GetValue<string>("key_aliases").Replace("[\"", "").Replace("\"]", "").Replace("\"\"","\""),
                         ksname = row.GetValue<string>("keyspace_name"),
                         tablename = row.GetValue<string>("columnfamily_name"),
                         type_code = convertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
-                        key_type = Metadata.KeyType.PARTITION
+                        key_type = TableMetadata.KeyType.PARTITION
                     });                                        
                 }
             }
-            return new Metadata() { Columns = cols.ToArray() };
+            return new TableMetadata() { Columns = cols.ToArray() };
         }
 
 
-        private Metadata.ColumnTypeCode convertToColumnTypeCode(string type, out object[] collectionValueTp)
+        private TableMetadata.ColumnTypeCode convertToColumnTypeCode(string type, out object[] collectionValueTp)
         {
             object[] obj;
             collectionValueTp = new object[2];
             if (type.StartsWith("org.apache.cassandra.db.marshal.ListType"))
             {                
                 collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.ListType(","").Replace(")",""), out obj); 
-                return Metadata.ColumnTypeCode.List;
+                return TableMetadata.ColumnTypeCode.List;
             }
             if (type.StartsWith("org.apache.cassandra.db.marshal.SetType"))
             {
                 collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
-                return Metadata.ColumnTypeCode.Set;
+                return TableMetadata.ColumnTypeCode.Set;
             }
 
             if (type.StartsWith("org.apache.cassandra.db.marshal.MapType"))
             {
                 collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[0], out obj);
                 collectionValueTp[1] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj); 
-                return Metadata.ColumnTypeCode.Map;
+                return TableMetadata.ColumnTypeCode.Map;
             }
             
             collectionValueTp = null;
             switch (type)
             {
                 case "org.apache.cassandra.db.marshal.UTF8Type":
-                    return Metadata.ColumnTypeCode.Text;
+                    return TableMetadata.ColumnTypeCode.Text;
                 case "org.apache.cassandra.db.marshal.UUIDType":
-                    return Metadata.ColumnTypeCode.Uuid;
+                    return TableMetadata.ColumnTypeCode.Uuid;
                 case "org.apache.cassandra.db.marshal.Int32Type":
-                    return Metadata.ColumnTypeCode.Int;
+                    return TableMetadata.ColumnTypeCode.Int;
                 case "org.apache.cassandra.db.marshal.BytesType":
-                    return Metadata.ColumnTypeCode.Blob;
+                    return TableMetadata.ColumnTypeCode.Blob;
                 case "org.apache.cassandra.db.marshal.FloatType":
-                    return Metadata.ColumnTypeCode.Float;
+                    return TableMetadata.ColumnTypeCode.Float;
                 case "org.apache.cassandra.db.marshal.DoubleType":
-                    return Metadata.ColumnTypeCode.Double;
+                    return TableMetadata.ColumnTypeCode.Double;
                 case "org.apache.cassandra.db.marshal.BooleanType":
-                    return Metadata.ColumnTypeCode.Boolean;
+                    return TableMetadata.ColumnTypeCode.Boolean;
                 case "org.apache.cassandra.db.marshal.InetAddressType":
-                    return Metadata.ColumnTypeCode.Inet;
+                    return TableMetadata.ColumnTypeCode.Inet;
                 case "org.apache.cassandra.db.marshal.DateType":
-                    return Metadata.ColumnTypeCode.Timestamp;
+                    return TableMetadata.ColumnTypeCode.Timestamp;
 #if NET_40_OR_GREATER
                 case "org.apache.cassandra.db.marshal.DecimalType":
-                    return Metadata.ColumnTypeCode.Decimal;
+                    return TableMetadata.ColumnTypeCode.Decimal;
 #endif
                 case "org.apache.cassandra.db.marshal.LongType":
-                    return Metadata.ColumnTypeCode.Bigint;
+                    return TableMetadata.ColumnTypeCode.Bigint;
 #if NET_40_OR_GREATER
                 case "org.apache.cassandra.db.marshal.IntegerType":
-                    return Metadata.ColumnTypeCode.Varint;
+                    return TableMetadata.ColumnTypeCode.Varint;
 #endif
                 default: throw new InvalidOperationException();
             }

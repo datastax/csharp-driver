@@ -6,17 +6,17 @@ namespace Cassandra.Native
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromAscii(Metadata.ColumnInfo type_info, byte[] value)
+        public static object ConvertFromAscii(TableMetadata.ColumnInfo type_info, byte[] value)
         {
             return Encoding.ASCII.GetString((byte[])value);
         }
 
-        public static Type GetTypeFromAscii(Metadata.ColumnInfo type_info)
+        public static Type GetTypeFromAscii(TableMetadata.ColumnInfo type_info)
         {
             return typeof(string);
         }
 
-        public static byte[] InvConvertFromAscii(Metadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromAscii(TableMetadata.ColumnInfo type_info, object value)
         {
             checkArgument<string>(value);
             return Encoding.ASCII.GetBytes((string)value);

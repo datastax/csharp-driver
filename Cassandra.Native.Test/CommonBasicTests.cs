@@ -654,24 +654,24 @@ PRIMARY KEY(tweet_id)
 
         public void checkMetadata(string TableName = null, string KeyspaceName = null)
         {            
-            Dictionary<string, Metadata.ColumnTypeCode> columns = new Dictionary<string,Metadata.ColumnTypeCode>(){                          
-                         {"q0uuid", Metadata.ColumnTypeCode.Uuid},
-                         {"q1timestamp", Metadata.ColumnTypeCode.Timestamp},
-                         {"q2double", Metadata.ColumnTypeCode.Double},
-                         {"q3int32", Metadata.ColumnTypeCode.Int},                         
-                         {"q4int64", Metadata.ColumnTypeCode.Bigint},
-                         {"q5float", Metadata.ColumnTypeCode.Float},                         
-                         {"q6inet", Metadata.ColumnTypeCode.Inet},
-                         {"q7boolean", Metadata.ColumnTypeCode.Boolean},                         
-                         {"q8inet", Metadata.ColumnTypeCode.Inet},                         
-                         {"q9blob", Metadata.ColumnTypeCode.Blob},
+            Dictionary<string, TableMetadata.ColumnTypeCode> columns = new Dictionary<string,TableMetadata.ColumnTypeCode>(){                          
+                         {"q0uuid", TableMetadata.ColumnTypeCode.Uuid},
+                         {"q1timestamp", TableMetadata.ColumnTypeCode.Timestamp},
+                         {"q2double", TableMetadata.ColumnTypeCode.Double},
+                         {"q3int32", TableMetadata.ColumnTypeCode.Int},                         
+                         {"q4int64", TableMetadata.ColumnTypeCode.Bigint},
+                         {"q5float", TableMetadata.ColumnTypeCode.Float},                         
+                         {"q6inet", TableMetadata.ColumnTypeCode.Inet},
+                         {"q7boolean", TableMetadata.ColumnTypeCode.Boolean},                         
+                         {"q8inet", TableMetadata.ColumnTypeCode.Inet},                         
+                         {"q9blob", TableMetadata.ColumnTypeCode.Blob},
 #if NET_40_OR_GREATER
                          {"q10varint", Metadata.ColumnTypeCode.Varint},
                          {"q11decimal", Metadata.ColumnTypeCode.Decimal},
 #endif
-                         {"q12list", Metadata.ColumnTypeCode.List},
-                         {"q13set", Metadata.ColumnTypeCode.Set},
-                         {"q14map", Metadata.ColumnTypeCode.Map}
+                         {"q12list", TableMetadata.ColumnTypeCode.List},
+                         {"q13set", TableMetadata.ColumnTypeCode.Set},
+                         {"q14map", TableMetadata.ColumnTypeCode.Map}
                          //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
                         };
                           
@@ -680,7 +680,7 @@ PRIMARY KEY(tweet_id)
             Randomm urndm = new Randomm(DateTimeOffset.Now.Millisecond);
             
             foreach(var col in columns)
-                sb.Append(col.Key + " " + col.Value.ToString() + (((col.Value == Metadata.ColumnTypeCode.List) || (col.Value == Metadata.ColumnTypeCode.Set) || (col.Value == Metadata.ColumnTypeCode.Map)) ? "<int" + (col.Value == Metadata.ColumnTypeCode.Map ? ",varchar>" : ">") : "") + ", ");
+                sb.Append(col.Key + " " + col.Value.ToString() + (((col.Value == TableMetadata.ColumnTypeCode.List) || (col.Value == TableMetadata.ColumnTypeCode.Set) || (col.Value == TableMetadata.ColumnTypeCode.Map)) ? "<int" + (col.Value == TableMetadata.ColumnTypeCode.Map ? ",varchar>" : ">") : "") + ", ");
 
             sb.Append("PRIMARY KEY(");
             int rowKeys = urndm.Next(1,columns.Count-3);
@@ -690,7 +690,7 @@ PRIMARY KEY(tweet_id)
             sb.Append("));");
             
             ExecuteSyncNonQuery(Session, sb.ToString());                        
-            Metadata md = this.Session.GetTableMetadata(tablename);            
+            TableMetadata md = this.Session.GetTableMetadata(tablename);            
             foreach( var metaCol in md.Columns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.column_name));
@@ -705,19 +705,19 @@ PRIMARY KEY(tweet_id)
         {
             string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
             bool durableWrites = false;
-            Metadata.StrategyClass strgyClass = Metadata.StrategyClass.SimpleStrategy;
+            StrategyClass strgyClass = StrategyClass.SimpleStrategy;
             short rplctnFactor = 1;
             Session.Execute(
 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
-, keyspacename, Enum.GetName(typeof(Metadata.StrategyClass), strgyClass), rplctnFactor.ToString(), durableWrites.ToString()));
+, keyspacename, Enum.GetName(typeof(StrategyClass), strgyClass), rplctnFactor.ToString(), durableWrites.ToString()));
             
 
             for (int i = 0; i < 10; i++)
                 checkMetadata("table" + Guid.NewGuid().ToString("N"),keyspacename);
 
-            Metadata.KeyspaceDesc ksmd = this.Session.GetKeyspaceMetadata(keyspacename);
+            KeyspaceMetadata ksmd = this.Session.GetKeyspaceMetadata(keyspacename);
             Assert.True(ksmd.durableWrites == durableWrites);
             Assert.True(ksmd.replicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
             Assert.True(ksmd.strategyClass == strgyClass);

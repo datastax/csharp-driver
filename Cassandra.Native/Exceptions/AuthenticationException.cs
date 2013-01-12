@@ -1,9 +1,9 @@
 using System.Net;
 namespace Cassandra
 {
-    /**
-     * Indicates an error during the authentication phase while connecting to a node.
-     */
+    /// <summary>
+    /// Indicates an error during the authentication phase while connecting to a node.
+    /// </summary>
     public class AuthenticationException : DriverUncheckedException
     {
 

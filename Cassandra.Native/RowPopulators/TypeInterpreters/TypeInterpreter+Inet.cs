@@ -8,7 +8,7 @@ namespace Cassandra.Native
 
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromInet(Metadata.ColumnInfo type_info, byte[] value)
+        public static object ConvertFromInet(TableMetadata.ColumnInfo type_info, byte[] value)
         {
             var length = value[0];
             IPAddress ip;
@@ -31,12 +31,12 @@ namespace Cassandra.Native
             throw new DriverInternalError("Invalid lenght of Inet Addr");
         }
 
-        public static Type GetTypeFromInet(Metadata.ColumnInfo type_info)
+        public static Type GetTypeFromInet(TableMetadata.ColumnInfo type_info)
         {
             return typeof(IPEndPoint);
         }
 
-        public static byte[] InvConvertFromInet(Metadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromInet(TableMetadata.ColumnInfo type_info, object value)
         {
             checkArgument<IPEndPoint>(value);
             var addrbytes = (value as IPEndPoint).Address.GetAddressBytes();

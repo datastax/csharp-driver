@@ -4,7 +4,25 @@ using System.Text;
 
 namespace Cassandra.Native
 {
-    public class Metadata
+    public enum StrategyClass
+    {
+        Unknown = 0,
+        SimpleStrategy = 1,
+        NetworkTopologyStrategy = 2,
+        OldNetworkTopologyStrategy = 3
+    }
+
+    public struct KeyspaceMetadata
+    {
+        public string ksName;
+        public List<TableMetadata> tables;
+        public bool? durableWrites;
+        public StrategyClass strategyClass;
+        public SortedDictionary<string, int?> replicationOptions;
+
+    }
+
+    public class TableMetadata
     {
         [Flags]
         public enum FlagBits
@@ -50,14 +68,6 @@ namespace Cassandra.Native
             NOT_A_KEY = 0
         }
 
-        public enum StrategyClass
-        {
-            Unknown = 0,
-            SimpleStrategy = 1,
-            NetworkTopologyStrategy = 2,
-            OldNetworkTopologyStrategy = 3
-        }
-        
         public interface ColumnInfo
         {
         }
@@ -87,15 +97,6 @@ namespace Cassandra.Native
             public ColumnInfo value_type_info;            
         }
 
-        public struct KeyspaceDesc
-        {
-            public string ksName;
-            public List<Metadata> tables;
-            public bool? durableWrites;
-            public StrategyClass strategyClass;
-            public SortedDictionary<string, int?> replicationOptions;
-        }
-        
         public struct ColumnDesc
         {
             public string ksname;
@@ -106,25 +107,22 @@ namespace Cassandra.Native
             public string secondary_index_type;
             public KeyType key_type;
             public ColumnTypeCode type_code;
-            public ListColumnInfo listInfo;
-            public SetColumnInfo setInfo;
-            public MapColumnInfo mapInfo;
         }        
 
 
         public ColumnDesc[] Columns;
 
 
-        internal Metadata()
+        internal TableMetadata()
         {
         }
 
-        internal Metadata(BEBinaryReader reader)
+        internal TableMetadata(BEBinaryReader reader)
         {
             List<ColumnDesc> coldat = new List<ColumnDesc>();
             Flags = (FlagBits)reader.ReadInt32();
             var numberOfcolumns = reader.ReadInt32();
-            this.Columns = new Metadata.ColumnDesc[numberOfcolumns];
+            this.Columns = new TableMetadata.ColumnDesc[numberOfcolumns];
             string g_ksname = null;
             string g_tablename = null;
 

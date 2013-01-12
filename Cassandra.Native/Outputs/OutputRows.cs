@@ -7,7 +7,7 @@ namespace Cassandra.Native
 {
     internal class OutputRows : IOutput, IWaitableForDispose
     {
-        public Metadata Metadata;
+        public TableMetadata Metadata;
         public int Rows;
         internal bool buffered;
         
@@ -17,7 +17,7 @@ namespace Cassandra.Native
         {
             this.buffered = buffered;
             this.reader = reader;
-            Metadata = new Metadata(reader);
+            Metadata = new TableMetadata(reader);
             Rows = reader.ReadInt32();
             disposed = new ManualResetEvent(buffered);
         }

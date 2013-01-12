@@ -8,14 +8,14 @@ namespace Cassandra.Native
 
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromMap(Metadata.ColumnInfo type_info, byte[] value)
+        public static object ConvertFromMap(TableMetadata.ColumnInfo type_info, byte[] value)
         {
-            if (type_info is Metadata.MapColumnInfo)
+            if (type_info is TableMetadata.MapColumnInfo)
             {
-                var key_typecode = (type_info as Metadata.MapColumnInfo).key_type_code;
-                var key_typeinfo = (type_info as Metadata.MapColumnInfo).key_type_info;
-                var value_typecode = (type_info as Metadata.MapColumnInfo).value_type_code;
-                var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
+                var key_typecode = (type_info as TableMetadata.MapColumnInfo).key_type_code;
+                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).key_type_info;
+                var value_typecode = (type_info as TableMetadata.MapColumnInfo).value_type_code;
+                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).value_type_info;
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
@@ -48,14 +48,14 @@ namespace Cassandra.Native
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetTypeFromMap(Metadata.ColumnInfo type_info)
+        public static Type GetTypeFromMap(TableMetadata.ColumnInfo type_info)
         {
-            if (type_info is Metadata.MapColumnInfo)
+            if (type_info is TableMetadata.MapColumnInfo)
             {
-                var key_typecode = (type_info as Metadata.MapColumnInfo).key_type_code;
-                var key_typeinfo = (type_info as Metadata.MapColumnInfo).key_type_info;
-                var value_typecode = (type_info as Metadata.MapColumnInfo).value_type_code;
-                var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
+                var key_typecode = (type_info as TableMetadata.MapColumnInfo).key_type_code;
+                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).key_type_info;
+                var value_typecode = (type_info as TableMetadata.MapColumnInfo).value_type_code;
+                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).value_type_info;
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
@@ -67,14 +67,14 @@ namespace Cassandra.Native
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static byte[] InvConvertFromMap(Metadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromMap(TableMetadata.ColumnInfo type_info, object value)
         {
             var dicType = GetTypeFromList(type_info);
             checkArgument(dicType, value);
-            var key_typecode = (type_info as Metadata.MapColumnInfo).key_type_code;
-            var key_typeinfo = (type_info as Metadata.MapColumnInfo).key_type_info;
-            var value_typecode = (type_info as Metadata.MapColumnInfo).value_type_code;
-            var value_typeinfo = (type_info as Metadata.MapColumnInfo).value_type_info;
+            var key_typecode = (type_info as TableMetadata.MapColumnInfo).key_type_code;
+            var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).key_type_info;
+            var value_typecode = (type_info as TableMetadata.MapColumnInfo).value_type_code;
+            var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).value_type_info;
             var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
             var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 

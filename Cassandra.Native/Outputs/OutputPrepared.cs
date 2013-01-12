@@ -7,13 +7,13 @@ namespace Cassandra.Native
     internal class OutputPrepared : IOutput, IWaitableForDispose
     {
         public byte[] QueryID;
-        public Metadata Metadata;
+        public TableMetadata Metadata;
         internal OutputPrepared(BEBinaryReader reader)
         {
             var len = reader.ReadInt16();
             QueryID = new byte[len];
             reader.Read(QueryID, 0, len);
-            Metadata = new Metadata(reader);
+            Metadata = new TableMetadata(reader);
         }
 
         public void Dispose()

@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * A Cassandra timeout during a write query.
-     */
+    /// <summary>
+    /// A Cassandra timeout during a write query.
+    /// </summary>
     public class WriteTimeoutException : QueryTimeoutException
     {
         public string WriteType { get; private set; }

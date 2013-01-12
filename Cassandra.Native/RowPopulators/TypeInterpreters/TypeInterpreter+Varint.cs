@@ -7,17 +7,17 @@ namespace Cassandra.Native
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromVarint(Metadata.ColumnInfo type_info, byte[] value)
+        public static object ConvertFromVarint(TableMetadata.ColumnInfo type_info, byte[] value)
         {
             return new BigInteger(value);
         }
 
-        public static Type GetTypeFromVarint(Metadata.ColumnInfo type_info)
+        public static Type GetTypeFromVarint(TableMetadata.ColumnInfo type_info)
         {
             return typeof(BigInteger);
         }
 
-        public static byte[] InvConvertFromVarint(Metadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromVarint(TableMetadata.ColumnInfo type_info, object value)
         {
             checkArgument<BigInteger>(value);
 

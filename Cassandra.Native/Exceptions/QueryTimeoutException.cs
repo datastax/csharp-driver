@@ -4,13 +4,13 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * A Cassandra timeout during a query.
-     *
-     * Such an exception is returned when the query has been tried by Cassandra but
-     * cannot be achieved with the requested consistency level within the rpc
-     * timeout set for Cassandra.
-     */
+    /// <summary>
+    /// A Cassandra timeout during a query.
+    ///
+    /// Such an exception is returned when the query has been tried by Cassandra but
+    /// cannot be achieved with the requested consistency level within the rpc
+    /// timeout set for Cassandra.
+    /// </summary>
     public abstract class QueryTimeoutException : QueryExecutionException
     {
         public ConsistencyLevel ConsistencyLevel { get; private set; }

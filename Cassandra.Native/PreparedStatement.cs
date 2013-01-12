@@ -16,10 +16,10 @@ namespace Cassandra
         private volatile ConsistencyLevel consistency;
         private volatile CassandraRoutingKey routingKey;
 
-        internal readonly Metadata metadata;
+        internal readonly TableMetadata metadata;
         internal readonly byte[] id;
 
-        internal PreparedStatement(Metadata metadata, byte[] id)
+        internal PreparedStatement(TableMetadata metadata, byte[] id)
         {
             this.metadata = metadata;
             this.id = id;
@@ -30,7 +30,7 @@ namespace Cassandra
  *
  * @return the variables bounded in this prepared statement.
  */
-        public Metadata Variables { get { return metadata; } }
+        public TableMetadata Variables { get { return metadata; } }
 
         /**
          * Sets the consistency level for the query.

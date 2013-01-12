@@ -1,8 +1,9 @@
 namespace Cassandra
 {
-    /**
-     * Exception thrown when a query attemps to create a keyspace or table that already exists.
-     */
+
+    /// <summary>
+    /// Exception thrown when a query attemps to create a keyspace or table that already exists.
+    /// </summary>
     public class AlreadyExistsException : QueryValidationException
     {
         public string Keyspace { get; private set; }
@@ -10,6 +11,7 @@ namespace Cassandra
 
         public AlreadyExistsException(string Message, string Ks, string Table) :
             base(Message) { this.Keyspace = Ks; this.Table = Table; }
+     
         public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
         {
             return RetryDecision.Rethrow();

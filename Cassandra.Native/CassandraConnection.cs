@@ -30,12 +30,15 @@ namespace Cassandra.Native
         Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
         bool[] freeStreamIDtaken = new bool[byte.MaxValue + 1];
         AtomicValue<bool> isStreamOpened = new AtomicValue<bool>(false);
+        readonly int abortTimeout = Timeout.Infinite;
+        readonly int clientAbortAsyncCommandTimeout = Timeout.Infinite;
 
         object frameGuardier = new object();
 
         AtomicValue<Action<ResponseFrame>> frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
         AtomicArray<Action<ResponseFrame>> frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
         AtomicArray<AsyncResult<IOutput>> frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
+        AtomicArray<Timer> frameReadTimers = new AtomicArray<Timer>(sbyte.MaxValue + 1);
 
         Action<ResponseFrame> defaultFatalErrorAction;
 
@@ -82,9 +85,6 @@ namespace Cassandra.Native
             this.port = port;
             this.abortTimeout = abortTimeout;
     
-            if(abortTimeout!=Timeout.Infinite)
-                abortTimer = new Timer(abortTimerProc, null, Timeout.Infinite, Timeout.Infinite);
-            
             createConnection();
             if (IsHealthy)
                 BeginReading();
@@ -226,7 +226,7 @@ namespace Cassandra.Native
                 ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
-            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, abortTimeout);
+            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, clientAbortAsyncCommandTimeout);
 
             lock (frameGuardier)
                 frameReadAsyncResult[streamId] = ar;
@@ -292,21 +292,9 @@ namespace Cassandra.Native
                 }
             }
         }
-
-        Timer abortTimer = null;
-
-        int abortTimeout = Timeout.Infinite;
-
-        Guarded<bool> abortNotNeeded = new Guarded<bool>(false);
-
-        private void abortTimerProc(object _)
+        private void abortTimerProc(object state)
         {
-            lock (abortNotNeeded)
-            {
-                if (abortNotNeeded.Value)
-                    return;
-                abortNotNeeded.Value = true;
-            }
+            int streamId = (int)state;
 
             setupReaderException(new CassandraConnectionTimeoutException());
 
@@ -356,13 +344,6 @@ namespace Cassandra.Native
                 {
                     var rh = readerSocketStream.BeginRead(buffer[bufNo], 0, buffer[bufNo].Length, new AsyncCallback((ar) =>
                     {
-                        if (abortTimeout != Timeout.Infinite)
-                        {
-                            lock (abortNotNeeded)
-                                abortNotNeeded.Value = true;
-
-                            abortTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                        }
 
                         try
                         {
@@ -391,6 +372,8 @@ namespace Cassandra.Native
                                             act = frameEventCallback.Value;
                                         else if (frame.FrameHeader.StreamId >= 0)
                                         {
+                                            if (frameReadTimers[frame.FrameHeader.StreamId] != null)
+                                                frameReadTimers[frame.FrameHeader.StreamId].Change(Timeout.Infinite, Timeout.Infinite);
                                             act = frameReadCallback[frame.FrameHeader.StreamId];
                                             frameReadCallback[frame.FrameHeader.StreamId] = null;
                                         }
@@ -491,12 +474,15 @@ namespace Cassandra.Native
                 lock (frameGuardier)
                 {
                     for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
+                    {
+                        if (frameReadTimers[streamId] != null)
+                            frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
                         if (frameReadAsyncResult[streamId] != null)
                         {
                             toCompl.Add(frameReadAsyncResult[streamId]);
                             freeStreamId(streamId);
                         }
-
+                    }
                     hostIsDown();
                     try { bufferingMode.Close(); }
                     catch { }
@@ -524,6 +510,8 @@ namespace Cassandra.Native
             {
                 lock (frameGuardier)
                 {
+                    if (frameReadTimers[streamId] != null)
+                        frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
                     ar = frameReadAsyncResult[streamId];
                     freeStreamId(streamId);
                     hostIsDown();
@@ -564,10 +552,10 @@ namespace Cassandra.Native
                             socket.Value.Shutdown(SocketShutdown.Both);
                             socket.Value.Disconnect(false);
                         }
-                        catch (ObjectDisposedException ex)
+                        catch (ObjectDisposedException)
                         {
                         }
-                        catch (SocketException ex)
+                        catch (SocketException)
                         {
                         }
                     }
@@ -588,15 +576,18 @@ namespace Cassandra.Native
                 lock (writerSocketStream)
                 {
                     lock (frameGuardier)
+                    {
                         frameReadCallback[streamId] = nextAction;
+                        if (abortTimeout != Timeout.Infinite)
+                        {
+                            if (frameReadTimers[streamId] == null)
+                                frameReadTimers[streamId] = new Timer(abortTimerProc, streamId, abortTimeout, Timeout.Infinite);
+                            else
+                                frameReadTimers[streamId].Change(abortTimeout, Timeout.Infinite);
+                        }
+                    }
                     writerSocketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
                     writerSocketStream.Flush();
-                    if (abortTimeout != Timeout.Infinite)
-                    {
-                        lock (abortNotNeeded)
-                            abortNotNeeded.Value = false;
-                        abortTimer.Change(abortTimeout, Timeout.Infinite);
-                    }
                 }
             }
             catch (Exception ex)

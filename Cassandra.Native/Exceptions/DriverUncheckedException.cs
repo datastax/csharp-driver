@@ -1,9 +1,9 @@
 using System;
 namespace Cassandra
 {
-/**
- * Top level class for unchecked exceptions thrown by the driver.
- */
+    /// <summary>
+    /// Top level class for unchecked exceptions thrown by the driver.
+    /// </summary> 
     public class DriverUncheckedException : Exception
     {
 

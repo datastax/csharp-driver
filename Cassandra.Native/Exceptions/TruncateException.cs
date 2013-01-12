@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * Error during a truncation operation.
-     */
+    /// <summary>
+    /// Error during a truncation operation.
+    /// </summary>
     public class TruncateException : QueryExecutionException
     {
         public TruncateException(string Message) : base(Message) { }

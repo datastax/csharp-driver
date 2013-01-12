@@ -11,8 +11,8 @@ namespace Cassandra.Native
         public string TableName;
         public string Name;
         public Type Type;
-        public Metadata.ColumnTypeCode DataTypeCode;
-        public Metadata.ColumnInfo DataTypeInfo;
+        public TableMetadata.ColumnTypeCode DataTypeCode;
+        public TableMetadata.ColumnInfo DataTypeInfo;
     }
 
     public partial class CqlRowSet : IDisposable
