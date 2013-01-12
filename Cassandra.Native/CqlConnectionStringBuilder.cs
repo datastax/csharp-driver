@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Net;
-using Cassandra.Native;
+using Cassandra;
 using System.Threading;
 using System.Data.Common;
 namespace Cassandra
@@ -37,24 +37,24 @@ namespace Cassandra
         //public int MaxPoolSize { get; private set; }
 
         public ConnectionStringBuilder(
-            string Keyspace,
-            IEnumerable<IPAddress> ContactPoints,
-            int Port = Cluster.DEFAULT_PORT,
+            string keyspace,
+            IEnumerable<IPAddress> contactPoints,
+            int port = Cluster.DefaultPort,
             //string Username = null,
             //string Password = null,
-            CompressionType CompressionType = CompressionType.NoCompression
+            CompressionType compressionType = CompressionType.NoCompression
             //ConsistencyLevel ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM,
             //ConsistencyLevel WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM,
             //int ConnectionTimeout = Timeout.Infinite,
             //int MaxPoolSize = int.MaxValue
         )
         {
-            this.Keyspace = Keyspace;
-            this.Port = Port;
-            this.ContactPoints = ContactPoints;
+            this.Keyspace = keyspace;
+            this.Port = port;
+            this.ContactPoints = contactPoints;
             //this.Username = Username;
             //this.Password = Password;
-            this.CompressionType = CompressionType;
+            this.CompressionType = compressionType;
             //this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
             //this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
             //this.ConnectionTimeout = ConnectionTimeout;
@@ -104,7 +104,7 @@ namespace Cassandra
             //}
 
             if (!pairs.ContainsKey("Port"))
-                Port = Cluster.DEFAULT_PORT;
+                Port = Cluster.DefaultPort;
             else
             {
                 int port;
@@ -173,7 +173,7 @@ namespace Cassandra
 
         public string GetConnectionString()
         {
-            StringBuilder b = new StringBuilder();
+            var b = new StringBuilder();
             string format = "{0}={1};";
 
             b.AppendFormat(format, "Keyspace", Keyspace);
@@ -199,7 +199,7 @@ namespace Cassandra
             //if(Password!=null)
             //    b.AppendFormat(format, "Password", Password);
 
-            if (Port != Cluster.DEFAULT_PORT)
+            if (Port != Cluster.DefaultPort)
                 b.AppendFormat(format, "Port", Port);
     
             b.AppendFormat(format, "Servers", ClusterEndpointsString());

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
@@ -16,7 +16,7 @@ namespace Cassandra.Native
                     if (response is SupportedResponse)
                         JobFinished( streamId, (response as SupportedResponse).Output);
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
 
                 }));
             }), true);
@@ -29,8 +29,7 @@ namespace Cassandra.Native
 
         public IOutput ExecuteOptions()
         {
-            var r = BeginExecuteQueryOptions(null, null, this);
-            return EndExecuteQueryOptions(r, this);
+            return EndExecuteQueryOptions(BeginExecuteQueryOptions(null, null, this), this);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Cassandra.Native;
+using Cassandra;
 using System.Threading;
 
 namespace Cassandra
@@ -10,9 +10,9 @@ namespace Cassandra
     {
         public long DelayMs { get; private set; }
         public bool Cancel = false;
-        public RoundRobinPolicyWithReconnectionRetriesEventArgs(long DelayMs)
+        public RoundRobinPolicyWithReconnectionRetriesEventArgs(long delayMs)
         {
-            this.DelayMs = DelayMs;
+            this.DelayMs = delayMs;
         }
     }
     public class RoundRobinPolicyWithReconnectionRetries : LoadBalancingPolicy
@@ -23,19 +23,19 @@ namespace Cassandra
      */
         public RoundRobinPolicyWithReconnectionRetries(ReconnectionPolicy reconnectionPolicy)
         {
-            this.reconnectionPolicy = reconnectionPolicy;
+            this._reconnectionPolicy = reconnectionPolicy;
         }
 
 
         public EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs> ReconnectionEvent;
 
-        ReconnectionPolicy reconnectionPolicy;
-        ISessionInfoProvider infoProvider;
-        int startidx = -1;
+        readonly ReconnectionPolicy _reconnectionPolicy;
+        ISessionInfoProvider _infoProvider;
+        int _startidx = -1;
 
         public void Initialize(ISessionInfoProvider infoProvider)
         {
-            this.infoProvider = infoProvider;
+            this._infoProvider = infoProvider;
         }
 
         /**
@@ -50,7 +50,7 @@ namespace Cassandra
          */
         public HostDistance Distance(Host host)
         {
-            return HostDistance.LOCAL;
+            return HostDistance.Local;
         }
 
         /**
@@ -66,21 +66,21 @@ namespace Cassandra
          */
         public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
         {
-            var schedule = reconnectionPolicy.NewSchedule();
+            var schedule = _reconnectionPolicy.NewSchedule();
             while (true)
             {
-                List<Host> copyOfHosts = new List<Host>(infoProvider.GetAllHosts());
+                List<Host> copyOfHosts = new List<Host>(_infoProvider.GetAllHosts());
                 for (int i = 0; i < copyOfHosts.Count; i++)
                 {
-                    if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
-                        startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+                    if (_startidx == -1 || _startidx >= copyOfHosts.Count - 1)
+                        _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
 
-                    var h = copyOfHosts[startidx];
+                    var h = copyOfHosts[_startidx];
                     if (h.IsConsiderablyUp)
                         yield return h;
 
-                    startidx++;
-                    startidx = startidx % copyOfHosts.Count;
+                    _startidx++;
+                    _startidx = _startidx % copyOfHosts.Count;
                 }
                 if (ReconnectionEvent != null)
                 {
@@ -91,20 +91,6 @@ namespace Cassandra
                 }
                 else
                     Thread.Sleep((int)schedule.NextDelayMs());
-            }
-        }
-    }
-    internal static class StaticRandom
-    {
-        [ThreadStatic]
-        static Random rnd = null;
-        public static Random Instance
-        {
-            get
-            {
-                if (rnd == null)
-                    rnd = new Random(BitConverter.ToInt32(new Guid().ToByteArray(), 0));
-                return rnd;
             }
         }
     }

@@ -4,7 +4,7 @@ using System.Text;
 using Xunit;
 using System.Net;
 
-namespace Cassandra.Native.Test
+namespace Cassandra.Test
 {
     public class BigInsertCompressedTests : MyUTExt.CommonBasicTests 
     {        

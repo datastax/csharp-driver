@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Linq.Expressions;
-using Cassandra.Native;
+using Cassandra;
 using System.Reflection;
 
 namespace Cassandra.Data

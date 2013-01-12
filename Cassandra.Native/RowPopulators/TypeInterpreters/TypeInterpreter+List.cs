@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Collections;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
 
     internal partial class TypeInterpreter
@@ -12,8 +12,8 @@ namespace Cassandra.Native
         {
             if (type_info is TableMetadata.ListColumnInfo)
             {
-                var list_typecode = (type_info as TableMetadata.ListColumnInfo).value_type_code;
-                var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).value_type_info;
+                var list_typecode = (type_info as TableMetadata.ListColumnInfo).ValueTypeCode;
+                var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).ValueTypeInfo;
                 var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
                 int idx = 2;
@@ -39,8 +39,8 @@ namespace Cassandra.Native
         {
             if (type_info is TableMetadata.ListColumnInfo)
             {
-                var list_typecode = (type_info as TableMetadata.ListColumnInfo).value_type_code;
-                var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).value_type_info;
+                var list_typecode = (type_info as TableMetadata.ListColumnInfo).ValueTypeCode;
+                var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).ValueTypeInfo;
                 var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
                 var openType = typeof(IEnumerable<>);
                 var listType = openType.MakeGenericType(value_type);
@@ -52,9 +52,9 @@ namespace Cassandra.Native
         public static byte[] InvConvertFromList(TableMetadata.ColumnInfo type_info, object value)
         {
             var listType = GetTypeFromList(type_info);
-            checkArgument(listType, value);
-            var list_typecode = (type_info as TableMetadata.ListColumnInfo).value_type_code;
-            var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).value_type_info;
+            CheckArgument(listType, value);
+            var list_typecode = (type_info as TableMetadata.ListColumnInfo).ValueTypeCode;
+            var list_typeinfo = (type_info as TableMetadata.ListColumnInfo).ValueTypeInfo;
 
             List<byte[]> bufs = new List<byte[]>();
             int cnt = 0;

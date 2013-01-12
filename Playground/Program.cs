@@ -4,7 +4,6 @@ using System.Text;
 using System.Net;
 using System.Threading;
 using System.Globalization;
-using Cassandra.Native;
 using Cassandra.Data;
 using Cassandra;
 using System.Linq;
@@ -15,7 +14,7 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Connecting, setting keyspace and creating tables..");
+            Console.WriteLine("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
             Cluster cluster = Cluster.Builder.AddContactPoint("137.116.195.202").Build();

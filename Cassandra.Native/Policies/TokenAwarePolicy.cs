@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Cassandra.Native;
+using Cassandra;
 
 namespace Cassandra
 {
@@ -30,8 +30,8 @@ namespace Cassandra
     public class TokenAwarePolicy : LoadBalancingPolicy
     {
 
-        private ISessionInfoProvider infoProvider;
-        private readonly LoadBalancingPolicy childPolicy;
+        private ISessionInfoProvider _infoProvider;
+        private readonly LoadBalancingPolicy _childPolicy;
 
         /**
          * Creates a new {@code TokenAware} policy that wraps the provided child
@@ -42,34 +42,34 @@ namespace Cassandra
          */
         public TokenAwarePolicy(LoadBalancingPolicy childPolicy)
         {
-            this.childPolicy = childPolicy;
+            this._childPolicy = childPolicy;
         }
 
 
         public void Initialize(ISessionInfoProvider infoProvider)
         {
-            this.infoProvider = infoProvider;
-            childPolicy.Initialize(infoProvider);
+            this._infoProvider = infoProvider;
+            _childPolicy.Initialize(infoProvider);
         }
 
         public HostDistance Distance(Host host)
         {
-            return childPolicy.Distance(host);
+            return _childPolicy.Distance(host);
         }
 
         public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
         {
             if (routingKey == null)
             {
-                foreach (var iter in childPolicy.NewQueryPlan(routingKey))
+                foreach (var iter in _childPolicy.NewQueryPlan(null))
                     yield return iter;
                 yield break;
             }
 
-            var replicas = infoProvider.GetReplicas(routingKey.RawRoutingKey);
+            var replicas = _infoProvider.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
-                foreach (var iter in childPolicy.NewQueryPlan(routingKey))
+                foreach (var iter in _childPolicy.NewQueryPlan(routingKey))
                     yield return iter;
                 yield break;
             }
@@ -78,13 +78,13 @@ namespace Cassandra
             while (iterator.MoveNext())
             {
                 var host = iterator.Current;
-                if (host.IsConsiderablyUp && childPolicy.Distance(host) == HostDistance.LOCAL)
+                if (host.IsConsiderablyUp && _childPolicy.Distance(host) == HostDistance.Local)
                     yield return host;
             }
 
-            foreach (var host in childPolicy.NewQueryPlan(routingKey))
+            foreach (var host in _childPolicy.NewQueryPlan(routingKey))
             {
-                if (!replicas.Contains(host) || childPolicy.Distance(host) != HostDistance.LOCAL)
+                if (!replicas.Contains(host) || _childPolicy.Distance(host) != HostDistance.Local)
                     yield return host;
             }
 

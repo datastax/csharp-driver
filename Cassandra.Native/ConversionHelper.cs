@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal static class ConversionHelper
     {
@@ -49,9 +49,9 @@ namespace Cassandra.Native
             return UnixStart.AddMilliseconds(ms);
         }
 
-        public static int FromBytesToInt32(byte[] _buffer, int idx)
+        public static int FromBytesToInt32(byte[] buffer, int idx)
         {
-            return (int)((_buffer[idx] << 24) | (_buffer[idx + 1] << 16 & 0xffffff) | (_buffer[idx + 2] << 8 & 0xffff) | (_buffer[idx + 3] & 0xff));
+            return (int)((buffer[idx] << 24) | (buffer[idx + 1] << 16 & 0xffffff) | (buffer[idx + 2] << 8 & 0xffff) | (buffer[idx + 3] & 0xff));
         }
 
         public static byte[] ToBytesFromInt32(int value)
@@ -68,9 +68,9 @@ namespace Cassandra.Native
             return bytes;
         }
 
-        public static ushort FromBytestToUInt16(byte[] _buffer, int idx)
+        public static ushort FromBytestToUInt16(byte[] buffer, int idx)
         {
-            return (ushort)((_buffer[idx] << 8) | (_buffer[idx + 1] & 0xff));
+            return (ushort)((buffer[idx] << 8) | (buffer[idx + 1] & 0xff));
         }
 
         public static byte[] ToBytesFromUInt16(ushort value)
@@ -80,9 +80,9 @@ namespace Cassandra.Native
             return bytes;
         }
 
-        public static short FromBytestToInt16(byte[] _buffer, int idx)
+        public static short FromBytestToInt16(byte[] buffer, int idx)
         {
-            return (short)((_buffer[idx] << 8) | (_buffer[idx + 1] & 0xff));
+            return (short)((buffer[idx] << 8) | (buffer[idx + 1] & 0xff));
         }
 
         public static byte[] ToBytesFromInt16(short value)

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Native;
+using Cassandra;
 using Cassandra.Data;
 using System.Data;
 using System.Linq.Expressions;

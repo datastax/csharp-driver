@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Numerics;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
@@ -19,7 +19,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromVarint(TableMetadata.ColumnInfo type_info, object value)
         {
-            checkArgument<BigInteger>(value);
+            CheckArgument<BigInteger>(value);
 
             return ((BigInteger)value).ToByteArray();
         }

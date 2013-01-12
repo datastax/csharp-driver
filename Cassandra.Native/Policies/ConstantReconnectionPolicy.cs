@@ -10,7 +10,7 @@ namespace Cassandra
     public class ConstantReconnectionPolicy : ReconnectionPolicy
     {
 
-        private readonly long delayMs;
+        private readonly long _delayMs;
 
         ///<summary>
         /// Creates a reconnection policy that creates with the provided constant wait
@@ -20,13 +20,13 @@ namespace Cassandra
         ///</summary>
         public ConstantReconnectionPolicy(long constantDelayMs)
         {
-            this.delayMs = constantDelayMs;
+            this._delayMs = constantDelayMs;
         }
 
         ///<summary>
         /// The constant delay used by this reconnection policy.
         ///</summary>
-        public long ConstantDelayMs { get { return delayMs; } }
+        public long ConstantDelayMs { get { return _delayMs; } }
 
         ///<summary>
         /// A new schedule that uses a constant {@code getConstantDelayMs()} delay
@@ -41,12 +41,12 @@ namespace Cassandra
 
         private class ConstantSchedule : ReconnectionSchedule
         {
-            ConstantReconnectionPolicy owner;
-            internal ConstantSchedule(ConstantReconnectionPolicy owner) { this.owner = owner; }
+            readonly ConstantReconnectionPolicy _owner;
+            internal ConstantSchedule(ConstantReconnectionPolicy owner) { this._owner = owner; }
 
             public long NextDelayMs()
             {
-                return owner.delayMs;
+                return _owner._delayMs;
             }
         }
     }

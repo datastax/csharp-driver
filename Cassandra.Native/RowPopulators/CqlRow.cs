@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     public class CqlRow
     {
         public readonly object[] Columns;
-        Dictionary<string, int> columnIdxes;
+        readonly Dictionary<string, int> columnIdxes;
         internal CqlRow(OutputRows rawrows, Dictionary<string, int> columnIdxes)
         {
             Columns = new object[rawrows.Metadata.Columns.Length];
@@ -23,7 +23,7 @@ namespace Cassandra.Native
 
                     rawrows.ReadRawColumnValue(buffer, 0, len);
                     Columns[i] = TypeInterpreter.CqlConvert(buffer,
-                        rawrows.Metadata.Columns[i].type_code, rawrows.Metadata.Columns[i].type_info);                    
+                        rawrows.Metadata.Columns[i].TypeCode, rawrows.Metadata.Columns[i].TypeInfo);                    
                 }
 
                 i++;

@@ -10,10 +10,5 @@ namespace Cassandra
     public class SyntaxError : QueryValidationException
     {
         public SyntaxError(string Message) : base(Message) { }
-
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return RetryDecision.Rethrow();
-        }
     }
 }

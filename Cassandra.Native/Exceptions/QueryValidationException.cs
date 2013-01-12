@@ -16,6 +16,5 @@ namespace Cassandra
         public QueryValidationException(string message, Exception innerException)
             : base(message, innerException) { }
 
-        public abstract RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries);
     }
 }

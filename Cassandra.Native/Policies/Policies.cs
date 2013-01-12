@@ -14,7 +14,7 @@ namespace Cassandra
          * <p>
          * The default load balancing policy is {@link RoundRobinPolicy}.
          */
-        public static readonly LoadBalancingPolicy DEFAULT_LOAD_BALANCING_POLICY = new RoundRobinPolicy();
+        public static readonly LoadBalancingPolicy DefaultLoadBalancingPolicy = new RoundRobinPolicy();
 
         /**
          * The default reconnection policy.
@@ -22,21 +22,21 @@ namespace Cassandra
          * The default reconnetion policy is an {@link ExponentialReconnectionPolicy}
          * where the base delay is 1 second and the max delay is 10 minutes;
          */
-        public static readonly ReconnectionPolicy DEFAULT_RECONNECTION_POLICY = new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
+        public static readonly ReconnectionPolicy DefaultReconnectionPolicy = new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
 
         /**
          * The default retry policy.
          * <p>
          * The default retry policy is {@link DefaultRetryPolicy}.
          */
-        public static readonly RetryPolicy DEFAULT_RETRY_POLICY = DefaultRetryPolicy.INSTANCE;
+        public static readonly RetryPolicy DefaultRetryPolicy = Cassandra.DefaultRetryPolicy.Instance;
 
 
-        public static readonly Policies DEFAULT_POLICIES = new Policies(DEFAULT_LOAD_BALANCING_POLICY, DEFAULT_RECONNECTION_POLICY, DEFAULT_RETRY_POLICY);
+        public static readonly Policies DefaultPolicies = new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy);
 
-        private readonly LoadBalancingPolicy loadBalancingPolicy;
-        private readonly ReconnectionPolicy reconnectionPolicy;
-        private readonly RetryPolicy retryPolicy;
+        private readonly LoadBalancingPolicy _loadBalancingPolicy;
+        private readonly ReconnectionPolicy _reconnectionPolicy;
+        private readonly RetryPolicy _retryPolicy;
 
         /**
          * Creates a new {@code Policies} object using the provided policies.
@@ -50,9 +50,9 @@ namespace Cassandra
                         RetryPolicy retryPolicy)
         {
 
-            this.loadBalancingPolicy = loadBalancingPolicy;
-            this.reconnectionPolicy = reconnectionPolicy;
-            this.retryPolicy = retryPolicy;
+            this._loadBalancingPolicy = loadBalancingPolicy;
+            this._reconnectionPolicy = reconnectionPolicy;
+            this._retryPolicy = retryPolicy;
         }
 
         /**
@@ -66,7 +66,7 @@ namespace Cassandra
         {
             get
             {
-                return loadBalancingPolicy;
+                return _loadBalancingPolicy;
             }
         }
 
@@ -81,7 +81,7 @@ namespace Cassandra
         {
             get
             {
-                return reconnectionPolicy;
+                return _reconnectionPolicy;
             }
         }
 
@@ -97,7 +97,7 @@ namespace Cassandra
         {
             get
             {
-                return retryPolicy;
+                return _retryPolicy;
             }
         }
     }

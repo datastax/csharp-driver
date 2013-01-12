@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     public class CqlColumn
     {
@@ -17,33 +17,33 @@ namespace Cassandra.Native
 
     public partial class CqlRowSet : IDisposable
     {
-        OutputRows rawrows;
-        CqlColumn[] columns;
-        Dictionary<string, int> columnIdxes ;
-        bool ownRows;
+        readonly OutputRows _rawrows;
+        readonly CqlColumn[] _columns;
+        readonly Dictionary<string, int> _columnIdxes ;
+        readonly bool _ownRows;
 
         internal CqlRowSet(OutputRows rawrows, bool ownRows = true)
         {
-            this.rawrows = rawrows;
-            this.ownRows = ownRows;
-            columns = new CqlColumn[rawrows.Metadata.Columns.Length];
-            columnIdxes = new Dictionary<string, int>();
+            this._rawrows = rawrows;
+            this._ownRows = ownRows;
+            _columns = new CqlColumn[rawrows.Metadata.Columns.Length];
+            _columnIdxes = new Dictionary<string, int>();
             for (int i = 0; i < rawrows.Metadata.Columns.Length; i++)
             {
-                columns[i] = new CqlColumn()
+                _columns[i] = new CqlColumn()
                 {
-                    Name = rawrows.Metadata.Columns[i].column_name,
-                    Keyspace = rawrows.Metadata.Columns[i].ksname,
-                    TableName = rawrows.Metadata.Columns[i].tablename,
+                    Name = rawrows.Metadata.Columns[i].ColumnName,
+                    Keyspace = rawrows.Metadata.Columns[i].Keyspace,
+                    TableName = rawrows.Metadata.Columns[i].Table,
                     Type = TypeInterpreter.GetTypeFromCqlType(
-                        rawrows.Metadata.Columns[i].type_code,
-                        rawrows.Metadata.Columns[i].type_info),
-                    DataTypeCode = rawrows.Metadata.Columns[i].type_code,
-                    DataTypeInfo = rawrows.Metadata.Columns[i].type_info
+                        rawrows.Metadata.Columns[i].TypeCode,
+                        rawrows.Metadata.Columns[i].TypeInfo),
+                    DataTypeCode = rawrows.Metadata.Columns[i].TypeCode,
+                    DataTypeInfo = rawrows.Metadata.Columns[i].TypeInfo
                 };
                 //TODO: what with full long column names?
-                if (!columnIdxes.ContainsKey(rawrows.Metadata.Columns[i].column_name))
-                    columnIdxes.Add(rawrows.Metadata.Columns[i].column_name, i);
+                if (!_columnIdxes.ContainsKey(rawrows.Metadata.Columns[i].ColumnName))
+                    _columnIdxes.Add(rawrows.Metadata.Columns[i].ColumnName, i);
             }
         }
 
@@ -51,36 +51,36 @@ namespace Cassandra.Native
         {
             get
             {
-                return columns;
+                return _columns;
             }
         }
 
         
         public int RowsCount
         {
-            get { return rawrows.Rows; }
+            get { return _rawrows.Rows; }
         }
 
         public IEnumerable<CqlRow> GetRows()
         {
-            for (int i = 0; i < rawrows.Rows; i++)
+            for (int i = 0; i < _rawrows.Rows; i++)
             {
-                yield return new CqlRow(rawrows, columnIdxes);
+                yield return new CqlRow(_rawrows, _columnIdxes);
             }
         }
 
-        Guarded<bool> alreadyDisposed = new Guarded<bool>(false);
+        readonly Guarded<bool> _alreadyDisposed = new Guarded<bool>(false);
 
         public void Dispose()
         {
-            lock (alreadyDisposed)
+            lock (_alreadyDisposed)
             {
-                if (alreadyDisposed.Value)
+                if (_alreadyDisposed.Value)
                     return;
 
-                if (ownRows)
-                    rawrows.Dispose();
-                alreadyDisposed.Value = true;
+                if (_ownRows)
+                    _rawrows.Dispose();
+                _alreadyDisposed.Value = true;
             }
         }
 

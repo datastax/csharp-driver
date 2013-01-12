@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
 
     internal class FrameHeader

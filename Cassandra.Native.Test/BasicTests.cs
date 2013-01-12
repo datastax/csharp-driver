@@ -10,7 +10,7 @@ using System.Numerics;
 #endif
 using System.Globalization;
 
-namespace Cassandra.Native.Test
+namespace Cassandra.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {

@@ -6,7 +6,7 @@ using Xunit;
 #if CASSANDRA_NET_40_OR_GREATER
 using System.Numerics;
 #endif
-namespace Cassandra.Native.Test
+namespace Cassandra.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {

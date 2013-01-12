@@ -12,9 +12,5 @@ namespace Cassandra
         public string WriteType { get; private set; }
         public WriteTimeoutException(string Message, ConsistencyLevel ConsistencyLevel, int Received, int BlockFor, string WriteType) :
             base(Message, ConsistencyLevel, Received, BlockFor) { this.WriteType = WriteType; }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return policy.OnWriteTimeout(ConsistencyLevel, WriteType, BlockFor, Received, queryRetries);
-        }
     }
 }

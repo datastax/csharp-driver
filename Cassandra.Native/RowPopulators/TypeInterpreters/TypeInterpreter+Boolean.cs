@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
@@ -18,7 +18,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromBoolean(TableMetadata.ColumnInfo type_info, object value)
         {
-            checkArgument<bool>(value);
+            CheckArgument<bool>(value);
             var buffer = new byte[1];
             buffer[0] = ((bool)value) ? (byte)0x01 : (byte)0x00;
             return buffer;

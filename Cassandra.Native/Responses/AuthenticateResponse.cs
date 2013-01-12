@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class AuthenticateResponse : IResponse
     {
@@ -11,7 +11,7 @@ namespace Cassandra.Native
         public string Authenticator;
         internal AuthenticateResponse(ResponseFrame frame)
         {
-            BEBinaryReader cb = new BEBinaryReader(frame);
+            var cb = new BEBinaryReader(frame);
             Authenticator = cb.ReadString();
         }
 

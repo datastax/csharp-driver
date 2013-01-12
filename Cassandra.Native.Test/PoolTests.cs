@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MyUTExt;
 
-namespace Cassandra.Native.Test
+namespace Cassandra.Test
 {
     public class PoolCompressionTests : PoolTestsBase
     {

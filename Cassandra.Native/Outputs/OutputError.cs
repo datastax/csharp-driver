@@ -10,51 +10,31 @@ namespace Cassandra
     public class ServerErrorException : QueryValidationException
     {
         public ServerErrorException(string Message) : base(Message) { }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return null;
-        }
     }
 
     public class ProtocolErrorException : QueryValidationException
     {
         public ProtocolErrorException(string Message) : base(Message) { }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return RetryDecision.Rethrow();
-        }
     }
 
     public class OverloadedException : QueryValidationException
     {
         public OverloadedException(string Message) : base(Message) { }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return RetryDecision.Retry(null);
-        }
     }
 
     public class IsBootstrappingException : QueryValidationException
     {
         public IsBootstrappingException(string Message) : base(Message) { }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return RetryDecision.Retry(null);
-        }
     }
 
     public class InvalidException : QueryValidationException
     {
         public InvalidException(string Message) : base(Message) { }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return RetryDecision.Rethrow();
-        }
     }
 
 }
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal enum CassandraErrorType
     {
@@ -82,7 +62,7 @@ namespace Cassandra.Native
 
         internal static OutputError CreateOutputError(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            var tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Native.Output" + code.ToString());
+            var tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Output" + code.ToString());
             if (tpy == null)
                 throw new DriverInternalError("unknown error" + code.ToString());
             var cnstr = tpy.GetConstructor(new Type[] { });
@@ -131,16 +111,16 @@ namespace Cassandra.Native
 
     internal class OutputUnavailableException : OutputError
     {
-        UnavailableInfo info = new UnavailableInfo();
+        readonly UnavailableInfo _info = new UnavailableInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
-            info.Required = cb.ReadInt32();
-            info.Alive = cb.ReadInt32();
+            _info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
+            _info.Required = cb.ReadInt32();
+            _info.Alive = cb.ReadInt32();
         }
         public override QueryValidationException CreateException()
         {
-            return new UnavailableException(Message, info.ConsistencyLevel, info.Required, info.Alive);
+            return new UnavailableException(Message, _info.ConsistencyLevel, _info.Required, _info.Alive);
         }
     }
 
@@ -179,19 +159,19 @@ namespace Cassandra.Native
 
     internal class OutputWriteTimeout : OutputError
     {
-        WriteTimeoutInfo info = new WriteTimeoutInfo();
+        readonly WriteTimeoutInfo _info = new WriteTimeoutInfo();
 
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
-            info.Received = cb.ReadInt32();
-            info.BlockFor = cb.ReadInt32();
-            info.WriteType = cb.ReadString();
+            _info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
+            _info.Received = cb.ReadInt32();
+            _info.BlockFor = cb.ReadInt32();
+            _info.WriteType = cb.ReadString();
         }
 
         public override QueryValidationException CreateException()
         {
-            return new WriteTimeoutException(Message, info.ConsistencyLevel, info.Received, info.BlockFor, info.WriteType);
+            return new WriteTimeoutException(Message, _info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.WriteType);
         }
     }
 
@@ -206,17 +186,17 @@ namespace Cassandra.Native
 
     internal class OutputReadTimeout : OutputError
     {
-        ReadTimeoutInfo info = new ReadTimeoutInfo();
+        readonly ReadTimeoutInfo _info = new ReadTimeoutInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
-            info.Received = cb.ReadInt32();
-            info.BlockFor = cb.ReadInt32();
-            info.IsDataPresent = cb.ReadByte() != 0;
+            _info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
+            _info.Received = cb.ReadInt32();
+            _info.BlockFor = cb.ReadInt32();
+            _info.IsDataPresent = cb.ReadByte() != 0;
         }
         public override QueryValidationException CreateException()
         {
-            return new ReadTimeoutException(Message, info.ConsistencyLevel, info.Received, info.BlockFor, info.IsDataPresent);
+            return new ReadTimeoutException(Message, _info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.IsDataPresent);
         }
     }
 
@@ -261,15 +241,15 @@ namespace Cassandra.Native
 
     internal class OutputAlreadyExists : OutputError
     {
-        AlreadyExistsInfo info = new AlreadyExistsInfo();
+        readonly AlreadyExistsInfo _info = new AlreadyExistsInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
-            info.Ks = cb.ReadString();
-            info.Table = cb.ReadString();
+            _info.Ks = cb.ReadString();
+            _info.Table = cb.ReadString();
         }
         public override QueryValidationException CreateException()
         {
-            return new AlreadyExistsException(Message, info.Ks, info.Table);
+            return new AlreadyExistsException(Message, _info.Ks, _info.Table);
         }
     }
 
@@ -280,16 +260,16 @@ namespace Cassandra.Native
 
     internal class OutputUnprepared : OutputError
     {
-        PreparedQueryNotFoundInfo info = new PreparedQueryNotFoundInfo();
+        readonly PreparedQueryNotFoundInfo _info = new PreparedQueryNotFoundInfo();
         internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
         {
             var len = cb.ReadInt16();
-            info.UnknownID = new byte[len];
-            cb.Read(info.UnknownID, 0, len);
+            _info.UnknownID = new byte[len];
+            cb.Read(_info.UnknownID, 0, len);
         }
         public override QueryValidationException CreateException()
         {
-            return new PreparedQueryNotFoundException(Message, info.UnknownID);
+            return new PreparedQueryNotFoundException(Message, _info.UnknownID);
         }
     }
 

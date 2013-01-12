@@ -4,11 +4,11 @@ using System.Text;
 using System.IO;
 using System.Diagnostics;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class BEBinaryWriter
     {
-        BinaryWriter _base;
+        readonly BinaryWriter _base;
         public BEBinaryWriter() { _base = new BinaryWriter(new MemoryStream()); }
 
         public void WriteByte(byte value)
@@ -47,7 +47,7 @@ namespace Cassandra.Native
 
         public void WriteString(string str)
         {
-            System.Text.UTF8Encoding encoding = new System.Text.UTF8Encoding();
+            var encoding = new System.Text.UTF8Encoding();
             var bytes = encoding.GetBytes(str);
             WriteUInt16((ushort)bytes.Length);
             _base.Write(bytes);
@@ -55,7 +55,7 @@ namespace Cassandra.Native
 
         public void WriteLongString(string str)
         {
-            System.Text.UTF8Encoding encoding = new System.Text.UTF8Encoding();
+            var encoding = new System.Text.UTF8Encoding();
             var bytes = encoding.GetBytes(str);
             WriteInt32(bytes.Length);
             _base.Write(bytes);
@@ -80,28 +80,28 @@ namespace Cassandra.Native
             _base.Write(buffer);
         }
 
-        int FrameSizePos = -1;
+        private int _frameSizePos = -1;
 
         public void WriteFrameSize()
         {
-            FrameSizePos = (int)_base.Seek(0, SeekOrigin.Current);
+            _frameSizePos = (int)_base.Seek(0, SeekOrigin.Current);
             WriteInt32(0);
         }
 
-        public void WriteFrameHeader(byte Version, byte Flags, byte StreamId, byte OpCode)
+        public void WriteFrameHeader(byte version, byte flags, byte streamId, byte opCode)
         {
-            WriteByte(Version);
-            WriteByte(Flags);
-            WriteByte(StreamId);
-            WriteByte(OpCode);
+            WriteByte(version);
+            WriteByte(flags);
+            WriteByte(streamId);
+            WriteByte(opCode);
             WriteFrameSize();
         }
 
         public RequestFrame GetFrame()
         {
             var len = (int)_base.Seek(0, SeekOrigin.Current);
-            Debug.Assert(FrameSizePos != -1);
-            _base.Seek(FrameSizePos, SeekOrigin.Begin);
+            Debug.Assert(_frameSizePos != -1);
+            _base.Seek(_frameSizePos, SeekOrigin.Begin);
             WriteInt32(len - 8);
             var buffer = new byte[len];
             Buffer.BlockCopy((_base.BaseStream as MemoryStream).GetBuffer(), 0, buffer, 0, len);

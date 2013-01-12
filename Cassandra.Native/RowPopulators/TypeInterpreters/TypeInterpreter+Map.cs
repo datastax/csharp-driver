@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Collections;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
 
     internal partial class TypeInterpreter
@@ -12,10 +12,10 @@ namespace Cassandra.Native
         {
             if (type_info is TableMetadata.MapColumnInfo)
             {
-                var key_typecode = (type_info as TableMetadata.MapColumnInfo).key_type_code;
-                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).key_type_info;
-                var value_typecode = (type_info as TableMetadata.MapColumnInfo).value_type_code;
-                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).value_type_info;
+                var key_typecode = (type_info as TableMetadata.MapColumnInfo).KeyTypeCode;
+                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).KeyTypeInfo;
+                var value_typecode = (type_info as TableMetadata.MapColumnInfo).ValueTypeCode;
+                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).ValueTypeInfo;
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
@@ -52,10 +52,10 @@ namespace Cassandra.Native
         {
             if (type_info is TableMetadata.MapColumnInfo)
             {
-                var key_typecode = (type_info as TableMetadata.MapColumnInfo).key_type_code;
-                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).key_type_info;
-                var value_typecode = (type_info as TableMetadata.MapColumnInfo).value_type_code;
-                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).value_type_info;
+                var key_typecode = (type_info as TableMetadata.MapColumnInfo).KeyTypeCode;
+                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).KeyTypeInfo;
+                var value_typecode = (type_info as TableMetadata.MapColumnInfo).ValueTypeCode;
+                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).ValueTypeInfo;
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
@@ -70,11 +70,11 @@ namespace Cassandra.Native
         public static byte[] InvConvertFromMap(TableMetadata.ColumnInfo type_info, object value)
         {
             var dicType = GetTypeFromList(type_info);
-            checkArgument(dicType, value);
-            var key_typecode = (type_info as TableMetadata.MapColumnInfo).key_type_code;
-            var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).key_type_info;
-            var value_typecode = (type_info as TableMetadata.MapColumnInfo).value_type_code;
-            var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).value_type_info;
+            CheckArgument(dicType, value);
+            var key_typecode = (type_info as TableMetadata.MapColumnInfo).KeyTypeCode;
+            var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).KeyTypeInfo;
+            var value_typecode = (type_info as TableMetadata.MapColumnInfo).ValueTypeCode;
+            var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).ValueTypeInfo;
             var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
             var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 

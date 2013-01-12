@@ -2,39 +2,39 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class ExecuteRequest : IRequest
     {
         public const byte OpCode = 0x0A;
 
-        int streamId;
-        object[] values;
-        byte[] id;
-        TableMetadata Metadata;
-        ConsistencyLevel consistency;
+        readonly int _streamId;
+        readonly object[] _values;
+        readonly byte[] _id;
+        readonly TableMetadata _metadata;
+        readonly ConsistencyLevel _consistency;
 
-        public ExecuteRequest(int streamId, byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency)
+        public ExecuteRequest(int streamId, byte[] id, TableMetadata metadata, object[] values, ConsistencyLevel consistency)
         {
-            this.streamId = streamId;
-            this.values = values;
-            this.id = Id;
-            this.Metadata = Metadata;
-            this.consistency = consistency;
+            this._streamId = streamId;
+            this._values = values;
+            this._id = id;
+            this._metadata = metadata;
+            this._consistency = consistency;
 
         }
         public RequestFrame GetFrame()
         {
-            BEBinaryWriter wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(0x01, 0x00, (byte)streamId, OpCode);
-            wb.WriteShortBytes(id);
-            wb.WriteUInt16((ushort) values.Length);
-            for(int i =0;i<Metadata.Columns.Length;i++)
+            var wb = new BEBinaryWriter();
+            wb.WriteFrameHeader(0x01, 0x00, (byte)_streamId, OpCode);
+            wb.WriteShortBytes(_id);
+            wb.WriteUInt16((ushort) _values.Length);
+            for(int i =0;i<_metadata.Columns.Length;i++)
             {
-                var bytes = TypeInterpreter.InvCqlConvert(values[i], Metadata.Columns[i].type_code, Metadata.Columns[i].type_info);
+                var bytes = TypeInterpreter.InvCqlConvert(_values[i], _metadata.Columns[i].TypeCode, _metadata.Columns[i].TypeInfo);
                 wb.WriteBytes(bytes);
             }
-            wb.WriteInt16((short)consistency);
+            wb.WriteInt16((short)_consistency);
             return wb.GetFrame();
         }
     }

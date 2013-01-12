@@ -4,7 +4,6 @@ using System.Text;
 using Xunit;
 using System.Threading;
 using System.Net;
-using Cassandra.Native;
 #if CASSANDRA_NET_40_OR_GREATER
 using System.Numerics;
 #endif
@@ -392,7 +391,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             bool isFloatingPoint = false;
 
             if (row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(byte[]))
-                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, '{2}');", tableName, toInsert[0][0].ToString(), row1[1].GetType() == typeof(byte[]) ? Cassandra.Native.CqlQueryTools.ToHex((byte[])toInsert[0][1]) : toInsert[0][1]), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
+                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, '{2}');", tableName, toInsert[0][0].ToString(), row1[1].GetType() == typeof(byte[]) ? Cassandra.CqlQueryTools.ToHex((byte[])toInsert[0][1]) : toInsert[0][1]), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
             else
             {
                 if (tp == typeof(Single) || tp == typeof(Double))
@@ -693,10 +692,10 @@ PRIMARY KEY(tweet_id)
             TableMetadata md = this.Session.GetTableMetadata(tablename);            
             foreach( var metaCol in md.Columns)
             {
-                Assert.True(columns.Keys.Contains(metaCol.column_name));
-                Assert.True(metaCol.type_code == columns.Where(tpc => tpc.Key == metaCol.column_name).First().Value);
-                Assert.True(metaCol.tablename == tablename);
-                Assert.True(metaCol.ksname ==  (KeyspaceName ?? Keyspace));
+                Assert.True(columns.Keys.Contains(metaCol.ColumnName));
+                Assert.True(metaCol.TypeCode == columns.Where(tpc => tpc.Key == metaCol.ColumnName).First().Value);
+                Assert.True(metaCol.Table == tablename);
+                Assert.True(metaCol.Keyspace ==  (KeyspaceName ?? Keyspace));
             }                                        
         }
 
@@ -718,9 +717,9 @@ string.Format(@"CREATE KEYSPACE {0}
                 checkMetadata("table" + Guid.NewGuid().ToString("N"),keyspacename);
 
             KeyspaceMetadata ksmd = this.Session.GetKeyspaceMetadata(keyspacename);
-            Assert.True(ksmd.durableWrites == durableWrites);
-            Assert.True(ksmd.replicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
-            Assert.True(ksmd.strategyClass == strgyClass);
+            Assert.True(ksmd.DurableWrites == durableWrites);
+            Assert.True(ksmd.ReplicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
+            Assert.True(ksmd.StrategyClass == strgyClass);
         }
     }
 }

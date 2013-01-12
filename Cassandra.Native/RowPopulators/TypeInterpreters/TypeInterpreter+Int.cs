@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
@@ -18,7 +18,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromInt(TableMetadata.ColumnInfo type_info, object value)
         {
-            checkArgument<int>(value);
+            CheckArgument<int>(value);
             return ConversionHelper.ToBytesFromInt32((int)value);
         }
     }

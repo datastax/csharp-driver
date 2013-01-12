@@ -5,9 +5,8 @@ using System.IO;
 using System.Threading;
 using System.Diagnostics;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
-
 
     internal interface IProtoBuf
     {
@@ -19,8 +18,8 @@ namespace Cassandra.Native
 
     internal class StreamProtoBuf : IProtoBuf
     {
-        Stream stream;
-        bool ioError = false;
+        readonly Stream stream;
+        bool _ioError = false;
         IProtoBufComporessor compressor;
         public StreamProtoBuf(Stream stream, IProtoBufComporessor compressor)
         {
@@ -32,10 +31,10 @@ namespace Cassandra.Native
         {
 
             if (buffer == null)
-                ioError = true;
+                _ioError = true;
             else
             {
-                if (ioError) throw new CassandraConncectionIOException();
+                if (_ioError) throw new CassandraConncectionIOException();
 
                 try
                 {
@@ -45,7 +44,7 @@ namespace Cassandra.Native
                 catch (IOException ex)
                 {
                     Debug.WriteLine(ex.Message, "StreamProtoBuf.Write");
-                    ioError = true;
+                    _ioError = true;
                     throw new CassandraConncectionIOException(ex);
                 }
             }
@@ -53,7 +52,7 @@ namespace Cassandra.Native
 
         public void WriteByte(byte b)
         {
-            if (ioError) throw new CassandraConncectionIOException();
+            if (_ioError) throw new CassandraConncectionIOException();
             lock (stream)
                 stream.WriteByte(b);
         }
@@ -62,7 +61,7 @@ namespace Cassandra.Native
         {
             if (count == 0) return;
 
-            if (ioError) throw new CassandraConncectionIOException();
+            if (_ioError) throw new CassandraConncectionIOException();
 
             int curOffset = offset;
             while (true)
@@ -90,7 +89,7 @@ namespace Cassandra.Native
                 catch (IOException ex)
                 {
                     Debug.WriteLine(ex.Message, "StreamProtoBuf.Read");
-                    ioError = true;
+                    _ioError = true;
                     throw new CassandraConncectionIOException(ex);
                 }
             }
@@ -100,7 +99,7 @@ namespace Cassandra.Native
 
         public void Skip(int count)
         {
-            if (ioError) return;
+            if (_ioError) return;
 
             int curOffset = 0;
             while (true)
@@ -129,7 +128,7 @@ namespace Cassandra.Native
                 catch (IOException ex)
                 {
                     Debug.WriteLine(ex.Message, "StreamProtoBuf.Skip");
-                    ioError = true;
+                    _ioError = true;
                     throw new CassandraConncectionIOException(ex);
                 }
             }

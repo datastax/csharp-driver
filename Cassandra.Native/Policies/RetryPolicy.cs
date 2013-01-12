@@ -29,7 +29,7 @@ namespace Cassandra
             * @param dataRetrieved whether actual data (by opposition to data checksum)
             * was present in the received responses.
             * @param nbRetry the number of retry already performed for this operation.
-            * @return the retry decision. If {@code RetryDecision.RETHROW} is returned,
+            * @return the retry decision. If {@code RetryDecision.Rethrow} is returned,
             * a {@link com.datastax.driver.core.exceptions.ReadTimeoutException} will
             * be thrown for the operation.
             */
@@ -45,7 +45,7 @@ namespace Cassandra
          * @param receivedAcks the number of acknowledgments that had been received
          * by the time the timeout exception was raised.
          * @param nbRetry the number of retry already performed for this operation.
-         * @return the retry decision. If {@code RetryDecision.RETHROW} is returned,
+         * @return the retry decision. If {@code RetryDecision.Rethrow} is returned,
          * a {@link com.datastax.driver.core.exceptions.WriteTimeoutException} will
          * be thrown for the operation.
          */
@@ -61,7 +61,7 @@ namespace Cassandra
          * @param aliveReplica the number of replica that were know to be alive by
          * the coordinator of the operation.
          * @param nbRetry the number of retry already performed for this operation.
-         * @return the retry decision. If {@code RetryDecision.RETHROW} is returned,
+         * @return the retry decision. If {@code RetryDecision.Rethrow} is returned,
          * an {@link com.datastax.driver.core.exceptions.UnavailableException} will
          * be thrown for the operation.
          */
@@ -74,10 +74,10 @@ namespace Cassandra
              * <p>
              * There is three possible decision:
              * <ul>
-             *   <li>RETHROW: no retry should be attempted and an exception should be thrown</li>
-             *   <li>RETRY: the operation will be retried. The consistency level of the
+             *   <li>Rethrow: no retry should be attempted and an exception should be thrown</li>
+             *   <li>Retry: the operation will be retried. The consistency level of the
              *   retry should be specified.</li>
-             *   <li>IGNORE: no retry should be attempted and the exception should be
+             *   <li>Ignore: no retry should be attempted and the exception should be
              *   ignored. In that case, the operation that triggered the Cassandra
              *   exception will return an empty result set.</li>
              * </ul>
@@ -87,15 +87,15 @@ namespace Cassandra
         /**
          * The type of retry decisions.
          */
-        public enum RetryDecisionType { RETRY, RETHROW, IGNORE };
+        public enum RetryDecisionType { Retry, Rethrow, Ignore };
 
-        private readonly RetryDecisionType type;
-        private readonly ConsistencyLevel? retryCL;
+        private readonly RetryDecisionType _type;
+        private readonly ConsistencyLevel? _retryCl;
 
         private RetryDecision(RetryDecisionType type, ConsistencyLevel? retryCL)
         {
-            this.type = type;
-            this.retryCL = retryCL;
+            this._type = type;
+            this._retryCl = retryCL;
         }
 
         /**
@@ -103,45 +103,45 @@ namespace Cassandra
          *
          * @return the type of this retry decision.
          */
-        public RetryDecisionType DecisionType { get { return type; } }
+        public RetryDecisionType DecisionType { get { return _type; } }
 
         /**
          * The consistency level for a retry decision.
          *
          * @return the consistency level for a retry decision or {@code null}
-         * if this retry decision is an {@code IGNORE} or a {@code RETHROW}.
+         * if this retry decision is an {@code Ignore} or a {@code Rethrow}.
          */
-        public ConsistencyLevel? RetryConsistencyLevel { get { return retryCL; } }
+        public ConsistencyLevel? RetryConsistencyLevel { get { return _retryCl; } }
 
         /**
-         * Creates a RETHROW retry decision.
+         * Creates a Rethrow retry decision.
          *
-         * @return a RETHROW retry decision.
+         * @return a Rethrow retry decision.
          */
         public static RetryDecision Rethrow()
         {
-            return new RetryDecision(RetryDecisionType.RETHROW, ConsistencyLevel.IGNORE);
+            return new RetryDecision(RetryDecisionType.Rethrow, ConsistencyLevel.IGNORE);
         }
 
         /**
-         * Creates a RETRY retry decision using the provided consistency level.
+         * Creates a Retry retry decision using the provided consistency level.
          *
          * @param consistency the consistency level to use for the retry.
-         * @return a RETRY with consistency level {@code consistency} retry decision.
+         * @return a Retry with consistency level {@code consistency} retry decision.
          */
         public static RetryDecision Retry(ConsistencyLevel? consistency)
         {
-            return new RetryDecision(RetryDecisionType.RETRY, consistency);
+            return new RetryDecision(RetryDecisionType.Retry, consistency);
         }
 
         /**
-         * Creates an IGNORE retry decision.
+         * Creates an Ignore retry decision.
          *
-         * @return an IGNORE retry decision.
+         * @return an Ignore retry decision.
          */
         public static RetryDecision Ignore()
         {
-            return new RetryDecision(RetryDecisionType.IGNORE, ConsistencyLevel.IGNORE);
+            return new RetryDecision(RetryDecisionType.Ignore, ConsistencyLevel.IGNORE);
         }
     }
 }

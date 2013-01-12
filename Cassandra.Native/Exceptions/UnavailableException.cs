@@ -16,9 +16,5 @@ namespace Cassandra
         
         public UnavailableException(string Message, ConsistencyLevel ConsistencyLevel,int Required, int Alive):
             base(Message) { this.ConsistencyLevel = ConsistencyLevel; this.Required = Required; this.Alive = Alive; }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return policy.OnUnavailable(ConsistencyLevel, Required, Alive, queryRetries);
-        }
     }
 }

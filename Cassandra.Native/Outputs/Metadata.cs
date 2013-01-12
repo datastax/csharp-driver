@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     public enum StrategyClass
     {
@@ -14,11 +14,11 @@ namespace Cassandra.Native
 
     public struct KeyspaceMetadata
     {
-        public string ksName;
-        public List<TableMetadata> tables;
-        public bool? durableWrites;
-        public StrategyClass strategyClass;
-        public SortedDictionary<string, int?> replicationOptions;
+        public string Keyspace;
+        public List<TableMetadata> Tables;
+        public bool? DurableWrites;
+        public StrategyClass StrategyClass;
+        public SortedDictionary<string, int?> ReplicationOptions;
 
     }
 
@@ -27,7 +27,7 @@ namespace Cassandra.Native
         [Flags]
         public enum FlagBits
         {
-            Global_tables_spec = 0x0001
+            GlobalTablesSpec = 0x0001
         }
 
         public FlagBits Flags;
@@ -62,10 +62,10 @@ namespace Cassandra.Native
         
         public enum KeyType
         {            
-            PARTITION = 1,
-            ROW = 2,
-            SECONDARY = 3,
-            NOT_A_KEY = 0
+            Partition = 1,
+            Row = 2,
+            Secondary = 3,
+            NotAKey = 0
         }
 
         public interface ColumnInfo
@@ -74,44 +74,43 @@ namespace Cassandra.Native
 
         public class CustomColumnInfo : ColumnInfo
         {            
-            public string custom_type_name;
+            public string CustomTypeName;
         }
         
         public class ListColumnInfo : ColumnInfo
         {
-            public ColumnTypeCode value_type_code;
-            public ColumnInfo value_type_info;            
+            public ColumnTypeCode ValueTypeCode;
+            public ColumnInfo ValueTypeInfo;            
         }
 
         public class SetColumnInfo : ColumnInfo
         {
-            public ColumnTypeCode key_type_code;
-            public ColumnInfo key_type_info;
+            public ColumnTypeCode KeyTypeCode;
+            public ColumnInfo KeyTypeInfo;
         }
         
         public class MapColumnInfo : ColumnInfo
         {
-            public ColumnTypeCode key_type_code;
-            public ColumnInfo key_type_info;
-            public ColumnTypeCode value_type_code;
-            public ColumnInfo value_type_info;            
+            public ColumnTypeCode KeyTypeCode;
+            public ColumnInfo KeyTypeInfo;
+            public ColumnTypeCode ValueTypeCode;
+            public ColumnInfo ValueTypeInfo;            
         }
 
         public struct ColumnDesc
         {
-            public string ksname;
-            public string tablename;
-            public string column_name;
-            public ColumnInfo type_info;
-            public string secondary_index_name;
-            public string secondary_index_type;
-            public KeyType key_type;
-            public ColumnTypeCode type_code;
+            public string Keyspace;
+            public string Table;
+            public string ColumnName;
+            public ColumnInfo TypeInfo;
+            public string SecondaryIndexName;
+            public string SecondaryIndexType;
+            public KeyType KeyType;
+            public ColumnTypeCode TypeCode;
         }        
 
 
         public ColumnDesc[] Columns;
-
 
         internal TableMetadata()
         {
@@ -126,7 +125,7 @@ namespace Cassandra.Native
             string g_ksname = null;
             string g_tablename = null;
 
-            if ((Flags & FlagBits.Global_tables_spec) == FlagBits.Global_tables_spec)
+            if ((Flags & FlagBits.GlobalTablesSpec) == FlagBits.GlobalTablesSpec)
             {
                 g_ksname = reader.ReadString();
                 g_tablename = reader.ReadString();
@@ -134,37 +133,37 @@ namespace Cassandra.Native
             for (int i = 0; i < numberOfcolumns; i++)
             {
                 ColumnDesc col = new ColumnDesc();
-                if ((Flags & FlagBits.Global_tables_spec) != FlagBits.Global_tables_spec)
+                if ((Flags & FlagBits.GlobalTablesSpec) != FlagBits.GlobalTablesSpec)
                 {
-                    col.ksname = reader.ReadString();
-                    col.tablename = reader.ReadString();
+                    col.Keyspace = reader.ReadString();
+                    col.Table = reader.ReadString();
                 }
                 else
                 {
-                    col.ksname = g_ksname;
-                    col.tablename = g_tablename;
+                    col.Keyspace = g_ksname;
+                    col.Table = g_tablename;
                 }
-                col.column_name = reader.ReadString();
-                col.type_code = (ColumnTypeCode)reader.ReadUInt16();
-                col.type_info = GetColumnInfo(reader, col.type_code);
+                col.ColumnName = reader.ReadString();
+                col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
+                col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
                 coldat.Add(col);
             }
             Columns = coldat.ToArray();
         }
 
-        ColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)
+        private ColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)
         {
             ColumnTypeCode innercode;
             ColumnTypeCode vinnercode;
             switch (code)
             {
                 case ColumnTypeCode.Custom:
-                    return new CustomColumnInfo() { custom_type_name = reader.ReadString() };
+                    return new CustomColumnInfo() { CustomTypeName = reader.ReadString() };
                 case ColumnTypeCode.List:
                     innercode = (ColumnTypeCode)reader.ReadUInt16();
                     return new ListColumnInfo() {
-                        value_type_code = innercode, 
-                        value_type_info = GetColumnInfo(reader, innercode) 
+                        ValueTypeCode = innercode, 
+                        ValueTypeInfo = GetColumnInfo(reader, innercode) 
                     };
                 case ColumnTypeCode.Map:
                     innercode = (ColumnTypeCode)reader.ReadUInt16();
@@ -172,16 +171,16 @@ namespace Cassandra.Native
                     vinnercode = (ColumnTypeCode)reader.ReadUInt16();
                     var vci = GetColumnInfo(reader, vinnercode);
                     return new MapColumnInfo() {
-                        key_type_code = innercode,
-                        key_type_info = kci,
-                        value_type_code = vinnercode, 
-                        value_type_info = vci
+                        KeyTypeCode = innercode,
+                        KeyTypeInfo = kci,
+                        ValueTypeCode = vinnercode, 
+                        ValueTypeInfo = vci
                     };
                 case ColumnTypeCode.Set:
                     innercode = (ColumnTypeCode)reader.ReadUInt16();
                     return new SetColumnInfo() {
-                        key_type_code = innercode,
-                        key_type_info = GetColumnInfo(reader, innercode)
+                        KeyTypeCode = innercode,
+                        KeyTypeInfo = GetColumnInfo(reader, innercode)
                     };
                 default:
                     return null;

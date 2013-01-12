@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Net;
-using Cassandra.Native;
-using System.Threading;
-using System.Data.Common;
+
 namespace Cassandra
 {
 /**
@@ -12,51 +9,51 @@ namespace Cassandra
  */
     public class ClusterMetadata
     {
-        internal volatile string clusterName;
-        private Hosts hosts;
+        internal string ClusterName;
+        private readonly Hosts _hosts;
 
         internal ClusterMetadata(Hosts hosts)
         {
-            this.hosts = hosts;
+            this._hosts = hosts;
         }
 
         public Host GetHost(IPAddress address)
         {
-            return hosts[address];
+            return _hosts[address];
         }
 
         public Host AddHost(IPAddress address, ReconnectionPolicy rp)
         {
-             hosts.AddIfNotExistsOrBringUpIfDown(address, rp);
-             return hosts[address];
+             _hosts.AddIfNotExistsOrBringUpIfDown(address, rp);
+             return _hosts[address];
         }
 
         public void RemoveHost(IPAddress address)
         {
-            hosts.RemoveIfExists(address);
+            _hosts.RemoveIfExists(address);
         }
 
         public IEnumerable<IPAddress> AllHosts()
         {
-            return hosts.AllEndPoints();
+            return _hosts.AllEndPoints();
         }
 
-        internal void rebuildTokenMap(string partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
+        internal void RebuildTokenMap(string partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
         {
-            this.tokenMap = TokenMap.Build(partitioner, allTokens);
+            this._tokenMap = TokenMap.Build(partitioner, allTokens);
         }
 
-        private volatile TokenMap tokenMap;
+        private volatile TokenMap _tokenMap;
 
         public IEnumerable<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            if(tokenMap==null)
+            if(_tokenMap==null)
             {
                 return new List<IPAddress>();
             }
             else
             {
-                return tokenMap.GetReplicas(tokenMap.factory.Hash(partitionKey));
+                return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));
             }
         }
     }
@@ -64,15 +61,15 @@ namespace Cassandra
     internal class TokenMap
     {
 
-        private readonly Dictionary<Token, DictSet<IPAddress>> tokenToCassandraClusterHosts;
-        private readonly List<Token> ring;
-        internal readonly TokenFactory factory;
+        private readonly Dictionary<Token, DictSet<IPAddress>> _tokenToCassandraClusterHosts;
+        private readonly List<Token> _ring;
+        internal readonly TokenFactory Factory;
 
         private TokenMap(TokenFactory factory, Dictionary<Token, DictSet<IPAddress>> tokenToCassandraClusterHosts, List<Token> ring)
         {
-            this.factory = factory;
-            this.tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
-            this.ring = ring;
+            this.Factory = factory;
+            this._tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
+            this._ring = ring;
         }
 
         public static TokenMap Build(String partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
@@ -87,7 +84,7 @@ namespace Cassandra
 
             foreach (var entry in allTokens)
             {
-                var CassandraClusterHost = entry.Key;
+                var cassandraClusterHost = entry.Key;
                 foreach (string tokenStr in entry.Value)
                 {
                     try
@@ -96,7 +93,7 @@ namespace Cassandra
                         allSorted.Add(t);
                         if (!tokenToCassandraClusterHosts.ContainsKey(t))
                             tokenToCassandraClusterHosts.Add(t, new DictSet<IPAddress>());
-                        tokenToCassandraClusterHosts[t].Add(CassandraClusterHost);
+                        tokenToCassandraClusterHosts[t].Add(cassandraClusterHost);
                     }
                     catch (ArgumentException e)
                     {
@@ -111,15 +108,15 @@ namespace Cassandra
         {
 
             // Find the primary replica
-            int i = ring.IndexOf(token);
+            int i = _ring.IndexOf(token);
             if (i < 0)
             {
                 i = (i + 1) * (-1);
-                if (i >= ring.Count)
+                if (i >= _ring.Count)
                     i = 0;
             }
 
-            return tokenToCassandraClusterHosts[ring[i]];
+            return _tokenToCassandraClusterHosts[_ring[i]];
         }
     }
 
@@ -140,23 +137,23 @@ namespace Cassandra
 
     //    // Gather cf defs
     //    for (Row row : cfs) {
-    //        String ksName = row.getString(KeyspaceMetadata.KS_NAME);
-    //        List<Row> l = cfDefs.get(ksName);
+    //        String Keyspace = row.getString(KeyspaceMetadata.KS_NAME);
+    //        List<Row> l = cfDefs.get(Keyspace);
     //        if (l == null) {
     //            l = new ArrayList<Row>();
-    //            cfDefs.put(ksName, l);
+    //            cfDefs.put(Keyspace, l);
     //        }
     //        l.add(row);
     //    }
 
     //    // Gather columns per Cf
     //    for (Row row : cols) {
-    //        String ksName = row.getString(KeyspaceMetadata.KS_NAME);
+    //        String Keyspace = row.getString(KeyspaceMetadata.KS_NAME);
     //        String cfName = row.getString(TableMetadata.CF_NAME);
-    //        Dictionary<String, List<Row>> colsByCf = colsDefs.get(ksName);
+    //        Dictionary<String, List<Row>> colsByCf = colsDefs.get(Keyspace);
     //        if (colsByCf == null) {
     //            colsByCf = new Dictionary<String, List<Row>>();
-    //            colsDefs.put(ksName, colsByCf);
+    //            colsDefs.put(Keyspace, colsByCf);
     //        }
     //        List<Row> l = colsByCf.get(cfName);
     //        if (l == null) {
@@ -170,14 +167,14 @@ namespace Cassandra
     //        assert ks != null;
     //        Set<String> addedKs = new HashSet<String>();
     //        for (Row ksRow : ks) {
-    //            String ksName = ksRow.getString(KeyspaceMetadata.KS_NAME);
+    //            String Keyspace = ksRow.getString(KeyspaceMetadata.KS_NAME);
     //            KeyspaceMetadata ksm = KeyspaceMetadata.build(ksRow);
 
-    //            if (cfDefs.containsKey(ksName)) {
-    //                buildTableMetadata(ksm, cfDefs.get(ksName), colsDefs.get(ksName));
+    //            if (cfDefs.containsKey(Keyspace)) {
+    //                buildTableMetadata(ksm, cfDefs.get(Keyspace), colsDefs.get(Keyspace));
     //            }
-    //            addedKs.add(ksName);
-    //            keyspaces.put(ksName, ksm);
+    //            addedKs.add(Keyspace);
+    //            keyspaces.put(Keyspace, ksm);
     //        }
 
     //        // If keyspace is null, it means we're rebuilding from scratch, so

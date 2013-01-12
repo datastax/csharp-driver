@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     public class CassandraEventArgs : EventArgs
     {
@@ -44,7 +44,7 @@ namespace Cassandra.Native
                     if (response is ReadyResponse)
                         JobFinished( streamId, new OutputVoid());
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() {Response = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() {Response = response, StreamId = streamId });
 
                 }));
             }));
@@ -57,8 +57,7 @@ namespace Cassandra.Native
 
         public IOutput RegisterForCassandraEvent(CassandraEventType eventTypes)
         {
-            var r = BeginRegisterForCassandraEvent(eventTypes, null, null, this);
-            return EndRegisterForCassandraEvent(r, this);
+            return EndRegisterForCassandraEvent(BeginRegisterForCassandraEvent(eventTypes, null, null, this), this);
         }
     }
 }

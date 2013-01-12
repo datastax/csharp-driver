@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
 
     internal partial class TypeInterpreter
@@ -38,7 +38,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromInet(TableMetadata.ColumnInfo type_info, object value)
         {
-            checkArgument<IPEndPoint>(value);
+            CheckArgument<IPEndPoint>(value);
             var addrbytes = (value as IPEndPoint).Address.GetAddressBytes();
             var port = ConversionHelper.ToBytesFromInt32((value as IPEndPoint).Port);
             var ret = new byte[addrbytes.Length + 4 + 1];

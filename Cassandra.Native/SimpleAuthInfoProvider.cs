@@ -11,7 +11,7 @@ namespace Cassandra
      * Note that it is <b>not</b> safe to add new info to this provider once a
      * Cluster instance has been created using this provider.
      */
-    public class SimpleAuthInfoProvider : AuthInfoProvider
+    public class SimpleAuthInfoProvider : IAuthInfoProvider
     {
 
         private Dictionary<string, string> credentials = new Dictionary<string, string>();

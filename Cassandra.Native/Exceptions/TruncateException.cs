@@ -10,9 +10,5 @@ namespace Cassandra
     public class TruncateException : QueryExecutionException
     {
         public TruncateException(string Message) : base(Message) { }
-        public override RetryDecision GetRetryDecition(RetryPolicy policy, int queryRetries)
-        {
-            return RetryDecision.Retry(null);
-        }
     }
 }

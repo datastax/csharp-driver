@@ -1,4 +1,4 @@
-using Cassandra.Native;
+using Cassandra;
 using System;
 namespace Cassandra
 {

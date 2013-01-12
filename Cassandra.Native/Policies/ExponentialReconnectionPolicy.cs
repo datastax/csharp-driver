@@ -11,8 +11,8 @@ namespace Cassandra
      */
     public class ExponentialReconnectionPolicy : ReconnectionPolicy
     {
-        private readonly long baseDelayMs;
-        private readonly long maxDelayMs;
+        private readonly long _baseDelayMs;
+        private readonly long _maxDelayMs;
 
         /**
          * Creates a reconnection policy waiting exponentially longer for each new attempt.
@@ -23,8 +23,8 @@ namespace Cassandra
          */
         public ExponentialReconnectionPolicy(long baseDelayMs, long maxDelayMs)
         {
-            this.baseDelayMs = baseDelayMs;
-            this.maxDelayMs = maxDelayMs;
+            this._baseDelayMs = baseDelayMs;
+            this._maxDelayMs = maxDelayMs;
         }
 
         /**
@@ -37,7 +37,7 @@ namespace Cassandra
         {
             get
             {
-                return baseDelayMs;
+                return _baseDelayMs;
             }
         }
 
@@ -50,7 +50,7 @@ namespace Cassandra
         {
             get
             {
-                return maxDelayMs;
+                return _maxDelayMs;
             }
         }
 
@@ -60,20 +60,21 @@ namespace Cassandra
         }
         private class ExponentialSchedule : ReconnectionSchedule
         {
-            ExponentialReconnectionPolicy policy;
+            readonly ExponentialReconnectionPolicy _policy;
             public ExponentialSchedule(ExponentialReconnectionPolicy policy)
             {
-                this.policy = policy;
+                this._policy = policy;
             }
-            private int attempts;
+
+            private int _attempts;
 
             public long NextDelayMs()
             {
                 // We "overflow" at 64 attempts but I doubt this matter
-                if (attempts >= 64)
-                    return policy.maxDelayMs;
+                if (_attempts >= 64)
+                    return _policy._maxDelayMs;
 
-                return Math.Min(policy.baseDelayMs * (1L << attempts++), policy.maxDelayMs);
+                return Math.Min(_policy._baseDelayMs * (1L << _attempts++), _policy._maxDelayMs);
             }
         }
     }

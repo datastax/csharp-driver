@@ -4,7 +4,7 @@ using System.Text;
 using System.IO;
 using System.Net;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class BEBinaryReader
     {
@@ -42,7 +42,7 @@ namespace Cassandra.Native
         public string ReadString()
         {
             var length = ReadUInt16();
-            return readPureString(length);
+            return ReadPureString(length);
         }
 
         public IPEndPoint ReadInet()
@@ -68,10 +68,10 @@ namespace Cassandra.Native
         public string ReadLongString()
         {
             int length = ReadInt32();
-            return readPureString(length);
+            return ReadPureString(length);
         }
 
-        string readPureString(int length)
+        string ReadPureString(int length)
         {
             var bytes = new byte[length];
             _stream.Read(bytes, 0, length);
@@ -81,7 +81,7 @@ namespace Cassandra.Native
         public List<string> ReadStringList()
         {
             var length = ReadUInt16();
-            List<string> l = new List<string>();
+            var l = new List<string>();
             for (int i = 0; i < length; i++)
                 l.Add(ReadString());
             return l;

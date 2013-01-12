@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
@@ -19,7 +19,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromBlob(TableMetadata.ColumnInfo type_info, object value)
         {
-            checkArgument<byte[]>(value);
+            CheckArgument<byte[]>(value);
             return (byte[]) value;
         }
     }

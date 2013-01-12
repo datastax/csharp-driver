@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class OutputRows : IOutput, IWaitableForDispose
     {
@@ -11,31 +11,31 @@ namespace Cassandra.Native
         public int Rows;
         internal bool buffered;
         
-        private BEBinaryReader reader;
+        private readonly BEBinaryReader _reader;
 
         internal OutputRows(BEBinaryReader reader,bool buffered)
         {
             this.buffered = buffered;
-            this.reader = reader;
+            this._reader = reader;
             Metadata = new TableMetadata(reader);
             Rows = reader.ReadInt32();
-            disposed = new ManualResetEvent(buffered);
+            _disposedEvent = new ManualResetEvent(buffered);
         }
 
         public void ReadRawColumnValue(byte[] buffer, int offset, int rawLength)
         {
-            reader.Read(buffer, offset, rawLength);
+            _reader.Read(buffer, offset, rawLength);
         }
 
-        int curIteer = 0;
-        ManualResetEvent disposed = null;
+        int _curentIter = 0;
+        readonly ManualResetEvent _disposedEvent = null;
 
         public IEnumerable<int> GetRawColumnLengths()
         {
-            for (; curIteer < Rows * Metadata.Columns.Length; )
+            for (; _curentIter < Rows * Metadata.Columns.Length; )
             {
-                int len = reader.ReadInt32();
-                curIteer++;
+                int len = _reader.ReadInt32();
+                _curentIter++;
                 yield return len;
             }
         }
@@ -45,14 +45,14 @@ namespace Cassandra.Native
             if (!buffered)
             {
                 foreach (var rawLength in GetRawColumnLengths())
-                    reader.Skip(rawLength);
-                disposed.Set();
+                    _reader.Skip(rawLength);
+                _disposedEvent.Set();
             }
         }
         public void WaitForDispose()
         {
-            disposed.WaitOne(Timeout.Infinite);
-            disposed.Close();
+            _disposedEvent.WaitOne(Timeout.Infinite);
+            _disposedEvent.Close();
         }
     }
 }

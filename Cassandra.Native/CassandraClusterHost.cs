@@ -27,9 +27,9 @@ namespace Cassandra
      */
     public enum HostDistance
     {
-        LOCAL,
-        REMOTE,
-        IGNORED
+        Local,
+        Remote,
+        Ignored
     }
 
     /**
@@ -39,49 +39,49 @@ namespace Cassandra
      */
     public class Host
     {
-        private readonly IPAddress address;
+        private readonly IPAddress _address;
 
-        private volatile string datacenter;
-        private volatile string rack;
+        private string _datacenter;
+        private string _rack;
 
-        private bool isUpNow = true;
-        private DateTime nextUpTime;
-        ReconnectionPolicy reconnectionPolicy;
-        private ReconnectionSchedule reconnectionSchedule;
+        private bool _isUpNow = true;
+        private DateTime _nextUpTime;
+        readonly ReconnectionPolicy _reconnectionPolicy;
+        private ReconnectionSchedule _reconnectionSchedule;
 
         public bool IsConsiderablyUp
         {
             get
             {
-                return isUpNow || nextUpTime <= DateTime.Now;
+                return _isUpNow || _nextUpTime <= DateTime.Now;
             }
         }
 
         public void SetDown()
         {
-            isUpNow = false;
-            nextUpTime = DateTime.Now.AddMilliseconds(reconnectionSchedule.NextDelayMs());
+            _isUpNow = false;
+            _nextUpTime = DateTime.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
         }
 
         public void BringUpIfDown()
         {
-            this.reconnectionSchedule = reconnectionPolicy.NewSchedule();
-            isUpNow = true;
+            this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
+            _isUpNow = true;
         }
 
         // ClusterMetadata keeps one Host object per inet address, so don't use
         // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
         public Host(IPAddress address, ReconnectionPolicy reconnectionPolicy)
         {
-            this.address = address;
-            this.reconnectionPolicy = reconnectionPolicy;
-            this.reconnectionSchedule = reconnectionPolicy.NewSchedule();
+            this._address = address;
+            this._reconnectionPolicy = reconnectionPolicy;
+            this._reconnectionSchedule = reconnectionPolicy.NewSchedule();
         }
 
         public void SetLocationInfo(string datacenter, string rack)
         {
-            this.datacenter = datacenter;
-            this.rack = rack;
+            this._datacenter = datacenter;
+            this._rack = rack;
         }
 
         /**
@@ -93,7 +93,7 @@ namespace Cassandra
         {
             get
             {
-                return address;
+                return _address;
             }
         }
 
@@ -111,7 +111,7 @@ namespace Cassandra
         {
             get
             {
-                return datacenter;
+                return _datacenter;
             }
         }
 
@@ -129,7 +129,7 @@ namespace Cassandra
         {
             get
             {
-                return rack;
+                return _rack;
             }
         }
 
@@ -137,16 +137,16 @@ namespace Cassandra
 
     internal class Hosts
     {
-        private Dictionary<IPAddress, Host> hosts = new Dictionary<IPAddress, Host>();
+        private readonly Dictionary<IPAddress, Host> _hosts = new Dictionary<IPAddress, Host>();
 
         public Host this[IPAddress endpoint]
         {
             get
             {
-                lock (hosts)
+                lock (_hosts)
                 {
-                    if (hosts.ContainsKey(endpoint))
-                        return hosts[endpoint];
+                    if (_hosts.ContainsKey(endpoint))
+                        return _hosts[endpoint];
                     else
                         return null;
                 }
@@ -155,39 +155,39 @@ namespace Cassandra
 
         public ICollection<Host> All()
         {
-            lock (hosts)
-                return new List<Host>(hosts.Values);
+            lock (_hosts)
+                return new List<Host>(_hosts.Values);
         }
 
         public void AddIfNotExistsOrBringUpIfDown(IPAddress ep, ReconnectionPolicy rp)
         {
-            lock (hosts)
+            lock (_hosts)
             {
-                if (!hosts.ContainsKey(ep))
-                    hosts.Add(ep, new Host(ep, rp));
+                if (!_hosts.ContainsKey(ep))
+                    _hosts.Add(ep, new Host(ep, rp));
                 else
-                    hosts[ep].BringUpIfDown();
+                    _hosts[ep].BringUpIfDown();
             }
         }
 
         public void SetDownIfExists(IPAddress ep)
         {
-            lock (hosts)
-                if (hosts.ContainsKey(ep))
-                    hosts[ep].SetDown();
+            lock (_hosts)
+                if (_hosts.ContainsKey(ep))
+                    _hosts[ep].SetDown();
         }
 
         public void RemoveIfExists(IPAddress ep)
         {
-            lock (hosts)
-                if (hosts.ContainsKey(ep))
-                    hosts.Remove(ep);
+            lock (_hosts)
+                if (_hosts.ContainsKey(ep))
+                    _hosts.Remove(ep);
         }
 
         public IEnumerable<IPAddress> AllEndPoints()
         {
-            lock (hosts)
-                return new List<IPAddress>(hosts.Keys);
+            lock (_hosts)
+                return new List<IPAddress>(_hosts.Keys);
         }
     }
 }

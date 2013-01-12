@@ -4,82 +4,89 @@ using System.Text;
 
 namespace Cassandra
 {
-    /**
-     * The default retry policy.
-     * <p>
-     * This policy retries queries in only two cases:
-     * <ul>
-     *   <li>On a read timeout, if enough replica replied but data was not retrieved.</li>
-     *   <li>On a write timeout, if we timeout while writting the distributed log used by batch statements.</li>
-     * </ul>
-     * <p>
-     * This retry policy is conservative in that it will never retry with a
-     * different consistency level than the one of the initial operation.
-     * <p>
-     * In some cases, it may be convenient to use a more aggressive retry policy
-     * like {@link DowngradingConsistencyRetryPolicy}.
-     */
+    /// <summary>
+    ///  The default retry policy.
+    ///  <p>
+    ///  This policy retries queries in only two cases:
+    ///  <ul>
+    ///    <li>On a read timeout, if enough replica replied but data was not retrieved.</li>
+    ///    <li>On a write timeout, if we timeout while writting the distributed log used by batch statements.</li>
+    ///  </ul>
+    ///  </p><p>
+    ///  This retry policy is conservative in that it will never retry with a
+    ///  different consistency level than the one of the initial operation.
+    ///  </p><p>
+    ///  In some cases, it may be convenient to use a more aggressive retry policy
+    ///  like <see>DowngradingConsistencyRetryPolicy</see>
+    ///          .</p>
+    /// </summary>
     public class DefaultRetryPolicy : RetryPolicy
     {
-        public static readonly DefaultRetryPolicy INSTANCE = new DefaultRetryPolicy();
+        public static readonly DefaultRetryPolicy Instance = new DefaultRetryPolicy();
 
-        private DefaultRetryPolicy() { }
+        private DefaultRetryPolicy()
+        {
+        }
 
-        /**
-         * Defines whether to retry and at which consistency level on a read timeout.
-         * <p>
-         * This method triggers a maximum of one retry, and only if enough
-         * replica had responded to the read request but data was not retrieved
-         * amongst those. Indeed, that case usually means that enough replica
-         * are alive to satisfy the consistency but the coordinator picked a
-         * dead one for data retrieval, not having detecte that replica as dead
-         * yet. The reasoning for retrying then is that by the time we get the
-         * timeout the dead replica will likely have been detected as dead and
-         * the retry has a high change of success.
-         *
-         * @param cl the original consistency level of the read that timeouted.
-         * @param requiredResponses the number of responses that were required to
-         * achieve the requested consistency level.
-         * @param receivedResponses the number of responses that had been received
-         * by the time the timeout exception was raised.
-         * @param dataRetrieved whether actual data (by opposition to data checksum)
-         * was present in the received responses.
-         * @param nbRetry the number of retry already performed for this operation.
-         * @return {@code RetryDecision.retry(cl)} if no retry attempt has yet been tried and
-         * {@code receivedResponses >= requiredResponses && !dataRetrieved}, {@code RetryDecision.rethrow()} otherwise.
-         */
-        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        ///<summary>
+        /// Defines whether to retry and at which consistency level on a read timeout.
+        /// <p>
+        /// This method triggers a maximum of one retry, and only if enough
+        /// replica had responded to the read request but data was not retrieved
+        /// amongst those. Indeed, that case usually means that enough replica
+        /// are alive to satisfy the consistency but the coordinator picked a
+        /// dead one for data retrieval, not having detecte that replica as dead
+        /// yet. The reasoning for retrying then is that by the time we get the
+        /// timeout the dead replica will likely have been detected as dead and
+        /// the retry has a high change of success.
+        /// </p>
+        /// <param name="cl">the original consistency level of the read that timeouted.</param>
+        /// <param name="requiredResponses"> the number of responses that were required to
+        /// achieve the requested consistency level.</param>
+        /// <param name="receivedResponses"> the number of responses that had been received
+        /// by the time the timeout exception was raised.</param>
+        /// <param name="dataRetrieved"> whether actual data (by opposition to data checksum)
+        /// was present in the received responses.</param>
+        /// <param name="nbRetry"> the number of retry already performed for this operation.</param>
+        /// <returns><code>RetryDecision.retry(cl)</code> if no retry attempt has yet been tried and
+        /// <code>receivedResponses >= requiredResponses && !dataRetrieved</code>, <code>RetryDecision.rethrow()</code> otherwise.</returns>
+        ///</summary>
+        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses,
+                                           bool dataRetrieved, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.Rethrow();
 
-            return receivedResponses >= requiredResponses && !dataRetrieved ? RetryDecision.Retry(cl) : RetryDecision.Rethrow();
+            return receivedResponses >= requiredResponses && !dataRetrieved
+                       ? RetryDecision.Retry(cl)
+                       : RetryDecision.Rethrow();
         }
 
-        /**
-         * Defines whether to retry and at which consistency level on a write timeout.
-         * <p>
-         * This method triggers a maximum of one retry, and only in the case of
-         * a {@code WriteType.BATCH_LOG} write. The reasoning for the retry in
-         * that case is that write to the distributed batch log is tried by the
-         * coordinator of the write against a small subset of all the node alive
-         * in the local datacenter. Hence, a timeout usually means that none of
-         * the nodes in that subset were alive but the coordinator hasn't
-         * detected them as dead. By the time we get the timeout the dead
-         * nodes will likely have been detected as dead and the retry has thus a
-         * high change of success.
-         *
-         * @param cl the original consistency level of the write that timeouted.
-         * @param writeType the type of the write that timeouted.
-         * @param requiredAcks the number of acknowledgments that were required to
-         * achieve the requested consistency level.
-         * @param receivedAcks the number of acknowledgments that had been received
-         * by the time the timeout exception was raised.
-         * @param nbRetry the number of retry already performed for this operation.
-         * @return {@code RetryDecision.retry(cl)} if no retry attempt has yet been tried and
-         * {@code writeType == WriteType.BATCH_LOG}, {@code RetryDecision.rethrow()} otherwise.
-         */
-        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        ///<summary>
+        /// Defines whether to retry and at which consistency level on a write timeout.
+        /// <p>
+        /// This method triggers a maximum of one retry, and only in the case of
+        /// a <code>WriteType.BATCH_LOG</code> write. The reasoning for the retry in
+        /// that case is that write to the distributed batch log is tried by the
+        /// coordinator of the write against a small subset of all the node alive
+        /// in the local datacenter. Hence, a timeout usually means that none of
+        /// the nodes in that subset were alive but the coordinator hasn't
+        /// detected them as dead. By the time we get the timeout the dead
+        /// nodes will likely have been detected as dead and the retry has thus a
+        /// high change of success.
+        /// </p>
+        /// <param name="cl">the original consistency level of the write that timeouted.</param>
+        /// <param name="writeType"> the type of the write that timeouted.</param>
+        /// <param name="requiredAcks"> the number of acknowledgments that were required to
+        /// achieve the requested consistency level.</param>
+        /// <param name="receivedAcks"> the number of acknowledgments that had been received
+        /// by the time the timeout exception was raised.</param>
+        /// <param name="nbRetry"> the number of retry already performed for this operation.</param>
+        /// <returns> <code>RetryDecision.retry(cl)</code> if no retry attempt has yet been tried and
+        /// <code>writeType == WriteType.BATCH_LOG</code>, <code>RetryDecision.rethrow()</code> otherwise.</returns>
+        ///</summary>
+        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
+                                            int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.Rethrow();
@@ -88,21 +95,21 @@ namespace Cassandra
             return writeType == "BATCH_LOG" ? RetryDecision.Retry(cl) : RetryDecision.Rethrow();
         }
 
-        /**
-         * Defines whether to retry and at which consistency level on an
-         * unavailable exception.
-         * <p>
-         * This method never retries as a retry on an unavailable exception
-         * using the same consistency level has almost no change of success.
-         *
-         * @param cl the original consistency level for the operation.
-         * @param requiredReplica the number of replica that should have been
-         * (known) alive for the operation to be attempted.
-         * @param aliveReplica the number of replica that were know to be alive by
-         * the coordinator of the operation.
-         * @param nbRetry the number of retry already performed for this operation.
-         * @return {@code RetryDecision.rethrow()}.
-         */
+        ///<summary>
+        /// Defines whether to retry and at which consistency level on an
+        /// unavailable exception.
+        /// <p>
+        /// This method never retries as a retry on an unavailable exception
+        /// using the same consistency level has almost no change of success.
+        ///</p>
+        /// <param name="cl"> the original consistency level for the operation.</param>
+        /// <param name="requiredReplica"> the number of replica that should have been
+        /// (known) alive for the operation to be attempted.</param>
+        /// <param name="aliveReplica"> the number of replica that were know to be alive by
+        /// the coordinator of the operation.</param>
+        /// <param name="nbRetry"> the number of retry already performed for this operation.</param>
+        /// <returns> <code>RetryDecision.rethrow()</code>.</returns>
+        ///</summary>
         public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();

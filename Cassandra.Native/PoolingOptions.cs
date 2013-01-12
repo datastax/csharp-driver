@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     /**
      * Options related to connection pooling.
@@ -33,26 +33,26 @@ namespace Cassandra.Native
 
         // Note: we could use an enumMap or similar, but synchronization would
         // be more costly so let's stick to volatile in for now.
-        private static readonly int DEFAULT_MIN_REQUESTS = 25;
-        private static readonly int DEFAULT_MAX_REQUESTS = 100;
+        private const int DefaultMinRequests = 25;
+        private const int DefaultMaxRequests = 100;
 
-        private static readonly int DEFAULT_CORE_POOL_LOCAL = 2;
-        private static readonly int DEFAULT_CORE_POOL_REMOTE = 1;
+        private const int DefaultCorePoolLocal = 2;
+        private const int DefaultCorePoolRemote = 1;
 
-        private static readonly int DEFAULT_MAX_POOL_LOCAL = 8;
-        private static readonly int DEFAULT_MAX_POOL_REMOTE = 2;
+        private const int DefaultMaxPoolLocal = 8;
+        private const int DefaultMaxPoolRemote = 2;
 
-        private volatile int minSimultaneousRequestsForLocal = DEFAULT_MIN_REQUESTS;
-        private volatile int minSimultaneousRequestsForRemote = DEFAULT_MIN_REQUESTS;
+        private int _minSimultaneousRequestsForLocal = DefaultMinRequests;
+        private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
 
-        private volatile int maxSimultaneousRequestsForLocal = DEFAULT_MAX_REQUESTS;
-        private volatile int maxSimultaneousRequestsForRemote = DEFAULT_MAX_REQUESTS;
+        private int _maxSimultaneousRequestsForLocal = DefaultMaxRequests;
+        private int _maxSimultaneousRequestsForRemote = DefaultMaxRequests;
 
-        private volatile int coreConnectionsForLocal = DEFAULT_CORE_POOL_LOCAL;
-        private volatile int coreConnectionsForRemote = DEFAULT_CORE_POOL_REMOTE;
+        private int _coreConnectionsForLocal = DefaultCorePoolLocal;
+        private int _coreConnectionsForRemote = DefaultCorePoolRemote;
 
-        private volatile int maxConnectionsForLocal = DEFAULT_MAX_POOL_LOCAL;
-        private volatile int maxConnectionsForRemote = DEFAULT_MAX_POOL_REMOTE;
+        private int _maxConnectionsForLocal = DefaultMaxPoolLocal;
+        private int _maxConnectionsForRemote = DefaultMaxPoolRemote;
 
         public PoolingOptions() { }
 
@@ -75,10 +75,10 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    return minSimultaneousRequestsForLocal;
-                case HostDistance.REMOTE:
-                    return minSimultaneousRequestsForRemote;
+                case HostDistance.Local:
+                    return _minSimultaneousRequestsForLocal;
+                case HostDistance.Remote:
+                    return _minSimultaneousRequestsForRemote;
                 default:
                     return 0;
             }
@@ -98,11 +98,11 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    minSimultaneousRequestsForLocal = minSimultaneousRequests;
+                case HostDistance.Local:
+                    _minSimultaneousRequestsForLocal = minSimultaneousRequests;
                     break;
-                case HostDistance.REMOTE:
-                    minSimultaneousRequestsForRemote = minSimultaneousRequests;
+                case HostDistance.Remote:
+                    _minSimultaneousRequestsForRemote = minSimultaneousRequests;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("Cannot set min streams per connection threshold for " + distance + " hosts");
@@ -133,10 +133,10 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    return maxSimultaneousRequestsForLocal;
-                case HostDistance.REMOTE:
-                    return maxSimultaneousRequestsForRemote;
+                case HostDistance.Local:
+                    return _maxSimultaneousRequestsForLocal;
+                case HostDistance.Remote:
+                    return _maxSimultaneousRequestsForRemote;
                 default:
                     return 0;
             }
@@ -156,11 +156,11 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    maxSimultaneousRequestsForLocal = maxSimultaneousRequests;
+                case HostDistance.Local:
+                    _maxSimultaneousRequestsForLocal = maxSimultaneousRequests;
                     break;
-                case HostDistance.REMOTE:
-                    maxSimultaneousRequestsForRemote = maxSimultaneousRequests;
+                case HostDistance.Remote:
+                    _maxSimultaneousRequestsForRemote = maxSimultaneousRequests;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("Cannot set max streams per connection threshold for " + distance + " hosts");
@@ -182,10 +182,10 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    return coreConnectionsForLocal;
-                case HostDistance.REMOTE:
-                    return coreConnectionsForRemote;
+                case HostDistance.Local:
+                    return _coreConnectionsForLocal;
+                case HostDistance.Remote:
+                    return _coreConnectionsForRemote;
                 default:
                     return 0;
             }
@@ -204,11 +204,11 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    coreConnectionsForLocal = coreConnections;
+                case HostDistance.Local:
+                    _coreConnectionsForLocal = coreConnections;
                     break;
-                case HostDistance.REMOTE:
-                    coreConnectionsForRemote = coreConnections;
+                case HostDistance.Remote:
+                    _coreConnectionsForRemote = coreConnections;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("Cannot set core connections per host for " + distance + " hosts");
@@ -229,10 +229,10 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    return maxConnectionsForLocal;
-                case HostDistance.REMOTE:
-                    return maxConnectionsForRemote;
+                case HostDistance.Local:
+                    return _maxConnectionsForLocal;
+                case HostDistance.Remote:
+                    return _maxConnectionsForRemote;
                 default:
                     return 0;
             }
@@ -251,11 +251,11 @@ namespace Cassandra.Native
         {
             switch (distance)
             {
-                case HostDistance.LOCAL:
-                    maxConnectionsForLocal = maxConnections;
+                case HostDistance.Local:
+                    _maxConnectionsForLocal = maxConnections;
                     break;
-                case HostDistance.REMOTE:
-                    maxConnectionsForRemote = maxConnections;
+                case HostDistance.Remote:
+                    _maxConnectionsForRemote = maxConnections;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("Cannot set max connections per host for " + distance + " hosts");

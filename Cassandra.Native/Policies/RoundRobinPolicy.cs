@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Cassandra.Native;
+using Cassandra;
 
 /**
  * A Round-robin load balancing policy.
@@ -25,12 +25,12 @@ namespace Cassandra
      */
         public RoundRobinPolicy() { }
 
-        ISessionInfoProvider infoProvider;
-        int startidx = -1;
+        ISessionInfoProvider _infoProvider;
+        int _startidx = -1;
 
         public void Initialize(ISessionInfoProvider infoProvider)
         {
-            this.infoProvider = infoProvider;
+            this._infoProvider = infoProvider;
         }
 
         /**
@@ -45,7 +45,7 @@ namespace Cassandra
          */
         public HostDistance Distance(Host host)
         {
-            return HostDistance.LOCAL;
+            return HostDistance.Local;
         }
 
         /**
@@ -61,18 +61,18 @@ namespace Cassandra
          */
         public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
         {
-            List<Host> copyOfHosts = new List<Host>(infoProvider.GetAllHosts());
+            List<Host> copyOfHosts = new List<Host>(_infoProvider.GetAllHosts());
             for (int i = 0; i < copyOfHosts.Count; i++)
             {
-                if (startidx == -1 || startidx >= copyOfHosts.Count - 1)
-                    startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
+                if (_startidx == -1 || _startidx >= copyOfHosts.Count - 1)
+                    _startidx = StaticRandom.Instance.Next(copyOfHosts.Count - 1);
 
-                var h = copyOfHosts[startidx];
+                var h = copyOfHosts[_startidx];
                 if (h.IsConsiderablyUp)
                     yield return h;
 
-                startidx++;
-                startidx = startidx % copyOfHosts.Count;
+                _startidx++;
+                _startidx = _startidx % copyOfHosts.Count;
             }
         }
     }

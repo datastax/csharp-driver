@@ -9,7 +9,7 @@ namespace Cassandra
      * Which exact key-value pairs are required depends on the authenticator
      * set for the Cassandra nodes.
      */
-    public interface AuthInfoProvider
+    public interface IAuthInfoProvider
     {
         /**
          * The authentication informations to use to connect to {@code host}.

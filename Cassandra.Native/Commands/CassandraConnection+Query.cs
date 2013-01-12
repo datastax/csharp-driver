@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Diagnostics;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
@@ -18,7 +18,7 @@ namespace Cassandra.Native
                     if (response is ResultResponse)
                         JobFinished(streamId, (response as ResultResponse).Output);
                     else
-                        ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
 
                 }));
             }));
@@ -31,8 +31,7 @@ namespace Cassandra.Native
 
         public IOutput Query(string cqlQuery, ConsistencyLevel consistency)
         {
-            var r = BeginQuery(cqlQuery, null, null, this, consistency);
-            return EndQuery(r, this);
+            return EndQuery(BeginQuery(cqlQuery, null, null, this, consistency), this);
         }
     }
 }

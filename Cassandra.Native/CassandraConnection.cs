@@ -12,7 +12,7 @@ namespace Cassandra
     public enum CompressionType { NoCompression, Snappy }
 }
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal enum BufferingMode { NoBuffering, FrameBuffering }
 
@@ -21,26 +21,26 @@ namespace Cassandra.Native
 #if ERRORINJECTION
         public void KillSocket()
         {
-            socket.Value.Shutdown(SocketShutdown.Both);
+            _socket.Value.Shutdown(SocketShutdown.Both);
         }
 #endif
-        IPAddress serverAddress;
-        int port;
-        Guarded<Socket> socket = new Guarded<Socket>(null);
-        Guarded<Stack<int>> freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
-        bool[] freeStreamIDtaken = new bool[byte.MaxValue + 1];
-        AtomicValue<bool> isStreamOpened = new AtomicValue<bool>(false);
-        readonly int abortTimeout = Timeout.Infinite;
+        readonly IPAddress _serverAddress;
+        readonly int _port;
+        readonly Guarded<Socket> _socket = new Guarded<Socket>(null);
+        readonly Guarded<Stack<int>> _freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
+        readonly bool[] _freeStreamIDtaken = new bool[byte.MaxValue + 1];
+        readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
+        readonly int _abortTimeout = Timeout.Infinite;
         readonly int clientAbortAsyncCommandTimeout = Timeout.Infinite;
 
-        object frameGuardier = new object();
+        readonly object _frameGuardier = new object();
 
-        AtomicValue<Action<ResponseFrame>> frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
-        AtomicArray<Action<ResponseFrame>> frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
-        AtomicArray<AsyncResult<IOutput>> frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
-        AtomicArray<Timer> frameReadTimers = new AtomicArray<Timer>(sbyte.MaxValue + 1);
+        readonly AtomicValue<Action<ResponseFrame>> _frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
+        readonly AtomicArray<Action<ResponseFrame>> _frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
+        readonly AtomicArray<AsyncResult<IOutput>> _frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
+        readonly AtomicArray<Timer> _frameReadTimers = new AtomicArray<Timer>(sbyte.MaxValue + 1);
 
-        Action<ResponseFrame> defaultFatalErrorAction;
+        Action<ResponseFrame> _defaultFatalErrorAction;
 
         struct ErrorActionParam
         {
@@ -48,60 +48,60 @@ namespace Cassandra.Native
             public int StreamId;
         }
 
-        Action<ErrorActionParam> ProtocolErrorHandlerAction;
+        Action<ErrorActionParam> _protocolErrorHandlerAction;
 
-        AuthInfoProvider authInfoProvider;
+        readonly IAuthInfoProvider _authInfoProvider;
 
-        Session owner;
+        readonly Session _owner;
 
-        void hostIsDown()
+        void HostIsDown()
         {
-            owner.hostIsDown(serverAddress);
+            _owner.HostIsDown(_serverAddress);
         }
 
-        internal CassandraConnection(Session owner, IPAddress serverAddress, int port, AuthInfoProvider authInfoProvider = null, CompressionType compression = CompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
+        internal CassandraConnection(Session owner, IPAddress serverAddress, int port, IAuthInfoProvider authInfoProvider = null, CompressionType compression = CompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
         {
-            this.owner = owner;
-            bufferingMode = null;
+            this._owner = owner;
+            _bufferingMode = null;
             switch (compression)
             {
                 case CompressionType.Snappy:
-                    bufferingMode = new FrameBuffering();
+                    _bufferingMode = new FrameBuffering();
                     break;
                 case CompressionType.NoCompression:
-                    bufferingMode = noBufferingIfPossible ? new NoBuffering() : new FrameBuffering();
+                    _bufferingMode = noBufferingIfPossible ? new NoBuffering() : new FrameBuffering();
                     break;
                 default:
                     throw new ArgumentException();
             }
 
-            this.authInfoProvider = authInfoProvider;
+            this._authInfoProvider = authInfoProvider;
             if (compression == CompressionType.Snappy)
             {
-                startupOptions.Add("COMPRESSION", "snappy");
-                compressor = new SnappyProtoBufCompressor();
+                _startupOptions.Add("COMPRESSION", "snappy");
+                _compressor = new SnappyProtoBufCompressor();
             }
-            this.serverAddress = serverAddress;
-            this.port = port;
-            this.abortTimeout = abortTimeout;
+            this._serverAddress = serverAddress;
+            this._port = port;
+            this._abortTimeout = abortTimeout;
     
-            createConnection();
+            CreateConnection();
             if (IsHealthy)
                 BeginReading();
         }
 
-        private void createConnection()
+        private void CreateConnection()
         {
-            lock (freeStreamIDs)
+            lock (_freeStreamIDs)
             {
                 for (int i = 0; i <= sbyte.MaxValue; i++)
                 {
-                    freeStreamIDs.Value.Push(i);
-                    freeStreamIDtaken[i] = false;
+                    _freeStreamIDs.Value.Push(i);
+                    _freeStreamIDtaken[i] = false;
                 }
             }
 
-            ProtocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
+            _protocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
                {
                    if (param.Response is ErrorResponse)
                        JobFinished(
@@ -109,41 +109,41 @@ namespace Cassandra.Native
                            (param.Response as ErrorResponse).Output);
                });
 
-            lock (frameGuardier)
-                frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
+            lock (_frameGuardier)
+                _frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
 
-            buffer = new byte[][] { 
-                    new byte[bufferingMode.PreferedBufferSize()], 
-                    new byte[bufferingMode.PreferedBufferSize()] };
+            _buffer = new byte[][] { 
+                    new byte[_bufferingMode.PreferedBufferSize()], 
+                    new byte[_bufferingMode.PreferedBufferSize()] };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
-            newSock.SendTimeout = this.abortTimeout;
+            newSock.SendTimeout = this._abortTimeout;
 
-            newSock.Connect(new IPEndPoint(serverAddress, port));
-            socket.Value = newSock;
-            bufferingMode.Reset();
-            readerSocketStream = new NetworkStream(socket.Value);
-            writerSocketStream = new NetworkStream(socket.Value);
+            newSock.Connect(new IPEndPoint(_serverAddress, _port));
+            _socket.Value = newSock;
+            _bufferingMode.Reset();
+            _readerSocketStream = new NetworkStream(_socket.Value);
+            _writerSocketStream = new NetworkStream(_socket.Value);
         }
 
-        byte[][] buffer = null;
-        int bufNo = 0;
+        byte[][] _buffer = null;
+        int _bufNo = 0;
 
-        private NetworkStream readerSocketStream;
-        private NetworkStream writerSocketStream;
+        private NetworkStream _readerSocketStream;
+        private NetworkStream _writerSocketStream;
 
-        IBuffering bufferingMode;
+        readonly IBuffering _bufferingMode;
 
-        private int allocateStreamId()
+        private int AllocateStreamId()
         {
-            lock (freeStreamIDs)
+            lock (_freeStreamIDs)
             {
-                if (freeStreamIDs.Value.Count > 0)
+                if (_freeStreamIDs.Value.Count > 0)
                 {
-                    int i = freeStreamIDs.Value.Pop();
-                    freeStreamIDtaken[i] = true;
+                    int i = _freeStreamIDs.Value.Pop();
+                    _freeStreamIDtaken[i] = true;
                     return i;
                 }
                 else
@@ -151,33 +151,33 @@ namespace Cassandra.Native
             }
         }
 
-        private void freeStreamId(int streamId)
+        private void FreeStreamId(int streamId)
         {
-            lock (freeStreamIDs)
+            lock (_freeStreamIDs)
             {
-                if (!freeStreamIDtaken[streamId])
+                if (!_freeStreamIDtaken[streamId])
                     return;
-                freeStreamIDtaken[streamId] = false;
-                freeStreamIDs.Value.Push(streamId);
+                _freeStreamIDtaken[streamId] = false;
+                _freeStreamIDs.Value.Push(streamId);
             }
         }
 
         public bool IsBusy(int max)
         {
-            lock (freeStreamIDs)
-                return sbyte.MaxValue + 1 - freeStreamIDs.Value.Count >= max;
+            lock (_freeStreamIDs)
+                return sbyte.MaxValue + 1 - _freeStreamIDs.Value.Count >= max;
         }
 
         public bool IsFree(int min)
         {
-            lock (freeStreamIDs)
-                return sbyte.MaxValue + 1 - freeStreamIDs.Value.Count <= min;
+            lock (_freeStreamIDs)
+                return sbyte.MaxValue + 1 - _freeStreamIDs.Value.Count <= min;
         }
 
         public bool IsEmpty()
         {
-            lock (freeStreamIDs)
-                return freeStreamIDs.Value.Count == sbyte.MaxValue + 1;
+            lock (_freeStreamIDs)
+                return _freeStreamIDs.Value.Count == sbyte.MaxValue + 1;
         }
 
         private void JobFinished(int streamId, IOutput outp)
@@ -185,11 +185,11 @@ namespace Cassandra.Native
             AsyncResult<IOutput> ar = null;
             try
             {
-                lock (frameGuardier)
+                lock (_frameGuardier)
                 {
-                    ar = frameReadAsyncResult[streamId];
-                    frameReadAsyncResult[streamId] = null;
-                    freeStreamId(streamId);
+                    ar = _frameReadAsyncResult[streamId];
+                    _frameReadAsyncResult[streamId] = null;
+                    FreeStreamId(streamId);
                 }
             }
             finally
@@ -203,12 +203,12 @@ namespace Cassandra.Native
             }
         }
 
-        Dictionary<string, string> startupOptions = new Dictionary<string, string>()
+        readonly Dictionary<string, string> _startupOptions = new Dictionary<string, string>()
         {
             {"CQL_VERSION","3.0.0"}
         };
 
-        static FrameParser FrameParser = new FrameParser();
+        static readonly FrameParser FrameParser = new FrameParser();
 
         internal class StreamAllocationException : Exception
         {
@@ -216,54 +216,54 @@ namespace Cassandra.Native
 
         private AsyncResult<IOutput> BeginJob(AsyncCallback callback, object state, object owner, string propId, Action<int> job, bool startup = true)
         {
-            var streamId = allocateStreamId();
+            var streamId = AllocateStreamId();
             if (streamId == -1)
                 throw new StreamAllocationException();
 
-            defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
+            _defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
-                ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
+                _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
             var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, clientAbortAsyncCommandTimeout);
 
-            lock (frameGuardier)
-                frameReadAsyncResult[streamId] = ar;
+            lock (_frameGuardier)
+                _frameReadAsyncResult[streamId] = ar;
 
             try
             {
-                if (startup && !isStreamOpened.Value)
+                if (startup && !_isStreamOpened.Value)
                 {
-                    Evaluate(new StartupRequest(streamId, startupOptions), streamId, (frame) =>
+                    Evaluate(new StartupRequest(streamId, _startupOptions), streamId, (frame) =>
                     {
                         var response = FrameParser.Parse(frame);
                         if (response is ReadyResponse)
                         {
-                            isStreamOpened.Value = true;
+                            _isStreamOpened.Value = true;
                             job(streamId);
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (authInfoProvider == null)
-                                throw new AuthenticationException("Credentials are required.", serverAddress);
+                            if (_authInfoProvider == null)
+                                throw new AuthenticationException("Credentials are required.", _serverAddress);
 
-                            var credentials = authInfoProvider.GetAuthInfos(serverAddress);
+                            var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
 
                             Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
                             {
                                 var response2 = FrameParser.Parse(frame2);
                                 if (response2 is ReadyResponse)
                                 {
-                                    isStreamOpened.Value = true;
+                                    _isStreamOpened.Value = true;
                                     job(streamId);
                                 }
                                 else
-                                    ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
+                                    _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
                             }));
                         }
                         else
-                            ProtocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
+                            _protocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
                     });
                 }
                 else
@@ -271,42 +271,42 @@ namespace Cassandra.Native
             }
             catch (Exception ex)
             {
-                if (!setupWriterException(ex, streamId))
+                if (!SetupWriterException(ex, streamId))
                     throw;
             }
 
             return ar;
         }
 
-        IProtoBufComporessor compressor = null;
+        readonly IProtoBufComporessor _compressor = null;
 
-        private bool socketExceptionOccured = false;
+        private bool _socketExceptionOccured = false;
 
         public bool IsHealthy
         {
             get
             {
-                lock (statusGuardier)
+                lock (_statusGuardier)
                 {
-                    return !alreadyDisposed && !socketExceptionOccured;
+                    return !_alreadyDisposed && !_socketExceptionOccured;
                 }
             }
         }
-        private void abortTimerProc(object state)
+        private void AbortTimerProc(object state)
         {
             int streamId = (int)state;
 
-            setupReaderException(new CassandraConnectionTimeoutException());
+            SetupReaderException(new CassandraConnectionTimeoutException());
 
-            lock (socket)
-                if (socket.Value != null)
+            lock (_socket)
+                if (_socket.Value != null)
                 {
                     try
                     {
-                        readerSocketStream.Close();
-                        writerSocketStream.Close();
-                        socket.Value.Shutdown(SocketShutdown.Both);
-                        socket.Value.Disconnect(false);
+                        _readerSocketStream.Close();
+                        _writerSocketStream.Close();
+                        _socket.Value.Shutdown(SocketShutdown.Both);
+                        _socket.Value.Disconnect(false);
                     }
                     catch (Exception ex)
                     {
@@ -317,7 +317,7 @@ namespace Cassandra.Native
 
             try
             {
-                bufferingMode.Close();
+                _bufferingMode.Close();
             }
             catch (Exception ex)
             {
@@ -326,36 +326,36 @@ namespace Cassandra.Native
             }
         }
 
-        Guarded<bool> readerSocketStreamBusy = new Guarded<bool>(false);
+        readonly Guarded<bool> _readerSocketStreamBusy = new Guarded<bool>(false);
 
         internal void BeginReading()
         {
             try
             {
-                if (!(bufferingMode is FrameBuffering))
-                    lock (readerSocketStreamBusy)
+                if (!(_bufferingMode is FrameBuffering))
+                    lock (_readerSocketStreamBusy)
                     {
-                        while (readerSocketStreamBusy.Value)
-                            Monitor.Wait(readerSocketStreamBusy);
-                        readerSocketStreamBusy.Value = true;
+                        while (_readerSocketStreamBusy.Value)
+                            Monitor.Wait(_readerSocketStreamBusy);
+                        _readerSocketStreamBusy.Value = true;
                     }
 
-                lock (readerSocketStream)
+                lock (_readerSocketStream)
                 {
-                    var rh = readerSocketStream.BeginRead(buffer[bufNo], 0, buffer[bufNo].Length, new AsyncCallback((ar) =>
+                    var rh = _readerSocketStream.BeginRead(_buffer[_bufNo], 0, _buffer[_bufNo].Length, new AsyncCallback((ar) =>
                     {
 
                         try
                         {
                             int bytesReadCount;
-                            lock (readerSocketStream)
-                                bytesReadCount = readerSocketStream.EndRead(ar);
+                            lock (_readerSocketStream)
+                                bytesReadCount = _readerSocketStream.EndRead(ar);
 
                             if (bytesReadCount == 0)
                             {
-                                if (alreadyDisposed)
+                                if (_alreadyDisposed)
                                 {
-                                    completeReader();
+                                    CompleteReader();
                                     return;
                                 }
 
@@ -363,19 +363,20 @@ namespace Cassandra.Native
                             }
                             else
                             {
-                                foreach (var frame in bufferingMode.Process(buffer[bufNo], bytesReadCount, readerSocketStream, compressor))
+                                foreach (var frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _readerSocketStream, _compressor))
                                 {
                                     Action<ResponseFrame> act = null;
-                                    lock (frameGuardier)
+                                    lock (_frameGuardier)
                                     {
                                         if (frame.FrameHeader.StreamId == 0xFF)
-                                            act = frameEventCallback.Value;
-                                        else if (frame.FrameHeader.StreamId >= 0)
+                                            act = _frameEventCallback.Value;
+                                        else if (frame.FrameHeader.StreamId <= sbyte.MaxValue)
                                         {
-                                            if (frameReadTimers[frame.FrameHeader.StreamId] != null)
-                                                frameReadTimers[frame.FrameHeader.StreamId].Change(Timeout.Infinite, Timeout.Infinite);
-                                            act = frameReadCallback[frame.FrameHeader.StreamId];
-                                            frameReadCallback[frame.FrameHeader.StreamId] = null;
+                                            if (_frameReadTimers[frame.FrameHeader.StreamId] != null)
+                                                _frameReadTimers[frame.FrameHeader.StreamId].Change(Timeout.Infinite,
+                                                                                                    Timeout.Infinite);
+                                            act = _frameReadCallback[frame.FrameHeader.StreamId];
+                                            _frameReadCallback[frame.FrameHeader.StreamId] = null;
                                         }
                                     }
 
@@ -390,36 +391,36 @@ namespace Cassandra.Native
                                         }
                                         catch (Exception ex)
                                         {
-                                            setupReaderException(ex);
+                                            SetupReaderException(ex);
                                         }
                                         finally
                                         {
-                                            if (!(bufferingMode is FrameBuffering))
+                                            if (!(_bufferingMode is FrameBuffering))
                                                 if (IsHealthy)
                                                     BeginReading();
                                         }
                                     }, act);
                                 }
-                                bufNo = 1 - bufNo;
+                                _bufNo = 1 - _bufNo;
                             }
                         }
                         catch (Exception ex)
                         {
-                            setupReaderException(ex);
+                            SetupReaderException(ex);
                         }
                         finally
                         {
-                            if (bufferingMode is FrameBuffering)
+                            if (_bufferingMode is FrameBuffering)
                             {
                                 if (IsHealthy)
                                     BeginReading();
                             }
                             else
                             {
-                                lock (readerSocketStreamBusy)
+                                lock (_readerSocketStreamBusy)
                                 {
-                                    readerSocketStreamBusy.Value = false;
-                                    Monitor.PulseAll(readerSocketStreamBusy);
+                                    _readerSocketStreamBusy.Value = false;
+                                    Monitor.PulseAll(_readerSocketStreamBusy);
                                 }
                             }
                         }
@@ -428,7 +429,7 @@ namespace Cassandra.Native
             }
             catch (IOException e)
             {
-                if (!setupReaderException(e))
+                if (!SetupReaderException(e))
                     throw;
             }
         }
@@ -443,18 +444,18 @@ namespace Cassandra.Native
             || ex is CassandraConnectionTimeoutException;
         }
 
-        private void completeReader()
+        private void CompleteReader()
         {
-            List<AsyncResult<IOutput>> toCompl = new List<AsyncResult<IOutput>>();
+            var toCompl = new List<AsyncResult<IOutput>>();
             try
             {
-                lock (frameGuardier)
+                lock (_frameGuardier)
                 {
                     for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
-                        if (frameReadAsyncResult[streamId] != null)
+                        if (_frameReadAsyncResult[streamId] != null)
                         {
-                            toCompl.Add(frameReadAsyncResult[streamId]);
-                            freeStreamId(streamId);
+                            toCompl.Add(_frameReadAsyncResult[streamId]);
+                            FreeStreamId(streamId);
                         }
                 }
             }
@@ -466,29 +467,29 @@ namespace Cassandra.Native
             }
         }
 
-        private bool setupReaderException(Exception ex)
+        private bool SetupReaderException(Exception ex)
         {
-            List<AsyncResult<IOutput>> toCompl = new List<AsyncResult<IOutput>>();
+            var toCompl = new List<AsyncResult<IOutput>>();
             try
             {
-                lock (frameGuardier)
+                lock (_frameGuardier)
                 {
                     for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
                     {
-                        if (frameReadTimers[streamId] != null)
-                            frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
-                        if (frameReadAsyncResult[streamId] != null)
+                        if (_frameReadTimers[streamId] != null)
+                            _frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
+                        if (_frameReadAsyncResult[streamId] != null)
                         {
-                            toCompl.Add(frameReadAsyncResult[streamId]);
-                            freeStreamId(streamId);
+                            toCompl.Add(_frameReadAsyncResult[streamId]);
+                            FreeStreamId(streamId);
                         }
                     }
-                    hostIsDown();
-                    try { bufferingMode.Close(); }
+                    HostIsDown();
+                    try { _bufferingMode.Close(); }
                     catch { }
 
-                    lock (statusGuardier)
-                        socketExceptionOccured = true;
+                    lock (_statusGuardier)
+                        _socketExceptionOccured = true;
                 }
                 return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
             }
@@ -500,23 +501,23 @@ namespace Cassandra.Native
             }
         }
 
-        object statusGuardier = new object();
-        bool alreadyDisposed = false;
+        readonly object _statusGuardier = new object();
+        bool _alreadyDisposed = false;
 
-        private bool setupWriterException(Exception ex, int streamId)
+        private bool SetupWriterException(Exception ex, int streamId)
         {
             AsyncResult<IOutput> ar = null;
             try
             {
-                lock (frameGuardier)
+                lock (_frameGuardier)
                 {
-                    if (frameReadTimers[streamId] != null)
-                        frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
-                    ar = frameReadAsyncResult[streamId];
-                    freeStreamId(streamId);
-                    hostIsDown();
-                    lock (statusGuardier)
-                        socketExceptionOccured = true;
+                    if (_frameReadTimers[streamId] != null)
+                        _frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
+                    ar = _frameReadAsyncResult[streamId];
+                    FreeStreamId(streamId);
+                    HostIsDown();
+                    lock (_statusGuardier)
+                        _socketExceptionOccured = true;
                     return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
                 }
             }
@@ -528,29 +529,29 @@ namespace Cassandra.Native
             }
         }
 
-        void checkDisposed()
+        void CheckDisposed()
         {
-            lock (statusGuardier)
-                if (alreadyDisposed)
+            lock (_statusGuardier)
+                if (_alreadyDisposed)
                     throw new ObjectDisposedException("CassandraConnection");
         }
 
         public void Dispose()
         {
-            lock (statusGuardier)
+            lock (_statusGuardier)
             {
-                if (alreadyDisposed)
+                if (_alreadyDisposed)
                     return;
 
-                alreadyDisposed = true;
+                _alreadyDisposed = true;
 
-                lock (socket)
-                    if (socket.Value != null)
+                lock (_socket)
+                    if (_socket.Value != null)
                     {
                         try
                         {
-                            socket.Value.Shutdown(SocketShutdown.Both);
-                            socket.Value.Disconnect(false);
+                            _socket.Value.Shutdown(SocketShutdown.Both);
+                            _socket.Value.Disconnect(false);
                         }
                         catch (ObjectDisposedException)
                         {
@@ -573,33 +574,33 @@ namespace Cassandra.Native
             try
             {
                 var frame = req.GetFrame();
-                lock (writerSocketStream)
+                lock (_writerSocketStream)
                 {
-                    lock (frameGuardier)
+                    lock (_frameGuardier)
                     {
-                        frameReadCallback[streamId] = nextAction;
-                        if (abortTimeout != Timeout.Infinite)
+                        _frameReadCallback[streamId] = nextAction;
+                        if (_abortTimeout != Timeout.Infinite)
                         {
-                            if (frameReadTimers[streamId] == null)
-                                frameReadTimers[streamId] = new Timer(abortTimerProc, streamId, abortTimeout, Timeout.Infinite);
+                            if (_frameReadTimers[streamId] == null)
+                                _frameReadTimers[streamId] = new Timer(AbortTimerProc, streamId, _abortTimeout, Timeout.Infinite);
                             else
-                                frameReadTimers[streamId].Change(abortTimeout, Timeout.Infinite);
+                                _frameReadTimers[streamId].Change(_abortTimeout, Timeout.Infinite);
                         }
                     }
-                    writerSocketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
-                    writerSocketStream.Flush();
+                    _writerSocketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
+                    _writerSocketStream.Flush();
                 }
             }
             catch (Exception ex)
             {
-                if (!setupWriterException(ex, streamId))
+                if (!SetupWriterException(ex, streamId))
                     throw;
             }
         }
 
         internal IPAddress GetHostAdress()
         {
-            return serverAddress;
+            return _serverAddress;
         }
     }
 }

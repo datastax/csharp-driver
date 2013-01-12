@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Reflection;
-using Cassandra.Native;
+using Cassandra;
 using System.Collections;
 
 namespace Cassandra.Data

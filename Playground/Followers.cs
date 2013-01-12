@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using Cassandra.Data;
 using Cassandra;
-using Cassandra.Native;
 
 namespace Playground
 {

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using Cassandra;
-using Cassandra.Native;
 using System.Threading;
 
 namespace Cassandra
@@ -28,35 +27,35 @@ namespace Cassandra
      */
     public class Cluster
     {
-        public const int DEFAULT_PORT = 9042;
+        public const int DefaultPort = 9042;
 
-        IEnumerable<IPAddress> contactPoints;
-        int port;
-        Policies policies;
-        AuthInfoProvider credentialsDelegate = null;
-        bool noBufferingIfPossible;
+        readonly IEnumerable<IPAddress> _contactPoints;
+        readonly int _port;
+        readonly Policies _policies;
+        readonly IAuthInfoProvider _credentialsDelegate = null;
+        readonly bool _noBufferingIfPossible;
 
-        PoolingOptions poolingOptions = new PoolingOptions();
-        public PoolingOptions PoolingOptions { get { return poolingOptions; } }
+        readonly PoolingOptions _poolingOptions = new PoolingOptions();
+        public PoolingOptions PoolingOptions { get { return _poolingOptions; } }
 
-        CompressionType compression = CompressionType.NoCompression;
-        public CompressionType Compression { get { return compression; } }
+        readonly CompressionType _compression = CompressionType.NoCompression;
+        public CompressionType Compression { get { return _compression; } }
 
-        string defaultKeyspace = "";
-        public string DefaultKeyspace { get { return defaultKeyspace; } }
+        readonly string _defaultKeyspace = "";
+        public string DefaultKeyspace { get { return _defaultKeyspace; } }
 
-        int abortTimeout = Timeout.Infinite;
+        readonly int _abortTimeout = Timeout.Infinite;
 
-        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, AuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression, string defaultKeyspace = "", int abortTimeout=Timeout.Infinite)
+        private Cluster(IEnumerable<IPAddress> contactPoints, int port, Policies policies, IAuthInfoProvider credentialsDelegate = null, bool noBufferingIfPossible = false, CompressionType compression = CompressionType.NoCompression, string defaultKeyspace = "", int abortTimeout=Timeout.Infinite)
         {
-            this.contactPoints = contactPoints;
-            this.port = port;
-            this.policies = policies;
-            this.credentialsDelegate = credentialsDelegate;
-            this.noBufferingIfPossible = noBufferingIfPossible;
-            this.compression = compression;
-            this.defaultKeyspace = defaultKeyspace;
-            this.abortTimeout = abortTimeout;
+            this._contactPoints = contactPoints;
+            this._port = port;
+            this._policies = policies;
+            this._credentialsDelegate = credentialsDelegate;
+            this._noBufferingIfPossible = noBufferingIfPossible;
+            this._compression = compression;
+            this._defaultKeyspace = defaultKeyspace;
+            this._abortTimeout = abortTimeout;
         }
 
         /**
@@ -68,7 +67,7 @@ namespace Cassandra
          * Also note that that all the contact points provided by {@code
          * initializer} must share the same port.
          *
-         * @param initializer the Cluster.Initializer to use
+         * @param initializer the Cluster.IInitializer to use
          * @return the newly created Cluster instance
          *
          * @throws NoHostAvailableException if no host amongst the contact points
@@ -78,7 +77,7 @@ namespace Cassandra
          * @throws AuthenticationException if while contacting the initial
          * contact points an authencation error occurs.
          */
-        public static Cluster BuildFrom(Initializer initializer)
+        public static Cluster BuildFrom(IInitializer initializer)
         {
             IEnumerable<IPAddress> contactPoints = initializer.ContactPoints;
             //if (contactPoints.)
@@ -109,7 +108,7 @@ namespace Cassandra
          */
         public Session Connect()
         {
-            return Connect(defaultKeyspace);
+            return Connect(_defaultKeyspace);
         }
 
         /**
@@ -126,38 +125,38 @@ namespace Cassandra
         public Session Connect(string keyspace)
         {
             return new Session(
-                clusterEndpoints: contactPoints,
-                port: port,
+                clusterEndpoints: _contactPoints,
+                port: _port,
                 keyspace: keyspace,
-                credentialsDelegate: credentialsDelegate,
-                policies: policies,
-                poolingOptions: poolingOptions,
-                noBufferingIfPossible: noBufferingIfPossible,
-                compression: compression,
-                abortTimeout: abortTimeout
+                credentialsDelegate: _credentialsDelegate,
+                policies: _policies,
+                poolingOptions: _poolingOptions,
+                noBufferingIfPossible: _noBufferingIfPossible,
+                compression: _compression,
+                abortTimeout: _abortTimeout
                 );
         }
 
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists()
         {
-            Session session = Connect("");
+            var session = Connect("");
             try
             {
-                session.ChangeKeyspace(defaultKeyspace);
+                session.ChangeKeyspace(_defaultKeyspace);
             }
             catch (InvalidException)
             {
-                session.CreateKeyspaceIfNotExists(defaultKeyspace);
-                session.ChangeKeyspace(defaultKeyspace);
+                session.CreateKeyspaceIfNotExists(_defaultKeyspace);
+                session.ChangeKeyspace(_defaultKeyspace);
             }
             return session;
         }
     }
 
     /**
-     * Initializer for {@link Cluster} instances.
+     * IInitializer for {@link Cluster} instances.
      */
-    public interface Initializer
+    public interface IInitializer
     {
 
         /**
@@ -192,7 +191,7 @@ namespace Cassandra
          * @return the authentication provider to use. Use
          * AuthInfoProvider.NONE if authentication is not to be used.
          */
-        AuthInfoProvider AuthInfoProvider { get; }
+        IAuthInfoProvider AuthInfoProvider { get; }
 
         bool UseNoBufferingIfPossible { get; }
 
@@ -206,34 +205,34 @@ namespace Cassandra
     /**
      * Helper class to build {@link Cluster} instances.
      */
-    public class ClusterBuilder : Initializer
+    public class ClusterBuilder : IInitializer
     {
 
-        private readonly List<IPAddress> addresses = new List<IPAddress>();
-        private int port = Cluster.DEFAULT_PORT;
-        private AuthInfoProvider authProvider = null;
-        private CompressionType compression = CompressionType.NoCompression;
+        private readonly List<IPAddress> _addresses = new List<IPAddress>();
+        private int _port = Cluster.DefaultPort;
+        private IAuthInfoProvider _authProvider = null;
+        private CompressionType _compression = CompressionType.NoCompression;
 
-        private LoadBalancingPolicy loadBalancingPolicy;
-        private ReconnectionPolicy reconnectionPolicy;
-        private RetryPolicy retryPolicy;
-        private bool noBufferingIfPossible = false;
+        private LoadBalancingPolicy _loadBalancingPolicy;
+        private ReconnectionPolicy _reconnectionPolicy;
+        private RetryPolicy _retryPolicy;
+        private bool _noBufferingIfPossible = false;
 
-        private string defaultKeyspace = null;
+        private string _defaultKeyspace = null;
 
-        private int abortTimeout = Timeout.Infinite;
+        private int _abortTimeout = Timeout.Infinite;
 
         public IEnumerable<IPAddress> ContactPoints
         {
             get
             {
-                return addresses;
+                return _addresses;
             }
         }
 
         public ClusterBuilder WithConnectionString(string connectionString)
         {
-            ConnectionStringBuilder cnb = new ConnectionStringBuilder(connectionString);
+            var cnb = new ConnectionStringBuilder(connectionString);
 
             foreach (var addr in cnb.ContactPoints)
                 AddContactPoints(addr);
@@ -245,14 +244,14 @@ namespace Cassandra
 
         public ClusterBuilder WithConnectionTimeout(int abortTimeout)
         {
-            this.abortTimeout = abortTimeout;
+            this._abortTimeout = abortTimeout;
             return this;
         }
 
 
         public ClusterBuilder WithDefaultKeyspace(string defaultKeyspace)
         {
-            this.defaultKeyspace = defaultKeyspace;
+            this._defaultKeyspace = defaultKeyspace;
             return this;
         }
         /**
@@ -266,7 +265,7 @@ namespace Cassandra
          */
         public ClusterBuilder WithPort(int port)
         {
-            this.port = port;
+            this._port = port;
             return this;
         }
 
@@ -281,13 +280,13 @@ namespace Cassandra
          */
         public ClusterBuilder WithCompression(CompressionType compression)
         {
-            this.compression = compression;
+            this._compression = compression;
             return this;
         }
 
         public ClusterBuilder OmmitBufferingIfPossible()
         {
-            this.noBufferingIfPossible = true;
+            this._noBufferingIfPossible = true;
             return this;
         }
 
@@ -300,7 +299,7 @@ namespace Cassandra
         {
             get
             {
-                return port;
+                return _port;
             }
         }
 
@@ -324,7 +323,7 @@ namespace Cassandra
          */
         public ClusterBuilder AddContactPoint(string address)
         {
-            this.addresses.Add(IPAddress.Parse(address));
+            this._addresses.Add(IPAddress.Parse(address));
             return this;
         }
 
@@ -364,8 +363,8 @@ namespace Cassandra
          */
         public ClusterBuilder AddContactPoints(params IPAddress[] addresses)
         {
-            foreach (IPAddress address in addresses)
-                this.addresses.Add(address);
+            foreach (var address in addresses)
+                this._addresses.Add(address);
             return this;
         }
 
@@ -380,7 +379,7 @@ namespace Cassandra
          */
         public ClusterBuilder WithLoadBalancingPolicy(LoadBalancingPolicy policy)
         {
-            this.loadBalancingPolicy = policy;
+            this._loadBalancingPolicy = policy;
             return this;
         }
 
@@ -395,7 +394,7 @@ namespace Cassandra
          */
         public ClusterBuilder WithReconnectionPolicy(ReconnectionPolicy policy)
         {
-            this.reconnectionPolicy = policy;
+            this._reconnectionPolicy = policy;
             return this;
         }
 
@@ -410,7 +409,7 @@ namespace Cassandra
          */
         public ClusterBuilder WithRetryPolicy(RetryPolicy policy)
         {
-            this.retryPolicy = policy;
+            this._retryPolicy = policy;
             return this;
         }
 
@@ -428,9 +427,9 @@ namespace Cassandra
             get
             {
                 return new Policies(
-                    loadBalancingPolicy == null ? Cassandra.Policies.DEFAULT_LOAD_BALANCING_POLICY : loadBalancingPolicy,
-                    reconnectionPolicy == null ? Cassandra.Policies.DEFAULT_RECONNECTION_POLICY : reconnectionPolicy,
-                    retryPolicy == null ? Cassandra.Policies.DEFAULT_RETRY_POLICY : retryPolicy
+                    _loadBalancingPolicy ?? Cassandra.Policies.DefaultLoadBalancingPolicy,
+                    _reconnectionPolicy ?? Cassandra.Policies.DefaultReconnectionPolicy,
+                    _retryPolicy ?? Cassandra.Policies.DefaultRetryPolicy
                 );
             }
         }
@@ -444,9 +443,9 @@ namespace Cassandra
          * @param authInfoProvider the authentication info provider to use
          * @return this CassandraClusterBuilder
          */
-        public ClusterBuilder WithAuthInfoProvider(AuthInfoProvider authInfoProvider)
+        public ClusterBuilder WithAuthInfoProvider(IAuthInfoProvider authInfoProvider)
         {
-            this.authProvider = authInfoProvider;
+            this._authProvider = authInfoProvider;
             return this;
         }
 
@@ -456,11 +455,11 @@ namespace Cassandra
          * @return the authentication provider set through {@link #withAuthInfoProvider}
          * or AuthInfoProvider.NONE if nothing was set.
          */
-        public AuthInfoProvider AuthInfoProvider
+        public IAuthInfoProvider AuthInfoProvider
         {
             get
             {
-                return this.authProvider;
+                return this._authProvider;
             }
         }
 
@@ -468,7 +467,7 @@ namespace Cassandra
         {
             get
             {
-                return noBufferingIfPossible;
+                return _noBufferingIfPossible;
             }
         }
 
@@ -492,19 +491,19 @@ namespace Cassandra
 
         public string DefaultKeyspace
         {
-            get { return defaultKeyspace; }
+            get { return _defaultKeyspace; }
         }
 
 
         public CompressionType CompressionType
         {
-            get { return compression; }
+            get { return _compression; }
         }
 
 
         public int AbortTimeout
         {
-            get { return abortTimeout; }
+            get { return _abortTimeout; }
         }
     }
 }

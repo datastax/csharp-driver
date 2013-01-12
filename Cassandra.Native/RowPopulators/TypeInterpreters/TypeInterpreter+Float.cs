@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
@@ -19,7 +19,7 @@ namespace Cassandra.Native
 
         public static byte[] InvConvertFromFloat(TableMetadata.ColumnInfo type_info, object value)
         {
-            checkArgument<float>(value);
+            CheckArgument<float>(value);
             byte[] ret = BitConverter.GetBytes((float)value);
             Array.Reverse(ret);
             return ret;

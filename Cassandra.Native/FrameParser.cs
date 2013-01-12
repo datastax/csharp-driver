@@ -4,12 +4,12 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class FrameParser
     {
         delegate IResponse MyDel(ResponseFrame frame);
-        static MyDel[] registeredResponses = new MyDel[sbyte.MaxValue + 1];
+        static readonly MyDel[] RegisteredResponses = new MyDel[sbyte.MaxValue + 1];
 
         static FrameParser()
         {
@@ -25,14 +25,14 @@ namespace Cassandra.Native
         {
             var obj = response.GetField("OpCode").GetValue(response);
             var mth = response.GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(ResponseFrame) }, null);
-            registeredResponses[(byte)obj] = (MyDel)Delegate.CreateDelegate(typeof(MyDel), mth);
+            RegisteredResponses[(byte)obj] = (MyDel)Delegate.CreateDelegate(typeof(MyDel), mth);
         }
 
         public IResponse Parse(ResponseFrame frame)
         {
             var opcode = frame.FrameHeader.Opcode;
-            if (registeredResponses[opcode] != null)
-                return registeredResponses[opcode](frame);
+            if (RegisteredResponses[opcode] != null)
+                return RegisteredResponses[opcode](frame);
             return null;
         }
     }

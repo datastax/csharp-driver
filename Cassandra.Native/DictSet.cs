@@ -3,9 +3,26 @@ using System.Collections.Specialized;
 using System;
 using System.Collections.Generic;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
-
+#if NET_40_OR_GREATER
+    internal class DictSet<T> : HashSet<T>
+    {
+        public DictSet() { }
+        public DictSet(IEnumerable<T> c) : base(c) {}
+        public bool AddRange(IEnumerable<T> c)
+        {
+            bool changed = false;
+            foreach (var o in c)
+                changed |= this.Add(o);
+            return changed;
+        }
+        public bool IsEmpty
+        {
+            get { return Count == 0; }
+        }
+    }
+#else
     internal class DictSet<T> : IEnumerable<T>
     {
         public DictSet() { }
@@ -80,4 +97,5 @@ namespace Cassandra.Native
             return InternalDictionary.Keys.GetEnumerator();
         }
     }
+#endif
 }

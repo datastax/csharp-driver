@@ -13,7 +13,7 @@ namespace Cassandra
     public class FallthroughRetryPolicy : RetryPolicy
     {
 
-        public static readonly FallthroughRetryPolicy INSTANCE = new FallthroughRetryPolicy();
+        public static readonly FallthroughRetryPolicy Instance = new FallthroughRetryPolicy();
 
         private FallthroughRetryPolicy() { }
 

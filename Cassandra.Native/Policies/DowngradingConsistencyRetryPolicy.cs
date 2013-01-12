@@ -55,12 +55,11 @@ namespace Cassandra
     public class DowngradingConsistencyRetryPolicy : RetryPolicy
     {
 
-        public static DowngradingConsistencyRetryPolicy INSTANCE = new DowngradingConsistencyRetryPolicy();
+        public static DowngradingConsistencyRetryPolicy Instance = new DowngradingConsistencyRetryPolicy();
 
         private DowngradingConsistencyRetryPolicy() { }
 
-
-        private RetryDecision maxLikelyToWorkCL(int knownOk)
+        private static RetryDecision MaxLikelyToWorkCl(int knownOk)
         {
             if (knownOk >= 3)
                 return RetryDecision.Retry(ConsistencyLevel.THREE);
@@ -100,7 +99,7 @@ namespace Cassandra
             if (receivedResponses < requiredResponses)
             {
                 // Tries the biggest CL that is expected to work
-                return maxLikelyToWorkCL(receivedResponses);
+                return MaxLikelyToWorkCl(receivedResponses);
             }
 
             return !dataRetrieved ? RetryDecision.Retry(cl) : RetryDecision.Rethrow();
@@ -145,7 +144,7 @@ namespace Cassandra
                 case "UNLOGGED_BATCH":
                     // Since only part of the batch could have been persisted,
                     // retry with whatever consistency should allow to persist all
-                    return maxLikelyToWorkCL(receivedAcks);
+                    return MaxLikelyToWorkCl(receivedAcks);
                 case "BATCH_LOG":
                     return RetryDecision.Retry(cl);
             }
@@ -170,11 +169,9 @@ namespace Cassandra
          */
         public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            if (nbRetry != 0)
-                return RetryDecision.Rethrow();
+            return nbRetry != 0 ? RetryDecision.Rethrow() : MaxLikelyToWorkCl(aliveReplica);
 
             // Tries the biggest CL that is expected to work
-            return maxLikelyToWorkCL(aliveReplica);
         }
     }
 

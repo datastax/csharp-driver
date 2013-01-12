@@ -4,7 +4,7 @@ using System.Text;
 #if CASSANDRA_NET_40_OR_GREATER
 using System.Numerics;
 #endif
-using Cassandra.Native;
+using Cassandra;
 using System.IO;
 
 namespace MyUTExt

@@ -8,7 +8,7 @@ using System.Threading;
 using System.Net.Sockets;
 
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class AtomicValue<T>
     {

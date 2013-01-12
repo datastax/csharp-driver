@@ -4,24 +4,24 @@ using System.Text;
 using System.Threading;
 using System.Net;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal class ControlConnection
     {
-        Session session;
-        Session owner;
-        IEnumerator<Host> hostsIter = null;
+        readonly Session _session;
+        readonly Session _owner;
+        IEnumerator<Host> _hostsIter = null;
         public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies policies = null, AuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
+            int abortTimeout = Timeout.Infinite, Policies policies = null, IAuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
         {
-            this.owner = owner;
-            this.reconnectionTimer = new Timer(reconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
-            session = new Session(clusterEndpoints, port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
-            metadata = new ClusterMetadata(owner.Hosts);
+            this._owner = owner;
+            this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
+            _session = new Session(clusterEndpoints, port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
+            Metadata = new ClusterMetadata(owner.Hosts);
             go(true);
         }
 
-        private void setupEventListeners(CassandraConnection nconn)
+        private void SetupEventListeners(CassandraConnection nconn)
         {
             Exception theExc = null;
 
@@ -48,23 +48,23 @@ namespace Cassandra.Native
             {
                 if (e.Message == "UP" || e.Message == "NEW_NODE")
                 {
-                    owner.OnAddHost(e.IPAddress);
-                    session.OnAddHost(e.IPAddress);
-                    checkConnectionUp(e.IPAddress);
+                    _owner.OnAddHost(e.IPAddress);
+                    _session.OnAddHost(e.IPAddress);
+                    CheckConnectionUp(e.IPAddress);
                     return;
                 }
                 else if (e.Message == "REMOVED_NODE")
                 {
-                    owner.OnRemovedHost(e.IPAddress);
-                    session.OnRemovedHost(e.IPAddress);
-                    checkConnectionDown(e.IPAddress);
+                    _owner.OnRemovedHost(e.IPAddress);
+                    _session.OnRemovedHost(e.IPAddress);
+                    CheckConnectionDown(e.IPAddress);
                     return;
                 }
                 else if (e.Message == "DOWN")
                 {
-                    owner.OnDownHost(e.IPAddress);
-                    session.OnDownHost(e.IPAddress);
-                    checkConnectionDown(e.IPAddress);
+                    _owner.OnDownHost(e.IPAddress);
+                    _session.OnDownHost(e.IPAddress);
+                    CheckConnectionDown(e.IPAddress);
                     return;
                 }
             }
@@ -79,86 +79,87 @@ namespace Cassandra.Native
             throw new DriverInternalError("Unknown Event");
         }
 
-        internal void ownerHostIsDown(IPAddress endpoint)
+        internal void OwnerHostIsDown(IPAddress endpoint)
         {
-            session.OnDownHost(endpoint);
-            checkConnectionDown(endpoint);
+            _session.OnDownHost(endpoint);
+            CheckConnectionDown(endpoint);
         }
 
-        internal void ownerHostBringUpIfDown(IPAddress endpoint)
+        internal void OwnerHostBringUpIfDown(IPAddress endpoint)
         {
-            session.OnAddHost(endpoint);
-            checkConnectionUp(endpoint);
+            _session.OnAddHost(endpoint);
+            CheckConnectionUp(endpoint);
         }
 
-        bool isDiconnected = false;
-        Timer reconnectionTimer;
+        bool _isDiconnected = false;
+        readonly Timer _reconnectionTimer;
 
-        void reconnectionClb(object state)
+        void ReconnectionClb(object state)
         {
             go(true);
         }
-        ReconnectionPolicy reconnectionPolicy = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000);
-        ReconnectionSchedule reconnectionSchedule = null;
 
-        CassandraConnection connection = null;
-        internal ClusterMetadata metadata;
+        readonly ReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000);
+        ReconnectionSchedule _reconnectionSchedule = null;
+
+        CassandraConnection _connection = null;
+        internal ClusterMetadata Metadata;
 
 
         void go(bool refresh)
         {
             try
             {
-                if (hostsIter == null)
-                    hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                if (_hostsIter == null)
+                    _hostsIter = _owner.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
 
-                if (!hostsIter.MoveNext())
+                if (!_hostsIter.MoveNext())
                 {
-                    isDiconnected = true;
-                    hostsIter = null;
-                    reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                    _isDiconnected = true;
+                    _hostsIter = null;
+                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
                 else
                 {
-                    reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                    connection = session.connect(null, hostsIter);
-                    setupEventListeners(connection);
+                    _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    _connection = _session.Connect(null, _hostsIter);
+                    SetupEventListeners(_connection);
                     if (refresh)
-                        refreshNodeListAndTokenMap(connection);
+                        refreshNodeListAndTokenMap(_connection);
                 }
             }
             catch (NoHostAvailableException)
             {
-                isDiconnected = true;
-                hostsIter = null;
-                reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                _isDiconnected = true;
+                _hostsIter = null;
+                _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
             }
             catch (Exception ex)
             {
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
-                    isDiconnected = true;
-                    hostsIter = null;
-                    reconnectionTimer.Change(reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                    _isDiconnected = true;
+                    _hostsIter = null;
+                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
                 else
                     throw;
             }
         }
 
-        void checkConnectionDown(IPAddress endpoint)
+        void CheckConnectionDown(IPAddress endpoint)
         {
-            if (hostsIter!=null && hostsIter.Current.Address == endpoint)
+            if (_hostsIter!=null && _hostsIter.Current.Address == endpoint)
             {
-                reconnectionSchedule = reconnectionPolicy.NewSchedule();
+                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                 go(false);
             }
         }
-        void checkConnectionUp(IPAddress endpoint)
+        void CheckConnectionUp(IPAddress endpoint)
         {
-            if (isDiconnected)
+            if (_isDiconnected)
             {
-                reconnectionSchedule = reconnectionPolicy.NewSchedule();
+                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                 go(true);
             }
         }
@@ -184,16 +185,16 @@ namespace Cassandra.Native
             Dictionary<IPAddress, DictSet<string>> tokenMap = new Dictionary<IPAddress, DictSet<string>>();
             string partitioner = null;
 
-            using (var rowset = session.Query(SELECT_LOCAL, ConsistencyLevel.DEFAULT))
+            using (var rowset = _session.Query(SELECT_LOCAL, ConsistencyLevel.DEFAULT))
             {
                 // Update cluster name, DC and rack for the one node we are connected to
                 foreach (var localRow in rowset.GetRows())
                 {
                     var clusterName = localRow.GetValue<string>("cluster_name");
                     if (clusterName != null)
-                        metadata.clusterName = clusterName;
+                        Metadata.ClusterName = clusterName;
 
-                    var host = metadata.GetHost(connection.GetHostAdress());
+                    var host = Metadata.GetHost(connection.GetHostAdress());
                     // In theory host can't be null. However there is no point in risking a NPE in case we
                     // have a race between a node removal and this.
                     if (host != null)
@@ -216,7 +217,7 @@ namespace Cassandra.Native
             List<string> racks = new List<string>();
             List<DictSet<string>> allTokens = new List<DictSet<string>>();
 
-            using (var rowset = session.Query(SELECT_PEERS, ConsistencyLevel.DEFAULT))
+            using (var rowset = _session.Query(SELECT_PEERS, ConsistencyLevel.DEFAULT))
             {
                 foreach (var row in rowset.GetRows())
                 {
@@ -233,11 +234,11 @@ namespace Cassandra.Native
 
             for (int i = 0; i < foundHosts.Count; i++)
             {
-                var host = metadata.GetHost(foundHosts[i]);
+                var host = Metadata.GetHost(foundHosts[i]);
                 if (host == null)
                 {
                     // We don't know that node, add it.
-                    host = metadata.AddHost(foundHosts[i], owner.Policies.ReconnectionPolicy);
+                    host = Metadata.AddHost(foundHosts[i], _owner.Policies.ReconnectionPolicy);
                 }
                 host.SetLocationInfo(dcs[i], racks[i]);
 
@@ -247,12 +248,12 @@ namespace Cassandra.Native
 
             // Removes all those that seems to have been removed (since we lost the control connection)
             DictSet<IPAddress> foundHostsSet = new DictSet<IPAddress>(foundHosts);
-            foreach (var host in metadata.AllHosts())
+            foreach (var host in Metadata.AllHosts())
                 if (!host.Equals(connection.GetHostAdress()) && !foundHostsSet.Contains(host))
-                    metadata.RemoveHost(host);
+                    Metadata.RemoveHost(host);
 
             if (partitioner != null)
-                metadata.rebuildTokenMap(partitioner, tokenMap);
+                Metadata.RebuildTokenMap(partitioner, tokenMap);
         }
 
         //static boolean waitForSchemaAgreement(Connection connection, Metadata metadata) throws ConnectionException, BusyConnectionException, ExecutionException, InterruptedException {

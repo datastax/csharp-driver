@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
 
-namespace Cassandra.Native
+namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
@@ -37,42 +37,42 @@ namespace Cassandra.Native
         delegate Type GetTypeFromCqlTypeDel(TableMetadata.ColumnInfo type_info);
         delegate byte[] InvCqlConvertDel(TableMetadata.ColumnInfo type_info, object value);
 
-        static readonly CqlConvertDel[] goMethods = new CqlConvertDel[byte.MaxValue + 1];
-        static readonly GetTypeFromCqlTypeDel[] typMethods = new GetTypeFromCqlTypeDel[byte.MaxValue + 1];
-        static readonly InvCqlConvertDel[] invMethods = new InvCqlConvertDel[byte.MaxValue + 1];
+        static readonly CqlConvertDel[] GoMethods = new CqlConvertDel[byte.MaxValue + 1];
+        static readonly GetTypeFromCqlTypeDel[] TypMethods = new GetTypeFromCqlTypeDel[byte.MaxValue + 1];
+        static readonly InvCqlConvertDel[] InvMethods = new InvCqlConvertDel[byte.MaxValue + 1];
 
         internal static void RegisterTypeInterpreter(TableMetadata.ColumnTypeCode type_code)
         {
             {
                 var mth = typeof(TypeInterpreter).GetMethod("ConvertFrom" + (type_code.ToString()), new Type[] { typeof(TableMetadata.ColumnInfo), typeof(byte[]) });
-                goMethods[(byte)type_code] = (CqlConvertDel)Delegate.CreateDelegate(typeof(CqlConvertDel), mth);
+                GoMethods[(byte)type_code] = (CqlConvertDel)Delegate.CreateDelegate(typeof(CqlConvertDel), mth);
             }
             {
                 var mth = typeof(TypeInterpreter).GetMethod("GetTypeFrom" + (type_code.ToString()), new Type[] { typeof(TableMetadata.ColumnInfo) });
-                typMethods[(byte)type_code] = (GetTypeFromCqlTypeDel)Delegate.CreateDelegate(typeof(GetTypeFromCqlTypeDel), mth);
+                TypMethods[(byte)type_code] = (GetTypeFromCqlTypeDel)Delegate.CreateDelegate(typeof(GetTypeFromCqlTypeDel), mth);
             }
             {
                 var mth = typeof(TypeInterpreter).GetMethod("InvConvertFrom" + (type_code.ToString()), new Type[] { typeof(TableMetadata.ColumnInfo), typeof(byte[]) });
-                invMethods[(byte)type_code] = (InvCqlConvertDel)Delegate.CreateDelegate(typeof(InvCqlConvertDel), mth);
+                InvMethods[(byte)type_code] = (InvCqlConvertDel)Delegate.CreateDelegate(typeof(InvCqlConvertDel), mth);
             }
         }
 
         public static object CqlConvert(byte[] buffer, TableMetadata.ColumnTypeCode type_code, TableMetadata.ColumnInfo type_info)
         {
-            return goMethods[(byte)type_code](type_info, buffer);
+            return GoMethods[(byte)type_code](type_info, buffer);
         }
 
         public static Type GetTypeFromCqlType(TableMetadata.ColumnTypeCode type_code, TableMetadata.ColumnInfo type_info)
         {
-            return typMethods[(byte)type_code](type_info);
+            return TypMethods[(byte)type_code](type_info);
         }
 
         public static byte[] InvCqlConvert(object value, TableMetadata.ColumnTypeCode type_code, TableMetadata.ColumnInfo type_info)
         {
-            return invMethods[(byte)type_code](type_info, value);
+            return InvMethods[(byte)type_code](type_info, value);
         }
 
-        static internal void checkArgument(Type t, object value)
+        static internal void CheckArgument(Type t, object value)
         {
             if (value == null)
                 throw new ArgumentNullException();
@@ -80,7 +80,7 @@ namespace Cassandra.Native
                 throw new ArgumentOutOfRangeException("value", value.GetType().FullName, "Should be: " + t.FullName);
         }
         
-        static internal void checkArgument<T>(object value)
+        static internal void CheckArgument<T>(object value)
         {
             if (value == null)
                 throw new ArgumentNullException();

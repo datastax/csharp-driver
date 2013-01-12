@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Xunit;
 
-namespace Cassandra.Native.Test
+namespace Cassandra.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {

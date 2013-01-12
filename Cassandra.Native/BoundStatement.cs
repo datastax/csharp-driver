@@ -1,4 +1,4 @@
-using Cassandra.Native;
+using Cassandra;
 using System;
 namespace Cassandra
 {
@@ -19,9 +19,9 @@ namespace Cassandra
     public class BoundStatement : Query
     {
 
-        readonly PreparedStatement statement;
+        readonly PreparedStatement _statement;
 
-        object[] values;
+        object[] _values;
 
         /**
          * Creates a new {@code BoundStatement} from the provided prepared
@@ -31,7 +31,7 @@ namespace Cassandra
          */
         public BoundStatement(PreparedStatement statement)
         {
-            this.statement = statement;
+            this._statement = statement;
         }
 
         /**
@@ -41,7 +41,7 @@ namespace Cassandra
          */
         public PreparedStatement PreparedStatement()
         {
-            return statement;
+            return _statement;
         }
 
         /**
@@ -65,7 +65,7 @@ namespace Cassandra
          */
         public BoundStatement Bind(params object[] values)
         {
-            this.values = values;
+            this._values = values;
             return this;
         }
 
@@ -91,7 +91,7 @@ namespace Cassandra
 
         internal override IAsyncResult BeginExecute(Session session, AsyncCallback callback, object state)
         {
-            return session.BeginExecuteQuery(PreparedStatement().id, PreparedStatement().metadata, values, callback, state, ConsistencyLevel, RoutingKey, this);
+            return session.BeginExecuteQuery(PreparedStatement().Id, PreparedStatement().Metadata, _values, callback, state, ConsistencyLevel, RoutingKey, this);
         }
 
         internal override CqlRowSet EndExecute(Session session, IAsyncResult ar)

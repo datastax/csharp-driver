@@ -1,4 +1,4 @@
-using Cassandra.Native;
+
 namespace Cassandra
 {
 
@@ -13,16 +13,16 @@ namespace Cassandra
      */
     public class PreparedStatement
     {
-        private volatile ConsistencyLevel consistency;
-        private volatile CassandraRoutingKey routingKey;
+        private volatile ConsistencyLevel _consistency;
+        private volatile CassandraRoutingKey _routingKey;
 
-        internal readonly TableMetadata metadata;
-        internal readonly byte[] id;
+        internal readonly TableMetadata Metadata;
+        internal readonly byte[] Id;
 
         internal PreparedStatement(TableMetadata metadata, byte[] id)
         {
-            this.metadata = metadata;
-            this.id = id;
+            this.Metadata = metadata;
+            this.Id = id;
         }
 
         /**
@@ -30,7 +30,7 @@ namespace Cassandra
  *
  * @return the variables bounded in this prepared statement.
  */
-        public TableMetadata Variables { get { return metadata; } }
+        public TableMetadata Variables { get { return Metadata; } }
 
         /**
          * Sets the consistency level for the query.
@@ -42,14 +42,14 @@ namespace Cassandra
          */
         public PreparedStatement SetConsistencyLevel(ConsistencyLevel consistency)
         {
-            this.consistency = consistency;
+            this._consistency = consistency;
             return this;
         }
 
-        public CassandraRoutingKey RoutingKey { get { return routingKey; } }
+        public CassandraRoutingKey RoutingKey { get { return _routingKey; } }
         public PreparedStatement SetRoutingKey(params CassandraRoutingKey[] routingKeys)
         {
-            this.routingKey = CassandraRoutingKey.Compose(routingKeys); return this;
+            this._routingKey = CassandraRoutingKey.Compose(routingKeys); return this;
         }
         /**
          * Creates a new BoundStatement object and bind its variables to the
@@ -77,7 +77,7 @@ namespace Cassandra
          */
         public BoundStatement Bind(params object[] values)
         {
-            BoundStatement bs = new BoundStatement(this);
+            var bs = new BoundStatement(this);
             return bs.Bind(values);
         }
     }
