@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Net;
 
 namespace Cassandra
 {
     internal class BEBinaryReader
     {
-        IProtoBuf _stream;
-        byte[] _buffer = new byte[4];
-        byte[] _longBuffer = new byte[16];
+        readonly IProtoBuf _stream;
+        readonly byte[] _buffer = new byte[4];
+        readonly byte[] _longBuffer = new byte[16];
 
         public BEBinaryReader(ResponseFrame input) { _stream = input.RawStream; }
 

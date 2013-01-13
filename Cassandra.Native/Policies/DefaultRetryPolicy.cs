@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Cassandra
+﻿namespace Cassandra
 {
     /// <summary>
     ///  The default retry policy.

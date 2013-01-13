@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Reflection;
-using Cassandra;
 using System.Collections;
 
 namespace Cassandra.Data
@@ -56,7 +55,7 @@ namespace Cassandra.Data
     
     internal static class CqlQueryTools
     {
-        static Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
+        static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
 
         public static string CqlIdentifier(this string id)
         {            
@@ -104,7 +103,7 @@ namespace Cassandra.Data
         /// <returns>A hex string representation of the array of bytes.</returns>
         public static string ToHex(this byte[] value)
         {
-            StringBuilder stringBuilder = new StringBuilder();
+            var stringBuilder = new StringBuilder();
             if (value != null)
             {
                 foreach (byte b in value)
@@ -130,7 +129,7 @@ namespace Cassandra.Data
             {
                 if (obj.GetType().GetInterface("ISet`1") != null)
                 {
-                    StringBuilder sb = new StringBuilder();
+                    var sb = new StringBuilder();
                     foreach (var el in (IEnumerable)obj)
                     {
                         if (sb.ToString() != "")
@@ -141,7 +140,7 @@ namespace Cassandra.Data
                 }
                 else if (obj.GetType().GetInterface("IDictionary`2") != null)
                 {
-                    StringBuilder sb = new StringBuilder();
+                    var sb = new StringBuilder();
                     IDictionaryEnumerator enn = ((IDictionary)obj).GetEnumerator();
                     while (enn.MoveNext())
                     {
@@ -153,7 +152,7 @@ namespace Cassandra.Data
                 }
                 else if (obj.GetType().GetInterface("IEnumerable`1") != null)
                 {
-                    StringBuilder sb = new StringBuilder();
+                    var sb = new StringBuilder();
                     foreach (var el in (IEnumerable)obj)
                     {
                         if (sb.ToString() != "")
@@ -221,7 +220,7 @@ namespace Cassandra.Data
         { typeof(Double), "double" },
         { typeof(Single), "float" },
         { typeof(Guid), "uuid" },
-        { typeof(Nullable<Guid>), "uuid" },
+        { typeof(Guid?), "uuid" },
         { typeof(DateTimeOffset), "timestamp" },
         };
 
@@ -254,8 +253,8 @@ namespace Cassandra.Data
 
         public static List<string> GetCreateCQL(ICqlTable table, string tablename = null)
         {
-            List<string> commands = new List<string>();
-            StringBuilder ret = new StringBuilder();
+            var commands = new List<string>();
+            var ret = new StringBuilder();
             int countersCount = 0;
             bool countersSpotted = false;
             ret.Append("CREATE TABLE ");
@@ -264,8 +263,8 @@ namespace Cassandra.Data
             string crtIndex = "CREATE INDEX ON " + table.GetTableName().CqlIdentifier() + "(";
             string crtIndexAll = string.Empty;
 
-            SortedDictionary<int, string> clusteringKeys = new SortedDictionary<int, string>();
-            SortedDictionary<int, string> partitionKeys = new SortedDictionary<int, string>();
+            var clusteringKeys = new SortedDictionary<int, string>();
+            var partitionKeys = new SortedDictionary<int, string>();
             var props = table.GetEntityType().GetPropertiesOrFields();
             int curLevel = 0;
             foreach (var prop in props)
@@ -353,7 +352,7 @@ namespace Cassandra.Data
         public static string GetInsertCQL(object row, string tablename = null)
         {
             var rowType = row.GetType();
-            StringBuilder ret = new StringBuilder();
+            var ret = new StringBuilder();
             ret.Append("INSERT INTO ");
             ret.Append((tablename ?? rowType.Name).CqlIdentifier());
             ret.Append("(");
@@ -379,8 +378,8 @@ namespace Cassandra.Data
         public static string GetUpdateCQL(object row, object newRow, string tablename = null, bool all = false)
         {
             var rowType = row.GetType();
-            StringBuilder SET = new StringBuilder();
-            StringBuilder WHERE = new StringBuilder();
+            var set = new StringBuilder();
+            var where = new StringBuilder();
             var props = rowType.GetPropertiesOrFields();
             bool firstSet = true;
             bool firstWhere = true;
@@ -400,9 +399,9 @@ namespace Cassandra.Data
                             if (diff != 0 || (Int64)prop.GetValueFromPropertyOrField(newRow) == 0)
                             {
                                 changeDetected = true;
-                                if (firstSet) firstSet = false; else SET.Append(",");
-                                SET.Append(prop.Name.CqlIdentifier() + "=" + prop.Name.CqlIdentifier());
-                                SET.Append((diff >= 0) ? "+" + diff.ToString() : diff.ToString());
+                                if (firstSet) firstSet = false; else set.Append(",");
+                                set.Append(prop.Name.CqlIdentifier() + "=" + prop.Name.CqlIdentifier());
+                                set.Append((diff >= 0) ? "+" + diff.ToString() : diff.ToString());
                             }
                             continue;
                         }
@@ -414,10 +413,10 @@ namespace Cassandra.Data
                             {
                                 if (areDifferent)
                                     changeDetected = true;
-                                if (firstSet) firstSet = false; else SET.Append(",");
-                                SET.Append(prop.Name.CqlIdentifier());
-                                SET.Append("=");
-                                SET.Append(Encode(newVal));
+                                if (firstSet) firstSet = false; else set.Append(",");
+                                set.Append(prop.Name.CqlIdentifier());
+                                set.Append("=");
+                                set.Append(Encode(newVal));
                             }
                             continue;
                         }
@@ -429,23 +428,23 @@ namespace Cassandra.Data
                 var pv = prop.GetValueFromPropertyOrField(row);
                 if ( pv != null)
                 {
-                    if (firstWhere) firstWhere = false; else WHERE.Append(" AND ");
-                    WHERE.Append(prop.Name.CqlIdentifier());
-                    WHERE.Append("=");
-                    WHERE.Append(Encode(pv));
+                    if (firstWhere) firstWhere = false; else where.Append(" AND ");
+                    where.Append(prop.Name.CqlIdentifier());
+                    where.Append("=");
+                    where.Append(Encode(pv));
                 }
             }
 
             if (!changeDetected)
                 return null;
 
-            StringBuilder ret = new StringBuilder();
+            var ret = new StringBuilder();
             ret.Append("UPDATE ");
             ret.Append((tablename ?? rowType.Name).CqlIdentifier());
             ret.Append(" SET ");
-            ret.Append(SET);
+            ret.Append(set);
             ret.Append(" WHERE ");
-            ret.Append(WHERE);
+            ret.Append(where);
             ret.Append(";");            
             return ret.ToString();
         }
@@ -454,7 +453,7 @@ namespace Cassandra.Data
         {
             var rowType = row.GetType();
 
-            StringBuilder ret = new StringBuilder();
+            var ret = new StringBuilder();
             ret.Append("DELETE FROM ");
             ret.Append((tablename ?? rowType.Name).CqlIdentifier());
             ret.Append(" WHERE ");
@@ -490,7 +489,7 @@ namespace Cassandra.Data
             var ncstr = typeof(T).GetConstructor(new Type[] { });
             if (ncstr != null)
             {
-                T row = (T)ncstr.Invoke(new object[] { });
+                var row = (T)ncstr.Invoke(new object[] { });
 
                 var props = typeof(T).GetMembers();
                 foreach (var prop in props)
@@ -507,11 +506,7 @@ namespace Cassandra.Data
                     }
                     else if (prop is FieldInfo)
                     {
-                        int idx;
-                        if (colToIdx.ContainsKey(prop.Name))
-                            idx = colToIdx[prop.Name];
-                        else
-                            idx = colToIdx[alter[prop.Name]];
+                        int idx = colToIdx.ContainsKey(prop.Name) ? colToIdx[prop.Name] : colToIdx[alter[prop.Name]];
                         var val = cqlRow[idx];
                         if (val == null)
                             (prop as FieldInfo).SetValue(row, val);
@@ -560,7 +555,7 @@ namespace Cassandra.Data
                     }
                     else
                     {
-                        object[] objs = new object[cqlRow.Length];
+                        var objs = new object[cqlRow.Length];
                         var props = typeof(T).GetMembers();
                         int idx = 0;
                         foreach (var prop in props)
@@ -583,7 +578,7 @@ namespace Cassandra.Data
 
     internal class CqlMthHelps
     {
-        static CqlMthHelps Instance = new CqlMthHelps();
+        static CqlMthHelps _instance = new CqlMthHelps();
         internal static MethodInfo SelectMi = typeof(CqlMthHelps).GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo TakeMi = typeof(CqlMthHelps).GetMethod("Take", BindingFlags.NonPublic | BindingFlags.Static);

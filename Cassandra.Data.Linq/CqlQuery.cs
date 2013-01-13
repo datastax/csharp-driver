@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Linq.Expressions;
 using System.Collections;
 
@@ -10,27 +9,27 @@ namespace Cassandra.Data
 
     public class CqlScalar<T>
     {
-        private readonly Expression expression;
-        private readonly IQueryProvider table;
+        private readonly Expression _expression;
+        private readonly IQueryProvider _table;
 
         internal CqlScalar(Expression expression, IQueryProvider table)
         {
-            this.expression = expression;
-            this.table = table;
+            this._expression = expression;
+            this._table = table;
         }
 
         public System.Linq.Expressions.Expression Expression
         {
-            get { return expression; }
+            get { return _expression; }
         }
 
         public T Execute()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.CountQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (table as ICqlTable).GetContext();
+            var conn = (_table as ICqlTable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 if (outp.RowsCount != 1)
@@ -52,19 +51,19 @@ namespace Cassandra.Data
 
     public class CqlQuery<TEntity> : IQueryable, IQueryable<TEntity>, IOrderedQueryable 
     {
-        private readonly Expression expression;
-        private readonly IQueryProvider table;
+        private readonly Expression _expression;
+        private readonly IQueryProvider _table;
 
         internal CqlQuery()
         {
-            this.expression = Expression.Constant(this);
-            this.table = (CqlTable<TEntity>)this;
+            this._expression = Expression.Constant(this);
+            this._table = (CqlTable<TEntity>)this;
         }
 
         internal CqlQuery(Expression expression, IQueryProvider table)
 		{
-			this.expression = expression;
-            this.table = table;
+			this._expression = expression;
+            this._table = table;
 		}
 
 
@@ -86,32 +85,32 @@ namespace Cassandra.Data
 
         public System.Linq.Expressions.Expression Expression
         {
-            get { return expression; }
+            get { return _expression; }
         }
 
         public IQueryProvider Provider
         {
-            get { return table; }
+            get { return _table; }
         }
 
 		public override string ToString()
 		{
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             return eval.Query;
 		}
 
         public IEnumerable<TEntity> Execute() 
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
-            var conn = (table as ICqlTable).GetContext();
+            var conn = (_table as ICqlTable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 var cols = outp.Columns;
-                Dictionary<string, int> colToIdx = new Dictionary<string, int>();
+                var colToIdx = new Dictionary<string, int>();
                 for (int idx = 0; idx < cols.Length; idx++)
                     colToIdx.Add(cols[idx].Name, idx);
                 var rows = outp.GetRows();
@@ -132,18 +131,18 @@ namespace Cassandra.Data
 
     public class CqlDelete : ICqlCommand
     {
-        private readonly Expression expression;
-        private readonly IQueryProvider table;
+        private readonly Expression _expression;
+        private readonly IQueryProvider _table;
 
         internal CqlDelete(Expression expression, IQueryProvider table)
         {
-            this.expression = expression;
-            this.table = table;
+            this._expression = expression;
+            this._table = table;
         }
 
         public System.Linq.Expressions.Expression Expression
         {
-            get { return expression; }
+            get { return _expression; }
         }
 
         public override string ToString()
@@ -153,17 +152,17 @@ namespace Cassandra.Data
 
         public void Execute()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (table as ICqlTable).GetContext();
+            var conn = (_table as ICqlTable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery); 
         }
 
         public string GetCql()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
             return cqlQuery;
@@ -173,18 +172,18 @@ namespace Cassandra.Data
 
     public class CqlUpdate : ICqlCommand
     {
-        private readonly Expression expression;
-        private readonly IQueryProvider table;
+        private readonly Expression _expression;
+        private readonly IQueryProvider _table;
 
         internal CqlUpdate(Expression expression, IQueryProvider table)
         {
-            this.expression = expression;
-            this.table = table;
+            this._expression = expression;
+            this._table = table;
         }
 
         public System.Linq.Expressions.Expression Expression
         {
-            get { return expression; }
+            get { return _expression; }
         }
 
         public override string ToString()
@@ -194,17 +193,17 @@ namespace Cassandra.Data
 
         public void Execute()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (table as ICqlTable).GetContext();
+            var conn = (_table as ICqlTable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery);
         }
 
         public string GetCql()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ICqlTable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
             return cqlQuery;

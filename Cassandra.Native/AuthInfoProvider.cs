@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+
 namespace Cassandra
 {
     /**

@@ -2,11 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra;
-using Cassandra.Data;
-using System.Data;
-using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Cassandra.Data
 {
@@ -18,14 +13,14 @@ namespace Cassandra.Data
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class PartitionKeyAttribute : Attribute
     {
-        public PartitionKeyAttribute(int Index = 0) { this.Index = Index; }
+        public PartitionKeyAttribute(int index = 0) { this.Index = index; }
         public int Index = -1;
     }
 
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class ClusteringKeyAttribute : Attribute
     {
-        public ClusteringKeyAttribute(int Index) { this.Index = Index; }
+        public ClusteringKeyAttribute(int index) { this.Index = index; }
         public int Index = -1;
     }
 
@@ -43,29 +38,29 @@ namespace Cassandra.Data
     {
         internal Session ManagedSession = null;
 
-        ConsistencyLevel ReadCqlConsistencyLevel;
-        ConsistencyLevel WriteCqlConsistencyLevel;
+        ConsistencyLevel _readCqlConsistencyLevel;
+        ConsistencyLevel _writeCqlConsistencyLevel;
 
-        string keyspaceName;
-        public string Keyspace { get { return keyspaceName; } }
+        string _keyspaceName;
+        public string Keyspace { get { return _keyspaceName; } }
 
-        void Initialize(Session cqlConnection, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
+        void Initialize(Session cqlConnection, ConsistencyLevel readCqlConsistencyLevel, ConsistencyLevel writeCqlConsistencyLevel)
         {
             this.ManagedSession = cqlConnection;
-            this.keyspaceName = cqlConnection.Keyspace;
-            this.ReadCqlConsistencyLevel = ReadCqlConsistencyLevel;
-            this.WriteCqlConsistencyLevel = WriteCqlConsistencyLevel;
+            this._keyspaceName = cqlConnection.Keyspace;
+            this._readCqlConsistencyLevel = readCqlConsistencyLevel;
+            this._writeCqlConsistencyLevel = writeCqlConsistencyLevel;
         }
-        public Context(Session cqlSession, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
+        public Context(Session cqlSession, ConsistencyLevel readCqlConsistencyLevel, ConsistencyLevel writeCqlConsistencyLevel)
         {
-            Initialize(cqlSession, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel);
+            Initialize(cqlSession, readCqlConsistencyLevel, writeCqlConsistencyLevel);
         }
 
-        Dictionary<string, ICqlTable> tables = new Dictionary<string, ICqlTable>();
+        readonly Dictionary<string, ICqlTable> _tables = new Dictionary<string, ICqlTable>();
 
         public void CreateTablesIfNotExist()
         {
-            foreach (var table in tables)
+            foreach (var table in _tables)
             {
                 try
                 {
@@ -90,17 +85,17 @@ namespace Cassandra.Data
         {
             var tn = tableName ?? typeof(TEntity).Name;
             var table = new CqlTable<TEntity>(this, tn);
-            tables.Add(tn, table);
+            _tables.Add(tn, table);
             return table;
         }
 
         public CqlTable<TEntity> AddTableIfNotHas<TEntity>(string tableName = null) where TEntity : class
         {
             var tn = tableName ?? typeof(TEntity).Name;
-            if (!tables.ContainsKey(tn))
+            if (!_tables.ContainsKey(tn))
             {
                 var table = new CqlTable<TEntity>(this, tn);
-                tables.Add(tn, table);
+                _tables.Add(tn, table);
                 return table;
             }
             else
@@ -110,23 +105,23 @@ namespace Cassandra.Data
         public bool HasTable<TEntity>(string tableName = null) where TEntity : class
         {
             var tn = tableName ?? typeof(TEntity).Name;
-            return tables.ContainsKey(tn);
+            return _tables.ContainsKey(tn);
         }
 
         public CqlTable<TEntity> GetTable<TEntity>(string tableName = null) where TEntity : class
         {
             var tn = tableName ?? typeof(TEntity).Name;
-            return (CqlTable<TEntity>)tables[tn];
+            return (CqlTable<TEntity>)_tables[tn];
         }
 
         internal CqlRowSet ExecuteReadQuery(string cqlQuery)
         {
-            return ManagedSession.Execute(cqlQuery, ReadCqlConsistencyLevel);
+            return ManagedSession.Execute(cqlQuery, _readCqlConsistencyLevel);
         }
 
         internal void ExecuteWriteQuery(string cqlQuery)
         {
-            var ret = ManagedSession.Execute(cqlQuery, WriteCqlConsistencyLevel);
+            var ret = ManagedSession.Execute(cqlQuery, _writeCqlConsistencyLevel);
             if (ret != null)
                 throw new InvalidOperationException();
         }
@@ -135,16 +130,16 @@ namespace Cassandra.Data
         {
             if (mode == SaveChangesMode.OneByOne)
             {
-                foreach (var table in tables)
+                foreach (var table in _tables)
                     table.Value.GetMutationTracker().SaveChangesOneByOne(this, table.Key);
-                foreach (var cplDels in additionalCommands)
+                foreach (var cplDels in _additionalCommands)
                     cplDels.Execute();
             }
             else
             {
-                StringBuilder batchScript = new StringBuilder();
-                StringBuilder counterBatchScript = new StringBuilder();
-                foreach (var table in tables)
+                var batchScript = new StringBuilder();
+                var counterBatchScript = new StringBuilder();
+                foreach (var table in _tables)
                 {
                     bool isCounter = false;
                     var props = table.Value.GetEntityType().GetPropertiesOrFields();
@@ -164,12 +159,12 @@ namespace Cassandra.Data
 
                 }
 
-                foreach (var cplDels in additionalCommands)
+                foreach (var cplDels in _additionalCommands)
                     batchScript.AppendLine(cplDels.GetCql() + ";");
                 if (counterBatchScript.Length != 0)
                 {
                     ExecuteWriteQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH");
-                    foreach (var table in tables)
+                    foreach (var table in _tables)
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
 
@@ -177,18 +172,18 @@ namespace Cassandra.Data
                 if (batchScript.Length != 0)
                 {
                     ExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH");
-                    foreach (var table in tables)
+                    foreach (var table in _tables)
                         table.Value.GetMutationTracker().BatchCompleted();
                 }
             }
-            additionalCommands.Clear();
+            _additionalCommands.Clear();
         }
 
-        List<ICqlCommand> additionalCommands = new List<ICqlCommand>();
+        readonly List<ICqlCommand> _additionalCommands = new List<ICqlCommand>();
 
         public void AppendCommand(ICqlCommand cqlCommand)
         {
-            additionalCommands.Add(cqlCommand);
+            _additionalCommands.Add(cqlCommand);
         }
     }
 }

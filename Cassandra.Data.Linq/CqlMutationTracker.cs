@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Linq;
 using System.Text;
-using System.Reflection;
 using System.Collections.Generic;
 
 namespace Cassandra.Data
@@ -84,7 +82,7 @@ namespace Cassandra.Data
 
         private TEntity Clone(TEntity entity)
         {
-            TEntity ret = Activator.CreateInstance<TEntity>();
+            var ret = Activator.CreateInstance<TEntity>();
             var props = typeof(TEntity).GetPropertiesOrFields();
             foreach (var prop in props)
                 prop.SetValueFromPropertyOrField(ret, prop.GetValueFromPropertyOrField(entity));
@@ -102,42 +100,42 @@ namespace Cassandra.Data
             public EntityTrackingMode CqlEntityTrackingMode = EntityTrackingMode.DetachAfterSave;
         }
 
-        Dictionary<TEntity, TableEntry<TEntity>> table = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
+        Dictionary<TEntity, TableEntry<TEntity>> _table = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
 
         public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
         {
-            if (table.ContainsKey(entity))
+            if (_table.ContainsKey(entity))
             {
-                table[entity].CqlEntityUpdateMode = updmod;
-                table[entity].CqlEntityTrackingMode = trmod;
-                table[entity].Entity = entity;
+                _table[entity].CqlEntityUpdateMode = updmod;
+                _table[entity].CqlEntityTrackingMode = trmod;
+                _table[entity].Entity = entity;
             }
             else
-                table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.None, CqlEntityUpdateMode = updmod, CqlEntityTrackingMode = trmod });
+                _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.None, CqlEntityUpdateMode = updmod, CqlEntityTrackingMode = trmod });
         }
 
         public void Detach(TEntity entity)
         {
-            table.Remove(entity);
+            _table.Remove(entity);
         }
 
         public void Delete(TEntity entity)
         {
-            if (table.ContainsKey(entity))
-                table[entity].MutationType = MutationType.Delete;
+            if (_table.ContainsKey(entity))
+                _table[entity].MutationType = MutationType.Delete;
             else
-                table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Delete });
+                _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Delete });
         }
 
         public void AddNew(TEntity entity,EntityTrackingMode trmod)
         {
-            if (table.ContainsKey(entity))
+            if (_table.ContainsKey(entity))
             {
-                table[entity].MutationType = MutationType.Add;
-                table[entity].CqlEntityTrackingMode = trmod;
+                _table[entity].MutationType = MutationType.Add;
+                _table[entity].CqlEntityTrackingMode = trmod;
             }
             else
-                table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
+                _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
         }
 
         public void SaveChangesOneByOne(Context context, string tablename)
@@ -145,7 +143,7 @@ namespace Cassandra.Data
             List<Action> commitActions = new List<Action>();
             try
             {
-                foreach (var kv in table)
+                foreach (var kv in _table)
                 {                    
                     if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                         throw new InvalidOperationException();
@@ -170,9 +168,9 @@ namespace Cassandra.Data
                     var nkv = kv;
                     commitActions.Add(() =>
                     {
-                        table.Remove(nkv.Key);
+                        _table.Remove(nkv.Key);
                         if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
-                            table.Add(Clone(nkv.Value.Entity), new TableEntry<TEntity>() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
+                            _table.Add(Clone(nkv.Value.Entity), new TableEntry<TEntity>() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
                     });
                 }
             }
@@ -187,7 +185,7 @@ namespace Cassandra.Data
 
         public void AppendChangesToBatch(StringBuilder batchScript, string tablename)
         {
-            foreach (var kv in table)
+            foreach (var kv in _table)
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
@@ -213,9 +211,9 @@ namespace Cassandra.Data
 
         public void BatchCompleted()
         {
-            Dictionary<TEntity, TableEntry<TEntity>> newtable = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
+            var newtable = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
 
-            foreach (var kv in table)
+            foreach (var kv in _table)
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
@@ -223,7 +221,7 @@ namespace Cassandra.Data
                     newtable.Add(Clone(kv.Value.Entity), new TableEntry<TEntity>() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
             }
 
-            table = newtable;
+            _table = newtable;
         }
     }
 }

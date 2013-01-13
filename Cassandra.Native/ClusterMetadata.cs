@@ -61,11 +61,11 @@ namespace Cassandra
     internal class TokenMap
     {
 
-        private readonly Dictionary<Token, DictSet<IPAddress>> _tokenToCassandraClusterHosts;
-        private readonly List<Token> _ring;
+        private readonly Dictionary<IToken, DictSet<IPAddress>> _tokenToCassandraClusterHosts;
+        private readonly List<IToken> _ring;
         internal readonly TokenFactory Factory;
 
-        private TokenMap(TokenFactory factory, Dictionary<Token, DictSet<IPAddress>> tokenToCassandraClusterHosts, List<Token> ring)
+        private TokenMap(TokenFactory factory, Dictionary<IToken, DictSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
         {
             this.Factory = factory;
             this._tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
@@ -79,8 +79,8 @@ namespace Cassandra
             if (factory == null)
                 return null;
 
-            Dictionary<Token, DictSet<IPAddress>> tokenToCassandraClusterHosts = new Dictionary<Token, DictSet<IPAddress>>();
-            DictSet<Token> allSorted = new DictSet<Token>();
+            Dictionary<IToken, DictSet<IPAddress>> tokenToCassandraClusterHosts = new Dictionary<IToken, DictSet<IPAddress>>();
+            DictSet<IToken> allSorted = new DictSet<IToken>();
 
             foreach (var entry in allTokens)
             {
@@ -89,7 +89,7 @@ namespace Cassandra
                 {
                     try
                     {
-                        Token t = factory.Parse(tokenStr);
+                        IToken t = factory.Parse(tokenStr);
                         allSorted.Add(t);
                         if (!tokenToCassandraClusterHosts.ContainsKey(t))
                             tokenToCassandraClusterHosts.Add(t, new DictSet<IPAddress>());
@@ -101,10 +101,10 @@ namespace Cassandra
                     }
                 }
             }
-            return new TokenMap(factory, tokenToCassandraClusterHosts, new List<Token>(allSorted));
+            return new TokenMap(factory, tokenToCassandraClusterHosts, new List<IToken>(allSorted));
         }
 
-        public DictSet<IPAddress> GetReplicas(Token token)
+        public DictSet<IPAddress> GetReplicas(IToken token)
         {
 
             // Find the primary replica

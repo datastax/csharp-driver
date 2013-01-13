@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Net;
-
-namespace Cassandra
+﻿namespace Cassandra
 {
     internal class EventResponse : IResponse
     {

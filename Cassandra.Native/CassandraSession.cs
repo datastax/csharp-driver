@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Net;
 using System.Threading;
-using System.IO;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Cassandra;
-using System.Net.Sockets;
 
 namespace Cassandra
 {

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Net;
-using Cassandra;
 using System.Threading;
 
 namespace Cassandra

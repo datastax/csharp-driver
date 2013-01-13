@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Numerics;
 
 //based on https://github.com/managedfusion/fluentcassandra/blob/master/src/System/Numerics/BigDecimal.cs

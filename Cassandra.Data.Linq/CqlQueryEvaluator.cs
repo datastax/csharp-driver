@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Linq.Expressions;
 using System.Collections;
-using System.Text.RegularExpressions;
 
 namespace Cassandra.Data
 {
     internal class CqlQueryEvaluator
     {
-        ICqlTable table;
+        readonly ICqlTable _table;
 
         internal CqlQueryEvaluator(ICqlTable table)
 		{
-            this.table = table;
+            this._table = table;
 
             SelectFieldsArray = new List<string>();
 			OrderByFieldsArray = new List<string>();
@@ -25,7 +23,7 @@ namespace Cassandra.Data
 			get
 			{
 				var select = Fields;
-                var from = table.GetTableName().CqlIdentifier();
+                var from = _table.GetTableName().CqlIdentifier();
 				var where = WhereCriteria;
 				var orderBy = OrderBy;
 				var limit = LimitCount;
@@ -41,7 +39,7 @@ namespace Cassandra.Data
 				if (limit > 0)
 					query += " \nLIMIT " + limit;
 
-                if(table.GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute),false).Count()>0)
+                if(_table.GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute),false).Any())
                     query += " \nALLOW FILTERING";
 
 				return query;
@@ -52,10 +50,8 @@ namespace Cassandra.Data
         {
             get
             {
-                var select = Fields;
-                var from = table.GetTableName().CqlIdentifier();
+                var from = _table.GetTableName().CqlIdentifier();
                 var where = WhereCriteria;
-                var orderBy = OrderBy;
                 var limit = LimitCount;
 
                 var query = string.Format("Delete \nFROM {0}", from);
@@ -71,10 +67,8 @@ namespace Cassandra.Data
         {
             get
             {
-                var select = Fields;
-                var from = table.GetTableName().CqlIdentifier();
+                var from = _table.GetTableName().CqlIdentifier();
                 var where = WhereCriteria;
-                var orderBy = OrderBy;
                 var limit = LimitCount;
 
                 var query = string.Format("Update {0}", from);
@@ -101,7 +95,7 @@ namespace Cassandra.Data
             get
             {
                 var select = Fields;
-                var from = table.GetTableName().CqlIdentifier();
+                var from = _table.GetTableName().CqlIdentifier();
                 var where = WhereCriteria;
                 var orderBy = OrderBy;
                 var limit = LimitCount;
@@ -315,9 +309,7 @@ namespace Cassandra.Data
 
 				case ExpressionType.MemberAccess:
 					var list = new List<object>();
-					VisitSelectMemberAccess((MemberExpression)exp, x => {
-						list.Add(x);
-					});
+					VisitSelectMemberAccess((MemberExpression)exp, list.Add);
 					return list;
 
 				case ExpressionType.New:
@@ -336,9 +328,7 @@ namespace Cassandra.Data
 			var list = new List<object>();
 
 			foreach (var arg in exp.Arguments)
-				VisitSelectMemberAccess((MemberExpression)arg, x => {
-					list.Add(x);
-				});
+				VisitSelectMemberAccess((MemberExpression)arg, list.Add);
 
 			return list;
 		}

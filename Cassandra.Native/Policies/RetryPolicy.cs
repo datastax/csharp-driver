@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Cassandra
+﻿namespace Cassandra
 {
     /**
      * A policy that defines a default behavior to adopt when a request returns

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Cassandra;
+﻿using System.Collections.Generic;
 
 /**
  * A Round-robin load balancing policy.

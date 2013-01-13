@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+
 namespace Cassandra
 {
     /**
@@ -14,7 +15,7 @@ namespace Cassandra
     public class SimpleAuthInfoProvider : IAuthInfoProvider
     {
 
-        private Dictionary<string, string> credentials = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
 
         /**
          * Creates a new, empty, simple authentication info provider.
@@ -34,7 +35,7 @@ namespace Cassandra
 
         public IDictionary<string, string> GetAuthInfos(IPAddress host)
         {
-            return credentials;
+            return _credentials;
         }
 
         /**
@@ -47,7 +48,7 @@ namespace Cassandra
          */
         public SimpleAuthInfoProvider Add(string property, string value)
         {
-            credentials.Add(property, value);
+            _credentials.Add(property, value);
             return this;
         }
 
@@ -61,7 +62,7 @@ namespace Cassandra
         public SimpleAuthInfoProvider AddAll(Dictionary<string, string> properties)
         {
             foreach (var kv in properties)
-                credentials[kv.Key] = kv.Value;
+                _credentials[kv.Key] = kv.Value;
             return this;
         }
     }

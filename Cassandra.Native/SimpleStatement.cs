@@ -1,5 +1,5 @@
-using Cassandra;
 using System;
+
 namespace Cassandra
 {
 
@@ -10,8 +10,8 @@ namespace Cassandra
     public class SimpleStatement : Statement
     {
 
-        private readonly string query;
-        private volatile CassandraRoutingKey routingKey;
+        private readonly string _query;
+        private volatile CassandraRoutingKey _routingKey;
 
         /**
          * Creates a new {@code SimpleStatement} with the provided query string.
@@ -20,7 +20,7 @@ namespace Cassandra
          */
         public SimpleStatement(string query)
         {
-            this.query = query;
+            this._query = query;
         }
 
         /**
@@ -28,7 +28,7 @@ namespace Cassandra
          *
          * @return the query string;
          */
-        public override string QueryString { get { return query; } }
+        public override string QueryString { get { return _query; } }
 
         /**
          * The routing key for the query.
@@ -42,10 +42,11 @@ namespace Cassandra
          *
          * @see Query#getRoutingKey
          */
-        public override CassandraRoutingKey RoutingKey { get { return routingKey; } }
+        public override CassandraRoutingKey RoutingKey { get { return _routingKey; } }
+
         public SimpleStatement SetRoutingKey(params CassandraRoutingKey[] routingKeys) 
         {
-            this.routingKey = CassandraRoutingKey.Compose(routingKeys); return this; 
+            this._routingKey = CassandraRoutingKey.Compose(routingKeys); return this; 
         }
 
 

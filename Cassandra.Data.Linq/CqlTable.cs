@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Linq.Expressions;
-using Cassandra;
-using System.Reflection;
 
 namespace Cassandra.Data
 {
@@ -22,13 +17,13 @@ namespace Cassandra.Data
 
     public class CqlTable<TEntity> : CqlQuery<TEntity>, ICqlTable, IQueryProvider
     {
-        Context context;
-        string tableName;
+        readonly Context _context;
+        readonly string _tableName;
 
         internal CqlTable(Context context, string tableName)
         {
-            this.context = context;
-            this.tableName = tableName;
+            this._context = context;
+            this._tableName = tableName;
         }
         public Type GetEntityType()
         {
@@ -37,7 +32,7 @@ namespace Cassandra.Data
 
         public string GetTableName()
         {
-            return tableName;
+            return _tableName;
         }
 
         public IQueryable<TElement> CreateQuery<TElement>(System.Linq.Expressions.Expression expression)
@@ -62,7 +57,7 @@ namespace Cassandra.Data
 
         public Context GetContext()
         {
-            return context;
+            return _context;
         }
 
         public CqlToken<T> Token<T>(T v)
@@ -70,31 +65,31 @@ namespace Cassandra.Data
             return new CqlToken<T>(v);
         }
 
-        CqlMutationTracker<TEntity> mutationTracker = new CqlMutationTracker<TEntity>();
+        readonly CqlMutationTracker<TEntity> _mutationTracker = new CqlMutationTracker<TEntity>();
 
         public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
         {
-            mutationTracker.Attach(entity, updmod, trmod);
+            _mutationTracker.Attach(entity, updmod, trmod);
         }
 
         public void Detach(TEntity entity)
         {
-            mutationTracker.Detach(entity);
+            _mutationTracker.Detach(entity);
         }
 
         public void Delete(TEntity entity)
         {
-            mutationTracker.Delete(entity);
+            _mutationTracker.Delete(entity);
         }
 
         public void AddNew(TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
         {
-            mutationTracker.AddNew(entity, trmod);
+            _mutationTracker.AddNew(entity, trmod);
         }
 
         public ICqlMutationTracker GetMutationTracker()
         {
-            return mutationTracker;
+            return _mutationTracker;
         }
     }
 
@@ -105,12 +100,12 @@ namespace Cassandra.Data
 
     public class CqlToken<T> : ICqlToken
     {
-        internal CqlToken(T v) { value = v; }
-        private T value;
+        internal CqlToken(T v) { _value = v; }
+        private readonly T _value;
 
         object ICqlToken.Value
         {
-            get { return value; }
+            get { return _value; }
         }
         
         public static bool operator ==(CqlToken<T> a, T b)

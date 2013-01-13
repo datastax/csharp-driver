@@ -1,5 +1,5 @@
-using Cassandra;
 using System;
+
 namespace Cassandra
 {
     /**

@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Net;
-using System.Globalization;
 using System.Threading;
 using System.Net.Sockets;
 
@@ -12,71 +10,59 @@ namespace Cassandra
 {
     internal class AtomicValue<T>
     {
-        T val;
+        T _val;
         public AtomicValue(T val)
         {
-            this.val = val;
+            this._val = val;
             Thread.MemoryBarrier();
         }
         public T Value
         {
             get
             {
-                //lock (this)
-                {
                     Thread.MemoryBarrier();
-                    var r = this.val;
+                    var r = this._val;
                     Thread.MemoryBarrier();
                     return r;
-                }
             }
             set
             {
-                //lock (this)
-                {
                     Thread.MemoryBarrier();
-                    this.val = value;
+                    this._val = value;
                     Thread.MemoryBarrier();
-                }
             }
         }
     }
 
     internal class AtomicArray<T>
     {
-        T[] arr = null;
+        readonly T[] _arr = null;
         public AtomicArray(int size)
         {
-            arr = new T[size];
+            _arr = new T[size];
             Thread.MemoryBarrier();
         }
         public T this[int idx]
         {
             get
             {
-                //lock (this)
-                {
                     Thread.MemoryBarrier();
-                    var r = this.arr[idx];
+                    var r = this._arr[idx];
                     Thread.MemoryBarrier();
                     return r;
-                }
             }
             set
             {
-                //lock (this)
-                {
                     Thread.MemoryBarrier();
-                    arr[idx] = value;
+                    _arr[idx] = value;
                     Thread.MemoryBarrier();
-                }
             }
         }
     }
 
     internal class Guarded<T>
     {
-        T val;
+        T _val;
 
         void AssureLocked()
         {
@@ -88,7 +74,7 @@ namespace Cassandra
         
         public Guarded(T val)
         {
-            this.val = val;
+            this._val = val;
             Thread.MemoryBarrier();
         }
         public T Value
@@ -96,12 +82,12 @@ namespace Cassandra
             get
             {
                 AssureLocked();
-                return val;
+                return _val;
             }
             set
             {
                 AssureLocked();
-                val = value;
+                _val = value;
             }
         }
     }
@@ -116,15 +102,10 @@ namespace Cassandra
     internal static class StaticRandom
     {
         [ThreadStatic]
-        static Random rnd = null;
+        static Random _rnd = null;
         public static Random Instance
         {
-            get
-            {
-                if (rnd == null)
-                    rnd = new Random(BitConverter.ToInt32(new Guid().ToByteArray(), 0));
-                return rnd;
-            }
+            get { return _rnd ?? (_rnd = new Random(BitConverter.ToInt32(new Guid().ToByteArray(), 0))); }
         }
     }
 
@@ -181,7 +162,7 @@ namespace Cassandra
 
     internal static class CqlQueryTools
     {
-        static Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
+        static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
         public static string CqlIdentifier(string id)
         {
             if (!string.IsNullOrEmpty(id))
@@ -219,7 +200,7 @@ namespace Cassandra
 };
         public static string ToHex(byte[] value)
         {
-            StringBuilder stringBuilder = new StringBuilder();
+            var stringBuilder = new StringBuilder();
             if (value != null)
             {
                 foreach (byte b in value)
@@ -256,7 +237,7 @@ namespace Cassandra
         public static SortedDictionary<string, int?> ConvertStringToMap(string source)
         {
             var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
-            SortedDictionary<string,int?> map = new SortedDictionary<string,int?>();
+            var map = new SortedDictionary<string,int?>();
 
             if(source != "{}")
                 foreach (var elem in elements)

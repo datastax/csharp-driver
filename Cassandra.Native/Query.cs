@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Cassandra;
 
 namespace Cassandra
 {
@@ -13,20 +10,20 @@ namespace Cassandra
      */
     public abstract class Query
     {
-        private volatile ConsistencyLevel consistency;
-        private volatile bool traceQuery;
+        private volatile ConsistencyLevel _consistency;
+        private volatile bool _traceQuery;
 
-        private volatile RetryPolicy retryPolicy;
+        private volatile RetryPolicy _retryPolicy;
 
-        public ConsistencyLevel ConsistencyLevel { get { return consistency; } }
-        public bool IsTracing { get { return traceQuery; } }
+        public ConsistencyLevel ConsistencyLevel { get { return _consistency; } }
+        public bool IsTracing { get { return _traceQuery; } }
 
-        public RetryPolicy RetryPolicy { get { return retryPolicy; } }
+        public RetryPolicy RetryPolicy { get { return _retryPolicy; } }
 
         // We don't want to expose the constructor, because the code rely on this being only subclassed by Statement and BoundStatement
         protected Query()
         {
-            this.consistency = ConsistencyLevel.ONE;
+            this._consistency = ConsistencyLevel.ONE;
         }
         
         /**
@@ -39,7 +36,7 @@ namespace Cassandra
          */
         public Query SetConsistencyLevel(ConsistencyLevel consistency)
         {
-            this.consistency = consistency;
+            this._consistency = consistency;
             return this;
         }
 
@@ -52,7 +49,7 @@ namespace Cassandra
          */
         public Query EnableTracing()
         {
-            this.traceQuery = true;
+            this._traceQuery = true;
             return this;
         }
 
@@ -63,7 +60,7 @@ namespace Cassandra
          */
         public Query DisableTracing()
         {
-            this.traceQuery = false;
+            this._traceQuery = false;
             return this;
         }
         
@@ -96,7 +93,7 @@ namespace Cassandra
          */
         public Query SetRetryPolicy(RetryPolicy policy)
         {
-            this.retryPolicy = policy;
+            this._retryPolicy = policy;
             return this;
         }
         internal abstract IAsyncResult BeginExecute(Session session, AsyncCallback callback, object state);

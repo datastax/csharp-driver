@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Cassandra
+﻿namespace Cassandra
 {
     /**
      * Policy that decides how often the reconnection to a dead node is attempted.

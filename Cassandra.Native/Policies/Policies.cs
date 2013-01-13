@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Cassandra
+﻿namespace Cassandra
 {
     /**
      * Policies configured for a {@link CassandraCluster} instance.

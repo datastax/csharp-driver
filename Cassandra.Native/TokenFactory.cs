@@ -1,11 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Net;
-using Cassandra;
-using System.Threading;
-using System.Data.Common;
-
 #if NET_40_OR_GREATER
 using System.Numerics;
 using System.Security.Cryptography;
@@ -20,49 +13,49 @@ namespace Cassandra
         public static TokenFactory GetFactory(string partitionerName)
         {
             if (partitionerName.EndsWith("Murmur3Partitioner"))
-                return M3PToken.FACTORY;
+                return M3PToken.Factory;
 #if NET_40_OR_GREATER
             else if (partitionerName.EndsWith("RandomPartitioner"))
-                return RPToken.FACTORY;
+                return RPToken.Factory;
 #endif
             else if (partitionerName.EndsWith("OrderedPartitioner"))
-                return OPPToken.FACTORY;
+                return OPPToken.Factory;
             else
                 return null;
         }
 
-        public abstract Token Parse(String tokenStr);
-        public abstract Token Hash(byte[] partitionKey);
+        public abstract IToken Parse(String tokenStr);
+        public abstract IToken Hash(byte[] partitionKey);
     }
 
-    interface Token : IComparable
+    interface IToken : IComparable
     {
     }
 
     // Murmur3Partitioner tokens
-    class M3PToken : Token
+    class M3PToken : IToken
     {
-        private readonly long value;
+        private readonly long _value;
 
         class M3PTokenFactory : TokenFactory
         {
-            public override Token Parse(string tokenStr)
+            public override IToken Parse(string tokenStr)
             {
                 return new M3PToken(long.Parse(tokenStr));
             }
 
-            public override Token Hash(byte[] partitionKey)
+            public override IToken Hash(byte[] partitionKey)
             {
                 long v = (long)MurmurHash.Hash3_x64_128(partitionKey, 0, partitionKey.Length, 0)[0];
                 return new M3PToken(v == long.MinValue ? long.MaxValue : v);
             }
         }
 
-        public static readonly TokenFactory FACTORY = new M3PTokenFactory();
+        public static readonly TokenFactory Factory = new M3PTokenFactory();
 
         private M3PToken(long value)
         {
-            this.value = value;
+            this._value = value;
         }
 
         public override bool Equals(object obj)
@@ -72,46 +65,46 @@ namespace Cassandra
             if (obj == null || this.GetType() != obj.GetType())
                 return false;
 
-            return value == ((M3PToken)obj).value;
+            return _value == ((M3PToken)obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return (int)(value ^ ((long)((ulong)value >> 32)));
+            return (int)(_value ^ ((long)((ulong)_value >> 32)));
         }
 
         public int CompareTo(object obj)
         {
             var other = obj as M3PToken;
-            long otherValue = other.value;
-            return value < otherValue ? -1 : (value == otherValue) ? 0 : 1;
+            long otherValue = other._value;
+            return _value < otherValue ? -1 : (_value == otherValue) ? 0 : 1;
         }
     }
 
     // OPPartitioner tokens
-    class OPPToken : Token
+    class OPPToken : IToken
     {
-        private readonly byte[] value;
+        private readonly byte[] _value;
 
         class OPPTokenFactory : TokenFactory
         {
-            public override Token Parse(string tokenStr)
+            public override IToken Parse(string tokenStr)
             {
                 return new OPPToken(System.Text.Encoding.UTF8.GetBytes(tokenStr));
             }
 
-            public override Token Hash(byte[] partitionKey)
+            public override IToken Hash(byte[] partitionKey)
             {
                 return new OPPToken(partitionKey);
             }
         }
 
-        public static readonly TokenFactory FACTORY = new OPPTokenFactory();
+        public static readonly TokenFactory Factory = new OPPTokenFactory();
 
 
         private OPPToken(byte[] value)
         {
-            this.value = value;
+            this._value = value;
         }
 
         public override bool Equals(object obj)
@@ -121,21 +114,21 @@ namespace Cassandra
             if (obj == null || this.GetType() != obj.GetType())
                 return false;
 
-            return value == ((OPPToken)obj).value;
+            return _value == ((OPPToken)obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return value.GetHashCode();
+            return _value.GetHashCode();
         }
 
         public int CompareTo(object obj)
         {
             var other = obj as OPPToken;
-            for (int i = 0; i < value.Length && i < other.value.Length; i++)
+            for (int i = 0; i < _value.Length && i < other._value.Length; i++)
             {
-                int a = (value[i] & 0xff);
-                int b = (other.value[i] & 0xff);
+                int a = (_value[i] & 0xff);
+                int b = (other._value[i] & 0xff);
                 if (a != b)
                     return a - b;
             }
@@ -146,32 +139,32 @@ namespace Cassandra
 #if NET_40_OR_GREATER
 
     // RandomPartitioner tokens
-    class RPToken : Token
+    class RPToken : IToken
     {
-        private readonly BigInteger value;
+        private readonly BigInteger _value;
 
         class RPTokenFactory : TokenFactory
         {
-            public override Token Parse(string tokenStr)
+            public override IToken Parse(string tokenStr)
             {
                 return new RPToken(BigInteger.Parse(tokenStr));
             }
 
             [ThreadStatic]
-            static MD5 md5 = null;
-            public override Token Hash(byte[] partitionKey)
+            static MD5 _md5 = null;
+            public override IToken Hash(byte[] partitionKey)
             {
-                if (md5 == null) md5 = MD5.Create();
-                return new RPToken(new BigInteger(md5.ComputeHash(partitionKey)));
+                if (_md5 == null) _md5 = MD5.Create();
+                return new RPToken(new BigInteger(_md5.ComputeHash(partitionKey)));
             }
         }
 
-        public static readonly TokenFactory FACTORY = new RPTokenFactory();
+        public static readonly TokenFactory Factory = new RPTokenFactory();
 
 
         private RPToken(BigInteger value)
         {
-            this.value = value;
+            this._value = value;
         }
 
         public override bool Equals(object obj)
@@ -181,18 +174,18 @@ namespace Cassandra
             if (obj == null || this.GetType() != obj.GetType())
                 return false;
 
-            return value == ((RPToken)obj).value;
+            return _value == ((RPToken)obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return value.GetHashCode();
+            return _value.GetHashCode();
         }
 
         public int CompareTo(object obj)
         {
             var other = obj as RPToken;
-            return value.CompareTo(other.value);
+            return _value.CompareTo(other._value);
         }
     }
 

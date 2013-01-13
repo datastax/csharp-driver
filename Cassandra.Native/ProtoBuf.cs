@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
@@ -18,13 +16,13 @@ namespace Cassandra
 
     internal class StreamProtoBuf : IProtoBuf
     {
-        readonly Stream stream;
+        readonly Stream _stream;
         bool _ioError = false;
-        IProtoBufComporessor compressor;
+        IProtoBufComporessor _compressor;
         public StreamProtoBuf(Stream stream, IProtoBufComporessor compressor)
         {
-            this.stream = stream;
-            this.compressor = compressor;
+            this._stream = stream;
+            this._compressor = compressor;
         }
 
         public void Write(byte[] buffer, int offset, int count)
@@ -38,8 +36,8 @@ namespace Cassandra
 
                 try
                 {
-                    lock(stream)
-                        stream.Write(buffer, offset, count);
+                    lock(_stream)
+                        _stream.Write(buffer, offset, count);
                 }
                 catch (IOException ex)
                 {
@@ -53,8 +51,8 @@ namespace Cassandra
         public void WriteByte(byte b)
         {
             if (_ioError) throw new CassandraConncectionIOException();
-            lock (stream)
-                stream.WriteByte(b);
+            lock (_stream)
+                _stream.WriteByte(b);
         }
 
         public void Read(byte[] buffer, int offset, int count)
@@ -69,9 +67,9 @@ namespace Cassandra
                 try
                 {
                     int redl;
-                    lock (stream)
+                    lock (_stream)
                     {
-                        redl = stream.Read(buffer, curOffset, count - curOffset - offset);
+                        redl = _stream.Read(buffer, curOffset, count - curOffset - offset);
                     }
                     if (redl == 0)
                     {
@@ -95,7 +93,7 @@ namespace Cassandra
             }
         }
 
-        byte[] trashBuf = new byte[10 * 1024];
+        readonly byte[] _trashBuf = new byte[10 * 1024];
 
         public void Skip(int count)
         {
@@ -108,9 +106,9 @@ namespace Cassandra
                 {
 
                     int redl;
-                    lock (stream)
+                    lock (_stream)
                     {
-                        redl = stream.Read(trashBuf, curOffset, count - curOffset);
+                        redl = _stream.Read(_trashBuf, curOffset, count - curOffset);
                     }
                     if (redl == 0)
                     {
@@ -138,93 +136,93 @@ namespace Cassandra
 
     internal class BufferedProtoBuf : IProtoBuf
     {
-        object guard = new object();
-        byte[] buffer;
-        int readPos;
-        int writePos;
-        IProtoBufComporessor compressor;
-        byte[] decompressedBuffer;
+        readonly object _guard = new object();
+        readonly byte[] _buffer;
+        int _readPos;
+        int _writePos;
+        readonly IProtoBufComporessor _compressor;
+        byte[] _decompressedBuffer;
 
         public BufferedProtoBuf(int bufferLength, IProtoBufComporessor compressor)
         {
-            this.compressor = compressor;
-            buffer = new byte[bufferLength];
-            readPos = 0;
-            writePos = 0;
+            this._compressor = compressor;
+            _buffer = new byte[bufferLength];
+            _readPos = 0;
+            _writePos = 0;
         }
 
         public void Write(byte[] buffer, int offset, int count)
         {
-            lock (guard)
+            lock (_guard)
             {
-                if (writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConncectionIOException();
 
                 if (buffer != null)
                 {
-                    Buffer.BlockCopy(buffer, offset, this.buffer, writePos, count);
-                    writePos += count;
+                    Buffer.BlockCopy(buffer, offset, this._buffer, _writePos, count);
+                    _writePos += count;
                 }
                 else
-                    writePos = -1;
-                Monitor.PulseAll(guard);
+                    _writePos = -1;
+                Monitor.PulseAll(_guard);
             }
         }
 
         public void WriteByte(byte b)
         {
-            lock (guard)
+            lock (_guard)
             {
-                if (writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConncectionIOException();
 
-                buffer[writePos] = b;
-                writePos++;
-                Monitor.PulseAll(guard);
+                _buffer[_writePos] = b;
+                _writePos++;
+                Monitor.PulseAll(_guard);
             }
         }
 
         public void Read(byte[] buffer, int offset, int count)
         {
             if (count == 0) return;
-            lock (guard)
+            lock (_guard)
             {
-                if (writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConncectionIOException();
 
-                if (compressor != null)
+                if (_compressor != null)
                 {
-                    while (writePos != -1 && writePos < this.buffer.Length)
-                        Monitor.Wait(guard);
+                    while (_writePos != -1 && _writePos < this._buffer.Length)
+                        Monitor.Wait(_guard);
 
-                    if (writePos == -1) throw new CassandraConncectionIOException();
+                    if (_writePos == -1) throw new CassandraConncectionIOException();
 
-                    if (decompressedBuffer == null)
-                        decompressedBuffer = compressor.Decompress(this.buffer);
+                    if (_decompressedBuffer == null)
+                        _decompressedBuffer = _compressor.Decompress(this._buffer);
                     
-                    if (count > decompressedBuffer.Length - readPos)
+                    if (count > _decompressedBuffer.Length - _readPos)
                         throw new DriverInternalError("Invalid decompression state");
                     
-                    Buffer.BlockCopy(this.decompressedBuffer, readPos, buffer, offset, count);
+                    Buffer.BlockCopy(this._decompressedBuffer, _readPos, buffer, offset, count);
                 }
                 else
                 {
-                    while (writePos != -1 && readPos + count > writePos)
-                        Monitor.Wait(guard);
+                    while (_writePos != -1 && _readPos + count > _writePos)
+                        Monitor.Wait(_guard);
 
-                    if (writePos == -1) throw new CassandraConncectionIOException();
+                    if (_writePos == -1) throw new CassandraConncectionIOException();
 
-                    Buffer.BlockCopy(this.buffer, readPos, buffer, offset, count);
+                    Buffer.BlockCopy(this._buffer, _readPos, buffer, offset, count);
                 }
 
-                readPos += count;
+                _readPos += count;
             }
         }
 
         public void Skip(int count)
         {
-            lock (guard)
+            lock (_guard)
             {
-                if (writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConncectionIOException();
 
-                readPos += count;
+                _readPos += count;
             }
         }
     }

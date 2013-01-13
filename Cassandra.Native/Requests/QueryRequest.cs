@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-
-namespace Cassandra
+﻿namespace Cassandra
 {
     internal class QueryRequest : IRequest
     {
