@@ -1,49 +1,46 @@
 ﻿namespace Cassandra
 {
-    /**
-     * Policies configured for a {@link CassandraCluster} instance.
-     */
+    /// <summary>
+    ///  Policies configured for a <link>Cluster</link>
+    ///  instance.
+    /// </summary>
     public class Policies
     {
-        /**
-         * The default load balancing policy.
-         * <p>
-         * The default load balancing policy is {@link RoundRobinPolicy}.
-         */
-        public static readonly LoadBalancingPolicy DefaultLoadBalancingPolicy = new RoundRobinPolicy();
+        /// <summary>
+        ///  The default load balancing policy. <p> The default load balancing policy is
+        ///  <link>RoundRobinPolicy</link>.
+        /// </summary>
+        public static readonly ILoadBalancingPolicy DefaultLoadBalancingPolicy = new RoundRobinPolicy();
 
-        /**
-         * The default reconnection policy.
-         * <p>
-         * The default reconnetion policy is an {@link ExponentialReconnectionPolicy}
-         * where the base delay is 1 second and the max delay is 10 minutes;
-         */
-        public static readonly ReconnectionPolicy DefaultReconnectionPolicy = new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
+        /// <summary>
+        ///  The default reconnection policy. <p> The default reconnetion policy is an
+        ///  <link>ExponentialReconnectionPolicy</link> where the base delay is 1 second
+        ///  and the max delay is 10 minutes;
+        /// </summary>
+        public static readonly IReconnectionPolicy DefaultReconnectionPolicy = new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
 
-        /**
-         * The default retry policy.
-         * <p>
-         * The default retry policy is {@link DefaultRetryPolicy}.
-         */
-        public static readonly RetryPolicy DefaultRetryPolicy = Cassandra.DefaultRetryPolicy.Instance;
+        /// <summary>
+        ///  The default retry policy. <p> The default retry policy is
+        ///  <link>DefaultRetryPolicy</link>.
+        /// </summary>
+        public static readonly IRetryPolicy DefaultRetryPolicy = Cassandra.DefaultRetryPolicy.Instance;
 
 
         public static readonly Policies DefaultPolicies = new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy);
 
-        private readonly LoadBalancingPolicy _loadBalancingPolicy;
-        private readonly ReconnectionPolicy _reconnectionPolicy;
-        private readonly RetryPolicy _retryPolicy;
+        private readonly ILoadBalancingPolicy _loadBalancingPolicy;
+        private readonly IReconnectionPolicy _reconnectionPolicy;
+        private readonly IRetryPolicy _retryPolicy;
 
-        /**
-         * Creates a new {@code Policies} object using the provided policies.
-         *
-         * @param loadBalancingPolicy the load balancing policy to use.
-         * @param reconnectionPolicy the reconnection policy to use.
-         * @param retryPolicy the retry policy to use.
-         */
-        public Policies(LoadBalancingPolicy loadBalancingPolicy,
-                        ReconnectionPolicy reconnectionPolicy,
-                        RetryPolicy retryPolicy)
+        /// <summary>
+        ///  Creates a new <code>Policies</code> object using the provided policies.
+        /// </summary>
+        /// <param name="loadBalancingPolicy"> the load balancing policy to use. </param>
+        /// <param name="reconnectionPolicy"> the reconnection policy to use. </param>
+        /// <param name="retryPolicy"> the retry policy to use.</param>
+        public Policies(ILoadBalancingPolicy loadBalancingPolicy,
+                        IReconnectionPolicy reconnectionPolicy,
+                        IRetryPolicy retryPolicy)
         {
 
             this._loadBalancingPolicy = loadBalancingPolicy;
@@ -51,14 +48,11 @@
             this._retryPolicy = retryPolicy;
         }
 
-        /**
-         * The load balancing policy in use.
-         * <p>
-         * The load balancing policy defines how Cassandra hosts are picked for queries.
-         *
-         * @return the load balancing policy in use.
-         */
-        public LoadBalancingPolicy LoadBalancingPolicy
+        /// <summary>
+        ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
+        ///  Cassandra hosts are picked for queries.
+        /// </summary>
+        public ILoadBalancingPolicy LoadBalancingPolicy
         {
             get
             {
@@ -66,14 +60,11 @@
             }
         }
 
-        /**
-         * The reconnection policy in use.
-         * <p>
-         * The reconnection policy defines how often the driver tries to reconnect to a dead node.
-         *
-         * @return the reconnection policy in use.
-         */
-        public ReconnectionPolicy ReconnectionPolicy
+        /// <summary>
+        ///  Gets the reconnection policy in use. <p> The reconnection policy defines how often
+        ///  the driver tries to reconnect to a dead node.
+        /// </summary>
+        public IReconnectionPolicy ReconnectionPolicy
         {
             get
             {
@@ -81,15 +72,11 @@
             }
         }
 
-        /**
-         * The retry policy in use.
-         * <p>
-         * The retry policy defines in which conditions a query should be
-         * automatically retries by the driver.
-         *
-         * @return the retry policy in use.
-         */
-        public RetryPolicy RetryPolicy
+        /// <summary>
+        ///  Gets the retry policy in use. <p> The retry policy defines in which conditions a
+        ///  query should be automatically retries by the driver.
+        /// </summary>
+        public IRetryPolicy RetryPolicy
         {
             get
             {

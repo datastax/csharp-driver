@@ -126,7 +126,7 @@ namespace Cassandra
 
         readonly List<CassandraConnection> _trahscan = new List<CassandraConnection>();
 
-        internal CassandraConnection Connect(CassandraRoutingKey routingKey, IEnumerator<Host> hostsIter, Dictionary<IPAddress, Exception> innerExceptions = null)
+        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, Dictionary<IPAddress, Exception> innerExceptions = null)
         {
             CheckDisposed();
             lock (_trahscan)
@@ -486,7 +486,7 @@ namespace Cassandra
         
         #endregion
 
-        static RetryDecision GetRetryDecision(QueryValidationException exc, RetryPolicy policy, int queryRetries)
+        static RetryDecision GetRetryDecision(Query query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
         {
             if (exc is OverloadedException) return RetryDecision.Retry(null);
             else if (exc is IsBootstrappingException) return RetryDecision.Retry(null);
@@ -495,17 +495,17 @@ namespace Cassandra
             else if (exc is ReadTimeoutException)
             {
                 var e = exc as ReadTimeoutException;
-                return policy.OnReadTimeout(e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, queryRetries);
+                return policy.OnReadTimeout(query, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, queryRetries);
             }
             else if (exc is WriteTimeoutException)
             {
                 var e = exc as WriteTimeoutException;
-                return policy.OnWriteTimeout(e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, queryRetries);
+                return policy.OnWriteTimeout(query, e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, queryRetries);
             }
             else if (exc is UnavailableException)
             {
                 var e = exc as UnavailableException;
-                return policy.OnUnavailable(e.Consistency, e.RequiredReplicas, e.AliveReplicas, queryRetries);
+                return policy.OnUnavailable(query, e.Consistency, e.RequiredReplicas, e.AliveReplicas, queryRetries);
             }
 
             else if (exc is AlreadyExistsException) return RetryDecision.Rethrow();
@@ -604,7 +604,7 @@ namespace Cassandra
         {
             public CassandraConnection Connection;
             public ConsistencyLevel Consistency;
-            public CassandraRoutingKey RoutingKey;
+            public Query Query;
             private IEnumerator<Host> _hostsIter = null;
             public IAsyncResult LongActionAc;
             public readonly Dictionary<IPAddress, Exception> InnerExceptions = new Dictionary<IPAddress, Exception>();
@@ -613,7 +613,7 @@ namespace Cassandra
             {
                 if (_hostsIter == null)
                 {
-                    _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(RoutingKey).GetEnumerator();
+                    _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
                     if (!_hostsIter.MoveNext())
                         throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
                 }
@@ -624,7 +624,7 @@ namespace Cassandra
                             throw new NoHostAvailableException(InnerExceptions ?? new Dictionary<IPAddress, Exception>());
                 }
 
-                Connection = owner.Connect(RoutingKey, _hostsIter, InnerExceptions);
+                Connection = owner.Connect(Query, _hostsIter, InnerExceptions);
             }
             abstract public void Begin(Session owner);
             abstract public void Process(Session owner, IAsyncResult ar, out object value);
@@ -667,7 +667,7 @@ namespace Cassandra
                 }
                 catch (QueryValidationException exc)
                 {
-                    var decision = GetRetryDecision(exc, Policies.RetryPolicy, token.QueryRetries);
+                    var decision = GetRetryDecision(token.Query, exc, Policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
                     {
                         token.InnerExceptions[token.Connection.GetHostAdress()] = exc;
@@ -731,10 +731,10 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
+        internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
         {
             var longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, _clientAbortAsyncCommandTimeout);
-            var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
+            var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -747,9 +747,9 @@ namespace Cassandra
             return AsyncResult<string>.End(ar, this, "SessionSetKeyspace");
         }
 
-        internal object SetKeyspace(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
+        internal object SetKeyspace(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
         {
-            var ar = BeginSetKeyspace(cqlQuery, null, null, consistency, routingKey);
+            var ar = BeginSetKeyspace(cqlQuery, null, null, consistency, query);
             return EndSetKeyspace(ar);
         }
 
@@ -782,10 +782,10 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null, object sender = null)
+        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null)
         {
             var longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender, _clientAbortAsyncCommandTimeout);
-            var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
+            var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -797,9 +797,9 @@ namespace Cassandra
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionQuery");
         }
 
-        internal CqlRowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
         {
-            return EndQuery(BeginQuery(cqlQuery, null, null, consistency, routingKey));
+            return EndQuery(BeginQuery(cqlQuery, null, null, consistency, query));
         }
 
         #endregion
@@ -857,9 +857,9 @@ namespace Cassandra
             return ret.Value;
         }
 
-        internal byte[] PrepareQuery(string cqlQuery, out TableMetadata metadata, CassandraRoutingKey routingKey = null)
+        internal byte[] PrepareQuery(string cqlQuery, out TableMetadata metadata)
         {
-            var ar = BeginPrepareQuery(cqlQuery, null, null, routingKey);
+            var ar = BeginPrepareQuery(cqlQuery, null, null, null);
             return EndPrepareQuery(ar, out metadata);
         }
 
@@ -895,10 +895,10 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null, object sender = null)
+        internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null)
         {
             AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender, _clientAbortAsyncCommandTimeout);
-            var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, RoutingKey = routingKey, LongActionAc = longActionAc };
+            var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, Query = query, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -911,9 +911,9 @@ namespace Cassandra
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal CqlRowSet ExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet ExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
         {
-            var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, routingKey);
+            var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, query);
             return EndExecuteQuery(ar);
         }
 

@@ -1,12 +1,12 @@
 namespace Cassandra
 {
-    /**
-     * A retry policy that never retry (nor ignore).
-     * <p>
-     * All of the methods of this retry policy unconditionally return {@link RetryPolicy.RetryDecision#rethrow}.
-     * If this policy is used, retry will have to be implemented in business code.
-     */
-    public class FallthroughRetryPolicy : RetryPolicy
+    /// <summary>
+    ///  A retry policy that never retry (nor ignore). <p> All of the methods of this
+    ///  retry policy unconditionally return
+    ///  <link>RetryPolicy.RetryDecision#rethrow</link>. If this policy is used, retry
+    ///  will have to be implemented in business code.
+    /// </summary>
+    public class FallthroughRetryPolicy : IRetryPolicy
     {
 
         public static readonly FallthroughRetryPolicy Instance = new FallthroughRetryPolicy();
@@ -14,54 +14,63 @@ namespace Cassandra
         private FallthroughRetryPolicy() { }
 
 
-        /**
-         * Defines whether to retry and at which consistency level on a read timeout.
-         *
-         * @param cl the original consistency level of the read that timeouted.
-         * @param requiredResponses the number of responses that were required to
-         * achieve the requested consistency level.
-         * @param receivedResponses the number of responses that had been received
-         * by the time the timeout exception was raised.
-         * @param dataRetrieved whether actual data (by opposition to data checksum)
-         * was present in the received responses.
-         * @param nbRetry the number of retry already performed for this operation.
-         * @return {@code RetryDecision.rethrow()}.
-         */
-        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        /// <summary>
+        ///  Defines whether to retry and at which consistency level on a read timeout.
+        /// </summary>
+        /// <param name="query"> the original query that timeouted. </param>
+        /// <param name="cl"> the original consistency level of the read that timeouted.
+        ///  </param>
+        /// <param name="requiredResponses"> the number of responses that were required
+        ///  to achieve the requested consistency level. </param>
+        /// <param name="receivedResponses"> the number of responses that had been
+        ///  received by the time the timeout exception was raised. </param>
+        /// <param name="dataRetrieved"> whether actual data (by opposition to data
+        ///  checksum) was present in the received responses. </param>
+        /// <param name="nbRetry"> the number of retry already performed for this
+        ///  operation. </param>
+        /// 
+        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }
 
-        /**
-         * Defines whether to retry and at which consistency level on a write timeout.
-         *
-         * @param cl the original consistency level of the write that timeouted.
-         * @param writeType the type of the write that timeouted.
-         * @param requiredAcks the number of acknowledgments that were required to
-         * achieve the requested consistency level.
-         * @param receivedAcks the number of acknowledgments that had been received
-         * by the time the timeout exception was raised.
-         * @param nbRetry the number of retry already performed for this operation.
-         * @return {@code RetryDecision.rethrow()}.
-         */
-        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        /// <summary>
+        ///  Defines whether to retry and at which consistency level on a write timeout.
+        /// </summary>
+        /// <param name="query"> the original query that timeouted. </param>
+        /// <param name="cl"> the original consistency level of the write that timeouted.
+        ///  </param>
+        /// <param name="writeType"> the type of the write that timeouted. </param>
+        /// <param name="requiredAcks"> the number of acknowledgments that were required
+        ///  to achieve the requested consistency level. </param>
+        /// <param name="receivedAcks"> the number of acknowledgments that had been
+        ///  received by the time the timeout exception was raised. </param>
+        /// <param name="nbRetry"> the number of retry already performed for this
+        ///  operation. </param>
+        /// 
+        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }
 
-        /**
-         * Defines whether to retry and at which consistency level on an
-         * unavailable exception.
-         *
-         * @param cl the original consistency level for the operation.
-         * @param requiredReplica the number of replica that should have been
-         * (known) alive for the operation to be attempted.
-         * @param aliveReplica the number of replica that were know to be alive by
-         * the coordinator of the operation.
-         * @param nbRetry the number of retry already performed for this operation.
-         * @return {@code RetryDecision.rethrow()}.
-         */
-        public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        /// <summary>
+        ///  Defines whether to retry and at which consistency level on an unavailable
+        ///  exception.
+        /// </summary>
+        /// <param name="query"> the original query for which the consistency level
+        ///  cannot be achieved. </param>
+        /// <param name="cl"> the original consistency level for the operation. </param>
+        /// <param name="requiredReplica"> the number of replica that should have been
+        ///  (known) alive for the operation to be attempted. </param>
+        /// <param name="aliveReplica"> the number of replica that were know to be alive
+        ///  by the coordinator of the operation. </param>
+        /// <param name="nbRetry"> the number of retry already performed for this
+        ///  operation. </param>
+        /// 
+        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }

@@ -4,24 +4,20 @@ using System.Threading;
 
 namespace Cassandra
 {
-    /**
-     * Informations and known state of a Cassandra cluster.
-     * <p>
-     * This is the main entry point of the driver. A simple example of access to a
-     * Cassandra cluster would be:
-     * <pre>
-     *   Cluster cluster = Cluster.CassandraClusterBuilder().addContactPoint("192.168.0.1").build();
-     *   Session session = cluster.connect("db1");
-     *
-     *   for (Row row : session.execute("SELECT * FROM table1"))
-     *       // do something ...
-     * </pre>
-     * <p>
-     * A cluster object maintains a permanent connection to one of the cluster node
-     * that it uses solely to maintain informations on the state and current
-     * topology of the cluster. Using the connection, the driver will discover all
-     * the nodes composing the cluster as well as new nodes joining the cluster.
-     */
+    /// <summary>
+    ///  Informations and known state of a Cassandra cluster. <p> This is the main
+    ///  entry point of the driver. A simple example of access to a Cassandra cluster
+    ///  would be: 
+    /// <pre> Cluster cluster = Cluster.NewBuilder.AddContactPoint("192.168.0.1").Build(); 
+    ///  Session session = Cluster.Connect("db1"); 
+    ///  foreach (var row in session.execute("SELECT * FROM table1")) 
+    ///    //do something ... </pre> 
+    ///  <p> A cluster object maintains a
+    ///  permanent connection to one of the cluster node that it uses solely to
+    ///  maintain informations on the state and current topology of the cluster. Using
+    ///  the connection, the driver will discover all the nodes composing the cluster
+    ///  as well as new nodes joining the cluster.
+    /// </summary>
     public class Cluster
     {
         public const int DefaultPort = 9042;
@@ -55,25 +51,16 @@ namespace Cassandra
             this._abortTimeout = abortTimeout;
         }
 
-        /**
-         * Build a new cluster based on the provided initializer.
-         * <p>
-         * Note that for building a cluster programmatically, Cluster.CassandraClusterBuilder
-         * provides a slightly less verbose shortcut with {@link CassandraClusterBuilder#build}.
-         * <p>
-         * Also note that that all the contact points provided by {@code
-         * initializer} must share the same port.
-         *
-         * @param initializer the Cluster.IInitializer to use
-         * @return the newly created Cluster instance
-         *
-         * @throws NoHostAvailableException if no host amongst the contact points
-         * can be reached.
-         * @throws IllegalArgumentException if the list of contact points provided
-         * by {@code initiazer} is empty or if not all those contact points have the same port.
-         * @throws AuthenticationException if while contacting the initial
-         * contact points an authencation error occurs.
-         */
+        /// <summary>
+        ///  Build a new cluster based on the provided initializer. <p> Note that for
+        ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
+        ///  verbose shortcut with <link>NewBuilder#Build</link>. <p> Also note that that all
+        ///  the contact points provided by <code>* initializer</code> must share the same
+        ///  port.
+        /// </summary>
+        /// <param name="initializer"> the Cluster.Initializer to use </param>
+        /// 
+        /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
             IEnumerable<IPAddress> contactPoints = initializer.ContactPoints;
@@ -83,42 +70,34 @@ namespace Cassandra
             return new Cluster(contactPoints, initializer.Port, initializer.Policies, initializer.AuthInfoProvider, initializer.UseNoBufferingIfPossible, initializer.CompressionType, initializer.DefaultKeyspace, initializer.AbortTimeout);
         }
 
-        /**
- * Creates a new {@link Cluster.CassandraClusterBuilder} instance.
- * <p>
- * This is a shortcut for {@code new Cluster.CassandraClusterBuilder()}.
- *
- * @return the new cluster CassandraClusterBuilder.
- */
-        public static ClusterBuilder Builder
+        /// <summary>
+        ///  Creates a new <link>Cluster.NewBuilder</link> instance. <p> This is a shortcut
+        ///  for <code>new Cluster.NewBuilder()</code>.
+        /// </summary>
+        /// 
+        /// <returns>the new cluster builder.</returns>
+        public static Builder Builder()
         {
-            get
-            {
-                return new ClusterBuilder();
-            }
+                return new Builder();
         }
 
-        /**
-         * Creates a new session on this cluster.
-         *
-         * @return a new session on this cluster sets to no keyspace.
-         */
+        /// <summary>
+        ///  Creates a new session on this cluster.
+        /// </summary>
+        /// 
+        /// <returns>a new session on this cluster sets to no keyspace.</returns>
         public Session Connect()
         {
             return Connect(_defaultKeyspace);
         }
 
-        /**
-         * Creates a new session on this cluster and sets a keyspace to use.
-         *
-         * @param keyspace The name of the keyspace to use for the created
-         * {@code Session}.
-         * @return a new session on this cluster sets to keyspace
-         * {@code keyspaceName}.
-         *
-         * @throws NoHostAvailableException if no host can be contacted to set the
-         * {@code keyspace}.
-         */
+        /// <summary>
+        ///  Creates a new session on this cluster and sets a keyspace to use.
+        /// </summary>
+        /// <param name="keyspace"> The name of the keyspace to use for the created <code>Session</code>. </param>
+        /// 
+        /// <returns>a new session on this cluster sets to keyspace
+        ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
             return new Session(
@@ -150,44 +129,26 @@ namespace Cassandra
         }
     }
 
-    /**
-     * IInitializer for {@link Cluster} instances.
-     */
+    /// <summary>
+    ///  Initializer for <link>Cluster</link> instances. <p> If you want to create a
+    ///  new <code>Cluster</code> instance programmatically, then it is advised to use
+    ///  <link>Cluster.Builder</link> (obtained through the
+    ///  <link>Cluster#builder</link> method). <p> But it is also possible to
+    ///  implement a custom <code>Initializer</code> that retrieve initialization from
+    ///  a web-service or from a configuration file for instance.
+    /// </summary>
     public interface IInitializer
     {
 
-        /**
-         * Returns the initial Cassandra hosts to connect to.
-         *
-         * @return the initial Cassandra contact points. See {@link CassandraClusterBuilder#addContactPoint}
-         * for more details on contact points.
-         */
+        /// <summary>
+        ///  Gets the initial Cassandra hosts to connect to.
+        /// </summary>
         IEnumerable<IPAddress> ContactPoints { get; }
 
-        /**
-         * The port to use to connect to Cassandra hosts.
-         * <p>
-         * This port will be used to connect to all of the Cassandra cluster
-         * hosts, not only the contact points. This means that all Cassandra
-         * host must be configured to listen on the same port.
-         *
-         * @return the port to use to connect to Cassandra hosts.
-         */
         int Port { get; }
 
-        /**
-         * Returns the policies to use for this cluster.
-         *
-         * @return the policies to use for this cluster.
-         */
         Policies Policies { get; }
 
-        /**
-         * The authentication provider to use to connect to the Cassandra cluster.
-         *
-         * @return the authentication provider to use. Use
-         * AuthInfoProvider.NONE if authentication is not to be used.
-         */
         IAuthInfoProvider AuthInfoProvider { get; }
 
         bool UseNoBufferingIfPossible { get; }
@@ -199,10 +160,10 @@ namespace Cassandra
         int AbortTimeout { get; }
     }
 
-    /**
-     * Helper class to build {@link Cluster} instances.
-     */
-    public class ClusterBuilder : IInitializer
+    /// <summary>
+    ///  Helper class to build <link>Cluster</link> instances.
+    /// </summary>
+    public class Builder : IInitializer
     {
 
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
@@ -210,9 +171,9 @@ namespace Cassandra
         private IAuthInfoProvider _authProvider = null;
         private CompressionType _compression = CompressionType.NoCompression;
 
-        private LoadBalancingPolicy _loadBalancingPolicy;
-        private ReconnectionPolicy _reconnectionPolicy;
-        private RetryPolicy _retryPolicy;
+        private ILoadBalancingPolicy _loadBalancingPolicy;
+        private IReconnectionPolicy _reconnectionPolicy;
+        private IRetryPolicy _retryPolicy;
         private bool _noBufferingIfPossible = false;
 
         private string _defaultKeyspace = null;
@@ -227,7 +188,9 @@ namespace Cassandra
             }
         }
 
-        public ClusterBuilder WithConnectionString(string connectionString)
+        public int Port { get {return _port;} }
+
+        public Builder WithConnectionString(string connectionString)
         {
             var cnb = new ConnectionStringBuilder(connectionString);
 
@@ -239,187 +202,141 @@ namespace Cassandra
             return this;
         }
 
-        public ClusterBuilder WithConnectionTimeout(int abortTimeout)
+        public Builder WithConnectionTimeout(int abortTimeout)
         {
             this._abortTimeout = abortTimeout;
             return this;
         }
 
 
-        public ClusterBuilder WithDefaultKeyspace(string defaultKeyspace)
+        public Builder WithDefaultKeyspace(string defaultKeyspace)
         {
             this._defaultKeyspace = defaultKeyspace;
             return this;
         }
-        /**
-         * The port to use to connect to the Cassandra host.
-         *
-         * If not set through this method, the default port (9042) will be used
-         * instead.
-         *
-         * @param port the port to set.
-         * @return this CassandraClusterBuilder
-         */
-        public ClusterBuilder WithPort(int port)
+
+        /// <summary>
+        ///  The port to use to connect to the Cassandra host. If not set through this
+        ///  method, the default port (9042) will be used instead.
+        /// </summary>
+        /// <param name="port"> the port to set. </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithPort(int port)
         {
             this._port = port;
             return this;
         }
 
 
-        /**
-         * Sets the compression to use for the transport.
-         *
-         * @param compression the compression to set
-         * @return this Builder
-         *
-         * @see ProtocolOptions.Compression
-         */
-        public ClusterBuilder WithCompression(CompressionType compression)
+        /// <summary>
+        ///  Sets the compression to use for the transport.
+        /// </summary>
+        /// <param name="compression"> the compression to set </param>
+        /// 
+        /// <returns>this Builder <see>ProtocolOptions.Compression</returns>
+        public Builder WithCompression(CompressionType compression)
         {
             this._compression = compression;
             return this;
         }
 
-        public ClusterBuilder OmmitBufferingIfPossible()
+        public Builder OmmitBufferingIfPossible()
         {
             this._noBufferingIfPossible = true;
             return this;
         }
 
-        /**
-         * The port to use to connect to Cassandra hosts.
-         *
-         * @return the port to use to connect to Cassandra hosts.
-         */
-        public int Port
-        {
-            get
-            {
-                return _port;
-            }
-        }
-
-        /**
-         * Adds a contact point.
-         *
-         * Contact points are addresses of Cassandra nodes that the driver uses
-         * to discover the cluster topology. Only one contact point is required
-         * (the driver will retrieve the address of the other nodes
-         * automatically), but it is usually a good idea to provide more than
-         * one contact point, as if that unique contact point is not available,
-         * the driver won't be able to initialize itself correctly.
-         *
-         * @param address the address of the node to connect to
-         * @return this CassandraClusterBuilder
-         *
-         * @throws IllegalArgumentException if no IP address for {@code address}
-         * could be found
-         * @throws SecurityException if a security manager is present and
-         * permission to resolve the host name is denied.
-         */
-
-        public ClusterBuilder AddContactPoint(string address)
+        /// <summary>
+        ///  Adds a contact point. Contact points are addresses of Cassandra nodes that
+        ///  the driver uses to discover the cluster topology. Only one contact point is
+        ///  required (the driver will retrieve the address of the other nodes
+        ///  automatically), but it is usually a good idea to provide more than one
+        ///  contact point, as if that unique contact point is not available, the driver
+        ///  won't be able to initialize itself correctly.'
+        /// </summary>
+        /// <param name="address"> the address of the node to connect to </param>
+        /// 
+        /// <returns>this Builder </returns>
+        public Builder AddContactPoint(string address)
         {
             this._addresses.AddRange(Utils.ResolveHostByName(address));
             return this;
         }
 
-        /**
-         * Add contact points.
-         *
-         * See {@link CassandraClusterBuilder#addContactPoint} for more details on contact
-         * points.
-         *
-         * @param addresses addresses of the nodes to add as contact point
-         * @return this CassandraClusterBuilder
-         *
-         * @throws IllegalArgumentException if no IP address for at least one
-         * of {@code addresses} could be found
-         * @throws SecurityException if a security manager is present and
-         * permission to resolve the host name is denied.
-         *
-         * @see CassandraClusterBuilder#addContactPoint
-         */
-        public ClusterBuilder AddContactPoints(params string[] addresses)
+        /// <summary>
+        ///  Add contact points. See <link>Builder#addContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="addresses"> addresses of the nodes to add as contact point
+        ///  </param>
+        /// 
+        /// <returns>this Builder </returns>
+        public Builder AddContactPoints(params string[] addresses)
         {
             foreach (string address in addresses)
                 AddContactPoint(address);
             return this;
         }
 
-        /**
-         * Add contact points.
-         *
-         * See {@link CassandraClusterBuilder#addContactPoint} for more details on contact
-         * points.
-         *
-         * @param addresses addresses of the nodes to add as contact point
-         * @return this CassandraClusterBuilder
-         *
-         * @see CassandraClusterBuilder#addContactPoint
-         */
-        public ClusterBuilder AddContactPoints(params IPAddress[] addresses)
+        /// <summary>
+        ///  Add contact points. See <link>Builder#addContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="addresses"> addresses of the nodes to add as contact point
+        ///  </param>
+        /// 
+        /// <returns>this Builder <see>Builder#addContactPoint</returns>
+        public Builder AddContactPoints(params IPAddress[] addresses)
         {
             foreach (var address in addresses)
                 this._addresses.Add(address);
             return this;
         }
 
-        /**
-         * Configure the load balancing policy to use for the new cluster.
-         * <p>
-         * If no load balancing policy is set through this method,
-         * {@link Policies#DEFAULT_LOAD_BALANCING_POLICY} will be used instead.
-         *
-         * @param policy the load balancing policy to use
-         * @return this CassandraClusterBuilder
-         */
-        public ClusterBuilder WithLoadBalancingPolicy(LoadBalancingPolicy policy)
+        /// <summary>
+        ///  Configure the load balancing policy to use for the new cluster. <p> If no
+        ///  load balancing policy is set through this method,
+        ///  <link>Policies#DefaultLoadBalancingPolicy</link> will be used instead.
+        /// </summary>
+        /// <param name="policy"> the load balancing policy to use </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
             this._loadBalancingPolicy = policy;
             return this;
         }
 
-        /**
-         * Configure the reconnection policy to use for the new cluster.
-         * <p>
-         * If no reconnection policy is set through this method,
-         * {@link Policies#DEFAULT_RECONNECTION_POLICY} will be used instead.
-         *
-         * @param policy the reconnection policy to use
-         * @return this CassandraClusterBuilder
-         */
-        public ClusterBuilder WithReconnectionPolicy(ReconnectionPolicy policy)
+        /// <summary>
+        ///  Configure the reconnection policy to use for the new cluster. <p> If no
+        ///  reconnection policy is set through this method,
+        ///  <link>Policies#DefaultReconnectionPolicy</link> will be used instead.
+        /// </summary>
+        /// <param name="policy"> the reconnection policy to use </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithReconnectionPolicy(IReconnectionPolicy policy)
         {
             this._reconnectionPolicy = policy;
             return this;
         }
 
-        /**
-         * Configure the retry policy to use for the new cluster.
-         * <p>
-         * If no retry policy is set through this method,
-         * {@link Policies#DEFAULT_RETRY_POLICY} will be used instead.
-         *
-         * @param policy the retry policy to use
-         * @return this CassandraClusterBuilder
-         */
-        public ClusterBuilder WithRetryPolicy(RetryPolicy policy)
+        /// <summary>
+        ///  Configure the retry policy to use for the new cluster. <p> If no retry policy
+        ///  is set through this method, <link>Policies#DefaultRetryPolicy</link> will
+        ///  be used instead.
+        /// </summary>
+        /// <param name="policy"> the retry policy to use </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithRetryPolicy(IRetryPolicy policy)
         {
             this._retryPolicy = policy;
             return this;
         }
 
-        /**
-         * Returns the policies to use for this cluster.
-         * <p>
-         * The policies used are the one set by the {@code with*} methods of
-         * this CassandraClusterBuilder, or the default ones defined in {@link Policies} for
-         * the policies that hasn't been explicitely set.
-         *
-         * @return the policies to use for this cluster.
-         */
+
         public Policies Policies
         {
             get
@@ -432,27 +349,21 @@ namespace Cassandra
             }
         }
 
-        /**
-         * Use the provided {@code AuthInfoProvider} to connect to Cassandra hosts.
-         * <p>
-         * This is optional if the Cassandra cluster has been configured to not
-         * require authentication (the default).
-         *
-         * @param authInfoProvider the authentication info provider to use
-         * @return this CassandraClusterBuilder
-         */
-        public ClusterBuilder WithAuthInfoProvider(IAuthInfoProvider authInfoProvider)
+        /// <summary>
+        ///  Use the provided <code>AuthInfoProvider</code> to connect to Cassandra hosts.
+        ///  <p> This is optional if the Cassandra cluster has been configured to not
+        ///  require authentication (the default).
+        /// </summary>
+        /// <param name="authInfoProvider"> the authentication info provider to use
+        ///  </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithAuthInfoProvider(IAuthInfoProvider authInfoProvider)
         {
             this._authProvider = authInfoProvider;
             return this;
         }
 
-        /**
-         * The authentication provider to use to connect to the Cassandra cluster.
-         *
-         * @return the authentication provider set through {@link #withAuthInfoProvider}
-         * or AuthInfoProvider.NONE if nothing was set.
-         */
         public IAuthInfoProvider AuthInfoProvider
         {
             get
@@ -469,19 +380,12 @@ namespace Cassandra
             }
         }
 
-        /**
-         * Build the cluster with the configured set of initial contact points
-         * and policies.
-         *
-         * This is a shorthand for {@code Cluster.buildFrom(this)}.
-         *
-         * @return the newly build Cluster instance.
-         *
-         * @throws NoHostAvailableException if none of the contact points
-         * provided can be reached.
-         * @throws AuthenticationException if while contacting the initial
-         * contact points an authencation error occurs.
-         */
+        /// <summary>
+        ///  Build the cluster with the configured set of initial contact points and
+        ///  policies. This is a shorthand for <code>Cluster.buildFrom(this)</code>.
+        /// </summary>
+        /// 
+        /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
             return Cluster.BuildFrom(this);
@@ -491,7 +395,6 @@ namespace Cassandra
         {
             get { return _defaultKeyspace; }
         }
-
 
         public CompressionType CompressionType
         {

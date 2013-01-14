@@ -50,7 +50,7 @@ namespace Cassandra.Data.LinqTest
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");           
-            var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             clusterb.WithDefaultKeyspace(keyspaceName);
             var cluster = clusterb.Build();
             session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();

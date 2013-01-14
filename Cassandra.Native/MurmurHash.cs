@@ -17,17 +17,15 @@
  */
 
 
-/**
- * This is a very fast, non-cryptographic hash suitable for general hash-based
- * lookup. See http://murmurhash.googlepages.com/ for more details.
- *
- * hash3_x64_128() is MurmurHash 3.0.
- *
- */
+/// <summary>
+///  This is a very fast, non-cryptographic hash suitable for general hash-based
+///  lookup. See http://murmurhash.googlepages.com/ for more details.
+///  
+///  hash3_x64_128() is MurmurHash 3.0.
+/// </summary>
 internal class MurmurHash
 {
-
-    protected static long GetBlock(byte[] key, int offset, int index)
+    private static long GetBlock(byte[] key, int offset, int index)
     {
         int i_8 = index << 3;
         int blockOffset = offset + i_8;
@@ -37,12 +35,12 @@ internal class MurmurHash
                (((long)key[blockOffset + 6] & 0xff) << 48) + (((long)key[blockOffset + 7] & 0xff) << 56);
     }
 
-    protected static long Rotl64(long v, int n)
+    private static long Rotl64(long v, int n)
     {
         return ((v << n) | ((long)((ulong)v >> (64 - n))));
     }
 
-    protected static long Fmix(long k)
+    private static long Fmix(long k)
     {
         k ^= (long)((ulong)k >> 33);
         k *= -0xAE502812AA7333;

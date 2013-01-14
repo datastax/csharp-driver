@@ -4,9 +4,11 @@ using System.Net;
 
 namespace Cassandra
 {
-/**
- * Keeps metadata on the connected cluster, including known nodes and schema definitions.
- */
+
+    /// <summary>
+    ///  Keeps metadata on the connected cluster, including known nodes and schema
+    ///  definitions.
+    /// </summary>
     public class ClusterMetadata
     {
         internal string ClusterName;
@@ -22,7 +24,7 @@ namespace Cassandra
             return _hosts[address];
         }
 
-        public Host AddHost(IPAddress address, ReconnectionPolicy rp)
+        public Host AddHost(IPAddress address, IReconnectionPolicy rp)
         {
              _hosts.AddIfNotExistsOrBringUpIfDown(address, rp);
              return _hosts[address];

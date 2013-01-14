@@ -1,41 +1,39 @@
 namespace Cassandra
 {
-    ///<summary>
-    /// A reconnection policy that waits a constant time between each reconnection attempt.
-    ///</summary>
-    public class ConstantReconnectionPolicy : ReconnectionPolicy
+    /// <summary>
+    ///  A reconnection policy that waits a constant time between each reconnection attempt.
+    /// </summary>
+    public class ConstantReconnectionPolicy : IReconnectionPolicy
     {
 
         private readonly long _delayMs;
 
-        ///<summary>
-        /// Creates a reconnection policy that creates with the provided constant wait
-        /// time between reconnection attempts.
-        ///
-        /// <param name="constantDelayMs">the constant delay in milliseconds to use</param>
-        ///</summary>
+        /// <summary>
+        ///  Creates a reconnection policy that creates with the provided constant wait
+        ///  time between reconnection attempts.
+        /// </summary>
+        /// <param name="constantDelayMs"> the constant delay in milliseconds to use.</param>
         public ConstantReconnectionPolicy(long constantDelayMs)
         {
             this._delayMs = constantDelayMs;
         }
 
-        ///<summary>
-        /// The constant delay used by this reconnection policy.
-        ///</summary>
+        /// <summary>
+        /// Gets the constant delay used by this reconnection policy. 
+        /// </summary>
         public long ConstantDelayMs { get { return _delayMs; } }
 
-        ///<summary>
-        /// A new schedule that uses a constant {@code getConstantDelayMs()} delay
-        /// between reconnection attempt.
-        ///
-        /// <returns>the newly created schedule</returns>
-        ///</summary>
-        public ReconnectionSchedule NewSchedule()
+        /// <summary>
+        ///  A new schedule that uses a constant <code>ConstantDelayMs</code> delay between reconnection attempt. 
+        /// </summary>
+        /// 
+        /// <returns>the newly created schedule.</returns>
+        public IReconnectionSchedule NewSchedule()
         {
             return new ConstantSchedule(this);
         }
 
-        private class ConstantSchedule : ReconnectionSchedule
+        private class ConstantSchedule : IReconnectionSchedule
         {
             readonly ConstantReconnectionPolicy _owner;
             internal ConstantSchedule(ConstantReconnectionPolicy owner) { this._owner = owner; }

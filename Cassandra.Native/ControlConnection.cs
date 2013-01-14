@@ -98,8 +98,8 @@ namespace Cassandra
             go(true);
         }
 
-        readonly ReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000);
-        ReconnectionSchedule _reconnectionSchedule = null;
+        readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000);
+        IReconnectionSchedule _reconnectionSchedule = null;
 
         CassandraConnection _connection = null;
         internal ClusterMetadata Metadata;

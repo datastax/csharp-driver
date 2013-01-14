@@ -17,7 +17,7 @@ namespace Playground
             Console.WriteLine("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            Cluster cluster = Cluster.Builder.AddContactPoint("cassi.cloudapp.net").Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
 
             using(var session = cluster.Connect())
             {

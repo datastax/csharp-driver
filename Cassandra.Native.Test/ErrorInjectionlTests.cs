@@ -51,7 +51,7 @@ namespace Cassandra.Test
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             clusterb.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);

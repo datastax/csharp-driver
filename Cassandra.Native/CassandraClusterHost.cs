@@ -4,24 +4,22 @@ using System.Net;
 
 namespace Cassandra
 {
-    /**
-     * The distance to a Cassandra node as assigned by a
-     * {@link com.datastax.driver.core.policies.LoadBalancingPolicy} (through its {@code
-     * distance} method).
-     *
-     * The distance assigned to an host influence how many connections the driver
-     * maintains towards this host. If for a given host the assigned {@code HostDistance}
-     * is {@code LOCAL} or {@code REMOTE}, some connections will be maintained by
-     * the driver to this host. More active connections will be kept to
-     * {@code LOCAL} host than to a {@code REMOTE} one (and thus well behaving
-     * {@code LoadBalancingPolicy} should assign a {@code REMOTE} distance only to
-     * hosts that are the less often queried).
-     * <p>
-     * However, if an host is assigned the distance {@code IGNORED}, no connection
-     * to that host will maintained active. In other words, {@code IGNORED} should
-     * be assigned to hosts that should not be used by this driver (because they
-     * are in a remote datacenter for instance).
-     */
+    /// <summary>
+    ///  The distance to a Cassandra node as assigned by a
+    ///  <link>com.datastax.driver.core.policies.LoadBalancingPolicy</link> (through
+    ///  its <code>* distance</code> method). The distance assigned to an host
+    ///  influence how many connections the driver maintains towards this host. If for
+    ///  a given host the assigned <code>HostDistance</code> is <code>Local</code> or
+    ///  <code>Remote</code>, some connections will be maintained by the driver to
+    ///  this host. More active connections will be kept to <code>Local</code> host
+    ///  than to a <code>Remote</code> one (and thus well behaving
+    ///  <code>LoadBalancingPolicy</code> should assign a <code>Remote</code> distance
+    ///  only to hosts that are the less often queried). <p> However, if an host is
+    ///  assigned the distance <code>Ignored</code>, no connection to that host will
+    ///  maintained active. In other words, <code>Ignored</code> should be assigned to
+    ///  hosts that should not be used by this driver (because they are in a remote
+    ///  datacenter for instance).
+    /// </summary>
     public enum HostDistance
     {
         Local,
@@ -29,11 +27,10 @@ namespace Cassandra
         Ignored
     }
 
-    /**
-     * A Cassandra node.
-     *
-     * This class keeps the informations the driver maintain on a given Cassandra node.
-     */
+    /// <summary>
+    ///  A Cassandra node. This class keeps the informations the driver maintain on a
+    ///  given Cassandra node.
+    /// </summary>
     public class Host
     {
         private readonly IPAddress _address;
@@ -43,8 +40,8 @@ namespace Cassandra
 
         private bool _isUpNow = true;
         private DateTime _nextUpTime;
-        readonly ReconnectionPolicy _reconnectionPolicy;
-        private ReconnectionSchedule _reconnectionSchedule;
+        readonly IReconnectionPolicy _reconnectionPolicy;
+        private IReconnectionSchedule _reconnectionSchedule;
 
         public bool IsConsiderablyUp
         {
@@ -66,9 +63,7 @@ namespace Cassandra
             _isUpNow = true;
         }
 
-        // ClusterMetadata keeps one Host object per inet address, so don't use
-        // that constructor unless you know what you do (use ClusterMetadata.getHost typically).
-        public Host(IPAddress address, ReconnectionPolicy reconnectionPolicy)
+        public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
         {
             this._address = address;
             this._reconnectionPolicy = reconnectionPolicy;
@@ -81,11 +76,9 @@ namespace Cassandra
             this._rack = rack;
         }
 
-        /**
-         * Returns the node address.
-         *
-         * @return the node {@link InetAddress}.
-         */
+        /// <summary>
+        ///  Gets the node address.
+        /// </summary>
         public IPAddress Address
         {
             get
@@ -94,16 +87,12 @@ namespace Cassandra
             }
         }
 
-        /**
-         * Returns the name of the datacenter this host is part of.
-         *
-         * The returned datacenter name is the one as known by Cassandra. Also note
-         * that it is possible for this information to not be available. In that
-         * case this method returns {@code null} and caller should always expect
-         * that possibility.
-         *
-         * @return the Cassandra datacenter name.
-         */
+        /// <summary>
+        ///  Gets the name of the datacenter this host is part of. The returned
+        ///  datacenter name is the one as known by Cassandra. Also note that it is
+        ///  possible for this information to not be available. In that case this method
+        ///  returns <code>null</code> and caller should always expect that possibility.
+        /// </summary>
         public string Datacenter
         {
             get
@@ -112,16 +101,12 @@ namespace Cassandra
             }
         }
 
-        /**
-         * Returns the name of the rack this host is part of.
-         *
-         * The returned rack name is the one as known by Cassandra. Also note that
-         * it is possible for this information to not be available. In that case
-         * this method returns {@code null} and caller should always expect that
-         * possibility.
-         *
-         * @return the Cassandra rack name.
-         */
+        /// <summary>
+        ///  Gets the name of the rack this host is part of. The returned rack name is
+        ///  the one as known by Cassandra. Also note that it is possible for this
+        ///  information to not be available. In that case this method returns
+        ///  <code>null</code> and caller should always expect that possibility.
+        /// </summary>
         public string Rack
         {
             get
@@ -156,7 +141,7 @@ namespace Cassandra
                 return new List<Host>(_hosts.Values);
         }
 
-        public void AddIfNotExistsOrBringUpIfDown(IPAddress ep, ReconnectionPolicy rp)
+        public void AddIfNotExistsOrBringUpIfDown(IPAddress ep, IReconnectionPolicy rp)
         {
             lock (_hosts)
             {

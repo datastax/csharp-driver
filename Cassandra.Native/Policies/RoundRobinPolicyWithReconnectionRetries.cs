@@ -13,13 +13,10 @@ namespace Cassandra
             this.DelayMs = delayMs;
         }
     }
-    public class RoundRobinPolicyWithReconnectionRetries : LoadBalancingPolicy
+    public class RoundRobinPolicyWithReconnectionRetries : ILoadBalancingPolicy
     {
-        /**
-     * Creates a load balancing policy that picks host to query in a round robin
-     * fashion (on all the hosts of the Cassandra cluster).
-     */
-        public RoundRobinPolicyWithReconnectionRetries(ReconnectionPolicy reconnectionPolicy)
+
+        public RoundRobinPolicyWithReconnectionRetries(IReconnectionPolicy reconnectionPolicy)
         {
             this._reconnectionPolicy = reconnectionPolicy;
         }
@@ -27,7 +24,7 @@ namespace Cassandra
 
         public EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs> ReconnectionEvent;
 
-        readonly ReconnectionPolicy _reconnectionPolicy;
+        readonly IReconnectionPolicy _reconnectionPolicy;
         ISessionInfoProvider _infoProvider;
         int _startidx = -1;
 
@@ -36,33 +33,12 @@ namespace Cassandra
             this._infoProvider = infoProvider;
         }
 
-        /**
-         * Return the HostDistance for the provided host.
-         * <p>
-         * This policy consider all nodes as local. This is generally the right
-         * thing to do in a single datacenter deployement. If you use multiple
-         * datacenter, see {@link DCAwareRoundRobinPolicy} instead.
-         *
-         * @param host the host of which to return the distance of.
-         * @return the HostDistance to {@code host}.
-         */
         public HostDistance Distance(Host host)
         {
             return HostDistance.Local;
         }
 
-        /**
-         * Returns the hosts to use for a new query.
-         * <p>
-         * The returned plan will try each known host of the cluster. Upon each
-         * call to this method, the ith host of the plans returned will cycle
-         * over all the host of the cluster in a round-robin fashion.
-         *
-         * @param query the query for which to build the plan.
-         * @return a new query plan, i.e. an iterator indicating which host to
-         * try first for querying, which one to use as failover, etc...
-         */
-        public IEnumerable<Host> NewQueryPlan(CassandraRoutingKey routingKey)
+        public IEnumerable<Host> NewQueryPlan(Query query)
         {
             var schedule = _reconnectionPolicy.NewSchedule();
             while (true)

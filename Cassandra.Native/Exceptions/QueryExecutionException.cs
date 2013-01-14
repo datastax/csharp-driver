@@ -3,7 +3,9 @@ using System;
 namespace Cassandra
 {
     /// <summary>
-    ///  Exception related to the execution of a query. This correspond to the exception that Cassandra throw when a (valid) query cannot be executed (TimeoutException, UnavailableException, ...).
+    ///  Exception related to the execution of a query. This correspond to the
+    ///  exception that Cassandra throw when a (valid) query cannot be executed
+    ///  (TimeoutException, UnavailableException, ...).
     /// </summary>
     public abstract class QueryExecutionException : QueryValidationException
     {

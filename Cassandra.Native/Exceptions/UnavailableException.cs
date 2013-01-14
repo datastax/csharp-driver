@@ -1,7 +1,8 @@
 namespace Cassandra
 {
     /// <summary>
-    ///  Exception thrown when the coordinator knows there is not enough replica alive to perform a query with the requested consistency level.
+    ///  Exception thrown when the coordinator knows there is not enough replica alive
+    ///  to perform a query with the requested consistency level.
     /// </summary>
     public class UnavailableException : QueryExecutionException
     {

@@ -39,7 +39,7 @@ namespace MyUTExt
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");                       
-            var clusterb = Cluster.Builder.WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             clusterb.WithDefaultKeyspace("tester");
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);

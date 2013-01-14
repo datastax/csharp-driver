@@ -3,25 +3,24 @@ using System.Diagnostics;
 namespace Cassandra
 {
 
-    /**
-     * A retry policy that wraps another policy, logging the decision made by its sub-policy.
-     * <p>
-     * Note that this policy only log the Ignore and Retry decisions (since
-     * Rethrow decisions just amount to propate the cassandra exception). The
-     * logging is done at the INFO level.
-     */
-    public class LoggingRetryPolicy : RetryPolicy
+    /// <summary>
+    ///  A retry policy that wraps another policy, logging the decision made by its
+    ///  sub-policy. <p> Note that this policy only log the Ignore and Retry decisions
+    ///  (since Rethrow decisions just amount to propate the cassandra exception). The
+    ///  logging is done at the Info level.
+    /// </summary>
+    public class LoggingRetryPolicy : IRetryPolicy
     {
 
-        private readonly RetryPolicy _policy;
+        private readonly IRetryPolicy _policy;
 
-        /**
-         * Creates a new {@code RetryPolicy} that logs the decision of {@code policy}.
-         *
-         * @param policy the policy to wrap. The policy created by this constructor
-         * will return the same decision than {@code policy} but will log them.
-         */
-        public LoggingRetryPolicy(RetryPolicy policy)
+        /// <summary>
+        ///  Creates a new <code>RetryPolicy</code> that logs the decision of
+        ///  <code>policy</code>.
+        /// </summary>
+        /// <param name="policy"> the policy to wrap. The policy created by this
+        ///  constructor will return the same decision than <code>policy</code> but will log them.</param>
+        public LoggingRetryPolicy(IRetryPolicy policy)
         {
             this._policy = policy;
         }
@@ -31,9 +30,9 @@ namespace Cassandra
             return decision.RetryConsistencyLevel ?? cl;
         }
 
-        public RetryDecision OnReadTimeout(ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
-            RetryDecision decision = _policy.OnReadTimeout(cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
+            RetryDecision decision = _policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
@@ -48,9 +47,9 @@ namespace Cassandra
             return decision;
         }
 
-        public RetryDecision OnWriteTimeout(ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
-            RetryDecision decision = _policy.OnWriteTimeout(cl, writeType, requiredAcks, receivedAcks, nbRetry);
+            RetryDecision decision = _policy.OnWriteTimeout(query,cl, writeType, requiredAcks, receivedAcks, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
@@ -65,9 +64,9 @@ namespace Cassandra
             return decision;
         }
 
-        public RetryDecision OnUnavailable(ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            RetryDecision decision = _policy.OnUnavailable(cl, requiredReplica, aliveReplica, nbRetry);
+            RetryDecision decision = _policy.OnUnavailable(query,cl, requiredReplica, aliveReplica, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
