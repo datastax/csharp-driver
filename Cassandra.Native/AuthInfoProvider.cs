@@ -7,7 +7,7 @@ namespace Cassandra
     ///  Authentication informations provider to connect to Cassandra nodes. <p> The
     ///  authentication information themselves are just a key-value pairs. Which exact
     ///  key-value pairs are required depends on the authenticator set for the
-    ///  Cassandra nodes.
+    ///  Cassandra nodes.</p>
     /// </summary>
     public interface IAuthInfoProvider
     {

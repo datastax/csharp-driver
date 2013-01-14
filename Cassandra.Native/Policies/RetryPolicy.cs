@@ -12,9 +12,7 @@
         ///  Defines whether to retry and at which consistency level on a read timeout.
         ///  <p> Note that this method may be called even if <code>requiredResponses >=
         ///  receivedResponses</code> if <code>dataPresent</code> is <code>false</code>
-        ///  (see
-        ///  <link>com.datastax.driver.core.exceptions.ReadTimeoutException#wasDataRetrieve
-        ///  d</link>).
+        ///  (see <link>com.datastax.driver.core.exceptions.ReadTimeoutException#WasDataRetrieved</link>).</p>
         /// </summary>
         /// <param name="query"> the original query that timeouted. </param>
         /// <param name="cl"> the original consistency level of the read that timeouted.
@@ -82,7 +80,7 @@
     ///  thrown</li> <li>Retry: the operation will be retried. The consistency level
     ///  of the retry should be specified.</li> <li>Ignore: no retry should be
     ///  attempted and the exception should be ignored. In that case, the operation
-    ///  that triggered the Cassandra exception will return an empty result set.</li>
+    ///  that triggered the Cassandra exception will return an empty result set.</li></ul></p>
     ///  </ul>
     /// </summary>
     public class RetryDecision

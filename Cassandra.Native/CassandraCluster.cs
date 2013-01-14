@@ -12,11 +12,11 @@ namespace Cassandra
     ///  Session session = Cluster.Connect("db1"); 
     ///  foreach (var row in session.execute("SELECT * FROM table1")) 
     ///    //do something ... </pre> 
-    ///  <p> A cluster object maintains a
+    ///  </p><p> A cluster object maintains a
     ///  permanent connection to one of the cluster node that it uses solely to
     ///  maintain informations on the state and current topology of the cluster. Using
     ///  the connection, the driver will discover all the nodes composing the cluster
-    ///  as well as new nodes joining the cluster.
+    ///  as well as new nodes joining the cluster.</p>
     /// </summary>
     public class Cluster
     {
@@ -54,9 +54,9 @@ namespace Cassandra
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
         ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
-        ///  verbose shortcut with <link>NewBuilder#Build</link>. <p> Also note that that all
+        ///  verbose shortcut with <link>NewBuilder#Build</link>. </p><p> Also note that that all
         ///  the contact points provided by <code>* initializer</code> must share the same
-        ///  port.
+        ///  port.</p>
         /// </summary>
         /// <param name="initializer"> the Cluster.Initializer to use </param>
         /// 
@@ -72,7 +72,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Creates a new <link>Cluster.NewBuilder</link> instance. <p> This is a shortcut
-        ///  for <code>new Cluster.NewBuilder()</code>.
+        ///  for <code>new Cluster.NewBuilder()</code></p>.
         /// </summary>
         /// 
         /// <returns>the new cluster builder.</returns>
@@ -133,9 +133,9 @@ namespace Cassandra
     ///  Initializer for <link>Cluster</link> instances. <p> If you want to create a
     ///  new <code>Cluster</code> instance programmatically, then it is advised to use
     ///  <link>Cluster.Builder</link> (obtained through the
-    ///  <link>Cluster#builder</link> method). <p> But it is also possible to
+    ///  <link>Cluster#builder</link> method).</p> <p> But it is also possible to
     ///  implement a custom <code>Initializer</code> that retrieve initialization from
-    ///  a web-service or from a configuration file for instance.
+    ///  a web-service or from a configuration file for instance.</p>
     /// </summary>
     public interface IInitializer
     {
@@ -297,7 +297,7 @@ namespace Cassandra
         /// <summary>
         ///  Configure the load balancing policy to use for the new cluster. <p> If no
         ///  load balancing policy is set through this method,
-        ///  <link>Policies#DefaultLoadBalancingPolicy</link> will be used instead.
+        ///  <link>Policies#DefaultLoadBalancingPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the load balancing policy to use </param>
         /// 
@@ -311,7 +311,7 @@ namespace Cassandra
         /// <summary>
         ///  Configure the reconnection policy to use for the new cluster. <p> If no
         ///  reconnection policy is set through this method,
-        ///  <link>Policies#DefaultReconnectionPolicy</link> will be used instead.
+        ///  <link>Policies#DefaultReconnectionPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the reconnection policy to use </param>
         /// 
@@ -325,7 +325,7 @@ namespace Cassandra
         /// <summary>
         ///  Configure the retry policy to use for the new cluster. <p> If no retry policy
         ///  is set through this method, <link>Policies#DefaultRetryPolicy</link> will
-        ///  be used instead.
+        ///  be used instead.</p>
         /// </summary>
         /// <param name="policy"> the retry policy to use </param>
         /// 
@@ -352,7 +352,7 @@ namespace Cassandra
         /// <summary>
         ///  Use the provided <code>AuthInfoProvider</code> to connect to Cassandra hosts.
         ///  <p> This is optional if the Cassandra cluster has been configured to not
-        ///  require authentication (the default).
+        ///  require authentication (the default).</p>
         /// </summary>
         /// <param name="authInfoProvider"> the authentication info provider to use
         ///  </param>

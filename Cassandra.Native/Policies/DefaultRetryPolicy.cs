@@ -4,11 +4,11 @@
     ///  The default retry policy. <p> This policy retries queries in only two cases:
     ///  <ul> <li>On a read timeout, if enough replica replied but data was not
     ///  retrieved.</li> <li>On a write timeout, if we timeout while writting the
-    ///  distributed log used by batch statements.</li> </ul> <p> This retry policy is
+    ///  distributed log used by batch statements.</li> </ul> </p> <p> This retry policy is
     ///  conservative in that it will never retry with a different consistency level
-    ///  than the one of the initial operation. <p> In some cases, it may be
+    ///  than the one of the initial operation. </p><p> In some cases, it may be
     ///  convenient to use a more aggressive retry policy like
-    ///  <link>DowngradingConsistencyRetryPolicy</link>.
+    ///  <link>DowngradingConsistencyRetryPolicy</link>.</p>
     /// </summary>
     public class DefaultRetryPolicy : IRetryPolicy
     {
@@ -26,7 +26,7 @@
         ///  consistency but the coordinator picked a dead one for data retrieval, not
         ///  having detecte that replica as dead yet. The reasoning for retrying then is
         ///  that by the time we get the timeout the dead replica will likely have been
-        ///  detected as dead and the retry has a high change of success.
+        ///  detected as dead and the retry has a high change of success.</p>
         /// </summary>
         /// <param name="query"> the original query that timeouted. </param>
         /// <param name="cl"> the original consistency level of the read that timeouted.
@@ -64,7 +64,7 @@
         ///  datacenter. Hence, a timeout usually means that none of the nodes in that
         ///  subset were alive but the coordinator hasn't' detected them as dead. By the
         ///  time we get the timeout the dead nodes will likely have been detected as dead
-        ///  and the retry has thus a high change of success.
+        ///  and the retry has thus a high change of success.</p>
         /// </summary>
         /// <param name="query"> the original query that timeouted. </param>
         /// <param name="cl"> the original consistency level of the write that timeouted.
@@ -93,7 +93,7 @@
         /// <summary>
         ///  Defines whether to retry and at which consistency level on an unavailable
         ///  exception. <p> This method never retries as a retry on an unavailable
-        ///  exception using the same consistency level has almost no change of success.
+        ///  exception using the same consistency level has almost no change of success.</p>
         /// </summary>
         /// <param name="query"> the original query for which the consistency level
         ///  cannot be achieved. </param>

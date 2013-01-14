@@ -11,7 +11,7 @@ namespace Cassandra
     ///  <code>Quorum</code>. Do not use this policy unless you have understood the
     ///  cases where this can happen and are ok with that. It is also highly
     ///  recommended to always wrap this policy into <link>LoggingRetryPolicy</link>
-    ///  to log the occurences of such consistency break. <p> This policy : the same
+    ///  to log the occurences of such consistency break. </p><p> This policy : the same
     ///  retries than the <link>DefaultRetryPolicy</link> policy. But on top of that,
     ///  it also retries in the following cases: <ul> <li>On a read timeout: if the
     ///  number of replica that responded is greater than one but lower than is
@@ -22,7 +22,7 @@ namespace Cassandra
     ///  Furthermore, for other operation, if at least one replica acknowleged the
     ///  write, the timeout is ignored.</li> <li>On an unavailable exception: if at
     ///  least one replica is alive, the operation is retried at a lower consistency
-    ///  level.</li> </ul> <p> The reasoning behing this retry policy is the following
+    ///  level.</li> </ul> </p><p> The reasoning behing this retry policy is the following
     ///  one. If, based on the information the Cassandra coordinator node returns,
     ///  retrying the operation with the initally requested consistency has a change
     ///  to succeed, do it. Otherwise, if based on these informations we know <b>the
@@ -34,7 +34,7 @@ namespace Cassandra
     ///  words, this policy : the idea that if the requested consistency level cannot
     ///  be achieved, the next best thing for writes is to make sure the data is
     ///  persisted, and that reading something is better than reading nothing, even if
-    ///  there is a risk of reading stale data.
+    ///  there is a risk of reading stale data.</p>
     /// </summary>
     public class DowngradingConsistencyRetryPolicy : IRetryPolicy
     {
@@ -61,7 +61,7 @@ namespace Cassandra
         ///  than required by the consistency level (but at least one replica did
         ///  respond), the operation is retried at a lower consistency level. If enough
         ///  replica responded but data was not retrieve, the operation is retried with
-        ///  the initial consistency level. Otherwise, an exception is thrown.
+        ///  the initial consistency level. Otherwise, an exception is thrown.</p>
         /// </summary>
         /// <param name="query"> the original query that timeouted. </param>
         /// <param name="cl"> the original consistency level of the read that timeouted.
@@ -100,7 +100,7 @@ namespace Cassandra
         ///  batch haven't been persisted at' all, even if <code>receivedAcks > 0</code>).
         ///  For other <code>writeType</code>, if we know the write has been persisted on
         ///  at least one replica, we ignore the exception. Otherwise, an exception is
-        ///  thrown.
+        ///  thrown.</p>
         /// </summary>
         /// <param name="query"> the original query that timeouted. </param>
         /// <param name="cl"> the original consistency level of the write that timeouted.
@@ -142,7 +142,7 @@ namespace Cassandra
         ///  Defines whether to retry and at which consistency level on an unavailable
         ///  exception. <p> This method triggers a maximum of one retry. If at least one
         ///  replica is know to be alive, the operation is retried at a lower consistency
-        ///  level.
+        ///  level.</p>
         /// </summary>
         /// <param name="query"> the original query for which the consistency level
         ///  cannot be achieved. </param>

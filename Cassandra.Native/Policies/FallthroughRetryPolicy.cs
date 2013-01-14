@@ -4,7 +4,7 @@ namespace Cassandra
     ///  A retry policy that never retry (nor ignore). <p> All of the methods of this
     ///  retry policy unconditionally return
     ///  <link>RetryPolicy.RetryDecision#rethrow</link>. If this policy is used, retry
-    ///  will have to be implemented in business code.
+    ///  will have to be implemented in business code.</p>
     /// </summary>
     public class FallthroughRetryPolicy : IRetryPolicy
     {

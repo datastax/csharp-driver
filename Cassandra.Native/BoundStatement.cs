@@ -6,14 +6,14 @@ namespace Cassandra
     ///  A prepared statement with values bound to the bind variables. <p> Once a
     ///  BoundStatement has values for all the variables of the
     ///  <link>PreparedStatement</link> it has been created from, it can executed
-    ///  (through <link>Session#execute</link>). <p> The values of a BoundStatement
+    ///  (through <link>Session#execute</link>). </p><p> The values of a BoundStatement
     ///  can be set by either index or name. When setting them by name, names follow
     ///  the case insensitivity rules explained in <link>ColumnDefinitions</link>.
     ///  Noteworthily, if multiple bind variables correspond to the same column (as
     ///  would be the case if you prepare <code>SELECT * FROM t WHERE x &gt; ? AND x &lt; ?</code>), 
     ///  you will have to set values by indexes (or the <link>#bind</link>
     ///  method) as the methods to set by name only allows to set the first prepared
-    ///  occurrence of the column.
+    ///  occurrence of the column.</p>
     /// </summary>
     public class BoundStatement : Query
     {
@@ -68,9 +68,9 @@ namespace Cassandra
         ///  key columns.</li> <li>or the routing key has been set through
         ///  <link>PreparedStatement#setRoutingKey</link> for the
         ///  <code>PreparedStatement</code> this statement has been built from.</li> </ul>
-        ///  Otherwise, <code>null</code> is returned. <p> Note that if the routing key
+        ///  Otherwise, <code>null</code> is returned.</p> <p> Note that if the routing key
         ///  has been set through <link>PreparedStatement#setRoutingKey</link>, that value
-        ///  takes precedence even if the partition key is part of the bound variables.
+        ///  takes precedence even if the partition key is part of the bound variables.</p>
         /// </summary>
         public override CassandraRoutingKey RoutingKey { get { return null; } }
 

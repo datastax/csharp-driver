@@ -4,7 +4,7 @@ namespace Cassandra
     ///  A non-prepared CQL statement. <p> This class represents a query string along
     ///  with query options. This class can be extended but
     ///  <link>SimpleStatement</link> is provided to build a <code>* Statement</code>
-    ///  directly from its query string.
+    ///  directly from its query string.</p>
     /// </summary>
     public abstract class Statement : Query
     {

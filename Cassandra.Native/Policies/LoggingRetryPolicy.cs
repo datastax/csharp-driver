@@ -7,7 +7,7 @@ namespace Cassandra
     ///  A retry policy that wraps another policy, logging the decision made by its
     ///  sub-policy. <p> Note that this policy only log the Ignore and Retry decisions
     ///  (since Rethrow decisions just amount to propate the cassandra exception). The
-    ///  logging is done at the Info level.
+    ///  logging is done at the Info level.</p>
     /// </summary>
     public class LoggingRetryPolicy : IRetryPolicy
     {

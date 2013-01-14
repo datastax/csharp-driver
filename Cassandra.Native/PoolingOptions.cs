@@ -7,7 +7,7 @@ namespace Cassandra
     ///  asynchronous way. Meaning that multiple requests can be submitted on the same
     ///  connection at the same time. This means that the driver only needs to
     ///  maintain a relatively small number of connections to each Cassandra host.
-    ///  These options allow to control how many connections are kept exactly. <p> For
+    ///  These options allow to control how many connections are kept exactly. </p><p> For
     ///  each host, the driver keeps a core amount of connections open at all time
     ///  (<link>PoolingOptions#getCoreConnectionsPerHost</link>). If the utilisation
     ///  of those connections reaches a configurable threshold
@@ -17,10 +17,10 @@ namespace Cassandra
     ///  than core connections have been created, connections in excess are reclaimed
     ///  if the utilisation of opened connections drops below the configured threshold
     ///  (<link>PoolingOptions#getMinSimultaneousRequestsPerConnectionTreshold</link>).
-    ///  <p> Each of these parameters can be separately set for <code>Local</code> and
+    ///  </p><p> Each of these parameters can be separately set for <code>Local</code> and
     ///  <code>Remote</code> hosts (<link>HostDistance</link>). For
     ///  <code>Ignored</code> hosts, the default for all those settings is 0 and
-    ///  cannot be changed.
+    ///  cannot be changed.</p>
     /// </summary>
     public class PoolingOptions
     {
@@ -56,7 +56,7 @@ namespace Cassandra
         ///  <code>distance</code> handles less than this number of simultaneous requests
         ///  and there is more than <link>#GetCoreConnectionsPerHost</link> connections
         ///  open to this host, the connection is closed. <p> The default value for this
-        ///  option is 25 for <code>Local</code> and <code>Remote</code> hosts.
+        ///  option is 25 for <code>Local</code> and <code>Remote</code> hosts.</p>
         /// </summary>
         /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
         ///  </param>
@@ -109,7 +109,7 @@ namespace Cassandra
         ///  <link>#getMaxConnectionPerHost</link> connections open to this host, a new
         ///  connection is open. <p> Note that a given connection cannot handle more than
         ///  128 simultaneous requests (protocol limitation). <p> The default value for
-        ///  this option is 100 for <code>LOCAL</code> and <code>REMOTE</code> hosts.
+        ///  this option is 100 for <code>Local</code> and <code>Remote</code> hosts.</p>
         /// </summary>
         /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
         ///  </param>
@@ -158,7 +158,7 @@ namespace Cassandra
         /// <summary>
         ///  The core number of connections per host. <p> For the provided
         ///  <code>distance</code>, this correspond to the number of connections initially
-        ///  created and kept open to each host of that distance.
+        ///  created and kept open to each host of that distance.</p>
         /// </summary>
         /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
         ///  </param>
@@ -206,7 +206,7 @@ namespace Cassandra
         /// <summary>
         ///  The maximum number of connections per host. <p> For the provided
         ///  <code>distance</code>, this correspond to the maximum number of connections
-        ///  that can be created per host at that distance.
+        ///  that can be created per host at that distance.</p>
         /// </summary>
         /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
         ///  </param>

@@ -7,7 +7,7 @@ namespace Cassandra
     ///  prepared (pre-parsed) by the database. <p> A prepared statement can be
     ///  executed once concrete values has been provided for the bound variables. The
     ///  pair of a prepared statement and values for its bound variables is a
-    ///  BoundStatement and can be executed (by <link>Session#Execute</link>).
+    ///  BoundStatement and can be executed (by <link>Session#Execute</link>).</p>
     /// </summary>
     public class PreparedStatement
     {
@@ -32,8 +32,8 @@ namespace Cassandra
         ///  Sets a default consistency level for all <code>BoundStatement</code> created
         ///  from this object. <p> If no consistency level is set through this method, the
         ///  BoundStatement created from this object will use the default consistency
-        ///  level (One). <p> Changing the default consistency level is not retroactive,
-        ///  it only applies to BoundStatement created after the change.
+        ///  level (One). </p><p> Changing the default consistency level is not retroactive,
+        ///  it only applies to BoundStatement created after the change.</p>
         /// </summary>
         /// <param name="consistency"> the default consistency level to set. </param>
         /// 
@@ -50,7 +50,7 @@ namespace Cassandra
         ///  Set the routing key for this query. <p> See
         ///  <link>#setRoutingKey(ByteBuffer)</link> for more information. This method is
         ///  a variant for when the query partition key is composite and thus the routing
-        ///  key must be built from multiple values.
+        ///  key must be built from multiple values.</p>
         /// </summary>
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to
         ///  obtain the routing key. </param>
@@ -69,7 +69,7 @@ namespace Cassandra
         ///  <code>values</code> than bound variables can be provided, it is allowed to
         ///  provide less <code>values</code> that there is variables. In that case, the
         ///  remaining variables will have to be bound to values by another mean because
-        ///  the resulting <code>BoundStatement</code> being executable.
+        ///  the resulting <code>BoundStatement</code> being executable.</p>
         /// </summary>
         /// <param name="values"> the values to bind to the variables of the newly
         ///  created BoundStatement. </param>

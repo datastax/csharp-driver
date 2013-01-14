@@ -5,7 +5,7 @@ namespace Cassandra
     /// <summary>
     ///  An executable query. <p> This represents either a <link>Statement</link> or a
     ///  <link>BoundStatement</link> along with the query options (consistency level,
-    ///  whether to trace the query, ...).
+    ///  whether to trace the query, ...).</p>
     /// </summary>
     public abstract class Query
     {
@@ -37,7 +37,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Sets the consistency level for the query. <p> The default consistency level,
-        ///  if this method is not called, is ConsistencyLevel.ONE.
+        ///  if this method is not called, is ConsistencyLevel.ONE.</p>
         /// </summary>
         /// <param name="consistency"> the consistency level to set. </param>
         /// 
@@ -80,7 +80,7 @@ namespace Cassandra
         ///  provided should correspond to the binary value for the query partition key.
         ///  However, not providing a routing key never causes a query to fail and if the
         ///  load balancing policy used is not token aware, then the routing key can be
-        ///  safely ignored.
+        ///  safely ignored.</p>
         /// </summary>
         /// 
         /// <returns>the routing key for this query or <code>null</code>.</returns>
@@ -92,7 +92,7 @@ namespace Cassandra
         ///  this method is not called, is the one returned by
         ///  <link>Policies#RetryPolicy</link> in the
         ///  cluster configuration. This method is thus only useful in case you want to
-        ///  punctually override the default policy for this request.
+        ///  punctually override the default policy for this request.</p>
         /// </summary>
         /// <param name="policy"> the retry policy to use for this query. </param>
         /// 

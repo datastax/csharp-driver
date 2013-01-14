@@ -59,7 +59,7 @@ namespace Cassandra
         ///  A new schedule that used an exponentially growing delay between reconnection
         ///  attempts. <p> For this schedule, reconnection attempt <code>i</code> will be
         ///  tried <code>Math.min(2^(i-1) * BaseDelayMs, MaxDelayMs)</code>
-        ///  milliseconds after the previous one.
+        ///  milliseconds after the previous one.</p>
         /// </summary>
         /// 
         /// <returns>the newly created schedule.</returns>

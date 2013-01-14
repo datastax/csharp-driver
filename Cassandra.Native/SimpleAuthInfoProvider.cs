@@ -6,8 +6,8 @@ namespace Cassandra
     /// <summary>
     ///  A simple <code>AuthInfoProvider</code> implementation. <p> This provider
     ///  allows to programmatically define authentication information that will then
-    ///  apply to all hosts. <p> Note that it is <b>not</b> safe to add new info to
-    ///  this provider once a Cluster instance has been created using this provider.
+    ///  apply to all hosts. </p><p> Note that it is <b>not</b> safe to add new info to
+    ///  this provider once a Cluster instance has been created using this provider.</p>
     /// </summary>
     public class SimpleAuthInfoProvider : IAuthInfoProvider
     {

@@ -13,12 +13,12 @@ namespace Cassandra
     ///  return {@code null} and if {@link Metadata#getReplicas}' returns a non empty
     ///  set of replicas for that partition key). If no local replica can be either
     ///  found or successfully contacted, the rest of the query plan will fallback to
-    ///  one of the child policy.</li> </ul> <p> Do note that only replica for which
+    ///  one of the child policy.</li> </ul> </p><p> Do note that only replica for which
     ///  the child policy <code>distance</code> method returns
-    ///  <code>HostDistance.LOCAL</code> will be considered having priority. For
+    ///  <code>HostDistance.Local</code> will be considered having priority. For
     ///  example, if you wrap <link>DCAwareRoundRobinPolicy</link> with this token
     ///  aware policy, replicas from remote data centers may only be returned after
-    ///  all the host of the local data center.
+    ///  all the host of the local data center.</p>
     /// </summary>
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
@@ -61,7 +61,7 @@ namespace Cassandra
         ///  return replicas (whose <code>HostDistance</code> for the child policy is
         ///  <code>Local</code>) for the query if it can determine them (i.e. mainly if
         ///  <code>query.getRoutingKey()</code> is not <code>null</code>). Following what
-        ///  it will return the plan of the child policy.
+        ///  it will return the plan of the child policy.</p>
         /// </summary>
         /// <param name="query"> the query for which to build the plan. </param>
         /// 

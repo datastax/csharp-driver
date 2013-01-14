@@ -8,20 +8,20 @@
     {
         /// <summary>
         ///  The default load balancing policy. <p> The default load balancing policy is
-        ///  <link>RoundRobinPolicy</link>.
+        ///  <link>RoundRobinPolicy</link>.</p>
         /// </summary>
         public static readonly ILoadBalancingPolicy DefaultLoadBalancingPolicy = new RoundRobinPolicy();
 
         /// <summary>
         ///  The default reconnection policy. <p> The default reconnetion policy is an
         ///  <link>ExponentialReconnectionPolicy</link> where the base delay is 1 second
-        ///  and the max delay is 10 minutes;
+        ///  and the max delay is 10 minutes;</p>
         /// </summary>
         public static readonly IReconnectionPolicy DefaultReconnectionPolicy = new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
 
         /// <summary>
         ///  The default retry policy. <p> The default retry policy is
-        ///  <link>DefaultRetryPolicy</link>.
+        ///  <link>DefaultRetryPolicy</link>.</p>
         /// </summary>
         public static readonly IRetryPolicy DefaultRetryPolicy = Cassandra.DefaultRetryPolicy.Instance;
 
@@ -50,7 +50,7 @@
 
         /// <summary>
         ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
-        ///  Cassandra hosts are picked for queries.
+        ///  Cassandra hosts are picked for queries.</p>
         /// </summary>
         public ILoadBalancingPolicy LoadBalancingPolicy
         {
@@ -62,7 +62,7 @@
 
         /// <summary>
         ///  Gets the reconnection policy in use. <p> The reconnection policy defines how often
-        ///  the driver tries to reconnect to a dead node.
+        ///  the driver tries to reconnect to a dead node.</p>
         /// </summary>
         public IReconnectionPolicy ReconnectionPolicy
         {
@@ -74,7 +74,7 @@
 
         /// <summary>
         ///  Gets the retry policy in use. <p> The retry policy defines in which conditions a
-        ///  query should be automatically retries by the driver.
+        ///  query should be automatically retries by the driver.</p>
         /// </summary>
         public IRetryPolicy RetryPolicy
         {

@@ -11,7 +11,7 @@ namespace Cassandra
         /// <summary>
         ///  Initialize this load balancing policy. <p> Note that the driver guarantees
         ///  that it will call this method exactly once per policy object and will do so
-        ///  before any call to another of the methods of the policy.
+        ///  before any call to another of the methods of the policy.</p>
         /// </summary>
         /// <param name="infoProvider"> the  information about the session instance for which the policy is created.
         ///  </param>
@@ -23,10 +23,10 @@ namespace Cassandra
         ///  <link>HostDistance</link>). A policy should assign a <code>* LOCAL</code>
         ///  distance to nodes that are susceptible to be returned first by
         ///  <code>newQueryPlan</code> and it is useless for <code>newQueryPlan</code> to
-        ///  return hosts to which it assigns an <code>IGNORED</code> distance. <p> The
+        ///  return hosts to which it assigns an <code>IGNORED</code> distance. </p><p> The
         ///  host distance is primarily used to prevent keeping too many connections to
         ///  host in remote datacenters when the policy itself always picks host in the
-        ///  local datacenter first.
+        ///  local datacenter first.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
@@ -38,7 +38,7 @@ namespace Cassandra
         ///  method. The first host in the result will then be used to perform the query.
         ///  In the event of a connection problem (the queried host is down or appear to
         ///  be so), the next host will be used. If all hosts of the returned
-        ///  <code>Iterator</code> are down, the query will fail.
+        ///  <code>Iterator</code> are down, the query will fail.</p>
         /// </summary>
         /// <param name="query"> the query for which to build a plan. </param>
         /// 

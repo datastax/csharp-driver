@@ -7,10 +7,10 @@ namespace Cassandra
     ///  A Round-robin load balancing policy. <p> This policy queries nodes in a
     ///  round-robin fashion. For a given query, if an host fail, the next one
     ///  (following the round-robin order) is tried, until all hosts have been tried.
-    ///  <p> This policy is not datacenter aware and will include every known
+    ///  </p><p> This policy is not datacenter aware and will include every known
     ///  Cassandra host in its round robin algorithm. If you use multiple datacenter
     ///  this will be inefficient and you will want to use the
-    ///  <link>DCAwareRoundRobinPolicy</link> load balancing policy instead.
+    ///  <link>DCAwareRoundRobinPolicy</link> load balancing policy instead.</p>
     /// </summary>
     public class RoundRobinPolicy : ILoadBalancingPolicy
     {
@@ -32,7 +32,7 @@ namespace Cassandra
         ///  Return the HostDistance for the provided host. <p> This policy consider all
         ///  nodes as local. This is generally the right thing to do in a single
         ///  datacenter deployement. If you use multiple datacenter, see
-        ///  <link>DCAwareRoundRobinPolicy</link> instead.
+        ///  <link>DCAwareRoundRobinPolicy</link> instead.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
@@ -46,7 +46,7 @@ namespace Cassandra
         ///  Returns the hosts to use for a new query. <p> The returned plan will try each
         ///  known host of the cluster. Upon each call to this method, the ith host of the
         ///  plans returned will cycle over all the host of the cluster in a round-robin
-        ///  fashion.
+        ///  fashion.</p>
         /// </summary>
         /// <param name="query"> the query for which to build the plan. </param>
         /// 

@@ -8,11 +8,11 @@ namespace Cassandra
     ///  includes in the query plans returned a configurable number of hosts in the
     ///  remote datacenters, but those are always tried after the local nodes. In
     ///  other words, this policy guarantees that no host in a remote datacenter will
-    ///  be queried unless no host in the local datacenter can be reached. <p> If used
+    ///  be queried unless no host in the local datacenter can be reached. </p><p> If used
     ///  with a single datacenter, this policy is equivalent to the
     ///  <code>LoadBalancingPolicy.RoundRobin</code> policy, but its DC awareness
     ///  incurs a slight overhead so the <code>LoadBalancingPolicy.RoundRobin</code>
-    ///  policy could be prefered to this policy in that case.
+    ///  policy could be prefered to this policy in that case.</p>
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
@@ -24,9 +24,9 @@ namespace Cassandra
     	/// <summary>
 		///  Creates a new datacenter aware round robin policy given the name of the local
 		///  datacenter. <p> The name of the local datacenter provided must be the local
-		///  datacenter name as known by Cassandra. <p> The policy created will ignore all
+		///  datacenter name as known by Cassandra. </p><p> The policy created will ignore all
 		///  remote hosts. In other words, this is equivalent to 
-		///  <code>new DCAwareRoundRobinPolicy(localDc, 0)</code>.
+		///  <code>new DCAwareRoundRobinPolicy(localDc, 0)</code>.</p>
 		/// </summary>
 		/// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
         public DCAwareRoundRobinPolicy(string localDc)
@@ -41,7 +41,7 @@ namespace Cassandra
         /// <p>
         /// The name of the local datacenter provided must be the local
         /// datacenter name as known by Cassandra.</p>
-        ///
+        ///</summary>
         /// <param name="localDc"> the name of the local datacenter (as known by
         /// Cassandra).</param>
         /// <param name="usedHostsPerRemoteDc"> the number of host per remote
@@ -51,7 +51,6 @@ namespace Cassandra
         /// usedHostsPerRemoteDc</code> hosts per remote datacenter. Other hosts
         /// of the remote datacenters will be ignored (and thus no
         /// connections to them will be maintained).</param>
-        ///</summary>
         public DCAwareRoundRobinPolicy(string localDc, int usedHostsPerRemoteDc)
         {
             this._localDc = localDc;
@@ -74,9 +73,9 @@ namespace Cassandra
 		///  Return the HostDistance for the provided host. <p> This policy consider nodes
 		///  in the local datacenter as <code>Local</code>. For each remote datacenter, it
 		///  considers a configurable number of hosts as <code>Remote</code> and the rest
-		///  is <code>Ignored</code>. <p> To configure how many host in each remote
+		///  is <code>Ignored</code>. </p><p> To configure how many host in each remote
 		///  datacenter is considered <code>Remote</code>, see
-		///  <link>#DCAwareRoundRobinPolicy(String, int)</link>.
+		///  <link>#DCAwareRoundRobinPolicy(String, int)</link>.</p>
 		/// </summary>
 		/// <param name="host"> the host of which to return the distance of. </param>
 		/// <returns>the HostDistance to <code>host</code>.</returns>
@@ -102,7 +101,7 @@ namespace Cassandra
         ///  try each known host in the local datacenter first, and then, if none of the
         ///  local host is reacheable, will try up to a configurable number of other host
         ///  per remote datacenter. The order of the local node in the returned query plan
-        ///  will follow a Round-robin algorithm.
+        ///  will follow a Round-robin algorithm.</p>
         /// </summary>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
