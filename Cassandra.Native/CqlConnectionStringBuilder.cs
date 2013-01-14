@@ -9,16 +9,16 @@ namespace Cassandra
 
     public enum ConsistencyLevel
     {
-        ANY = 0x0000,
-        ONE = 0x0001,
-        TWO = 0x0002,
-        THREE = 0x0003,
-        QUORUM = 0x0004,
-        ALL = 0x0005,
-        LOCAL_QUORUM = 0x0006,
-        EACH_QUORUM = 0x0007,
-        DEFAULT = ONE,
-        IGNORE = ANY
+        Any = 0x0000,
+        One = 0x0001,
+        Two = 0x0002,
+        Three = 0x0003,
+        Quorum = 0x0004,
+        All = 0x0005,
+        LocalQuorum = 0x0006,
+        EachQuorum = 0x0007,
+        Default = One,
+        Ignore = Any
     }
 
     public class ConnectionStringBuilder : DbConnectionStringBuilder
@@ -156,8 +156,10 @@ namespace Cassandra
             {
                 var ce = new List<IPAddress>();
                 string[] servers = pairs["Servers"].Split(',');
-                foreach (var server in servers)
-                    ce.Add(IPAddress.Parse(server));
+                foreach (var address in servers)
+                {
+                    ce.AddRange(Utils.ResolveHostByName(address));
+                }
                 ContactPoints = ce;
             }            
         }

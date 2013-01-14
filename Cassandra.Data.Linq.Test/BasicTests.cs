@@ -54,7 +54,7 @@ namespace Cassandra.Data.LinqTest
             clusterb.WithDefaultKeyspace(keyspaceName);
             var cluster = clusterb.Build();
             session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
-            ents = new TweetsContext(session, ConsistencyLevel.ONE, ConsistencyLevel.ONE);
+            ents = new TweetsContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
         }
 
         public void Dispose()

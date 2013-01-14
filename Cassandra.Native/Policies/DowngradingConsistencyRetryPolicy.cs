@@ -58,11 +58,11 @@ namespace Cassandra
         private static RetryDecision MaxLikelyToWorkCl(int knownOk)
         {
             if (knownOk >= 3)
-                return RetryDecision.Retry(ConsistencyLevel.THREE);
+                return RetryDecision.Retry(ConsistencyLevel.Three);
             else if (knownOk >= 2)
-                return RetryDecision.Retry(ConsistencyLevel.TWO);
+                return RetryDecision.Retry(ConsistencyLevel.Two);
             else if (knownOk >= 1)
-                return RetryDecision.Retry(ConsistencyLevel.ONE);
+                return RetryDecision.Retry(ConsistencyLevel.One);
             else
                 return RetryDecision.Rethrow();
         }

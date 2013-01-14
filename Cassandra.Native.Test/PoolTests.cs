@@ -54,14 +54,6 @@ namespace Cassandra.Test
                 clusterb.WithCompression(CompressionType.Snappy);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
-            //var serverSp = setFix.Settings["CassandraServer"].Split(':');
-
-            //string ip = serverSp[0];
-            //int port = int.Parse(serverSp[1]);
-
-            //var serverAddress = new IPEndPoint(IPAddress.Parse(ip), port);
-
-            //Session = new CassandraSession(new List<IPEndPoint>() { serverAddress }, this.Keyspace, this.Compression, 10 * 60 * 1000);
         }
 
         public void Dispose()

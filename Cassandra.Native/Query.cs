@@ -23,7 +23,7 @@ namespace Cassandra
         // We don't want to expose the constructor, because the code rely on this being only subclassed by Statement and BoundStatement
         protected Query()
         {
-            this._consistency = ConsistencyLevel.ONE;
+            this._consistency = ConsistencyLevel.One;
         }
         
         /**

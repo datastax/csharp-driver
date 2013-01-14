@@ -86,7 +86,6 @@
     </Compile>
     <Compile Include="Exceptions\DriverException.cs" />
     <Compile Include="Exceptions\DriverInternalError.cs" />
-    <Compile Include="Exceptions\DriverUncheckedException.cs" />
     <Compile Include="Exceptions\ExecutionException.cs" />
     <Compile Include="Exceptions\InvalidConfigurationInQueryException.cs">
       <SubType>Code</SubType>

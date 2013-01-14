@@ -116,7 +116,7 @@
          */
         public static RetryDecision Rethrow()
         {
-            return new RetryDecision(RetryDecisionType.Rethrow, ConsistencyLevel.IGNORE);
+            return new RetryDecision(RetryDecisionType.Rethrow, ConsistencyLevel.Ignore);
         }
 
         /**
@@ -137,7 +137,7 @@
          */
         public static RetryDecision Ignore()
         {
-            return new RetryDecision(RetryDecisionType.Ignore, ConsistencyLevel.IGNORE);
+            return new RetryDecision(RetryDecisionType.Ignore, ConsistencyLevel.Ignore);
         }
     }
 }

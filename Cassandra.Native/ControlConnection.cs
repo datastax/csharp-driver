@@ -184,7 +184,7 @@ namespace Cassandra
             Dictionary<IPAddress, DictSet<string>> tokenMap = new Dictionary<IPAddress, DictSet<string>>();
             string partitioner = null;
 
-            using (var rowset = _session.Query(SELECT_LOCAL, ConsistencyLevel.DEFAULT))
+            using (var rowset = _session.Query(SELECT_LOCAL, ConsistencyLevel.Default))
             {
                 // Update cluster name, DC and rack for the one node we are connected to
                 foreach (var localRow in rowset.GetRows())
@@ -216,7 +216,7 @@ namespace Cassandra
             List<string> racks = new List<string>();
             List<DictSet<string>> allTokens = new List<DictSet<string>>();
 
-            using (var rowset = _session.Query(SELECT_PEERS, ConsistencyLevel.DEFAULT))
+            using (var rowset = _session.Query(SELECT_PEERS, ConsistencyLevel.Default))
             {
                 foreach (var row in rowset.GetRows())
                 {

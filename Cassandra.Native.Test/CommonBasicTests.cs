@@ -101,7 +101,7 @@ namespace MyUTExt
             return col.ToString();
         }
 
-        public void ExecuteSyncQuery(Session session, string query, List<object[]> expectedValues = null, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, string messageInstead = null)
+        public void ExecuteSyncQuery(Session session, string query, List<object[]> expectedValues = null, ConsistencyLevel consistency = ConsistencyLevel.Default, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -145,7 +145,7 @@ namespace MyUTExt
         }
 
 
-        public void ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel consistency= ConsistencyLevel.DEFAULT)
+        public void ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel consistency= ConsistencyLevel.Default)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -168,7 +168,7 @@ namespace MyUTExt
             return ret;
         }
 
-        public void ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, string messageInstead = null)
+        public void ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -507,7 +507,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            CqlRowSet rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.DEFAULT);
+            CqlRowSet rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.Default);
 
             using (rs)
             {

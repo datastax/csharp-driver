@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net.Sockets;
+using System.Net;
 
 
 namespace Cassandra
@@ -252,6 +253,19 @@ namespace Cassandra
             return map;
         }
 
+        public static IEnumerable<IPAddress> ResolveHostByName(string address)
+        {
+            IPAddress addr;
+            if (IPAddress.TryParse(address, out addr))
+            {
+                return new List<IPAddress>() { addr };
+            }
+            else
+            {
+                var hst = Dns.GetHostEntry(address);
+                return hst.AddressList;
+            }
+        }
 
     }    
 }

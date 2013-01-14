@@ -318,9 +318,10 @@ namespace Cassandra
          * @throws SecurityException if a security manager is present and
          * permission to resolve the host name is denied.
          */
+
         public ClusterBuilder AddContactPoint(string address)
         {
-            this._addresses.Add(IPAddress.Parse(address));
+            this._addresses.AddRange(Utils.ResolveHostByName(address));
             return this;
         }
 

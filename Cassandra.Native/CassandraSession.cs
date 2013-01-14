@@ -147,7 +147,7 @@ namespace Cassandra
                     var current = hostsIter.Current;
                     if (current.IsConsiderablyUp)
                     {
-                        var host_distance = Policies.LoadBalancingPolicy.Distance(current);
+                        var hostDistance = Policies.LoadBalancingPolicy.Distance(current);
                         if (!_connectionPool.ContainsKey(current.Address))
                             _connectionPool.Add(current.Address, new List<CassandraConnection>());
 
@@ -165,14 +165,14 @@ namespace Cassandra
                             {
                                 if (toReturn == null)
                                 {
-                                    if (!conn.IsBusy(_poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                                    if (!conn.IsBusy(_poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(hostDistance)))
                                         toReturn = conn;
                                 }
                                 else
                                 {
-                                    if (pool.Count > _poolingOptions.GetCoreConnectionsPerHost(host_distance))
+                                    if (pool.Count > _poolingOptions.GetCoreConnectionsPerHost(hostDistance))
                                     {
-                                        if (conn.IsFree(_poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(host_distance)))
+                                        if (conn.IsFree(_poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(hostDistance)))
                                         {
                                             lock (_trahscan)
                                                 _trahscan.Add(conn);
@@ -184,7 +184,7 @@ namespace Cassandra
                         }
                         if (toReturn != null)
                             return toReturn;
-                        if (pool.Count < _poolingOptions.GetMaxConnectionPerHost(host_distance) - 1)
+                        if (pool.Count < _poolingOptions.GetMaxConnectionPerHost(hostDistance) - 1)
                         {
                             bool error = false;
                             CassandraConnection conn = null;
@@ -209,14 +209,12 @@ namespace Cassandra
                                     break;
                                 }
                             }
-                            while (pool.Count < _poolingOptions.GetCoreConnectionsPerHost(host_distance));
+                            while (pool.Count < _poolingOptions.GetCoreConnectionsPerHost(hostDistance));
                             if (!error)
                                 return conn;
                         }
                     }
-                    if (hostsIter.MoveNext())
-                        current = hostsIter.Current;
-                    else
+                    if (!hostsIter.MoveNext())
                         throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
                 }
             }
@@ -264,7 +262,7 @@ namespace Cassandra
                     string retKeyspaceId;
                     try
                     {
-                        retKeyspaceId = ProcessSetKeyspace(nconn.Query(GetUseKeyspaceCQL(keyspaceId), ConsistencyLevel.IGNORE));
+                        retKeyspaceId = ProcessSetKeyspace(nconn.Query(GetUseKeyspaceCQL(keyspaceId), ConsistencyLevel.Ignore));
                     }
                     catch (InvalidException)
                     {
@@ -338,7 +336,7 @@ namespace Cassandra
 
         public void CreateKeyspace(string ksname)
         {
-            Query(GetCreateKeyspaceCQL(ksname), ConsistencyLevel.IGNORE);
+            Query(GetCreateKeyspaceCQL(ksname), ConsistencyLevel.Ignore);
         }
 
         public void CreateKeyspaceIfNotExists(string ksname)
@@ -355,7 +353,7 @@ namespace Cassandra
 
         public void DeleteKeyspace(string ksname)
         {
-            Query(GetDropKeyspaceCQL(ksname), ConsistencyLevel.IGNORE);
+            Query(GetDropKeyspaceCQL(ksname), ConsistencyLevel.Ignore);
         }
         public void DeleteKeyspaceIfExists(string ksname)
         {
@@ -386,7 +384,7 @@ namespace Cassandra
                                 string retKeyspaceId;
                                 try
                                 {
-                                    retKeyspaceId = ProcessSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace), ConsistencyLevel.IGNORE));
+                                    retKeyspaceId = ProcessSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace), ConsistencyLevel.Ignore));
                                 }
                                 catch (QueryValidationException)
                                 {
@@ -454,12 +452,12 @@ namespace Cassandra
             return EndExecute(BeginExecute(query, null, null));
         }
 
-        public IAsyncResult BeginExecute(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT)
+        public IAsyncResult BeginExecute(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default)
         {
             return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), callback, state);
         }
 
-        public CqlRowSet Execute(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT)
+        public CqlRowSet Execute(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency));
         }
@@ -733,7 +731,7 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
         {
             var longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, _clientAbortAsyncCommandTimeout);
             var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
@@ -749,7 +747,7 @@ namespace Cassandra
             return AsyncResult<string>.End(ar, this, "SessionSetKeyspace");
         }
 
-        internal object SetKeyspace(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal object SetKeyspace(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
         {
             var ar = BeginSetKeyspace(cqlQuery, null, null, consistency, routingKey);
             return EndSetKeyspace(ar);
@@ -784,7 +782,7 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
+        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null, object sender = null)
         {
             var longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender, _clientAbortAsyncCommandTimeout);
             var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, RoutingKey = routingKey, LongActionAc = longActionAc };
@@ -799,7 +797,7 @@ namespace Cassandra
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionQuery");
         }
 
-        internal CqlRowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
         {
             return EndQuery(BeginQuery(cqlQuery, null, null, consistency, routingKey));
         }
@@ -844,7 +842,7 @@ namespace Cassandra
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null)
         {
             var longActionAc = new AsyncResult<KeyValuePair<TableMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender, _clientAbortAsyncCommandTimeout);
-            var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.IGNORE, CqlQuery = cqlQuery, LongActionAc = longActionAc };
+            var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Ignore, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 
@@ -897,7 +895,7 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null, object sender = null)
+        internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null, object sender = null)
         {
             AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender, _clientAbortAsyncCommandTimeout);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, RoutingKey = routingKey, LongActionAc = longActionAc };
@@ -913,7 +911,7 @@ namespace Cassandra
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal CqlRowSet ExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.DEFAULT, CassandraRoutingKey routingKey = null)
+        internal CqlRowSet ExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, CassandraRoutingKey routingKey = null)
         {
             var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, routingKey);
             return EndExecuteQuery(ar);

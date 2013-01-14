@@ -24,7 +24,11 @@ namespace Cassandra
 
         private static String MakeMessage(Dictionary<IPAddress, Exception> errors)
         {
-            return string.Format("All host tried for query are in error (tried: {0})", string.Join(",", errors.Keys));
+            List<string> addrs = new List<string>();
+            foreach (var err in errors.Keys)
+                addrs.Add(err.ToString());
+
+            return string.Format("All host tried for query are in error (tried: {0})", string.Join(",", addrs.ToArray()));
         }
     }
 }
