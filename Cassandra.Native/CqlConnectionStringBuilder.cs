@@ -23,9 +23,9 @@ namespace Cassandra
 
     public class ConnectionStringBuilder : DbConnectionStringBuilder
     {
-        public string Keyspace { get; set; }
+        public string Keyspace { get; private set; }
         public int Port { get; private set; }
-        public IEnumerable<IPAddress> ContactPoints { get; private set; }
+        public IEnumerable<string> ContactPoints { get; private set; }
         //public string Username { get; private set; }
         //public string Password { get; private set; }
         public CompressionType CompressionType { get; private set; }
@@ -37,7 +37,7 @@ namespace Cassandra
 
         public ConnectionStringBuilder(
             string keyspace,
-            IEnumerable<IPAddress> contactPoints,
+            IEnumerable<string> contactPoints,
             int port = Cluster.DefaultPort,
             //string Username = null,
             //string Password = null,
@@ -154,14 +154,8 @@ namespace Cassandra
             }
             else
             {
-                var ce = new List<IPAddress>();
-                string[] servers = pairs["Servers"].Split(',');
-                foreach (var address in servers)
-                {
-                    ce.AddRange(Utils.ResolveHostByName(address));
-                }
-                ContactPoints = ce;
-            }            
+                ContactPoints = pairs["Servers"].Split(',');
+            }
         }
 
         public string ClusterEndpointsString()
