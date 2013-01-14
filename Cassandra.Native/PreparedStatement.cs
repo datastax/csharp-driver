@@ -35,7 +35,7 @@ namespace Cassandra
         /**
          * Sets the consistency level for the query.
          * <p>
-         * The default consistency level, if this method is not called, is ConsistencyLevel.ONE.
+         * The default consistency level, if this method is not called, is Consistency.ONE.
          *
          * @param consistency the consistency level to set.
          * @return this {@code Query} object.

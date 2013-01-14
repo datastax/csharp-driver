@@ -77,7 +77,7 @@ namespace MyUTExt
         //        else if (ret is OutputVoid)
         //        {
         //            if (expectedValue != null)
-        //                Dev.Assert.True(false, string.Format("\n Received output:  {0} \n Expected output:  {1}", ret.ToString(), expectedValue.ToString()));
+        //                Dev.Assert.True(false, string.Format("\n ReceivedAcknowledgements output:  {0} \n Expected output:  {1}", ret.ToString(), expectedValue.ToString()));
         //            else
         //                Console.WriteLine("CQL> (OK)");
         //        }

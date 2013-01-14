@@ -363,7 +363,7 @@ namespace Cassandra
             {
                 DeleteKeyspace(ksname);
             }
-            catch (CassandraClusterConfigErrorException)
+            catch (InvalidConfigurationInQueryException)
             {
                 //not exists
             }
@@ -497,21 +497,21 @@ namespace Cassandra
             else if (exc is ReadTimeoutException)
             {
                 var e = exc as ReadTimeoutException;
-                return policy.OnReadTimeout(e.ConsistencyLevel, e.BlockFor, e.Received, e.IsDataPresent, queryRetries);
+                return policy.OnReadTimeout(e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, queryRetries);
             }
             else if (exc is WriteTimeoutException)
             {
                 var e = exc as WriteTimeoutException;
-                return policy.OnWriteTimeout(e.ConsistencyLevel, e.WriteType, e.BlockFor, e.Received, queryRetries);
+                return policy.OnWriteTimeout(e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, queryRetries);
             }
             else if (exc is UnavailableException)
             {
                 var e = exc as UnavailableException;
-                return policy.OnUnavailable(e.ConsistencyLevel, e.Required, e.Alive, queryRetries);
+                return policy.OnUnavailable(e.Consistency, e.RequiredReplicas, e.AliveReplicas, queryRetries);
             }
 
             else if (exc is AlreadyExistsException) return RetryDecision.Rethrow();
-            else if (exc is CassandraClusterConfigErrorException) return RetryDecision.Rethrow();
+            else if (exc is InvalidConfigurationInQueryException) return RetryDecision.Rethrow();
             else if (exc is PreparedQueryNotFoundException) return RetryDecision.Rethrow();
             else if (exc is ProtocolErrorException) return RetryDecision.Rethrow();
             else if (exc is InvalidException) return RetryDecision.Rethrow();

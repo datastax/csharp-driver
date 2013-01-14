@@ -117,7 +117,7 @@ namespace Cassandra
         }
         public override QueryValidationException CreateException()
         {
-            return new UnavailableException(Message, _info.ConsistencyLevel, _info.Required, _info.Alive);
+            return new UnavailableException(_info.ConsistencyLevel, _info.Required, _info.Alive);
         }
     }
 
@@ -168,7 +168,7 @@ namespace Cassandra
 
         public override QueryValidationException CreateException()
         {
-            return new WriteTimeoutException(Message, _info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.WriteType);
+            return new WriteTimeoutException(_info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.WriteType);
         }
     }
 
@@ -193,7 +193,7 @@ namespace Cassandra
         }
         public override QueryValidationException CreateException()
         {
-            return new ReadTimeoutException(Message, _info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.IsDataPresent);
+            return new ReadTimeoutException(_info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.IsDataPresent);
         }
     }
 
@@ -226,7 +226,7 @@ namespace Cassandra
     {
         public override QueryValidationException CreateException()
         {
-            return new CassandraClusterConfigErrorException(Message);
+            return new InvalidConfigurationInQueryException(Message);
         }
     }
 

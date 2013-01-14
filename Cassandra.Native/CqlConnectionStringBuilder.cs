@@ -29,8 +29,8 @@ namespace Cassandra
         //public string Username { get; private set; }
         //public string Password { get; private set; }
         public CompressionType CompressionType { get; private set; }
-        //public ConsistencyLevel ReadCqlConsistencyLevel { get; private set; }
-        //public ConsistencyLevel WriteCqlConsistencyLevel { get; private set; }
+        //public Consistency ReadCqlConsistencyLevel { get; private set; }
+        //public Consistency WriteCqlConsistencyLevel { get; private set; }
 
         //public int ConnectionTimeout { get; private set; }
         //public int MaxPoolSize { get; private set; }
@@ -42,8 +42,8 @@ namespace Cassandra
             //string Username = null,
             //string Password = null,
             CompressionType compressionType = CompressionType.NoCompression
-            //ConsistencyLevel ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM,
-            //ConsistencyLevel WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM,
+            //Consistency ReadCqlConsistencyLevel = Consistency.QUORUM,
+            //Consistency WriteCqlConsistencyLevel = Consistency.QUORUM,
             //int ConnectionTimeout = Timeout.Infinite,
             //int MaxPoolSize = int.MaxValue
         )
@@ -128,14 +128,14 @@ namespace Cassandra
             //}
 
             //if (!pairs.ContainsKey("Read"))
-            //    ReadCqlConsistencyLevel = ConsistencyLevel.QUORUM;
+            //    ReadCqlConsistencyLevel = Consistency.QUORUM;
             //else
-            //    ReadCqlConsistencyLevel = (ConsistencyLevel)Enum.Parse(typeof(ConsistencyLevel), pairs["Read"]);
+            //    ReadCqlConsistencyLevel = (Consistency)Enum.Parse(typeof(Consistency), pairs["Read"]);
 
             //if (!pairs.ContainsKey("Write"))
-            //    WriteCqlConsistencyLevel = ConsistencyLevel.QUORUM;
+            //    WriteCqlConsistencyLevel = Consistency.QUORUM;
             //else
-            //    WriteCqlConsistencyLevel = (ConsistencyLevel)Enum.Parse(typeof(ConsistencyLevel), pairs["Write"]);
+            //    WriteCqlConsistencyLevel = (Consistency)Enum.Parse(typeof(Consistency), pairs["Write"]);
 
             if (!pairs.ContainsKey("Compression Type"))
                 CompressionType = CompressionType.NoCompression;
@@ -183,10 +183,10 @@ namespace Cassandra
             //if(ConnectionTimeout!=Timeout.Infinite)
             //    b.AppendFormat(format, "Connection Timeout", Convert.ToInt32(ConnectionTimeout / 1000));
     
-            //if(ReadCqlConsistencyLevel != ConsistencyLevel.QUORUM)
+            //if(ReadCqlConsistencyLevel != Consistency.QUORUM)
             //    b.AppendFormat(format, "Read", ReadCqlConsistencyLevel);
     
-            //if(WriteCqlConsistencyLevel != ConsistencyLevel.QUORUM)
+            //if(WriteCqlConsistencyLevel != Consistency.QUORUM)
             //    b.AppendFormat(format, "Write", WriteCqlConsistencyLevel);
 
             if( CompressionType != CompressionType.NoCompression)

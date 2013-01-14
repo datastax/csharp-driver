@@ -260,8 +260,8 @@ namespace Cassandra
         //    long start = System.currentTimeMillis();
         //    long elapsed = 0;
         //    while (elapsed < MAX_SCHEMA_AGREEMENT_WAIT_MS) {
-        //        ResultSetFuture peersFuture = new ResultSetFuture(null, new QueryMessage(SELECT_SCHEMA_PEERS, ConsistencyLevel.DEFAULT_CASSANDRA_CL));
-        //        ResultSetFuture localFuture = new ResultSetFuture(null, new QueryMessage(SELECT_SCHEMA_LOCAL, ConsistencyLevel.DEFAULT_CASSANDRA_CL));
+        //        ResultSetFuture peersFuture = new ResultSetFuture(null, new QueryMessage(SELECT_SCHEMA_PEERS, Consistency.DEFAULT_CASSANDRA_CL));
+        //        ResultSetFuture localFuture = new ResultSetFuture(null, new QueryMessage(SELECT_SCHEMA_LOCAL, Consistency.DEFAULT_CASSANDRA_CL));
         //        connection.write(peersFuture.callback);
         //        connection.write(localFuture.callback);
 
