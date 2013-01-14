@@ -7,11 +7,6 @@ using System.Threading;
 
 namespace Cassandra
 {
-    public enum CompressionType { NoCompression, Snappy }
-}
-
-namespace Cassandra
-{
     internal enum BufferingMode { NoBuffering, FrameBuffering }
 
     internal partial class CassandraConnection

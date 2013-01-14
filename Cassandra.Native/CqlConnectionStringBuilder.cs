@@ -38,7 +38,7 @@ namespace Cassandra
         public ConnectionStringBuilder(
             string keyspace,
             IEnumerable<string> contactPoints,
-            int port = Cluster.DefaultPort,
+            int port = ProtocolOptions.DefaultPort,
             //string Username = null,
             //string Password = null,
             CompressionType compressionType = CompressionType.NoCompression
@@ -103,7 +103,7 @@ namespace Cassandra
             //}
 
             if (!pairs.ContainsKey("Port"))
-                Port = Cluster.DefaultPort;
+                Port = ProtocolOptions.DefaultPort;
             else
             {
                 int port;
@@ -194,7 +194,7 @@ namespace Cassandra
             //if(Password!=null)
             //    b.AppendFormat(format, "Password", Password);
 
-            if (Port != Cluster.DefaultPort)
+            if (Port != ProtocolOptions.DefaultPort)
                 b.AppendFormat(format, "Port", Port);
     
             b.AppendFormat(format, "Servers", ClusterEndpointsString());

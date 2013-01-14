@@ -62,7 +62,7 @@ namespace Cassandra.Test
                 Thread.Sleep((int)ev.DelayMs);
             });
             clusterb.WithLoadBalancingPolicy(rp);
-            clusterb.WithConnectionTimeout(60*1000);
+            clusterb.WithQueryTimeout(60*1000);
             var cluster = clusterb.Build();
             Session = cluster.Connect(this.Keyspace);
 

@@ -32,6 +32,10 @@
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private readonly IRetryPolicy _retryPolicy;
 
+        public Policies()
+        {
+        }
+
         /// <summary>
         ///  Creates a new <code>Policies</code> object using the provided policies.
         /// </summary>
