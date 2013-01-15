@@ -24,7 +24,7 @@ namespace Cassandra
         readonly bool[] _freeStreamIDtaken = new bool[byte.MaxValue + 1];
         readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
         readonly int _abortTimeout = Timeout.Infinite;
-        readonly int clientAbortAsyncCommandTimeout = Timeout.Infinite;
+        readonly int _clientAbortAsyncCommandTimeout = Timeout.Infinite;
 
         readonly object _frameGuardier = new object();
 
@@ -52,7 +52,7 @@ namespace Cassandra
             _owner.HostIsDown(_serverAddress);
         }
 
-        internal CassandraConnection(Session owner, IPAddress serverAddress, int port, IAuthInfoProvider authInfoProvider = null, CompressionType compression = CompressionType.NoCompression, int abortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
+        internal CassandraConnection(Session owner, IPAddress serverAddress, int port, IAuthInfoProvider authInfoProvider = null, CompressionType compression = CompressionType.NoCompression, int abortTimeout = Timeout.Infinite, int asyncCallAbortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
         {
             this._owner = owner;
             _bufferingMode = null;
@@ -77,6 +77,7 @@ namespace Cassandra
             this._serverAddress = serverAddress;
             this._port = port;
             this._abortTimeout = abortTimeout;
+            this._clientAbortAsyncCommandTimeout = asyncCallAbortTimeout;
     
             CreateConnection();
             if (IsHealthy)
@@ -219,7 +220,7 @@ namespace Cassandra
                 _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
-            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, clientAbortAsyncCommandTimeout);
+            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, _clientAbortAsyncCommandTimeout);
 
             lock (_frameGuardier)
                 _frameReadAsyncResult[streamId] = ar;

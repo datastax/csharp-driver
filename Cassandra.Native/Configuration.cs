@@ -1,15 +1,12 @@
 namespace Cassandra
 {
 
-
-
     /// <summary>
     ///  The configuration of the cluster. This handle setting: <ul> <li>Cassandra
     ///  binary protocol level configuration (compression).</li> <li>Connection
     ///  pooling configurations.</li> <li>low-level tcp configuration options
     ///  (tcpNoDelay, keepAlive, ...).</li> </ul>
     /// </summary>
-
     public class Configuration
     {
 
@@ -18,18 +15,19 @@ namespace Cassandra
         private readonly ProtocolOptions _protocolOptions;
         private readonly PoolingOptions _poolingOptions;
         private readonly SocketOptions _socketOptions;
+        private readonly ClientOptions _clientOptions;
 
         private readonly IAuthInfoProvider _authProvider;
         private readonly bool _metricsEnabled;
-        private readonly string _defaultKeyspace;
 
         public Configuration() :
             this(new Policies(),
                  new ProtocolOptions(),
                  new PoolingOptions(),
                  new SocketOptions(),
+                 new ClientOptions(),
                  null,
-                 true, null)
+                 true)
         {
         }
 
@@ -37,17 +35,17 @@ namespace Cassandra
                              ProtocolOptions protocolOptions,
                              PoolingOptions poolingOptions,
                              SocketOptions socketOptions,
+                             ClientOptions clientOptions,
                              IAuthInfoProvider authProvider,
-                             bool metricsEnabled,
-                             string defaultKeyspace)
+                             bool metricsEnabled)
         {
             this._policies = policies;
             this._protocolOptions = protocolOptions;
             this._poolingOptions = poolingOptions;
             this._socketOptions = socketOptions;
+            this._clientOptions = clientOptions;
             this._authProvider = authProvider;
             this._metricsEnabled = metricsEnabled;
-            this._defaultKeyspace = defaultKeyspace;
         }
 
         /// <summary>
@@ -71,7 +69,6 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the protocol options.</returns>
-
         public ProtocolOptions ProtocolOptions
         {
              get {return _protocolOptions;}
@@ -82,10 +79,17 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the pooling options.</returns>
-
         public PoolingOptions PoolingOptions
         {
             get {return _poolingOptions;}
+        }
+
+        /// <summary>
+        ///  The .net client additional options configuration.
+        /// </summary>
+        public ClientOptions ClientOptions
+        {
+            get { return _clientOptions; }
         }
 
         /// <summary>
@@ -93,7 +97,6 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the authentication provider in use.</returns>
-
         public IAuthInfoProvider AuthInfoProvider
         {
             get { return _authProvider; }
@@ -113,10 +116,6 @@ namespace Cassandra
             get { return _metricsEnabled; }
         }
 
-        public string DefaultKeyspace
-        {
-            get { return _defaultKeyspace; }
-        }
     }
 }
 

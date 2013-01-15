@@ -23,16 +23,14 @@ namespace Cassandra
 
         private readonly int _port;
         private CompressionType _compression = CompressionType.NoCompression;
-        private readonly bool _withoutBuffering = false;
-        private readonly int _queryAbortTimeout = Timeout.Infinite;
-
+ 
         /// <summary>
         ///  Creates a new <code>ProtocolOptions</code> instance using the
         ///  <code>DEFAULT_PORT</code>.
         /// </summary>
 
         public ProtocolOptions()
-            : this(DefaultPort, false, Timeout.Infinite)
+            : this(DefaultPort)
         {
         }
 
@@ -41,11 +39,9 @@ namespace Cassandra
         /// </summary>
         /// <param name="port"> the port to use for the binary protocol.</param>
 
-        public ProtocolOptions(int port,bool withoutBuffering, int queryAbortTimeout)
+        public ProtocolOptions(int port)
         {
             this._port = port;
-            this._withoutBuffering = withoutBuffering;
-            this._queryAbortTimeout = queryAbortTimeout;
         }
 
         /// <summary>
@@ -86,15 +82,6 @@ namespace Cassandra
             return this;
         }
 
-        public bool WithoutBuffering
-        {
-            get { return _withoutBuffering; }
-        }
-
-        public int QueryAbortTimeout
-        {
-            get { return _queryAbortTimeout; }
-        }
     }
 }
 

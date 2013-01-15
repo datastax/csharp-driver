@@ -10,12 +10,17 @@ namespace Cassandra
         readonly Session _session;
         readonly Session _owner;
         IEnumerator<Host> _hostsIter = null;
-        public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies policies = null, IAuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
+
+        public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace,
+                                 CompressionType compression = CompressionType.NoCompression,
+                                 int abortTimeout = Timeout.Infinite, int asyncCallAbortTimeout = Timeout.Infinite,
+                                 Policies policies = null, IAuthInfoProvider credentialsDelegate = null,
+                                 PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
         {
             this._owner = owner;
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
-            _session = new Session(clusterEndpoints, port, keyspace, compression, abortTimeout, policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
+            _session = new Session(clusterEndpoints, port, keyspace, compression, abortTimeout, asyncCallAbortTimeout,
+                                   policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
             Metadata = new ClusterMetadata(owner.Hosts);
             go(true);
         }

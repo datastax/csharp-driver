@@ -81,6 +81,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="ConversionHelper.cs" />
+    <Compile Include="ClientOptions.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="DictSet.cs" />
     <Compile Include="Exceptions\AlreadyExistsException.cs" />

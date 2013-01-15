@@ -21,7 +21,6 @@ namespace Cassandra
         /// <summary>
         ///  Creates a new <code>SocketOptions</code> instance with default values.
         /// </summary>
-
         public SocketOptions()
         {
         }

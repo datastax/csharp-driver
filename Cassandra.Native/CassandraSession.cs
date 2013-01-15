@@ -87,7 +87,7 @@ namespace Cassandra
         readonly int _port;
 
         internal Session(IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, Policies policies = null, IAuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false, Hosts hosts = null)
+            int abortTimeout = Timeout.Infinite, int asyncCallAbortTimeout = Timeout.Infinite, Policies policies = null, IAuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false, Hosts hosts = null)
         {
             this.Policies = policies ?? Policies.DefaultPolicies;
             if (poolingOptions != null)
@@ -103,6 +103,7 @@ namespace Cassandra
 
             this._compression = compression;
             this._abortTimeout = abortTimeout;
+            this._clientAbortAsyncCommandTimeout = asyncCallAbortTimeout;
 
             this._credentialsDelegate = credentialsDelegate;
             this._keyspace = keyspace;
@@ -120,7 +121,7 @@ namespace Cassandra
                     new RoundRobinPolicy(),
                     new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
                     Cassandra.Policies.DefaultRetryPolicy);
-                _controlConnection = new ControlConnection(this, clusterEndpoints, port, null, compression, abortTimeout, controlpolicies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
+                _controlConnection = new ControlConnection(this, clusterEndpoints, port, null, compression, abortTimeout, asyncCallAbortTimeout, controlpolicies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
             }
         }
 
@@ -252,7 +253,7 @@ namespace Cassandra
 
             try
             {
-                nconn = new CassandraConnection(this, endPoint, _port, _credentialsDelegate, this._compression, this._abortTimeout, this._noBufferingIfPossible);
+                nconn = new CassandraConnection(this, endPoint, _port, _credentialsDelegate, this._compression, this._abortTimeout, this._clientAbortAsyncCommandTimeout, this._noBufferingIfPossible);
 
                 var options = nconn.ExecuteOptions();
 

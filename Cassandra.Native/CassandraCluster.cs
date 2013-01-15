@@ -66,7 +66,7 @@ namespace Cassandra
         /// <returns>a new session on this cluster sets to no keyspace.</returns>
         public Session Connect()
         {
-            return Connect(_configuration.DefaultKeyspace);
+            return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
 
         /// <summary>
@@ -85,9 +85,10 @@ namespace Cassandra
                 credentialsDelegate: _configuration.AuthInfoProvider,
                 policies: _configuration.Policies,
                 poolingOptions: _configuration.PoolingOptions,
-                noBufferingIfPossible: _configuration.ProtocolOptions.WithoutBuffering,
+                noBufferingIfPossible: _configuration.ClientOptions.WithoutRowSetBuffering,
                 compression: _configuration.ProtocolOptions.Compression,
-                abortTimeout: _configuration.ProtocolOptions.QueryAbortTimeout
+                abortTimeout: _configuration.ClientOptions.QueryAbortTimeout,
+                asyncCallAbortTimeout: _configuration.ClientOptions.AsyncCallAbortTimeout
                 );
         }
 
@@ -96,12 +97,12 @@ namespace Cassandra
             var session = Connect("");
             try
             {
-                session.ChangeKeyspace(_configuration.DefaultKeyspace);
+                session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             }
             catch (InvalidException)
             {
-                session.CreateKeyspaceIfNotExists(_configuration.DefaultKeyspace);
-                session.ChangeKeyspace(_configuration.DefaultKeyspace);
+                session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace);
+                session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             }
             return session;
         }
@@ -154,11 +155,12 @@ namespace Cassandra
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private IReconnectionPolicy _reconnectionPolicy;
         private IRetryPolicy _retryPolicy;
-        private bool _withoutBuffering = false;
+        private bool _withoutRowSetBuffering = false;
 
         private string _defaultKeyspace = null;
 
         private int _queryAbortTimeout = Timeout.Infinite;
+        private int _asyncCallAbortTimeout = Timeout.Infinite;
 
         public IEnumerable<IPAddress> ContactPoints
         {
@@ -344,13 +346,13 @@ namespace Cassandra
                 );
 
             return new Configuration(policies,
-                                     new ProtocolOptions(_port, _withoutBuffering, _queryAbortTimeout).SetCompression(
-                                         _compression),
+                                     new ProtocolOptions(_port).SetCompression(_compression),
                                      _poolingOptions,
                                      _socketOptions,
+                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace, _asyncCallAbortTimeout),
                                      _authProvider,
-                                     _metricsEnabled,
-                                     _defaultKeyspace);
+                                     _metricsEnabled
+                );
         }
 
         /// <summary>
@@ -370,7 +372,7 @@ namespace Cassandra
 
         public Builder WithoutRowSetBuffering()
         {
-            this._withoutBuffering = true;
+            this._withoutRowSetBuffering = true;
             return this;
         }
 
@@ -380,6 +382,11 @@ namespace Cassandra
             return this;
         }
 
+        public Builder WithAsyncCallTimeout(int asyncCallAbortTimeout)
+        {
+            this._asyncCallAbortTimeout = asyncCallAbortTimeout;
+            return this;
+        }
 
         public Builder WithDefaultKeyspace(string defaultKeyspace)
         {
