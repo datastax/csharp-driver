@@ -78,18 +78,9 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            return new Session(
-                clusterEndpoints: _contactPoints,
-                port: _configuration.ProtocolOptions.Port,
-                keyspace: keyspace,
-                credentialsDelegate: _configuration.AuthInfoProvider,
-                policies: _configuration.Policies,
-                poolingOptions: _configuration.PoolingOptions,
-                noBufferingIfPossible: _configuration.ClientOptions.WithoutRowSetBuffering,
-                compression: _configuration.ProtocolOptions.Compression,
-                abortTimeout: _configuration.ClientOptions.QueryAbortTimeout,
-                asyncCallAbortTimeout: _configuration.ClientOptions.AsyncCallAbortTimeout
-                );
+            return new Session(_contactPoints, _configuration.Policies, _configuration.ProtocolOptions,
+                               _configuration.PoolingOptions, _configuration.SocketOptions, _configuration.ClientOptions,
+                               _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace);
         }
 
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists()

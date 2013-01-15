@@ -23,8 +23,8 @@ namespace Cassandra
         readonly Guarded<Stack<int>> _freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
         readonly bool[] _freeStreamIDtaken = new bool[byte.MaxValue + 1];
         readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
-        readonly int _abortTimeout = Timeout.Infinite;
-        readonly int _clientAbortAsyncCommandTimeout = Timeout.Infinite;
+        readonly int _queryAbortTimeout = Timeout.Infinite;
+        readonly int _asyncCallAbortTimeout = Timeout.Infinite;
 
         readonly object _frameGuardier = new object();
 
@@ -47,38 +47,44 @@ namespace Cassandra
 
         readonly Session _owner;
 
+        private readonly SocketOptions _socketOptions;
+
         void HostIsDown()
         {
             _owner.HostIsDown(_serverAddress);
         }
 
-        internal CassandraConnection(Session owner, IPAddress serverAddress, int port, IAuthInfoProvider authInfoProvider = null, CompressionType compression = CompressionType.NoCompression, int abortTimeout = Timeout.Infinite, int asyncCallAbortTimeout = Timeout.Infinite, bool noBufferingIfPossible = false)
+        internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
+                                     SocketOptions socketOptions, ClientOptions clientOptions,
+                                     IAuthInfoProvider authInfoProvider)
         {
             this._owner = owner;
             _bufferingMode = null;
-            switch (compression)
+            switch (protocolOptions.Compression)
             {
                 case CompressionType.Snappy:
                     _bufferingMode = new FrameBuffering();
                     break;
                 case CompressionType.NoCompression:
-                    _bufferingMode = noBufferingIfPossible ? new NoBuffering() : new FrameBuffering();
+                    _bufferingMode = clientOptions.WithoutRowSetBuffering ? new NoBuffering() : new FrameBuffering();
                     break;
                 default:
                     throw new ArgumentException();
             }
 
             this._authInfoProvider = authInfoProvider;
-            if (compression == CompressionType.Snappy)
+            if (protocolOptions.Compression == CompressionType.Snappy)
             {
                 _startupOptions.Add("COMPRESSION", "snappy");
                 _compressor = new SnappyProtoBufCompressor();
             }
             this._serverAddress = serverAddress;
-            this._port = port;
-            this._abortTimeout = abortTimeout;
-            this._clientAbortAsyncCommandTimeout = asyncCallAbortTimeout;
-    
+            this._port = protocolOptions.Port;
+            this._queryAbortTimeout = clientOptions.QueryAbortTimeout;
+            this._asyncCallAbortTimeout = clientOptions.AsyncCallAbortTimeout;
+
+            this._socketOptions = socketOptions;
+
             CreateConnection();
             if (IsHealthy)
                 BeginReading();
@@ -111,9 +117,25 @@ namespace Cassandra
                     new byte[_bufferingMode.PreferedBufferSize()] };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
-            newSock.SendTimeout = this._abortTimeout;
+            if (_socketOptions.KeepAlive != null)
+                newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,
+                                        _socketOptions.KeepAlive.Value);
+            
+            newSock.SendTimeout = _socketOptions.ConnectTimeoutMillis;
+
+            if (_socketOptions.SoLinger != null)
+                newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger,
+                                        new LingerOption(true, _socketOptions.SoLinger.Value));
+
+            if (_socketOptions.ReceiveBufferSize != null)
+                newSock.ReceiveBufferSize = _socketOptions.ReceiveBufferSize.Value;
+
+            if (_socketOptions.SendBufferSize != null)
+                newSock.ReceiveBufferSize = _socketOptions.SendBufferSize.Value;
+
+            if (_socketOptions.TcpNoDelay != null)
+                newSock.NoDelay = _socketOptions.TcpNoDelay.Value;
 
             newSock.Connect(new IPEndPoint(_serverAddress, _port));
             _socket.Value = newSock;
@@ -220,7 +242,7 @@ namespace Cassandra
                 _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
-            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, _clientAbortAsyncCommandTimeout);
+            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, _asyncCallAbortTimeout);
 
             lock (_frameGuardier)
                 _frameReadAsyncResult[streamId] = ar;
@@ -300,7 +322,7 @@ namespace Cassandra
                         _readerSocketStream.Close();
                         _writerSocketStream.Close();
                         _socket.Value.Shutdown(SocketShutdown.Both);
-                        _socket.Value.Disconnect(false);
+                        _socket.Value.Disconnect(_socketOptions.ReuseAddress ?? false);
                     }
                     catch (Exception ex)
                     {
@@ -322,7 +344,7 @@ namespace Cassandra
 
         readonly Guarded<bool> _readerSocketStreamBusy = new Guarded<bool>(false);
 
-        internal void BeginReading()
+        private void BeginReading()
         {
             try
             {
@@ -545,7 +567,7 @@ namespace Cassandra
                         try
                         {
                             _socket.Value.Shutdown(SocketShutdown.Both);
-                            _socket.Value.Disconnect(false);
+                            _socket.Value.Disconnect(_socketOptions.ReuseAddress ?? false);
                         }
                         catch (ObjectDisposedException)
                         {
@@ -554,7 +576,6 @@ namespace Cassandra
                         {
                         }
                     }
-
             }
         }
 
@@ -573,12 +594,12 @@ namespace Cassandra
                     lock (_frameGuardier)
                     {
                         _frameReadCallback[streamId] = nextAction;
-                        if (_abortTimeout != Timeout.Infinite)
+                        if (_queryAbortTimeout != Timeout.Infinite)
                         {
                             if (_frameReadTimers[streamId] == null)
-                                _frameReadTimers[streamId] = new Timer(AbortTimerProc, streamId, _abortTimeout, Timeout.Infinite);
+                                _frameReadTimers[streamId] = new Timer(AbortTimerProc, streamId, _queryAbortTimeout, Timeout.Infinite);
                             else
-                                _frameReadTimers[streamId].Change(_abortTimeout, Timeout.Infinite);
+                                _frameReadTimers[streamId].Change(_queryAbortTimeout, Timeout.Infinite);
                         }
                     }
                     _writerSocketStream.Write(frame.Buffer, 0, frame.Buffer.Length);

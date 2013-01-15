@@ -139,23 +139,23 @@ namespace Cassandra
 
     //    // Gather cf defs
     //    for (Row row : cfs) {
-    //        String Keyspace = row.getString(KeyspaceMetadata.KS_NAME);
-    //        List<Row> l = cfDefs.get(Keyspace);
+    //        String DefaultKeyspace = row.getString(KeyspaceMetadata.KS_NAME);
+    //        List<Row> l = cfDefs.get(DefaultKeyspace);
     //        if (l == null) {
     //            l = new ArrayList<Row>();
-    //            cfDefs.put(Keyspace, l);
+    //            cfDefs.put(DefaultKeyspace, l);
     //        }
     //        l.add(row);
     //    }
 
     //    // Gather columns per Cf
     //    for (Row row : cols) {
-    //        String Keyspace = row.getString(KeyspaceMetadata.KS_NAME);
+    //        String DefaultKeyspace = row.getString(KeyspaceMetadata.KS_NAME);
     //        String cfName = row.getString(TableMetadata.CF_NAME);
-    //        Dictionary<String, List<Row>> colsByCf = colsDefs.get(Keyspace);
+    //        Dictionary<String, List<Row>> colsByCf = colsDefs.get(DefaultKeyspace);
     //        if (colsByCf == null) {
     //            colsByCf = new Dictionary<String, List<Row>>();
-    //            colsDefs.put(Keyspace, colsByCf);
+    //            colsDefs.put(DefaultKeyspace, colsByCf);
     //        }
     //        List<Row> l = colsByCf.get(cfName);
     //        if (l == null) {
@@ -169,14 +169,14 @@ namespace Cassandra
     //        assert ks != null;
     //        Set<String> addedKs = new HashSet<String>();
     //        for (Row ksRow : ks) {
-    //            String Keyspace = ksRow.getString(KeyspaceMetadata.KS_NAME);
+    //            String DefaultKeyspace = ksRow.getString(KeyspaceMetadata.KS_NAME);
     //            KeyspaceMetadata ksm = KeyspaceMetadata.build(ksRow);
 
-    //            if (cfDefs.containsKey(Keyspace)) {
-    //                buildTableMetadata(ksm, cfDefs.get(Keyspace), colsDefs.get(Keyspace));
+    //            if (cfDefs.containsKey(DefaultKeyspace)) {
+    //                buildTableMetadata(ksm, cfDefs.get(DefaultKeyspace), colsDefs.get(DefaultKeyspace));
     //            }
-    //            addedKs.add(Keyspace);
-    //            keyspaces.put(Keyspace, ksm);
+    //            addedKs.add(DefaultKeyspace);
+    //            keyspaces.put(DefaultKeyspace, ksm);
     //        }
 
     //        // If keyspace is null, it means we're rebuilding from scratch, so

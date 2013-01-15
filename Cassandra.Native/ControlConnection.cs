@@ -11,16 +11,18 @@ namespace Cassandra
         readonly Session _owner;
         IEnumerator<Host> _hostsIter = null;
 
-        public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace,
-                                 CompressionType compression = CompressionType.NoCompression,
-                                 int abortTimeout = Timeout.Infinite, int asyncCallAbortTimeout = Timeout.Infinite,
-                                 Policies policies = null, IAuthInfoProvider credentialsDelegate = null,
-                                 PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false)
+        public ControlConnection(Session owner, IEnumerable<IPAddress> clusterEndpoints, Policies policies,
+                             ProtocolOptions protocolOptions,
+                             PoolingOptions poolingOptions,
+                             SocketOptions socketOptions,
+                             ClientOptions clientOptions,
+                             IAuthInfoProvider authProvider,
+                             bool metricsEnabled)
         {
             this._owner = owner;
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
-            _session = new Session(clusterEndpoints, port, keyspace, compression, abortTimeout, asyncCallAbortTimeout,
-                                   policies, credentialsDelegate, poolingOptions, noBufferingIfPossible, owner.Hosts);
+            _session = new Session(clusterEndpoints, policies, protocolOptions, poolingOptions, socketOptions,
+                                   clientOptions, authProvider, metricsEnabled, "", owner.Hosts);
             Metadata = new ClusterMetadata(owner.Hosts);
             go(true);
         }
@@ -115,7 +117,7 @@ namespace Cassandra
             try
             {
                 if (_hostsIter == null)
-                    _hostsIter = _owner.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                    _hostsIter = _owner._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
 
                 if (!_hostsIter.MoveNext())
                 {
@@ -242,7 +244,7 @@ namespace Cassandra
                 if (host == null)
                 {
                     // We don't know that node, add it.
-                    host = Metadata.AddHost(foundHosts[i], _owner.Policies.ReconnectionPolicy);
+                    host = Metadata.AddHost(foundHosts[i], _owner._policies.ReconnectionPolicy);
                 }
                 host.SetLocationInfo(dcs[i], racks[i]);
 

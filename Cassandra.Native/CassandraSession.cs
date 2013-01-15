@@ -15,12 +15,6 @@ namespace Cassandra
 
     public class Session : IDisposable
     {
-        readonly IAuthInfoProvider _credentialsDelegate;
-        public Policies Policies { get; private set; }
-
-        readonly CompressionType _compression;
-        readonly int _abortTimeout = Timeout.Infinite;
-        readonly int _clientAbortAsyncCommandTimeout = Timeout.Infinite;
 
         class CassandraSessionInfoProvider : ISessionInfoProvider
         {
@@ -44,74 +38,54 @@ namespace Cassandra
         }
 
 
-        internal Hosts Hosts;
-
-        readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
-
-        readonly PoolingOptions _poolingOptions = new PoolingOptions();
-        string _keyspace = string.Empty;
+        internal readonly Policies _policies;
+        private readonly ProtocolOptions _protocolOptions;
+        private readonly PoolingOptions _poolingOptions;
+        private readonly SocketOptions _socketOptions;
+        private readonly ClientOptions _clientOptions;
+        private readonly IAuthInfoProvider _authProvider;
+        private readonly bool _metricsEnabled;
 
         public string Keyspace { get { return _keyspace; } }
+        private string _keyspace;
 
-#if ERRORINJECTION
-        public void SimulateSingleConnectionDown()
-        {
-            lock (_connectionPool)
-                if (_connectionPool.Count > 0)
-                {
-                    var hostidx = StaticRandom.Instance.Next(_connectionPool.Keys.Count);
-                    var endpoint  = new List<IPAddress>(_connectionPool.Keys)[hostidx];
-                    if (_connectionPool.Count > 0)
-                    {
-                        var conn = _connectionPool[endpoint][StaticRandom.Instance.Next(_connectionPool[endpoint].Count)];
-                        conn.KillSocket();
-                    }
-                }
-        }
-
-        public void SimulateAllConnectionsDown()
-        {
-            lock (_connectionPool)
-            {
-                foreach (var kv in _connectionPool)
-                    foreach (var conn in kv.Value)
-                        conn.KillSocket();
-            }
-        }
-#endif
-
-        readonly bool _noBufferingIfPossible;
-
+        internal readonly Hosts Hosts;
+        readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
         readonly ControlConnection _controlConnection;
 
-        readonly int _port;
-
-        internal Session(IEnumerable<IPAddress> clusterEndpoints, int port, string keyspace, CompressionType compression = CompressionType.NoCompression,
-            int abortTimeout = Timeout.Infinite, int asyncCallAbortTimeout = Timeout.Infinite, Policies policies = null, IAuthInfoProvider credentialsDelegate = null, PoolingOptions poolingOptions = null, bool noBufferingIfPossible = false, Hosts hosts = null)
+        internal Session(IEnumerable<IPAddress> clusterEndpoints,
+                         Policies policies,
+                         ProtocolOptions protocolOptions,
+                         PoolingOptions poolingOptions,
+                         SocketOptions socketOptions,
+                         ClientOptions clientOptions,
+                         IAuthInfoProvider authProvider,
+                         bool metricsEnabled,
+                         string keyspace=null,
+                         Hosts hosts = null)
         {
-            this.Policies = policies ?? Policies.DefaultPolicies;
-            if (poolingOptions != null)
-                this._poolingOptions = poolingOptions;
-            this._noBufferingIfPossible = noBufferingIfPossible;
+
+            this._protocolOptions = protocolOptions;
+            this._poolingOptions = poolingOptions;
+            this._socketOptions = socketOptions;
+            this._clientOptions = clientOptions;
+            this._authProvider = authProvider;
+            this._metricsEnabled = metricsEnabled;
+
+            this._policies = policies ?? Policies.DefaultPolicies;
 
             Hosts = hosts ?? new Hosts();
 
-            this._port = port;
-
             foreach (var ep in clusterEndpoints)
-                Hosts.AddIfNotExistsOrBringUpIfDown(ep, this.Policies.ReconnectionPolicy);
+                Hosts.AddIfNotExistsOrBringUpIfDown(ep, this._policies.ReconnectionPolicy);
 
-            this._compression = compression;
-            this._abortTimeout = abortTimeout;
-            this._clientAbortAsyncCommandTimeout = asyncCallAbortTimeout;
+            this._policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
 
-            this._credentialsDelegate = credentialsDelegate;
-            this._keyspace = keyspace;
-            this.Policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
+            var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+            if (!ci.MoveNext())
+                throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
 
-            var ci =this.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
-            if(!ci.MoveNext())
-                throw new NoHostAvailableException(new Dictionary<IPAddress,Exception>());
+            _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
 
             Connect(null, ci);
 
@@ -119,9 +93,14 @@ namespace Cassandra
             {
                 var controlpolicies = new Cassandra.Policies(
                     new RoundRobinPolicy(),
-                    new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
+                    new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
                     Cassandra.Policies.DefaultRetryPolicy);
-                _controlConnection = new ControlConnection(this, clusterEndpoints, port, null, compression, abortTimeout, asyncCallAbortTimeout, controlpolicies, credentialsDelegate, poolingOptions, noBufferingIfPossible);
+                _controlConnection = new ControlConnection(this, clusterEndpoints, controlpolicies, protocolOptions,
+                                                           poolingOptions, socketOptions,
+                                                           new ClientOptions(clientOptions.WithoutRowSetBuffering,
+                                                                             clientOptions.QueryAbortTimeout, null,
+                                                                             clientOptions.AsyncCallAbortTimeout),
+                                                           authProvider, metricsEnabled);
             }
         }
 
@@ -148,7 +127,7 @@ namespace Cassandra
                     var current = hostsIter.Current;
                     if (current.IsConsiderablyUp)
                     {
-                        var hostDistance = Policies.LoadBalancingPolicy.Distance(current);
+                        var hostDistance = _policies.LoadBalancingPolicy.Distance(current);
                         if (!_connectionPool.ContainsKey(current.Address))
                             _connectionPool.Add(current.Address, new List<CassandraConnection>());
 
@@ -223,7 +202,7 @@ namespace Cassandra
 
         internal void OnAddHost(IPAddress endpoint)
         {
-            Hosts.AddIfNotExistsOrBringUpIfDown(endpoint, Policies.ReconnectionPolicy);
+            Hosts.AddIfNotExistsOrBringUpIfDown(endpoint, _policies.ReconnectionPolicy);
         }
 
         internal void OnDownHost(IPAddress endpoint)
@@ -253,7 +232,7 @@ namespace Cassandra
 
             try
             {
-                nconn = new CassandraConnection(this, endPoint, _port, _credentialsDelegate, this._compression, this._abortTimeout, this._clientAbortAsyncCommandTimeout, this._noBufferingIfPossible);
+                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider);
 
                 var options = nconn.ExecuteOptions();
 
@@ -614,7 +593,7 @@ namespace Cassandra
             {
                 if (_hostsIter == null)
                 {
-                    _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
+                    _hostsIter = owner._policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
                     if (!_hostsIter.MoveNext())
                         throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
                 }
@@ -668,7 +647,7 @@ namespace Cassandra
                 }
                 catch (QueryValidationException exc)
                 {
-                    var decision = GetRetryDecision(token.Query, exc, Policies.RetryPolicy, token.QueryRetries);
+                    var decision = GetRetryDecision(token.Query, exc, _policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
                     {
                         token.InnerExceptions[token.Connection.GetHostAdress()] = exc;
@@ -734,7 +713,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
         {
-            var longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, _clientAbortAsyncCommandTimeout);
+            var longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, _clientOptions.AsyncCallAbortTimeout);
             var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -785,7 +764,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null)
         {
-            var longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender, _clientAbortAsyncCommandTimeout);
+            var longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionQuery", sender,  _clientOptions.AsyncCallAbortTimeout);
             var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -842,7 +821,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null)
         {
-            var longActionAc = new AsyncResult<KeyValuePair<TableMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender, _clientAbortAsyncCommandTimeout);
+            var longActionAc = new AsyncResult<KeyValuePair<TableMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender,  _clientOptions.AsyncCallAbortTimeout);
             var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Ignore, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -898,7 +877,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null)
         {
-            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender, _clientAbortAsyncCommandTimeout);
+            AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender,  _clientOptions.AsyncCallAbortTimeout);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, Query = query, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -1131,5 +1110,32 @@ namespace Cassandra
                 default: throw new InvalidOperationException();
             }
         }
+
+#if ERRORINJECTION
+        public void SimulateSingleConnectionDown()
+        {
+            lock (_connectionPool)
+                if (_connectionPool.Count > 0)
+                {
+                    var hostidx = StaticRandom.Instance.Next(_connectionPool.Keys.Count);
+                    var endpoint = new List<IPAddress>(_connectionPool.Keys)[hostidx];
+                    if (_connectionPool.Count > 0)
+                    {
+                        var conn = _connectionPool[endpoint][StaticRandom.Instance.Next(_connectionPool[endpoint].Count)];
+                        conn.KillSocket();
+                    }
+                }
+        }
+
+        public void SimulateAllConnectionsDown()
+        {
+            lock (_connectionPool)
+            {
+                foreach (var kv in _connectionPool)
+                    foreach (var conn in kv.Value)
+                        conn.KillSocket();
+            }
+        }
+#endif
     }
 }

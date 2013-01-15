@@ -84,8 +84,8 @@ namespace Cassandra
                 pairs.Add(nameValue[0], nameValue[1]);
             }
 
-            if (pairs.ContainsKey("Keyspace"))
-                Keyspace = pairs["Keyspace"];
+            if (pairs.ContainsKey("DefaultKeyspace"))
+                Keyspace = pairs["DefaultKeyspace"];
 
             //if (!pairs.ContainsKey("Max Pool Size"))
             //    MaxPoolSize = int.MaxValue;
@@ -171,7 +171,7 @@ namespace Cassandra
             var b = new StringBuilder();
             string format = "{0}={1};";
 
-            b.AppendFormat(format, "Keyspace", Keyspace);
+            b.AppendFormat(format, "DefaultKeyspace", Keyspace);
 
             //if(MaxPoolSize != int.MaxValue)
             //    b.AppendFormat(format, "Max Pool Size", MaxPoolSize);

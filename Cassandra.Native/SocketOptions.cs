@@ -11,12 +11,12 @@ namespace Cassandra
         public const int DefaultConnectTimeoutMillis = 5000;
 
         private int _connectTimeoutMillis = DefaultConnectTimeoutMillis;
-        private bool _keepAlive;
-        private bool _reuseAddress;
-        private int _soLinger;
-        private bool _tcpNoDelay;
-        private int _receiveBufferSize;
-        private int _sendBufferSize;
+        private bool? _keepAlive;
+        private bool? _reuseAddress;
+        private int? _soLinger;
+        private bool? _tcpNoDelay;
+        private int? _receiveBufferSize;
+        private int? _sendBufferSize;
 
         /// <summary>
         ///  Creates a new <code>SocketOptions</code> instance with default values.
@@ -36,7 +36,7 @@ namespace Cassandra
             return this;
         }
 
-        public bool KeepAlive
+        public bool? KeepAlive
         {
             get { return _keepAlive; }
         }
@@ -47,7 +47,7 @@ namespace Cassandra
             return this;
         }
 
-        public bool ReuseAddress
+        public bool? ReuseAddress
         {
             get { return _reuseAddress; }
         }
@@ -58,7 +58,7 @@ namespace Cassandra
             return this;
         }
 
-        public int SoLinger
+        public int? SoLinger
         {
              get {return _soLinger;}
         }
@@ -69,7 +69,7 @@ namespace Cassandra
             return this;
         }
 
-        public bool TcpNoDelay
+        public bool? TcpNoDelay
         {
             get { return _tcpNoDelay; }
         }
@@ -80,7 +80,7 @@ namespace Cassandra
             return this;
         }
 
-        public int ReceiveBufferSize
+        public int? ReceiveBufferSize
         {
             get { return _receiveBufferSize; }
         }
@@ -91,7 +91,7 @@ namespace Cassandra
             return this;
         }
 
-        public int SendBufferSize
+        public int? SendBufferSize
         {
             get { return _sendBufferSize; }
         }
