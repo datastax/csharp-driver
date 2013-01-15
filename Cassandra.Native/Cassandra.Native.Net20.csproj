@@ -70,12 +70,14 @@
     <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraSession.cs" />
+    <Compile Include="ClientOptions.cs" />
     <Compile Include="ClusterMetadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
     <Compile Include="Commands\CassandraConnection+Execute.cs" />
     <Compile Include="Commands\CassandraConnection+Options.cs" />
     <Compile Include="Commands\CassandraConnection+Credentials.cs" />
+    <Compile Include="Configuration.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="ConversionHelper.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
@@ -155,6 +157,7 @@
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />
     <Compile Include="ProtoBuf.cs" />
+    <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Query.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
@@ -205,6 +208,7 @@
     <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
+    <Compile Include="SocketOptions.cs" />
     <Compile Include="Statement.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="Utils.cs" />
