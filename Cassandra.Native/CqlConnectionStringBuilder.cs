@@ -23,7 +23,7 @@ namespace Cassandra
 
     public class ConnectionStringBuilder : DbConnectionStringBuilder
     {
-        public string Keyspace { get; private set; }
+        public string DefaultKeyspace { get; private set; }
         public int Port { get; private set; }
         public IEnumerable<string> ContactPoints { get; private set; }
         //public string Username { get; private set; }
@@ -48,7 +48,7 @@ namespace Cassandra
             //int MaxPoolSize = int.MaxValue
         )
         {
-            this.Keyspace = keyspace;
+            this.DefaultKeyspace = keyspace;
             this.Port = port;
             this.ContactPoints = contactPoints;
             //this.Username = Username;
@@ -85,7 +85,7 @@ namespace Cassandra
             }
 
             if (pairs.ContainsKey("DefaultKeyspace"))
-                Keyspace = pairs["DefaultKeyspace"];
+                DefaultKeyspace = pairs["DefaultKeyspace"];
 
             //if (!pairs.ContainsKey("Max Pool Size"))
             //    MaxPoolSize = int.MaxValue;
@@ -171,7 +171,7 @@ namespace Cassandra
             var b = new StringBuilder();
             string format = "{0}={1};";
 
-            b.AppendFormat(format, "DefaultKeyspace", Keyspace);
+            b.AppendFormat(format, "DefaultKeyspace", DefaultKeyspace);
 
             //if(MaxPoolSize != int.MaxValue)
             //    b.AppendFormat(format, "Max Pool Size", MaxPoolSize);
