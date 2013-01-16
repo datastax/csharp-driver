@@ -7,36 +7,11 @@ using System.Text.RegularExpressions;
 
 namespace Cassandra
 {
-    public interface ISessionInfoProvider
-    {
-        ICollection<Host> GetAllHosts();
-        ICollection<Host> GetReplicas(byte[] routingInfo);
-    }
 
     public class Session : IDisposable
     {
 
-        class CassandraSessionInfoProvider : ISessionInfoProvider
-        {
-            readonly Session _owner;
-            internal CassandraSessionInfoProvider(Session owner)
-            {
-                this._owner = owner;
-            }
-            public ICollection<Host> GetAllHosts()
-            {
-                return _owner.Hosts.All();
-            }
-            public ICollection<Host> GetReplicas(byte[] routingInfo)
-            {
-                var replicas = _owner._controlConnection.Metadata.GetReplicas(routingInfo);
-                var ret = new List<Host>();
-                foreach (var repl in replicas)
-                    ret.Add(_owner.Hosts[repl]);
-                return ret;
-            }
-        }
-
+        private Cluster _cluster;
 
         internal readonly Policies _policies;
         private readonly ProtocolOptions _protocolOptions;
@@ -49,11 +24,12 @@ namespace Cassandra
         public string Keyspace { get { return _keyspace; } }
         private string _keyspace;
 
-        internal readonly Hosts Hosts;
+        private readonly Hosts _hosts;
         readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
-        readonly ControlConnection _controlConnection;
+        internal readonly ControlConnection ControlConnection;
 
-        internal Session(IEnumerable<IPAddress> clusterEndpoints,
+        internal Session(Cluster cluster,
+                         IEnumerable<IPAddress> clusterEndpoints,
                          Policies policies,
                          ProtocolOptions protocolOptions,
                          PoolingOptions poolingOptions,
@@ -64,6 +40,7 @@ namespace Cassandra
                          string keyspace=null,
                          Hosts hosts = null)
         {
+            this._cluster = cluster;
 
             this._protocolOptions = protocolOptions;
             this._poolingOptions = poolingOptions;
@@ -74,33 +51,43 @@ namespace Cassandra
 
             this._policies = policies ?? Policies.DefaultPolicies;
 
-            Hosts = hosts ?? new Hosts();
+            _hosts = hosts ?? new Hosts();
 
             foreach (var ep in clusterEndpoints)
-                Hosts.AddIfNotExistsOrBringUpIfDown(ep, this._policies.ReconnectionPolicy);
-
-            this._policies.LoadBalancingPolicy.Initialize(new CassandraSessionInfoProvider(this));
-
-            var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
-            if (!ci.MoveNext())
-                throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
-
-            _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
-
-            Connect(null, ci);
+                _hosts.AddIfNotExistsOrBringUpIfDown(ep, this._policies.ReconnectionPolicy);
 
             if (hosts == null)
             {
                 var controlpolicies = new Cassandra.Policies(
                     new RoundRobinPolicy(),
-                    new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
+                    new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
                     Cassandra.Policies.DefaultRetryPolicy);
-                _controlConnection = new ControlConnection(this, clusterEndpoints, controlpolicies, protocolOptions,
-                                                           poolingOptions, socketOptions,
-                                                           new ClientOptions(clientOptions.WithoutRowSetBuffering,
-                                                                             clientOptions.QueryAbortTimeout, null,
-                                                                             clientOptions.AsyncCallAbortTimeout),
-                                                           authProvider, metricsEnabled);
+
+                ControlConnection = new ControlConnection(_cluster, this, new List<IPAddress>(), controlpolicies, _protocolOptions,
+                                                           _poolingOptions, _socketOptions,
+                                                           new ClientOptions(_clientOptions.WithoutRowSetBuffering,
+                                                                             _clientOptions.QueryAbortTimeout, null,
+                                                                             _clientOptions.AsyncCallAbortTimeout),
+                                                           _authProvider, _metricsEnabled,_hosts);
+            }
+
+            this._policies.LoadBalancingPolicy.Initialize(_cluster);
+
+            _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
+        }
+
+        internal  void Init()
+        {
+            var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+            if (!ci.MoveNext())
+                throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+
+
+            Connect(null, ci);
+
+            if (ControlConnection != null)
+            {
+                ControlConnection.Init();
             }
         }
 
@@ -175,8 +162,8 @@ namespace Cassandra
                                 if (conn != null)
                                 {
                                     current.BringUpIfDown();
-                                    if (_controlConnection != null)
-                                        _controlConnection.OwnerHostBringUpIfDown(current.Address);
+                                    if (ControlConnection != null)
+                                        ControlConnection.OwnerHostBringUpIfDown(current.Address);
                                     pool.Add(conn);
                                 }
                                 else
@@ -202,26 +189,26 @@ namespace Cassandra
 
         internal void OnAddHost(IPAddress endpoint)
         {
-            Hosts.AddIfNotExistsOrBringUpIfDown(endpoint, _policies.ReconnectionPolicy);
+            _hosts.AddIfNotExistsOrBringUpIfDown(endpoint, _policies.ReconnectionPolicy);
         }
 
         internal void OnDownHost(IPAddress endpoint)
         {
-            Hosts.SetDownIfExists(endpoint);
+            _hosts.SetDownIfExists(endpoint);
         }
 
         internal void OnRemovedHost(IPAddress endpoint)
         {
-            Hosts.RemoveIfExists(endpoint);
+            _hosts.RemoveIfExists(endpoint);
         }
 
         internal void HostIsDown(IPAddress endpoint)
         {
             lock (_connectionPool)
             {
-                Hosts.SetDownIfExists(endpoint);
-                if (_controlConnection != null)
-                    _controlConnection.OwnerHostIsDown(endpoint);
+                _hosts.SetDownIfExists(endpoint);
+                if (ControlConnection != null)
+                    ControlConnection.OwnerHostIsDown(endpoint);
             }
         }
 
@@ -898,218 +885,6 @@ namespace Cassandra
         }
 
         #endregion
-
-        public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
-        {
-            List<TableMetadata> tables = new List<TableMetadata>();
-            List<string> tablesNames = new List<string>();
-            using( var rows = Query(string.Format("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name='{0}';", keyspaceName)))
-            {
-                foreach (var row in rows.GetRows())
-                    tablesNames.Add(row.GetValue<string>("columnfamily_name")); 
-            }
-            
-            foreach (var tblName in tablesNames)
-                tables.Add(GetTableMetadata(tblName));
-                        
-            StrategyClass strClass = StrategyClass.Unknown;
-            bool? drblWrites = null;
-            SortedDictionary<string, int?> rplctOptions = new SortedDictionary<string, int?>();
-
-            using (var rows = Query(string.Format("SELECT * FROM system.schema_keyspaces WHERE keyspace_name='{0}';", keyspaceName)))
-            {                
-                foreach (var row in rows.GetRows())
-                {
-                    strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
-                    drblWrites = row.GetValue<bool>("durable_writes");
-                    rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));                    
-                }
-            }
-
-            return new KeyspaceMetadata()
-            {
-                Keyspace = keyspaceName,
-                Tables = tables,
-                 StrategyClass = strClass,
-                  ReplicationOptions = rplctOptions,
-                   DurableWrites = drblWrites
-            };
-    
-        }
-
-        public StrategyClass GetStrategyClass(string strClass)
-        {
-            if( strClass != null)
-            {                
-                strClass = strClass.Replace("org.apache.cassandra.locator.", "");                
-                List<StrategyClass> strategies = new List<StrategyClass>((StrategyClass[])Enum.GetValues(typeof(StrategyClass)));
-                foreach(var stratg in strategies)
-                    if(strClass == stratg.ToString())
-                        return stratg;
-            }
-
-            return StrategyClass.Unknown;
-        }
-
-        public TableMetadata GetTableMetadata(string tableName, string keyspaceName = null)
-        {
-            object[] collectionValuesTypes;
-            List<TableMetadata.ColumnDesc> cols = new List<TableMetadata.ColumnDesc>();
-            using (var rows = Query(string.Format("SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName ?? _keyspace)))
-            {
-                foreach (var row in rows.GetRows())
-                {
-                    var tp_code = convertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
-                    var dsc = new TableMetadata.ColumnDesc()
-                    {
-                        ColumnName = row.GetValue<string>("column_name"),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = tp_code,
-                        SecondaryIndexName = row.GetValue<string>("index_name"),
-                        SecondaryIndexType = row.GetValue<string>("index_type"),
-                        KeyType = row.GetValue<string>("index_name") != null ? TableMetadata.KeyType.Secondary : TableMetadata.KeyType.NotAKey,
-                    };
-
-                    if(tp_code == TableMetadata.ColumnTypeCode.List)
-                        dsc.TypeInfo = new TableMetadata.ListColumnInfo() { 
-                            ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0] 
-                        };
-                    else if(tp_code == TableMetadata.ColumnTypeCode.Map)
-                        dsc.TypeInfo = new TableMetadata.MapColumnInfo() { 
-                            KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0], 
-                            ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[1] 
-                        };
-                    else if(tp_code == TableMetadata.ColumnTypeCode.Set)
-                        dsc.TypeInfo = new TableMetadata.SetColumnInfo() { 
-                            KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0] 
-                        } ;
-
-                    cols.Add(dsc);
-                }
-            }
-
-            using (var rows = Query(string.Format("SELECT * FROM system.schema_columnfamilies WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, _keyspace)))
-            {
-                foreach (var row in rows.GetRows())
-                {
-                    var colNames = row.GetValue<string>("column_aliases");
-                    var rowKeys = colNames.Substring(1,colNames.Length-2).Split(',');
-                    for(int i=0;i<rowKeys.Length;i++)
-                    {
-                        if(rowKeys[i].StartsWith("\""))
-                        {
-                            rowKeys[i]=rowKeys[i].Substring(1,rowKeys[i].Length-2).Replace("\"\"","\"");
-                        }
-                    }
-
-                    if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
-                    {
-                        var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+"); 
-
-                        var rowKeysTypes = rg.Matches(row.GetValue<string>("comparator"));
-                        int i = 0;
-                        foreach (var keyName in rowKeys)
-                        {
-                            var tp_code = convertToColumnTypeCode(rowKeysTypes[i + 1].ToString(), out collectionValuesTypes);
-                            var dsc = new TableMetadata.ColumnDesc()
-                            {
-                                ColumnName = keyName.ToString(),
-                                Keyspace = row.GetValue<string>("keyspace_name"),
-                                Table = row.GetValue<string>("columnfamily_name"),
-                                TypeCode = tp_code,
-                                KeyType = TableMetadata.KeyType.Row,
-                            };
-                            if (tp_code == TableMetadata.ColumnTypeCode.List)
-                                dsc.TypeInfo = new TableMetadata.ListColumnInfo()
-                                {
-                                    ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
-                                };
-                            else if (tp_code == TableMetadata.ColumnTypeCode.Map)
-                                dsc.TypeInfo = new TableMetadata.MapColumnInfo()
-                                {
-                                    KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0],
-                                    ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[1]
-                                };
-                            else if (tp_code == TableMetadata.ColumnTypeCode.Set)
-                                dsc.TypeInfo = new TableMetadata.SetColumnInfo()
-                                {
-                                    KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
-                                };
-                            cols.Add(dsc);
-                            i++;
-                        }
-                    }
-                    cols.Add(new TableMetadata.ColumnDesc()
-                    {
-                        ColumnName = row.GetValue<string>("key_aliases").Replace("[\"", "").Replace("\"]", "").Replace("\"\"","\""),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = convertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
-                        KeyType = TableMetadata.KeyType.Partition
-                    });                                        
-                }
-            }
-            return new TableMetadata() { Columns = cols.ToArray() };
-        }
-
-
-        private TableMetadata.ColumnTypeCode convertToColumnTypeCode(string type, out object[] collectionValueTp)
-        {
-            object[] obj;
-            collectionValueTp = new object[2];
-            if (type.StartsWith("org.apache.cassandra.db.marshal.ListType"))
-            {                
-                collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.ListType(","").Replace(")",""), out obj); 
-                return TableMetadata.ColumnTypeCode.List;
-            }
-            if (type.StartsWith("org.apache.cassandra.db.marshal.SetType"))
-            {
-                collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
-                return TableMetadata.ColumnTypeCode.Set;
-            }
-
-            if (type.StartsWith("org.apache.cassandra.db.marshal.MapType"))
-            {
-                collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[0], out obj);
-                collectionValueTp[1] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj); 
-                return TableMetadata.ColumnTypeCode.Map;
-            }
-            
-            collectionValueTp = null;
-            switch (type)
-            {
-                case "org.apache.cassandra.db.marshal.UTF8Type":
-                    return TableMetadata.ColumnTypeCode.Text;
-                case "org.apache.cassandra.db.marshal.UUIDType":
-                    return TableMetadata.ColumnTypeCode.Uuid;
-                case "org.apache.cassandra.db.marshal.Int32Type":
-                    return TableMetadata.ColumnTypeCode.Int;
-                case "org.apache.cassandra.db.marshal.BytesType":
-                    return TableMetadata.ColumnTypeCode.Blob;
-                case "org.apache.cassandra.db.marshal.FloatType":
-                    return TableMetadata.ColumnTypeCode.Float;
-                case "org.apache.cassandra.db.marshal.DoubleType":
-                    return TableMetadata.ColumnTypeCode.Double;
-                case "org.apache.cassandra.db.marshal.BooleanType":
-                    return TableMetadata.ColumnTypeCode.Boolean;
-                case "org.apache.cassandra.db.marshal.InetAddressType":
-                    return TableMetadata.ColumnTypeCode.Inet;
-                case "org.apache.cassandra.db.marshal.DateType":
-                    return TableMetadata.ColumnTypeCode.Timestamp;
-#if NET_40_OR_GREATER
-                case "org.apache.cassandra.db.marshal.DecimalType":
-                    return TableMetadata.ColumnTypeCode.Decimal;
-#endif
-                case "org.apache.cassandra.db.marshal.LongType":
-                    return TableMetadata.ColumnTypeCode.Bigint;
-#if NET_40_OR_GREATER
-                case "org.apache.cassandra.db.marshal.IntegerType":
-                    return TableMetadata.ColumnTypeCode.Varint;
-#endif
-                default: throw new InvalidOperationException();
-            }
-        }
 
 #if ERRORINJECTION
         public void SimulateSingleConnectionDown()

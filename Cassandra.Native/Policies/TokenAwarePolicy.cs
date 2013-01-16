@@ -23,7 +23,7 @@ namespace Cassandra
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
 
-        private ISessionInfoProvider _infoProvider;
+        private Cluster _cluster;
         private readonly ILoadBalancingPolicy _childPolicy;
 
         /// <summary>
@@ -37,12 +37,12 @@ namespace Cassandra
             this._childPolicy = childPolicy;
         }
 
-
-        public void Initialize(ISessionInfoProvider infoProvider)
+        public void Initialize(Cluster cluster)
         {
-            this._infoProvider = infoProvider;
-            _childPolicy.Initialize(infoProvider);
+            this._cluster = cluster;
+            _childPolicy.Initialize(cluster);
         }
+
 
         /// <summary>
         ///  Return the HostDistance for the provided host.
@@ -76,7 +76,7 @@ namespace Cassandra
                 yield break;
             }
 
-            var replicas = _infoProvider.GetReplicas(routingKey.RawRoutingKey);
+            var replicas = _cluster.Metadata.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
                 foreach (var iter in _childPolicy.NewQueryPlan(query))
@@ -87,14 +87,14 @@ namespace Cassandra
             var iterator = replicas.GetEnumerator();
             while (iterator.MoveNext())
             {
-                var host = iterator.Current;
-                if (host.IsConsiderablyUp && _childPolicy.Distance(host) == HostDistance.Local)
+                var host = _cluster.Metadata.GetHost(iterator.Current);
+                if (host != null && host.IsConsiderablyUp && _childPolicy.Distance(host) == HostDistance.Local)
                     yield return host;
             }
 
             foreach (var host in _childPolicy.NewQueryPlan(query))
             {
-                if (!replicas.Contains(host) || _childPolicy.Distance(host) != HostDistance.Local)
+                if (!replicas.Contains(host.Address) || _childPolicy.Distance(host) != HostDistance.Local)
                     yield return host;
             }
 

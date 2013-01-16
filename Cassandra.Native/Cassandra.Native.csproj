@@ -72,7 +72,7 @@
     <Compile Include="CassandraCluster.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraSession.cs" />
-    <Compile Include="ClusterMetadata.cs" />
+    <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
     <Compile Include="Commands\CassandraConnection+Execute.cs" />
@@ -132,10 +132,11 @@
     <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />
     <Compile Include="IProtoBufComporessor.cs" />
+    <Compile Include="Metrics.cs" />
     <Compile Include="MurmurHash.cs" />
     <Compile Include="NoBuffering.cs" />
     <Compile Include="Outputs\OutputOptions.cs" />
-    <Compile Include="Outputs\Metadata.cs" />
+    <Compile Include="KeyspaceMetadata.cs" />
     <Compile Include="Outputs\OutputPrepared.cs" />
     <Compile Include="Outputs\OutputSchemaChange.cs" />
     <Compile Include="Outputs\OutputVoid.cs" />
@@ -216,9 +217,6 @@
     <Compile Include="Statement.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="Utils.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="KeyspaceMetadata.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

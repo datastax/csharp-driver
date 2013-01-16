@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Net;
 using System.Threading;
 
@@ -8,7 +10,7 @@ namespace Cassandra
     ///  Informations and known state of a Cassandra cluster. <p> This is the main
     ///  entry point of the driver. A simple example of access to a Cassandra cluster
     ///  would be: 
-    /// <pre> Cluster cluster = Cluster.NewBuilder.AddContactPoint("192.168.0.1").Build(); 
+    /// <pre> Cluster cluster = Cluster.Builder.AddContactPoint("192.168.0.1").Build(); 
     ///  Session session = Cluster.Connect("db1"); 
     ///  foreach (var row in session.execute("SELECT * FROM table1")) 
     ///    //do something ... </pre> 
@@ -20,9 +22,9 @@ namespace Cassandra
     /// </summary>
     public class Cluster
     {
-
-        readonly IEnumerable<IPAddress> _contactPoints;
+        private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Configuration _configuration;
+
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
             this._contactPoints = contactPoints;
@@ -56,7 +58,7 @@ namespace Cassandra
         /// <returns>the new cluster builder.</returns>
         public static Builder Builder()
         {
-                return new Builder();
+            return new Builder();
         }
 
         /// <summary>
@@ -73,14 +75,20 @@ namespace Cassandra
         ///  Creates a new session on this cluster and sets a keyspace to use.
         /// </summary>
         /// <param name="keyspace"> The name of the keyspace to use for the created <code>Session</code>. </param>
-        /// 
         /// <returns>a new session on this cluster sets to keyspace
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            return new Session(_contactPoints, _configuration.Policies, _configuration.ProtocolOptions,
-                               _configuration.PoolingOptions, _configuration.SocketOptions, _configuration.ClientOptions,
-                               _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace);
+            if (_connectedSession != null)
+                throw new NotSupportedException("Currently .net driver do not support multiple sessions per cluster");
+
+            _connectedSession = new Session(this, _contactPoints, _configuration.Policies,
+                                            _configuration.ProtocolOptions,
+                                            _configuration.PoolingOptions, _configuration.SocketOptions,
+                                            _configuration.ClientOptions,
+                                            _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace);
+            _connectedSession.Init();
+            return _connectedSession;
         }
 
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists()
@@ -95,8 +103,83 @@ namespace Cassandra
                 session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace);
                 session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             }
-            return session;
+            return _connectedSession = session;
         }
+
+        /// <summary>
+        ///  Gets the cluster configuration.
+        /// </summary>
+        public Configuration Configuration
+        {
+            get { return _configuration; }
+        }
+
+        private Session _connectedSession = null;
+
+        /// <summary>
+        ///  gets read-only metadata on the connected cluster. <p> This includes the
+        ///  know nodes (with their status as seen by the driver) as well as the schema
+        ///  definitions.</p>
+        /// </summary>
+        public Metadata Metadata
+        {
+            get
+            {
+                if (_connectedSession == null)
+                    return null;
+
+                return _connectedSession.ControlConnection.Metadata;
+            }
+        }
+
+        /// <summary>
+        ///  Gets the cluster metrics, or <code>null</code> if metrics collection has
+        ///  been disabled (see <link>Configuration#isMetricsEnabled</link>).
+        /// </summary>
+        public Metrics Metrics
+        {
+            get { return null; }
+        }
+
+        /// <summary>
+        ///  Shutdown this cluster instance. This closes all connections from all the
+        ///  sessions of this <code>* Cluster</code> instance and reclaim all resources
+        ///  used by it. <p> This method has no effect if the cluster was already shutdown.
+        /// </summary>
+        public void Shutdown()
+        {
+            if (_connectedSession != null)
+            {
+                _connectedSession.Dispose();
+                _connectedSession = null;
+            }
+        }
+
+        private volatile Action<KeyValuePair<string, string>> curRefrAction = null;
+
+        public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
+        {
+            if (curRefrAction != null)
+                throw new InvalidAsynchronousStateException("Prevoius call to BeginRefreshSchema do not completed.");
+
+            curRefrAction = new Action<KeyValuePair<string, string>>((kv) => { RefreshSchema(kv.Key, kv.Value); });
+            return curRefrAction.BeginInvoke(new KeyValuePair<string, string>(keyspace, table), callback, state);
+        }
+
+        public void EndRefreshSchema(IAsyncResult ar)
+        {
+            if (curRefrAction == null)
+                throw new InvalidAsynchronousStateException("No BeginRefreshSchema.");
+            curRefrAction.EndInvoke(ar);
+            curRefrAction = null;
+        }
+
+        public void RefreshSchema(string keyspace = null, string table = null)
+        {
+            _connectedSession.ControlConnection.WaitForSchemaAgreement();
+            _connectedSession.ControlConnection.RefreshSchema(keyspace, table);
+        }
+
     }
 
     /// <summary>

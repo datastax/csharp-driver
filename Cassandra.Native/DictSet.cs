@@ -23,7 +23,7 @@ namespace Cassandra
         }
     }
 #else
-    internal class DictSet<T> : IEnumerable<T>
+    internal class DictSet<T> : IEnumerable<T>, ICollection<T>
     {
         public DictSet() { }
 
@@ -95,6 +95,23 @@ namespace Cassandra
         IEnumerator IEnumerable.GetEnumerator()
         {
             return InternalDictionary.Keys.GetEnumerator();
+        }
+
+        void ICollection<T>.Add(T item)
+        {
+            Add(item);
+        }
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            int i = arrayIndex;
+            foreach (var item in this)
+                array[i++] = item;
+        }
+
+        public bool IsReadOnly
+        {
+            get { throw new NotImplementedException(); }
         }
     }
 #endif

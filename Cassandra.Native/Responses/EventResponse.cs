@@ -4,7 +4,7 @@
     {
         public const byte OpCode = 0x0C;
 
-        public CassandraEventArgs CassandraEventArgs = new CassandraEventArgs();
+        public CassandraEventArgs CassandraEventArgs;
 
         internal EventResponse(ResponseFrame frame)
         {
@@ -12,24 +12,36 @@
             var eventTypeString = rd.ReadString();
             if (eventTypeString == "TOPOLOGY_CHANGE")
             {
-                CassandraEventArgs.CassandraEventType = CassandraEventType.TopologyChange;
-                CassandraEventArgs.Message = rd.ReadString();
-                CassandraEventArgs.IPAddress = rd.ReadInet().Address;
+                var ce = new TopopogyChangeEventArgs();
+                ce.What = rd.ReadString() == "NEW_NODE"
+                              ? TopopogyChangeEventArgs.Reason.NewNode
+                              : TopopogyChangeEventArgs.Reason.RemovedNode;
+                ce.Address = rd.ReadInet().Address;
+                CassandraEventArgs = ce;
                 return;
             }
             else if (eventTypeString == "STATUS_CHANGE")
             {
-                CassandraEventArgs.CassandraEventType = CassandraEventType.StatusChange;
-                CassandraEventArgs.Message = rd.ReadString();
-                CassandraEventArgs.IPAddress = rd.ReadInet().Address;
+                var ce = new StatusChangeEventArgs();
+                ce.What = rd.ReadString() == "UP"
+                    ? StatusChangeEventArgs.Reason.Up
+                    : StatusChangeEventArgs.Reason.Down;
+                ce.Address = rd.ReadInet().Address;
+                CassandraEventArgs = ce; 
                 return;
             }
             else if (eventTypeString == "SCHEMA_CHANGE")
             {
-                CassandraEventArgs.CassandraEventType = CassandraEventType.SchemaChange;
-                CassandraEventArgs.Message = rd.ReadString();
-                CassandraEventArgs.Message += " Affected keyspace:" + rd.ReadString();
-                CassandraEventArgs.Message += " Affected table:" + rd.ReadString();
+                var ce = new SchemaChangeEventArgs();
+                var m = rd.ReadString();
+                ce.What = m == "CREATED"
+                              ? SchemaChangeEventArgs.Reason.Created
+                              : (m == "UPDATED"
+                                     ? SchemaChangeEventArgs.Reason.Updated
+                                     : SchemaChangeEventArgs.Reason.Dropped);
+                ce.Keyspace = rd.ReadString();
+                ce.Table = rd.ReadString();
+                CassandraEventArgs = ce; 
                 return;
             }
 

@@ -34,6 +34,7 @@ namespace MyUTExt
             this._compression = compression;
         }
 
+        Cluster Cluster;
         Session Session;
 
         public void SetFixture(Dev.SettingsFixture setFix)
@@ -43,14 +44,15 @@ namespace MyUTExt
             clusterb.WithDefaultKeyspace("tester");
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);
-            var cluster = clusterb.Build();
-            Session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
+            Cluster = clusterb.Build();
+            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
         }
 
         public void Dispose()
         {
             Session.DeleteKeyspace("tester");
             Session.Dispose();
+            Cluster.Shutdown();
         }
 
         //public void ProcessOutput(IOutput ret, object expectedValue = null)
@@ -652,51 +654,64 @@ PRIMARY KEY(tweet_id)
         }
 
         public void checkMetadata(string TableName = null, string KeyspaceName = null)
-        {            
-            Dictionary<string, TableMetadata.ColumnTypeCode> columns = new Dictionary<string,TableMetadata.ColumnTypeCode>(){                          
-                         {"q0uuid", TableMetadata.ColumnTypeCode.Uuid},
-                         {"q1timestamp", TableMetadata.ColumnTypeCode.Timestamp},
-                         {"q2double", TableMetadata.ColumnTypeCode.Double},
-                         {"q3int32", TableMetadata.ColumnTypeCode.Int},                         
-                         {"q4int64", TableMetadata.ColumnTypeCode.Bigint},
-                         {"q5float", TableMetadata.ColumnTypeCode.Float},                         
-                         {"q6inet", TableMetadata.ColumnTypeCode.Inet},
-                         {"q7boolean", TableMetadata.ColumnTypeCode.Boolean},                         
-                         {"q8inet", TableMetadata.ColumnTypeCode.Inet},                         
-                         {"q9blob", TableMetadata.ColumnTypeCode.Blob},
+        {
+            Dictionary<string, TableMetadata.ColumnTypeCode> columns = new Dictionary
+                <string, TableMetadata.ColumnTypeCode>()
+                {
+                    {"q0uuid", TableMetadata.ColumnTypeCode.Uuid},
+                    {"q1timestamp", TableMetadata.ColumnTypeCode.Timestamp},
+                    {"q2double", TableMetadata.ColumnTypeCode.Double},
+                    {"q3int32", TableMetadata.ColumnTypeCode.Int},
+                    {"q4int64", TableMetadata.ColumnTypeCode.Bigint},
+                    {"q5float", TableMetadata.ColumnTypeCode.Float},
+                    {"q6inet", TableMetadata.ColumnTypeCode.Inet},
+                    {"q7boolean", TableMetadata.ColumnTypeCode.Boolean},
+                    {"q8inet", TableMetadata.ColumnTypeCode.Inet},
+                    {"q9blob", TableMetadata.ColumnTypeCode.Blob},
 #if NET_40_OR_GREATER
                          {"q10varint", Metadata.ColumnTypeCode.Varint},
                          {"q11decimal", Metadata.ColumnTypeCode.Decimal},
 #endif
-                         {"q12list", TableMetadata.ColumnTypeCode.List},
-                         {"q13set", TableMetadata.ColumnTypeCode.Set},
-                         {"q14map", TableMetadata.ColumnTypeCode.Map}
-                         //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
-                        };
-                          
+                    {"q12list", TableMetadata.ColumnTypeCode.List},
+                    {"q13set", TableMetadata.ColumnTypeCode.Set},
+                    {"q14map", TableMetadata.ColumnTypeCode.Map}
+                    //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
+                };
+
             string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
             StringBuilder sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
             Randomm urndm = new Randomm(DateTimeOffset.Now.Millisecond);
-            
-            foreach(var col in columns)
-                sb.Append(col.Key + " " + col.Value.ToString() + (((col.Value == TableMetadata.ColumnTypeCode.List) || (col.Value == TableMetadata.ColumnTypeCode.Set) || (col.Value == TableMetadata.ColumnTypeCode.Map)) ? "<int" + (col.Value == TableMetadata.ColumnTypeCode.Map ? ",varchar>" : ">") : "") + ", ");
+
+            foreach (var col in columns)
+                sb.Append(col.Key + " " + col.Value.ToString() +
+                          (((col.Value == TableMetadata.ColumnTypeCode.List) ||
+                            (col.Value == TableMetadata.ColumnTypeCode.Set) ||
+                            (col.Value == TableMetadata.ColumnTypeCode.Map))
+                               ? "<int" + (col.Value == TableMetadata.ColumnTypeCode.Map ? ",varchar>" : ">")
+                               : "") + ", ");
 
             sb.Append("PRIMARY KEY(");
-            int rowKeys = urndm.Next(1,columns.Count-3);
+            int rowKeys = urndm.Next(1, columns.Count - 3);
 
             for (int i = 0; i < rowKeys; i++)
-                sb.Append(columns.Keys.Where(key => key.StartsWith("q"+i.ToString())).First() + ((i == rowKeys - 1) ? "" : ", "));            
+                sb.Append(columns.Keys.Where(key => key.StartsWith("q" + i.ToString())).First() +
+                          ((i == rowKeys - 1) ? "" : ", "));
             sb.Append("));");
-            
-            ExecuteSyncNonQuery(Session, sb.ToString());                        
-            TableMetadata md = this.Session.GetTableMetadata(tablename);            
-            foreach( var metaCol in md.Columns)
+
+            ExecuteSyncNonQuery(Session, sb.ToString());
+            var keyd = this.Cluster.Metadata.GetKeyspaceMetadata(KeyspaceName ?? Keyspace);
+            foreach (var table in keyd.Tables)
             {
-                Assert.True(columns.Keys.Contains(metaCol.ColumnName));
-                Assert.True(metaCol.TypeCode == columns.Where(tpc => tpc.Key == metaCol.ColumnName).First().Value);
-                Assert.True(metaCol.Table == tablename);
-                Assert.True(metaCol.Keyspace ==  (KeyspaceName ?? Keyspace));
-            }                                        
+                if (table.Name == tablename)
+                    foreach (var metaCol in table.Columns)
+                    {
+                        Assert.True(columns.Keys.Contains(metaCol.ColumnName));
+                        Assert.True(metaCol.TypeCode ==
+                                    columns.Where(tpc => tpc.Key == metaCol.ColumnName).First().Value);
+                        Assert.True(metaCol.Table == tablename);
+                        Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
+                    }
+            }
         }
 
 
@@ -716,7 +731,7 @@ string.Format(@"CREATE KEYSPACE {0}
             for (int i = 0; i < 10; i++)
                 checkMetadata("table" + Guid.NewGuid().ToString("N"),keyspacename);
 
-            KeyspaceMetadata ksmd = this.Session.GetKeyspaceMetadata(keyspacename);
+            KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspaceMetadata(keyspacename);
             Assert.True(ksmd.DurableWrites == durableWrites);
             Assert.True(ksmd.ReplicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
             Assert.True(ksmd.StrategyClass == strgyClass);

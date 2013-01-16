@@ -54,6 +54,16 @@ namespace Cassandra
             }
         }
 
+        public bool IsNull(string name)
+        {
+            return this[name] == null;
+        }
+
+        public bool IsNull(int idx)
+        {
+            return this[idx] == null;
+        }
+
         public T GetValue<T>(string name)
         {
             return (T)this[name];

@@ -25,12 +25,12 @@ namespace Cassandra
         public EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs> ReconnectionEvent;
 
         readonly IReconnectionPolicy _reconnectionPolicy;
-        ISessionInfoProvider _infoProvider;
+        Cluster _cluster;
         int _startidx = -1;
 
-        public void Initialize(ISessionInfoProvider infoProvider)
+        public void Initialize(Cluster cluster)
         {
-            this._infoProvider = infoProvider;
+            this._cluster = cluster;
         }
 
         public HostDistance Distance(Host host)
@@ -43,7 +43,7 @@ namespace Cassandra
             var schedule = _reconnectionPolicy.NewSchedule();
             while (true)
             {
-                List<Host> copyOfHosts = new List<Host>(_infoProvider.GetAllHosts());
+                List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
                 for (int i = 0; i < copyOfHosts.Count; i++)
                 {
                     if (_startidx == -1 || _startidx >= copyOfHosts.Count - 1)

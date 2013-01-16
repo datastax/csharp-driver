@@ -19,7 +19,7 @@ namespace Cassandra
 
         private readonly string _localDc;
         private readonly int _usedHostsPerRemoteDc;
-        ISessionInfoProvider _infoProvider;
+        Cluster _cluster;
 
     	/// <summary>
 		///  Creates a new datacenter aware round robin policy given the name of the local
@@ -58,9 +58,9 @@ namespace Cassandra
         }
 
 
-        public void Initialize(ISessionInfoProvider infoProvider)
+        public void Initialize(Cluster cluster)
         {
-            this._infoProvider = infoProvider;
+            this._cluster = cluster;
         }
 
         private string DC(Host host)
@@ -86,7 +86,7 @@ namespace Cassandra
                 return HostDistance.Local;
 
             int ix = 0;
-            foreach (var h in _infoProvider.GetAllHosts())
+            foreach (var h in _cluster.Metadata.AllHosts())
             {
                 if (h == host)
                     return ix < _usedHostsPerRemoteDc ? HostDistance.Ignored : HostDistance.Remote;
@@ -108,7 +108,7 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            foreach (var h in _infoProvider.GetAllHosts())
+            foreach (var h in _cluster.Metadata.AllHosts())
             {
                 if (_localDc.Equals(DC(h)))
                 {
@@ -117,7 +117,7 @@ namespace Cassandra
                 }
             }
             var ixes = new Dictionary<string, int>();
-            foreach (var h in _infoProvider.GetAllHosts())
+            foreach (var h in _cluster.Metadata.AllHosts())
             {
                 if (!_localDc.Equals(DC(h)))
                 {

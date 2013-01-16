@@ -9,14 +9,16 @@ namespace Cassandra
     ///  Keeps metadata on the connected cluster, including known nodes and schema
     ///  definitions.
     /// </summary>
-    public class ClusterMetadata
+    public class Metadata
     {
         internal string ClusterName;
         private readonly Hosts _hosts;
+        private readonly Cluster _cluster;
 
-        internal ClusterMetadata(Hosts hosts)
+        internal Metadata(Hosts hosts, Cluster cluster)
         {
             this._hosts = hosts;
+            this._cluster = cluster;
         }
 
         public Host GetHost(IPAddress address)
@@ -35,7 +37,12 @@ namespace Cassandra
             _hosts.RemoveIfExists(address);
         }
 
-        public IEnumerable<IPAddress> AllHosts()
+        public ICollection<Host> AllHosts()
+        {
+            return _hosts.All();
+        }
+
+        public IEnumerable<IPAddress> AllReplicas()
         {
             return _hosts.AllEndPoints();
         }
@@ -47,7 +54,7 @@ namespace Cassandra
 
         private volatile TokenMap _tokenMap;
 
-        public IEnumerable<IPAddress> GetReplicas(byte[] partitionKey)
+        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
             if(_tokenMap==null)
             {
@@ -57,6 +64,11 @@ namespace Cassandra
             {
                 return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));
             }
+        }
+
+        public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
+        {
+            return null;
         }
     }
 
@@ -127,7 +139,7 @@ namespace Cassandra
 
     //private volatile TokenMap tokenMap;
 
-    //ClusterMetadata(Cluster.Manager cluster) {
+    //Metadata(Cluster.Manager cluster) {
     //    this.cluster = cluster;
     //}
 

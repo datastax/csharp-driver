@@ -13,9 +13,9 @@ namespace Cassandra
         ///  that it will call this method exactly once per policy object and will do so
         ///  before any call to another of the methods of the policy.</p>
         /// </summary>
-        /// <param name="infoProvider"> the  information about the session instance for which the policy is created.
+        /// <param name="cluster"> the  information about the session instance for which the policy is created.
         ///  </param>
-        void Initialize(ISessionInfoProvider infoProvider);
+        void Initialize(Cluster cluster);
 
         /// <summary>
         ///  Returns the distance assigned by this policy to the provided host. <p> The

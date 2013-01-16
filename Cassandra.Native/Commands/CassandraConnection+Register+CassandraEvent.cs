@@ -5,9 +5,42 @@ namespace Cassandra
 {
     public class CassandraEventArgs : EventArgs
     {
-        public CassandraEventType CassandraEventType;
-        public IPAddress IPAddress;
-        public string Message;        
+    }
+
+    public class TopopogyChangeEventArgs : CassandraEventArgs
+    {
+        public enum Reason
+        {
+            NewNode,
+            RemovedNode
+        };
+
+        public Reason What;
+        public IPAddress Address;
+    }
+
+    public class StatusChangeEventArgs: CassandraEventArgs
+    {
+        public enum Reason
+        {
+            Up,
+            Down
+        };
+        public Reason What;
+        public IPAddress Address;
+    }
+
+    public class SchemaChangeEventArgs:CassandraEventArgs
+    {
+        public enum Reason
+        {
+            Created,
+            Updated,
+            Dropped
+        };
+        public Reason What;
+        public string Keyspace;
+        public string Table;
     }
 
     public delegate void CassandraEventHandler(object sender, CassandraEventArgs e);
