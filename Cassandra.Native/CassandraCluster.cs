@@ -255,7 +255,7 @@ namespace Cassandra
 
             WithPort(cnb.Port);
             WithCompression(cnb.CompressionType);
-            WithDefaultKeyspace(cnb.Keyspace);
+            WithDefaultKeyspace(cnb.DefaultKeyspace);
             return this;
         }
 
