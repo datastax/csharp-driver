@@ -726,6 +726,8 @@ string.Format(@"CREATE KEYSPACE {0}
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
 , keyspacename, Enum.GetName(typeof(StrategyClass), strgyClass), rplctnFactor.ToString(), durableWrites.ToString()));
+
+            Session.ChangeKeyspace(keyspacename);
             
 
             for (int i = 0; i < 10; i++)

@@ -13,12 +13,12 @@ namespace Cassandra
     {
         internal string ClusterName;
         private readonly Hosts _hosts;
-        private readonly Cluster _cluster;
+        private readonly ControlConnection _controlConnection;
 
-        internal Metadata(Hosts hosts, Cluster cluster)
+        internal Metadata(Hosts hosts, ControlConnection controlConnection)
         {
             this._hosts = hosts;
-            this._cluster = cluster;
+            this._controlConnection = controlConnection;
         }
 
         public Host GetHost(IPAddress address)
@@ -68,7 +68,7 @@ namespace Cassandra
 
         public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
         {
-            return null;
+            return _controlConnection.GetKeyspaceMetadata(keyspaceName);
         }
     }
 

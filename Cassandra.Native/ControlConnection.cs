@@ -12,6 +12,7 @@ namespace Cassandra
         private readonly Session _owner;
         private IEnumerator<Host> _hostsIter = null;
         private readonly Hosts _hosts;
+        private readonly KeyspaceMetadata _keyspaceMetadata;
 
         internal ControlConnection(Cluster cluster, Session owner,
                                    IEnumerable<IPAddress> clusterEndpoints,
@@ -26,7 +27,9 @@ namespace Cassandra
             this._hosts = hosts;
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
             this._owner = owner;
-            Metadata = new Metadata(hosts,cluster);
+            this._keyspaceMetadata = new KeyspaceMetadata();
+
+            Metadata = new Metadata(hosts, this);
 
             _session = new Session(cluster, clusterEndpoints, policies, protocolOptions, poolingOptions, socketOptions,
                                    clientOptions, authProvider, metricsEnabled, "", _hosts);
@@ -356,6 +359,7 @@ namespace Cassandra
 
         public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
         {
+            WaitForSchemaAgreement();
             List<TableMetadata> tables = new List<TableMetadata>();
             List<string> tablesNames = new List<string>();
             using (var rows = _session.Query(string.Format(SELECT_COLUMN_FAMILIES + " WHERE keyspace_name='{0}';", keyspaceName)))
@@ -410,44 +414,56 @@ namespace Cassandra
         {
             object[] collectionValuesTypes;
             List<TableMetadata.ColumnDesc> cols = new List<TableMetadata.ColumnDesc>();
-            using (var rows = _session.Query(string.Format(SELECT_COLUMNS+" WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName)))
+            using (
+                var rows =
+                    _session.Query(
+                        string.Format(SELECT_COLUMNS + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
+                                      tableName, keyspaceName)))
             {
                 foreach (var row in rows.GetRows())
                 {
                     var tp_code = convertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
                     var dsc = new TableMetadata.ColumnDesc()
-                    {
-                        ColumnName = row.GetValue<string>("column_name"),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = tp_code,
-                        SecondaryIndexName = row.GetValue<string>("index_name"),
-                        SecondaryIndexType = row.GetValue<string>("index_type"),
-                        KeyType = row.GetValue<string>("index_name") != null ? TableMetadata.KeyType.Secondary : TableMetadata.KeyType.NotAKey,
-                    };
+                        {
+                            ColumnName = row.GetValue<string>("column_name"),
+                            Keyspace = row.GetValue<string>("keyspace_name"),
+                            Table = row.GetValue<string>("columnfamily_name"),
+                            TypeCode = tp_code,
+                            SecondaryIndexName = row.GetValue<string>("index_name"),
+                            SecondaryIndexType = row.GetValue<string>("index_type"),
+                            KeyType =
+                                row.GetValue<string>("index_name") != null
+                                    ? TableMetadata.KeyType.Secondary
+                                    : TableMetadata.KeyType.NotAKey,
+                        };
 
                     if (tp_code == TableMetadata.ColumnTypeCode.List)
                         dsc.TypeInfo = new TableMetadata.ListColumnInfo()
-                        {
-                            ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
-                        };
+                            {
+                                ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                            };
                     else if (tp_code == TableMetadata.ColumnTypeCode.Map)
                         dsc.TypeInfo = new TableMetadata.MapColumnInfo()
-                        {
-                            KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0],
-                            ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[1]
-                        };
+                            {
+                                KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0],
+                                ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[1]
+                            };
                     else if (tp_code == TableMetadata.ColumnTypeCode.Set)
                         dsc.TypeInfo = new TableMetadata.SetColumnInfo()
-                        {
-                            KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
-                        };
+                            {
+                                KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                            };
 
                     cols.Add(dsc);
                 }
             }
 
-            using (var rows = _session.Query(string.Format(SELECT_COLUMN_FAMILIES + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName)))
+            using (
+                var rows =
+                    _session.Query(
+                        string.Format(
+                            SELECT_COLUMN_FAMILIES + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
+                            tableName, keyspaceName)))
             {
                 foreach (var row in rows.GetRows())
                 {
@@ -469,46 +485,52 @@ namespace Cassandra
                         int i = 0;
                         foreach (var keyName in rowKeys)
                         {
-                            var tp_code = convertToColumnTypeCode(rowKeysTypes[i + 1].ToString(), out collectionValuesTypes);
+                            var tp_code = convertToColumnTypeCode(rowKeysTypes[i + 1].ToString(),
+                                                                  out collectionValuesTypes);
                             var dsc = new TableMetadata.ColumnDesc()
-                            {
-                                ColumnName = keyName.ToString(),
-                                Keyspace = row.GetValue<string>("keyspace_name"),
-                                Table = row.GetValue<string>("columnfamily_name"),
-                                TypeCode = tp_code,
-                                KeyType = TableMetadata.KeyType.Row,
-                            };
+                                {
+                                    ColumnName = keyName.ToString(),
+                                    Keyspace = row.GetValue<string>("keyspace_name"),
+                                    Table = row.GetValue<string>("columnfamily_name"),
+                                    TypeCode = tp_code,
+                                    KeyType = TableMetadata.KeyType.Row,
+                                };
                             if (tp_code == TableMetadata.ColumnTypeCode.List)
                                 dsc.TypeInfo = new TableMetadata.ListColumnInfo()
-                                {
-                                    ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
-                                };
+                                    {
+                                        ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                                    };
                             else if (tp_code == TableMetadata.ColumnTypeCode.Map)
                                 dsc.TypeInfo = new TableMetadata.MapColumnInfo()
-                                {
-                                    KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0],
-                                    ValueTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[1]
-                                };
+                                    {
+                                        KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0],
+                                        ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[1]
+                                    };
                             else if (tp_code == TableMetadata.ColumnTypeCode.Set)
                                 dsc.TypeInfo = new TableMetadata.SetColumnInfo()
-                                {
-                                    KeyTypeCode = (TableMetadata.ColumnTypeCode)collectionValuesTypes[0]
-                                };
+                                    {
+                                        KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                                    };
                             cols.Add(dsc);
                             i++;
                         }
                     }
                     cols.Add(new TableMetadata.ColumnDesc()
-                    {
-                        ColumnName = row.GetValue<string>("key_aliases").Replace("[\"", "").Replace("\"]", "").Replace("\"\"", "\""),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = convertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
-                        KeyType = TableMetadata.KeyType.Partition
-                    });
+                        {
+                            ColumnName =
+                                row.GetValue<string>("key_aliases")
+                                   .Replace("[\"", "")
+                                   .Replace("\"]", "")
+                                   .Replace("\"\"", "\""),
+                            Keyspace = row.GetValue<string>("keyspace_name"),
+                            Table = row.GetValue<string>("columnfamily_name"),
+                            TypeCode =
+                                convertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
+                            KeyType = TableMetadata.KeyType.Partition
+                        });
                 }
             }
-            return new TableMetadata() { Columns = cols.ToArray() };
+            return new TableMetadata() {Name = tableName, Columns = cols.ToArray()};
         }
 
 

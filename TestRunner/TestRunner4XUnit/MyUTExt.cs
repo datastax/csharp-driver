@@ -9,6 +9,9 @@ namespace Dev
     public class IgnoreAttribute : Attribute
     {
     }
+    public class PrioriotyAttribute : Attribute
+    {
+    }
     public interface ISettings
     {
         string this[string name] { get; }
