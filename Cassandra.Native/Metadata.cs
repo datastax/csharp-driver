@@ -66,10 +66,12 @@ namespace Cassandra
             }
         }
 
-        public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
+        public ReadOnlyDictionary<string,KeyspaceMetadata> GetKeyspaces()
         {
-            return _controlConnection.GetKeyspaceMetadata(keyspaceName);
+            return _controlConnection.GetKeyspaces();
         }
+
+        public bool IsSchemaReady { get { return _controlConnection.IsSchemaReady; } }
     }
 
     internal class TokenMap

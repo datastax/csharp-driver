@@ -155,29 +155,24 @@ namespace Cassandra
             }
         }
 
-        private volatile Action<KeyValuePair<string, string>> curRefrAction = null;
-
         public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
         {
-            if (curRefrAction != null)
-                throw new InvalidAsynchronousStateException("Prevoius call to BeginRefreshSchema do not completed.");
+            var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,
+                                                             Timeout.Infinite);
 
-            curRefrAction = new Action<KeyValuePair<string, string>>((kv) => { RefreshSchema(kv.Key, kv.Value); });
-            return curRefrAction.BeginInvoke(new KeyValuePair<string, string>(keyspace, table), callback, state);
+            _connectedSession.ControlConnection.SubmitSchemaRefresh(keyspace, table, ar);
+
+            return ar;
         }
 
         public void EndRefreshSchema(IAsyncResult ar)
         {
-            if (curRefrAction == null)
-                throw new InvalidAsynchronousStateException("No BeginRefreshSchema.");
-            curRefrAction.EndInvoke(ar);
-            curRefrAction = null;
+            AsyncResultNoResult.End(ar, this, "RefreshSchema");
         }
 
         public void RefreshSchema(string keyspace = null, string table = null)
         {
-            _connectedSession.ControlConnection.WaitForSchemaAgreement();
-            _connectedSession.ControlConnection.RefreshSchema(keyspace, table);
+            EndRefreshSchema(BeginRefreshSchema(null, null, keyspace, table));
         }
 
     }

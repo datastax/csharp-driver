@@ -699,18 +699,21 @@ PRIMARY KEY(tweet_id)
             sb.Append("));");
 
             ExecuteSyncNonQuery(Session, sb.ToString());
-            var keyd = this.Cluster.Metadata.GetKeyspaceMetadata(KeyspaceName ?? Keyspace);
-            foreach (var table in keyd.Tables)
+
+            Console.Write("Loading schema...");
+            while(!this.Cluster.Metadata.IsSchemaReady)
+                Thread.Sleep(500);
+            Console.WriteLine("... done");
+            var keyd = this.Cluster.Metadata.GetKeyspaces()[KeyspaceName ?? Keyspace];
+            this.Cluster.RefreshSchema(KeyspaceName ?? Keyspace,tablename);
+            var table = keyd.Tables[tablename];
+            foreach (var metaCol in table.Columns)
             {
-                if (table.Name == tablename)
-                    foreach (var metaCol in table.Columns)
-                    {
-                        Assert.True(columns.Keys.Contains(metaCol.ColumnName));
-                        Assert.True(metaCol.TypeCode ==
-                                    columns.Where(tpc => tpc.Key == metaCol.ColumnName).First().Value);
-                        Assert.True(metaCol.Table == tablename);
-                        Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
-                    }
+                Assert.True(columns.Keys.Contains(metaCol.ColumnName));
+                Assert.True(metaCol.TypeCode ==
+                            columns.Where(tpc => tpc.Key == metaCol.ColumnName).First().Value);
+                Assert.True(metaCol.Table == tablename);
+                Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
             }
         }
 
@@ -733,7 +736,7 @@ string.Format(@"CREATE KEYSPACE {0}
             for (int i = 0; i < 10; i++)
                 checkMetadata("table" + Guid.NewGuid().ToString("N"),keyspacename);
 
-            KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspaceMetadata(keyspacename);
+            KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspaces()[keyspacename];
             Assert.True(ksmd.DurableWrites == durableWrites);
             Assert.True(ksmd.ReplicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
             Assert.True(ksmd.StrategyClass == strgyClass);

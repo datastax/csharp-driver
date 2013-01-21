@@ -11,18 +11,30 @@ namespace Cassandra
         OldNetworkTopologyStrategy = 3
     }
 
-    public class  KeyspaceMetadata
+    public class KeyspaceMetadata
     {
-        public string Keyspace;
-        public List<TableMetadata> Tables;
-        public bool? DurableWrites;
-        public StrategyClass StrategyClass;
-        public SortedDictionary<string, int?> ReplicationOptions;
+        public string Keyspace { get; private set; }
+        public bool? DurableWrites { get; private set; }
+        public StrategyClass StrategyClass { get; private set; }
+        public ReadOnlyDictionary<string, int?> ReplicationOptions { get; private set; }
+        public ReadOnlyDictionary<string, TableMetadata> Tables { get; internal set; }
+
+        internal KeyspaceMetadata(string keyspace, bool? durableWrites, StrategyClass strategyClass,
+                                  ReadOnlyDictionary<string, int?> replicationOptions,
+                                  ReadOnlyDictionary<string, TableMetadata> tables)
+        {
+            Keyspace = keyspace;
+            DurableWrites = durableWrites;
+            StrategyClass = strategyClass;
+            ReplicationOptions = replicationOptions;
+            Tables = Tables;
+        }
 
     }
 
     public class TableMetadata
     {
+
         public string Name;
 
         [Flags]

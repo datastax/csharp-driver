@@ -6,13 +6,12 @@ using System.Net;
 
 namespace Cassandra
 {
-    internal class ControlConnection
+    internal class ControlConnection : IDisposable
     {
         private readonly Session _session;
         private readonly Session _owner;
         private IEnumerator<Host> _hostsIter = null;
         private readonly Hosts _hosts;
-        private readonly KeyspaceMetadata _keyspaceMetadata;
 
         internal ControlConnection(Cluster cluster, Session owner,
                                    IEnumerable<IPAddress> clusterEndpoints,
@@ -27,7 +26,6 @@ namespace Cassandra
             this._hosts = hosts;
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
             this._owner = owner;
-            this._keyspaceMetadata = new KeyspaceMetadata();
 
             Metadata = new Metadata(hosts, this);
 
@@ -39,6 +37,12 @@ namespace Cassandra
         {
             _session.Init();
             Go(true);
+            StartRefreshSchemaThread();
+        }
+        
+        public void Dispose()
+        {
+            StopRefreshSchemaThread();
         }
 
         private void SetupEventListeners(CassandraConnection nconn)
@@ -122,12 +126,6 @@ namespace Cassandra
             }
 
             throw new DriverInternalError("Unknown Event");
-        }
-
-        private void SubmitSchemaRefresh(string keyspace, string table)
-        {
-            var act = new Action<KeyValuePair<string, string>>((kv) => { RefreshSchema(kv.Key, kv.Value); });
-            act.BeginInvoke(new KeyValuePair<string, string>(keyspace, table), act.EndInvoke, null);
         }
 
         internal void OwnerHostIsDown(IPAddress endpoint)
@@ -348,52 +346,249 @@ namespace Cassandra
         }
 
 
-        private static readonly String SELECT_KEYSPACES = "SELECT * FROM system.schema_keyspaces";
-        private static readonly String SELECT_COLUMN_FAMILIES = "SELECT * FROM system.schema_columnfamilies";
-        private static readonly String SELECT_COLUMNS = "SELECT * FROM system.schema_columns";
-        
-        internal void RefreshSchema(string keyspace, string table)
+        private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
+        private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
+        private const String SelectColumns = "SELECT * FROM system.schema_columns";
+
+        private readonly AtomicValue<bool> _invalidKeyspace = new AtomicValue<bool>(false);
+
+        private Thread _refreshSchemaThread = null;
+        private bool _endOfRefreshSchemaThread;
+        private readonly object _notifyRefreshSchemaThread = new object();
+        private Queue<RefreshSchemaCmd> _commandsRefreshSchemaThread = new Queue<RefreshSchemaCmd>();
+
+        class RefreshSchemaCmd
         {
-            
+            public string Keyspace;
+            public string Table;
+            public AsyncResultNoResult AsyncResult;
         }
 
-        public KeyspaceMetadata GetKeyspaceMetadata(string keyspaceName)
+        internal void StartRefreshSchemaThread()
         {
-            WaitForSchemaAgreement();
-            List<TableMetadata> tables = new List<TableMetadata>();
-            List<string> tablesNames = new List<string>();
-            using (var rows = _session.Query(string.Format(SELECT_COLUMN_FAMILIES + " WHERE keyspace_name='{0}';", keyspaceName)))
+            _endOfRefreshSchemaThread = false;
+            _refreshSchemaThread = new Thread((_) =>
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            lock (_notifyRefreshSchemaThread)
+                            {
+                                if (_endOfRefreshSchemaThread)
+                                    return;
+
+                                RefreshSchemaCmd cmd = null;
+
+                                try
+                                {
+                                    while (_commandsRefreshSchemaThread.Count > 0)
+                                    {
+                                        cmd = _commandsRefreshSchemaThread.Dequeue();
+                                        Monitor.Exit(_notifyRefreshSchemaThread);
+                                        try
+                                        {
+                                            WaitForSchemaAgreement();
+                                            RefreshSchema(cmd.Keyspace, cmd.Table);
+                                        }
+                                        finally
+                                        {
+                                            Monitor.Enter(_notifyRefreshSchemaThread);
+                                        }
+                                        if (_endOfRefreshSchemaThread)
+                                            return;
+                                        if (cmd.AsyncResult != null)
+                                            cmd.AsyncResult.Complete();
+                                    }
+                                }
+                                catch (NoHostAvailableException)
+                                {
+                                    if (cmd != null && cmd.AsyncResult != null)
+                                        _commandsRefreshSchemaThread.Enqueue(cmd);
+                                    var newQ = new Queue<RefreshSchemaCmd>();
+                                    while (_commandsRefreshSchemaThread.Count > 0)
+                                    {
+                                        var nc = _commandsRefreshSchemaThread.Dequeue();
+                                        if (nc.AsyncResult != null)
+                                            newQ.Enqueue(nc);
+                                    }
+                                    _commandsRefreshSchemaThread = newQ;
+                                    _isDiconnected = true;
+                                    _hostsIter = null;
+                                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (CassandraConnection.IsStreamRelatedException(ex))
+                                    {
+                                        if (cmd != null && cmd.AsyncResult != null)
+                                            _commandsRefreshSchemaThread.Enqueue(cmd);
+                                        var newQ = new Queue<RefreshSchemaCmd>();
+                                        while (_commandsRefreshSchemaThread.Count > 0)
+                                        {
+                                            var nc = _commandsRefreshSchemaThread.Dequeue();
+                                            if (nc.AsyncResult != null)
+                                                newQ.Enqueue(nc);
+                                        }
+                                        _commandsRefreshSchemaThread = newQ;
+                                        _isDiconnected = true;
+                                        _hostsIter = null;
+                                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                                    }
+                                    else
+                                    {
+                                        if (cmd != null && cmd.AsyncResult != null)
+                                            cmd.AsyncResult.Complete(ex);
+                                    }
+                                }
+                                Monitor.Wait(_notifyRefreshSchemaThread);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        while (_commandsRefreshSchemaThread.Count > 0)
+                        {
+                            var cmd = _commandsRefreshSchemaThread.Dequeue();
+                            if(cmd.AsyncResult!=null)
+                                cmd.AsyncResult.Complete(new ObjectDisposedException("Session object is disposed"));
+                        }
+                    }
+                });
+            _refreshSchemaThread.Start();
+        }
+
+        internal void StopRefreshSchemaThread()
+        {
+            lock (_notifyRefreshSchemaThread)
             {
-                foreach (var row in rows.GetRows())
-                    tablesNames.Add(row.GetValue<string>("columnfamily_name"));
+                _endOfRefreshSchemaThread = true;
+                Monitor.PulseAll(_notifyRefreshSchemaThread);
+            }
+            _refreshSchemaThread.Join();
+        }
+
+        internal void SubmitSchemaRefresh(string keyspace, string table, AsyncResultNoResult ar = null)
+        {
+            lock (_notifyRefreshSchemaThread)
+            {
+                _commandsRefreshSchemaThread.Enqueue(new RefreshSchemaCmd()
+                    {
+                        Keyspace = keyspace,
+                        Table = table,
+                        AsyncResult = ar
+                    });
+                Monitor.PulseAll(_notifyRefreshSchemaThread);
+            }
+        }
+
+        internal void RefreshSchema(string keyspace, string table)
+        {
+            bool totalUpdate = _invalidKeyspace.Value;
+
+            _invalidKeyspace.Value = true;
+
+            bool keyspaceUpdate = true;
+            ReadOnlyDictionary<string, KeyspaceMetadata> newKeyspaces;
+            if (totalUpdate || keyspace == null || _keyspaces.Value == null)
+                newKeyspaces = new ReadOnlyDictionary<string, KeyspaceMetadata>();
+            else if (keyspace != null && table == null)
+                newKeyspaces = new ReadOnlyDictionary<string, KeyspaceMetadata>(_keyspaces.Value);
+            else
+            {
+                newKeyspaces = _keyspaces.Value;
+                keyspaceUpdate = false;
             }
 
-            foreach (var tblName in tablesNames)
-                tables.Add(GetTableMetadata(tblName, keyspaceName));
-
-            StrategyClass strClass = StrategyClass.Unknown;
-            bool? drblWrites = null;
-            SortedDictionary<string, int?> rplctOptions = new SortedDictionary<string, int?>();
-
-            using (var rows = _session.Query(string.Format(SELECT_KEYSPACES+" WHERE keyspace_name='{0}';", keyspaceName)))
+            if (keyspaceUpdate)
             {
-                foreach (var row in rows.GetRows())
+                using (
+                    var rows =
+                        _session.Query(
+                            string.Format(
+                                SelectKeyspaces +
+                                ((totalUpdate || keyspace == null || _keyspaces.Value == null)
+                                     ? ""
+                                     : " WHERE keyspace_name='{0}';"),
+                                keyspace)))
                 {
-                    strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
-                    drblWrites = row.GetValue<bool>("durable_writes");
-                    rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));
+                    foreach (var row in rows.GetRows())
+                    {
+                        var strKsName = row.GetValue<string>("keyspace_name");
+                        var strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
+                        var drblWrites = row.GetValue<bool>("durable_writes");
+                        var rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));
+
+                        var newMetadata = new KeyspaceMetadata(strKsName, drblWrites, strClass,
+                                                               new ReadOnlyDictionary<string, int?>(rplctOptions),
+                                                               null);
+
+                        newKeyspaces.InternalSetup(strKsName, newMetadata);
+                    }
+                }
+            }
+            else
+            {
+                newKeyspaces[keyspace].Tables.InternalSetup(table, null);
+            }
+
+            foreach (var keyspaceMetadata in newKeyspaces.Values)
+            {
+                if (keyspaceMetadata.Tables == null)
+                {
+                    var tablesNames = new List<string>();
+                    using (
+                        var rows =
+                            _session.Query(string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';",
+                                                         keyspace)))
+                    {
+                        foreach (var row in rows.GetRows())
+                            tablesNames.Add(row.GetValue<string>("columnfamily_name"));
+                    }
+
+                    keyspaceMetadata.Tables = new ReadOnlyDictionary<string, TableMetadata>();
+
+                    foreach (var tblName in tablesNames)
+                        keyspaceMetadata.Tables.InternalSetup(tblName, GetTableMetadata(tblName, keyspace));
+                }
+                else
+                {
+                    nextIter:
+                    foreach (var tbl in keyspaceMetadata.Tables)
+                    {
+                        if (tbl.Value == null)
+                        {
+                            keyspaceMetadata.Tables.InternalSetup(tbl.Key, GetTableMetadata(tbl.Key, keyspace));
+                            goto nextIter;
+                            ;
+                        }
+                    }
                 }
             }
 
-            return new KeyspaceMetadata()
-            {
-                Keyspace = keyspaceName,
-                Tables = tables,
-                StrategyClass = strClass,
-                ReplicationOptions = rplctOptions,
-                DurableWrites = drblWrites
-            };
+            _keyspaces.Value = newKeyspaces;
 
+            _invalidKeyspace.Value = false;
+        }
+
+        public bool IsSchemaReady
+        {
+            get
+            {
+                lock (_notifyRefreshSchemaThread)
+                {
+                    return _keyspaces.Value != null && !_invalidKeyspace.Value &&
+                           _commandsRefreshSchemaThread.Count == 0;
+                }
+            }
+        }
+
+        private readonly AtomicValue<ReadOnlyDictionary<string, KeyspaceMetadata>> _keyspaces =
+            new AtomicValue<ReadOnlyDictionary<string, KeyspaceMetadata>>(null);
+
+        public ReadOnlyDictionary<string, KeyspaceMetadata> GetKeyspaces()
+        {
+            return _keyspaces.Value;
         }
 
         public StrategyClass GetStrategyClass(string strClass)
@@ -417,7 +612,7 @@ namespace Cassandra
             using (
                 var rows =
                     _session.Query(
-                        string.Format(SELECT_COLUMNS + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
+                        string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
                                       tableName, keyspaceName)))
             {
                 foreach (var row in rows.GetRows())
@@ -462,7 +657,7 @@ namespace Cassandra
                 var rows =
                     _session.Query(
                         string.Format(
-                            SELECT_COLUMN_FAMILIES + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
+                            SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
                             tableName, keyspaceName)))
             {
                 foreach (var row in rows.GetRows())
