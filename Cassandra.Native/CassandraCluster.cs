@@ -144,7 +144,7 @@ namespace Cassandra
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <code>* Cluster</code> instance and reclaim all resources
-        ///  used by it. <p> This method has no effect if the cluster was already shutdown.
+        ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
         /// </summary>
         public void Shutdown()
         {

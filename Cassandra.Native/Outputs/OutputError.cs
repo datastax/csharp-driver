@@ -37,10 +37,11 @@ namespace Cassandra
     {
         ServerError = 0x0000,
         ProtocolError = 0x000A,
+        BadCredentials = 0x0100,
         UnavailableException = 0x1000,
         Overloaded = 0x1001,
         IsBootstrapping = 0x1002,
-        TruncateError = 0x1003,
+        TruncateError = 0x1003,        
         WriteTimeout = 0x1100,
         ReadTimeout = 0x1200,
         SyntaxError = 0x2000,
@@ -79,13 +80,13 @@ namespace Cassandra
         {
         }
 
-        public abstract QueryValidationException CreateException();
+        public abstract DriverException CreateException();
     }
 
 
     internal class OutputServerError : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new ServerErrorException(Message);
         }
@@ -93,9 +94,17 @@ namespace Cassandra
 
     internal class OutputProtocolError : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new ProtocolErrorException(Message);
+        }
+    }
+
+    internal class OutputBadCredentials : OutputError
+    {
+        public override DriverException CreateException()
+        {
+            return new AuthenticationException(Message);  
         }
     }
 
@@ -115,7 +124,7 @@ namespace Cassandra
             _info.Required = cb.ReadInt32();
             _info.Alive = cb.ReadInt32();
         }
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new UnavailableException(_info.ConsistencyLevel, _info.Required, _info.Alive);
         }
@@ -123,7 +132,7 @@ namespace Cassandra
 
     internal class OutputOverloaded : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new OverloadedException(Message);
         }
@@ -131,7 +140,7 @@ namespace Cassandra
 
     internal class OutputIsBootstrapping : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new IsBootstrappingException(Message);
         }
@@ -139,7 +148,7 @@ namespace Cassandra
 
     internal class OutputTruncateError : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new TruncateException(Message);
         }
@@ -166,7 +175,7 @@ namespace Cassandra
             _info.WriteType = cb.ReadString();
         }
 
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new WriteTimeoutException(_info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.WriteType);
         }
@@ -191,7 +200,7 @@ namespace Cassandra
             _info.BlockFor = cb.ReadInt32();
             _info.IsDataPresent = cb.ReadByte() != 0;
         }
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new ReadTimeoutException(_info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.IsDataPresent);
         }
@@ -199,7 +208,7 @@ namespace Cassandra
 
     internal class OutputSyntaxError : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new SyntaxError(Message);
         }
@@ -207,7 +216,7 @@ namespace Cassandra
 
     internal class OutputUnauthorized : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new UnauthorizedException(Message);
         }
@@ -215,7 +224,7 @@ namespace Cassandra
 
     internal class OutputInvalid : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new InvalidException(Message);
         }
@@ -224,7 +233,7 @@ namespace Cassandra
 
     internal class OutputConfigError : OutputError
     {
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new InvalidConfigurationInQueryException(Message);
         }
@@ -244,7 +253,7 @@ namespace Cassandra
             _info.Ks = cb.ReadString();
             _info.Table = cb.ReadString();
         }
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new AlreadyExistsException(Message, _info.Ks, _info.Table);
         }
@@ -264,7 +273,7 @@ namespace Cassandra
             _info.UnknownID = new byte[len];
             cb.Read(_info.UnknownID, 0, len);
         }
-        public override QueryValidationException CreateException()
+        public override DriverException CreateException()
         {
             return new PreparedQueryNotFoundException(Message, _info.UnknownID);
         }
