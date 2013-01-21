@@ -145,7 +145,15 @@ namespace Cassandra
 
         private void ReconnectionClb(object state)
         {
-            Go(true);
+            try
+            {
+                Go(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("!!"+ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
         }
 
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
@@ -303,7 +311,7 @@ namespace Cassandra
         private const string SelectSchemaPeers = "SELECT peer, schema_version FROM system.peers";
         private const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
 
-        internal bool WaitForSchemaAgreement()
+        private bool WaitForSchemaAgreement()
         {
             var start = DateTimeOffset.Now;
             long elapsed = 0;
@@ -355,7 +363,7 @@ namespace Cassandra
         private Thread _refreshSchemaThread = null;
         private bool _endOfRefreshSchemaThread;
         private readonly object _notifyRefreshSchemaThread = new object();
-        private Queue<RefreshSchemaCmd> _commandsRefreshSchemaThread = new Queue<RefreshSchemaCmd>();
+        private readonly Queue<RefreshSchemaCmd> _commandsRefreshSchemaThread = new Queue<RefreshSchemaCmd>();
 
         class RefreshSchemaCmd
         {
@@ -364,7 +372,7 @@ namespace Cassandra
             public AsyncResultNoResult AsyncResult;
         }
 
-        internal void StartRefreshSchemaThread()
+        private void StartRefreshSchemaThread()
         {
             _endOfRefreshSchemaThread = false;
             _refreshSchemaThread = new Thread((_) =>
@@ -405,14 +413,14 @@ namespace Cassandra
                                 {
                                     if (cmd != null && cmd.AsyncResult != null)
                                         _commandsRefreshSchemaThread.Enqueue(cmd);
-                                    var newQ = new Queue<RefreshSchemaCmd>();
-                                    while (_commandsRefreshSchemaThread.Count > 0)
-                                    {
-                                        var nc = _commandsRefreshSchemaThread.Dequeue();
-                                        if (nc.AsyncResult != null)
-                                            newQ.Enqueue(nc);
-                                    }
-                                    _commandsRefreshSchemaThread = newQ;
+                                    //var newQ = new Queue<RefreshSchemaCmd>();
+                                    //while (_commandsRefreshSchemaThread.Count > 0)
+                                    //{
+                                    //    var nc = _commandsRefreshSchemaThread.Dequeue();
+                                    //    if (nc.AsyncResult != null)
+                                    //        newQ.Enqueue(nc);
+                                    //}
+                                    //_commandsRefreshSchemaThread = newQ;
                                     _isDiconnected = true;
                                     _hostsIter = null;
                                     _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -423,14 +431,14 @@ namespace Cassandra
                                     {
                                         if (cmd != null && cmd.AsyncResult != null)
                                             _commandsRefreshSchemaThread.Enqueue(cmd);
-                                        var newQ = new Queue<RefreshSchemaCmd>();
-                                        while (_commandsRefreshSchemaThread.Count > 0)
-                                        {
-                                            var nc = _commandsRefreshSchemaThread.Dequeue();
-                                            if (nc.AsyncResult != null)
-                                                newQ.Enqueue(nc);
-                                        }
-                                        _commandsRefreshSchemaThread = newQ;
+                                        //var newQ = new Queue<RefreshSchemaCmd>();
+                                        //while (_commandsRefreshSchemaThread.Count > 0)
+                                        //{
+                                        //    var nc = _commandsRefreshSchemaThread.Dequeue();
+                                        //    if (nc.AsyncResult != null)
+                                        //        newQ.Enqueue(nc);
+                                        //}
+                                        //_commandsRefreshSchemaThread = newQ;
                                         _isDiconnected = true;
                                         _hostsIter = null;
                                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -458,7 +466,7 @@ namespace Cassandra
             _refreshSchemaThread.Start();
         }
 
-        internal void StopRefreshSchemaThread()
+        private void StopRefreshSchemaThread()
         {
             lock (_notifyRefreshSchemaThread)
             {
@@ -482,7 +490,7 @@ namespace Cassandra
             }
         }
 
-        internal void RefreshSchema(string keyspace, string table)
+        private void RefreshSchema(string keyspace, string table)
         {
             bool totalUpdate = _invalidKeyspace.Value;
 

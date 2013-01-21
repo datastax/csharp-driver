@@ -112,6 +112,8 @@ namespace Cassandra
                 while (true)
                 {
                     var current = hostsIter.Current;
+                    if(current==null)
+                        throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
                     if (current.IsConsiderablyUp)
                     {
                         var hostDistance = _policies.LoadBalancingPolicy.Distance(current);

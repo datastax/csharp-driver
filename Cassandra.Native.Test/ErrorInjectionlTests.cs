@@ -108,7 +108,7 @@ namespace Cassandra.Test
             {
             }
             Randomm rndm = new Randomm();
-            int RowsNo = 1000;
+            int RowsNo = 3000;
             bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
