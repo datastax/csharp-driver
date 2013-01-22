@@ -6,14 +6,13 @@ using System.Net;
 
 namespace Cassandra
 {
-    internal class ControlConnection 
+    internal class ControlConnection :IDisposable
     {
         private readonly Session _session;
-        private readonly Session _owner;
         private IEnumerator<Host> _hostsIter = null;
-        private readonly Hosts _hosts;
+        private readonly Cluster _cluster;
 
-        internal ControlConnection(Cluster cluster, Session owner,
+        internal ControlConnection(Cluster cluster, 
                                    IEnumerable<IPAddress> clusterEndpoints,
                                    Policies policies,
                                    ProtocolOptions protocolOptions,
@@ -21,24 +20,37 @@ namespace Cassandra
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
                                    IAuthInfoProvider authProvider,
-                                   bool metricsEnabled, Hosts hosts)
+                                   bool metricsEnabled)
         {
-            this._hosts = hosts;
+            this._cluster = cluster;
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
-            this._owner = owner;
-
-            Metadata = new Metadata(hosts, this);
 
             _session = new Session(cluster, clusterEndpoints, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, metricsEnabled, "", _hosts);
+                                   clientOptions, authProvider, metricsEnabled, "", _cluster._hosts);
         }
 
         internal void Init()
         {
             _session.Init();
+            CCEvent += new CCEventHandler(ControlConnection_CCEvent);
             Go(true);
         }
-        
+
+        public void Dispose()
+        {
+            _session.Dispose();
+        }
+
+        private void ControlConnection_CCEvent(object sender, ControlConnection.CCEventArgs e)
+        {
+            if (e.What == CCEventArgs.Kind.Add)
+                _session.OnAddHost(e.IPAddress);
+            if (e.What == CCEventArgs.Kind.Remove)
+                _session.OnRemovedHost(e.IPAddress);
+            if (e.What == CCEventArgs.Kind.Down)
+                _session.OnDownHost(e.IPAddress);
+        }
+
         private void SetupEventListeners(CassandraConnection nconn)
         {
             Exception theExc = null;
@@ -60,6 +72,16 @@ namespace Cassandra
                 throw theExc;
         }
 
+        internal class CCEventArgs : EventArgs
+        {
+            public enum Kind {Add,Remove,Down}
+            public Kind What;
+            public IPAddress IPAddress;
+        }
+
+        public delegate void CCEventHandler(object sender, CCEventArgs e);
+        public event CCEventHandler CCEvent;
+
         private void conn_CassandraEvent(object sender, CassandraEventArgs e)
         {
             if (e is TopopogyChangeEventArgs)
@@ -67,15 +89,15 @@ namespace Cassandra
                 var tce = e as TopopogyChangeEventArgs;
                 if (tce.What == TopopogyChangeEventArgs.Reason.NewNode)
                 {
-                    _owner.OnAddHost(tce.Address);
-                    _session.OnAddHost(tce.Address);
+                    if (CCEvent != null)
+                        CCEvent.Invoke(this, new CCEventArgs() {IPAddress = tce.Address, What = CCEventArgs.Kind.Add});
                     CheckConnectionUp(tce.Address);
                     return;
                 }
                 else if (tce.What == TopopogyChangeEventArgs.Reason.RemovedNode)
                 {
-                    _owner.OnRemovedHost(tce.Address);
-                    _session.OnRemovedHost(tce.Address);
+                    if (CCEvent != null)
+                        CCEvent.Invoke(this, new CCEventArgs() { IPAddress = tce.Address, What = CCEventArgs.Kind.Remove });
                     CheckConnectionDown(tce.Address);
                     return;
                 }
@@ -85,15 +107,15 @@ namespace Cassandra
                 var sce = e as StatusChangeEventArgs;
                 if (sce.What == StatusChangeEventArgs.Reason.Up)
                 {
-                    _owner.OnAddHost(sce.Address);
-                    _session.OnAddHost(sce.Address);
+                    if (CCEvent != null)
+                        CCEvent.Invoke(this, new CCEventArgs() { IPAddress = sce.Address, What = CCEventArgs.Kind.Add }); 
                     CheckConnectionUp(sce.Address);
                     return;
                 }
                 else if (sce.What == StatusChangeEventArgs.Reason.Down)
                 {
-                    _owner.OnDownHost(sce.Address);
-                    _session.OnDownHost(sce.Address);
+                    if (CCEvent != null)
+                        CCEvent.Invoke(this, new CCEventArgs() { IPAddress = sce.Address, What = CCEventArgs.Kind.Down });
                     CheckConnectionDown(sce.Address);
                     return;
                 }
@@ -146,14 +168,13 @@ namespace Cassandra
         private IReconnectionSchedule _reconnectionSchedule = null;
 
         private CassandraConnection _connection = null;
-        internal readonly Metadata Metadata;
 
         private void Go(bool refresh)
         {
             try
             {
                 if (_hostsIter == null)
-                    _hostsIter = _owner._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                    _hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
 
                 if (!_hostsIter.MoveNext())
                 {
@@ -228,9 +249,9 @@ namespace Cassandra
                 {
                     var clusterName = localRow.GetValue<string>("cluster_name");
                     if (clusterName != null)
-                        Metadata.ClusterName = clusterName;
+                        _cluster.Metadata.ClusterName = clusterName;
 
-                    var host = Metadata.GetHost(connection.GetHostAdress());
+                    var host = _cluster.Metadata.GetHost(connection.GetHostAdress());
                     // In theory host can't be null. However there is no point in risking a NPE in case we
                     // have a race between a node removal and this.
                     if (host != null)
@@ -270,11 +291,11 @@ namespace Cassandra
 
             for (int i = 0; i < foundHosts.Count; i++)
             {
-                var host = Metadata.GetHost(foundHosts[i]);
+                var host = _cluster.Metadata.GetHost(foundHosts[i]);
                 if (host == null)
                 {
                     // We don't know that node, add it.
-                    host = Metadata.AddHost(foundHosts[i], _owner._policies.ReconnectionPolicy);
+                    host = _cluster.Metadata.AddHost(foundHosts[i], _session._policies.ReconnectionPolicy);
                 }
                 host.SetLocationInfo(dcs[i], racks[i]);
 
@@ -284,12 +305,12 @@ namespace Cassandra
 
             // Removes all those that seems to have been removed (since we lost the control connection)
             var foundHostsSet = new DictSet<IPAddress>(foundHosts);
-            foreach (var host in Metadata.AllReplicas())
+            foreach (var host in _cluster.Metadata.AllReplicas())
                 if (!host.Equals(connection.GetHostAdress()) && !foundHostsSet.Contains(host))
-                    Metadata.RemoveHost(host);
+                    _cluster.Metadata.RemoveHost(host);
 
             if (partitioner != null)
-                Metadata.RebuildTokenMap(partitioner, tokenMap);
+                _cluster.Metadata.RebuildTokenMap(partitioner, tokenMap);
         }
 
         private const long MaxSchemaAgreementWaitMs = 10000;
@@ -322,7 +343,7 @@ namespace Cassandra
                         if (row.IsNull("peer") || row.IsNull("schema_version"))
                             continue;
 
-                        Host peer = Metadata.GetHost(row.GetValue<IPEndPoint>("peer").Address);
+                        Host peer = _cluster.Metadata.GetHost(row.GetValue<IPEndPoint>("peer").Address);
                         if (peer != null && peer.IsConsiderablyUp)
                             versions.Add(row.GetValue<Guid>("schema_version"));
                     }

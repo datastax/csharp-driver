@@ -26,7 +26,8 @@ namespace Cassandra
 
         private readonly Hosts _hosts;
         readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
-        internal readonly ControlConnection ControlConnection;
+
+        private readonly ControlConnection _controlConnection;
 
         internal Session(Cluster cluster,
                          IEnumerable<IPAddress> clusterEndpoints,
@@ -37,8 +38,8 @@ namespace Cassandra
                          ClientOptions clientOptions,
                          IAuthInfoProvider authProvider,
                          bool metricsEnabled,
-                         string keyspace=null,
-                         Hosts hosts = null)
+                         string keyspace,
+                         Hosts hosts,ControlConnection controlConnection=null)
         {
             this._cluster = cluster;
 
@@ -51,25 +52,12 @@ namespace Cassandra
 
             this._policies = policies ?? Policies.DefaultPolicies;
 
-            _hosts = hosts ?? new Hosts();
+            _hosts = hosts ;
+
+            this._controlConnection = controlConnection;
 
             foreach (var ep in clusterEndpoints)
                 _hosts.AddIfNotExistsOrBringUpIfDown(ep, this._policies.ReconnectionPolicy);
-
-            if (hosts == null)
-            {
-                var controlpolicies = new Cassandra.Policies(
-                    new RoundRobinPolicy(),
-                    new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
-                    Cassandra.Policies.DefaultRetryPolicy);
-
-                ControlConnection = new ControlConnection(_cluster, this, new List<IPAddress>(), controlpolicies, _protocolOptions,
-                                                           _poolingOptions, _socketOptions,
-                                                           new ClientOptions(_clientOptions.WithoutRowSetBuffering,
-                                                                             _clientOptions.QueryAbortTimeout, null,
-                                                                             _clientOptions.AsyncCallAbortTimeout),
-                                                           _authProvider, _metricsEnabled,_hosts);
-            }
 
             this._policies.LoadBalancingPolicy.Initialize(_cluster);
 
@@ -85,10 +73,6 @@ namespace Cassandra
 
             Connect(null, ci);
 
-            if (ControlConnection != null)
-            {
-                ControlConnection.Init();
-            }
         }
 
         readonly List<CassandraConnection> _trahscan = new List<CassandraConnection>();
@@ -164,8 +148,8 @@ namespace Cassandra
                                 if (conn != null)
                                 {
                                     current.BringUpIfDown();
-                                    if (ControlConnection != null)
-                                        ControlConnection.OwnerHostBringUpIfDown(current.Address);
+                                    if (_controlConnection != null)
+                                        _controlConnection.OwnerHostBringUpIfDown(current.Address);
                                     pool.Add(conn);
                                 }
                                 else
@@ -209,8 +193,8 @@ namespace Cassandra
             lock (_connectionPool)
             {
                 _hosts.SetDownIfExists(endpoint);
-                if (ControlConnection != null)
-                    ControlConnection.OwnerHostIsDown(endpoint);
+                if (_controlConnection != null)
+                    _controlConnection.OwnerHostIsDown(endpoint);
             }
         }
 

@@ -20,7 +20,7 @@ namespace Cassandra
     ///  the connection, the driver will discover all the nodes composing the cluster
     ///  as well as new nodes joining the cluster.</p>
     /// </summary>
-    public class Cluster
+    public class Cluster : IDisposable
     {
         private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Configuration _configuration;
@@ -79,16 +79,59 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            if (_connectedSession != null)
-                throw new NotSupportedException("Currently .net driver do not support multiple sessions per cluster");
+            if (_controlConnection == null)
+            {
+                var controlpolicies = new Cassandra.Policies(
+                    new RoundRobinPolicy(),
+                    new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
+                    Cassandra.Policies.DefaultRetryPolicy);
 
-            _connectedSession = new Session(this, _contactPoints, _configuration.Policies,
-                                            _configuration.ProtocolOptions,
-                                            _configuration.PoolingOptions, _configuration.SocketOptions,
-                                            _configuration.ClientOptions,
-                                            _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace);
-            _connectedSession.Init();
-            return _connectedSession;
+                _hosts = new Hosts();
+
+                foreach (var ep in _contactPoints)
+                    _hosts.AddIfNotExistsOrBringUpIfDown(ep, _configuration.Policies.ReconnectionPolicy); 
+                
+                _controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
+                                                           _configuration.ProtocolOptions,
+                                                           _configuration.PoolingOptions, _configuration.SocketOptions,
+                                                           new ClientOptions(
+                                                               _configuration.ClientOptions.WithoutRowSetBuffering,
+                                                               _configuration.ClientOptions.QueryAbortTimeout, null,
+                                                               _configuration.ClientOptions.AsyncCallAbortTimeout),
+                                                           _configuration.AuthInfoProvider,
+                                                           _configuration.MetricsEnabled);
+
+                _metadata = new Metadata(_hosts, _controlConnection);
+
+                _controlConnection.CCEvent += new ControlConnection.CCEventHandler(_controlConnection_CCEvent);
+                _controlConnection.Init();
+            }
+
+            var scs = new Session(this, _contactPoints, _configuration.Policies,
+                                  _configuration.ProtocolOptions,
+                                  _configuration.PoolingOptions, _configuration.SocketOptions,
+                                  _configuration.ClientOptions,
+                                  _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace, _hosts);
+            scs.Init();
+            lock (_connectedSessions)
+                _connectedSessions.Add(scs);
+            return scs;
+        }
+
+        private void _controlConnection_CCEvent(object sender, ControlConnection.CCEventArgs e)
+        {
+            List<Session> conccpy;
+            lock (_connectedSessions)
+                conccpy = new List<Session>(_connectedSessions);
+            foreach (var session in conccpy)
+            {
+                if (e.What == ControlConnection.CCEventArgs.Kind.Add)
+                    session.OnAddHost(e.IPAddress);
+                if (e.What == ControlConnection.CCEventArgs.Kind.Remove)
+                    session.OnRemovedHost(e.IPAddress);
+                if (e.What == ControlConnection.CCEventArgs.Kind.Down)
+                    session.OnDownHost(e.IPAddress);
+            }
         }
 
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists()
@@ -103,7 +146,7 @@ namespace Cassandra
                 session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace);
                 session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             }
-            return _connectedSession = session;
+            return session;
         }
 
         /// <summary>
@@ -114,8 +157,11 @@ namespace Cassandra
             get { return _configuration; }
         }
 
-        private Session _connectedSession = null;
+        private List<Session> _connectedSessions = new List<Session>();
+        private ControlConnection _controlConnection = null;
+        internal Hosts _hosts = null;
 
+        private Metadata _metadata = null;
         /// <summary>
         ///  gets read-only metadata on the connected cluster. <p> This includes the
         ///  know nodes (with their status as seen by the driver) as well as the schema
@@ -125,10 +171,10 @@ namespace Cassandra
         {
             get
             {
-                if (_connectedSession == null)
+                if (_controlConnection == null)
                     return null;
 
-                return _connectedSession.ControlConnection.Metadata;
+                return _metadata;
             }
         }
 
@@ -148,11 +194,32 @@ namespace Cassandra
         /// </summary>
         public void Shutdown()
         {
-            if (_connectedSession != null)
+            List<Session> conccpy;
+            lock (_connectedSessions)
             {
-                _connectedSession.Dispose();
-                _connectedSession = null;
+                conccpy = new List<Session>(_connectedSessions);
+                _connectedSessions = new List<Session>();
             }
+
+            foreach (var ses in conccpy)
+            {
+                ses.Dispose();
+            }
+            if (_controlConnection != null)
+            {
+                _controlConnection.Dispose();
+                _controlConnection = null;
+            }
+        }
+
+        public void Dispose()
+        {
+            Shutdown();
+        }
+
+        ~Cluster()
+        {
+            Shutdown();
         }
 
         public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
@@ -160,7 +227,7 @@ namespace Cassandra
             var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,
                                                              Timeout.Infinite);
 
-            _connectedSession.ControlConnection.SubmitSchemaRefresh(keyspace, table, ar);
+            _controlConnection.SubmitSchemaRefresh(keyspace, table, ar);
 
             return ar;
         }
