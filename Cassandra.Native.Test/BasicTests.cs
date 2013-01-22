@@ -22,12 +22,14 @@ namespace Cassandra.Test
         }
 
         [Fact]
+        [Dev.Priorioty]
         public void checkTableMetadata()
         {
             base.checkMetadata();
         }
 
         [Fact]
+        [Dev.Priorioty]
         public void checkKeyspaceMetadata()
         {
             base.checkKSMetadata();

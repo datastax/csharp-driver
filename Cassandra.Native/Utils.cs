@@ -325,6 +325,7 @@ namespace Cassandra
         {
             get
             {
+                Thread.MemoryBarrier();
                 return _dictionary[key];
             }
         }
@@ -407,10 +408,12 @@ namespace Cassandra
 
         internal void InternalSetup(TKey key, TValue value)
         {
+            Thread.MemoryBarrier();
             if (!_dictionary.ContainsKey(key))
                 _dictionary.Add(key, value);
             else
                 _dictionary[key] = value;
+            Thread.MemoryBarrier();
         }
 
     }

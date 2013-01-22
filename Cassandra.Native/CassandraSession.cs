@@ -390,9 +390,6 @@ namespace Cassandra
                     return;
                 _alreadyDisposed.Value = true;
 
-                if (ControlConnection != null)
-                    ControlConnection.Dispose();
-
                 lock (_connectionPool)
                 {
                     foreach (var kv in _connectionPool)

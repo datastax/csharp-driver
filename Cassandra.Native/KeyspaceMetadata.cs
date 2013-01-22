@@ -17,17 +17,16 @@ namespace Cassandra
         public bool? DurableWrites { get; private set; }
         public StrategyClass StrategyClass { get; private set; }
         public ReadOnlyDictionary<string, int?> ReplicationOptions { get; private set; }
-        public ReadOnlyDictionary<string, TableMetadata> Tables { get; internal set; }
+
+        internal AtomicValue<ReadOnlyDictionary<string,  AtomicValue<TableMetadata>>> Tables= new AtomicValue<ReadOnlyDictionary<string,  AtomicValue<TableMetadata>>>(null);
 
         internal KeyspaceMetadata(string keyspace, bool? durableWrites, StrategyClass strategyClass,
-                                  ReadOnlyDictionary<string, int?> replicationOptions,
-                                  ReadOnlyDictionary<string, TableMetadata> tables)
+                                  ReadOnlyDictionary<string, int?> replicationOptions)
         {
             Keyspace = keyspace;
             DurableWrites = durableWrites;
             StrategyClass = strategyClass;
             ReplicationOptions = replicationOptions;
-            Tables = Tables;
         }
 
     }

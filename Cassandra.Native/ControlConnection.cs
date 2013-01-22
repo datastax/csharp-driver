@@ -6,7 +6,7 @@ using System.Net;
 
 namespace Cassandra
 {
-    internal class ControlConnection : IDisposable
+    internal class ControlConnection 
     {
         private readonly Session _session;
         private readonly Session _owner;
@@ -37,14 +37,8 @@ namespace Cassandra
         {
             _session.Init();
             Go(true);
-            StartRefreshSchemaThread();
         }
         
-        public void Dispose()
-        {
-            StopRefreshSchemaThread();
-        }
-
         private void SetupEventListeners(CassandraConnection nconn)
         {
             Exception theExc = null;
@@ -145,15 +139,7 @@ namespace Cassandra
 
         private void ReconnectionClb(object state)
         {
-            try
-            {
-                Go(true);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("!!"+ex.Message);
-                Console.WriteLine(ex.StackTrace);
-            }
+            Go(true);
         }
 
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
@@ -311,7 +297,7 @@ namespace Cassandra
         private const string SelectSchemaPeers = "SELECT peer, schema_version FROM system.peers";
         private const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
 
-        private bool WaitForSchemaAgreement()
+        internal bool WaitForSchemaAgreement()
         {
             var start = DateTimeOffset.Now;
             long elapsed = 0;
@@ -353,172 +339,33 @@ namespace Cassandra
             return false;
         }
 
-
         private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
         private const String SelectColumns = "SELECT * FROM system.schema_columns";
 
-        private readonly AtomicValue<bool> _invalidKeyspace = new AtomicValue<bool>(false);
-
-        private Thread _refreshSchemaThread = null;
-        private bool _endOfRefreshSchemaThread;
-        private readonly object _notifyRefreshSchemaThread = new object();
-        private readonly Queue<RefreshSchemaCmd> _commandsRefreshSchemaThread = new Queue<RefreshSchemaCmd>();
-
-        class RefreshSchemaCmd
-        {
-            public string Keyspace;
-            public string Table;
-            public AsyncResultNoResult AsyncResult;
-        }
-
-        private void StartRefreshSchemaThread()
-        {
-            _endOfRefreshSchemaThread = false;
-            _refreshSchemaThread = new Thread((_) =>
-                {
-                    try
-                    {
-                        while (true)
-                        {
-                            lock (_notifyRefreshSchemaThread)
-                            {
-                                if (_endOfRefreshSchemaThread)
-                                    return;
-
-                                RefreshSchemaCmd cmd = null;
-
-                                try
-                                {
-                                    while (_commandsRefreshSchemaThread.Count > 0)
-                                    {
-                                        cmd = _commandsRefreshSchemaThread.Dequeue();
-                                        Monitor.Exit(_notifyRefreshSchemaThread);
-                                        try
-                                        {
-                                            WaitForSchemaAgreement();
-                                            RefreshSchema(cmd.Keyspace, cmd.Table);
-                                        }
-                                        finally
-                                        {
-                                            Monitor.Enter(_notifyRefreshSchemaThread);
-                                        }
-                                        if (_endOfRefreshSchemaThread)
-                                            return;
-                                        if (cmd.AsyncResult != null)
-                                            cmd.AsyncResult.Complete();
-                                    }
-                                }
-                                catch (NoHostAvailableException)
-                                {
-                                    if (cmd != null && cmd.AsyncResult != null)
-                                        _commandsRefreshSchemaThread.Enqueue(cmd);
-                                    //var newQ = new Queue<RefreshSchemaCmd>();
-                                    //while (_commandsRefreshSchemaThread.Count > 0)
-                                    //{
-                                    //    var nc = _commandsRefreshSchemaThread.Dequeue();
-                                    //    if (nc.AsyncResult != null)
-                                    //        newQ.Enqueue(nc);
-                                    //}
-                                    //_commandsRefreshSchemaThread = newQ;
-                                    _isDiconnected = true;
-                                    _hostsIter = null;
-                                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                                }
-                                catch (Exception ex)
-                                {
-                                    if (CassandraConnection.IsStreamRelatedException(ex))
-                                    {
-                                        if (cmd != null && cmd.AsyncResult != null)
-                                            _commandsRefreshSchemaThread.Enqueue(cmd);
-                                        //var newQ = new Queue<RefreshSchemaCmd>();
-                                        //while (_commandsRefreshSchemaThread.Count > 0)
-                                        //{
-                                        //    var nc = _commandsRefreshSchemaThread.Dequeue();
-                                        //    if (nc.AsyncResult != null)
-                                        //        newQ.Enqueue(nc);
-                                        //}
-                                        //_commandsRefreshSchemaThread = newQ;
-                                        _isDiconnected = true;
-                                        _hostsIter = null;
-                                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                                    }
-                                    else
-                                    {
-                                        if (cmd != null && cmd.AsyncResult != null)
-                                            cmd.AsyncResult.Complete(ex);
-                                    }
-                                }
-                                Monitor.Wait(_notifyRefreshSchemaThread);
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        while (_commandsRefreshSchemaThread.Count > 0)
-                        {
-                            var cmd = _commandsRefreshSchemaThread.Dequeue();
-                            if(cmd.AsyncResult!=null)
-                                cmd.AsyncResult.Complete(new ObjectDisposedException("Session object is disposed"));
-                        }
-                    }
-                });
-            _refreshSchemaThread.Start();
-        }
-
-        private void StopRefreshSchemaThread()
-        {
-            lock (_notifyRefreshSchemaThread)
-            {
-                _endOfRefreshSchemaThread = true;
-                Monitor.PulseAll(_notifyRefreshSchemaThread);
-            }
-            _refreshSchemaThread.Join();
-        }
 
         internal void SubmitSchemaRefresh(string keyspace, string table, AsyncResultNoResult ar = null)
         {
-            lock (_notifyRefreshSchemaThread)
-            {
-                _commandsRefreshSchemaThread.Enqueue(new RefreshSchemaCmd()
-                    {
-                        Keyspace = keyspace,
-                        Table = table,
-                        AsyncResult = ar
-                    });
-                Monitor.PulseAll(_notifyRefreshSchemaThread);
-            }
+            if (keyspace == null)
+                ResetSchema();
+            else if (table == null)
+                ResetKeyspace(keyspace);
+            else
+                ResetTable(keyspace, table);
         }
 
-        private void RefreshSchema(string keyspace, string table)
+        private void ResetSchema()
         {
-            bool totalUpdate = _invalidKeyspace.Value;
+            _keyspaces.Value = null;
+        }
 
-            _invalidKeyspace.Value = true;
-
-            bool keyspaceUpdate = true;
-            ReadOnlyDictionary<string, KeyspaceMetadata> newKeyspaces;
-            if (totalUpdate || keyspace == null || _keyspaces.Value == null)
-                newKeyspaces = new ReadOnlyDictionary<string, KeyspaceMetadata>();
-            else if (keyspace != null && table == null)
-                newKeyspaces = new ReadOnlyDictionary<string, KeyspaceMetadata>(_keyspaces.Value);
-            else
+        private ReadOnlyDictionary<string, KeyspaceMetadata> SetupSchema()
+        {
+            var ks = _keyspaces.Value;
+            if (ks == null)
             {
-                newKeyspaces = _keyspaces.Value;
-                keyspaceUpdate = false;
-            }
-
-            if (keyspaceUpdate)
-            {
-                using (
-                    var rows =
-                        _session.Query(
-                            string.Format(
-                                SelectKeyspaces +
-                                ((totalUpdate || keyspace == null || _keyspaces.Value == null)
-                                     ? ""
-                                     : " WHERE keyspace_name='{0}';"),
-                                keyspace)))
+                var newKeyspaces = new ReadOnlyDictionary<string, KeyspaceMetadata>();
+                using (var rows = _session.Query(SelectKeyspaces))
                 {
                     foreach (var row in rows.GetRows())
                     {
@@ -528,75 +375,166 @@ namespace Cassandra
                         var rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));
 
                         var newMetadata = new KeyspaceMetadata(strKsName, drblWrites, strClass,
-                                                               new ReadOnlyDictionary<string, int?>(rplctOptions),
-                                                               null);
+                                                               new ReadOnlyDictionary<string, int?>(rplctOptions));
 
                         newKeyspaces.InternalSetup(strKsName, newMetadata);
                     }
                 }
+                return _keyspaces.Value = newKeyspaces;
             }
             else
             {
-                newKeyspaces[keyspace].Tables.InternalSetup(table, null);
+                return ks;
             }
-
-            foreach (var keyspaceMetadata in newKeyspaces.Values)
-            {
-                if (keyspaceMetadata.Tables == null)
-                {
-                    var tablesNames = new List<string>();
-                    using (
-                        var rows =
-                            _session.Query(string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';",
-                                                         keyspace)))
-                    {
-                        foreach (var row in rows.GetRows())
-                            tablesNames.Add(row.GetValue<string>("columnfamily_name"));
-                    }
-
-                    keyspaceMetadata.Tables = new ReadOnlyDictionary<string, TableMetadata>();
-
-                    foreach (var tblName in tablesNames)
-                        keyspaceMetadata.Tables.InternalSetup(tblName, GetTableMetadata(tblName, keyspace));
-                }
-                else
-                {
-                    nextIter:
-                    foreach (var tbl in keyspaceMetadata.Tables)
-                    {
-                        if (tbl.Value == null)
-                        {
-                            keyspaceMetadata.Tables.InternalSetup(tbl.Key, GetTableMetadata(tbl.Key, keyspace));
-                            goto nextIter;
-                            ;
-                        }
-                    }
-                }
-            }
-
-            _keyspaces.Value = newKeyspaces;
-
-            _invalidKeyspace.Value = false;
         }
 
-        public bool IsSchemaReady
+        private void ResetKeyspace(string keyspace)
         {
-            get
+            var ks = _keyspaces.Value;
+            if (ks != null)
             {
-                lock (_notifyRefreshSchemaThread)
+                if (ks.ContainsKey(keyspace))
+                    ks[keyspace].Tables.Value=null;
+            }
+        }
+
+        private KeyspaceMetadata SetupKeyspace(string keyspace)
+        {
+            var sc = SetupSchema();
+            if (!sc.ContainsKey(keyspace) || sc[keyspace].Tables.Value == null)
+            {
+                WaitForSchemaAgreement();
+                ResetSchema();
+                sc= SetupSchema();
+                KeyspaceMetadata ks = null;
+                using (
+                    var rows =
+                        _session.Query(
+                            string.Format(
+                                SelectKeyspaces + " WHERE keyspace_name='{0}';",
+                                keyspace)))
                 {
-                    return _keyspaces.Value != null && !_invalidKeyspace.Value &&
-                           _commandsRefreshSchemaThread.Count == 0;
+                    foreach (var row in rows.GetRows())
+                    {
+                        var strKsName = row.GetValue<string>("keyspace_name");
+                        var strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
+                        var drblWrites = row.GetValue<bool>("durable_writes");
+                        var rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));
+
+                        ks = new KeyspaceMetadata(strKsName, drblWrites, strClass,
+                                                  new ReadOnlyDictionary<string, int?>(rplctOptions));
+
+                    }
+                }
+                if(ks==null)
+                    throw new InvalidOperationException();
+
+                var ktb = new ReadOnlyDictionary<string,  AtomicValue<TableMetadata>>();
+                using (
+                    var rows =
+                        _session.Query(string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace)))
+                {
+                    foreach (var row in rows.GetRows())
+                        ktb.InternalSetup(row.GetValue<string>("columnfamily_name"), new AtomicValue<TableMetadata>(null));
+                }
+                ks.Tables.Value = ktb;
+                sc.InternalSetup(ks.Keyspace, ks);
+                return ks;
+            }
+            else
+            {
+                return sc[keyspace];
+            }
+        }
+
+
+        private void ResetTable(string keyspace, string table)
+        {
+            var ks = _keyspaces.Value;
+
+            if (ks != null)
+            {
+                if (ks.ContainsKey(keyspace))
+                {
+                    var kss = ks[keyspace].Tables.Value;
+                    if (kss.ContainsKey(table))
+                        kss[table].Value = null;
                 }
             }
+        }
+
+        private TableMetadata SetupTable(string keyspace, string table)
+        {
+            bool wasc = false;
+            RETRY:
+            var ks = SetupKeyspace(keyspace);
+            var tbl = ks.Tables.Value;
+            if (tbl == null)
+            {
+                goto RETRY;
+            }
+            if (!tbl.ContainsKey(table))
+            {
+                WaitForSchemaAgreement();
+                ResetKeyspace(keyspace);
+                if (wasc)
+                    throw new IndexOutOfRangeException();
+                wasc = true;
+                goto RETRY;
+            }
+
+            if (tbl[table].Value == null)
+            {
+                var m = GetTableMetadata(table, keyspace);
+                tbl[table].Value = m;
+                return m;
+            }
+            else
+            {
+                return tbl[table].Value;
+            }
+        }
+
+        internal void RefreshSchema(string keyspace, string table)
+        {
+           if(keyspace==null)
+           {
+               ResetSchema();
+               SetupSchema();
+           }
+           else if (table == null)
+           {
+               ResetKeyspace(keyspace);
+               SetupKeyspace(keyspace);
+           }
+           else
+           {
+               ResetTable(keyspace,table);
+               SetupTable(keyspace, table);
+           }
         }
 
         private readonly AtomicValue<ReadOnlyDictionary<string, KeyspaceMetadata>> _keyspaces =
             new AtomicValue<ReadOnlyDictionary<string, KeyspaceMetadata>>(null);
 
-        public ReadOnlyDictionary<string, KeyspaceMetadata> GetKeyspaces()
+        public ICollection<string> GetKeyspaces()
         {
-            return _keyspaces.Value;
+            return SetupSchema().Keys;
+        }
+
+        public KeyspaceMetadata GetKeyspace(string keyspace)
+        {
+            return SetupKeyspace(keyspace);
+        }
+
+        public ICollection<string> GetTables(string keyspace)
+        {
+            return SetupKeyspace(keyspace).Tables.Value.Keys;
+        }
+
+        public TableMetadata GetTable(string keyspace, string table)
+        {
+            return SetupTable(keyspace, table);
         }
 
         public StrategyClass GetStrategyClass(string strClass)
