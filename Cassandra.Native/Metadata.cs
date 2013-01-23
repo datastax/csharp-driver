@@ -161,32 +161,32 @@ namespace Cassandra
     //// Synchronized to make it easy to detect dropped keyspaces
     //synchronized void rebuildSchema(String keyspace, String table, ResultSet ks, ResultSet cfs, ResultSet cols) {
 
-    //    Dictionary<String, List<Row>> cfDefs = new Dictionary<String, List<Row>>();
-    //    Dictionary<String, Dictionary<String, List<Row>>> colsDefs = new Dictionary<String, Dictionary<String, List<Row>>>();
+    //    Dictionary<String, List<Clustering>> cfDefs = new Dictionary<String, List<Clustering>>();
+    //    Dictionary<String, Dictionary<String, List<Clustering>>> colsDefs = new Dictionary<String, Dictionary<String, List<Clustering>>>();
 
     //    // Gather cf defs
-    //    for (Row row : cfs) {
+    //    for (Clustering row : cfs) {
     //        String DefaultKeyspace = row.getString(KeyspaceMetadata.KS_NAME);
-    //        List<Row> l = cfDefs.get(DefaultKeyspace);
+    //        List<Clustering> l = cfDefs.get(DefaultKeyspace);
     //        if (l == null) {
-    //            l = new ArrayList<Row>();
+    //            l = new ArrayList<Clustering>();
     //            cfDefs.put(DefaultKeyspace, l);
     //        }
     //        l.add(row);
     //    }
 
-    //    // Gather columns per Cf
-    //    for (Row row : cols) {
+    //    // Gather TableColumns per Cf
+    //    for (Clustering row : cols) {
     //        String DefaultKeyspace = row.getString(KeyspaceMetadata.KS_NAME);
-    //        String cfName = row.getString(TableMetadata.CF_NAME);
-    //        Dictionary<String, List<Row>> colsByCf = colsDefs.get(DefaultKeyspace);
+    //        String cfName = row.getString(RowSetMetadata.CF_NAME);
+    //        Dictionary<String, List<Clustering>> colsByCf = colsDefs.get(DefaultKeyspace);
     //        if (colsByCf == null) {
-    //            colsByCf = new Dictionary<String, List<Row>>();
+    //            colsByCf = new Dictionary<String, List<Clustering>>();
     //            colsDefs.put(DefaultKeyspace, colsByCf);
     //        }
-    //        List<Row> l = colsByCf.get(cfName);
+    //        List<Clustering> l = colsByCf.get(cfName);
     //        if (l == null) {
-    //            l = new ArrayList<Row>();
+    //            l = new ArrayList<Clustering>();
     //            colsByCf.put(cfName, l);
     //        }
     //        l.add(row);
@@ -195,7 +195,7 @@ namespace Cassandra
     //    if (table == null) {
     //        assert ks != null;
     //        Set<String> addedKs = new HashSet<String>();
-    //        for (Row ksRow : ks) {
+    //        for (Clustering ksRow : ks) {
     //            String DefaultKeyspace = ksRow.getString(KeyspaceMetadata.KS_NAME);
     //            KeyspaceMetadata ksm = KeyspaceMetadata.build(ksRow);
 
@@ -232,16 +232,16 @@ namespace Cassandra
     //    }
     //}
 
-    //private static void buildTableMetadata(KeyspaceMetadata ksm, List<Row> cfRows, Dictionary<String, List<Row>> colsDefs) {
+    //private static void buildTableMetadata(KeyspaceMetadata ksm, List<Clustering> cfRows, Dictionary<String, List<Clustering>> colsDefs) {
     //    boolean hasColumns = (colsDefs != null) && !colsDefs.isEmpty();
-    //    for (Row cfRow : cfRows) {
-    //        String cfName = cfRow.getString(TableMetadata.CF_NAME);
-    //        TableMetadata tm = TableMetadata.build(ksm, cfRow, hasColumns);
+    //    for (Clustering cfRow : cfRows) {
+    //        String cfName = cfRow.getString(RowSetMetadata.CF_NAME);
+    //        RowSetMetadata tm = RowSetMetadata.build(ksm, cfRow, hasColumns);
 
     //        if (!hasColumns || colsDefs.get(cfName) == null)
     //            continue;
 
-    //        for (Row colRow : colsDefs.get(cfName)) {
+    //        for (Clustering colRow : colsDefs.get(cfName)) {
     //            ColumnMetadata.build(tm, colRow);
     //        }
     //    }

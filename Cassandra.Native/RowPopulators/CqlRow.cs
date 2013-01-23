@@ -5,11 +5,11 @@ namespace Cassandra
     public class CqlRow
     {
         public readonly object[] Columns;
-        readonly Dictionary<string, int> columnIdxes;
+        readonly Dictionary<string, int> _columnIdxes;
         internal CqlRow(OutputRows rawrows, Dictionary<string, int> columnIdxes)
         {
             Columns = new object[rawrows.Metadata.Columns.Length];
-            this.columnIdxes = columnIdxes;
+            this._columnIdxes = columnIdxes;
             int i = 0;
             foreach (var len in rawrows.GetRawColumnLengths())
             {
@@ -20,8 +20,7 @@ namespace Cassandra
                     byte[] buffer = new byte[len];
 
                     rawrows.ReadRawColumnValue(buffer, 0, len);
-                    Columns[i] = TypeInterpreter.CqlConvert(buffer,
-                        rawrows.Metadata.Columns[i].TypeCode, rawrows.Metadata.Columns[i].TypeInfo);                    
+                    Columns[i] = rawrows.Metadata.ConvertToObject(i,buffer);                    
                 }
 
                 i++;
@@ -50,7 +49,7 @@ namespace Cassandra
         {
             get
             {
-                return Columns[columnIdxes[name]];
+                return Columns[_columnIdxes[name]];
             }
         }
 

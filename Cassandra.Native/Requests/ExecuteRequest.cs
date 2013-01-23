@@ -7,10 +7,10 @@
         readonly int _streamId;
         readonly object[] _values;
         readonly byte[] _id;
-        readonly TableMetadata _metadata;
+        readonly RowSetMetadata _metadata;
         readonly ConsistencyLevel _consistency;
 
-        public ExecuteRequest(int streamId, byte[] id, TableMetadata metadata, object[] values, ConsistencyLevel consistency)
+        public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency)
         {
             this._streamId = streamId;
             this._values = values;
@@ -27,7 +27,7 @@
             wb.WriteUInt16((ushort) _values.Length);
             for(int i =0;i<_metadata.Columns.Length;i++)
             {
-                var bytes = TypeInterpreter.InvCqlConvert(_values[i], _metadata.Columns[i].TypeCode, _metadata.Columns[i].TypeInfo);
+                var bytes = _metadata.ConvertFromObject(i,_values[i]);
                 wb.WriteBytes(bytes);
             }
             wb.WriteInt16((short)_consistency);

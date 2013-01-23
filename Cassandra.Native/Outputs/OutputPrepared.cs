@@ -3,13 +3,13 @@
     internal class OutputPrepared : IOutput, IWaitableForDispose
     {
         public byte[] QueryID;
-        public TableMetadata Metadata;
+        public RowSetMetadata Metadata;
         internal OutputPrepared(BEBinaryReader reader)
         {
             var len = reader.ReadInt16();
             QueryID = new byte[len];
             reader.Read(QueryID, 0, len);
-            Metadata = new TableMetadata(reader);
+            Metadata = new RowSetMetadata(reader);
         }
 
         public void Dispose()

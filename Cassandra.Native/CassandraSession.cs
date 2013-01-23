@@ -235,7 +235,7 @@ namespace Cassandra
                             try
                             {
                                 byte[] queryid;
-                                TableMetadata metadata;
+                                RowSetMetadata metadata;
                                 ProcessPrepareQuery(nconn.PrepareQuery(prepQ.Key), out metadata, out queryid);
                             }
                             catch (QueryValidationException)
@@ -428,7 +428,7 @@ namespace Cassandra
 
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
-            TableMetadata metadata;
+            RowSetMetadata metadata;
             var id = EndPrepareQuery(ar, out metadata);
             return new PreparedStatement(metadata, id);
         }
@@ -507,7 +507,7 @@ namespace Cassandra
             }
         }
 
-        private void ProcessPrepareQuery(IOutput outp, out TableMetadata metadata, out byte[] queryId)
+        private void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId)
         {
             using (outp)
             {
@@ -760,7 +760,7 @@ namespace Cassandra
 
         #region Prepare
 
-        readonly Dictionary<string, KeyValuePair<TableMetadata, byte[]>> _preparedQueries = new Dictionary<string, KeyValuePair<TableMetadata, byte[]>>();
+        readonly Dictionary<string, KeyValuePair<RowSetMetadata, byte[]>> _preparedQueries = new Dictionary<string, KeyValuePair<RowSetMetadata, byte[]>>();
 
 
         class LongPrepareQueryToken : LongToken
@@ -773,14 +773,14 @@ namespace Cassandra
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
                 byte[] id;
-                TableMetadata metadata;
+                RowSetMetadata metadata;
                 owner.ProcessPrepareQuery(Connection.EndPrepareQuery(ar, owner), out metadata, out id);
-                value = new KeyValuePair<TableMetadata, byte[]>(metadata, id);
+                value = new KeyValuePair<RowSetMetadata, byte[]>(metadata, id);
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                var kv = (KeyValuePair<TableMetadata, byte[]>)value;
-                var ar = LongActionAc as AsyncResult<KeyValuePair<TableMetadata, byte[]>>;
+                var kv = (KeyValuePair<RowSetMetadata, byte[]>)value;
+                var ar = LongActionAc as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
@@ -795,7 +795,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null)
         {
-            var longActionAc = new AsyncResult<KeyValuePair<TableMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender,  _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender,  _clientOptions.AsyncCallAbortTimeout);
             var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Ignore, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -803,15 +803,15 @@ namespace Cassandra
             return longActionAc;
         }
 
-        internal byte[] EndPrepareQuery(IAsyncResult ar, out TableMetadata metadata)
+        internal byte[] EndPrepareQuery(IAsyncResult ar, out RowSetMetadata metadata)
         {
-            var longActionAc = ar as AsyncResult<KeyValuePair<TableMetadata, byte[]>>;
-            var ret = AsyncResult<KeyValuePair<TableMetadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
+            var longActionAc = ar as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
+            var ret = AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
             metadata = ret.Key;
             return ret.Value;
         }
 
-        internal byte[] PrepareQuery(string cqlQuery, out TableMetadata metadata)
+        internal byte[] PrepareQuery(string cqlQuery, out RowSetMetadata metadata)
         {
             var ar = BeginPrepareQuery(cqlQuery, null, null, null);
             return EndPrepareQuery(ar, out metadata);
@@ -825,7 +825,7 @@ namespace Cassandra
         class LongExecuteQueryToken : LongToken
         {
             public byte[] Id;
-            public TableMetadata Metadata;
+            public RowSetMetadata Metadata;
             public object[] Values;
             override public void Begin(Session owner)
             {
@@ -849,7 +849,7 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null)
+        internal IAsyncResult BeginExecuteQuery(byte[] Id, RowSetMetadata Metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null)
         {
             AsyncResult<CqlRowSet> longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender,  _clientOptions.AsyncCallAbortTimeout);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = Id, Metadata = Metadata, Values = values, Query = query, LongActionAc = longActionAc };
@@ -865,7 +865,7 @@ namespace Cassandra
             return AsyncResult<CqlRowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal CqlRowSet ExecuteQuery(byte[] Id, TableMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
+        internal CqlRowSet ExecuteQuery(byte[] Id, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
         {
             var ar = BeginExecuteQuery(Id,Metadata,values, null, null, consistency, query);
             return EndExecuteQuery(ar);

@@ -62,10 +62,10 @@ namespace Cassandra
 
         /// <summary>
         ///  Gets the routing key for this bound query. <p> This method will return a
-        ///  non-<code>null</code> value if: <ul> <li>either all the columns composing the
+        ///  non-<code>null</code> value if: <ul> <li>either all the TableColumns composing the
         ///  partition key are bound variables of this <code>BoundStatement</code>. The
         ///  routing key will then be built using the values provided for these partition
-        ///  key columns.</li> <li>or the routing key has been set through
+        ///  key TableColumns.</li> <li>or the routing key has been set through
         ///  <link>PreparedStatement#setRoutingKey</link> for the
         ///  <code>PreparedStatement</code> this statement has been built from.</li> </ul>
         ///  Otherwise, <code>null</code> is returned.</p> <p> Note that if the routing key

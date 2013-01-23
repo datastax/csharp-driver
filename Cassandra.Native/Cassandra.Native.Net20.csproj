@@ -186,6 +186,7 @@
     <Compile Include="RowPopulators\CqlRowSet+Print.cs" />
     <Compile Include="RowPopulators\CqlRowSet.cs" />
     <Compile Include="RowPopulators\CqlRow.cs" />
+    <Compile Include="RowPopulators\RowSetMetadata.cs" />
     <Compile Include="RowPopulators\TypeInterpreter.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Counter.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Custom.cs" />
@@ -210,6 +211,7 @@
     <Compile Include="SnappyProtoBufCompressor.cs" />
     <Compile Include="SocketOptions.cs" />
     <Compile Include="Statement.cs" />
+    <Compile Include="TableMetadata.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

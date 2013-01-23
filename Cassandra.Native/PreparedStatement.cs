@@ -14,10 +14,10 @@ namespace Cassandra
         private volatile ConsistencyLevel _consistency;
         private volatile CassandraRoutingKey _routingKey;
 
-        internal readonly TableMetadata Metadata;
+        internal readonly RowSetMetadata Metadata;
         internal readonly byte[] Id;
 
-        internal PreparedStatement(TableMetadata metadata, byte[] id)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id)
         {
             this.Metadata = metadata;
             this.Id = id;
@@ -26,7 +26,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
         /// </summary>
-        public TableMetadata Variables { get { return Metadata; } }
+        public RowSetMetadata Variables { get { return Metadata; } }
 
         /// <summary>
         ///  Sets a default consistency level for all <code>BoundStatement</code> created

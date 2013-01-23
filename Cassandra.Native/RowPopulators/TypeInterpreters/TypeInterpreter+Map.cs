@@ -7,14 +7,14 @@ namespace Cassandra
 
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromMap(TableMetadata.ColumnInfo type_info, byte[] value)
+        public static object ConvertFromMap(IColumnInfo type_info, byte[] value)
         {
-            if (type_info is TableMetadata.MapColumnInfo)
+            if (type_info is MapColumnInfo)
             {
-                var key_typecode = (type_info as TableMetadata.MapColumnInfo).KeyTypeCode;
-                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).KeyTypeInfo;
-                var value_typecode = (type_info as TableMetadata.MapColumnInfo).ValueTypeCode;
-                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).ValueTypeInfo;
+                var key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
+                var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
+                var value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
+                var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
                 int count = ConversionHelper.FromBytestToInt16(value, 0);
@@ -47,14 +47,14 @@ namespace Cassandra
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetTypeFromMap(TableMetadata.ColumnInfo type_info)
+        public static Type GetTypeFromMap(IColumnInfo type_info)
         {
-            if (type_info is TableMetadata.MapColumnInfo)
+            if (type_info is MapColumnInfo)
             {
-                var key_typecode = (type_info as TableMetadata.MapColumnInfo).KeyTypeCode;
-                var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).KeyTypeInfo;
-                var value_typecode = (type_info as TableMetadata.MapColumnInfo).ValueTypeCode;
-                var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).ValueTypeInfo;
+                var key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
+                var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
+                var value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
+                var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
@@ -66,14 +66,14 @@ namespace Cassandra
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static byte[] InvConvertFromMap(TableMetadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromMap(IColumnInfo type_info, object value)
         {
             var dicType = GetTypeFromList(type_info);
             CheckArgument(dicType, value);
-            var key_typecode = (type_info as TableMetadata.MapColumnInfo).KeyTypeCode;
-            var key_typeinfo = (type_info as TableMetadata.MapColumnInfo).KeyTypeInfo;
-            var value_typecode = (type_info as TableMetadata.MapColumnInfo).ValueTypeCode;
-            var value_typeinfo = (type_info as TableMetadata.MapColumnInfo).ValueTypeInfo;
+            var key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
+            var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
+            var value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
+            var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
             var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
             var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 

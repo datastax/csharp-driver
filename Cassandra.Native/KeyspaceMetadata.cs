@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Cassandra
 {
@@ -13,190 +14,70 @@ namespace Cassandra
 
     public class KeyspaceMetadata
     {
-        public string Keyspace { get; private set; }
+        public string Name { get; private set; }
         public bool? DurableWrites { get; private set; }
         public StrategyClass StrategyClass { get; private set; }
-        public ReadOnlyDictionary<string, int?> ReplicationOptions { get; private set; }
+        public ReadOnlyDictionary<string, int?> Replication { get; private set; }
 
-        internal AtomicValue<ReadOnlyDictionary<string,  AtomicValue<TableMetadata>>> Tables= new AtomicValue<ReadOnlyDictionary<string,  AtomicValue<TableMetadata>>>(null);
+        internal readonly AtomicValue<ReadOnlyDictionary<string, AtomicValue<TableMetadata>>> Tables =
+            new AtomicValue<ReadOnlyDictionary<string, AtomicValue<TableMetadata>>>(null);
 
-        internal KeyspaceMetadata(string keyspace, bool? durableWrites, StrategyClass strategyClass,
+        internal KeyspaceMetadata(string name, bool? durableWrites, StrategyClass strategyClass,
                                   ReadOnlyDictionary<string, int?> replicationOptions)
         {
-            Keyspace = keyspace;
+            Name = name;
             DurableWrites = durableWrites;
             StrategyClass = strategyClass;
-            ReplicationOptions = replicationOptions;
+            Replication = replicationOptions;
         }
 
+        /// <summary>
+        ///  Return a <code>String</code> containing CQL queries representing this
+        ///  name and the table it contains. In other words, this method returns the
+        ///  queries that would allow to recreate the schema of this name, along with
+        ///  all its table. Note that the returned String is formatted to be human
+        ///  readable (for some defintion of human readable at least).
+        /// </summary>
+        /// 
+        /// <returns>the CQL queries representing this name schema as a code
+        ///  String}.</returns>
+        public string ExportAsString()
+        {
+            var sb = new StringBuilder();
+
+            sb.Append(AsCqlQuery()).Append("\n");
+
+            //foreach (var tm in Tables.Value.Values)
+            //    sb.Append("\n").Append(tm.Value.exportAsString()).Append("\n");
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        ///  Returns a CQL query representing this name. This method returns a single
+        ///  'CREATE KEYSPACE' query with the options corresponding to this name
+        ///  definition.
+        /// </summary>
+        /// 
+        /// <returns>the 'CREATE KEYSPACE' query corresponding to this name.
+        ///  <see>#exportAsString</returns>
+        public string AsCqlQuery()
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.CqlIdentifier(Name)).Append(" WITH ");
+            sb.Append("REPLICATION = { 'class' : '").Append(Replication["class"]).Append("'");
+            foreach (var rep in Replication)
+            {
+                if (rep.Key == "class")
+                    continue;
+                sb.Append(", '").Append(rep.Key).Append("': '").Append(rep.Value).Append("'");
+            }
+            sb.Append(" } AND DURABLE_WRITES = ").Append(DurableWrites);
+            sb.Append(";");
+            return sb.ToString();
+        }
     }
 
-    public class TableMetadata
-    {
-
-        public string Name;
-
-        [Flags]
-        public enum FlagBits
-        {
-            GlobalTablesSpec = 0x0001
-        }
-
-        public FlagBits Flags;
-
-        public enum ColumnTypeCode
-        {
-            Custom = 0x0000,
-            Ascii = 0x0001,
-            Bigint = 0x0002,
-            Blob = 0x0003,
-            Boolean = 0x0004,
-            Counter = 0x0005,
-#if NET_40_OR_GREATER
-            Decimal = 0x0006,
-#endif
-            Double = 0x0007,
-            Float = 0x0008,
-            Int = 0x0009,
-            Text = 0x000A,
-            Timestamp = 0x000B,
-            Uuid = 0x000C,
-            Varchar = 0x000D,
-#if NET_40_OR_GREATER
-            Varint = 0x000E,
-#endif
-            Timeuuid = 0x000F,
-            Inet = 0x0010,
-            List = 0x0020,
-            Map = 0x0021,
-            Set = 0x0022
-        }
-        
-        public enum KeyType
-        {            
-            Partition = 1,
-            Row = 2,
-            Secondary = 3,
-            NotAKey = 0
-        }
-
-        public interface ColumnInfo
-        {
-        }
-
-        public class CustomColumnInfo : ColumnInfo
-        {            
-            public string CustomTypeName;
-        }
-        
-        public class ListColumnInfo : ColumnInfo
-        {
-            public ColumnTypeCode ValueTypeCode;
-            public ColumnInfo ValueTypeInfo;            
-        }
-
-        public class SetColumnInfo : ColumnInfo
-        {
-            public ColumnTypeCode KeyTypeCode;
-            public ColumnInfo KeyTypeInfo;
-        }
-        
-        public class MapColumnInfo : ColumnInfo
-        {
-            public ColumnTypeCode KeyTypeCode;
-            public ColumnInfo KeyTypeInfo;
-            public ColumnTypeCode ValueTypeCode;
-            public ColumnInfo ValueTypeInfo;            
-        }
-
-        public struct ColumnDesc
-        {
-            public string Keyspace;
-            public string Table;
-            public string ColumnName;
-            public ColumnInfo TypeInfo;
-            public string SecondaryIndexName;
-            public string SecondaryIndexType;
-            public KeyType KeyType;
-            public ColumnTypeCode TypeCode;
-        }        
-
-
-        public ColumnDesc[] Columns;
-
-        internal TableMetadata()
-        {
-        }
-
-        internal TableMetadata(BEBinaryReader reader)
-        {
-            List<ColumnDesc> coldat = new List<ColumnDesc>();
-            Flags = (FlagBits)reader.ReadInt32();
-            var numberOfcolumns = reader.ReadInt32();
-            this.Columns = new TableMetadata.ColumnDesc[numberOfcolumns];
-            string g_ksname = null;
-            string g_tablename = null;
-
-            if ((Flags & FlagBits.GlobalTablesSpec) == FlagBits.GlobalTablesSpec)
-            {
-                g_ksname = reader.ReadString();
-                g_tablename = reader.ReadString();
-            }
-            for (int i = 0; i < numberOfcolumns; i++)
-            {
-                ColumnDesc col = new ColumnDesc();
-                if ((Flags & FlagBits.GlobalTablesSpec) != FlagBits.GlobalTablesSpec)
-                {
-                    col.Keyspace = reader.ReadString();
-                    col.Table = reader.ReadString();
-                }
-                else
-                {
-                    col.Keyspace = g_ksname;
-                    col.Table = g_tablename;
-                }
-                col.ColumnName = reader.ReadString();
-                col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
-                col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
-                coldat.Add(col);
-            }
-            Columns = coldat.ToArray();
-        }
-
-        private ColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)
-        {
-            ColumnTypeCode innercode;
-            ColumnTypeCode vinnercode;
-            switch (code)
-            {
-                case ColumnTypeCode.Custom:
-                    return new CustomColumnInfo() { CustomTypeName = reader.ReadString() };
-                case ColumnTypeCode.List:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    return new ListColumnInfo() {
-                        ValueTypeCode = innercode, 
-                        ValueTypeInfo = GetColumnInfo(reader, innercode) 
-                    };
-                case ColumnTypeCode.Map:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    var kci = GetColumnInfo(reader, innercode);
-                    vinnercode = (ColumnTypeCode)reader.ReadUInt16();
-                    var vci = GetColumnInfo(reader, vinnercode);
-                    return new MapColumnInfo() {
-                        KeyTypeCode = innercode,
-                        KeyTypeInfo = kci,
-                        ValueTypeCode = vinnercode, 
-                        ValueTypeInfo = vci
-                    };
-                case ColumnTypeCode.Set:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    return new SetColumnInfo() {
-                        KeyTypeCode = innercode,
-                        KeyTypeInfo = GetColumnInfo(reader, innercode)
-                    };
-                default:
-                    return null;
-            }
-        }
-    }
+    
 }

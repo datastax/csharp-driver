@@ -5,9 +5,9 @@ namespace Cassandra
 {
     internal class OutputRows : IOutput, IWaitableForDispose
     {
-        public TableMetadata Metadata;
-        public int Rows;
-        internal bool buffered;
+        public readonly RowSetMetadata Metadata;
+        public readonly int Rows;
+        internal readonly bool buffered;
         
         private readonly BEBinaryReader _reader;
 
@@ -15,7 +15,7 @@ namespace Cassandra
         {
             this.buffered = buffered;
             this._reader = reader;
-            Metadata = new TableMetadata(reader);
+            Metadata = new RowSetMetadata(reader);
             Rows = reader.ReadInt32();
             _disposedEvent = new ManualResetEvent(buffered);
         }

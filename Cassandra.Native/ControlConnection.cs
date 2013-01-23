@@ -450,7 +450,7 @@ namespace Cassandra
                 if(ks==null)
                     throw new InvalidOperationException();
 
-                var ktb = new ReadOnlyDictionary<string,  AtomicValue<TableMetadata>>();
+                var ktb = new ReadOnlyDictionary<string, AtomicValue<TableMetadata>>();
                 using (
                     var rows =
                         _session.Query(string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace)))
@@ -459,7 +459,7 @@ namespace Cassandra
                         ktb.InternalSetup(row.GetValue<string>("columnfamily_name"), new AtomicValue<TableMetadata>(null));
                 }
                 ks.Tables.Value = ktb;
-                sc.InternalSetup(ks.Keyspace, ks);
+                sc.InternalSetup(ks.Name, ks);
                 return ks;
             }
             else
@@ -575,7 +575,7 @@ namespace Cassandra
         public TableMetadata GetTableMetadata(string tableName, string keyspaceName)
         {
             object[] collectionValuesTypes;
-            List<TableMetadata.ColumnDesc> cols = new List<TableMetadata.ColumnDesc>();
+            List<TableColumn> cols = new List<TableColumn>();
             using (
                 var rows =
                     _session.Query(
@@ -585,9 +585,9 @@ namespace Cassandra
                 foreach (var row in rows.GetRows())
                 {
                     var tp_code = convertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
-                    var dsc = new TableMetadata.ColumnDesc()
+                    var dsc = new TableColumn()
                         {
-                            ColumnName = row.GetValue<string>("column_name"),
+                            Name = row.GetValue<string>("column_name"),
                             Keyspace = row.GetValue<string>("keyspace_name"),
                             Table = row.GetValue<string>("columnfamily_name"),
                             TypeCode = tp_code,
@@ -595,25 +595,25 @@ namespace Cassandra
                             SecondaryIndexType = row.GetValue<string>("index_type"),
                             KeyType =
                                 row.GetValue<string>("index_name") != null
-                                    ? TableMetadata.KeyType.Secondary
-                                    : TableMetadata.KeyType.NotAKey,
+                                    ? KeyType.SecondaryIndex
+                                    : KeyType.None,
                         };
 
-                    if (tp_code == TableMetadata.ColumnTypeCode.List)
-                        dsc.TypeInfo = new TableMetadata.ListColumnInfo()
+                    if (tp_code == ColumnTypeCode.List)
+                        dsc.TypeInfo = new ListColumnInfo()
                             {
-                                ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                                ValueTypeCode = (ColumnTypeCode)collectionValuesTypes[0]
                             };
-                    else if (tp_code == TableMetadata.ColumnTypeCode.Map)
-                        dsc.TypeInfo = new TableMetadata.MapColumnInfo()
+                    else if (tp_code == ColumnTypeCode.Map)
+                        dsc.TypeInfo = new MapColumnInfo()
                             {
-                                KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0],
-                                ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[1]
+                                KeyTypeCode = (ColumnTypeCode)collectionValuesTypes[0],
+                                ValueTypeCode = (ColumnTypeCode)collectionValuesTypes[1]
                             };
-                    else if (tp_code == TableMetadata.ColumnTypeCode.Set)
-                        dsc.TypeInfo = new TableMetadata.SetColumnInfo()
+                    else if (tp_code == ColumnTypeCode.Set)
+                        dsc.TypeInfo = new SetColumnInfo()
                             {
-                                KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                                KeyTypeCode = (ColumnTypeCode)collectionValuesTypes[0]
                             };
 
                     cols.Add(dsc);
@@ -649,37 +649,37 @@ namespace Cassandra
                         {
                             var tp_code = convertToColumnTypeCode(rowKeysTypes[i + 1].ToString(),
                                                                   out collectionValuesTypes);
-                            var dsc = new TableMetadata.ColumnDesc()
+                            var dsc = new TableColumn()
                                 {
-                                    ColumnName = keyName.ToString(),
+                                    Name = keyName.ToString(),
                                     Keyspace = row.GetValue<string>("keyspace_name"),
                                     Table = row.GetValue<string>("columnfamily_name"),
                                     TypeCode = tp_code,
-                                    KeyType = TableMetadata.KeyType.Row,
+                                    KeyType = KeyType.Clustering,
                                 };
-                            if (tp_code == TableMetadata.ColumnTypeCode.List)
-                                dsc.TypeInfo = new TableMetadata.ListColumnInfo()
+                            if (tp_code == ColumnTypeCode.List)
+                                dsc.TypeInfo = new ListColumnInfo()
                                     {
-                                        ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                                        ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                                     };
-                            else if (tp_code == TableMetadata.ColumnTypeCode.Map)
-                                dsc.TypeInfo = new TableMetadata.MapColumnInfo()
+                            else if (tp_code == ColumnTypeCode.Map)
+                                dsc.TypeInfo = new MapColumnInfo()
                                     {
-                                        KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0],
-                                        ValueTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[1]
+                                        KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0],
+                                        ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[1]
                                     };
-                            else if (tp_code == TableMetadata.ColumnTypeCode.Set)
-                                dsc.TypeInfo = new TableMetadata.SetColumnInfo()
+                            else if (tp_code == ColumnTypeCode.Set)
+                                dsc.TypeInfo = new SetColumnInfo()
                                     {
-                                        KeyTypeCode = (TableMetadata.ColumnTypeCode) collectionValuesTypes[0]
+                                        KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                                     };
                             cols.Add(dsc);
                             i++;
                         }
                     }
-                    cols.Add(new TableMetadata.ColumnDesc()
+                    cols.Add(new TableColumn()
                         {
-                            ColumnName =
+                            Name =
                                 row.GetValue<string>("key_aliases")
                                    .Replace("[\"", "")
                                    .Replace("\"]", "")
@@ -688,66 +688,66 @@ namespace Cassandra
                             Table = row.GetValue<string>("columnfamily_name"),
                             TypeCode =
                                 convertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
-                            KeyType = TableMetadata.KeyType.Partition
+                            KeyType = KeyType.Partition
                         });
                 }
             }
-            return new TableMetadata() {Name = tableName, Columns = cols.ToArray()};
+            return new TableMetadata(tableName, cols.ToArray());
         }
 
 
-        private TableMetadata.ColumnTypeCode convertToColumnTypeCode(string type, out object[] collectionValueTp)
+        private ColumnTypeCode convertToColumnTypeCode(string type, out object[] collectionValueTp)
         {
             object[] obj;
             collectionValueTp = new object[2];
             if (type.StartsWith("org.apache.cassandra.db.marshal.ListType"))
             {
                 collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.ListType(", "").Replace(")", ""), out obj);
-                return TableMetadata.ColumnTypeCode.List;
+                return ColumnTypeCode.List;
             }
             if (type.StartsWith("org.apache.cassandra.db.marshal.SetType"))
             {
                 collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
-                return TableMetadata.ColumnTypeCode.Set;
+                return ColumnTypeCode.Set;
             }
 
             if (type.StartsWith("org.apache.cassandra.db.marshal.MapType"))
             {
                 collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[0], out obj);
                 collectionValueTp[1] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj);
-                return TableMetadata.ColumnTypeCode.Map;
+                return ColumnTypeCode.Map;
             }
 
             collectionValueTp = null;
             switch (type)
             {
                 case "org.apache.cassandra.db.marshal.UTF8Type":
-                    return TableMetadata.ColumnTypeCode.Text;
+                    return ColumnTypeCode.Text;
                 case "org.apache.cassandra.db.marshal.UUIDType":
-                    return TableMetadata.ColumnTypeCode.Uuid;
+                    return ColumnTypeCode.Uuid;
                 case "org.apache.cassandra.db.marshal.Int32Type":
-                    return TableMetadata.ColumnTypeCode.Int;
+                    return ColumnTypeCode.Int;
                 case "org.apache.cassandra.db.marshal.BytesType":
-                    return TableMetadata.ColumnTypeCode.Blob;
+                    return ColumnTypeCode.Blob;
                 case "org.apache.cassandra.db.marshal.FloatType":
-                    return TableMetadata.ColumnTypeCode.Float;
+                    return ColumnTypeCode.Float;
                 case "org.apache.cassandra.db.marshal.DoubleType":
-                    return TableMetadata.ColumnTypeCode.Double;
+                    return ColumnTypeCode.Double;
                 case "org.apache.cassandra.db.marshal.BooleanType":
-                    return TableMetadata.ColumnTypeCode.Boolean;
+                    return ColumnTypeCode.Boolean;
                 case "org.apache.cassandra.db.marshal.InetAddressType":
-                    return TableMetadata.ColumnTypeCode.Inet;
+                    return ColumnTypeCode.Inet;
                 case "org.apache.cassandra.db.marshal.DateType":
-                    return TableMetadata.ColumnTypeCode.Timestamp;
+                    return ColumnTypeCode.Timestamp;
 #if NET_40_OR_GREATER
                 case "org.apache.cassandra.db.marshal.DecimalType":
-                    return TableMetadata.ColumnTypeCode.Decimal;
+                    return ColumnTypeCode.Decimal;
 #endif
                 case "org.apache.cassandra.db.marshal.LongType":
-                    return TableMetadata.ColumnTypeCode.Bigint;
+                    return ColumnTypeCode.Bigint;
 #if NET_40_OR_GREATER
                 case "org.apache.cassandra.db.marshal.IntegerType":
-                    return TableMetadata.ColumnTypeCode.Varint;
+                    return ColumnTypeCode.Varint;
 #endif
                 default: throw new InvalidOperationException();
             }

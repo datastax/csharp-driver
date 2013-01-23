@@ -4,17 +4,17 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromBoolean(TableMetadata.ColumnInfo type_info, byte[] _buffer)
+        public static object ConvertFromBoolean(IColumnInfo type_info, byte[] _buffer)
         {
             return _buffer[0] == 1;
         }
 
-        public static Type GetTypeFromBoolean(TableMetadata.ColumnInfo type_info)
+        public static Type GetTypeFromBoolean(IColumnInfo type_info)
         {
             return typeof(bool);
         }
 
-        public static byte[] InvConvertFromBoolean(TableMetadata.ColumnInfo type_info, object value)
+        public static byte[] InvConvertFromBoolean(IColumnInfo type_info, object value)
         {
             CheckArgument<bool>(value);
             var buffer = new byte[1];

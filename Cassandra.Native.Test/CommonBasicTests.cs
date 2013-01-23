@@ -655,26 +655,26 @@ PRIMARY KEY(tweet_id)
 
         public void checkMetadata(string TableName = null, string KeyspaceName = null)
         {
-            Dictionary<string, TableMetadata.ColumnTypeCode> columns = new Dictionary
-                <string, TableMetadata.ColumnTypeCode>()
+            Dictionary<string, ColumnTypeCode> columns = new Dictionary
+                <string, ColumnTypeCode>()
                 {
-                    {"q0uuid", TableMetadata.ColumnTypeCode.Uuid},
-                    {"q1timestamp", TableMetadata.ColumnTypeCode.Timestamp},
-                    {"q2double", TableMetadata.ColumnTypeCode.Double},
-                    {"q3int32", TableMetadata.ColumnTypeCode.Int},
-                    {"q4int64", TableMetadata.ColumnTypeCode.Bigint},
-                    {"q5float", TableMetadata.ColumnTypeCode.Float},
-                    {"q6inet", TableMetadata.ColumnTypeCode.Inet},
-                    {"q7boolean", TableMetadata.ColumnTypeCode.Boolean},
-                    {"q8inet", TableMetadata.ColumnTypeCode.Inet},
-                    {"q9blob", TableMetadata.ColumnTypeCode.Blob},
+                    {"q0uuid", ColumnTypeCode.Uuid},
+                    {"q1timestamp", ColumnTypeCode.Timestamp},
+                    {"q2double", ColumnTypeCode.Double},
+                    {"q3int32", ColumnTypeCode.Int},
+                    {"q4int64", ColumnTypeCode.Bigint},
+                    {"q5float", ColumnTypeCode.Float},
+                    {"q6inet", ColumnTypeCode.Inet},
+                    {"q7boolean", ColumnTypeCode.Boolean},
+                    {"q8inet", ColumnTypeCode.Inet},
+                    {"q9blob", ColumnTypeCode.Blob},
 #if NET_40_OR_GREATER
                          {"q10varint", Metadata.ColumnTypeCode.Varint},
                          {"q11decimal", Metadata.ColumnTypeCode.Decimal},
 #endif
-                    {"q12list", TableMetadata.ColumnTypeCode.List},
-                    {"q13set", TableMetadata.ColumnTypeCode.Set},
-                    {"q14map", TableMetadata.ColumnTypeCode.Map}
+                    {"q12list", ColumnTypeCode.List},
+                    {"q13set", ColumnTypeCode.Set},
+                    {"q14map", ColumnTypeCode.Map}
                     //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
                 };
 
@@ -684,10 +684,10 @@ PRIMARY KEY(tweet_id)
 
             foreach (var col in columns)
                 sb.Append(col.Key + " " + col.Value.ToString() +
-                          (((col.Value == TableMetadata.ColumnTypeCode.List) ||
-                            (col.Value == TableMetadata.ColumnTypeCode.Set) ||
-                            (col.Value == TableMetadata.ColumnTypeCode.Map))
-                               ? "<int" + (col.Value == TableMetadata.ColumnTypeCode.Map ? ",varchar>" : ">")
+                          (((col.Value == ColumnTypeCode.List) ||
+                            (col.Value == ColumnTypeCode.Set) ||
+                            (col.Value == ColumnTypeCode.Map))
+                               ? "<int" + (col.Value == ColumnTypeCode.Map ? ",varchar>" : ">")
                                : "") + ", ");
 
             sb.Append("PRIMARY KEY(");
@@ -701,11 +701,11 @@ PRIMARY KEY(tweet_id)
             ExecuteSyncNonQuery(Session, sb.ToString());
 
             var table = this.Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
-            foreach (var metaCol in table.Columns)
+            foreach (var metaCol in table.TableColumns)
             {
-                Assert.True(columns.Keys.Contains(metaCol.ColumnName));
+                Assert.True(columns.Keys.Contains(metaCol.Name));
                 Assert.True(metaCol.TypeCode ==
-                            columns.Where(tpc => tpc.Key == metaCol.ColumnName).First().Value);
+                            columns.Where(tpc => tpc.Key == metaCol.Name).First().Value);
                 Assert.True(metaCol.Table == tablename);
                 Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
             }
@@ -732,7 +732,7 @@ string.Format(@"CREATE KEYSPACE {0}
 
             KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspace(keyspacename);
             Assert.True(ksmd.DurableWrites == durableWrites);
-            Assert.True(ksmd.ReplicationOptions.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
+            Assert.True(ksmd.Replication.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
             Assert.True(ksmd.StrategyClass == strgyClass);
         }
     }
