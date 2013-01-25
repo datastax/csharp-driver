@@ -21,107 +21,129 @@ namespace Playground
 
             using(var session = cluster.Connect())
             {
+                var keyspaceName = "test" + Guid.NewGuid().ToString("N");
 
-            var keyspaceName = "test" + Guid.NewGuid().ToString("N");
+                try
+                {
+                    session.ChangeKeyspace(keyspaceName);
+                }
+                catch (InvalidException)
+                {
+                    session.CreateKeyspaceIfNotExists(keyspaceName);
+                    session.ChangeKeyspace(keyspaceName);
+                }
 
-            try
-            {
-                session.ChangeKeyspace(keyspaceName);
-            }
-            catch (InvalidException)
-            {
-                session.CreateKeyspaceIfNotExists(keyspaceName);
-                session.ChangeKeyspace(keyspaceName);
-            }
-
-            TwitterContext twitterContext = new TwitterContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
-                var tweetsTable = twitterContext.GetTable<Tweet>();
-                var followersTable = twitterContext.GetTable<Followers>();
-                var followedTweetsTable = twitterContext.GetTable<FollowedTweet>();
-                var statisticsTable = twitterContext.GetTable<Statistics>();
+                TwitterContext twitterContext = new TwitterContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
+                var TweetsTable = twitterContext.GetTable<Tweet>();
+                var AuthorsTable = twitterContext.GetTable<Author>();
+                var FollowedTweetsTable = twitterContext.GetTable<FollowedTweet>();
+                var StatisticsTable = twitterContext.GetTable<Statistics>();
 
                 Console.WriteLine("Done!");
 
-                //Adding authors and their followers to the "Followers" table: 
-                Console.WriteLine("Adding authors and their followers to the \"Followers\" table..");
+                //Adding authors and their followers to the Authors table: 
+                Console.WriteLine("Adding authors and their followers to the Authors table..");
                 int AuthorsNo = 50;
-                List<Followers> FollowersLocal = new List<Followers>();
-                List<Statistics> StatisticsLocal = new List<Statistics>();
-                List<string> AuthorsID = new List<string>();
+                List<Author> authorsLocal = new List<Author>();
+                List<Statistics> statisticsLocal = new List<Statistics>();
+                List<string> authorsID = new List<string>();
 
                 for (int i = 0; i < AuthorsNo; i++)
                 {
                     var author_ID = "Author" + i.ToString();
-                    var followerEnt = new Followers() { author_id = author_ID, followers = AuthorsID.Where(fol => fol != author_ID).ToList() };
-                    followersTable.AddNew(followerEnt);
-                    FollowersLocal.Add(followerEnt);
-                    AuthorsID.Add(followerEnt.author_id);
+                    var authorEnt = new Author() { author_id = author_ID, followers = authorsID.Where(aut => aut != author_ID).ToList() };
+                    AuthorsTable.AddNew(authorEnt);
+                    authorsLocal.Add(authorEnt); 
+                    authorsID.Add(authorEnt.author_id);
 
-                    //We will also add authors to table with statistics: 
-                    var statEnt = new Statistics() { author_id = author_ID };
-                    statisticsTable.Attach(statEnt, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
+                    //We will also add current author to the Statistics table: 
+                    var statEnt = new Statistics() { author_id = author_ID }; 
+                    StatisticsTable.Attach(statEnt, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
 
-                    //And increment number of followers for each of them: 
-                    followerEnt.followers.ForEach(folo => statEnt.followers_count += 1);
-                    StatisticsLocal.Add(statEnt);
+                    //And increment number of followers for current author, also in Statistics table: 
+                    authorEnt.followers.ForEach(folo => statEnt.followers_count += 1);
+                    statisticsLocal.Add(statEnt);
                 }
                 twitterContext.SaveChanges(SaveChangesMode.Batch);
                 Console.WriteLine("Done!");
 
+                
                 //Now every author will add a single tweet:
                 Console.WriteLine("Now authors are writing their tweets..");
-                List<Tweet> TweetsLocal = new List<Tweet>();
-                List<FollowedTweet> FollowedTweetsLocal = new List<FollowedTweet>();
-                foreach (var auth in AuthorsID)
+                List<Tweet> tweetsLocal = new List<Tweet>();
+                List<FollowedTweet> followedTweetsLocal = new List<FollowedTweet>();
+                foreach (var auth in authorsID)
                 {
                     var tweetEnt = new Tweet() { tweet_id = Guid.NewGuid(), author_id = auth, body = "Hello world! My name is " + auth + (DateTime.Now.Second % 2 == 0 ? "." : ""), date = DateTimeOffset.Now };
-                    tweetsTable.AddNew(tweetEnt);
-                    TweetsLocal.Add(tweetEnt);
+                    TweetsTable.AddNew(tweetEnt);
+                    tweetsLocal.Add(tweetEnt);
 
                     //We will update our statistics table                 
-                    StatisticsLocal.Where(stat => stat.author_id == auth).First().tweets_count += 1;
+                    statisticsLocal.First(stat => stat.author_id == auth).tweets_count += 1;
 
                     //We also have to add this tweet to "FollowedTweet" table, so every user who follows that author, will get this tweet on his/her own wall!
-
-                    FollowedTweet followedTweetEnt = null;
-                    foreach (var author in (from f in followersTable where f.author_id == auth select f).Execute())
-                        if (author.followers != null)
+                    FollowedTweet followedTweetEnt = null;                    
+                    Author author = AuthorsTable.FirstOrDefault(a => a.author_id == auth).Execute();
+                        if (author != default(Author) && author.followers != null)
                             foreach (var follower in author.followers)
                             {
                                 followedTweetEnt = new FollowedTweet() { user_id = follower, author_id = tweetEnt.author_id, body = tweetEnt.body, date = tweetEnt.date, tweet_id = tweetEnt.tweet_id };
-                                followedTweetsTable.AddNew(followedTweetEnt);
-                                FollowedTweetsLocal.Add(followedTweetEnt);
+                                FollowedTweetsTable.AddNew(followedTweetEnt);
+                                followedTweetsLocal.Add(followedTweetEnt);
                             }
-                }
-
+                }                
                 twitterContext.SaveChanges(SaveChangesMode.Batch);
                 Console.WriteLine("Done!");
-
-                string separator = Environment.NewLine + "--------------------------------------------------------------------" + Environment.NewLine;
+                string separator = Environment.NewLine + "───────────────────────────────────────────────────────────────────────" + Environment.NewLine;
+                
                 Console.WriteLine(separator);
 
-                //To display users that follows "Author8":            
-                foreach (var author in (from f in followersTable where f.author_id == "Author8" select f).Execute())
-                    author.displayFollowers();
+
+                //To display users that follows "Author8":         
+                Console.WriteLine("\"Author8\" is followed by:" + Environment.NewLine);
+                try
+                {
+                    Author Author8 = AuthorsTable.First(aut => aut.author_id == "Author8").Execute();
+                    Author8.displayFollowers();
+                }
+                catch (InvalidOperationException)
+                {
+                    Console.WriteLine("\"Author8\" does not exist in database!");
+                }                
 
 
                 //To display all of user "Author15" tweets:
                 Console.WriteLine(separator + "All tweets posted by Author15:" + Environment.NewLine);
-                foreach (var authTweets in (from t in tweetsTable where t.author_id == "Author15" select t).Execute())
-                    authTweets.display();
+                foreach (Tweet tweet in (from twt in TweetsTable where twt.author_id == "Author15" select twt).Execute())
+                    tweet.display();
 
 
-                //To display all tweets from users that "Author95" follows:
-                Console.WriteLine(separator + "All tweets posted by users that \"Author95\" follows:" + Environment.NewLine);
-                foreach (var foloTwts in (from t in followedTweetsTable where t.user_id == "Author95" select t).Execute())
-                    foloTwts.display();
+                //To display all tweets from users that "Author45" follows:
+                string author_id = "Author45";
+                Console.WriteLine(separator + string.Format("All tweets posted by users that \"{0}\" follows:", author_id) + Environment.NewLine);                
+                
+                // At first we will check if specified above author_id is present in database:
+                Author specifiedAuthor = (from aut in AuthorsTable where aut.author_id == author_id select aut).FirstOrDefault().Execute(); // it's another possible way of using First/FirstOrDefault method 
+                                                                                                                                                
+                if (specifiedAuthor != default(Author))               
+                {
+                    var followedTweets = (from t in FollowedTweetsTable where t.user_id == author_id select t).Execute();
 
+                    if (followedTweets.Count() > 0)
+                        foreach (var foloTwt in followedTweets)
+                            foloTwt.display();
+                    else
+                        Console.WriteLine(string.Format("There is no tweets from users that {0} follows.", author_id));
+                }
+                else
+                    Console.WriteLine(string.Format("Nothing to display because specified author: \"{0}\" does not exist!", author_id));
+                
 
-                //Lets check all of authors punctuation in their tweets, or at least, if they end their tweets with full stop, exclamation or question mark:
+                //Let's check all of authors punctuation in their tweets, or at least, if they end their tweets with full stop, exclamation or question mark:
                 List<string> authorsWithPunctuationProblems = new List<string>();
 
                 //To check it, we can use anonymous class because we are interested only in author_id and body of the tweet
-                var slimmedTweets = (from t in tweetsTable select new { t.author_id, t.body }).Execute();
+                var slimmedTweets = (from twt in TweetsTable select new { twt.author_id, twt.body }).Execute();
                 foreach (var slimTwt in slimmedTweets)
                     if (!(slimTwt.body.EndsWith(".") || slimTwt.body.EndsWith("!") || slimTwt.body.EndsWith("?")))
                         if (!authorsWithPunctuationProblems.Contains(slimTwt.author_id))
@@ -129,32 +151,41 @@ namespace Playground
 
 
                 // Now we can check how many of all authors have this problem..            
-                float proportion = (float)authorsWithPunctuationProblems.Count() / followersTable.Count().Execute() * 100;
-                Console.WriteLine(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion));
+                float proportion = (float)authorsWithPunctuationProblems.Count() / AuthorsTable.Count().Execute() * 100;
+                Console.WriteLine(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion) + Environment.NewLine);
+
 
                 // This time I will help them, and update these tweets with a full stop..            
-                foreach (var tweet in tweetsTable.Where(x => authorsWithPunctuationProblems.Contains(x.author_id)).Execute())
+                foreach (var tweet in TweetsTable.Where(x => authorsWithPunctuationProblems.Contains(x.author_id)).Execute())
                 {
-                    tweetsTable.Attach(tweet);
-                    TweetsLocal.Where(twt => twt.tweet_id == tweet.tweet_id).First().body += ".";
+                    TweetsTable.Attach(tweet);                    
+                    tweetsLocal.Where(twt => twt.tweet_id == tweet.tweet_id).First().body += ".";
                     tweet.body += ".";
                 }
                 twitterContext.SaveChanges(SaveChangesMode.Batch);
 
 
+                //Statistics before deletion of tweets:
+                Console.WriteLine(separator + "Before deletion of all tweets our \"Statistics\" table looks like:" + Environment.NewLine);
+                StatisticsTable.DisplayTable();
+
+
                 //Deleting all tweets from "Tweet" table
-                foreach (var ent in TweetsLocal)
+                foreach (var ent in tweetsLocal)
                 {
-                    tweetsTable.Delete(ent);
-                    StatisticsLocal.Where(auth => auth.author_id == ent.author_id).First().tweets_count -= 1;
+                    TweetsTable.Delete(ent);
+                    
+                    var statEnt = statisticsLocal.FirstOrDefault(auth => auth.author_id == ent.author_id);
+                    if (statEnt != default(Statistics))
+                        statEnt.tweets_count -= 1;
+                    
                 }
                 twitterContext.SaveChanges(SaveChangesMode.Batch);
+                
 
                 //Statistics after deletion of tweets:
-                Console.WriteLine(separator + "After deletion of all tweets our \"Statistics\" table looks like:" + separator);
-                Console.WriteLine("Author ID | Followers count | Tweets count" + separator);
-                foreach (var stat in (from st in statisticsTable select st).Execute())
-                    Console.WriteLine(stat.author_id + "  |        " + stat.followers_count + "       |      " + stat.tweets_count);
+                Console.WriteLine("After deletion of all tweets our \"Statistics\" table looks like:");
+                StatisticsTable.DisplayTable();
 
 
                 Console.WriteLine(separator + "Deleting keyspace: \"" + keyspaceName + "\"");

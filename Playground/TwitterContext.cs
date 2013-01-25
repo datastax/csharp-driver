@@ -13,7 +13,7 @@ namespace Playground
             : base(session, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel)
         {
             AddTable<Tweet>();
-            AddTable<Followers>();
+            AddTable<Author>();
             AddTable<FollowedTweet>();
             AddTable<Statistics>();
             CreateTablesIfNotExist();

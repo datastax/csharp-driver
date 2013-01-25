@@ -276,14 +276,20 @@ namespace Cassandra.Data
 		private void VisitMethodCall(MethodCallExpression exp)
 		{
 			Evaluate(exp.Arguments[0]);
-
-			if (exp.Method.Name == "Where")
+            
+            if (exp.Method.Name == "Where" )
 				AddCriteria(exp.Arguments[1]);
 			else if (exp.Method.Name == "Select")
 				AddSelectField(SimplifyExpression(exp.Arguments[1]));
-			else if (exp.Method.Name == "Take")
+            else if (exp.Method.Name == "Take")
 				SetLimit(exp.Arguments[1]);
-			else if (exp.Method.Name == "OrderBy" || exp.Method.Name == "ThenBy")
+            else if (exp.Method.Name == "First" || exp.Method.Name == "FirstOrDefault")
+                {
+                    if (exp.Method.GetParameters().Any(param => param.ParameterType == typeof(ICqlTable)))
+                        AddCriteria(exp.Arguments[2]);
+                    SetLimit(exp.Arguments[1]);
+                }
+            else if (exp.Method.Name == "OrderBy" || exp.Method.Name == "ThenBy")
 				AddOrderByFieldAscending(SimplifyExpression(exp.Arguments[1]));
 			else if (exp.Method.Name == "OrderByDescending" || exp.Method.Name == "ThenByDescending")
 				AddOrderByFieldDescending(SimplifyExpression(exp.Arguments[1]));

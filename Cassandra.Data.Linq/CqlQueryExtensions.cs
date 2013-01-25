@@ -25,6 +25,34 @@ namespace Cassandra.Data
             return new CqlScalar<long>(source.Expression, source.Provider);
         }
 
+        public static CqlQuerySingleElement<TSource> First<TSource>(this CqlTable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        {
+            return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+                    null, CqlMthHelps.First_ForCQLTableMi,
+                     new Expression[] { source.Expression, Expression.Constant(1), predicate })).Expression, source.Provider);
+        }
+
+        public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this CqlTable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        {
+            return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+                    null, CqlMthHelps.FirstOrDefault_ForCQLTableMi,
+                     new Expression[] { source.Expression, Expression.Constant(1), predicate })).Expression, source.Provider);
+        }
+
+        public static CqlQuerySingleElement<TSource> First<TSource>(this CqlQuery<TSource> source)
+        {
+            return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+                    null, CqlMthHelps.FirstMi,
+                     new Expression[] { source.Expression, Expression.Constant(1) })).Expression, source.Provider);            
+        }
+        
+        public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this CqlQuery<TSource> source)
+        {
+            return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+                    null, CqlMthHelps.FirstOrDefaultMi,
+                     new Expression[] { source.Expression, Expression.Constant(1) })).Expression, source.Provider);
+        }
+
         public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source)
         {
             return new CqlDelete(source.Expression, source.Provider);

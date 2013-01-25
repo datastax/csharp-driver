@@ -7,6 +7,62 @@ using System.Collections;
 namespace Cassandra.Data
 {
 
+    public class CqlQuerySingleElement<TEntity>
+    {
+        private readonly Expression _expression;
+        private readonly IQueryProvider _table;
+
+        internal CqlQuerySingleElement( Expression expression, IQueryProvider table)
+		{
+            this._expression = expression;
+            this._table = table;
+		}
+      
+        public Type ElementType
+        {
+            get { return typeof(TEntity); }
+
+        }
+
+        public System.Linq.Expressions.Expression Expression
+        {
+            get { return _expression; }
+        }
+
+		public override string ToString()
+		{
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            eval.Evaluate(Expression);
+            return eval.Query;
+		}
+
+        public TEntity Execute()
+        {
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.Query;
+            var alter = eval.AlternativeMapping;
+            var conn = (_table as ICqlTable).GetContext();
+            using (var outp = conn.ExecuteReadQuery(cqlQuery))
+            {
+                if (outp.RowsCount == 0)
+                    if (((MethodCallExpression)Expression).Method.Name == "First")
+                        throw new InvalidOperationException("Sequence contains no elements.");
+                    else
+                        if (((MethodCallExpression)Expression).Method.Name == "FirstOrDefault")
+                            return default (TEntity);
+
+                var cols = outp.Columns;
+                var colToIdx = new Dictionary<string, int>();
+                for (int idx = 0; idx < cols.Length; idx++)
+                    colToIdx.Add(cols[idx].Name, idx);
+                
+                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, alter);                
+            }
+        }
+    }
+
+
     public class CqlScalar<T>
     {
         private readonly Expression _expression;
@@ -49,6 +105,7 @@ namespace Cassandra.Data
         }
     }
 
+
     public class CqlQuery<TEntity> : IQueryable, IQueryable<TEntity>, IOrderedQueryable 
     {
         private readonly Expression _expression;
@@ -65,7 +122,6 @@ namespace Cassandra.Data
 			this._expression = expression;
             this._table = table;
 		}
-
 
         public IEnumerator<TEntity> GetEnumerator()
         {

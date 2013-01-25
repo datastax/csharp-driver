@@ -7,7 +7,7 @@ using Cassandra;
 
 namespace Playground
 {
-    public class Followers
+    public class Author
     {
         [PartitionKey]
         public string author_id;
@@ -16,7 +16,6 @@ namespace Playground
 
         public void displayFollowers()
         {
-            Console.WriteLine(this.author_id + " is followed by:" + Environment.NewLine);
             if (followers != null)
                 foreach (var follower in this.followers)
                     Console.Write(follower + "  ");
