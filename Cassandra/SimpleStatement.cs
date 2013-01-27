@@ -55,9 +55,9 @@ namespace Cassandra
         }
 
 
-        internal override IAsyncResult BeginExecute(Session session, AsyncCallback callback, object state)
+        internal override IAsyncResult BeginExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginQuery(QueryString, callback, state, ConsistencyLevel, this, this);
+            return session.BeginQuery(QueryString, callback, state, ConsistencyLevel, this, this, tag);
         }
 
         internal override CqlRowSet EndExecute(Session session, IAsyncResult ar)

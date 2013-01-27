@@ -17,14 +17,14 @@ namespace Cassandra
         // Fields set at construction which never change while 
         // operation is pending
         private readonly AsyncCallback _asyncCallback;
-        private readonly Object _asyncState;
+        private readonly object _asyncState;
 
         // Fields set at construction which do change after 
         // operation completes
-        private const Int32 StatePending = 0;
-        private const Int32 StateCompletedSynchronously = 1;
-        private const Int32 StateCompletedAsynchronously = 2;
-        private Int32 _completedState = StatePending;
+        private const int StatePending = 0;
+        private const int StateCompletedSynchronously = 1;
+        private const int StateCompletedAsynchronously = 2;
+        private int _completedState = StatePending;
 
         // Field that may or may not get set depending on usage
         private MyWaitHandle _asyncWaitHandle;
@@ -47,6 +47,11 @@ namespace Cassandra
         /// </summary>
         private readonly object _sender;
 
+        /// <summary>
+        /// The tag object 
+        /// </summary>
+        private readonly object _tag;
+
         private readonly int _timeout;
         private readonly DateTimeOffset _started;
 
@@ -56,6 +61,7 @@ namespace Cassandra
             object owner,
             string operationId,
             object sender,
+            object tag,
             int timeout)
         {
             _asyncCallback = asyncCallback;
@@ -64,6 +70,7 @@ namespace Cassandra
             _operationId =
                 string.IsNullOrEmpty(operationId) ? string.Empty : operationId;
             _sender = sender;
+            _tag = tag;
             _timeout = timeout;
             if (_timeout != Timeout.Infinite)
                 _started = DateTimeOffset.Now;
@@ -89,7 +96,7 @@ namespace Cassandra
             bool result = false;
 
             // The _completedState field MUST be set prior calling the callback
-            Int32 prevState = Interlocked.Exchange(ref _completedState,
+            int prevState = Interlocked.Exchange(ref _completedState,
                 completedSynchronously ? StateCompletedSynchronously :
                 StateCompletedAsynchronously);
             if (prevState == StatePending)
@@ -180,9 +187,10 @@ namespace Cassandra
 
         #region Implementation of IAsyncResult
 
-        public Object AsyncState { get { return _asyncState; } }
-        public Object AsyncOwner { get { return _owner; } }
-        public Object AsyncSender { get { return _sender; } }
+        public object AsyncState { get { return _asyncState; } }
+        public object AsyncOwner { get { return _owner; } }
+        public object AsyncSender { get { return _sender; } }
+        public object Tag { get { return _tag; } }
 
         public bool CompletedSynchronously
         {
@@ -284,9 +292,7 @@ namespace Cassandra
         {
             // If a callback method was set, call it
             if (callback != null)
-            {
                 callback(result);
-            }
         }
 
         protected virtual void Completed(
@@ -299,21 +305,22 @@ namespace Cassandra
     internal partial class AsyncResult<TResult> : AsyncResultNoResult
     {
         // Field set when operation completes
-        private TResult m_result = default(TResult);
+        private TResult _result = default(TResult);
 
         internal void SetResult(TResult result)
         {
-            m_result = result;
+            _result = result;
         }
 
-        internal AsyncResult(AsyncCallback asyncCallback, object state, object owner, string operationId, object sender, int timeout) :
-            base(asyncCallback, state, owner, operationId, sender, timeout)
+        internal AsyncResult(AsyncCallback asyncCallback, object state, object owner, string operationId, object sender,
+                             object tag, int timeout) :
+                                 base(asyncCallback, state, owner, operationId, sender, tag, timeout)
         {
         }
 
         new public static TResult End(IAsyncResult result, object owner, string operationId)
         {
-            AsyncResult<TResult> asyncResult = result as AsyncResult<TResult>;
+            var asyncResult = result as AsyncResult<TResult>;
             if (asyncResult == null)
             {
                 throw new ArgumentException(
@@ -326,7 +333,7 @@ namespace Cassandra
             AsyncResultNoResult.End(result, owner, operationId);
 
             // Return the result (if above didn't throw)
-            return asyncResult.m_result;
+            return asyncResult._result;
         }
     }
 }

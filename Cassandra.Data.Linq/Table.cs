@@ -13,6 +13,15 @@ namespace Cassandra.Data.Linq
 
     public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
     public enum SaveChangesMode { Batch, OneByOne }
+
+    [Flags]
+    public enum TableType
+    {
+        Standard = 0x1,
+        Counter = 0x2,
+        All = Standard | Counter
+    }
+
     public enum EntityTrackingMode { KeepAttachedAfterSave, DetachAfterSave }
 
     public class Table<TEntity> : CqlQuery<TEntity>, ITable, IQueryProvider

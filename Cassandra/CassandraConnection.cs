@@ -242,7 +242,7 @@ namespace Cassandra
                 _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
             });
 
-            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null, _asyncCallAbortTimeout);
+            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null,null, _asyncCallAbortTimeout);
 
             lock (_frameGuardier)
                 _frameReadAsyncResult[streamId] = ar;

@@ -12,15 +12,15 @@ namespace Cassandra.Data.Linq
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
 
-        internal CqlQuerySingleElement( Expression expression, IQueryProvider table)
-		{
+        internal CqlQuerySingleElement(Expression expression, IQueryProvider table)
+        {
             this._expression = expression;
             this._table = table;
-		}
-      
+        }
+
         public Type ElementType
         {
-            get { return typeof(TEntity); }
+            get { return typeof (TEntity); }
 
         }
 
@@ -29,16 +29,16 @@ namespace Cassandra.Data.Linq
             get { return _expression; }
         }
 
-		public override string ToString()
-		{
+        public override string ToString()
+        {
             CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             return eval.Query;
-		}
+        }
 
         public TEntity Execute()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
+            var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
@@ -46,18 +46,55 @@ namespace Cassandra.Data.Linq
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 if (outp.RowsCount == 0)
-                    if (((MethodCallExpression)Expression).Method.Name == "First")
+                    if (((MethodCallExpression) Expression).Method.Name == "First")
                         throw new InvalidOperationException("Sequence contains no elements.");
-                    else
-                        if (((MethodCallExpression)Expression).Method.Name == "FirstOrDefault")
-                            return default (TEntity);
+                    else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
+                        return default (TEntity);
 
                 var cols = outp.Columns;
                 var colToIdx = new Dictionary<string, int>();
                 for (int idx = 0; idx < cols.Length; idx++)
                     colToIdx.Add(cols[idx].Name, idx);
-                
-                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, alter);                
+
+                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, alter);
+            }
+        }
+
+        private struct CqlQueryTag
+        {
+            public Context Context;
+            public Dictionary<string, string> AlternativeMapping;
+        }
+
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            var eval = new CqlQueryEvaluator(_table as ITable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.Query;
+            var alter = eval.AlternativeMapping;
+            var conn = (_table as ITable).GetContext();
+            return conn.BeginExecuteReadQuery(cqlQuery, callback, state,
+                                              new CqlQueryTag() {AlternativeMapping = alter, Context = conn});
+        }
+
+        public TEntity EndExecute(IAsyncResult ar)
+        {
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            var conn = tag.Context;
+            using (var outp = conn.EndExecuteReadQuery(ar))
+            {
+                if (outp.RowsCount == 0)
+                    if (((MethodCallExpression) Expression).Method.Name == "First")
+                        throw new InvalidOperationException("Sequence contains no elements.");
+                    else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
+                        return default(TEntity);
+
+                var cols = outp.Columns;
+                var colToIdx = new Dictionary<string, int>();
+                for (int idx = 0; idx < cols.Length; idx++)
+                    colToIdx.Add(cols[idx].Name, idx);
+
+                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, tag.AlternativeMapping);
             }
         }
     }
@@ -97,7 +134,46 @@ namespace Cassandra.Data.Linq
                 var rows = outp.GetRows();
                 foreach (var row in rows)
                 {
-                    return (T)row[0];
+                    return (T) row[0];
+                }
+            }
+
+            throw new InvalidOperationException();
+        }
+
+        private struct CqlQueryTag
+        {
+            public Context Context;
+            public Dictionary<string, string> AlternativeMapping;
+        }
+
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            var eval = new CqlQueryEvaluator(_table as ITable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.Query;
+            var alter = eval.AlternativeMapping;
+            var conn = (_table as ITable).GetContext();
+            return conn.BeginExecuteReadQuery(cqlQuery, callback, state,
+                                              new CqlQueryTag() {AlternativeMapping = alter, Context = conn});
+        }
+
+        public T EndExecute(IAsyncResult ar)
+        {
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            var conn = tag.Context;
+            using (var outp = conn.EndExecuteReadQuery(ar))
+            {
+                if (outp.RowsCount != 1)
+                    throw new InvalidOperationException();
+
+                var cols = outp.Columns;
+                if (cols.Length != 1)
+                    throw new InvalidOperationException();
+                var rows = outp.GetRows();
+                foreach (var row in rows)
+                {
+                    return (T) row[0];
                 }
             }
 
@@ -106,7 +182,7 @@ namespace Cassandra.Data.Linq
     }
 
 
-    public class CqlQuery<TEntity> : IQueryable, IQueryable<TEntity>, IOrderedQueryable 
+    public class CqlQuery<TEntity> : IQueryable, IQueryable<TEntity>, IOrderedQueryable
     {
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
@@ -114,14 +190,14 @@ namespace Cassandra.Data.Linq
         internal CqlQuery()
         {
             this._expression = Expression.Constant(this);
-            this._table = (Table<TEntity>)this;
+            this._table = (Table<TEntity>) this;
         }
 
         internal CqlQuery(Expression expression, IQueryProvider table)
-		{
-			this._expression = expression;
+        {
+            this._expression = expression;
             this._table = table;
-		}
+        }
 
         public IEnumerator<TEntity> GetEnumerator()
         {
@@ -132,10 +208,10 @@ namespace Cassandra.Data.Linq
         {
             return GetEnumerator();
         }
-        
+
         public Type ElementType
         {
-            get { return typeof(TEntity); }
+            get { return typeof (TEntity); }
 
         }
 
@@ -149,14 +225,14 @@ namespace Cassandra.Data.Linq
             get { return _table; }
         }
 
-		public override string ToString()
-		{
+        public override string ToString()
+        {
             CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             return eval.Query;
-		}
+        }
 
-        public IEnumerable<TEntity> Execute() 
+        public IEnumerable<TEntity> Execute()
         {
             CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
@@ -177,12 +253,49 @@ namespace Cassandra.Data.Linq
             }
         }
 
+        private struct CqlQueryTag
+        {
+            public Context Context;
+            public Dictionary<string, string> AlternativeMapping;
+        }
+
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            var eval = new CqlQueryEvaluator(_table as ITable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.Query;
+            var alter = eval.AlternativeMapping;
+            var conn = (_table as ITable).GetContext();
+            return conn.BeginExecuteReadQuery(cqlQuery, callback, state,
+                                              new CqlQueryTag() {AlternativeMapping = alter, Context = conn});
+        }
+
+        public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
+        {
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            var conn = tag.Context;
+            using (var outp = conn.EndExecuteReadQuery(ar))
+            {
+                var cols = outp.Columns;
+                var colToIdx = new Dictionary<string, int>();
+                for (int idx = 0; idx < cols.Length; idx++)
+                    colToIdx.Add(cols[idx].Name, idx);
+                var rows = outp.GetRows();
+                foreach (var row in rows)
+                {
+                    yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.AlternativeMapping);
+                }
+            }
+        }
     }
 
     public interface ICqlCommand
     {
+        ITable GetTable();
         string GetCql();
         void Execute();
+        IAsyncResult BeginExecute(AsyncCallback callback, object state);
+        void EndExecute(IAsyncResult ar);
     }
 
     public class CqlDelete : ICqlCommand
@@ -196,7 +309,12 @@ namespace Cassandra.Data.Linq
             this._table = table;
         }
 
-        public System.Linq.Expressions.Expression Expression
+        public ITable GetTable()
+        {
+            return (_table as ITable);
+        }
+
+        public Expression Expression
         {
             get { return _expression; }
         }
@@ -211,9 +329,30 @@ namespace Cassandra.Data.Linq
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
-            var alter = eval.AlternativeMapping;
             var conn = (_table as ITable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery); 
+        }
+
+        private struct CqlQueryTag
+        {
+            public Context Context;
+        }
+        
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            var eval = new CqlQueryEvaluator(_table as ITable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.DeleteQuery;
+            var conn = (_table as ITable).GetContext();
+            return conn.BeginExecuteWriteQuery(cqlQuery, callback, state,
+                                              new CqlQueryTag() { Context = conn });
+        }
+
+        public void EndExecute(IAsyncResult ar)
+        {
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            var conn = tag.Context;
+            conn.EndExecuteWriteQuery(ar);
         }
 
         public string GetCql()
@@ -237,9 +376,14 @@ namespace Cassandra.Data.Linq
             this._table = table;
         }
 
-        public System.Linq.Expressions.Expression Expression
+        public Expression Expression
         {
             get { return _expression; }
+        }
+
+        public ITable GetTable()
+        {
+            return (_table as ITable);
         }
 
         public override string ToString()
@@ -252,9 +396,30 @@ namespace Cassandra.Data.Linq
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
-            var alter = eval.AlternativeMapping;
             var conn = (_table as ITable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery);
+        }
+        
+        private struct CqlQueryTag
+        {
+            public Context Context;
+        }
+
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            var eval = new CqlQueryEvaluator(_table as ITable);
+            eval.Evaluate(Expression);
+            var cqlQuery = eval.UpdateQuery;
+            var conn = (_table as ITable).GetContext();
+            return conn.BeginExecuteWriteQuery(cqlQuery, callback, state,
+                                              new CqlQueryTag() { Context = conn });
+        }
+
+        public void EndExecute(IAsyncResult ar)
+        {
+            var tag = (CqlQueryTag)Session.GetTag(ar);
+            var conn = tag.Context;
+            conn.EndExecuteWriteQuery(ar);
         }
 
         public string GetCql()

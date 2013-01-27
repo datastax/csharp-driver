@@ -224,7 +224,7 @@ namespace Cassandra
 
         public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
         {
-            var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,
+            var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,null,
                                                              Timeout.Infinite);
 
             _controlConnection.SubmitSchemaRefresh(keyspace, table, ar);
