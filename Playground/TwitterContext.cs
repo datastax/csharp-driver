@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Cassandra;
-using Cassandra.Data;
+﻿using Cassandra;
+using Cassandra.Data.Linq;
 
 namespace Playground
 {

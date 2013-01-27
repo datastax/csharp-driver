@@ -41,10 +41,6 @@
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
     <Reference Include="System.Xml" />
-    <Reference Include="xunit, Version=1.9.1.1600, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\References\xunit\xunit.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -63,19 +59,20 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="README.rst" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cassandra.Data.Linq.Test\Cassandra.Data.Linq.Test.csproj">
       <Project>{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}</Project>
       <Name>Cassandra.Data.Linq.Test</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Native.Test\Cassandra.Native.Test.csproj">
+    <ProjectReference Include="..\Cassandra.Test\Cassandra.Test.csproj">
       <Project>{D222E239-F11B-487E-819F-73FB732B6AD8}</Project>
       <Name>Cassandra.Native.Test</Name>
     </ProjectReference>
-    <ProjectReference Include="TestRunner4XUnit\TestRunner4XUnit.csproj">
+    <ProjectReference Include="TestRunnerLib\TestRunnerLib.csproj">
       <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
-      <Name>TestRunner4XUnit</Name>
+      <Name>TestRunnerLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

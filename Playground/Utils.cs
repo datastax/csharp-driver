@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Cassandra.Data;
-using Cassandra;
-using System.Reflection;
+using Cassandra.Data.Linq;
 
 namespace Playground
 {
     public static class Utils
     {
-        public static void DisplayTable(this CqlTable<Statistics> table)
+        public static void DisplayTable(this Table<Statistics> table)
         {            
             Console.WriteLine("┌──────────┬────────────────┬─────────────┐");
             Console.WriteLine(String.Format("│{0,10}│{1,16}│{2,13}│", "Author ID", "Followers count", "Tweets count"));

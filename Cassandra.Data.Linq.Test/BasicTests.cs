@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using Xunit;
+using Dev;
 using System.Linq;
 using System.Threading;
 using System.Globalization;
-namespace Cassandra.Data.LinqTest
+
+namespace Cassandra.Data.Linq.Test
 {
     public class TweetsContext : Context
     {
@@ -37,7 +38,7 @@ namespace Cassandra.Data.LinqTest
         public HashSet<string> exampleSet = new HashSet<string>();
     }
 
-    public class BasicTests : IUseFixture<Dev.SettingsFixture>, IDisposable
+    public class BasicTests : IDisposable
     {
         public BasicTests()
         {
@@ -73,7 +74,7 @@ namespace Cassandra.Data.LinqTest
         public void Test1()
         {
             var table = ents.GetTable<Tweets>();
-        
+
             int RowsNo = 2000;
             List<Tweets> entL = new List<Tweets>();
             for (int i = 0; i < RowsNo; i++)

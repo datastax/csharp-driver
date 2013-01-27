@@ -7,7 +7,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Collections;
 
-namespace Cassandra.Data
+namespace Cassandra.Data.Linq
 {
     internal static class ReflExt
     {
@@ -251,7 +251,7 @@ namespace Cassandra.Data
 
 
 
-        public static List<string> GetCreateCQL(ICqlTable table, string tablename = null)
+        public static List<string> GetCreateCQL(ITable table, string tablename = null)
         {
             var commands = new List<string>();
             var ret = new StringBuilder();
@@ -582,9 +582,9 @@ namespace Cassandra.Data
         internal static MethodInfo SelectMi = typeof(CqlMthHelps).GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo FirstMi = typeof(CqlMthHelps).GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo First_ForCQLTableMi = typeof(CqlMthHelps).GetMethod("First", new Type[] { typeof(ICqlTable), typeof(int), typeof(object) });        
+        internal static MethodInfo First_ForCQLTableMi = typeof(CqlMthHelps).GetMethod("First", new Type[] { typeof(ITable), typeof(int), typeof(object) });        
         internal static MethodInfo FirstOrDefaultMi = typeof(CqlMthHelps).GetMethod("FirstOrDefault", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo FirstOrDefault_ForCQLTableMi = typeof(CqlMthHelps).GetMethod("FirstOrDefault", new Type[] { typeof(ICqlTable), typeof(int), typeof(object) }); 
+        internal static MethodInfo FirstOrDefault_ForCQLTableMi = typeof(CqlMthHelps).GetMethod("FirstOrDefault", new Type[] { typeof(ITable), typeof(int), typeof(object) }); 
         internal static MethodInfo TakeMi = typeof(CqlMthHelps).GetMethod("Take", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo CountMi = typeof(CqlMthHelps).GetMethod("Count", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo OrderByMi = typeof(CqlMthHelps).GetMethod("OrderBy", BindingFlags.NonPublic | BindingFlags.Static);
@@ -594,9 +594,9 @@ namespace Cassandra.Data
         internal static object Select(object a, object b) { return null; }
         internal static object Where(object a, object b) { return null; }        
         internal static object First(object a, int b) { return null; }
-        public static object First(ICqlTable a, int b, object c) { return null; }
+        public static object First(ITable a, int b, object c) { return null; }
         internal static object FirstOrDefault(object a, int b) { return null; }
-        public static object FirstOrDefault(ICqlTable a, int b, object c) { return null; }
+        public static object FirstOrDefault(ITable a, int b, object c) { return null; }
         internal static object Take(object a, int b) { return null; }
         internal static object Count(object a) { return null; }
         internal static object OrderBy(object a, object b) { return null; }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-namespace Cassandra.Data
+namespace Cassandra.Data.Linq
 {
     public static class CqlQueryExtensions
     {
@@ -25,14 +25,14 @@ namespace Cassandra.Data
             return new CqlScalar<long>(source.Expression, source.Provider);
         }
 
-        public static CqlQuerySingleElement<TSource> First<TSource>(this CqlTable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        public static CqlQuerySingleElement<TSource> First<TSource>(this Table<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
             return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                     null, CqlMthHelps.First_ForCQLTableMi,
                      new Expression[] { source.Expression, Expression.Constant(1), predicate })).Expression, source.Provider);
         }
 
-        public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this CqlTable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this Table<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
             return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                     null, CqlMthHelps.FirstOrDefault_ForCQLTableMi,

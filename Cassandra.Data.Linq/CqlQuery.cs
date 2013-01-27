@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections;
 
-namespace Cassandra.Data
+namespace Cassandra.Data.Linq
 {
 
     public class CqlQuerySingleElement<TEntity>
@@ -31,18 +31,18 @@ namespace Cassandra.Data
 
 		public override string ToString()
 		{
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             return eval.Query;
 		}
 
         public TEntity Execute()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ICqlTable).GetContext();
+            var conn = (_table as ITable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 if (outp.RowsCount == 0)
@@ -81,11 +81,11 @@ namespace Cassandra.Data
 
         public T Execute()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.CountQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ICqlTable).GetContext();
+            var conn = (_table as ITable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 if (outp.RowsCount != 1)
@@ -114,7 +114,7 @@ namespace Cassandra.Data
         internal CqlQuery()
         {
             this._expression = Expression.Constant(this);
-            this._table = (CqlTable<TEntity>)this;
+            this._table = (Table<TEntity>)this;
         }
 
         internal CqlQuery(Expression expression, IQueryProvider table)
@@ -151,18 +151,18 @@ namespace Cassandra.Data
 
 		public override string ToString()
 		{
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             return eval.Query;
 		}
 
         public IEnumerable<TEntity> Execute() 
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ICqlTable);
+            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ICqlTable).GetContext();
+            var conn = (_table as ITable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
                 var cols = outp.Columns;
@@ -208,17 +208,17 @@ namespace Cassandra.Data
 
         public void Execute()
         {
-            var eval = new CqlQueryEvaluator(_table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ICqlTable).GetContext();
+            var conn = (_table as ITable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery); 
         }
 
         public string GetCql()
         {
-            var eval = new CqlQueryEvaluator(_table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
             return cqlQuery;
@@ -249,17 +249,17 @@ namespace Cassandra.Data
 
         public void Execute()
         {
-            var eval = new CqlQueryEvaluator(_table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ICqlTable).GetContext();
+            var conn = (_table as ITable).GetContext();
             conn.ExecuteWriteQuery(cqlQuery);
         }
 
         public string GetCql()
         {
-            var eval = new CqlQueryEvaluator(_table as ICqlTable);
+            var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
             return cqlQuery;

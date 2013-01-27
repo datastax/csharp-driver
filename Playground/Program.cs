@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Net;
 using System.Threading;
 using System.Globalization;
-using Cassandra.Data;
 using Cassandra;
 using System.Linq;
+using Cassandra.Data.Linq;
 
 namespace Playground
 {

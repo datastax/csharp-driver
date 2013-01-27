@@ -4,13 +4,13 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections;
 
-namespace Cassandra.Data
+namespace Cassandra.Data.Linq
 {
     internal class CqlQueryEvaluator
     {
-        readonly ICqlTable _table;
+        readonly ITable _table;
 
-        internal CqlQueryEvaluator(ICqlTable table)
+        internal CqlQueryEvaluator(ITable table)
 		{
             this._table = table;
 
@@ -285,7 +285,7 @@ namespace Cassandra.Data
 				SetLimit(exp.Arguments[1]);
             else if (exp.Method.Name == "First" || exp.Method.Name == "FirstOrDefault")
                 {
-                    if (exp.Method.GetParameters().Any(param => param.ParameterType == typeof(ICqlTable)))
+                    if (exp.Method.GetParameters().Any(param => param.ParameterType == typeof(ITable)))
                         AddCriteria(exp.Arguments[2]);
                     SetLimit(exp.Arguments[1]);
                 }

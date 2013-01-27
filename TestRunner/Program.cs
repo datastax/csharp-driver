@@ -74,14 +74,14 @@ namespace TestRunner
             }
             catch (Exception ex)
             {
-                if (ex.InnerException is Xunit.Sdk.AssertException)
+                if (ex.InnerException is Dev.AssertException)
                 {
                     Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.Red;
                     var s = type.FullName + "." + mth.Name + "() Failed!";
                     Console.WriteLine(s);
                     output.WriteLine(s);
-                    s = (ex.InnerException as Xunit.Sdk.AssertException).UserMessage;
+                    s = (ex.InnerException as Dev.AssertException).UserMessage;
                     Console.WriteLine(s);
                     Console.WriteLine(new string(' ', 79));
                     output.WriteLine(s);
@@ -141,7 +141,7 @@ namespace TestRunner
                         {
                             if (mth.GetCustomAttributes(typeof(Dev.PrioriotyAttribute), true).Length == 0)
                                 continue;
-                            if (mth.GetCustomAttributes(typeof(Xunit.FactAttribute), true).Length > 0)
+                            if (mth.GetCustomAttributes(typeof(Dev.FactAttribute), true).Length > 0)
                             {
                                 Test(ref testObj, type, mth, mysetting, output, ref Passed, ref Failed);
                             }
@@ -174,7 +174,7 @@ namespace TestRunner
                         {
                             if (mth.GetCustomAttributes(typeof(Dev.PrioriotyAttribute), true).Length > 0)
                                 continue;
-                            if (mth.GetCustomAttributes(typeof(Xunit.FactAttribute), true).Length > 0)
+                            if (mth.GetCustomAttributes(typeof(Dev.FactAttribute), true).Length > 0)
                             {
                                 Test(ref testObj, type, mth, mysetting, output, ref Passed, ref Failed);
                             }

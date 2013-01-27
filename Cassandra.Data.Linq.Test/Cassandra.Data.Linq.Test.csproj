@@ -37,9 +37,6 @@
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Data.Linq" />
     <Reference Include="System.Xml" />
-    <Reference Include="xunit">
-      <HintPath>..\References\xunit\xunit.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BasicTests.cs" />
@@ -50,13 +47,13 @@
       <Project>{7FD62B8B-365D-48D6-8C21-2EF215294F64}</Project>
       <Name>Cassandra.Data.Linq</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Native\Cassandra.Native.csproj">
+    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra.Native</Name>
     </ProjectReference>
-    <ProjectReference Include="..\TestRunner\TestRunner4XUnit\TestRunner4XUnit.csproj">
+    <ProjectReference Include="..\TestRunner\TestRunnerLib\TestRunnerLib.csproj">
       <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
-      <Name>TestRunner4XUnit</Name>
+      <Name>TestRunnerLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
