@@ -395,8 +395,8 @@ namespace Cassandra
                         var drblWrites = row.GetValue<bool>("durable_writes");
                         var rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));
 
-                        var newMetadata = new KeyspaceMetadata(strKsName, drblWrites, strClass,
-                                                               new ReadOnlyDictionary<string, int?>(rplctOptions));
+                        var newMetadata = new KeyspaceMetadata(this, strKsName, drblWrites, strClass,
+                                                               new ReadOnlyDictionary<string, int>(rplctOptions));
 
                         newKeyspaces.InternalSetup(strKsName, newMetadata);
                     }
@@ -442,8 +442,8 @@ namespace Cassandra
                         var drblWrites = row.GetValue<bool>("durable_writes");
                         var rplctOptions = Utils.ConvertStringToMap(row.GetValue<string>("strategy_options"));
 
-                        ks = new KeyspaceMetadata(strKsName, drblWrites, strClass,
-                                                  new ReadOnlyDictionary<string, int?>(rplctOptions));
+                        ks = new KeyspaceMetadata(this, strKsName, drblWrites, strClass,
+                                                  new ReadOnlyDictionary<string, int>(rplctOptions));
 
                     }
                 }
@@ -454,9 +454,10 @@ namespace Cassandra
                 using (
                     var rows =
                         _session.Query(string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace)))
-                {
+                {                    
                     foreach (var row in rows.GetRows())
                         ktb.InternalSetup(row.GetValue<string>("columnfamily_name"), new AtomicValue<TableMetadata>(null));
+                    
                 }
                 ks.Tables.Value = ktb;
                 sc.InternalSetup(ks.Name, ks);
@@ -558,18 +559,17 @@ namespace Cassandra
             return SetupTable(keyspace, table);
         }
 
-        public StrategyClass GetStrategyClass(string strClass)
+        public string GetStrategyClass(string strClass)
         {
             if (strClass != null)
             {
-                strClass = strClass.Replace("org.apache.cassandra.locator.", "");
-                List<StrategyClass> strategies = new List<StrategyClass>((StrategyClass[])Enum.GetValues(typeof(StrategyClass)));
-                foreach (var stratg in strategies)
-                    if (strClass == stratg.ToString())
-                        return stratg;
+                if (strClass.StartsWith("org.apache.cassandra.locator."))
+                    strClass = strClass.Replace("org.apache.cassandra.locator.", "");
             }
+            else
+                throw new ArgumentNullException("Cannot retrieve informations about strategy class!");
 
-            return StrategyClass.Unknown;
+            return strClass;
         }
 
         public TableMetadata GetTableMetadata(string tableName, string keyspaceName)

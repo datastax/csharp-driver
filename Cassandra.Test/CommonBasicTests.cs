@@ -55,49 +55,6 @@ namespace MyUTExt
             Cluster.Shutdown();
         }
 
-        //public void ProcessOutput(IOutput ret, object expectedValue = null)
-        //{
-        //    using (ret)
-        //    {
-        //        if (ret is OutputError)
-        //        {
-        //            if (expectedValue is OutputError)
-        //                Dev.Assert.True(true, "CQL Error [" + (ret as OutputError).CassandraErrorType.ToString() + "] " + (ret as OutputError).Message);
-        //            else
-        //                Dev.Assert.True(false, "CQL Error [" + (ret as OutputError).CassandraErrorType.ToString() + "] " + (ret as OutputError).Message);
-        //        }
-        //        else if (ret is OutputPrepared)
-        //        {
-        //            Console.WriteLine("CQL> Prepared:\t" + (ret as OutputPrepared).QueryID);
-        //        }
-        //        else if (ret is OutputSetKeyspace)
-        //        {
-        //            if (expectedValue != null)
-        //                Dev.Assert.Equal((string)expectedValue, (ret as OutputSetKeyspace).Value);
-        //            Console.WriteLine("CQL> SetKeyspace:\t" + (ret as OutputSetKeyspace).Value);
-        //        }
-        //        else if (ret is OutputVoid)
-        //        {
-        //            if (expectedValue != null)
-        //                Dev.Assert.True(false, string.Format("\n ReceivedAcknowledgements output:  {0} \n Expected output:  {1}", ret.ToString(), expectedValue.ToString()));
-        //            else
-        //                Console.WriteLine("CQL> (OK)");
-        //        }
-        //        else if (ret is OutputRows)
-        //        {
-        //            if (expectedValue != null)
-        //                Dev.Assert.Equal((int)expectedValue, (ret as OutputRows).Rows);
-        //            CqlRowSet rowPopulator = new CqlRowSet(ret as OutputRows);
-        //            rowPopulator.PrintTo(stream: Console.Out, cellEncoder: CellEncoder);
-        //            Console.WriteLine("CQL> Done.");
-        //        }
-        //        else
-        //        {
-        //            Dev.Assert.True(false, "Unexpected IOutput: " + ret.GetType().FullName);
-        //        }
-        //    }
-        //}
-
         private static string CellEncoder(object col)
         {
             return col.ToString();
@@ -676,12 +633,12 @@ PRIMARY KEY(tweet_id)
                     {"q13set", ColumnTypeCode.Set},
                     {"q14map", ColumnTypeCode.Map}
                     //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
-                };
+                };            
 
             string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
             StringBuilder sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
             Randomm urndm = new Randomm(DateTimeOffset.Now.Millisecond);
-
+            
             foreach (var col in columns)
                 sb.Append(col.Key + " " + col.Value.ToString() +
                           (((col.Value == ColumnTypeCode.List) ||
@@ -716,13 +673,13 @@ PRIMARY KEY(tweet_id)
         {
             string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
             bool durableWrites = false;
-            StrategyClass strgyClass = StrategyClass.SimpleStrategy;
+            string strgyClass = "SimpleStrategy";
             short rplctnFactor = 1;
             Session.Execute(
 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
-, keyspacename, Enum.GetName(typeof(StrategyClass), strgyClass), rplctnFactor.ToString(), durableWrites.ToString()));
+, keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString()));
 
             Session.ChangeKeyspace(keyspacename);
             

@@ -4,31 +4,88 @@ using System.Text;
 
 namespace Cassandra
 {
-    public enum StrategyClass
-    {
-        Unknown = 0,
-        SimpleStrategy = 1,
-        NetworkTopologyStrategy = 2,
-        OldNetworkTopologyStrategy = 3
-    }
-
     public class KeyspaceMetadata
     {
+        /// <summary>
+        ///  Gets the name of this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>the name of this CQL keyspace.</returns>
         public string Name { get; private set; }
-        public bool? DurableWrites { get; private set; }
-        public StrategyClass StrategyClass { get; private set; }
-        public ReadOnlyDictionary<string, int?> Replication { get; private set; }
+
+        /// <summary>
+        ///  Gets a value indicating whether durable writes are set on this keyspace.
+        /// </summary>
+        /// 
+        /// <returns><code>true</code> if durable writes are set on this keyspace
+        ///  , <code>false</code> otherwise.</returns>
+        public bool DurableWrites { get; private set; }
+
+        /// <summary>
+        ///  Gets the Strategy Class of this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>name of StrategyClass of this keyspace.</returns>
+        public string StrategyClass { get; private set; }
+
+        /// <summary>
+        ///  Returns the replication options for this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
+        public ReadOnlyDictionary<string, int> Replication { get; private set; }
 
         internal readonly AtomicValue<ReadOnlyDictionary<string, AtomicValue<TableMetadata>>> Tables =
             new AtomicValue<ReadOnlyDictionary<string, AtomicValue<TableMetadata>>>(null);
 
-        internal KeyspaceMetadata(string name, bool? durableWrites, StrategyClass strategyClass,
-                                  ReadOnlyDictionary<string, int?> replicationOptions)
+        internal readonly ControlConnection _cc;
+
+        internal KeyspaceMetadata(ControlConnection cc, string name, bool durableWrites, string strategyClass,
+                                  ReadOnlyDictionary<string, int> replicationOptions)
         {
+            _cc = cc;
             Name = name;
             DurableWrites = durableWrites;
             StrategyClass = strategyClass;
             Replication = replicationOptions;
+        }
+
+
+        /// <summary>
+        ///  Returns metadata of specified table in this keyspace.
+        /// </summary>
+        /// <param name="tableName"> the name of table to retrieve </param>
+        /// 
+        /// <returns>the metadata for table <code>tableName</code> in this keyspace if it
+        ///  exists, <code>null</code> otherwise.</returns>
+        public TableMetadata GetTableMetadata(string tableName)
+        {
+            return _cc.GetTable(Name, tableName);
+        }
+
+
+        /// <summary>
+        ///  Returns metadata of all tables defined in this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>an IEnumerable of TableMetadata for the tables defined in this
+        ///  keyspace.</returns>
+        public IEnumerable<TableMetadata> GetTablesMetadata()
+        {
+            foreach (var tableName in _cc.GetTables(Name))
+                yield return _cc.GetTable(Name, tableName);
+        }
+
+
+        /// <summary>
+        ///  Returns names of all tables defined in this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>a collection of all, defined in this
+        ///  keyspace tables names.</returns>
+        public ICollection<string> GetTablesNames()
+        {
+            return _cc.GetTables(this.Name);
         }
 
         /// <summary>
@@ -53,14 +110,15 @@ namespace Cassandra
             return sb.ToString();
         }
 
+
         /// <summary>
-        ///  Returns a CQL query representing this name. This method returns a single
+        ///  Returns a CQL query representing this keyspace. This method returns a single
         ///  'CREATE KEYSPACE' query with the options corresponding to this name
         ///  definition.
         /// </summary>
         /// 
         /// <returns>the 'CREATE KEYSPACE' query corresponding to this name.
-        ///  <see>#exportAsString</returns>
+        ///  <see>#ExportAsString</see></returns>
         public string AsCqlQuery()
         {
             var sb = new StringBuilder();

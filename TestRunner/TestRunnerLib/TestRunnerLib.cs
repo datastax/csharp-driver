@@ -79,7 +79,7 @@ namespace Dev
 
         public static void Equal<T>(T expected, T actual)
         {
-            if (!((expected == null && actual == null) || !(expected != null && expected.Equals(actual))))
+            if (!((expected == null && actual == null) || (expected != null && expected.Equals(actual))))
             {
                 Debugger.Break();
                 throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual));

@@ -236,19 +236,19 @@ namespace Cassandra
             return true;
         }
 
-        public static IDictionary<string, int?> ConvertStringToMap(string source)
+        public static IDictionary<string, int> ConvertStringToMap(string source)
         {
             var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
-            var map = new SortedDictionary<string,int?>();
+            var map = new SortedDictionary<string,int>();
 
             if(source != "{}")
                 foreach (var elem in elements)
                 {
                     int value;
-                    if (int.TryParse(elem.Split(':')[1].Replace("\"",""), out value))
-                        map.Add(elem.Split(':')[0], value);
+                    if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out value))
+                        map.Add(elem.Split(':')[0].Replace("\"", ""), value);
                     else
-                        map.Add(elem.Split(':')[0], null);
+                        throw new FormatException("Value of keyspace strategy option is in invalid format!");                        
                 }
 
             return map;

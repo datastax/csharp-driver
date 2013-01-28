@@ -21,6 +21,17 @@ namespace Cassandra
             this._controlConnection = controlConnection;
         }
 
+        /// <summary>
+        ///  Returns the name of currently connected cluster.
+        /// </summary>
+        /// 
+        /// <returns>the Cassandra name of currently connected cluster.</returns>
+        public String GetClusterName()
+        {
+            return ClusterName;
+        }
+
+
         public Host GetHost(IPAddress address)
         {
             return _hosts[address];
@@ -37,10 +48,18 @@ namespace Cassandra
             _hosts.RemoveIfExists(address);
         }
 
+
+
+        /// <summary>
+        ///  Returns all known hosts of this cluster.
+        /// </summary>
+        /// 
+        /// <returns>collection of all known hosts of this cluster.</returns>
         public ICollection<Host> AllHosts()
         {
             return _hosts.All();
         }
+
 
         public IEnumerable<IPAddress> AllReplicas()
         {
@@ -54,6 +73,8 @@ namespace Cassandra
 
         private volatile TokenMap _tokenMap;
 
+
+
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
             if(_tokenMap==null)
@@ -66,24 +87,53 @@ namespace Cassandra
             }
         }
 
+
+        /// <summary>
+        ///  Returns a collection of all defined keyspaces names.
+        /// </summary>
+        /// 
+        /// <returns>a collection of all defined keyspaces names.</returns>
         public ICollection<string> GetKeyspaces()
         {
             return _controlConnection.GetKeyspaces();
         }
 
+
+        /// <summary>
+        ///  Returns metadata of specified keyspace.
+        /// </summary>
+        /// <param name="keyspace"> the name of the keyspace for which metadata should be
+        ///  returned. </param>
+        /// 
+        /// <returns>the metadat of the requested keyspace or <code>null</code> if
+        ///  <code>* keyspace</code> is not a known keyspace.</returns>
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {
             return _controlConnection.GetKeyspace(keyspace);
         }
 
+        /// <summary>
+        ///  Returns names of all tables which are defined within specified keyspace.
+        /// </summary>
+        /// <param name="keyspace">the name of the keyspace for which all tables metadata should be
+        ///  returned.</param>
+        /// <returns>an ICollection of the metadata for the tables defined in this
+        ///  keyspace.</returns>
         public ICollection<string> GetTables(string keyspace)
         {
             return _controlConnection.GetTables(keyspace);
         }
 
-        public TableMetadata GetTable(string keyspace, string table)
+
+        /// <summary>
+        ///  Returns TableMetadata for specified table in specified keyspace.
+        /// </summary>
+        /// <param name="keyspace">name of the keyspace within specified table is definied.</param>
+        /// <param name="tableName">name of table for which metadata should be returned.</param>
+        /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
+        public TableMetadata GetTable(string keyspace, string tableName)
         {
-            return _controlConnection.GetTable(keyspace, table);
+            return _controlConnection.GetTable(keyspace, tableName);
         }
     }
 
@@ -148,217 +198,4 @@ namespace Cassandra
             return _tokenToCassandraClusterHosts[_ring[i]];
         }
     }
-
-
-   // private readonly Dictionary<String, KeyspaceMetadata> keyspaces = new Dictionary<String, KeyspaceMetadata>();
-
-    //private volatile TokenMap tokenMap;
-
-    //Metadata(Cluster.Manager cluster) {
-    //    this.cluster = cluster;
-    //}
-
-    //// Synchronized to make it easy to detect dropped keyspaces
-    //synchronized void rebuildSchema(String keyspace, String table, ResultSet ks, ResultSet cfs, ResultSet cols) {
-
-    //    Dictionary<String, List<Clustering>> cfDefs = new Dictionary<String, List<Clustering>>();
-    //    Dictionary<String, Dictionary<String, List<Clustering>>> colsDefs = new Dictionary<String, Dictionary<String, List<Clustering>>>();
-
-    //    // Gather cf defs
-    //    for (Clustering row : cfs) {
-    //        String DefaultKeyspace = row.getString(KeyspaceMetadata.KS_NAME);
-    //        List<Clustering> l = cfDefs.get(DefaultKeyspace);
-    //        if (l == null) {
-    //            l = new ArrayList<Clustering>();
-    //            cfDefs.put(DefaultKeyspace, l);
-    //        }
-    //        l.add(row);
-    //    }
-
-    //    // Gather TableColumns per Cf
-    //    for (Clustering row : cols) {
-    //        String DefaultKeyspace = row.getString(KeyspaceMetadata.KS_NAME);
-    //        String cfName = row.getString(RowSetMetadata.CF_NAME);
-    //        Dictionary<String, List<Clustering>> colsByCf = colsDefs.get(DefaultKeyspace);
-    //        if (colsByCf == null) {
-    //            colsByCf = new Dictionary<String, List<Clustering>>();
-    //            colsDefs.put(DefaultKeyspace, colsByCf);
-    //        }
-    //        List<Clustering> l = colsByCf.get(cfName);
-    //        if (l == null) {
-    //            l = new ArrayList<Clustering>();
-    //            colsByCf.put(cfName, l);
-    //        }
-    //        l.add(row);
-    //    }
-
-    //    if (table == null) {
-    //        assert ks != null;
-    //        Set<String> addedKs = new HashSet<String>();
-    //        for (Clustering ksRow : ks) {
-    //            String DefaultKeyspace = ksRow.getString(KeyspaceMetadata.KS_NAME);
-    //            KeyspaceMetadata ksm = KeyspaceMetadata.build(ksRow);
-
-    //            if (cfDefs.containsKey(DefaultKeyspace)) {
-    //                buildTableMetadata(ksm, cfDefs.get(DefaultKeyspace), colsDefs.get(DefaultKeyspace));
-    //            }
-    //            addedKs.add(DefaultKeyspace);
-    //            keyspaces.put(DefaultKeyspace, ksm);
-    //        }
-
-    //        // If keyspace is null, it means we're rebuilding from scratch, so
-    //        // remove anything that was not just added as it means it's a dropped keyspace
-    //        if (keyspace == null) {
-    //            Iterator<String> iter = keyspaces.keySet().iterator();
-    //            while (iter.hasNext()) {
-    //                if (!addedKs.contains(iter.next()))
-    //                    iter.remove();
-    //            }
-    //        }
-    //    } else {
-    //        assert keyspace != null;
-    //        KeyspaceMetadata ksm = keyspaces.get(keyspace);
-
-    //        // If we update a keyspace we don't know about, something went
-    //        // wrong. Log an error an schedule a full schema rebuilt.
-    //        if (ksm == null) {
-    //            logger.error(String.format("Asked to rebuild table %s.%s but I don't know keyspace %s", keyspace, table, keyspace));
-    //            cluster.submitSchemaRefresh(null, null);
-    //            return;
-    //        }
-
-    //        if (cfDefs.containsKey(keyspace))
-    //            buildTableMetadata(ksm, cfDefs.get(keyspace), colsDefs.get(keyspace));
-    //    }
-    //}
-
-    //private static void buildTableMetadata(KeyspaceMetadata ksm, List<Clustering> cfRows, Dictionary<String, List<Clustering>> colsDefs) {
-    //    boolean hasColumns = (colsDefs != null) && !colsDefs.isEmpty();
-    //    for (Clustering cfRow : cfRows) {
-    //        String cfName = cfRow.getString(RowSetMetadata.CF_NAME);
-    //        RowSetMetadata tm = RowSetMetadata.build(ksm, cfRow, hasColumns);
-
-    //        if (!hasColumns || colsDefs.get(cfName) == null)
-    //            continue;
-
-    //        for (Clustering colRow : colsDefs.get(cfName)) {
-    //            ColumnMetadata.build(tm, colRow);
-    //        }
-    //    }
-    //}
-
-
-
-    //CassandraClusterHost add(IPEndPoint address) {
-    //    CassandraClusterHost newCassandraClusterHost = new CassandraClusterHost(address, cluster.convictionPolicyFactory);
-    //    CassandraClusterHost previous = CassandraClusterHosts.putIfAbsent(address, newCassandraClusterHost);
-    //    if (previous == null)
-    //    {
-    //        newCassandraClusterHost.getMonitor().register(cluster);
-    //        return newCassandraClusterHost;
-    //    }
-    //    else
-    //    {
-    //        return null;
-    //    }
-    //}
-
-    //boolean remove(CassandraClusterHost CassandraClusterHost) {
-    //    return CassandraClusterHosts.remove(CassandraClusterHost.getAddress()) != null;
-    //}
-
-    //CassandraClusterHost getCassandraClusterHost(IPEndPoint address) {
-    //    return CassandraClusterHosts.get(address);
-    //}
-
-    //// For internal use only
-    //Collection<CassandraClusterHost> allCassandraClusterHosts() {
-    //    return CassandraClusterHosts.values();
-    //}
-
-    ///**
-    // * The set of CassandraClusterHosts that are replica for a given partition key.
-    // * <p>
-    // * Note that this method is a best effort method. Consumers should not rely
-    // * too heavily on the result of this method not being stale (or even empty).
-    // *
-    // * @param partitionKey the partition key for which to find the set of
-    // * replica.
-    // * @return the (immutable) set of replicas for {@code partitionKey} as know
-    // * by the driver. No strong guarantee is provided on the stalelessness of
-    // * this information. It is also not guarantee that the returned set won't
-    // * be empty (which is then some form of staleness).
-    // */
-    //public Set<CassandraClusterHost> getReplicas(ByteBuffer partitionKey) {
-    //    TokenMap current = tokenMap;
-    //    if (current == null) {
-    //        return Collections.emptySet();
-    //    } else {
-    //        return current.getReplicas(current.factory.hash(partitionKey));
-    //    }
-    //}
-
-    ///**
-    // * The Cassandra name for the cluster connect to.
-    // *
-    // * @return the Cassandra name for the cluster connect to.
-    // */
-    //public String getClusterName() {
-    //    return clusterName;
-    //}
-
-    ///**
-    // * Returns the known CassandraClusterHosts of this cluster.
-    // *
-    // * @return A set will all the know CassandraClusterHost of this cluster.
-    // */
-    //public Set<CassandraClusterHost> getAllCassandraClusterHosts() {
-    //    return new HashSet<CassandraClusterHost>(allCassandraClusterHosts());
-    //}
-
-    ///**
-    // * Return the metadata of a keyspace given its name.
-    // *
-    // * @param keyspace the name of the keyspace for which metadata should be
-    // * returned.
-    // * @return the metadat of the requested keyspace or {@code null} if {@code
-    // * keyspace} is not a known keyspace.
-    // */
-    //public KeyspaceMetadata getKeyspace(String keyspace) {
-    //    return keyspaces.get(keyspace);
-    //}
-
-    ///**
-    // * Returns a list of all the defined keyspaces.
-    // *
-    // * @return a list of all the defined keyspaces.
-    // */
-    //public List<KeyspaceMetadata> getKeyspaces() {
-    //    return new ArrayList<KeyspaceMetadata>(keyspaces.values());
-    //}
-
-    ///**
-    // * Return a {@code String} containing CQL queries representing the schema
-    // * of this cluster.
-    // *
-    // * In other words, this method returns the queries that would allow to
-    // * recreate the schema of this cluster.
-    // *
-    // * Note that the returned String is formatted to be human readable (for
-    // * some defintion of human readable at least).
-    // *
-    // * @return the CQL queries representing this cluster schema as a {code
-    // * String}.
-    // */
-    //public String exportSchemaAsString() {
-    //    StringBuilder sb = new StringBuilder();
-
-    //    for (KeyspaceMetadata ksm : keyspaces.values())
-    //        sb.append(ksm.exportAsString()).append("\n");
-
-    //    return sb.toString();
-    //}
-
-
-//}
 }
