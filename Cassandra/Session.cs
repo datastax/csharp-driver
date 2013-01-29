@@ -29,6 +29,8 @@ namespace Cassandra
 
         private readonly ControlConnection _controlConnection;
 
+        
+
         internal Session(Cluster cluster,
                          IEnumerable<IPAddress> clusterEndpoints,
                          Policies policies,
@@ -261,18 +263,21 @@ namespace Cassandra
             }
 
             Debug.WriteLine("Allocated new connection");
-
+            
             return nconn;
         }
-
-        static string GetCreateKeyspaceCQL(string keyspace)
+        
+        static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string,string> replication, bool durable_writes)
         {
+            if (replication == null)
+                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "2" } };  
             return string.Format(
   @"CREATE KEYSPACE {0} 
-  WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }}"
-              , CqlQueryTools.CqlIdentifier(keyspace));
+  WITH replication = {1} 
+   AND durable_writes = {2}"
+  , Cassandra.CqlQueryTools.CqlIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
         }
-
+        
         static string GetUseKeyspaceCQL(string keyspace)
         {
             return string.Format(
@@ -287,16 +292,18 @@ namespace Cassandra
               , CqlQueryTools.CqlIdentifier(keyspace));
         }
 
-        public void CreateKeyspace(string ksname)
+
+        public void CreateKeyspace(string ksname, Dictionary<string,string> replication = null, bool durable_writes = true)
         {
-            Query(GetCreateKeyspaceCQL(ksname), ConsistencyLevel.Ignore);
+            Query(GetCreateKeyspaceCQL(ksname, replication, durable_writes), ConsistencyLevel.Ignore);
         }
 
-        public void CreateKeyspaceIfNotExists(string ksname)
+
+        public void CreateKeyspaceIfNotExists(string ksname, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             try
-            {
-                CreateKeyspace(ksname);
+            {                
+                CreateKeyspace(ksname, replication, durable_writes);
             }
             catch (AlreadyExistsException)
             {
@@ -907,4 +914,54 @@ namespace Cassandra
         }
 #endif
     }
+
+    public static class ReplicationStrategies
+    {
+        public const string NetworkTopologyStrategy = "NetworkTopologyStrategy";
+        public const string SimpleStrategy = "SimpleStrategy";
+
+
+        /// <summary>
+        ///  Returns replication property for SimpleStrategy.
+        /// </summary>        
+        /// <param name="replication_factor">Replication factor for the whole cluster.</param>
+        /// <returns>a dictionary of replication property sub-options.</returns>         
+        public static Dictionary<string, string> CreateSimpleStrategyReplicationProperty(int replication_factor)
+        {
+            return new Dictionary<string, string> { { "class", SimpleStrategy }, { "replication_factor", replication_factor.ToString() } };
+        }
+
+
+        /// <summary>
+        ///  Returns replication property for NetworkTopologyStrategy.
+        /// </summary>        
+        /// <param name="datacenters_replication_factors">Dictionary in which key is the name of a data-center, value is a replication factor for that data-center.</param>
+        /// <returns>a dictionary of replication property sub-options.</returns>         
+        public static Dictionary<string, string> CreateNetworkTopologyStrategyReplicationProperty(Dictionary<string, int> datacenters_replication_factors)
+        {
+            Dictionary<string, string> result = new Dictionary<string, string> { { "class", NetworkTopologyStrategy } };
+            if (datacenters_replication_factors.Count > 0)
+                foreach (var datacenter in datacenters_replication_factors)
+                    result.Add(datacenter.Key, datacenter.Value.ToString());
+            return result;
+        }
+
+
+        /// <summary>
+        ///  Returns replication property for other replication strategy. 
+        ///  Use it only if there is no dedicated method that creates replication property for specified replication strategy.
+        /// </summary>
+        /// <param name="strategy_class">Name of replication strategy.</param>
+        /// <param name="sub_options">Dictionary in which key is the name of sub-option, value is a value for that sub-option.</param>
+        /// <returns>a dictionary of replication property sub-options.</returns>         
+        public static Dictionary<string, string> CreateReplicationProperty(string strategy_class, Dictionary<string, string> sub_options)
+        {
+            Dictionary<string, string> result = new Dictionary<string, string> { { "class", strategy_class } };
+            if (sub_options.Count > 0)
+                foreach (var elem in sub_options)
+                    result.Add(elem.Key, elem.Value);
+            return result;
+        }
+    }
+
 }

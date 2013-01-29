@@ -236,6 +236,23 @@ namespace Cassandra
             return true;
         }
 
+        public static string ConvertToCqlMap(IDictionary<string, string> source)
+        {
+            StringBuilder sb = new StringBuilder("{");
+            if (source.Count > 0)
+            {
+                int counter = 0;
+                foreach (var elem in source)
+                {
+                    counter++;
+                    sb.Append("'" + elem.Key + "'" + " : " + (elem.Key == "class" ? "'"+elem.Value+"'" : elem.Value) + ((source.Count != counter) ? ", " : "}"));
+                }
+            }
+            else sb.Append("}");
+
+            return sb.ToString();
+        }
+
         public static IDictionary<string, int> ConvertStringToMap(string source)
         {
             var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
@@ -414,8 +431,9 @@ namespace Cassandra
             else
                 _dictionary[key] = value;
             Thread.MemoryBarrier();
-        }
+        }        
 
+        
     }
 }
 

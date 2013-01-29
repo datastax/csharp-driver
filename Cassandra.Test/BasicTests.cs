@@ -21,6 +21,21 @@ namespace Cassandra.Test
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
 
+
+        [Fact]
+        [Priorioty]
+        public void checkSimpleStrategyKeyspace()
+        {
+            CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
+        }
+        
+        [Fact]
+        [Priorioty]
+        public void checkNetworkTopologyStrategyKeyspace()
+        {
+            CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
+        }
+
         [Fact]
         [Priorioty]
         public void checkTableMetadata()

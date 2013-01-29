@@ -41,16 +41,17 @@ namespace MyUTExt
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US"); //"pl-PL");                       
             var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
-            clusterb.WithDefaultKeyspace("tester");
+            clusterb.WithDefaultKeyspace(Keyspace);
+            
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);
-            Cluster = clusterb.Build();
-            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
+            Cluster = clusterb.Build();            
+            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(2), true);            
         }
 
         public void Dispose()
         {
-            Session.DeleteKeyspace("tester");
+            Session.DeleteKeyspace(Keyspace);
             Session.Dispose();
             Cluster.Shutdown();
         }
@@ -691,6 +692,39 @@ string.Format(@"CREATE KEYSPACE {0}
             Assert.True(ksmd.DurableWrites == durableWrites);
             Assert.True(ksmd.Replication.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
             Assert.True(ksmd.StrategyClass == strgyClass);
+        }
+
+        public void CreateKeyspaceWithPropertiesTest(string strategy_class)
+        {
+            Session.DeleteKeyspaceIfExists(Keyspace);            
+            bool durable_writes = rndm.NextBoolean();
+
+            int? replication_factor = null;
+            int? data_centers_count = null;
+            Dictionary<string, int> datacenters_replication_factors = null;
+
+            if (strategy_class == ReplicationStrategies.SimpleStrategy)
+            {
+                replication_factor = rndm.Next(1, 21);
+                Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty((int)replication_factor), durable_writes);
+            }
+            else
+                if (strategy_class == ReplicationStrategies.NetworkTopologyStrategy)
+                {
+                    data_centers_count = rndm.Next(1, 11);
+                    datacenters_replication_factors = new Dictionary<string, int>((int)data_centers_count);
+                    for (int i = 0; i < data_centers_count; i++)
+                        datacenters_replication_factors.Add("dc" + i.ToString(), rndm.Next(1, 21));
+                    Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateNetworkTopologyStrategyReplicationProperty(datacenters_replication_factors), durable_writes);
+                }
+
+            KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspace(Keyspace);
+            Assert.Equal(strategy_class, ksmd.StrategyClass);            
+            Assert.Equal(durable_writes, ksmd.DurableWrites);  
+            if(replication_factor != null)
+                Assert.Equal(replication_factor, ksmd.Replication["replication_factor"]);
+            if (datacenters_replication_factors != null)
+                Assert.True(datacenters_replication_factors.SequenceEqual(ksmd.Replication));                
         }
     }
 }

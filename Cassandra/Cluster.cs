@@ -134,8 +134,8 @@ namespace Cassandra
             }
         }
 
-        public Session ConnectAndCreateDefaultKeyspaceIfNotExists()
-        {
+        public Session ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durable_writes = true)
+        {            
             var session = Connect("");
             try
             {
@@ -143,7 +143,7 @@ namespace Cassandra
             }
             catch (InvalidException)
             {
-                session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace);
+                session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durable_writes);
                 session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             }
             return session;
