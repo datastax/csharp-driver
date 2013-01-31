@@ -208,7 +208,40 @@ namespace Cassandra.Data.Linq
 			return exp.Expression.Type;
 		}
 
-		private string GetPropertyName(Expression exp)
+        private bool IsCall(Expression exp)
+        {
+            exp = SimplifyExpression(exp);
+            if (exp.NodeType == ExpressionType.Call)
+            {
+                var field = SimplifyExpression(((MethodCallExpression) exp).Arguments[0]);
+
+                if (field.NodeType != ExpressionType.Constant)
+                {
+                    var call = (exp as MethodCallExpression);
+                    if (call.Method.DeclaringType == typeof (string) && call.Method.Name == "CompareTo")
+                    {
+                        if (field is MemberExpression) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private KeyValuePair<string,string> GetPropertyCallName(Expression exp)
+        {
+            var field = SimplifyExpression(((MethodCallExpression) exp).Object);
+
+            var call = (exp as MethodCallExpression);
+            if (call.Method.DeclaringType == typeof (string) && call.Method.Name == "CompareTo")
+            {
+                if (field is MemberExpression)
+                    return new KeyValuePair<string, string>(((MemberExpression)field).Member.Name.CqlIdentifier(),
+                                                            ((string)Expression.Lambda(call.Arguments[0] as MemberExpression).Compile().DynamicInvoke()).Encode());
+            }
+            throw  new InvalidOperationException();
+        }
+
+        private string GetPropertyName(Expression exp)
 		{
             if (exp.Type.GetInterface("ICqlToken") != null)
             {
@@ -229,12 +262,22 @@ namespace Cassandra.Data.Linq
 
 					var field = SimplifyExpression(((MethodCallExpression)exp).Arguments[0]);
 
-					if (field.NodeType != ExpressionType.Constant)
-						throw new NotSupportedException(exp.NodeType.ToString() + " is not supported.");
+			        if (field.NodeType == ExpressionType.Constant)
+			        {
+			            return ((ConstantExpression) field).Value.ToString().CqlIdentifier();
+			        }
+			        else
+			        {
+			            var call = (exp as MethodCallExpression);
+			            if (call.Method.DeclaringType == typeof (string) && call.Method.Name == "CompareTo")
+			            {
+                            if(field is MemberExpression)
+                                return ((MemberExpression)field).Member.Name.CqlIdentifier();
+			            }
+			            throw new NotSupportedException(exp.NodeType.ToString() + " is not supported.");
+			        }
 
-                    return ((ConstantExpression)field).Value.ToString().CqlIdentifier();
-
-				default:
+			    default:
 					throw new NotSupportedException(exp.NodeType.ToString() + " is not supported.");
 			}
 		}
@@ -467,10 +510,21 @@ namespace Cassandra.Data.Linq
         private string VisitWhereRelationalExpression(BinaryExpression exp)
         {
             string criteria;
+            string left;
+            string right;
+            if (IsCall(exp.Left))
+            {
+                var kv = GetPropertyCallName(exp.Left);
+                left = kv.Key;
+                right = kv.Value;
+            }
+            else
+            {
+                left = GetPropertyName(exp.Left);
+                object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
+                right = RightObjectToString(rightObj);
+            }
 
-            string left = GetPropertyName(exp.Left);
-            object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
-            string right = RightObjectToString(rightObj);
 
             switch (exp.NodeType)
             {
