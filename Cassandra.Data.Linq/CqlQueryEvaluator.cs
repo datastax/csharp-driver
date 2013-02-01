@@ -208,37 +208,23 @@ namespace Cassandra.Data.Linq
 			return exp.Expression.Type;
 		}
 
-        private bool IsCall(Expression exp)
+        private bool IsCompareTo(Expression exp)
         {
             exp = SimplifyExpression(exp);
             if (exp.NodeType == ExpressionType.Call)
             {
-                var field = SimplifyExpression(((MethodCallExpression) exp).Arguments[0]);
-
-                if (field.NodeType != ExpressionType.Constant)
+                var call = (exp as MethodCallExpression);
+                if (call.Method.Name == "CompareTo")
                 {
-                    var call = (exp as MethodCallExpression);
-                    if (call.Method.DeclaringType == typeof (string) && call.Method.Name == "CompareTo")
-                    {
-                        if (field is MemberExpression) return true;
-                    }
+                    return true;
                 }
             }
             return false;
         }
 
-        private KeyValuePair<string,string> GetPropertyCallName(Expression exp)
+        private bool IsCompareTo(BinaryExpression exp)
         {
-            var field = SimplifyExpression(((MethodCallExpression) exp).Object);
-
-            var call = (exp as MethodCallExpression);
-            if (call.Method.DeclaringType == typeof (string) && call.Method.Name == "CompareTo")
-            {
-                if (field is MemberExpression)
-                    return new KeyValuePair<string, string>(((MemberExpression)field).Member.Name.CqlIdentifier(),
-                                                            ((string)Expression.Lambda(call.Arguments[0] as MemberExpression).Compile().DynamicInvoke()).Encode());
-            }
-            throw  new InvalidOperationException();
+            return IsCompareTo(exp.Left) || IsCompareTo(exp.Right);
         }
 
         private string GetPropertyName(Expression exp)
@@ -269,7 +255,7 @@ namespace Cassandra.Data.Linq
 			        else
 			        {
 			            var call = (exp as MethodCallExpression);
-			            if (call.Method.DeclaringType == typeof (string) && call.Method.Name == "CompareTo")
+			            if (call.Method.Name == "CompareTo")
 			            {
                             if(field is MemberExpression)
                                 return ((MemberExpression)field).Member.Name.CqlIdentifier();
@@ -503,28 +489,60 @@ namespace Cassandra.Data.Linq
                     return left + " IN (" + right + ")";
                 }
             }
+            else if (exp.Method.Name == "Equals")
+            {
+                var kv = GetPropertyCallName(exp);
+                var left = kv.Key;
+                var right = kv.Value;
+                return left + " = " + right;
+            }
             else
                 throw new NotSupportedException("Method call to " + exp.Method.Name + " is not supported.");
 		}
 
-        private string VisitWhereRelationalExpression(BinaryExpression exp)
+        private KeyValuePair<string, string> GetPropertyCallName(Expression exp)
+        {
+            var field = SimplifyExpression(((MethodCallExpression)exp).Object);
+
+            var call = (exp as MethodCallExpression);
+            if (call.Method.Name == "CompareTo" || (call.Method.Name == "Equals"))
+            {
+                if (field is MemberExpression)
+                    return new KeyValuePair<string, string>(((MemberExpression)field).Member.Name.CqlIdentifier(),
+                                                           Expression.Lambda(call.Arguments[0]).Compile().DynamicInvoke().Encode());
+            }
+            throw new InvalidOperationException();
+        }
+
+        private string VisitWhereRelationalComparizonExpressionCall(BinaryExpression exp)
         {
             string criteria;
             string left;
             string right;
-            if (IsCall(exp.Left))
+            bool inv = false;
+            if (IsCompareTo(exp.Left))
             {
+                object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
+                if (!(rightObj is int) || ((int)rightObj != 0))
+                    throw new NotSupportedException(
+                        exp.NodeType.ToString() + " is supported only for CompareTo() with 0.");
+
                 var kv = GetPropertyCallName(exp.Left);
                 left = kv.Key;
                 right = kv.Value;
             }
             else
             {
-                left = GetPropertyName(exp.Left);
-                object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
-                right = RightObjectToString(rightObj);
-            }
+                object leftObj = Expression.Lambda(exp.Left).Compile().DynamicInvoke();
+                if (!(leftObj is int) || ((int)leftObj != 0))
+                    throw new NotSupportedException(
+                        exp.NodeType.ToString() + " is supported only for CompareTo() with 0.");
 
+                var kv = GetPropertyCallName(exp.Right);
+                left = kv.Key;
+                right = kv.Value;
+                inv = true;
+            }
 
             switch (exp.NodeType)
             {
@@ -532,16 +550,16 @@ namespace Cassandra.Data.Linq
                     criteria = left + " = " + right;
                     break;
                 case ExpressionType.GreaterThan:
-                    criteria = left + " > " + right;
+                    criteria = left + (inv ? " < " : " > ") + right;
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    criteria = left + " >= " + right;
+                    criteria = left + (inv ? " <= " : " >= ") + right;
                     break;
                 case ExpressionType.LessThan:
-                    criteria = left + " < " + right;
+                    criteria = left + (inv ? " > " : " < ") + right;
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    criteria = left + " <= " + right;
+                    criteria = left + (inv ? " >= " : " <= ") + right;
                     break;
 
                 default:
@@ -549,11 +567,54 @@ namespace Cassandra.Data.Linq
                         exp.NodeType.ToString() + " is not a supported relational criteria for KEY.");
             }
 
-
             return criteria;
         }
 
-		private string VisitWhereConditionalExpression(BinaryExpression exp)
+        private string VisitWhereRelationalExpression(BinaryExpression exp)
+        {
+            if (IsCompareTo(exp))
+            {
+                return VisitWhereRelationalComparizonExpressionCall(exp);
+            }
+            else
+            {
+                string criteria;
+                string left;
+                string right;
+
+                left = GetPropertyName(exp.Left);
+                object rightObj = Expression.Lambda(exp.Right).Compile().DynamicInvoke();
+                right = RightObjectToString(rightObj);
+
+                switch (exp.NodeType)
+                {
+                    case ExpressionType.Equal:
+                        criteria = left + " = " + right;
+                        break;
+                    case ExpressionType.GreaterThan:
+                        criteria = left + " > " + right;
+                        break;
+                    case ExpressionType.GreaterThanOrEqual:
+                        criteria = left + " >= " + right;
+                        break;
+                    case ExpressionType.LessThan:
+                        criteria = left + " < " + right;
+                        break;
+                    case ExpressionType.LessThanOrEqual:
+                        criteria = left + " <= " + right;
+                        break;
+
+                    default:
+                        throw new NotSupportedException(
+                            exp.NodeType.ToString() + " is not a supported relational criteria for KEY.");
+                }
+
+
+                return criteria;
+            }
+        }
+
+        private string VisitWhereConditionalExpression(BinaryExpression exp)
 		{
 			string criteria;
 
