@@ -479,8 +479,9 @@ namespace Cassandra
                 if (ks.ContainsKey(keyspace))
                 {
                     var kss = ks[keyspace].Tables.Value;
-                    if (kss.ContainsKey(table))
-                        kss[table].Value = null;
+                    if(kss!=null)
+                        if (kss.ContainsKey(table))
+                            kss[table].Value = null;
                 }
             }
         }

@@ -10,7 +10,7 @@ namespace Cassandra.Test
 {
     public partial class CommonBasicTests : MyUTExt.CommonBasicTests
     {
-        [Fact]
+        //[Fact]
         public void testMassivePrepared()
         {
             base.massivePreparedStatementTest();
@@ -27,31 +27,31 @@ namespace Cassandra.Test
             insertingSingleValuePrepared(typeof(BigInteger));            
         }
 #endif
-        [Fact]
+        //[Fact]
         public void testPreparedBigInt()
         {
             base.insertingSingleValuePrepared(typeof(System.Int64));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedDouble()
         {
             base.insertingSingleValuePrepared(typeof(System.Double));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedFloat()
         {
             base.insertingSingleValuePrepared(typeof(System.Single));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedInt()
         {
             base.insertingSingleValuePrepared(typeof(System.Int32));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedVarchar()
         {
             base.insertingSingleValuePrepared(typeof(System.String));
@@ -63,19 +63,19 @@ namespace Cassandra.Test
             base.insertingSingleValuePrepared(typeof(System.DateTimeOffset));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedBoolean()
         {
             base.insertingSingleValuePrepared(typeof(System.Boolean));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedBlob()
         {
             base.insertingSingleValuePrepared(typeof(System.Byte));
         }
 
-        [Fact]
+        //[Fact]
         public void testPreparedUUID()
         {
             base.insertingSingleValuePrepared(typeof(System.Guid));

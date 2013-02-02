@@ -173,7 +173,7 @@ namespace Cassandra.Data.Linq
 
         public static string Encode(bool val)
         {
-            return '\'' + (val ? "true" : "false") + '\'';
+            return (val ? "true" : "false");
         }
 
         public static string Encode(byte[] val)

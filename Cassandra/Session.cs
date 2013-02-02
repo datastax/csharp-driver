@@ -793,12 +793,12 @@ namespace Cassandra
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                var kv = (KeyValuePair<RowSetMetadata, byte[]>)value;
                 var ar = LongActionAc as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
                 {
+                    var kv = (KeyValuePair<RowSetMetadata, byte[]>)value;
                     ar.SetResult(kv);
                     lock (owner._preparedQueries)
                         owner._preparedQueries[CqlQuery] = kv;

@@ -108,7 +108,7 @@ namespace Cassandra.Test
             {
             }
             Randomm rndm = new Randomm();
-            int RowsNo = 3000;
+            int RowsNo = 300;
             bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
@@ -156,7 +156,7 @@ namespace Cassandra.Test
          author,
          isok,
          body)
-VALUES ({1},'test{2}','{3}','body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
+VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
                        );
                         ar[i] = true;
                         Thread.MemoryBarrier();

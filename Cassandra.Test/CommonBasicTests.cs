@@ -174,7 +174,7 @@ namespace MyUTExt
          body,
 		 fval,
 		 dval)
-VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true", rndm.NextSingle(), rndm.NextDouble());
+VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true", rndm.NextSingle(), rndm.NextDouble());
             }
             longQ.AppendLine("APPLY BATCH;");
             ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
@@ -293,11 +293,15 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             {
             }
             List<object[]> toInsert = new List<object[]>(1);
-            object[] row1 = new object[2] { Guid.NewGuid(), RandomVal(tp) };
+            var val = RandomVal(tp);
+            if (tp == typeof (string))
+                val = "'" + val.ToString().Replace("'", "''") + "'";
+
+            var row1 = new object[2] { Guid.NewGuid(), val };
 
             toInsert.Add(row1);
 
-            var prep = PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ('{1}', ?);", tableName, toInsert[0][0].ToString()));
+            var prep = PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName, toInsert[0][0].ToString()));
             ExecutePreparedQuery(this.Session, prep, new object[1] { toInsert[0][1] });
 
             ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
@@ -345,7 +349,10 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             }
 
             List<object[]> toInsert = new List<object[]>(1);
-            object[] row1 = new object[2]{ Guid.NewGuid(), RandomVal(tp)};
+            var val = RandomVal(tp);
+            if (tp == typeof(string))
+                val = "'" + val.ToString().Replace("'", "''") + "'";
+            object[] row1 = new object[2] { Guid.NewGuid(), val };
             toInsert.Add(row1);
 
             bool isFloatingPoint = false;
@@ -407,8 +414,8 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
             string cassandraKeyDataTypeName = "";
 
-            string openBracket = CassandraCollectionType == "list" ? "['" : "{'";
-            string closeBracket = CassandraCollectionType == "list" ? "']" : "'}";
+            string openBracket = CassandraCollectionType == "list" ? "[" : "{";
+            string closeBracket = CassandraCollectionType == "list" ? "]" : "}";
             string mapSyntax = "";
 
             string randomKeyValue = string.Empty;
@@ -441,7 +448,7 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             StringBuilder longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
-            int CollectionElementsNo = 1000;
+            int CollectionElementsNo = 100;
             List<Int32> orderedAsInputed = new List<Int32>(CollectionElementsNo);
 
             string inputSide = "some_collection + {1}";
@@ -489,11 +496,14 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
             string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
             string cassandraKeyDataTypeName = "";
 
-            string openBracket = CassandraCollectionType == "list" ? "['" : "{'";
-            string closeBracket = CassandraCollectionType == "list" ? "']" : "'}";
+            string openBracket = CassandraCollectionType == "list" ? "[" : "{";
+            string closeBracket = CassandraCollectionType == "list" ? "]" : "}";
             string mapSyntax = "";
 
             var randomValue = RandomVal(TypeOfDataToBeInputed);
+            if (TypeOfDataToBeInputed == typeof(string))
+                randomValue = "'" + randomValue.ToString().Replace("'", "''") + "'";
+
             string randomKeyValue = string.Empty;
 
             if (TypeOfKeyForMap != null)
@@ -502,9 +512,11 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
                 if (TypeOfKeyForMap == typeof(DateTimeOffset))
-                    randomKeyValue = (string)(RandomVal(typeof(DateTimeOffset)).GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(RandomVal(typeof(DateTimeOffset)), new object[1] { "yyyy-MM-dd H:mm:sszz00" }) + "' : '");
+                    randomKeyValue = "'"+(string)(RandomVal(typeof(DateTimeOffset)).GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(RandomVal(typeof(DateTimeOffset)), new object[1] { "yyyy-MM-dd H:mm:sszz00" }) + "'");
+                else if(TypeOfKeyForMap == typeof(string))
+                    randomKeyValue = "'"+RandomVal(TypeOfDataToBeInputed).ToString().Replace("'","''")+"'";
                 else
-                    randomKeyValue = RandomVal(TypeOfDataToBeInputed) + "' : '";
+                    randomKeyValue = RandomVal(TypeOfDataToBeInputed).ToString();
             }
             
             string tableName = "table" + Guid.NewGuid().ToString("N");
@@ -521,16 +533,20 @@ VALUES ({1},'test{2}','{3}','body{2}','{4}','{5}');", tableName, Guid.NewGuid().
 
             Guid tweet_id = Guid.NewGuid();
 
-            ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES ({1}, {2});", tableName, tweet_id.ToString(), openBracket + randomKeyValue + randomValue + closeBracket), null);
+            ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES ({1}, {2});", tableName, tweet_id.ToString(), openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue)?"":" : ") + randomValue + closeBracket));
 
             StringBuilder longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
-            int CollectionElementsNo = 1000;
+            int CollectionElementsNo = 100;
             for (int i = 0; i < CollectionElementsNo; i++)
             {
+                var val = RandomVal(TypeOfDataToBeInputed);
+                if (TypeOfDataToBeInputed == typeof(string))
+                    val = "'" + val.ToString().Replace("'", "''") + "'";
+
                 longQ.AppendFormat(@"UPDATE {0} SET some_collection = some_collection + {1} WHERE tweet_id = {2};"
-                    , tableName, openBracket + randomKeyValue + RandomVal(TypeOfDataToBeInputed) + closeBracket, tweet_id.ToString());
+                    , tableName, openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue) ? "" : " : ") + val + closeBracket, tweet_id.ToString());
             }
             longQ.AppendLine("APPLY BATCH;");
             ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");

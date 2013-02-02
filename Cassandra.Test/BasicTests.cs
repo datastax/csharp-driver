@@ -23,28 +23,24 @@ namespace Cassandra.Test
 
 
         [Fact]
-        [Priorioty]
         public void checkSimpleStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
         }
         
         [Fact]
-        [Priorioty]
         public void checkNetworkTopologyStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
         }
 
         [Fact]
-        [Priorioty]
         public void checkTableMetadata()
         {
             base.checkMetadata();
         }
 
         [Fact]
-        [Priorioty]
         public void checkKeyspaceMetadata()
         {
             base.checkKSMetadata();
@@ -56,13 +52,13 @@ namespace Cassandra.Test
             base.testCounters();
         }
 
-        [Fact]
+        //[Fact]
         public void testBlob()
         {
             insertingSingleValue(typeof(byte));
         }
 
-//        [Fact]
+        [Fact]
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
@@ -78,18 +74,20 @@ namespace Cassandra.Test
         {
             base.Test();
         }
-        [Fact]
+
+#if CASSANDRA_NET_40_OR_GREATER
+        //[Fact]
         public void testDecimal()
         {
             insertingSingleValue(typeof(System.Decimal));
         }
-#if CASSANDRA_NET_40_OR_GREATER
-        [Fact]
+        //[Fact]
         public void testVarInt()
         {
             insertingSingleValue(typeof(BigInteger));
         }
 #endif
+
         [Fact]
         public void testBigInt()
         {
@@ -132,12 +130,12 @@ namespace Cassandra.Test
         {
             ExceedingCassandraType(typeof(System.Int64), typeof(System.Int64));
         }
-        [Fact]
+        //[Fact]
         public void MaxingBoundsOf_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Single));
         }
-        [Fact]
+        //[Fact]
         public void MaxingBoundsOf_DOUBLE()
         {
             ExceedingCassandraType(typeof(System.Double), typeof(System.Double));
@@ -154,7 +152,8 @@ namespace Cassandra.Test
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int64), false);
         }
-        [Fact]
+        
+        //[Fact]
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Double), false);
