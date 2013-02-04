@@ -91,6 +91,7 @@ namespace Cassandra.Test
         {
             insertingSingleCollection("set", typeof(Int32));
         }
+
         //[Fact]
         public void testSetInt64()
         {

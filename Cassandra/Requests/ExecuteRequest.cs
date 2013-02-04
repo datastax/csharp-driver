@@ -9,20 +9,23 @@
         readonly byte[] _id;
         readonly RowSetMetadata _metadata;
         readonly ConsistencyLevel _consistency;
+        private readonly byte _flags = 0x00;
 
-        public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency)
+        public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
         {
             this._streamId = streamId;
             this._values = values;
             this._id = id;
             this._metadata = metadata;
             this._consistency = consistency;
-
+            if (tracingEnabled)
+                this._flags = 0x02;
         }
+
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(0x01, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(0x01, _flags, (byte)_streamId, OpCode);
             wb.WriteShortBytes(_id);
             wb.WriteUInt16((ushort) _values.Length);
             for(int i =0;i<_metadata.Columns.Length;i++)

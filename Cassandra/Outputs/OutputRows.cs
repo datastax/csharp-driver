@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Cassandra
@@ -7,18 +8,22 @@ namespace Cassandra
     {
         public readonly RowSetMetadata Metadata;
         public readonly int Rows;
-        internal readonly bool buffered;
+        internal readonly bool _buffered;
         
         private readonly BEBinaryReader _reader;
+        private readonly Guid? _traceID;
 
-        internal OutputRows(BEBinaryReader reader,bool buffered)
+        internal OutputRows(BEBinaryReader reader, bool buffered, Guid? traceID)
         {
-            this.buffered = buffered;
+            this._buffered = buffered;
             this._reader = reader;
             Metadata = new RowSetMetadata(reader);
             Rows = reader.ReadInt32();
             _disposedEvent = new ManualResetEvent(buffered);
+            _traceID = traceID;
         }
+
+        public Guid? TraceID { get { return _traceID; } }
 
         public void ReadRawColumnValue(byte[] buffer, int offset, int rawLength)
         {
@@ -40,7 +45,7 @@ namespace Cassandra
 
         public void Dispose()
         {
-            if (!buffered)
+            if (!_buffered)
             {
                 foreach (var rawLength in GetRawColumnLengths())
                     _reader.Skip(rawLength);

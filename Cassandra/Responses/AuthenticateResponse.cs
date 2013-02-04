@@ -1,14 +1,14 @@
 ﻿namespace Cassandra
 {
-    internal class AuthenticateResponse : IResponse
+    internal class AuthenticateResponse : AbstractResponse
     {
         public const byte OpCode = 0x03;
 
         public string Authenticator;
-        internal AuthenticateResponse(ResponseFrame frame)
+
+        internal AuthenticateResponse(ResponseFrame frame) : base(frame)
         {
-            var cb = new BEBinaryReader(frame);
-            Authenticator = cb.ReadString();
+            Authenticator = BEBinaryReader.ReadString();
         }
 
         internal static AuthenticateResponse Create(ResponseFrame frame)

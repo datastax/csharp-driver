@@ -1,15 +1,15 @@
 ﻿namespace Cassandra
 {
-    internal class ErrorResponse : IResponse
+    internal class ErrorResponse : AbstractResponse
     {
         public const byte OpCode = 0x00;
         public OutputError Output;
-        internal ErrorResponse(ResponseFrame frame)
+
+        internal ErrorResponse(ResponseFrame frame) : base(frame)
         {
-            var cb = new BEBinaryReader(frame);
-            var ctype = (CassandraErrorType)cb.ReadInt32();
-            var message = cb.ReadString();
-            Output = OutputError.CreateOutputError(ctype, message, cb);
+            var ctype = (CassandraErrorType) BEBinaryReader.ReadInt32();
+            var message = BEBinaryReader.ReadString();
+            Output = OutputError.CreateOutputError(ctype, message, BEBinaryReader);
         }
 
         internal static ErrorResponse Create(ResponseFrame frame)

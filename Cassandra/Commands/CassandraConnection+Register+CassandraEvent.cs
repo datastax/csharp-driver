@@ -73,9 +73,9 @@ namespace Cassandra
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
-                        JobFinished( streamId, new OutputVoid());
+                        JobFinished( streamId, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() {Response = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() {AbstractResponse = response, StreamId = streamId });
 
                 }));
             }));

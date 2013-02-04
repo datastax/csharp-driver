@@ -14,7 +14,7 @@ namespace Cassandra
                     if (response is SupportedResponse)
                         JobFinished( streamId, (response as SupportedResponse).Output);
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
 
                 }));
             }), true);

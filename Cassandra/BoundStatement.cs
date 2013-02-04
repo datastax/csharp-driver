@@ -76,7 +76,7 @@ namespace Cassandra
 
         internal override IAsyncResult BeginExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, _values, callback, state, ConsistencyLevel, this, this, tag);
+            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, _values, callback, state, ConsistencyLevel, this, this, tag, IsTracing);
         }
 
         internal override CqlRowSet EndExecute(Session session, IAsyncResult ar)

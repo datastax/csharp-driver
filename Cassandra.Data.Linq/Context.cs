@@ -137,11 +137,9 @@ namespace Cassandra.Data.Linq
             return ManagedSession.EndExecute(ar);
         }
 
-        internal void ExecuteWriteQuery(string cqlQuery)
+        internal CqlRowSet ExecuteWriteQuery(string cqlQuery)
         {
-            var ret = ManagedSession.Execute(cqlQuery, _writeCqlConsistencyLevel);
-            if (ret != null)
-                throw new InvalidOperationException();
+            return ManagedSession.Execute(cqlQuery, _writeCqlConsistencyLevel);
         }
 
         internal IAsyncResult BeginExecuteWriteQuery(string cqlQuery, AsyncCallback callback, object state,
@@ -150,11 +148,9 @@ namespace Cassandra.Data.Linq
             return ManagedSession.BeginExecute(cqlQuery, callback, state, _writeCqlConsistencyLevel, tag);
         }
 
-        internal void EndExecuteWriteQuery(IAsyncResult ar)
+        internal CqlRowSet EndExecuteWriteQuery(IAsyncResult ar)
         {
-            var ret = ManagedSession.EndExecute(ar);
-            if (ret != null)
-                throw new InvalidOperationException();
+            return ManagedSession.EndExecute(ar);
         }
 
         private struct CqlSaveTag

@@ -21,7 +21,6 @@ namespace Cassandra.Data.Linq
         public Type ElementType
         {
             get { return typeof (TEntity); }
-
         }
 
         public System.Linq.Expressions.Expression Expression
@@ -31,10 +30,12 @@ namespace Cassandra.Data.Linq
 
         public override string ToString()
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
+            var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             return eval.Query;
         }
+
+        public QueryTrace QueryTrace { get; private set; }
 
         public TEntity Execute()
         {
@@ -45,6 +46,8 @@ namespace Cassandra.Data.Linq
             var conn = (_table as ITable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
+                QueryTrace = outp.QueryTrace;
+
                 if (outp.RowsCount == 0)
                     if (((MethodCallExpression) Expression).Method.Name == "First")
                         throw new InvalidOperationException("Sequence contains no elements.");
@@ -83,6 +86,8 @@ namespace Cassandra.Data.Linq
             var conn = tag.Context;
             using (var outp = conn.EndExecuteReadQuery(ar))
             {
+                QueryTrace = outp.QueryTrace;
+
                 if (outp.RowsCount == 0)
                     if (((MethodCallExpression) Expression).Method.Name == "First")
                         throw new InvalidOperationException("Sequence contains no elements.");
@@ -105,6 +110,8 @@ namespace Cassandra.Data.Linq
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
 
+        public QueryTrace QueryTrace { get; private set; }
+
         internal CqlScalar(Expression expression, IQueryProvider table)
         {
             this._expression = expression;
@@ -125,6 +132,8 @@ namespace Cassandra.Data.Linq
             var conn = (_table as ITable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
+                QueryTrace = outp.QueryTrace;
+
                 if (outp.RowsCount != 1)
                     throw new InvalidOperationException();
 
@@ -164,6 +173,8 @@ namespace Cassandra.Data.Linq
             var conn = tag.Context;
             using (var outp = conn.EndExecuteReadQuery(ar))
             {
+                QueryTrace = outp.QueryTrace;
+
                 if (outp.RowsCount != 1)
                     throw new InvalidOperationException();
 
@@ -186,6 +197,8 @@ namespace Cassandra.Data.Linq
     {
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
+
+        public QueryTrace QueryTrace { get; private set; }
 
         internal CqlQuery()
         {
@@ -241,6 +254,8 @@ namespace Cassandra.Data.Linq
             var conn = (_table as ITable).GetContext();
             using (var outp = conn.ExecuteReadQuery(cqlQuery))
             {
+                QueryTrace = outp.QueryTrace;
+
                 var cols = outp.Columns;
                 var colToIdx = new Dictionary<string, int>();
                 for (int idx = 0; idx < cols.Length; idx++)
@@ -276,6 +291,8 @@ namespace Cassandra.Data.Linq
             var conn = tag.Context;
             using (var outp = conn.EndExecuteReadQuery(ar))
             {
+                QueryTrace = outp.QueryTrace;
+
                 var cols = outp.Columns;
                 var colToIdx = new Dictionary<string, int>();
                 for (int idx = 0; idx < cols.Length; idx++)
@@ -302,6 +319,8 @@ namespace Cassandra.Data.Linq
     {
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
+
+        public QueryTrace QueryTrace { get; private set; }
 
         internal CqlDelete(Expression expression, IQueryProvider table)
         {
@@ -330,7 +349,8 @@ namespace Cassandra.Data.Linq
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
             var conn = (_table as ITable).GetContext();
-            conn.ExecuteWriteQuery(cqlQuery); 
+            var res = conn.ExecuteWriteQuery(cqlQuery);
+            QueryTrace = res.QueryTrace;
         }
 
         private struct CqlQueryTag
@@ -352,7 +372,8 @@ namespace Cassandra.Data.Linq
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
             var conn = tag.Context;
-            conn.EndExecuteWriteQuery(ar);
+            var res = conn.EndExecuteWriteQuery(ar);
+            QueryTrace = res.QueryTrace;
         }
 
         public string GetCql()
@@ -369,6 +390,8 @@ namespace Cassandra.Data.Linq
     {
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
+
+        public QueryTrace QueryTrace { get; private set; }
 
         internal CqlUpdate(Expression expression, IQueryProvider table)
         {
@@ -397,7 +420,8 @@ namespace Cassandra.Data.Linq
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
             var conn = (_table as ITable).GetContext();
-            conn.ExecuteWriteQuery(cqlQuery);
+            var res = conn.ExecuteWriteQuery(cqlQuery);
+            QueryTrace = res.QueryTrace;
         }
         
         private struct CqlQueryTag
@@ -419,7 +443,8 @@ namespace Cassandra.Data.Linq
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
             var conn = tag.Context;
-            conn.EndExecuteWriteQuery(ar);
+            var res = conn.EndExecuteWriteQuery(ar);
+            QueryTrace = res.QueryTrace;
         }
 
         public string GetCql()

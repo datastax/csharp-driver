@@ -5,7 +5,7 @@ namespace Cassandra
 {
     internal class FrameParser
     {
-        delegate IResponse MyDel(ResponseFrame frame);
+        delegate AbstractResponse MyDel(ResponseFrame frame);
         static readonly MyDel[] RegisteredResponses = new MyDel[sbyte.MaxValue + 1];
 
         static FrameParser()
@@ -25,7 +25,7 @@ namespace Cassandra
             RegisteredResponses[(byte)obj] = (MyDel)Delegate.CreateDelegate(typeof(MyDel), mth);
         }
 
-        public IResponse Parse(ResponseFrame frame)
+        public AbstractResponse Parse(ResponseFrame frame)
         {
             var opcode = frame.FrameHeader.Opcode;
             if (RegisteredResponses[opcode] != null)

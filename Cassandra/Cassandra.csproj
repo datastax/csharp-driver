@@ -161,6 +161,7 @@
     <Compile Include="ProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Query.cs" />
+    <Compile Include="QueryTrace.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
     <Compile Include="Responses\AuthenticateResponse.cs" />
@@ -181,7 +182,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Responses\ReadyResponse.cs" />
     <Compile Include="IRequest.cs" />
-    <Compile Include="IResponse.cs" />
+    <Compile Include="AbstractResponse.cs" />
     <Compile Include="Requests\StartupRequest.cs" />
     <Compile Include="Outputs\OutputRows.cs" />
     <Compile Include="RoutingKey.cs" />

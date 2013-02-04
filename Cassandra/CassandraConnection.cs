@@ -37,7 +37,7 @@ namespace Cassandra
 
         struct ErrorActionParam
         {
-            public IResponse Response;
+            public AbstractResponse AbstractResponse;
             public int StreamId;
         }
 
@@ -103,10 +103,10 @@ namespace Cassandra
 
             _protocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
                {
-                   if (param.Response is ErrorResponse)
+                   if (param.AbstractResponse is ErrorResponse)
                        JobFinished(
                            param.StreamId,
-                           (param.Response as ErrorResponse).Output);
+                           (param.AbstractResponse as ErrorResponse).Output);
                });
 
             lock (_frameGuardier)
@@ -239,7 +239,7 @@ namespace Cassandra
             _defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
-                _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
+                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
             });
 
             var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null,null, _asyncCallAbortTimeout);
@@ -275,11 +275,11 @@ namespace Cassandra
                                     job(streamId);
                                 }
                                 else
-                                    _protocolErrorHandlerAction(new ErrorActionParam() { Response = response2, StreamId = streamId });
+                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
                             }));
                         }
                         else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { Response = response, StreamId = streamId });
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
                     });
                 }
                 else

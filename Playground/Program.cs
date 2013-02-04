@@ -31,6 +31,7 @@ namespace Playground
                     session.ChangeKeyspace(keyspaceName);
                 }
 
+
                 TwitterContext twitterContext = new TwitterContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
                 var TweetsTable = twitterContext.GetTable<Tweet>();
                 var AuthorsTable = twitterContext.GetTable<Author>();

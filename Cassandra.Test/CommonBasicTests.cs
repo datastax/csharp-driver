@@ -112,7 +112,6 @@ namespace MyUTExt
             else
                 Console.WriteLine("CQL< Query:\t" + query);
             var ret = session.Execute(query, consistency);
-            Assert.Equal(ret, null);
             Console.WriteLine("CQL> (OK).");
         }
 

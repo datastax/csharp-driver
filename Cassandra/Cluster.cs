@@ -89,11 +89,13 @@ namespace Cassandra
                 _hosts = new Hosts();
 
                 foreach (var ep in _contactPoints)
-                    _hosts.AddIfNotExistsOrBringUpIfDown(ep, _configuration.Policies.ReconnectionPolicy); 
-                
+                    _hosts.AddIfNotExistsOrBringUpIfDown(ep, _configuration.Policies.ReconnectionPolicy);
+
+                var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
+
                 _controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
                                                            _configuration.ProtocolOptions,
-                                                           _configuration.PoolingOptions, _configuration.SocketOptions,
+                                                           poolingOptions, _configuration.SocketOptions,
                                                            new ClientOptions(
                                                                _configuration.ClientOptions.WithoutRowSetBuffering,
                                                                _configuration.ClientOptions.QueryAbortTimeout, null,
