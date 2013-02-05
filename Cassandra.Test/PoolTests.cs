@@ -118,7 +118,7 @@ namespace Cassandra.Test
          isok,
          body)
 VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                       , null, null);
+                       , ConsistencyLevel.Default, null, null);
                         Thread.MemoryBarrier();
                     }
                     catch

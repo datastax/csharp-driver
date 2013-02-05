@@ -129,7 +129,7 @@ namespace Cassandra.Data.Linq
 
         internal IAsyncResult BeginExecuteReadQuery(string cqlQuery, AsyncCallback callback, object state, object tag)
         {
-            return ManagedSession.BeginExecute(cqlQuery, callback, state, _readCqlConsistencyLevel, tag);
+            return ManagedSession.BeginExecute(cqlQuery, _readCqlConsistencyLevel, tag, callback, state);
         }
 
         internal CqlRowSet EndExecuteReadQuery(IAsyncResult ar)
@@ -145,7 +145,7 @@ namespace Cassandra.Data.Linq
         internal IAsyncResult BeginExecuteWriteQuery(string cqlQuery, AsyncCallback callback, object state,
                                                      object tag)
         {
-            return ManagedSession.BeginExecute(cqlQuery, callback, state, _writeCqlConsistencyLevel, tag);
+            return ManagedSession.BeginExecute(cqlQuery, _writeCqlConsistencyLevel, tag, callback, state);
         }
 
         internal CqlRowSet EndExecuteWriteQuery(IAsyncResult ar)

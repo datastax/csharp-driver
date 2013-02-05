@@ -213,8 +213,8 @@ namespace Cassandra
                 if (ar != null)
                 {
                     ar.SetResult(outp);
-                    (outp as IWaitableForDispose).WaitForDispose();
                     ar.Complete();
+                    (outp as IWaitableForDispose).WaitForDispose();
                 }
             }
         }

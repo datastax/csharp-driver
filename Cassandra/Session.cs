@@ -397,9 +397,14 @@ namespace Cassandra
 
         #region Execute
 
-        public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state, object tag = null)
+        public IAsyncResult BeginExecute(Query query, object tag , AsyncCallback callback, object state)
         {
             return query.BeginExecute(this, tag, callback, state);
+        }
+
+        public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state)
+        {
+            return query.BeginExecute(this, null, callback, state);
         }
 
         public static object GetTag(IAsyncResult ar)
@@ -419,10 +424,14 @@ namespace Cassandra
             return EndExecute(BeginExecute(query, null, null));
         }
 
-        public IAsyncResult BeginExecute(string cqlQuery, AsyncCallback callback, object state,
-                                         ConsistencyLevel consistency = ConsistencyLevel.Default, object tag = null)
+        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state)
         {
-            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), callback, state, tag);
+            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), tag, callback, state);
+        }
+
+        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
+        {
+            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), null, callback, state);
         }
 
         public CqlRowSet Execute(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default)

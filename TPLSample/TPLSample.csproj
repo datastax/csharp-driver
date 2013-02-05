@@ -39,6 +39,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FutureSample.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KeyspacesSample.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="LinqKeyspacesSample.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="NerdMoviesLinq.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
