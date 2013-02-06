@@ -71,6 +71,9 @@
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="Cluster.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
+    <Compile Include="DateTimePrecise.cs" />
+    <Compile Include="GuidGenerator.cs" />
+    <Compile Include="GuidVersion.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
     <Compile Include="Metadata.cs" />

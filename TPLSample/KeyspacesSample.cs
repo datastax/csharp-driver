@@ -11,11 +11,19 @@ namespace TPLSample.KeyspacesSample
     {
         public static void Run()
         {
+            // this sample requires buffering
             Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
 
             using (var session = cluster.Connect())
             {
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
+
+                var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
+
+                var rowset = session.Execute(query);
+                var trace = rowset.QueryTrace;
+
+                var coord = trace.Coordinator;
 
                 var allTasks = new List<Task>();
                 for (int i = 0; i < 100; ++i)

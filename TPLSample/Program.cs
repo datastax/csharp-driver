@@ -7,9 +7,9 @@ namespace TPLSample
     {
         private static void Main(string[] args)
         {
+            KeyspacesSample.KeyspacesSample.Run();
             FutureSample.FutureSample.Run();
             LinqKeyspacesSample.LinqKeyspacesSample.Run();
-            KeyspacesSample.KeyspacesSample.Run();
             NerdMoviesLinqSample.NerdMoviesLinqSample.Run();
 
 //            TimeOut.TimeOutSample.Run();

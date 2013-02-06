@@ -13,7 +13,7 @@ namespace Cassandra.Test
     public class ErrrorInjectionCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionCompressionTests()
-            : base(true)
+            : base(true,false)
         {
         }
     }
@@ -21,7 +21,15 @@ namespace Cassandra.Test
     public class ErrrorInjectionNoCompressionTests : ErrrorInjectionTestsBase
     {
         public ErrrorInjectionNoCompressionTests()
-            : base(false)
+            : base(false,false)
+        {
+        }
+    }
+
+    public class ErrrorInjectionNoCompressionNoBufferingTests : ErrrorInjectionTestsBase
+    {
+        public ErrrorInjectionNoCompressionNoBufferingTests()
+            : base(false, true)
         {
         }
     }
@@ -29,6 +37,7 @@ namespace Cassandra.Test
     public class ErrrorInjectionTestsBase : IDisposable
     {
         bool _compression = true;
+        bool _noBuffering = false;
         CompressionType Compression
         {
             get
@@ -37,9 +46,10 @@ namespace Cassandra.Test
             }
         }
 
-        public ErrrorInjectionTestsBase(bool compression)
+        public ErrrorInjectionTestsBase(bool compression,bool noBuffering)
         {
             _compression = compression;
+            _noBuffering = noBuffering;
         }
 
         Session Session;
@@ -55,6 +65,9 @@ namespace Cassandra.Test
             clusterb.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);
+
+            if (_noBuffering)
+                clusterb.WithoutRowSetBuffering();
 
             var rp = new RoundRobinPolicyWithReconnectionRetries(new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += new EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs>((s, ev) => {
@@ -75,6 +88,7 @@ namespace Cassandra.Test
         }
 
         [Fact]
+        [Priorioty]
         public void ParallelInsertTest()
         {
             Console.WriteLine("Compression is:" + (Compression == CompressionType.Snappy ? "SNAPPY" : "OFF"));

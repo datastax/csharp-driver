@@ -68,14 +68,12 @@ namespace TPLSample.NerdMoviesLinqSample
 
                 var selectAllFromWhere = from m in context.GetTable<NerdMovie>() where m.Director == "Joss Whedon" select m;
 
-
                 var taskselectAllFromWhere =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
                                                                    selectAllFromWhere.EndExecute, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
                 taskselectAllFromWhere.Wait();
-
 
                 var taskselectAllFromWhereWithFuture =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,

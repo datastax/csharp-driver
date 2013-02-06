@@ -23,7 +23,7 @@ namespace TPLSample.FutureSample
         public static void Run()
         {
 
-            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithoutRowSetBuffering().Build();
 
             using (var session = cluster.Connect("system"))
             {

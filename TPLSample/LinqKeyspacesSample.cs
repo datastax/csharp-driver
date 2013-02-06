@@ -25,7 +25,7 @@ namespace TPLSample.LinqKeyspacesSample
     {
         public static void Run()
         {
-            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithoutRowSetBuffering().Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithoutRowSetBuffering().WithoutRowSetBuffering().Build();
 
             using (var session = cluster.Connect("system"))
             {

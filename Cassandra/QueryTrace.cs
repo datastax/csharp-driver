@@ -29,7 +29,7 @@ namespace Cassandra
         // so it's possible that a fetch gets all the trace except the duration).'
         private int _duration = int.MinValue;
         private IPAddress _coordinator;
-        private Dictionary<string, string> _parameters;
+        private IDictionary<string, string> _parameters;
         private long _startedAt;
         private List<Event> _events;
 
@@ -57,10 +57,13 @@ namespace Cassandra
         /// 
         /// <returns>the type of request. This method returns <code>null</code> if the
         ///  request type is not yet available.</returns>
-        public string GetRequestType()
+        public string RequestType
         {
-            MaybeFetchTrace();
-            return _requestType;
+            get
+            {
+                MaybeFetchTrace();
+                return _requestType;
+            }
         }
 
         /// <summary>
@@ -70,10 +73,13 @@ namespace Cassandra
         /// <returns>the (server side) duration of the query in microseconds. This method
         ///  will return <code>Integer.MIN_VALUE</code> if the duration is not yet
         ///  available.</returns>
-        public int GetDurationMicros()
+        public int DurationMicros
         {
-            MaybeFetchTrace();
-            return _duration;
+            get
+            {
+                MaybeFetchTrace();
+                return _duration;
+            }
         }
 
         /// <summary>
@@ -82,10 +88,13 @@ namespace Cassandra
         /// 
         /// <returns>the coordinator host of the query. This method returns
         ///  <code>null</code> if the coordinator is not yet available.</returns>
-        public IPAddress GetCoordinator()
+        public IPAddress Coordinator
         {
-            MaybeFetchTrace();
-            return _coordinator;
+            get
+            {
+                MaybeFetchTrace();
+                return _coordinator;
+            }
         }
 
         /// <summary>
@@ -94,10 +103,13 @@ namespace Cassandra
         /// 
         /// <returns>the parameters attached to this trace. This method returns
         ///  <code>null</code> if the coordinator is not yet available.</returns>
-        public Dictionary<string, string> GetParameters()
+        public IDictionary<string, string> Parameters
         {
-            MaybeFetchTrace();
-            return _parameters;
+            get
+            {
+                MaybeFetchTrace();
+                return _parameters;
+            }
         }
 
         /// <summary>
@@ -106,10 +118,13 @@ namespace Cassandra
         /// 
         /// <returns>the server side timestamp of the start of this query. This method
         ///  returns 0 if the start timestamp is not available.</returns>
-        public long GetStartedAt()
+        public long StartedAt
         {
-            MaybeFetchTrace();
-            return _startedAt;
+            get
+            {
+                MaybeFetchTrace();
+                return _startedAt;
+            }
         }
 
         /// <summary>
@@ -117,10 +132,13 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the events contained in this trace.</returns>
-        public List<Event> GetEvents()
+        public List<Event> Events
         {
-            MaybeFetchTrace();
-            return _events;
+            get
+            {
+                MaybeFetchTrace();
+                return _events;
+            }
         }
 
         public override string ToString()
@@ -160,7 +178,7 @@ namespace Cassandra
                             _duration = sessRow.GetValue<int>("duration");
                         _coordinator = sessRow.GetValue<IPEndPoint>("coordinator").Address;
                         if (!sessRow.IsNull("parameters"))
-                            _parameters = sessRow.GetValue<Dictionary<string, string>>("parameters");
+                            _parameters = sessRow.GetValue<IDictionary<string, string>>("parameters");
                         _startedAt = sessRow.GetValue<DateTimeOffset>("started_at").ToFileTime(); //.getTime();
 
                         break;
@@ -168,14 +186,13 @@ namespace Cassandra
                 }
 
                 _events = new List<Event>();
-
+                
                 using (var evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId)))
                 {
                     foreach (var evRow in evRows.GetRows())
                     {
                         _events.Add(new Event(evRow.GetValue<string>("activity"),
-                                            0,
-//                                             evRow.GetValue<Guid>("event_id"),
+                                             GuidGenerator.GetDateTimeOffset(evRow.GetValue<Guid>("event_id")),
                                              evRow.GetValue<IPEndPoint>("source").Address,
                                              evRow.GetValue<int>("source_elapsed"),
                                                 evRow.GetValue<string>("thread")));
@@ -196,16 +213,17 @@ namespace Cassandra
         public class Event
         {
             private readonly string _name;
-            private readonly long _timestamp;
+            private readonly DateTimeOffset _timestamp;
             private readonly IPAddress _source;
             private readonly int _sourceElapsed;
             private readonly string _threadName;
 
-            internal Event(string name, long timestamp, IPAddress source, int sourceElapsed, string threadName)
+            internal Event(string name, DateTimeOffset timestamp, IPAddress source, int sourceElapsed, string threadName)
             {
                 this._name = name;
                 // Convert the UUID timestamp to an epoch timestamp; I stole this seemingly random value from cqlsh, hopefully it's correct.'
-                this._timestamp = (timestamp - 0x01b21dd213814000L)/10000;
+//                this._timestamp = (timestamp - 0x01b21dd213814000L)/10000;
+                this._timestamp = timestamp;
                 this._source = source;
                 this._sourceElapsed = sourceElapsed;
                 this._threadName = threadName;
@@ -226,7 +244,7 @@ namespace Cassandra
             /// </summary>
             /// 
             /// <returns>the server side timestamp of the event.</returns>
-            public long Timestamp
+            public DateTimeOffset Timestamp
             {
                 get { return _timestamp; }
             }
@@ -265,7 +283,7 @@ namespace Cassandra
 
             public override string ToString()
             {
-                return string.Format("{0} on {1}[{2}] at {3}", _name, _source, _threadName, new DateTime(_timestamp));
+                return string.Format("{0} on {1}[{2}] at {3}", _name, _source, _threadName,_timestamp);
             }
         }
     }

@@ -8,23 +8,31 @@ namespace Cassandra
     {
         public static object ConvertFromInet(IColumnInfo type_info, byte[] value)
         {
-            var length = value[0];
-            IPAddress ip;
-            int port;
-            var buf = new byte[length];
-            if (length == 4)
+            if (value.Length == 4 || value.Length == 16)
             {
-                Buffer.BlockCopy(value, 1, buf, 0, 4);
-                ip = new IPAddress(buf);
-                port = ConversionHelper.FromBytesToInt32(buf, 1 + 4);
-                return new IPEndPoint(ip, port);
+                var ip = new IPAddress(value);
+                return new IPEndPoint(ip, 0);
             }
-            else if (length == 16)
+            else
             {
-                Buffer.BlockCopy(value, 1, buf, 0, 16);
-                ip = new IPAddress(buf);
-                port = ConversionHelper.FromBytesToInt32(buf, 1 + 16);
-                return new IPEndPoint(ip, port);
+                var length = value[0];
+                IPAddress ip;
+                int port;
+                var buf = new byte[length];
+                if (length == 4)
+                {
+                    Buffer.BlockCopy(value, 1, buf, 0, 4);
+                    ip = new IPAddress(buf);
+                    port = ConversionHelper.FromBytesToInt32(buf, 1 + 4);
+                    return new IPEndPoint(ip, port);
+                }
+                else if (length == 16)
+                {
+                    Buffer.BlockCopy(value, 1, buf, 0, 16);
+                    ip = new IPAddress(buf);
+                    port = ConversionHelper.FromBytesToInt32(buf, 1 + 16);
+                    return new IPEndPoint(ip, port);
+                }
             }
             throw new DriverInternalError("Invalid lenght of Inet Addr");
         }
