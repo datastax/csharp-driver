@@ -94,10 +94,15 @@ namespace Cassandra.Data.Linq
         public ContextTable<TEntity> AddTable<TEntity>(string tableName = null) where TEntity : class
         {
             var tn = tableName ?? typeof (TEntity).Name;
-            var table = new Table<TEntity>(_managedSession, tn);
-            _tables.Add(tn, table);
-            _mutationTrackers.Add(tn, new MutationTracker<TEntity>());
-            return new ContextTable<TEntity>(table,this);
+            if (_tables.ContainsKey(tn))
+                return new ContextTable<TEntity>((Table<TEntity>)_tables[tn], this);
+            else
+            {
+                var table = new Table<TEntity>(_managedSession, tn);
+                _tables.Add(tn, table);
+                _mutationTrackers.Add(tn, new MutationTracker<TEntity>());
+                return new ContextTable<TEntity>(table, this);
+            }
         }
 
         public bool HasTable<TEntity>(string tableName = null) where TEntity : class
