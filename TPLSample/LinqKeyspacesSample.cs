@@ -29,14 +29,14 @@ namespace TPLSample.LinqKeyspacesSample
 
             using (var session = cluster.Connect("system"))
             {
-                var context = new Context(session, ConsistencyLevel.One, ConsistencyLevel.One);
+                var context = new Context(session);
                 context.AddTable<SchemaColumns>("schema_columns");
 
                 var cqlKeyspaces = from t in context.GetTable<SchemaColumns>("schema_columns") 
                                    where t.keyspace_name == "system" select t;
 
                 var req = Task<IEnumerable<SchemaColumns>>.Factory.FromAsync(cqlKeyspaces.BeginExecute,
-                                                                   cqlKeyspaces.EndExecute, null).Result;
+                                                                   cqlKeyspaces.EndExecute, ConsistencyLevel.Default, null).Result;
 
                 DisplayResult(req);
             }

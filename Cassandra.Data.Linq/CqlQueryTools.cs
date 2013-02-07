@@ -249,8 +249,6 @@ namespace Cassandra.Data.Linq
             throw new InvalidOperationException();
         }
 
-
-
         public static List<string> GetCreateCQL(ITable table, string tablename = null)
         {
             var commands = new List<string>();

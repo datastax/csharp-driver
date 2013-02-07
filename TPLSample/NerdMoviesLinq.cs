@@ -46,20 +46,22 @@ namespace TPLSample.NerdMoviesLinqSample
 
                 Console.WriteLine("============================================================");
                 Console.WriteLine("Creating tables...");
-                var context = new Context(session, ConsistencyLevel.One, ConsistencyLevel.One);
+                var context = new Context(session);
                 context.AddTable<NerdMovie>();
                 context.CreateTablesIfNotExist();
                 Console.WriteLine("============================================================");
 
                 context.GetTable<NerdMovie>().AddNew(new NerdMovie(){ Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005});
-                context.SaveChanges();
+                var taskSaveMovies = Task.Factory.FromAsync(context.BeginSaveChangesBatch, context.EndSaveChangesBatch, TableType.Standard, ConsistencyLevel.Default, null);
+
+                taskSaveMovies.Wait();
 
                 var selectNerdMovies = context.GetTable<NerdMovie>(); //select everything from table
 
 
                 var taskSelectStartMovies =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectNerdMovies.BeginExecute,
-                                                                   selectNerdMovies.EndExecute, null)
+                                                                   selectNerdMovies.EndExecute, ConsistencyLevel.Default, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
 
@@ -70,14 +72,14 @@ namespace TPLSample.NerdMoviesLinqSample
 
                 var taskselectAllFromWhere =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
-                                                                   selectAllFromWhere.EndExecute, null)
+                                                                   selectAllFromWhere.EndExecute, ConsistencyLevel.Default, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
                 taskselectAllFromWhere.Wait();
 
                 var taskselectAllFromWhereWithFuture =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
-                                                                   selectAllFromWhere.EndExecute, null)
+                                                                   selectAllFromWhere.EndExecute, ConsistencyLevel.Default, null)
                                                 .ContinueWith(a => a.Result.ToList());
 
                 DisplayMovies(taskselectAllFromWhereWithFuture.Result);

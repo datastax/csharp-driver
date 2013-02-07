@@ -64,6 +64,7 @@
     <Compile Include="..\References\Snappy\src\Core\Snappy.cs">
       <Link>Snappy\Snappy.cs</Link>
     </Compile>
+    <Compile Include="AbstractResponse.cs" />
     <Compile Include="AsyncResult.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="ConversionHelper.cs" />
+    <Compile Include="DateTimePrecise.cs" />
     <Compile Include="DictSet.cs" />
     <Compile Include="Exceptions\AlreadyExistsException.cs" />
     <Compile Include="Exceptions\AuthenticationException.cs">
@@ -124,6 +126,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="FrameBuffering.cs" />
+    <Compile Include="GuidGenerator.cs" />
+    <Compile Include="GuidVersion.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
     <Compile Include="IBuffering.cs" />
@@ -158,6 +162,7 @@
     <Compile Include="ProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Query.cs" />
+    <Compile Include="QueryTrace.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
     <Compile Include="Responses\AuthenticateResponse.cs" />
@@ -178,7 +183,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Responses\ReadyResponse.cs" />
     <Compile Include="IRequest.cs" />
-    <Compile Include="IResponse.cs" />
     <Compile Include="Requests\StartupRequest.cs" />
     <Compile Include="Outputs\OutputRows.cs" />
     <Compile Include="RoutingKey.cs" />

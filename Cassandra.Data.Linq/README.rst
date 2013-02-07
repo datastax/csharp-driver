@@ -32,7 +32,7 @@ cass1, cass2 and cass3. A simple example using this core driver could be::
                         .Build();
     var session = cluster.Connect("db1");
 
-	var context = new SampleContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
+	var context = new SampleContext(session);
 
 	var table = context.GetTable<SamplEnt>();
 

@@ -36,55 +36,30 @@ namespace Cassandra.Data.Linq
         }
 
         public QueryTrace QueryTrace { get; private set; }
-
-        public TEntity Execute()
-        {
-            var eval = new CqlQueryEvaluator(_table as ITable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.Query;
-            var alter = eval.AlternativeMapping;
-            var conn = (_table as ITable).GetContext();
-            using (var outp = conn.ExecuteReadQuery(cqlQuery))
-            {
-                QueryTrace = outp.QueryTrace;
-
-                if (outp.RowsCount == 0)
-                    if (((MethodCallExpression) Expression).Method.Name == "First")
-                        throw new InvalidOperationException("Sequence contains no elements.");
-                    else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
-                        return default (TEntity);
-
-                var cols = outp.Columns;
-                var colToIdx = new Dictionary<string, int>();
-                for (int idx = 0; idx < cols.Length; idx++)
-                    colToIdx.Add(cols[idx].Name, idx);
-
-                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, alter);
-            }
-        }
+        public bool QueryTraceingEnabled { get; private set; }
 
         private struct CqlQueryTag
         {
-            public Context Context;
+            public Session Session;
             public Dictionary<string, string> AlternativeMapping;
         }
 
-        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute( ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ITable).GetContext();
-            return conn.BeginExecuteReadQuery(cqlQuery, callback, state,
-                                              new CqlQueryTag() {AlternativeMapping = alter, Context = conn});
+            var ctx = (_table as ITable).GetSession();
+            return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(QueryTraceingEnabled).SetConsistencyLevel(consistencyLevel),
+                                new CqlQueryTag() { AlternativeMapping = alter, Session = ctx }, callback, state);
         }
 
         public TEntity EndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
-            var conn = tag.Context;
-            using (var outp = conn.EndExecuteReadQuery(ar))
+            var ctx = tag.Session;
+            using (var outp = ctx.EndExecute(ar))
             {
                 QueryTrace = outp.QueryTrace;
 
@@ -102,6 +77,12 @@ namespace Cassandra.Data.Linq
                 return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, tag.AlternativeMapping);
             }
         }
+
+        public TEntity Execute(ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
+        {
+            return EndExecute(BeginExecute(consistencyLevel, null, null));
+        }
+
     }
 
 
@@ -111,6 +92,7 @@ namespace Cassandra.Data.Linq
         private readonly IQueryProvider _table;
 
         public QueryTrace QueryTrace { get; private set; }
+        public bool QueryTraceingEnabled { get; private set; }
 
         internal CqlScalar(Expression expression, IQueryProvider table)
         {
@@ -123,55 +105,33 @@ namespace Cassandra.Data.Linq
             get { return _expression; }
         }
 
-        public T Execute()
+        public T Execute(ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.CountQuery;
-            var alter = eval.AlternativeMapping;
-            var conn = (_table as ITable).GetContext();
-            using (var outp = conn.ExecuteReadQuery(cqlQuery))
-            {
-                QueryTrace = outp.QueryTrace;
-
-                if (outp.RowsCount != 1)
-                    throw new InvalidOperationException();
-
-                var cols = outp.Columns;
-                if (cols.Length != 1)
-                    throw new InvalidOperationException();
-                var rows = outp.GetRows();
-                foreach (var row in rows)
-                {
-                    return (T) row[0];
-                }
-            }
-
-            throw new InvalidOperationException();
+            return EndExecute(BeginExecute(consistencyLevel, null, null));
         }
 
         private struct CqlQueryTag
         {
-            public Context Context;
+            public Session Session;
             public Dictionary<string, string> AlternativeMapping;
         }
 
-        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute(ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
-            var cqlQuery = eval.Query;
+            var cqlQuery = eval.CountQuery;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ITable).GetContext();
-            return conn.BeginExecuteReadQuery(cqlQuery, callback, state,
-                                              new CqlQueryTag() {AlternativeMapping = alter, Context = conn});
+            var ctx = (_table as ITable).GetSession();
+            return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(QueryTraceingEnabled).SetConsistencyLevel(consistencyLevel),
+                                new CqlQueryTag() { AlternativeMapping = alter, Session = ctx }, callback, state);
         }
 
         public T EndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
-            var conn = tag.Context;
-            using (var outp = conn.EndExecuteReadQuery(ar))
+            var ctx = tag.Session;
+            using (var outp = ctx.EndExecute(ar))
             {
                 QueryTrace = outp.QueryTrace;
 
@@ -192,13 +152,13 @@ namespace Cassandra.Data.Linq
         }
     }
 
-
     public class CqlQuery<TEntity> : IQueryable, IQueryable<TEntity>, IOrderedQueryable
     {
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
 
         public QueryTrace QueryTrace { get; private set; }
+        public bool QueryTraceingEnabled { get; private set; }
 
         internal CqlQuery()
         {
@@ -245,51 +205,33 @@ namespace Cassandra.Data.Linq
             return eval.Query;
         }
 
-        public IEnumerable<TEntity> Execute()
+        public IEnumerable<TEntity> Execute(ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
         {
-            CqlQueryEvaluator eval = new CqlQueryEvaluator(_table as ITable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.Query;
-            var alter = eval.AlternativeMapping;
-            var conn = (_table as ITable).GetContext();
-            using (var outp = conn.ExecuteReadQuery(cqlQuery))
-            {
-                QueryTrace = outp.QueryTrace;
-
-                var cols = outp.Columns;
-                var colToIdx = new Dictionary<string, int>();
-                for (int idx = 0; idx < cols.Length; idx++)
-                    colToIdx.Add(cols[idx].Name, idx);
-                var rows = outp.GetRows();
-                foreach (var row in rows)
-                {
-                    yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, alter);
-                }
-            }
+            return EndExecute(BeginExecute(consistencyLevel, null, null));
         }
 
         private struct CqlQueryTag
         {
-            public Context Context;
+            public Session Session;
             public Dictionary<string, string> AlternativeMapping;
         }
 
-        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute(ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.Query;
             var alter = eval.AlternativeMapping;
-            var conn = (_table as ITable).GetContext();
-            return conn.BeginExecuteReadQuery(cqlQuery, callback, state,
-                                              new CqlQueryTag() {AlternativeMapping = alter, Context = conn});
+            var ctx = (_table as ITable).GetSession();
+            return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(QueryTraceingEnabled).SetConsistencyLevel(consistencyLevel),
+                                new CqlQueryTag() { AlternativeMapping = alter, Session = ctx }, callback, state);
         }
 
         public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
-            var conn = tag.Context;
-            using (var outp = conn.EndExecuteReadQuery(ar))
+            var ctx = tag.Session;
+            using (var outp = ctx.EndExecute(ar))
             {
                 QueryTrace = outp.QueryTrace;
 
@@ -308,11 +250,11 @@ namespace Cassandra.Data.Linq
 
     public interface ICqlCommand
     {
-        ITable GetTable();
         string GetCql();
-        void Execute();
-        IAsyncResult BeginExecute(AsyncCallback callback, object state);
-        void EndExecute(IAsyncResult ar);
+        bool IsQueryTraceEnabled();
+        void SetQueryTrace(QueryTrace trace);
+        ITable GetTable();
+        void Execute(ConsistencyLevel consistencyLevel);
     }
 
     public class CqlDelete : ICqlCommand
@@ -321,6 +263,7 @@ namespace Cassandra.Data.Linq
         private readonly IQueryProvider _table;
 
         public QueryTrace QueryTrace { get; private set; }
+        public bool QueryTraceingEnabled { get; private set; }
 
         internal CqlDelete(Expression expression, IQueryProvider table)
         {
@@ -343,36 +286,31 @@ namespace Cassandra.Data.Linq
             return GetCql();
         }
 
-        public void Execute()
+        public void Execute(ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
         {
-            var eval = new CqlQueryEvaluator(_table as ITable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.DeleteQuery;
-            var conn = (_table as ITable).GetContext();
-            var res = conn.ExecuteWriteQuery(cqlQuery);
-            QueryTrace = res.QueryTrace;
+            EndExecute(BeginExecute(consistencyLevel, null, null));
         }
 
         private struct CqlQueryTag
         {
-            public Context Context;
+            public Session Session;
         }
-        
-        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+
+        public IAsyncResult BeginExecute(ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.DeleteQuery;
-            var conn = (_table as ITable).GetContext();
-            return conn.BeginExecuteWriteQuery(cqlQuery, callback, state,
-                                              new CqlQueryTag() { Context = conn });
+            var ctx = (_table as ITable).GetSession();
+            return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(QueryTraceingEnabled).SetConsistencyLevel(consistencyLevel),
+                                new CqlQueryTag() { Session = ctx }, callback, state);
         }
 
         public void EndExecute(IAsyncResult ar)
         {
-            var tag = (CqlQueryTag) Session.GetTag(ar);
-            var conn = tag.Context;
-            var res = conn.EndExecuteWriteQuery(ar);
+            var tag = (CqlQueryTag)Session.GetTag(ar);
+            var ctx = tag.Session;
+            var res = ctx.EndExecute(ar);
             QueryTrace = res.QueryTrace;
         }
 
@@ -384,6 +322,81 @@ namespace Cassandra.Data.Linq
             return cqlQuery;
         }
 
+        public bool IsQueryTraceEnabled()
+        {
+            return QueryTraceingEnabled;
+        }
+
+        public void SetQueryTrace(QueryTrace trace)
+        {
+            QueryTrace = trace;
+        }
+    }
+
+    public class CqlInsert<TEntity> : ICqlCommand
+    {
+        private readonly TEntity _entity;
+        private readonly IQueryProvider _table;
+
+        public QueryTrace QueryTrace { get; private set; }
+        public bool QueryTraceingEnabled { get; private set; }
+
+        internal CqlInsert(TEntity entity, IQueryProvider table)
+        {
+            this._entity = entity;
+            this._table = table;
+        }
+
+        public ITable GetTable()
+        {
+            return (_table as ITable);
+        }
+
+        public override string ToString()
+        {
+            return GetCql();
+        }
+
+        public void Execute(ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
+        {
+            EndExecute(BeginExecute(consistencyLevel, null, null));
+        }
+        
+        private struct CqlQueryTag
+        {
+            public Session Session;
+        }
+
+        public IAsyncResult BeginExecute(ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
+        {
+            var cqlQuery = GetCql();
+            var ctx = (_table as ITable).GetSession();
+            return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(QueryTraceingEnabled).SetConsistencyLevel(consistencyLevel),
+                                new CqlQueryTag() { Session = ctx }, callback, state);
+        }
+
+        public void EndExecute(IAsyncResult ar)
+        {
+            var tag = (CqlQueryTag)Session.GetTag(ar);
+            var ctx = tag.Session;
+            var res = ctx.EndExecute(ar);
+            QueryTrace = res.QueryTrace;
+        }
+
+        public string GetCql()
+        {
+            return CqlQueryTools.GetInsertCQL(_entity, (_table as ITable).GetTableName());
+        }
+
+        public bool IsQueryTraceEnabled()
+        {
+            return QueryTraceingEnabled;
+        }
+
+        public void SetQueryTrace(QueryTrace trace)
+        {
+            QueryTrace = trace;
+        }
     }
 
     public class CqlUpdate : ICqlCommand
@@ -392,6 +405,7 @@ namespace Cassandra.Data.Linq
         private readonly IQueryProvider _table;
 
         public QueryTrace QueryTrace { get; private set; }
+        public bool QueryTraceingEnabled { get; private set; }
 
         internal CqlUpdate(Expression expression, IQueryProvider table)
         {
@@ -414,36 +428,31 @@ namespace Cassandra.Data.Linq
             return GetCql();
         }
 
-        public void Execute()
+        public void Execute(ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
         {
-            var eval = new CqlQueryEvaluator(_table as ITable);
-            eval.Evaluate(Expression);
-            var cqlQuery = eval.UpdateQuery;
-            var conn = (_table as ITable).GetContext();
-            var res = conn.ExecuteWriteQuery(cqlQuery);
-            QueryTrace = res.QueryTrace;
+            EndExecute(BeginExecute(consistencyLevel, null, null));
         }
         
         private struct CqlQueryTag
         {
-            public Context Context;
+            public Session Session;
         }
 
-        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute(ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             var eval = new CqlQueryEvaluator(_table as ITable);
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
-            var conn = (_table as ITable).GetContext();
-            return conn.BeginExecuteWriteQuery(cqlQuery, callback, state,
-                                              new CqlQueryTag() { Context = conn });
+            var ctx = (_table as ITable).GetSession();
+            return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(QueryTraceingEnabled).SetConsistencyLevel(consistencyLevel),
+                                new CqlQueryTag() { Session = ctx }, callback, state);
         }
 
         public void EndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
-            var conn = tag.Context;
-            var res = conn.EndExecuteWriteQuery(ar);
+            var ctx = tag.Session;
+            var res = ctx.EndExecute(ar);
             QueryTrace = res.QueryTrace;
         }
 
@@ -453,6 +462,16 @@ namespace Cassandra.Data.Linq
             eval.Evaluate(Expression);
             var cqlQuery = eval.UpdateQuery;
             return cqlQuery;
+        }
+
+        public bool IsQueryTraceEnabled()
+        {
+            return QueryTraceingEnabled;
+        }
+
+        public void SetQueryTrace(QueryTrace trace)
+        {
+            QueryTrace = trace;
         }
     }
 }

@@ -9,11 +9,11 @@ namespace Cassandra.Data.Linq.Test
 {
     public class TweetsContext : Context
     {
-        public TweetsContext(Session session, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
-            : base(session, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel)
+        public TweetsContext(Session session, ConsistencyLevel createConsistencyLevel = ConsistencyLevel.Default)
+            : base(session)
         {
             AddTables();
-            CreateTablesIfNotExist();
+            CreateTablesIfNotExist(createConsistencyLevel);
         }
 
         private void AddTables()
@@ -55,7 +55,7 @@ namespace Cassandra.Data.Linq.Test
             clusterb.WithDefaultKeyspace(keyspaceName);
             var cluster = clusterb.Build();
             session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
-            ents = new TweetsContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
+            ents = new TweetsContext(session);
         }
 
         public void Dispose()
@@ -87,16 +87,16 @@ namespace Cassandra.Data.Linq.Test
                 entL.Add(ent);                
             }
             ents.SaveChanges(SaveChangesMode.Batch);
-            
+
             var cnt = table.Count().Execute();
             
             Dev.Assert.Equal(RowsNo,cnt);
             
             foreach(var ent in entL)
                 table.Delete(ent);
-            
+
             ents.SaveChanges(SaveChangesMode.Batch);
-            
+
             var cnt2 = table.Count().Execute();
             Dev.Assert.Equal(0, cnt2);
         }
@@ -109,7 +109,7 @@ namespace Cassandra.Data.Linq.Test
             int RowsNb = 3000;
             
             for( int i = 0; i < RowsNb; i++)            
-                table.AddNew( new Tweets(){ tweet_id = Guid.NewGuid(), idx = i, isok = i%2 == 0, author = "author" + i.ToString(), body = "bla bla bla"});            
+                table.AddNew( new Tweets(){ tweet_id = Guid.NewGuid(), idx = i, isok = i%2 == 0, author = "author" + i.ToString(), body = "bla bla bla"});
 
             var evens = (from ent in table where ent.isok == true select ent).Execute();
             Assert.True(evens.All(ev => ev.idx % 2 == 0));

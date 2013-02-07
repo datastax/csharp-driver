@@ -1,14 +1,44 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Cassandra.Data.Linq
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+    public class AllowFilteringAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
+    public class PartitionKeyAttribute : Attribute
+    {
+        public PartitionKeyAttribute(int index = 0) { this.Index = index; }
+        public int Index = -1;
+    }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
+    public class ClusteringKeyAttribute : Attribute
+    {
+        public ClusteringKeyAttribute(int index) { this.Index = index; }
+        public int Index = -1;
+    }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
+    public class SecondaryIndexAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
+    public class CounterAttribute : Attribute
+    {
+    }
+
     public interface ITable
     {
+        void Create(ConsistencyLevel consistencyLevel);
         Type GetEntityType();
         string GetTableName();
-        Context GetContext();
-        IMutationTracker GetMutationTracker();
+        Session GetSession();
     }
 
     public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
@@ -26,14 +56,21 @@ namespace Cassandra.Data.Linq
 
     public class Table<TEntity> : CqlQuery<TEntity>, ITable, IQueryProvider
     {
-        readonly Context _context;
+        readonly Session _session;
         readonly string _tableName;
 
-        internal Table(Context context, string tableName)
+        internal Table(Session session, string tableName)
         {
-            this._context = context;
+            this._session = session;
             this._tableName = tableName;
         }
+
+        internal Table(Table<TEntity> cp)
+        {
+            this._tableName = cp._tableName;
+            this._session = cp._session;
+        }
+
         public Type GetEntityType()
         {
             return typeof(TEntity);
@@ -42,6 +79,25 @@ namespace Cassandra.Data.Linq
         public string GetTableName()
         {
             return _tableName;
+        }
+
+        public void Create(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)
+        {
+            var cqls = CqlQueryTools.GetCreateCQL(this, _tableName);
+            foreach (var cql in cqls)
+                _session.Execute(cql, consictencyLevel);
+        }
+
+        public void CreateIfNotExists(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)
+        {
+            try
+            {
+                Create(consictencyLevel);
+            }
+            catch (AlreadyExistsException)
+            {
+                //do nothing
+            }
         }
 
         public IQueryable<TElement> CreateQuery<TElement>(System.Linq.Expressions.Expression expression)
@@ -64,41 +120,19 @@ namespace Cassandra.Data.Linq
             throw new NotImplementedException();
         }
 
-        public Context GetContext()
+        public Session GetSession()
         {
-            return _context;
+            return _session;
         }
-
+        
         public CqlToken<T> Token<T>(T v)
         {
             return new CqlToken<T>(v);
         }
 
-        readonly MutationTracker<TEntity> _mutationTracker = new MutationTracker<TEntity>();
-
-        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
+        public CqlInsert<TEntity> Insert(TEntity entity)
         {
-            _mutationTracker.Attach(entity, updmod, trmod);
-        }
-
-        public void Detach(TEntity entity)
-        {
-            _mutationTracker.Detach(entity);
-        }
-
-        public void Delete(TEntity entity)
-        {
-            _mutationTracker.Delete(entity);
-        }
-
-        public void AddNew(TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
-        {
-            _mutationTracker.AddNew(entity, trmod);
-        }
-
-        public IMutationTracker GetMutationTracker()
-        {
-            return _mutationTracker;
+            return new CqlInsert<TEntity>(entity,this);
         }
     }
 

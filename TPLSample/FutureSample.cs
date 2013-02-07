@@ -28,7 +28,7 @@ namespace TPLSample.FutureSample
             using (var session = cluster.Connect("system"))
             {
 
-                var context = new Context(session, ConsistencyLevel.One, ConsistencyLevel.One);
+                var context = new Context(session);
                 context.AddTable<schema_keyspaces>();
 
                 var cqlKeyspaces = context.GetTable<schema_keyspaces>();
@@ -36,7 +36,7 @@ namespace TPLSample.FutureSample
                 var allResults = new List<Task<List<schema_keyspaces>>>();
                 for (int i = 0; i < 100; ++i)
                 {
-                    var futRes = Task<IEnumerable<schema_keyspaces>>.Factory.FromAsync(cqlKeyspaces.BeginExecute, cqlKeyspaces.EndExecute, null)
+                    var futRes = Task<IEnumerable<schema_keyspaces>>.Factory.FromAsync(cqlKeyspaces.BeginExecute, cqlKeyspaces.EndExecute, ConsistencyLevel.Default, null)
                         .ContinueWith(a => a.Result.ToList());
                     allResults.Add(futRes);
                 }

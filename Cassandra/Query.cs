@@ -32,7 +32,7 @@ namespace Cassandra
         // We don't want to expose the constructor, because the code rely on this being only subclassed by Statement and BoundStatement
         protected Query()
         {
-            this._consistency = ConsistencyLevel.One;
+            this._consistency = ConsistencyLevel.Default;
         }
 
         /// <summary>
@@ -54,9 +54,9 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>this <code>Query</code> object.</returns>
-        public Query EnableTracing()
+        public Query EnableTracing(bool enable=true)
         {
-            this._traceQuery = true;
+            this._traceQuery = enable;
             return this;
         }
 

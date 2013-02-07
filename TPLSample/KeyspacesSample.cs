@@ -20,11 +20,6 @@ namespace TPLSample.KeyspacesSample
 
                 var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
 
-                var rowset = session.Execute(query);
-                var trace = rowset.QueryTrace;
-
-                var coord = trace.Coordinator;
-
                 var allTasks = new List<Task>();
                 for (int i = 0; i < 100; ++i)
                 {

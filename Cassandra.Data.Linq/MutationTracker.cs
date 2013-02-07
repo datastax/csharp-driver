@@ -7,9 +7,10 @@ namespace Cassandra.Data.Linq
 {
     public interface IMutationTracker
     {
-        void SaveChangesOneByOne(Context context, string tablename);
-        void AppendChangesToBatch(StringBuilder batchScript, string tablename);
-        void BatchCompleted();
+        void SaveChangesOneByOne(Context context, string tablename, ConsistencyLevel consistencyLevel);
+        bool AppendChangesToBatch(StringBuilder batchScript, string tablename);
+        void BatchCompleted(QueryTrace trace);
+        List<QueryTrace> RetriveAllQueryTraces();
     }
 
     internal class CqlEqualityComparer<TEntity> : IEqualityComparer<TEntity>
@@ -78,8 +79,6 @@ namespace Cassandra.Data.Linq
 
     internal class MutationTracker<TEntity> : IMutationTracker
     {
-        
-
         private TEntity Clone(TEntity entity)
         {
             var ret = Activator.CreateInstance<TEntity>();
@@ -98,9 +97,11 @@ namespace Cassandra.Data.Linq
             public MutationType MutationType;
             public EntityUpdateMode CqlEntityUpdateMode = EntityUpdateMode.AllOrNone;
             public EntityTrackingMode CqlEntityTrackingMode = EntityTrackingMode.DetachAfterSave;
+            public bool QueryTracingEnabled = false;
         }
 
         Dictionary<TEntity, TableEntry<TEntity>> _table = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
+        Dictionary<TEntity, QueryTrace> _traces = new Dictionary<TEntity, QueryTrace>(CqlEqualityComparer<TEntity>.Default);
 
         public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
         {
@@ -138,7 +139,48 @@ namespace Cassandra.Data.Linq
                 _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
         }
 
-        public void SaveChangesOneByOne(Context context, string tablename)
+        public void EnableQueryTracing(TEntity entity, bool enable)
+        {
+            if (_table.ContainsKey(entity))
+            {
+                _table[entity].QueryTracingEnabled = enable;
+            }
+            else 
+                throw new ArgumentOutOfRangeException("entity");
+        }
+
+        public void ClearQueryTraces()
+        {
+            lock(_traces)
+                _traces.Clear();
+        }
+
+        public QueryTrace RetriveQueryTrace(TEntity entity)
+        {
+            lock (_traces)
+            {
+                if (_traces.ContainsKey(entity))
+                {
+                    var tr = _traces[entity];
+                    _traces.Remove(entity);
+                    return tr;
+                }
+                else
+                    return null;
+            }
+        }
+
+        public List<QueryTrace> RetriveAllQueryTraces()
+        {
+            lock (_traces)
+            {
+                var ret = _traces.Values.ToList();
+                _traces.Clear();
+                return ret;
+            }
+        }
+        
+        public void SaveChangesOneByOne(Context context, string tablename, ConsistencyLevel consistencyLevel)
         {
             var commitActions = new List<Action>();
             try
@@ -153,21 +195,26 @@ namespace Cassandra.Data.Linq
                     else if (kv.Value.MutationType == MutationType.Delete)
                         cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                     else if (kv.Value.MutationType == MutationType.None)
-                    {
-                        if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
-                            cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, true);
-                        else
-                            cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, false);
-                    }
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, 
+                            kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
                     else
                         continue;
 
+                    QueryTrace trace = null;
                     if (cql != null) // null if nothing to update
-                        context.ExecuteWriteQuery(cql);
+                    {
+                       var res= context.ExecuteWriteQuery(cql,consistencyLevel, kv.Value.QueryTracingEnabled);
+                       if (kv.Value.QueryTracingEnabled)
+                           trace = res.QueryTrace;
+                    }
 
                     var nkv = kv;
                     commitActions.Add(() =>
                     {
+                        if (nkv.Value.QueryTracingEnabled)
+                            if(trace!=null)
+                                lock (_traces)
+                                    _traces[nkv.Key] = trace;
                         _table.Remove(nkv.Key);
                         if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
                             _table.Add(Clone(nkv.Value.Entity), new TableEntry<TEntity>() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
@@ -183,12 +230,16 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public void AppendChangesToBatch(StringBuilder batchScript, string tablename)
+        public bool AppendChangesToBatch(StringBuilder batchScript, string tablename)
         {
+            bool enableTracing = false;
             foreach (var kv in _table)
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
+                
+                if (kv.Value.QueryTracingEnabled)
+                    enableTracing = true;
 
                 var cql = "";
                 if (kv.Value.MutationType == MutationType.Add)
@@ -207,9 +258,10 @@ namespace Cassandra.Data.Linq
                 if(cql!=null)
                     batchScript.AppendLine(cql);
             }
+            return enableTracing;
           }
 
-        public void BatchCompleted()
+        public void BatchCompleted(QueryTrace trace)
         {
             var newtable = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
 
@@ -217,11 +269,17 @@ namespace Cassandra.Data.Linq
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
+
+                if (kv.Value.QueryTracingEnabled)
+                    lock (_traces)
+                        _traces[kv.Key] = trace; 
+                
                 if (kv.Value.MutationType != MutationType.Delete)
                     newtable.Add(Clone(kv.Value.Entity), new TableEntry<TEntity>() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
             }
 
             _table = newtable;
         }
+
     }
 }

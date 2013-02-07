@@ -7,10 +7,10 @@ namespace TPLSample
     {
         private static void Main(string[] args)
         {
+            NerdMoviesLinqSample.NerdMoviesLinqSample.Run();
             KeyspacesSample.KeyspacesSample.Run();
             FutureSample.FutureSample.Run();
             LinqKeyspacesSample.LinqKeyspacesSample.Run();
-            NerdMoviesLinqSample.NerdMoviesLinqSample.Run();
 
 //            TimeOut.TimeOutSample.Run();
 //            PreparedStatement.Batch.Run();

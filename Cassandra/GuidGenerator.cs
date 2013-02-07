@@ -48,7 +48,7 @@ namespace Cassandra
 			random.NextBytes(DefaultNode);
 		}
 
-		public static GuidVersion GetVersion(this Guid guid)
+		public static GuidVersion GetVersion(Guid guid)
 		{
 			byte[] bytes = guid.ToByteArray();
 			return (GuidVersion)((bytes[VersionByte] & 0xFF) >> VersionByteShift);

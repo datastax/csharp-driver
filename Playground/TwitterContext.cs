@@ -5,8 +5,8 @@ namespace Playground
 {
     public class TwitterContext : Context
     {
-        public TwitterContext(Session session, ConsistencyLevel ReadCqlConsistencyLevel, ConsistencyLevel WriteCqlConsistencyLevel)
-            : base(session, ReadCqlConsistencyLevel, WriteCqlConsistencyLevel)
+        public TwitterContext(Session session)
+            : base(session)
         {
             AddTable<Tweet>();
             AddTable<Author>();

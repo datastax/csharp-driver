@@ -88,7 +88,6 @@ namespace Cassandra.Test
         }
 
         [Fact]
-        [Priorioty]
         public void ParallelInsertTest()
         {
             Console.WriteLine("Compression is:" + (Compression == CompressionType.Snappy ? "SNAPPY" : "OFF"));

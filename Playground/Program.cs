@@ -32,7 +32,7 @@ namespace Playground
                 }
 
 
-                TwitterContext twitterContext = new TwitterContext(session, ConsistencyLevel.One, ConsistencyLevel.One);
+                TwitterContext twitterContext = new TwitterContext(session);
                 var TweetsTable = twitterContext.GetTable<Tweet>();
                 var AuthorsTable = twitterContext.GetTable<Author>();
                 var FollowedTweetsTable = twitterContext.GetTable<FollowedTweet>();
@@ -52,6 +52,7 @@ namespace Playground
                     var author_ID = "Author" + i.ToString();
                     var authorEnt = new Author() { author_id = author_ID, followers = authorsID.Where(aut => aut != author_ID).ToList() };
                     AuthorsTable.AddNew(authorEnt);
+                    AuthorsTable.EnableQueryTracing(authorEnt);
                     authorsLocal.Add(authorEnt); 
                     authorsID.Add(authorEnt.author_id);
 
@@ -64,6 +65,11 @@ namespace Playground
                     statisticsLocal.Add(statEnt);
                 }
                 twitterContext.SaveChanges(SaveChangesMode.Batch);
+                var traces = AuthorsTable.RetriveAllQueryTraces();
+                foreach (var trace in traces)
+                {
+                    Console.WriteLine("coordinator was {0}", trace.Coordinator);
+                }
                 Console.WriteLine("Done!");
 
                 
@@ -126,7 +132,7 @@ namespace Playground
                                                                                                                                                 
                 if (specifiedAuthor != default(Author))               
                 {
-                    var followedTweets = (from t in FollowedTweetsTable where t.user_id == author_id select t).Execute();
+                    var followedTweets = (from t in FollowedTweetsTable where t.user_id == author_id select t).Execute().ToList();
 
                     if (followedTweets.Count() > 0)
                         foreach (var foloTwt in followedTweets)
