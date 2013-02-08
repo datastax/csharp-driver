@@ -335,8 +335,6 @@ namespace Cassandra.Data.Linq
 
         public virtual IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            var eval = new CqlQueryEvaluator(GetTable());
-            eval.Evaluate(Expression);
             return InternalBeginExecute(GetCql(), callback, state);
         }
 
