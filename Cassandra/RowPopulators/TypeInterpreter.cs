@@ -84,5 +84,13 @@ namespace Cassandra
             else if (!(value is T))
                 throw new ArgumentOutOfRangeException("value", value.GetType().FullName, "Should be: " + typeof(T).FullName);
         }
+
+        static internal void CheckArgument<T1,T2>(object value)
+        {
+            if (value == null)
+                throw new ArgumentNullException();
+            else if ( !(value is T1 || value is T2) )
+                throw new ArgumentOutOfRangeException("value", value.GetType().FullName, "Should be: " + typeof(T1).FullName + " or " + typeof(T2).FullName);
+        }
     }
 }

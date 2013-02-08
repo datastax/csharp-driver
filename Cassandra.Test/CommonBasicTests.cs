@@ -79,7 +79,7 @@ namespace MyUTExt
         }
 
         public void valueComparator(CqlRowSet rowset, List<object[]> insertedRows)
-        {
+        {                
             Assert.True(rowset.RowsCount == insertedRows.Count, string.Format("Returned rows count is not equal with the count of rows that were inserted! \n Returned: {0} \n Expected: {1} \n", rowset.RowsCount, insertedRows.Count));            
             int i = 0;            
             foreach (var row in rowset.GetRows())
@@ -184,7 +184,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
         }
 
 
-        public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool shouldPass = true)
+        public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
             string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(toExceed);
             string tableName = "table" + Guid.NewGuid().ToString("N");
@@ -203,28 +203,39 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
 
             var Minimum = toExceedWith.GetField("MinValue").GetValue(this);
             var Maximum = toExceedWith.GetField("MaxValue").GetValue(this);
-            
+
+
+            object[] row1 = new object[3] { Guid.NewGuid(), "Minimum", Minimum };
+            object[] row2 = new object[3] { Guid.NewGuid(), "Maximum", Maximum };
+            List<object[]> toInsert_and_Check = new List<object[]>(2) { row1, row2 };
+
             if (toExceedWith == typeof(Double) || toExceedWith == typeof(Single))
             {
                 Minimum = Minimum.GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(Minimum, new object[1] { "r" });
                 Maximum = Maximum.GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(Maximum, new object[1] { "r" });
+
+                if (!sameOutput) //for ExceedingCassandra_FLOAT() test case
+                {
+                    toInsert_and_Check[0][2] = Single.NegativeInfinity;
+                    toInsert_and_Check[1][2] = Single.PositiveInfinity;
+                }
             }
 
-            object[] row1 = new object[3] { Guid.NewGuid(), "Minimum", Minimum };
-            object[] row2 = new object[3] { Guid.NewGuid(), "Maximum", Maximum };
-            List<object[]> toInsert = new List<object[]>(2) { row1, row2 };
             try
             {
-                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert[0][0].ToString(), toInsert[0][1], toInsert[0][2]), null);
-                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert[1][0].ToString(), toInsert[1][1], toInsert[1][2]), null);
+                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert_and_Check[0][0], toInsert_and_Check[0][1], Minimum), null);
+                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert_and_Check[1][0].ToString(), toInsert_and_Check[1][1], Maximum), null);
             }
-            catch (InvalidException) { }
+            catch (InvalidException) {
+                if (!sameOutput && toExceed == typeof(Int32)) //for ExceedingCassandra_INT() test case
+                {
+                    ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
+                    Assert.True(true);
+                    return;
+                }
+            }
                         
-            if(shouldPass)
-                ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
-            else
-                ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), new List<object[]>(0));
-
+            ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert_and_Check);
             ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -246,7 +257,8 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
                     return "double";
 
                 case "Decimal":
-                    return "decimal";
+                case "BigDecimal":
+                    return "decimal";               
 
                 case "BigInteger":
                     return "varint";
@@ -303,6 +315,9 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
             var prep = PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName, toInsert[0][0].ToString()));
             ExecutePreparedQuery(this.Session, prep, new object[1] { toInsert[0][1] });
 
+            if (tp == typeof(Decimal))
+                toInsert[0][1] = new BigDecimal((Decimal)toInsert[0][1]);
+
             ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
             ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
@@ -356,11 +371,11 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
 
             bool isFloatingPoint = false;
 
-            if (row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(byte[]))
-                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, '{2}');", tableName, toInsert[0][0].ToString(), row1[1].GetType() == typeof(byte[]) ? Cassandra.CqlQueryTools.ToHex((byte[])toInsert[0][1]) : toInsert[0][1]), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
+            if ( row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(byte[]))
+                ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), row1[1].GetType() == typeof(byte[]) ? "0x" + Cassandra.CqlQueryTools.ToHex((byte[])toInsert[0][1]) : "'" + toInsert[0][1] + "'"), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
             else
             {
-                if (tp == typeof(Single) || tp == typeof(Double))
+                if (tp == typeof(Single) || tp == typeof(Double) || tp == typeof(BigDecimal))
                     isFloatingPoint = true;
                 ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), !isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(toInsert[0][1], new object[] { "r" })), null);
             }

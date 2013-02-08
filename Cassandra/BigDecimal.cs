@@ -12,7 +12,7 @@ namespace Cassandra
             public static readonly BigDecimal One = new BigDecimal(BigInteger.One, 0);
 
             private readonly BigInteger _unscaledValue;
-            private readonly int _scale;
+            private readonly int _scale;            
 
             public BigDecimal(double value)
                 : this((decimal)value) { }
@@ -370,6 +370,14 @@ namespace Cassandra
             #endregion
 
             #region IFormattable Members
+
+            public string ToString(string format)
+            {
+                if (format == "R" || format == "r")
+                    return this.ToString();
+                else
+                    throw new NotImplementedException();
+            }
 
             public string ToString(string format, IFormatProvider formatProvider)
             {

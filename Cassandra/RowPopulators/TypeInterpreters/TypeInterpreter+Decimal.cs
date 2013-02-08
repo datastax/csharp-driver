@@ -6,6 +6,7 @@ namespace Cassandra
     {
         public static object ConvertFromDecimal(IColumnInfo type_info, byte[] value)
         {
+            Array.Reverse(value);
             return new BigDecimal(value);
         }
 
@@ -16,8 +17,16 @@ namespace Cassandra
 
         public static byte[] InvConvertFromDecimal(IColumnInfo type_info, object value)
         {
-            CheckArgument<BigDecimal>(value);
-            return ((BigDecimal)value).ToByteArray();
+            CheckArgument<BigDecimal, decimal>(value);
+            byte[] ret = null;
+            if (value.GetType() == typeof(BigDecimal))
+                ret = ((BigDecimal)value).ToByteArray();
+            else
+                if (value.GetType() == typeof(decimal))
+                    ret = (new BigDecimal((decimal)value)).ToByteArray();                                        
+            
+            Array.Reverse(ret);
+            return ret;
         }
     }
 }

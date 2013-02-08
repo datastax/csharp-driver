@@ -11,7 +11,7 @@ namespace Dev
     {
     }
 
-    public class PrioriotyAttribute : Attribute
+    public class PriorityAttribute : Attribute
     {
     }
 
@@ -74,6 +74,24 @@ namespace Dev
             {
                 Debugger.Break();
                 throw new AssertException("false", userMessage);
+            }
+        }
+
+        public static void False(bool condition)
+        {
+            if (condition)
+            {
+                Debugger.Break();
+                throw new AssertException("true");
+            }
+        }
+
+        public static void False(bool condition, string userMessage)
+        {
+            if (condition)
+            {
+                Debugger.Break();
+                throw new AssertException("true", userMessage);
             }
         }
 

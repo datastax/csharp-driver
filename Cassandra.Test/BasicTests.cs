@@ -20,8 +20,7 @@ namespace Cassandra.Test
             var ci = new System.Globalization.CultureInfo("en-GB");
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
         }
-
-
+        
         [Fact]
         public void checkSimpleStrategyKeyspace()
         {
@@ -51,8 +50,8 @@ namespace Cassandra.Test
         {
             base.testCounters();
         }
-
-        //[Fact]
+        
+        [Fact]
         public void testBlob()
         {
             insertingSingleValue(typeof(byte));
@@ -76,12 +75,12 @@ namespace Cassandra.Test
         }
 
 #if CASSANDRA_NET_40_OR_GREATER
-        //[Fact]
+        [Fact]
         public void testDecimal()
         {
-            insertingSingleValue(typeof(System.Decimal));
-        }
-        //[Fact]
+            insertingSingleValue(typeof(BigDecimal));
+        }        
+        [Fact]
         public void testVarInt()
         {
             insertingSingleValue(typeof(BigInteger));
@@ -130,12 +129,12 @@ namespace Cassandra.Test
         {
             ExceedingCassandraType(typeof(System.Int64), typeof(System.Int64));
         }
-        //[Fact]
+        [Fact]
         public void MaxingBoundsOf_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Single));
         }
-        //[Fact]
+        [Fact]
         public void MaxingBoundsOf_DOUBLE()
         {
             ExceedingCassandraType(typeof(System.Double), typeof(System.Double));
@@ -147,13 +146,14 @@ namespace Cassandra.Test
             base.TimestampTest();
         }
 
+        
         [Fact]
         public void ExceedingCassandra_INT()
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int64), false);
         }
-        
-        //[Fact]
+               
+        [Fact]
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Double), false);

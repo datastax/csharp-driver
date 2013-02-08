@@ -139,7 +139,7 @@ namespace TestRunner
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
-                            if (mth.GetCustomAttributes(typeof(Dev.PrioriotyAttribute), true).Length == 0)
+                            if (mth.GetCustomAttributes(typeof(Dev.PriorityAttribute), true).Length == 0)
                                 continue;
                             if (mth.GetCustomAttributes(typeof(Dev.FactAttribute), true).Length > 0)
                             {
@@ -165,14 +165,14 @@ namespace TestRunner
                 {
                     if (type.GetCustomAttributes(typeof(Dev.IgnoreAttribute), true).Length > 0)
                         continue;
-                    if (type.GetCustomAttributes(typeof(Dev.PrioriotyAttribute), true).Length > 0)
+                    if (type.GetCustomAttributes(typeof(Dev.PriorityAttribute), true).Length > 0)
                         continue;
                     if (type.Name.EndsWith("Tests") && type.IsPublic)
                     {
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
-                            if (mth.GetCustomAttributes(typeof(Dev.PrioriotyAttribute), true).Length > 0)
+                            if (mth.GetCustomAttributes(typeof(Dev.PriorityAttribute), true).Length > 0)
                                 continue;
                             if (mth.GetCustomAttributes(typeof(Dev.FactAttribute), true).Length > 0)
                             {

@@ -90,6 +90,11 @@ namespace MyUTExt
         //    return Extensions.ToVarintBuffer(NextBigIntegerNormal());
         //}
 
+        public BigDecimal NextBigDecimal()
+        {            
+            return new BigDecimal(NextDecimal());
+        }
+
         public string NextString()
         {
             return NextChar();
@@ -106,8 +111,8 @@ namespace MyUTExt
             return asciiString;
         }
         public DateTimeOffset NextDateTimeOffset()
-        {            
-            return DateTimeOffset.Now.DateTime;
+        {
+            return DateTimeOffset.Now.UtcDateTime;
         }
         
         public byte[] NextByte()

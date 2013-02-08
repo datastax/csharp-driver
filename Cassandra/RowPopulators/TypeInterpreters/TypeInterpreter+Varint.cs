@@ -7,6 +7,7 @@ namespace Cassandra
     {
         public static object ConvertFromVarint(IColumnInfo type_info, byte[] value)
         {
+            Array.Reverse(value);
             return new BigInteger(value);
         }
 
@@ -18,8 +19,10 @@ namespace Cassandra
         public static byte[] InvConvertFromVarint(IColumnInfo type_info, object value)
         {
             CheckArgument<BigInteger>(value);
-
-            return ((BigInteger)value).ToByteArray();
+            var ret  = ((BigInteger)value).ToByteArray();
+            
+            Array.Reverse(ret);
+            return ret;
         }
     }
 }

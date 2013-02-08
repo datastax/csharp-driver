@@ -37,7 +37,7 @@ namespace Cassandra
             return new Guid(buffer);
         }
 
-        private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public static long ToUnixTime(DateTimeOffset dt)
         {
@@ -45,7 +45,7 @@ namespace Cassandra
         }
 
         public static DateTimeOffset FromUnixTime(long ms)
-        {                       
+        {            
             return UnixStart.AddMilliseconds(ms);
         }
 
