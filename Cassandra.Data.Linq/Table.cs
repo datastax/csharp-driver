@@ -39,6 +39,7 @@ namespace Cassandra.Data.Linq
         Type GetEntityType();
         string GetTableName();
         Session GetSession();
+        TableType GetTableType();
     }
 
     public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
@@ -133,6 +134,30 @@ namespace Cassandra.Data.Linq
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
             return new CqlInsert<TEntity>(entity,this);
+        }
+
+        static private TableType _tableType = TableType.All;
+
+        public TableType GetTableType()
+        {
+            if (_tableType == TableType.All)
+            {
+                var props = GetEntityType().GetPropertiesOrFields();
+                foreach (var prop in props)
+                {
+                    Type tpy = prop.GetTypeFromPropertyOrField();
+                    if (
+                        prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as
+                        CounterAttribute != null)
+                    {
+                        _tableType = TableType.Counter;
+                        break;
+                    }
+                }
+                if (_tableType == TableType.All)
+                    _tableType = TableType.Standard;
+            }
+            return _tableType;
         }
     }
 

@@ -11,5 +11,10 @@ namespace Cassandra.Data.Linq
         {
             return new Table<TEntity>(@this, tableName ?? typeof(TEntity).Name);
         }
+
+        public static Batch CreateBatch(this Session @this)
+        {
+            return new Batch(@this);
+        }
     }
 }

@@ -241,25 +241,6 @@ namespace Cassandra.Data.Linq
 
         public void SaveChanges(SaveChangesMode mode = SaveChangesMode.Batch, TableType tableType = TableType.All,ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
         {
-            var tableTypes = new Dictionary<string, TableType>();
-
-            foreach (var table in _tables)
-            {
-                bool isCounter = false;
-                var props = table.Value.GetEntityType().GetPropertiesOrFields();
-                foreach (var prop in props)
-                {
-                    Type tpy = prop.GetTypeFromPropertyOrField();
-                    if (
-                        prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as
-                        CounterAttribute != null)
-                    {
-                        isCounter = true;
-                        break;
-                    }
-                }
-                tableTypes.Add(table.Key, isCounter ? TableType.Counter : TableType.Standard);
-            }
 
             var newAdditionalCommands = new List<ICqlCommand>();
 
@@ -267,27 +248,29 @@ namespace Cassandra.Data.Linq
             {
                 foreach (var table in _tables)
                     if ((((tableType & TableType.Counter) == TableType.Counter) &&
-                         tableTypes[table.Key] == TableType.Counter)
+                         table.Value.GetTableType() == TableType.Counter)
                         ||
                         (((tableType & TableType.Standard) == TableType.Standard) &&
-                         tableTypes[table.Key] == TableType.Standard))
+                         table.Value.GetTableType() == TableType.Standard))
                         _mutationTrackers[table.Key].SaveChangesOneByOne(this, table.Key, consistencyLevel);
 
                 foreach (var additional in _additionalCommands)
+                {
                     if ((tableType & TableType.Counter) == TableType.Counter)
                     {
-                        if (tableTypes[additional.GetTable().GetTableName()] == TableType.Counter)
+                        if (additional.GetTable().GetTableType() == TableType.Counter)
                             additional.Execute(consistencyLevel);
                         else if (tableType == TableType.Counter)
                             newAdditionalCommands.Add(additional);
                     }
                     else if ((tableType & TableType.Standard) == TableType.Standard)
                     {
-                        if (tableTypes[additional.GetTable().GetTableName()] == TableType.Standard)
+                        if (additional.GetTable().GetTableType() == TableType.Standard)
                             additional.Execute(consistencyLevel);
                         else if (tableType == TableType.Standard)
                             newAdditionalCommands.Add(additional);
                     }
+                }
             }
             else
             {
@@ -296,11 +279,11 @@ namespace Cassandra.Data.Linq
                     bool enableTracing = false;
                     var counterBatchScript = new StringBuilder();
                     foreach (var table in _tables)
-                        if (tableTypes[table.Key] == TableType.Counter)
+                        if (table.Value.GetTableType() == TableType.Counter)
                             enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(counterBatchScript, table.Key);
 
                     foreach (var additional in _additionalCommands)
-                        if (tableTypes[additional.GetTable().GetTableName()] == TableType.Counter)
+                        if (additional.GetTable().GetTableType()== TableType.Counter)
                         {
                             enableTracing |= additional.IsQueryTraceEnabled();
                             counterBatchScript.AppendLine(additional.GetCql() + ";");
@@ -312,7 +295,7 @@ namespace Cassandra.Data.Linq
                     {
                         var res = ExecuteWriteQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH",consistencyLevel, enableTracing);
                         foreach (var table in _tables)
-                            if (tableTypes[table.Key] == TableType.Counter)
+                            if (table.Value.GetTableType() == TableType.Counter)
                                 _mutationTrackers[table.Key].BatchCompleted(res.QueryTrace);
 
                         foreach (var additional in _additionalCommands)
@@ -326,11 +309,11 @@ namespace Cassandra.Data.Linq
                     bool enableTracing = false;
                     var batchScript = new StringBuilder();
                     foreach (var table in _tables)
-                        if (tableTypes[table.Key] == TableType.Standard)
+                        if (table.Value.GetTableType() == TableType.Standard)
                             enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(batchScript, table.Key);
 
                     foreach (var additional in _additionalCommands)
-                        if (tableTypes[additional.GetTable().GetTableName()] == TableType.Standard)
+                        if (additional.GetTable().GetTableType() == TableType.Standard)
                         {
                             enableTracing |= additional.IsQueryTraceEnabled();
                             batchScript.AppendLine(additional.GetCql() + ";");
@@ -342,7 +325,7 @@ namespace Cassandra.Data.Linq
                     {
                         var res = ExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH", consistencyLevel, enableTracing);
                         foreach (var table in _tables)
-                            if (tableTypes[table.Key] == TableType.Standard)
+                            if (table.Value.GetTableType() == TableType.Standard)
                                 _mutationTrackers[table.Key].BatchCompleted(res.QueryTrace);
 
                         foreach (var additional in _additionalCommands)

@@ -102,6 +102,7 @@ namespace Cassandra
             this._retryPolicy = policy;
             return this;
         }
+
         internal abstract IAsyncResult BeginExecute(Session session, object tag, AsyncCallback callback, object state);
 
         internal abstract CqlRowSet EndExecute(Session session, IAsyncResult ar);
