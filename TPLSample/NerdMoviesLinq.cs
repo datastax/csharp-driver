@@ -61,7 +61,7 @@ namespace TPLSample.NerdMoviesLinqSample
 
                 var taskSelectStartMovies =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectNerdMovies.BeginExecute,
-                                                                   selectNerdMovies.EndExecute, ConsistencyLevel.Default, null)
+                                                                   selectNerdMovies.EndExecute, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
 
@@ -72,14 +72,14 @@ namespace TPLSample.NerdMoviesLinqSample
 
                 var taskselectAllFromWhere =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
-                                                                   selectAllFromWhere.EndExecute, ConsistencyLevel.Default, null)
+                                                                   selectAllFromWhere.EndExecute, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
                 taskselectAllFromWhere.Wait();
 
                 var taskselectAllFromWhereWithFuture =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
-                                                                   selectAllFromWhere.EndExecute, ConsistencyLevel.Default, null)
+                                                                   selectAllFromWhere.EndExecute, null)
                                                 .ContinueWith(a => a.Result.ToList());
 
                 DisplayMovies(taskselectAllFromWhereWithFuture.Result);

@@ -399,12 +399,12 @@ namespace Cassandra
 
         public IAsyncResult BeginExecute(Query query, object tag , AsyncCallback callback, object state)
         {
-            return query.BeginExecute(this, tag, callback, state);
+            return query.BeginSessionExecute(this, tag, callback, state);
         }
 
         public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state)
         {
-            return query.BeginExecute(this, null, callback, state);
+            return query.BeginSessionExecute(this, null, callback, state);
         }
 
         public static object GetTag(IAsyncResult ar)
@@ -416,7 +416,7 @@ namespace Cassandra
         public CqlRowSet EndExecute(IAsyncResult ar)
         {
             var longActionAc = ar as AsyncResult<CqlRowSet>;
-            return (longActionAc.AsyncSender as Query).EndExecute(this, ar);
+            return (longActionAc.AsyncSender as Query).EndSessionExecute(this, ar);
         }
 
         public CqlRowSet Execute(Query query)

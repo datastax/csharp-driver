@@ -151,7 +151,7 @@ namespace Cassandra.Data.Linq
         {
             public Dictionary<string, TableType> TableTypes;
             public TableType TableType;
-            public List<ICqlCommand> NewAdditionalCommands;
+            public List<CqlCommand> NewAdditionalCommands;
         }
 
         public IAsyncResult BeginSaveChangesBatch(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
@@ -179,7 +179,7 @@ namespace Cassandra.Data.Linq
                 tableTypes.Add(table.Key, isCounter ? TableType.Counter : TableType.Standard);
             }
 
-            var newAdditionalCommands = new List<ICqlCommand>();
+            var newAdditionalCommands = new List<CqlCommand>();
             if (((tableType & TableType.Counter) == TableType.Counter))
             {
                 bool enableTracing = false;
@@ -192,7 +192,7 @@ namespace Cassandra.Data.Linq
                     if (tableTypes[additional.GetTable().GetTableName()] == TableType.Counter)
                     {
                         counterBatchScript.AppendLine(additional.GetCql() + ";");
-                        enableTracing |= additional.IsQueryTraceEnabled();
+                        enableTracing |= additional.IsTracing;
                     }
                     else if (tableType == TableType.Counter)
                         newAdditionalCommands.Add(additional);
@@ -217,7 +217,7 @@ namespace Cassandra.Data.Linq
                 foreach (var additional in _additionalCommands)
                     if (tableTypes[additional.GetTable().GetTableName()] == TableType.Standard)
                     {
-                        enableTracing |= additional.IsQueryTraceEnabled();
+                        enableTracing |= additional.IsTracing;
                         batchScript.AppendLine(additional.GetCql() + ";");
                     }
                     else if (tableType == TableType.Standard)
@@ -247,7 +247,7 @@ namespace Cassandra.Data.Linq
         public void SaveChanges(SaveChangesMode mode = SaveChangesMode.Batch, TableType tableType = TableType.All,ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
         {
 
-            var newAdditionalCommands = new List<ICqlCommand>();
+            var newAdditionalCommands = new List<CqlCommand>();
 
             if (mode == SaveChangesMode.OneByOne)
             {
@@ -264,14 +264,14 @@ namespace Cassandra.Data.Linq
                     if ((tableType & TableType.Counter) == TableType.Counter)
                     {
                         if (additional.GetTable().GetTableType() == TableType.Counter)
-                            additional.Execute(consistencyLevel);
+                            additional.Execute();
                         else if (tableType == TableType.Counter)
                             newAdditionalCommands.Add(additional);
                     }
                     else if ((tableType & TableType.Standard) == TableType.Standard)
                     {
                         if (additional.GetTable().GetTableType() == TableType.Standard)
-                            additional.Execute(consistencyLevel);
+                            additional.Execute();
                         else if (tableType == TableType.Standard)
                             newAdditionalCommands.Add(additional);
                     }
@@ -290,7 +290,7 @@ namespace Cassandra.Data.Linq
                     foreach (var additional in _additionalCommands)
                         if (additional.GetTable().GetTableType()== TableType.Counter)
                         {
-                            enableTracing |= additional.IsQueryTraceEnabled();
+                            enableTracing |= additional.IsTracing;
                             counterBatchScript.AppendLine(additional.GetCql() + ";");
                         }
                         else if (tableType == TableType.Counter)
@@ -320,7 +320,7 @@ namespace Cassandra.Data.Linq
                     foreach (var additional in _additionalCommands)
                         if (additional.GetTable().GetTableType() == TableType.Standard)
                         {
-                            enableTracing |= additional.IsQueryTraceEnabled();
+                            enableTracing |= additional.IsTracing;
                             batchScript.AppendLine(additional.GetCql() + ";");
                         }
                         else if (tableType == TableType.Standard)
@@ -341,9 +341,9 @@ namespace Cassandra.Data.Linq
             _additionalCommands = newAdditionalCommands;
         }
 
-        private List<ICqlCommand> _additionalCommands = new List<ICqlCommand>();
+        private List<CqlCommand> _additionalCommands = new List<CqlCommand>();
 
-        public void AppendCommand(ICqlCommand cqlCommand)
+        public void AppendCommand(CqlCommand cqlCommand)
         {
             _additionalCommands.Add(cqlCommand);
         }

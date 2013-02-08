@@ -36,7 +36,7 @@ namespace TPLSample.FutureSample
                 var allResults = new List<Task<List<schema_keyspaces>>>();
                 for (int i = 0; i < 100; ++i)
                 {
-                    var futRes = Task<IEnumerable<schema_keyspaces>>.Factory.FromAsync(cqlKeyspaces.BeginExecute, cqlKeyspaces.EndExecute, ConsistencyLevel.Default, null)
+                    var futRes = Task<IEnumerable<schema_keyspaces>>.Factory.FromAsync(cqlKeyspaces.BeginExecute, cqlKeyspaces.EndExecute, null)
                         .ContinueWith(a => a.Result.ToList());
                     allResults.Add(futRes);
                 }

@@ -103,9 +103,9 @@ namespace Cassandra
             return this;
         }
 
-        internal abstract IAsyncResult BeginExecute(Session session, object tag, AsyncCallback callback, object state);
+        protected internal abstract IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state);
 
-        internal abstract CqlRowSet EndExecute(Session session, IAsyncResult ar);
+        protected internal abstract CqlRowSet EndSessionExecute(Session session, IAsyncResult ar);
 
     }
 }

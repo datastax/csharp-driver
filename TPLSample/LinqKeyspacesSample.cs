@@ -36,7 +36,7 @@ namespace TPLSample.LinqKeyspacesSample
                                    where t.keyspace_name == "system" select t;
 
                 var req = Task<IEnumerable<SchemaColumns>>.Factory.FromAsync(cqlKeyspaces.BeginExecute,
-                                                                   cqlKeyspaces.EndExecute, ConsistencyLevel.Default, null).Result;
+                                                                   cqlKeyspaces.EndExecute, null).Result;
 
                 DisplayResult(req);
             }

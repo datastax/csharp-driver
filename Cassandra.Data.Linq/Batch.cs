@@ -5,56 +5,61 @@ using System.Text;
 
 namespace Cassandra.Data.Linq
 {
-    public class Batch
+    public class Batch : Query
     {
         readonly Session _session;
+
         internal Batch(Session session)
         {
             _session = session;
         }
 
-        private List<ICqlCommand> _additionalCommands = new List<ICqlCommand>();
+        private readonly List<CqlCommand> _commands = new List<CqlCommand>();
 
-        public void AppendCommand(ICqlCommand cqlCommand)
+        public void Append(CqlCommand cqlCommand)
         {
-            _additionalCommands.Add(cqlCommand);
+            _commands.Add(cqlCommand);
         }
 
-        public void Execute(ConsistencyLevel consistencyLevel)
+        public void Append(IEnumerable<CqlCommand> cqlCommands)
         {
-            EndExecute(BeginExecute(consistencyLevel, null, null));
+            foreach(var cmd in cqlCommands)
+                _commands.Add(cmd);
+        }
+
+        public void Execute()
+        {
+            EndExecute(BeginExecute(null, null));
         }
 
         private struct CqlQueryTag
         {
             public Session Session;
-            public List<ICqlCommand> TraceableCommands;
+            public List<CqlCommand> TraceableCommands;
         }
 
-        public IAsyncResult BeginExecute(ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            bool enableTracing = false;
             StringBuilder batchScript = new StringBuilder();
-            List<ICqlCommand> traceableCommands = null;
+            List<CqlCommand> traceableCommands = null;
             string BT = "";
-            foreach (var additional in _additionalCommands)
+            foreach (var cmd in _commands)
             {
-                if(additional.IsQueryTraceEnabled())
+                if(cmd.IsTracing)
                 {
-                    enableTracing = true;
                     if (traceableCommands == null)
-                        traceableCommands = new List<ICqlCommand>();
-                    traceableCommands.Add(additional);
+                        traceableCommands = new List<CqlCommand>();
+                    traceableCommands.Add(cmd);
                 }
-                if (additional.GetTable().GetTableType() == TableType.Counter)
+                if (cmd.GetTable().GetTableType() == TableType.Counter)
                     BT = "COUNTER ";
-                batchScript.AppendLine(additional.GetCql() + ";");
+                batchScript.AppendLine(cmd.GetCql());
             }
             if (batchScript.Length != 0)
             {
                 var ctx = _session;
                 var cqlQuery = "BEGIN " + BT + "BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY " + BT + "BATCH";
-                return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(enableTracing).SetConsistencyLevel(consistencyLevel),
+                return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
                                     new CqlQueryTag() { Session = ctx, TraceableCommands = traceableCommands }, callback, state);
             }
             throw new ArgumentOutOfRangeException();
@@ -62,12 +67,38 @@ namespace Cassandra.Data.Linq
 
         public void EndExecute(IAsyncResult ar)
         {
+            InternalEndExecute(ar);
+        }
+
+
+        public override CassandraRoutingKey RoutingKey
+        {
+            get { return null; }
+        }
+
+        protected override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
+        {
+            if (!ReferenceEquals(_session, session))
+                throw new ArgumentOutOfRangeException("session");
+            return BeginExecute(callback, state);
+        }
+
+        public QueryTrace QueryTrace { get; private set; }
+        
+        private CqlRowSet InternalEndExecute(IAsyncResult ar)
+        {
             var tag = (CqlQueryTag)Session.GetTag(ar);
             var ctx = tag.Session;
-            var res = ctx.EndExecute(ar);
-            if (tag.TraceableCommands != null)
-                foreach (var command in tag.TraceableCommands)
-                    command.SetQueryTrace(res.QueryTrace);
+            var outp = ctx.EndExecute(ar);
+            QueryTrace = outp.QueryTrace;
+            return outp;
+        }
+        
+        protected override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
+        {
+            if (!ReferenceEquals(_session, session))
+                throw new ArgumentOutOfRangeException("session");
+            return InternalEndExecute(ar);
         }
 
     }

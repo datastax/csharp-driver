@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra;
 
@@ -24,7 +25,7 @@ namespace LinqSamples
         
         static void Main(string[] args)
         {
-            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithoutRowSetBuffering().Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
 
             using (var session = cluster.Connect())
             {
@@ -40,21 +41,39 @@ namespace LinqSamples
                     session.ChangeKeyspace(keyspaceName);
                 }
 
+                var table = session.GetTable<NerdMovie>();
+                table.CreateIfNotExists();
 
-                var context = new Context(session);
-                context.AddTable<NerdMovie>();
-                context.CreateTablesIfNotExist();
-
-                var movies = new List<NerdMovie>()
                 {
-                    new NerdMovie(){ Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005},
-                    new NerdMovie(){ Movie = "Pulp Fiction", Director = "Quentin Tarantino", MainActor = "Bruce Willis", Year = 2001},
-                };
+                    var batch = session.CreateBatch();
 
-                var ins = context.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 });
+                    var movies = new List<NerdMovie>()
+                    {
+                        new NerdMovie(){ Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005},
+                        new NerdMovie(){ Movie = "Pulp Fiction", Director = "Quentin Tarantino", MainActor = "Bruce Willis", Year = 2001},
+                    };
 
-                context.AppendCommand(ins);
+                    batch.Append(from m in movies select table.Insert(m));
+
+                    batch.Execute();
+                }
+
+                var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
+                (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 2012 }).Update().Execute();
+
+                table.Where((m) => m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino").Select((m) => new NerdMovie{ Year = 2012 }).Update().Execute();
+
+                var nm2 = table.Where((m) => m.Director == "Quentin Tarantino").Select((m) => new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
+                (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
+
+                var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
+                session.DeleteKeyspaceIfExists(keyspaceName);
             }
+
+            cluster.Shutdown();
         }
     }
 }

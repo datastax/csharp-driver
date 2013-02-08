@@ -74,12 +74,12 @@ namespace Cassandra
         /// </summary>
         public override CassandraRoutingKey RoutingKey { get { return null; } }
 
-        internal override IAsyncResult BeginExecute(Session session, object tag, AsyncCallback callback, object state)
+        protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
             return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, _values, callback, state, ConsistencyLevel, this, this, tag, IsTracing);
         }
 
-        internal override CqlRowSet EndExecute(Session session, IAsyncResult ar)
+        protected internal override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             return session.EndExecuteQuery(ar);
         }

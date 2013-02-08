@@ -78,8 +78,15 @@ namespace Cassandra.Data.Linq
                     if(AlternativeMappingVals.ContainsKey(al.Key))
                     {
                         var o = AlternativeMappingVals[al.Key];
-                        var val = o.GetType().GetField(al.Value).GetValue(o);
-                        query += al.Key.CqlIdentifier() + "=" + val.Encode();
+                        if (o.GetType().IsPrimitive)
+                        {
+                            query += al.Key.CqlIdentifier() + "=" + o.Encode();
+                        }
+                        else
+                        {
+                            var val = o.GetType().GetField(al.Value).GetValue(o);
+                            query += al.Key.CqlIdentifier() + "=" + val.Encode();
+                        }
                     }
                 }
 
@@ -388,7 +395,12 @@ namespace Cassandra.Data.Linq
                         AlternativeMappingVals.Add(binding.Member.Name, ((e as MemberExpression).Expression as ConstantExpression).Value);
                     }
                 }
-                else 
+                else if (e is ConstantExpression)
+                {
+                    name = binding.Member.Name;
+                    AlternativeMappingVals.Add(binding.Member.Name, (e as ConstantExpression).Value);
+                }
+                else
                 {
                     throw new NotSupportedException("Only simple assignments are supported. " + binding.ToString() + " is not supported.");
                 }

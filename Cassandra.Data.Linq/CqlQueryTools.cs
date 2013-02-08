@@ -497,14 +497,22 @@ namespace Cassandra.Data.Linq
                         int idx;
                         if (colToIdx.ContainsKey(prop.Name))
                             idx = colToIdx[prop.Name];
-                        else
+                        else if (alter.ContainsKey(prop.Name) && colToIdx.ContainsKey(alter[prop.Name]))
                             idx = colToIdx[alter[prop.Name]];
+                        else 
+                            continue;
                         var val = cqlRow[idx];
                         (prop as PropertyInfo).SetValue(row, val, null);
                     }
                     else if (prop is FieldInfo)
                     {
-                        int idx = colToIdx.ContainsKey(prop.Name) ? colToIdx[prop.Name] : colToIdx[alter[prop.Name]];
+                        int idx;
+                        if (colToIdx.ContainsKey(prop.Name))
+                            idx = colToIdx[prop.Name];
+                        else if (alter.ContainsKey(prop.Name) && colToIdx.ContainsKey(alter[prop.Name]))
+                            idx = colToIdx[alter[prop.Name]];
+                        else
+                            continue; 
                         var val = cqlRow[idx];
                         if (val == null)
                             (prop as FieldInfo).SetValue(row, val);
