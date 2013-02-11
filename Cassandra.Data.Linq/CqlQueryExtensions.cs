@@ -6,6 +6,16 @@ namespace Cassandra.Data.Linq
     public static class CqlQueryExtensions
     {
 
+        /// <summary>
+        /// Projects each element of a sequence into a new form.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <typeparam name="TResult">The type of the value returned by selector.</typeparam>
+        /// <param name="source">A CqlQuery&lt;TSource&gt; which after execution returns a sequence of values to invoke a transform function on.</param>
+        /// <param name="selector">A transform function to apply to each element.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return an IEnumerable&lt;TSource&gt; whose elements
+        /// are the result of invoking the transform function on each element of source.
+        /// To execute this CqlQuery use <code>Execute()</code> method.</returns>
         public static CqlQuery<TResult> Select<TSource, TResult>(this CqlQuery<TSource> source, Expression<Func<TSource, TResult>> selector)
         {
             return (CqlQuery<TResult>)source.Provider.CreateQuery<TResult>(Expression.Call(
@@ -13,6 +23,15 @@ namespace Cassandra.Data.Linq
                  new Expression[] { source.Expression, selector }));
         }
 
+        /// <summary>
+        ///  Returns a CqlQuery which after execution returns filtered sequence of values based on a predicate.
+        ///  To execute this CqlQuery use <code>Execute()</code> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The CqlQuery&lt;TSource&gt; to filter.</param>
+        /// <param name="predicate">A function to test each element for a condition.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return an IEnumerable&lt;TSource&gt;
+        /// that contains elements from the input sequence that satisfy the condition.</returns>
         public static CqlQuery<TSource> Where<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
             return (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(
@@ -20,11 +39,27 @@ namespace Cassandra.Data.Linq
                  new Expression[] { source.Expression, predicate }));
         }
 
+        /// <summary>
+        /// Returns a CqlScalar which after execution returns the number of elements in a sequence.
+        /// To execute this CqlScalar use <code>Execute()</code> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The CqlQuery&lt;TSource&gt; to return the first element of.</param>
+        /// <returns>a CqlScalar&lt;long&gt; which after execution returns the number of elements in a sequence.</returns>
         public static CqlScalar<long> Count<TSource>(this CqlQuery<TSource> source)
         {
             return new CqlScalar<long>(source.Expression, source.Provider);
         }
 
+        /// <summary>
+        /// Returns a CqlQuery which after execution returns the first element in a sequence that satisfies a specified condition.
+        /// To execute this CqlQuery use <code>Execute()</code> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The Table&lt;TSource&gt; to return the first element of.</param>
+        /// <param name="predicate">A function to test each element for a condition.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return first element in the sequence
+        /// that passes the test in the specified predicate function.</returns>
         public static CqlQuerySingleElement<TSource> First<TSource>(this Table<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
             return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
@@ -32,6 +67,17 @@ namespace Cassandra.Data.Linq
                      new Expression[] { source.Expression, Expression.Constant(1), predicate })).Expression, source.Provider);
         }
 
+        /// <summary>
+        /// Returns a CqlQuery which after execution will return the first element of the sequence that satisfies a condition
+        /// or a default value if no such element is found.
+        /// To execute this CqlQuery use <code>Execute()</code> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The Table&lt;TSource&gt;  to return the first element of.</param>
+        /// <param name="predicate">A function to test each element for a condition.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return <code>default(TSource)</code> if source is empty
+        /// or if no element passes the test specified by predicate,
+        /// otherwise the first element in source that passes the test specified by predicate.</returns>
         public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this Table<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
             return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
@@ -39,13 +85,29 @@ namespace Cassandra.Data.Linq
                      new Expression[] { source.Expression, Expression.Constant(1), predicate })).Expression, source.Provider);
         }
 
+        /// <summary>
+        /// Returns a CqlQuery which after execution will return the first element in a sequence.
+        /// To execute this CqlQuery use <code>Execute()</code> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The CqlQuery&lt;TSource&gt; to return the first element of.</param>        
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return first element in the sequence.</returns>
         public static CqlQuerySingleElement<TSource> First<TSource>(this CqlQuery<TSource> source)
         {
             return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                     null, CqlMthHelps.FirstMi,
                      new Expression[] { source.Expression, Expression.Constant(1) })).Expression, source.Provider);            
         }
-        
+
+        /// <summary>
+        /// Returns a CqlQuery which after execution will return the first element of a sequence,
+        /// or a default value if the sequence contains no elements.
+        /// To execute this CqlQuery use <code>Execute()</code> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The CqlQuery&lt;TSource&gt; to return the first element of.</param>        
+        /// <returns><code>a CqlQuery&lt;TSource&gt; which after execution will return default(TSource)</code> if source is empty,
+        /// otherwise the first element in source.</returns>
         public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this CqlQuery<TSource> source)
         {
             return new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
@@ -63,6 +125,16 @@ namespace Cassandra.Data.Linq
             return new CqlUpdate(source.Expression, source.Provider);
         }
         
+        /// <summary>
+        /// Returns a CqlQuery which after execution will return IEnumerable&lt;TSource&gt;
+        /// with specified number of contiguous elements from the start of a sequence.
+        /// To execute this CqlQuery use <code>Execute()</code> method.
+        /// </summary>        
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <param name="source">The CqlQuery&lt;TSource&gt; to return the first element of.</param>
+        /// <param name="count">The number of elements to return.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return IEnumerable&lt;TSource&gt;
+        /// with specified number of contiguous elements from the start of a sequence.</returns>
         public static CqlQuery<TSource> Take<TSource>(this CqlQuery<TSource> source, int count)
         {
             return (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(
@@ -70,19 +142,36 @@ namespace Cassandra.Data.Linq
                  new Expression[] { source.Expression, Expression.Constant(count) }));
         }
 
-        public static CqlQuery<TSource> OrderBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
+        /// <summary>
+        /// Sorts the elements, which are returned from CqlQuery, in ascending order according to a key.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <typeparam name="TKey">The type of the key returned by keySelector.</typeparam>
+        /// <param name="source">A sequence of values to order, returned from CqlQuery&lt;TSource&gt;.</param>
+        /// <param name="keySelector">A function to extract a key from an element.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution returns an IEnumerable&lt;TSource&gt; sorted in ascending manner according to a key.</returns>
+        public static CqlQuery<TSource> OrderBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> keySelector)
         {
             return (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.OrderByMi,
-                 new Expression[] { source.Expression, func }));
+                 new Expression[] { source.Expression, keySelector }));
         }
 
+        /// <summary>
+        /// Sorts the elements, which are returned from CqlQuery, in ascending order according to a key.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <typeparam name="TKey">The type of the key returned by keySelector.</typeparam>
+        /// <param name="source">A sequence of values to order, returned from CqlQuery&lt;TSource&gt;.</param>
+        /// <param name="keySelector">A function to extract a key from an element.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution returns an IEnumerable&lt;TSource&gt; sorted in descending manner according to a key.</returns>
         public static CqlQuery<TSource> OrderByDescending<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {
             return (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.OrderByDescendingMi,
                  new Expression[] { source.Expression, func }));
         }
+
 
         public static CqlQuery<TSource> ThenBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {

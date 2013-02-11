@@ -136,6 +136,18 @@ namespace Cassandra
             }
         }
 
+
+
+        /// <summary>
+        /// Creates new session on this cluster, and sets it to default keyspace. 
+        /// If default keyspace does not exist then it will be created and session will be set to it.
+        /// Name of default keyspace can be specified during creation of cluster object with <code>Cluster.Builder().WithDefaultKeyspace("keyspace_name")</code> method.
+        /// </summary>
+        /// <param name="replication">Replication property for this keyspace. To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
+        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
+        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
+        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        /// <returns>a new session on this cluster set to default keyspace.</returns>
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durable_writes = true)
         {            
             var session = Connect("");
@@ -165,7 +177,7 @@ namespace Cassandra
 
         private Metadata _metadata = null;
         /// <summary>
-        ///  gets read-only metadata on the connected cluster. <p> This includes the
+        ///  Gets read-only metadata on the connected cluster. <p> This includes the
         ///  know nodes (with their status as seen by the driver) as well as the schema
         ///  definitions.</p>
         /// </summary>
@@ -299,7 +311,7 @@ namespace Cassandra
 
         private int _queryAbortTimeout = Timeout.Infinite;
         private int _asyncCallAbortTimeout = Timeout.Infinite;
-
+        
         public IEnumerable<IPAddress> ContactPoints
         {
             get { return _addresses; }
@@ -475,6 +487,14 @@ namespace Cassandra
         }
 
 
+        /// <summary>
+        ///  The configuration that will be used for the new cluster. <p> You <b>should
+        ///  not</b> modify this object directly as change made to the returned object may
+        ///  not be used by the cluster build. Instead, you should use the other methods
+        ///  of this <code>Builder</code></p>.
+        /// </summary>
+        /// 
+        /// <returns>the configuration to use for the new cluster.</returns>
         public Configuration GetConfiguration()
         {
             var policies = new Policies(
@@ -508,24 +528,51 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        ///  Disables row set buffering for the created cluster (row set buffering is enabled by
+        ///  default otherwise).
+        /// </summary>
+        /// 
+        /// <returns>this builder</returns>
         public Builder WithoutRowSetBuffering()
         {
             this._withoutRowSetBuffering = true;
             return this;
         }
 
+        /// <summary>
+        ///  Sets the timeout for a single query within created cluster.
+        ///  After the expiry of the timeout, query will be aborted.
+        ///  Default timeout value is set to <code>Infinity</code>
+        /// </summary>
+        /// <param name="queryAbortTimeout">Timeout specified in milliseconds.</param>
+        /// <returns>this builder</returns>
         public Builder WithQueryTimeout(int queryAbortTimeout)
         {
             this._queryAbortTimeout = queryAbortTimeout;
             return this;
         }
 
+
+        /// <summary>
+        ///  Sets the asynchronous call timeout within created cluster.
+        ///  
+        ///  Default asynchronous call timeout value is set to <code>Infinity</code>
+        /// </summary>
+        /// <param name="asyncCallAbortTimeout">Timeout specified in milliseconds.</param>
+        /// <returns>this builder</returns>
         public Builder WithAsyncCallTimeout(int asyncCallAbortTimeout)
         {
             this._asyncCallAbortTimeout = asyncCallAbortTimeout;
             return this;
         }
 
+
+        /// <summary>
+        ///  Sets default keyspace name for the created cluster.
+        /// </summary>
+        /// <param name="defaultKeyspace">Default keyspace name.</param>
+        /// <returns>this builder</returns>
         public Builder WithDefaultKeyspace(string defaultKeyspace)
         {
             this._defaultKeyspace = defaultKeyspace;

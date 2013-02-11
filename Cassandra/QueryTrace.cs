@@ -207,7 +207,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  A trace event. <p> A query trace is composed of a list of trace events.
+        ///  A trace event. <p> A query trace is composed of a list of trace events.</p>
         /// </summary>
 
         public class Event

@@ -57,6 +57,9 @@ namespace Cassandra.Data.Linq
 
         private string _keyspaceName;
 
+        /// <summary>
+        /// Gets name of keyspace.
+        /// </summary>
         public string Keyspace
         {
             get { return _keyspaceName; }

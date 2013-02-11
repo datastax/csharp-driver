@@ -50,7 +50,7 @@ namespace LinqSamples
                     var movies = new List<NerdMovie>()
                     {
                         new NerdMovie(){ Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005},
-                        new NerdMovie(){ Movie = "Pulp Fiction", Director = "Quentin Tarantino", MainActor = "Bruce Willis", Year = 2001},
+                        new NerdMovie(){ Movie = "Pulp Fiction", Director = "Quentin Tarantino", MainActor = "John Travolta", Year = 1994},
                     };
 
                     batch.Append(from m in movies select table.Insert(m));
@@ -60,9 +60,9 @@ namespace LinqSamples
 
                 var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
-                (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 2012 }).Update().Execute();
+                (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
 
-                table.Where((m) => m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino").Select((m) => new NerdMovie{ Year = 2012 }).Update().Execute();
+                table.Where((m) => m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino").Select((m) => new NerdMovie { Year = 1994 }).Update().Execute();
 
                 var nm2 = table.Where((m) => m.Director == "Quentin Tarantino").Select((m) => new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 

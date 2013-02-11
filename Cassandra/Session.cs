@@ -20,7 +20,10 @@ namespace Cassandra
         private readonly ClientOptions _clientOptions;
         private readonly IAuthInfoProvider _authProvider;
         private readonly bool _metricsEnabled;
-
+        
+        /// <summary>
+        /// Gets name of currently used keyspace. 
+        /// </summary>
         public string Keyspace { get { return _keyspace; } }
         private string _keyspace;
 
@@ -28,7 +31,6 @@ namespace Cassandra
         readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
 
         private readonly ControlConnection _controlConnection;
-
         
 
         internal Session(Cluster cluster,
@@ -293,17 +295,36 @@ namespace Cassandra
         }
 
 
-        public void CreateKeyspace(string ksname, Dictionary<string,string> replication = null, bool durable_writes = true)
+        /// <summary>
+        ///  Creates new keyspace in current cluster.        
+        /// </summary>
+        /// <param name="keyspace_name">Name of keyspace to be created.</param>
+        /// <param name="replication">Replication property for this keyspace.
+        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
+        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
+        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
+        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            Query(GetCreateKeyspaceCQL(ksname, replication, durable_writes), ConsistencyLevel.Ignore);
+            Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Ignore);
         }
 
 
-        public void CreateKeyspaceIfNotExists(string ksname, Dictionary<string, string> replication = null, bool durable_writes = true)
+        /// <summary>
+        ///  Creates new keyspace in current cluster.
+        ///  If keyspace with specified name already exists, then this method does nothing.
+        /// </summary>
+        /// <param name="keyspace_name">Name of keyspace to be created.</param>
+        /// <param name="replication">Replication property for this keyspace.
+        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
+        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
+        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
+        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        public void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             try
             {                
-                CreateKeyspace(ksname, replication, durable_writes);
+                CreateKeyspace(keyspace_name, replication, durable_writes);
             }
             catch (AlreadyExistsException)
             {
@@ -311,23 +332,38 @@ namespace Cassandra
             }
         }
 
-        public void DeleteKeyspace(string ksname)
+        /// <summary>
+        ///  Deletes specified keyspace from current cluster.
+        ///  If keyspace with specified name does not exist, then exception will be thrown.
+        /// </summary>
+        /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
+        public void DeleteKeyspace(string keyspace_name)
         {
-            Query(GetDropKeyspaceCQL(ksname), ConsistencyLevel.Ignore);
+            Query(GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Ignore);
         }
-        public void DeleteKeyspaceIfExists(string ksname)
+
+        /// <summary>
+        ///  Deletes specified keyspace from current cluster.
+        ///  If keyspace with specified name does not exist, then this method does nothing.
+        /// </summary>
+        /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
+        public void DeleteKeyspaceIfExists(string keyspace_name)
         {
             try
             {
-                DeleteKeyspace(ksname);
+                DeleteKeyspace(keyspace_name);
             }
             catch (InvalidConfigurationInQueryException)
             {
                 //not exists
             }
         }
-        
-        public void ChangeKeyspace(string keyspace)
+
+        /// <summary>
+        ///  Switches to the specified keyspace.
+        /// </summary>
+        /// <param name="keyspace_name">Name of keyspace that is to be used.</param>
+        public void ChangeKeyspace(string keyspace_name)
         {
             lock (_connectionPool)
             {
@@ -340,11 +376,11 @@ namespace Cassandra
                         retry:
                             try
                             {
-                                var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace);
+                                var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace_name);
                                 string retKeyspaceId;
                                 try
                                 {
-                                    retKeyspaceId = ProcessSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace), ConsistencyLevel.Ignore,false));
+                                    retKeyspaceId = ProcessSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace_name), ConsistencyLevel.Ignore,false));
                                 }
                                 catch (QueryValidationException)
                                 {
@@ -360,7 +396,7 @@ namespace Cassandra
                         }
                     }
                 }
-                this._keyspace = keyspace;
+                this._keyspace = keyspace_name;
             }
         }
 
@@ -946,7 +982,8 @@ namespace Cassandra
         /// <summary>
         ///  Returns replication property for NetworkTopologyStrategy.
         /// </summary>        
-        /// <param name="datacenters_replication_factors">Dictionary in which key is the name of a data-center, value is a replication factor for that data-center.</param>
+        /// <param name="datacenters_replication_factors">Dictionary in which key is the name of a data-center,
+        /// value is a replication factor for that data-center.</param>
         /// <returns>a dictionary of replication property sub-options.</returns>         
         public static Dictionary<string, string> CreateNetworkTopologyStrategyReplicationProperty(Dictionary<string, int> datacenters_replication_factors)
         {
@@ -963,7 +1000,8 @@ namespace Cassandra
         ///  Use it only if there is no dedicated method that creates replication property for specified replication strategy.
         /// </summary>
         /// <param name="strategy_class">Name of replication strategy.</param>
-        /// <param name="sub_options">Dictionary in which key is the name of sub-option, value is a value for that sub-option.</param>
+        /// <param name="sub_options">Dictionary in which key is the name of sub-option,
+        /// value is a value for that sub-option.</param>
         /// <returns>a dictionary of replication property sub-options.</returns>         
         public static Dictionary<string, string> CreateReplicationProperty(string strategy_class, Dictionary<string, string> sub_options)
         {
