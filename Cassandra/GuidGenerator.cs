@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-// from fluent cassandra
-//http://coderjournal.com/2010/04/creating-a-time-uuid-guid-in-net/
+// based on https://github.com/managedfusion/fluentcassandra/blob/master/src/GuidGenerator.cs
 
 
 namespace Cassandra

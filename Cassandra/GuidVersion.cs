@@ -1,5 +1,7 @@
 using System;
 
+// based on https://github.com/managedfusion/fluentcassandra/blob/master/src/GuidVersion.cs 
+
 namespace Cassandra
 {
 	// guid version types

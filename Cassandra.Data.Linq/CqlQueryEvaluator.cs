@@ -4,6 +4,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections;
 
+//based on https://github.com/managedfusion/fluentcassandra/blob/master/src/Linq/CqlQueryEvaluator.cs
+
 namespace Cassandra.Data.Linq
 {
     internal class CqlQueryEvaluator

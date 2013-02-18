@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 
+// based on https://github.com/managedfusion/fluentcassandra/blob/2c77dfca83891a9559e14a2b58797095c0486050/src/System/DateTimePrecise.cs
+
 namespace Cassandra
 {
 	/// DateTimePrecise class in C# -- an improvement to DateTime.Now
