@@ -22,16 +22,16 @@ namespace Cassandra
         {
             get
             {
-                    Thread.MemoryBarrier();
-                    var r = this._val;
-                    Thread.MemoryBarrier();
-                    return r;
+                Thread.MemoryBarrier();
+                var r = this._val;
+                Thread.MemoryBarrier();
+                return r;
             }
             set
             {
-                    Thread.MemoryBarrier();
-                    this._val = value;
-                    Thread.MemoryBarrier();
+                Thread.MemoryBarrier();
+                this._val = value;
+                Thread.MemoryBarrier();
             }
         }
     }
@@ -48,16 +48,16 @@ namespace Cassandra
         {
             get
             {
-                    Thread.MemoryBarrier();
-                    var r = this._arr[idx];
-                    Thread.MemoryBarrier();
-                    return r;
+                Thread.MemoryBarrier();
+                var r = this._arr[idx];
+                Thread.MemoryBarrier();
+                return r;
             }
             set
             {
-                    Thread.MemoryBarrier();
-                    _arr[idx] = value;
-                    Thread.MemoryBarrier();
+                Thread.MemoryBarrier();
+                _arr[idx] = value;
+                Thread.MemoryBarrier();
             }
         }
     }
@@ -73,7 +73,7 @@ namespace Cassandra
             else
                 throw new System.Threading.SynchronizationLockException();
         }
-        
+
         public Guarded(T val)
         {
             this._val = val;
@@ -96,7 +96,7 @@ namespace Cassandra
 
     internal class WeakReference<T> : WeakReference
     {
-        public WeakReference(T val): base(val){}
+        public WeakReference(T val) : base(val) { }
         public T Value { get { return (T)this.Target; } set { this.Target = value; } }
     }
 
@@ -134,7 +134,7 @@ namespace Cassandra
                     time,
                     interval
                 };
- 
+
                 // Pack input into byte struct.
                 byte[] inValue = new byte[3 * BytesPerLong];
                 for (int i = 0; i < input.Length; i++)
@@ -144,10 +144,10 @@ namespace Cassandra
                     inValue[i * BytesPerLong + 1] = (byte)(input[i] >> ((BytesPerLong - 3) * BitsPerByte) & 0xff);
                     inValue[i * BytesPerLong + 0] = (byte)(input[i] >> ((BytesPerLong - 4) * BitsPerByte) & 0xff);
                 }
- 
+
                 // Create bytestruct for result (bytes pending on server socket).
                 byte[] outValue = BitConverter.GetBytes(0);
- 
+
                 // Write SIO_VALS to Socket IOControl.
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.KeepAlive, true);
                 socket.IOControl(IOControlCode.KeepAliveValues, inValue, outValue);
@@ -157,7 +157,7 @@ namespace Cassandra
                 Console.WriteLine("Failed to set keep-alive: {0} {1}", e.ErrorCode, e);
                 return false;
             }
- 
+
             return true;
         }
     }
@@ -245,7 +245,7 @@ namespace Cassandra
                 foreach (var elem in source)
                 {
                     counter++;
-                    sb.Append("'" + elem.Key + "'" + " : " + (elem.Key == "class" ? "'"+elem.Value+"'" : elem.Value) + ((source.Count != counter) ? ", " : "}"));
+                    sb.Append("'" + elem.Key + "'" + " : " + (elem.Key == "class" ? "'" + elem.Value + "'" : elem.Value) + ((source.Count != counter) ? ", " : "}"));
                 }
             }
             else sb.Append("}");
@@ -255,17 +255,17 @@ namespace Cassandra
 
         public static IDictionary<string, int> ConvertStringToMap(string source)
         {
-            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
-            var map = new SortedDictionary<string,int>();
+            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
+            var map = new SortedDictionary<string, int>();
 
-            if(source != "{}")
+            if (source != "{}")
                 foreach (var elem in elements)
                 {
                     int value;
                     if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out value))
                         map.Add(elem.Split(':')[0].Replace("\"", ""), value);
                     else
-                        throw new FormatException("Value of keyspace strategy option is in invalid format!");                        
+                        throw new FormatException("Value of keyspace strategy option is in invalid format!");
                 }
 
             return map;
@@ -431,10 +431,27 @@ namespace Cassandra
             else
                 _dictionary[key] = value;
             Thread.MemoryBarrier();
-        }        
+        }
+    }
 
-        
+    internal static class GuidTools
+    {
+        public static byte[] ToBytes(Guid value)
+        {
+            var bytes = value.ToByteArray();
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
+            return bytes;
+        }
+
+        public static Guid FromBytes(byte[] value)
+        {
+            var bytes = (byte[])value.Clone();
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
+            return new Guid(bytes);
+        }
     }
 }
-
-

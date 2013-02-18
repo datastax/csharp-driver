@@ -14,7 +14,7 @@ namespace Cassandra
             {
                 var buffer = new byte[16];
                 BEBinaryReader.Read(buffer,0,16);
-                TraceID = ConversionHelper.ToGuidFromBigEndianBytes(buffer);
+                TraceID = GuidTools.FromBytes(buffer);
             }
         }
     }

@@ -6,39 +6,6 @@ namespace Cassandra
 {
     internal static class ConversionHelper
     {
-        private static void ReverseLowFieldTimestamp(byte[] guid)
-        {
-            Array.Reverse(guid, 0, 4);
-        }
-
-        private static void ReverseMiddleFieldTimestamp(byte[] guid)
-        {
-            Array.Reverse(guid, 4, 2);
-        }
-
-        private static void ReverseHighFieldTimestamp(byte[] guid)
-        {
-            Array.Reverse(guid, 6, 2);
-        }
-
-        public static byte[] ToBigEndianBytes(Guid value)
-        {
-            var bytes = value.ToByteArray();
-            ReverseLowFieldTimestamp(bytes);
-            ReverseMiddleFieldTimestamp(bytes);
-            ReverseHighFieldTimestamp(bytes);
-            return bytes;
-        }
-
-        public static Guid ToGuidFromBigEndianBytes(byte[] value)
-        {
-            var buffer = (byte[])value.Clone();
-            ReverseLowFieldTimestamp(buffer);
-            ReverseMiddleFieldTimestamp(buffer);
-            ReverseHighFieldTimestamp(buffer);
-            return new Guid(buffer);
-        }
-
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public static long ToUnixTime(DateTimeOffset dt)
