@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+ // based on http://www.java2s.com/Code/Java/Development-Class/Thisisaveryfastnoncryptographichashsuitableforgeneralhashbasedlookup.htm
 
 /// <summary>
 ///  This is a very fast, non-cryptographic hash suitable for general hash-based

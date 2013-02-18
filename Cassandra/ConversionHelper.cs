@@ -1,5 +1,7 @@
 ﻿using System;
 
+//based on https://github.com/managedfusion/fluentcassandra/blob/master/src/Types/CassandraConversionHelper.cs
+
 namespace Cassandra
 {
     internal static class ConversionHelper
