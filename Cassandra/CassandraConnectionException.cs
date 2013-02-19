@@ -3,9 +3,9 @@ using System.IO;
 
 namespace Cassandra
 {
-    internal class CassandraConncectionIOException : IOException
+    internal class CassandraConnectionIOException : IOException
     {
-        public CassandraConncectionIOException(Exception innerException = null)
+        public CassandraConnectionIOException(Exception innerException = null)
             : base("cassandra connection io exception", innerException)
         {
         }

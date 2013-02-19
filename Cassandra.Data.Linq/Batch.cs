@@ -35,22 +35,14 @@ namespace Cassandra.Data.Linq
         private struct CqlQueryTag
         {
             public Session Session;
-            public List<CqlCommand> TraceableCommands;
         }
 
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
             StringBuilder batchScript = new StringBuilder();
-            List<CqlCommand> traceableCommands = null;
             string BT = "";
             foreach (var cmd in _commands)
             {
-                if(cmd.IsTracing)
-                {
-                    if (traceableCommands == null)
-                        traceableCommands = new List<CqlCommand>();
-                    traceableCommands.Add(cmd);
-                }
                 if (cmd.GetTable().GetTableType() == TableType.Counter)
                     BT = "COUNTER ";
                 batchScript.AppendLine(cmd.GetCql());
@@ -60,7 +52,7 @@ namespace Cassandra.Data.Linq
                 var ctx = _session;
                 var cqlQuery = "BEGIN " + BT + "BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY " + BT + "BATCH";
                 return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
-                                    new CqlQueryTag() { Session = ctx, TraceableCommands = traceableCommands }, callback, state);
+                                    new CqlQueryTag() { Session = ctx }, callback, state);
             }
             throw new ArgumentOutOfRangeException();
         }
@@ -69,7 +61,6 @@ namespace Cassandra.Data.Linq
         {
             InternalEndExecute(ar);
         }
-
 
         public override CassandraRoutingKey RoutingKey
         {

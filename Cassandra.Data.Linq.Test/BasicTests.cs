@@ -4,6 +4,7 @@ using Dev;
 using System.Linq;
 using System.Threading;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace Cassandra.Data.Linq.Test
 {
@@ -24,7 +25,7 @@ namespace Cassandra.Data.Linq.Test
 
     [AllowFiltering]
     public class Tweets
-    {
+    {        
         [PartitionKey]
         public Guid tweet_id;        
         public string author;
@@ -43,14 +44,15 @@ namespace Cassandra.Data.Linq.Test
         public BasicTests()
         {
         }
-
         Session session; 
         TweetsContext ents;
         string keyspaceName = "Tweets" + Guid.NewGuid().ToString("N");
 
         public void SetFixture(Dev.SettingsFixture setFix)
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");           
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            Cluster.TraceSwitch.Level = TraceLevel.Verbose;
+
             var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             clusterb.WithDefaultKeyspace(keyspaceName);
             var cluster = clusterb.Build();

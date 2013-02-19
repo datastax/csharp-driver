@@ -29,6 +29,9 @@ namespace LinqSamples
 
             using (var session = cluster.Connect())
             {
+
+
+
                 const string keyspaceName = "Excelsior";
 
                 try
@@ -58,7 +61,10 @@ namespace LinqSamples
                     batch.Execute();
                 }
 
+        
+
                 var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
 
                 (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
 

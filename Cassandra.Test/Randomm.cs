@@ -41,6 +41,7 @@ namespace MyUTExt
             return BitConverter.ToInt64(buffer, 0);
         }
 
+#if CASSANDRA_NET_40_OR_GREATER
         public decimal NextDecimal()
         {
             byte scale = (byte)this.Next(29);
@@ -79,12 +80,6 @@ namespace MyUTExt
         //    return Extensions.ToDecimalBuffer(NextDecimalNormal()); ;
         //}
 
-#if CASSANDRA_NET_40_OR_GREATER
-        public BigInteger NextBigInteger()
-        {
-            return new BigInteger(Int64.MaxValue) * 10;
-        }
-#endif
         //public VarintBuffer NextBigInteger()
         //{
         //    return Extensions.ToVarintBuffer(NextBigIntegerNormal());
@@ -94,6 +89,7 @@ namespace MyUTExt
         {            
             return new BigDecimal(NextDecimal());
         }
+#endif
 
         public string NextString()
         {

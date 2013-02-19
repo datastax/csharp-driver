@@ -4,6 +4,27 @@
 
 namespace Cassandra
 {
+    internal static class GuidTools
+    {
+        public static byte[] ToBytes(Guid value)
+        {
+            var bytes = value.ToByteArray();
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
+            return bytes;
+        }
+
+        public static Guid FromBytes(byte[] value)
+        {
+            var bytes = (byte[])value.Clone();
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
+            return new Guid(bytes);
+        }
+    }
+
     internal static class ConversionHelper
     {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);

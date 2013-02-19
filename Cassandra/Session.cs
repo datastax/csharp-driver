@@ -10,7 +10,8 @@ namespace Cassandra
 
     public class Session : IDisposable
     {
-
+        private readonly Logger _logger = new Logger(typeof(Session));
+        
         private readonly Cluster _cluster;
 
         internal readonly Policies _policies;
@@ -31,7 +32,7 @@ namespace Cassandra
         readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
 
         private readonly ControlConnection _controlConnection;
-        
+
 
         internal Session(Cluster cluster,
                          IEnumerable<IPAddress> clusterEndpoints,
@@ -66,20 +67,25 @@ namespace Cassandra
             this._policies.LoadBalancingPolicy.Initialize(_cluster);
 
             _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
+
         }
 
         internal  void Init()
         {
             var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
             if (!ci.MoveNext())
-                throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
-
+            {
+                var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                _logger.Error(ex.Message);
+                throw ex;
+            }
 
             Connect(null, ci);
 
         }
 
         readonly List<CassandraConnection> _trahscan = new List<CassandraConnection>();
+
 
         internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, Dictionary<IPAddress, Exception> innerExceptions = null)
         {
@@ -90,7 +96,7 @@ namespace Cassandra
                 {
                     if (conn.IsEmpty())
                     {
-                        Debug.WriteLine("Connection trashed");
+                        _logger.Error("Connection trashed");
                         conn.Dispose();
                     }
                 }
@@ -99,16 +105,20 @@ namespace Cassandra
             {
                 while (true)
                 {
-                    var current = hostsIter.Current;
-                    if(current==null)
-                        throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
-                    if (current.IsConsiderablyUp)
+                    var currentHost = hostsIter.Current;
+                    if (currentHost == null)
                     {
-                        var hostDistance = _policies.LoadBalancingPolicy.Distance(current);
-                        if (!_connectionPool.ContainsKey(current.Address))
-                            _connectionPool.Add(current.Address, new List<CassandraConnection>());
+                        var ex = new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
+                        _logger.Error("All hosts are not responding.", ex);
+                        throw ex;
+                    }
+                    if (currentHost.IsConsiderablyUp)
+                    {
+                        var hostDistance = _policies.LoadBalancingPolicy.Distance(currentHost);
+                        if (!_connectionPool.ContainsKey(currentHost.Address))
+                            _connectionPool.Add(currentHost.Address, new List<CassandraConnection>());
 
-                        var pool = _connectionPool[current.Address];
+                        var pool = _connectionPool[currentHost.Address];
                         var poolCpy = new List<CassandraConnection>(pool);
                         CassandraConnection toReturn = null;
                         foreach (var conn in poolCpy)
@@ -148,20 +158,20 @@ namespace Cassandra
                             do
                             {
                                 Exception outExc;
-                                conn = AllocateConnection(current.Address, out outExc);
+                                conn = AllocateConnection(currentHost.Address, out outExc);
                                 if (conn != null)
                                 {
-                                    current.BringUpIfDown();
+                                    currentHost.BringUpIfDown();
                                     if (_controlConnection != null)
-                                        _controlConnection.OwnerHostBringUpIfDown(current.Address);
+                                        _controlConnection.OwnerHostBringUpIfDown(currentHost.Address);
                                     pool.Add(conn);
                                 }
                                 else
                                 {
                                     if (innerExceptions == null)
                                         innerExceptions = new Dictionary<IPAddress, Exception>();
-                                    innerExceptions[current.Address] = outExc;
-                                    Debug.WriteLine("new connection attempt failed - goto another host");
+                                    innerExceptions[currentHost.Address] = outExc;
+                                    _logger.Info("New connection attempt failed - goto another host.");
                                     error = true;
                                     break;
                                 }
@@ -171,8 +181,13 @@ namespace Cassandra
                                 return conn;
                         }
                     }
+                    
                     if (!hostsIter.MoveNext())
-                        throw new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
+                    {
+                        var ex = new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
+                        _logger.Error(ex);
+                        throw ex; 
+                    }
                 }
             }
         }
@@ -229,9 +244,13 @@ namespace Cassandra
                     {
                         return null;
                     }
-                    
+
                     if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != CqlQueryTools.CqlIdentifier(keyspaceId))
-                        throw new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+                    {
+                        var ex = new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+                        _logger.Error(ex);
+                        throw ex; 
+                    }
 
                     lock(_preparedQueries)
                         foreach (var prepQ in _preparedQueries)
@@ -264,7 +283,7 @@ namespace Cassandra
                     throw ex;
             }
 
-            Debug.WriteLine("Allocated new connection");
+            _logger.Info("Allocated new connection");            
             
             return nconn;
         }
@@ -307,6 +326,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Ignore);
+            _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
 
@@ -328,7 +348,7 @@ namespace Cassandra
             }
             catch (AlreadyExistsException)
             {
-                //already exists
+                _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspace_name));                
             }
         }
 
@@ -340,6 +360,7 @@ namespace Cassandra
         public void DeleteKeyspace(string keyspace_name)
         {
             Query(GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Ignore);
+            _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
         /// <summary>
@@ -355,7 +376,7 @@ namespace Cassandra
             }
             catch (InvalidConfigurationInQueryException)
             {
-                //not exists
+                _logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspace_name));
             }
         }
 
@@ -384,19 +405,26 @@ namespace Cassandra
                                 }
                                 catch (QueryValidationException)
                                 {
+                                    _logger.Error("Cannot execute USE query. Query is invalid, unauthorized or syntaxically incorrect.");
                                     throw;
                                 }
                                 if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != keyspaceId)
-                                    throw new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+                                {
+                                    var ex = new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
+                                    _logger.Error(ex);
+                                    throw ex;
+                                }
                             }
                             catch (Cassandra.CassandraConnection.StreamAllocationException)
                             {
+                                _logger.Warning("Cannot allocate stream during keyspace change. Retrying..");
                                 goto retry;
                             }
                         }
                     }
                 }
                 this._keyspace = keyspace_name;
+                _logger.Info("Changed keyspace to [" + this._keyspace + "]");
             }
         }
 
@@ -533,21 +561,32 @@ namespace Cassandra
             else return null;
         }
 
-        private void ProcessRegisterForEvent(IOutput outp)
-        {
-            using (outp)
-            {
-                if (!(outp is OutputVoid))
-                {
-                    if (outp is OutputError)
-                        throw (outp as OutputError).CreateException();
-                    else
-                        throw new DriverInternalError("Unexpected output kind: " + outp.GetType().Name);
-                }
-                else
-                    return; //ok
-            }
-        }
+        //private void ProcessRegisterForEvent(IOutput outp)
+        //{
+        //    using (outp)
+        //    {
+        //        if (!(outp is OutputVoid))
+        //        {
+        //            if (outp is OutputError)
+        //            {
+        //                var ex = (outp as OutputError).CreateException();
+        //                _logger.Error(ex);
+        //                throw ex;
+        //            }
+        //            else
+        //            {
+        //                var ex = new DriverInternalError("Unexpected output kind: " + outp.GetType().Name);
+        //                _logger.Error(ex);
+        //                throw ex;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            _logger.Info("Checked register for event - ok");
+        //            return; //ok
+        //        }
+        //    }
+        //}
 
         private string ProcessSetKeyspace(IOutput outp)
         {
@@ -555,14 +594,20 @@ namespace Cassandra
             {
                 if (outp is OutputError)
                 {
-                    throw (outp as OutputError).CreateException();
+                    var ex = (outp as OutputError).CreateException();
+                    _logger.Error(ex);
+                    throw ex; 
                 }
                 else if (outp is OutputSetKeyspace)
-                {
+                {                   
                     return (outp as OutputSetKeyspace).Value;
                 }
                 else
-                    throw new DriverInternalError("Unexpected output kind");
+                {
+                    var ex = new DriverInternalError("Unexpected output kind");
+                    _logger.Error(ex);
+                    throw ex; 
+                }
             }
         }
 
@@ -572,16 +617,23 @@ namespace Cassandra
             {
                 if (outp is OutputError)
                 {
-                    throw (outp as OutputError).CreateException();
+                    var ex = (outp as OutputError).CreateException();
+                    _logger.Error(ex);
+                    throw ex; 
                 }
                 else if (outp is OutputPrepared)
                 {
                     queryId = (outp as OutputPrepared).QueryID;
                     metadata = (outp as OutputPrepared).Metadata;
+                    _logger.Info("Prepared Query has been successfully processed.");
                     return; //ok
                 }
                 else
-                    throw new DriverInternalError("Unexpected output kind");
+                {
+                    var ex = new DriverInternalError("Unexpected output kind");
+                    _logger.Error("Prepared Query has returned an unexpected output kind.", ex);
+                    throw ex; 
+                }
             }
         }
 
@@ -592,7 +644,9 @@ namespace Cassandra
             {
                 if (outp is OutputError)
                 {
-                    throw (outp as OutputError).CreateException();
+                    var ex = (outp as OutputError).CreateException();
+                    _logger.Error(ex);
+                    throw ex;
                 }
                 else if (outp is OutputVoid)
                     return new CqlRowSet(outp as OutputVoid, this);
@@ -604,7 +658,11 @@ namespace Cassandra
                     return new CqlRowSet(outp as OutputRows, this, true);
                 }
                 else
-                    throw new DriverInternalError("Unexpected output kind");
+                {
+                    var ex = new DriverInternalError("Unexpected output kind");
+                    _logger.Error(ex);
+                    throw ex; 
+                }
             }
             finally
             {
@@ -615,6 +673,7 @@ namespace Cassandra
 
         abstract class LongToken
         {
+            private readonly Logger _logger = new Logger(typeof(LongToken));
             public CassandraConnection Connection;
             public ConsistencyLevel Consistency;
             public Query Query;
@@ -628,13 +687,21 @@ namespace Cassandra
                 {
                     _hostsIter = owner._policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
                     if (!_hostsIter.MoveNext())
-                        throw new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                    {
+                        var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                        _logger.Error(ex);
+                        throw ex;
+                    }
                 }
                 else
                 {
                     if (moveNext)
                         if (!_hostsIter.MoveNext())
-                            throw new NoHostAvailableException(InnerExceptions ?? new Dictionary<IPAddress, Exception>());
+                        {
+                            var ex = new NoHostAvailableException(InnerExceptions ?? new Dictionary<IPAddress, Exception>());
+                            _logger.Error(ex);
+                            throw ex;
+                        }
                 }
 
                 Connection = owner.Connect(Query, _hostsIter, InnerExceptions);

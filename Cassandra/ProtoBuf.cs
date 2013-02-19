@@ -16,6 +16,7 @@ namespace Cassandra
 
     internal class StreamProtoBuf : IProtoBuf
     {
+        private readonly Logger _logger = new Logger(typeof(StreamProtoBuf));
         readonly Stream _stream;
         bool _ioError = false;
         IProtoBufComporessor _compressor;
@@ -32,7 +33,7 @@ namespace Cassandra
                 _ioError = true;
             else
             {
-                if (_ioError) throw new CassandraConncectionIOException();
+                if (_ioError) throw new CassandraConnectionIOException();
 
                 try
                 {
@@ -41,16 +42,16 @@ namespace Cassandra
                 }
                 catch (IOException ex)
                 {
-                    Debug.WriteLine(ex.Message, "StreamProtoBuf.Write");
+                    _logger.Error("Writing to StreamProtoBuf failed: ",ex);
                     _ioError = true;
-                    throw new CassandraConncectionIOException(ex);
+                    throw new CassandraConnectionIOException(ex);
                 }
             }
         }
 
         public void WriteByte(byte b)
         {
-            if (_ioError) throw new CassandraConncectionIOException();
+            if (_ioError) throw new CassandraConnectionIOException();
             lock (_stream)
                 _stream.WriteByte(b);
         }
@@ -59,7 +60,7 @@ namespace Cassandra
         {
             if (count == 0) return;
 
-            if (_ioError) throw new CassandraConncectionIOException();
+            if (_ioError) throw new CassandraConnectionIOException();
 
             int curOffset = offset;
             while (true)
@@ -73,7 +74,7 @@ namespace Cassandra
                     }
                     if (redl == 0)
                     {
-                        throw new CassandraConncectionIOException();
+                        throw new CassandraConnectionIOException();
                     }
                     else if (redl == count - curOffset - offset)
                     {
@@ -86,9 +87,9 @@ namespace Cassandra
                 }
                 catch (IOException ex)
                 {
-                    Debug.WriteLine(ex.Message, "StreamProtoBuf.Read");
+                    _logger.Error("Reading from StreamProtoBuf failed: ", ex);
                     _ioError = true;
-                    throw new CassandraConncectionIOException(ex);
+                    throw new CassandraConnectionIOException(ex);
                 }
             }
         }
@@ -112,7 +113,7 @@ namespace Cassandra
                     }
                     if (redl == 0)
                     {
-                        throw new CassandraConncectionIOException();
+                        throw new CassandraConnectionIOException();
                     }
                     else if (redl == count - curOffset)
                     {
@@ -125,9 +126,9 @@ namespace Cassandra
                 }
                 catch (IOException ex)
                 {
-                    Debug.WriteLine(ex.Message, "StreamProtoBuf.Skip");
+                    _logger.Error("Skipping in StreamProtoBuf failed: ", ex);
                     _ioError = true;
-                    throw new CassandraConncectionIOException(ex);
+                    throw new CassandraConnectionIOException(ex);
                 }
             }
         }
@@ -155,7 +156,7 @@ namespace Cassandra
         {
             lock (_guard)
             {
-                if (_writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConnectionIOException();
 
                 if (buffer != null)
                 {
@@ -172,7 +173,7 @@ namespace Cassandra
         {
             lock (_guard)
             {
-                if (_writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConnectionIOException();
 
                 _buffer[_writePos] = b;
                 _writePos++;
@@ -185,14 +186,14 @@ namespace Cassandra
             if (count == 0) return;
             lock (_guard)
             {
-                if (_writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConnectionIOException();
 
                 if (_compressor != null)
                 {
                     while (_writePos != -1 && _writePos < this._buffer.Length)
                         Monitor.Wait(_guard);
 
-                    if (_writePos == -1) throw new CassandraConncectionIOException();
+                    if (_writePos == -1) throw new CassandraConnectionIOException();
 
                     if (_decompressedBuffer == null)
                         _decompressedBuffer = _compressor.Decompress(this._buffer);
@@ -207,7 +208,7 @@ namespace Cassandra
                     while (_writePos != -1 && _readPos + count > _writePos)
                         Monitor.Wait(_guard);
 
-                    if (_writePos == -1) throw new CassandraConncectionIOException();
+                    if (_writePos == -1) throw new CassandraConnectionIOException();
 
                     Buffer.BlockCopy(this._buffer, _readPos, buffer, offset, count);
                 }
@@ -220,7 +221,7 @@ namespace Cassandra
         {
             lock (_guard)
             {
-                if (_writePos == -1) throw new CassandraConncectionIOException();
+                if (_writePos == -1) throw new CassandraConnectionIOException();
 
                 _readPos += count;
             }
