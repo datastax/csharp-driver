@@ -30,8 +30,6 @@ namespace LinqSamples
             using (var session = cluster.Connect())
             {
 
-
-
                 const string keyspaceName = "Excelsior";
 
                 try
@@ -66,7 +64,7 @@ namespace LinqSamples
                 var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
 
-                (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
+                (from m in table where m.Movie.Equals("Pulp Fiction") && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
 
                 table.Where((m) => m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino").Select((m) => new NerdMovie { Year = 1994 }).Update().Execute();
 
