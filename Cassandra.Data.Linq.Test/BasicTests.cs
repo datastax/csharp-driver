@@ -73,6 +73,7 @@ namespace Cassandra.Data.Linq.Test
         }
 
         [Fact]
+        [Ignore]
         public void Test1()
         {
             var table = ents.GetTable<Tweets>();
@@ -109,12 +110,39 @@ namespace Cassandra.Data.Linq.Test
         {
             var table = ents.GetTable<Tweets>();
             int RowsNb = 3000;
-            
-            for( int i = 0; i < RowsNb; i++)            
-                table.AddNew( new Tweets(){ tweet_id = Guid.NewGuid(), idx = i, isok = i%2 == 0, author = "author" + i.ToString(), body = "bla bla bla"});
 
+            for (int i = 0; i < RowsNb; i++)
+                table.AddNew(new Tweets() { tweet_id = Guid.NewGuid(), idx = i, isok = i % 2 == 0, author = "author" + i.ToString(), body = "bla bla bla" });
+
+            ents.SaveChanges(SaveChangesMode.Batch);
+
+            //test filtering
             var evens = (from ent in table where ent.isok == true select ent).Execute();
             Assert.True(evens.All(ev => ev.idx % 2 == 0));
+
+
+            //test pagination
+            int PerPage = 1234;
+
+            var firstPage = (from ent in table select ent).Take(PerPage).Execute();
+            var continuation = firstPage.Last().tweet_id.CqlToken();
+
+            int pages = 1;
+            int lastcnt = 0;
+            while(true)
+            {
+                var nextPage = (from ent in table where ent.tweet_id.CqlToken() > continuation select ent).Take(PerPage).Execute().ToList();
+                if (nextPage.Count < PerPage)
+                {
+                    lastcnt = nextPage.Count;
+                    break;
+                }
+                continuation = nextPage.Last().tweet_id.CqlToken();
+                pages++;
+            }
+
+            Assert.Equal(pages, RowsNb / PerPage);
+            Assert.Equal(lastcnt, RowsNb % PerPage);
         }
 
         

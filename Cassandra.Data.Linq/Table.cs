@@ -166,6 +166,14 @@ namespace Cassandra.Data.Linq
         object Value { get; }
     }
 
+    public static class TokenExt
+    {
+        public static CqlToken<T> CqlToken<T>(this T @this)
+        {
+            return new CqlToken<T>(@this);
+        }
+    }
+
     public class CqlToken<T> : ICqlToken
     {
         internal CqlToken(T v) { _value = v; }

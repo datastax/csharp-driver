@@ -22,8 +22,8 @@ namespace Cassandra.Data.Linq
 
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
-        public StringBuilder whereClause = new StringBuilder();
-        public string tableName;
+        public StringBuilder WhereClause = new StringBuilder();
+        public string TableName;
 
         public Dictionary<string, object> MappingVals = new Dictionary<string, object>();
         public Dictionary<string, string> MappingNames = new Dictionary<string, string>();
@@ -45,12 +45,12 @@ namespace Cassandra.Data.Linq
             sb.Append(SelectFields.Count == 0?"* ":string.Join(",", from f in SelectFields select f.CqlIdentifier()));
 
             sb.Append(" FROM ");
-            sb.Append(tableName.CqlIdentifier());
+            sb.Append(TableName.CqlIdentifier());
 
-            if (whereClause.Length>0)
+            if (WhereClause.Length>0)
             {
                 sb.Append(" WHERE ");
-                sb.Append(whereClause);
+                sb.Append(WhereClause);
             }
 
             if (OrderBy.Count > 0)
@@ -75,12 +75,12 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
-            sb.Append(tableName.CqlIdentifier());
+            sb.Append(TableName.CqlIdentifier());
 
-            if (whereClause.Length > 0)
+            if (WhereClause.Length > 0)
             {
                 sb.Append(" WHERE ");
-                sb.Append(whereClause);
+                sb.Append(WhereClause);
             }
 
             return sb.ToString();
@@ -90,7 +90,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
-            sb.Append(tableName.CqlIdentifier());
+            sb.Append(TableName.CqlIdentifier());
             sb.Append(" SET ");
             foreach (var al in MappingNames)
             {
@@ -109,10 +109,10 @@ namespace Cassandra.Data.Linq
                 }
             }
 
-            if (whereClause.Length > 0)
+            if (WhereClause.Length > 0)
             {
                 sb.Append(" WHERE ");
-                sb.Append(whereClause);
+                sb.Append(WhereClause);
             }
 
             return sb.ToString();
@@ -122,12 +122,12 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT count(*) FROM ");
-            sb.Append(tableName.CqlIdentifier());
+            sb.Append(TableName.CqlIdentifier());
 
-            if (whereClause.Length > 0)
+            if (WhereClause.Length > 0)
             {
                 sb.Append(" WHERE ");
-                sb.Append(whereClause);
+                sb.Append(WhereClause);
             }
 
             if (Limit > 0)
@@ -232,7 +232,7 @@ namespace Cassandra.Data.Linq
                 if (node.Method.Name == "Contains")
                 {
                     this.Visit(node.Arguments[0]);
-                    whereClause.Append(" IN (");
+                    WhereClause.Append(" IN (");
                     var values = (IEnumerable)Expression.Lambda(node.Object).Compile().DynamicInvoke();
                     bool first = false;
                     foreach (var obj in values)
@@ -240,24 +240,31 @@ namespace Cassandra.Data.Linq
                         if (!first)
                             first = true;
                         else
-                            whereClause.Append(", ");
-                        whereClause.Append(obj.Encode());
+                            WhereClause.Append(", ");
+                        WhereClause.Append(obj.Encode());
                     }
-                    whereClause.Append(")");
+                    WhereClause.Append(")");
                     return node;
                 }
                 else if (node.Method.Name == "CompareTo")
                 {
                     this.Visit(node.Object);
-                    whereClause.Append(" " + binaryExpressionTag.get() + " ");
+                    WhereClause.Append(" " + binaryExpressionTag.get() + " ");
                     this.Visit(node.Arguments[0]);
                     return node;
                 }
                 else if(node.Method.Name == "Equals")
                 {
                     this.Visit(node.Object);
-                    whereClause.Append(" = ");
+                    WhereClause.Append(" = ");
                     this.Visit(node.Arguments[0]);
+                    return node;
+                }
+                else if (node.Method.Name == "CqlToken")
+                {
+                    WhereClause.Append("token (");
+                    this.Visit(node.Arguments[0]);
+                    WhereClause.Append(")");
                     return node;
                 }
 
@@ -295,9 +302,9 @@ namespace Cassandra.Data.Linq
             {
                 if (CQLTags.ContainsKey(node.NodeType))
                 {
-                    whereClause.Append(CQLTags[node.NodeType] + " (");
+                    WhereClause.Append(CQLTags[node.NodeType] + " (");
                     this.Visit(node.Operand);
-                    whereClause.Append(")");
+                    WhereClause.Append(")");
                     return node;
                 }
             }
@@ -330,22 +337,28 @@ namespace Cassandra.Data.Linq
                     if (IsCompareTo(node.Left))
                     {
                         if (IsZero(node.Right))
+                        {
                             using (binaryExpressionTag.set(CQLTags[node.NodeType]))
                                 this.Visit(node.Left);
+                            return node;
+                        }
                     }
                     else if (IsCompareTo(node.Right))
                     {
                         if (IsZero(node.Left))
-                            using(binaryExpressionTag.set(CQLTags[CQLInvTags[node.NodeType]]))
+                        {
+                            using (binaryExpressionTag.set(CQLTags[CQLInvTags[node.NodeType]]))
                                 this.Visit(node.Right);
+                            return node;
+                        }
                     }
                     else
                     {
                         this.Visit(node.Left);
-                        whereClause.Append(" " + CQLTags[node.NodeType] + " ");
+                        WhereClause.Append(" " + CQLTags[node.NodeType] + " ");
                         this.Visit(node.Right);
+                        return node;
                     }
-                    return node;
                 }
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
@@ -355,13 +368,13 @@ namespace Cassandra.Data.Linq
         {
             if (node.Value is ITable)
             {
-                tableName = (node.Value as ITable).GetTableName();
+                TableName = (node.Value as ITable).GetTableName();
                 AllowFiltering = (node.Value as ITable).GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute), false).Any();
                 return node;
             }
             else if (phasePhase.get() == ParsePhase.Condition)
             {
-                whereClause.Append(node.Value.Encode());
+                WhereClause.Append(node.Value.Encode());
                 return node;
             }
             else if (phasePhase.get() == ParsePhase.SelectBinding)
@@ -395,13 +408,22 @@ namespace Cassandra.Data.Linq
             {
                 if (node.Expression.NodeType == ExpressionType.Parameter)
                 {
-                    whereClause.Append(node.Member.Name.CqlIdentifier());
+                    WhereClause.Append(node.Member.Name.CqlIdentifier());
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.Constant)
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    whereClause.Append(val.Encode());
+                    if (val is ICqlToken)
+                    {
+                        WhereClause.Append("token (");
+                        WhereClause.Append((val as ICqlToken).Value.Encode());
+                        WhereClause.Append(")");
+                    }
+                    else
+                    {
+                        WhereClause.Append(val.Encode());
+                    }
                     return node;
                 }
             }
