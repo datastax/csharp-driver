@@ -2,6 +2,7 @@
 {
     internal class EventResponse : AbstractResponse
     {
+        private readonly Logger _logger = new Logger(typeof(EventResponse));
         public const byte OpCode = 0x0C;
 
         public CassandraEventArgs CassandraEventArgs;
@@ -45,7 +46,9 @@
                 return;
             }
 
-            throw new DriverInternalError("Unknown Event Type");
+            var ex = new DriverInternalError("Unknown Event Type");
+            _logger.Error(ex);
+            throw ex;
         }
 
         internal static EventResponse Create(ResponseFrame frame)

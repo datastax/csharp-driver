@@ -315,9 +315,10 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
             var prep = PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName, toInsert[0][0].ToString()));
             ExecutePreparedQuery(this.Session, prep, new object[1] { toInsert[0][1] });
 
+#if CASSANDRA_NET_40_OR_GREATER
             if (tp == typeof(Decimal))
                 toInsert[0][1] = new BigDecimal((Decimal)toInsert[0][1]);
-
+#endif
             ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
             ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
@@ -375,7 +376,11 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
                 ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), row1[1].GetType() == typeof(byte[]) ? "0x" + Cassandra.CqlQueryTools.ToHex((byte[])toInsert[0][1]) : "'" + toInsert[0][1] + "'"), null); // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
             else
             {
-                if (tp == typeof(Single) || tp == typeof(Double) || tp == typeof(BigDecimal))
+                if (tp == typeof(Single) || tp == typeof(Double) 
+#if CASSANDRA_NET_40_OR_GREATER
+                    || tp == typeof(BigDecimal)
+#endif
+                    )
                     isFloatingPoint = true;
                 ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), !isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(toInsert[0][1], new object[] { "r" })), null);
             }

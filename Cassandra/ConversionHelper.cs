@@ -1,42 +1,32 @@
 ﻿using System;
 
+//based on https://github.com/managedfusion/fluentcassandra/blob/master/src/Types/CassandraConversionHelper.cs
+
 namespace Cassandra
 {
-    internal static class ConversionHelper
+    internal static class GuidTools
     {
-        private static void ReverseLowFieldTimestamp(byte[] guid)
-        {
-            Array.Reverse(guid, 0, 4);
-        }
-
-        private static void ReverseMiddleFieldTimestamp(byte[] guid)
-        {
-            Array.Reverse(guid, 4, 2);
-        }
-
-        private static void ReverseHighFieldTimestamp(byte[] guid)
-        {
-            Array.Reverse(guid, 6, 2);
-        }
-
-        public static byte[] ToBigEndianBytes(Guid value)
+        public static byte[] ToBytes(Guid value)
         {
             var bytes = value.ToByteArray();
-            ReverseLowFieldTimestamp(bytes);
-            ReverseMiddleFieldTimestamp(bytes);
-            ReverseHighFieldTimestamp(bytes);
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
             return bytes;
         }
 
-        public static Guid ToGuidFromBigEndianBytes(byte[] value)
+        public static Guid FromBytes(byte[] value)
         {
-            var buffer = (byte[])value.Clone();
-            ReverseLowFieldTimestamp(buffer);
-            ReverseMiddleFieldTimestamp(buffer);
-            ReverseHighFieldTimestamp(buffer);
-            return new Guid(buffer);
+            var bytes = (byte[])value.Clone();
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
+            return new Guid(bytes);
         }
+    }
 
+    internal static class ConversionHelper
+    {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public static long ToUnixTime(DateTimeOffset dt)

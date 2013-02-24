@@ -8,6 +8,7 @@ namespace Cassandra
 {
     internal class ControlConnection :IDisposable
     {
+        private readonly Logger _logger = new Logger(typeof(ControlConnection));
         private readonly Session _session;
         private IEnumerator<Host> _hostsIter = null;
         private readonly Cluster _cluster;
@@ -69,7 +70,10 @@ namespace Cassandra
             }
 
             if (theExc != null)
+            {
+                _logger.Error(theExc);
                 throw theExc;
+            }
         }
 
         internal class CCEventArgs : EventArgs
@@ -141,7 +145,9 @@ namespace Cassandra
                 }
             }
 
-            throw new DriverInternalError("Unknown Event");
+            var ex = new DriverInternalError("Unknown Event");
+            _logger.Error(ex);
+            throw ex; 
         }
 
         internal void OwnerHostIsDown(IPAddress endpoint)
@@ -174,7 +180,10 @@ namespace Cassandra
             try
             {
                 if (_hostsIter == null)
+                {
+                    _logger.Info("Retrieving hosts list.");
                     _hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                }
 
                 if (!_hostsIter.MoveNext())
                 {
@@ -183,16 +192,19 @@ namespace Cassandra
                     _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
                 else
-                {
+                {                    
+                    _logger.Info("Establishing ControlConnection...");
                     _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
                     _connection = _session.Connect(null, _hostsIter);
                     SetupEventListeners(_connection);
                     if (refresh)
                         RefreshNodeListAndTokenMap(_connection);
+                    _logger.Info("ControlConnection has been established!"); 
                 }
             }
             catch (NoHostAvailableException)
             {
+                _logger.Error("Cannot connect to any host. Retrying..");
                 _isDiconnected = true;
                 _hostsIter = null;
                 _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -206,7 +218,10 @@ namespace Cassandra
                     _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
                 else
+                {
+                    _logger.Error("Unexpected error occurred during ControlConnection establishment.", ex);
                     throw;
+                }
             }
         }
 
@@ -237,8 +252,8 @@ namespace Cassandra
 
         private void RefreshNodeListAndTokenMap(CassandraConnection connection)
         {
-            // Make sure we're up to date on nodes and tokens
-
+            _logger.Info("Refreshing NodeList and TokenMap..");
+            // Make sure we're up to date on nodes and tokens            
             var tokenMap = new Dictionary<IPAddress, DictSet<string>>();
             string partitioner = null;
 
@@ -311,6 +326,7 @@ namespace Cassandra
 
             if (partitioner != null)
                 _cluster.Metadata.RebuildTokenMap(partitioner, tokenMap);
+            _logger.Info("NodeList and TokenMap have been successfully refreshed!");
         }
 
         private const long MaxSchemaAgreementWaitMs = 10000;
@@ -740,17 +756,18 @@ namespace Cassandra
                     return ColumnTypeCode.Inet;
                 case "org.apache.cassandra.db.marshal.DateType":
                     return ColumnTypeCode.Timestamp;
-#if NET_40_OR_GREATER
-                case "org.apache.cassandra.db.marshal.DecimalType":
-                    return ColumnTypeCode.Decimal;
-#endif
                 case "org.apache.cassandra.db.marshal.LongType":
                     return ColumnTypeCode.Bigint;
 #if NET_40_OR_GREATER
+                case "org.apache.cassandra.db.marshal.DecimalType":
+                    return ColumnTypeCode.Decimal;
                 case "org.apache.cassandra.db.marshal.IntegerType":
                     return ColumnTypeCode.Varint;
 #endif
-                default: throw new InvalidOperationException();
+                default: 
+                    var ex = new DriverInternalError("Unsupported data type:" + type);  
+                    _logger.Error(string.Format("Unsupported data type: {0}", type), ex);
+                    throw ex;
             }
         }
 

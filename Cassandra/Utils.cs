@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net.Sockets;
 using System.Net;
+using System.Diagnostics;
 
 
 namespace Cassandra
@@ -431,9 +432,61 @@ namespace Cassandra
             else
                 _dictionary[key] = value;
             Thread.MemoryBarrier();
-        }        
+        }
+    }
 
+    internal class Logger
+    {
+        string category;
+        private StringBuilder sb = null;
+        public Logger(Type type)
+        {
+            category = type.FullName;
+        }
+
+        private string getExceptionAndAllInnerEx(Exception ex, bool recur = false)
+        {
+            if(!recur || sb == null)
+                sb = new StringBuilder();
+            sb.Append(string.Format("( Exception! Source {0} \n Message: {1} \n StackTrace: {2} ", ex.Source, ex.Message, ex.StackTrace, this.category));
+            if (ex.InnerException != null)
+                getExceptionAndAllInnerEx(ex.InnerException, true);
+
+            sb.Append(")");
+            return sb.ToString();
+        }
+
+        public void Error(Exception ex)
+        {
+            if(ex != null) //shouldn't happen
+                if (Cluster.TraceSwitch.TraceError)
+                    Trace.WriteLine(string.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(), getExceptionAndAllInnerEx(ex)), category);                                    
+        }
+
+        public void Error(string msg, Exception ex = null)
+        {
+            if (Cluster.TraceSwitch.TraceError)
+                Trace.WriteLine(string.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(), msg + (ex != null ? "ERROR: " + getExceptionAndAllInnerEx(ex) : String.Empty)), category);
+        }
         
+        public void Warning(string msg)
+        {
+            if(Cluster.TraceSwitch.TraceWarning)
+                Trace.WriteLine(string.Format("{0} #WARNING: {1}", DateTimeOffset.Now.DateTime.ToString(), msg), category);
+        }
+
+        public void Info(string msg)
+        {            
+            if (Cluster.TraceSwitch.TraceInfo)
+                Trace.WriteLine(string.Format("{0} #INFO: {1}", DateTimeOffset.Now.DateTime.ToString("o"), msg), category);
+        }
+
+        public void Verbose(string msg)
+        {            
+            if(Cluster.TraceSwitch.TraceVerbose)
+                Trace.WriteLine(string.Format("{0} #VERBOSE: {1}", DateTimeOffset.Now.DateTime.ToString(), msg), category);
+        }
+
     }
 }
 

@@ -22,13 +22,13 @@ namespace Cassandra.Test
             insertingSingleValuePrepared(typeof(System.Decimal));
         }
                 
+#if CASSANDRA_NET_40_OR_GREATER
         [Fact]
         public void testPreparedDecimal2()
         {
             insertingSingleValuePrepared(typeof(BigDecimal));
         }
 
-#if CASSANDRA_NET_40_OR_GREATER
         [Fact] 
         public void testPreparedVarInt()
         {

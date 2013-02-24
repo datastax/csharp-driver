@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Net;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Cassandra
 {
@@ -22,8 +23,21 @@ namespace Cassandra
     /// </summary>
     public class Cluster : IDisposable
     {
+        private readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Configuration _configuration;
+
+
+        /// <summary>
+        /// Specifies what messages should be passed to the output log. 
+        /// <para></para>   
+        /// <para><value>TraceLevel.Off</value> - Output no tracing messages.</para>   
+        /// <para><value>TraceLevel.Error</value>  - Output error-handling messages.</para> 
+        /// <para><value>TraceLevel.Warning</value> - Output warnings and error-handling messages.</para>
+        /// <para><value>TraceLevel.Info</value> - Output informational messages, warnings, and error-handling messages.</para>
+        /// <para><value>TraceLevel.Verbose</value> - Output all debugging and tracing messages.</para>                
+        /// </summary>
+        public static readonly TraceSwitch TraceSwitch = new TraceSwitch("TraceSwitch", "This switch lets user to choose which kind of messages should be included in log.");
 
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
@@ -65,7 +79,7 @@ namespace Cassandra
         ///  Creates a new session on this cluster.
         /// </summary>
         /// 
-        /// <returns>a new session on this cluster sets to no keyspace.</returns>
+        /// <returns>a new session on this cluster set to no keyspace.</returns>
         public Session Connect()
         {
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
@@ -75,10 +89,10 @@ namespace Cassandra
         ///  Creates a new session on this cluster and sets a keyspace to use.
         /// </summary>
         /// <param name="keyspace"> The name of the keyspace to use for the created <code>Session</code>. </param>
-        /// <returns>a new session on this cluster sets to keyspace
+        /// <returns>a new session on this cluster set to keyspace: 
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
-        {
+        {            
             if (_controlConnection == null)
             {
                 var controlpolicies = new Cassandra.Policies(
@@ -117,6 +131,7 @@ namespace Cassandra
             scs.Init();
             lock (_connectedSessions)
                 _connectedSessions.Add(scs);
+            _logger.Info("Session connected!");
             return scs;
         }
 
@@ -153,7 +168,7 @@ namespace Cassandra
             var session = Connect("");
             try
             {
-                session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
+                session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);                
             }
             catch (InvalidException)
             {
@@ -221,8 +236,10 @@ namespace Cassandra
             }
             if (_controlConnection != null)
             {
+                string cluster_name = this.Metadata.GetClusterName();
                 _controlConnection.Dispose();
                 _controlConnection = null;
+                _logger.Info("Cluster [" + cluster_name + "] has been shut down.");
             }
         }
 
@@ -311,6 +328,8 @@ namespace Cassandra
 
         private int _queryAbortTimeout = Timeout.Infinite;
         private int _asyncCallAbortTimeout = Timeout.Infinite;
+
+        private TraceSwitch _traceSwitch;
         
         public IEnumerable<IPAddress> ContactPoints
         {
@@ -539,6 +558,7 @@ namespace Cassandra
             this._withoutRowSetBuffering = true;
             return this;
         }
+
 
         /// <summary>
         ///  Sets the timeout for a single query within created cluster.

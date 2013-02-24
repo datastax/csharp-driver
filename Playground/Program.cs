@@ -5,6 +5,8 @@ using System.Globalization;
 using Cassandra;
 using System.Linq;
 using Cassandra.Data.Linq;
+using System.Diagnostics;
+using System.IO;
 
 namespace Playground
 {
@@ -12,15 +14,22 @@ namespace Playground
     {
         static void Main(string[] args)
         {
+            Cluster.TraceSwitch.Level = TraceLevel.Verbose;
+            CassandraLogWriter LogWriter = new CassandraLogWriter();
+            TextWriterTraceListener twtl = new TextWriterTraceListener(LogWriter);
+            
+            Trace.Listeners.Add(twtl);
+            
+            
             Console.WriteLine("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
+            
             Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
-
+            
             using(var session = cluster.Connect())
             {
                 var keyspaceName = "test" + Guid.NewGuid().ToString("N");
-
+                
                 try
                 {
                     session.ChangeKeyspace(keyspaceName);
@@ -30,13 +39,15 @@ namespace Playground
                     session.CreateKeyspaceIfNotExists(keyspaceName);
                     session.ChangeKeyspace(keyspaceName);
                 }
-
-
-                TwitterContext twitterContext = new TwitterContext(session);
+                
+                LogWriter.GetContext(new CassandraLogContext(session));                 
+                
+                TwitterContext twitterContext = new TwitterContext(session);                
+                
                 var TweetsTable = twitterContext.GetTable<Tweet>();
                 var AuthorsTable = twitterContext.GetTable<Author>();
                 var FollowedTweetsTable = twitterContext.GetTable<FollowedTweet>();
-                var StatisticsTable = twitterContext.GetTable<Statistics>();
+                var StatisticsTable = twitterContext.GetTable<Statistics>();                                                
 
                 Console.WriteLine("Done!");
 
@@ -46,7 +57,7 @@ namespace Playground
                 List<Author> authorsLocal = new List<Author>();
                 List<Statistics> statisticsLocal = new List<Statistics>();
                 List<string> authorsID = new List<string>();
-
+                
                 for (int i = 0; i < AuthorsNo; i++)
                 {
                     var author_ID = "Author" + i.ToString();
@@ -102,7 +113,6 @@ namespace Playground
                 string separator = Environment.NewLine + "───────────────────────────────────────────────────────────────────────" + Environment.NewLine;
                 
                 Console.WriteLine(separator);
-
 
                 //To display users that follows "Author8":         
                 Console.WriteLine("\"Author8\" is followed by:" + Environment.NewLine);
@@ -186,12 +196,17 @@ namespace Playground
                     
                 }
                 twitterContext.SaveChanges(SaveChangesMode.Batch);
-                
 
                 //Statistics after deletion of tweets:
                 Console.WriteLine("After deletion of all tweets our \"Statistics\" table looks like:");
                 StatisticsTable.DisplayTable();
 
+                //Logs:
+                Console.WriteLine(separator + "Number of received logs: " + LogWriter.LogsTable.Count().Execute()); 
+                foreach (var log in LogWriter.LogsTable.Execute())
+                    log.display();
+
+                LogWriter.StopWritingToDB();
 
                 Console.WriteLine(separator + "Deleting keyspace: \"" + keyspaceName + "\"");
                 session.DeleteKeyspaceIfExists(keyspaceName);

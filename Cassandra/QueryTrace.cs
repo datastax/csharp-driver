@@ -17,6 +17,7 @@ namespace Cassandra
     /// </summary>
     public class QueryTrace
     {
+        private readonly Logger _logger = new Logger(typeof(QueryTrace));
         private const string SelectSessionsFormat = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
 
         private const string SelectEventsFormat = "SELECT * FROM system_traces.events WHERE session_id = {0}";
@@ -200,9 +201,9 @@ namespace Cassandra
                 }
 
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-//            logger.error("Unexpected exception while fetching query trace", e);
+                _logger.Error("Unexpected exception while fetching query trace", ex);
             }
         }
 

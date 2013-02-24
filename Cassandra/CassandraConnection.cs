@@ -375,7 +375,7 @@ namespace Cassandra
                                     return;
                                 }
 
-                                throw new CassandraConncectionIOException();
+                                throw new CassandraConnectionIOException();
                             }
                             else
                             {
@@ -453,7 +453,7 @@ namespace Cassandra
         internal static bool IsStreamRelatedException(Exception ex)
         {
             return ex is SocketException
-            || ex is CassandraConncectionIOException
+            || ex is CassandraConnectionIOException
             || ex is IOException
             || ex is ObjectDisposedException
             || ex is StreamAllocationException
@@ -479,7 +479,7 @@ namespace Cassandra
             {
                 foreach (var ar in toCompl)
                     if (!ar.IsCompleted)
-                        ar.Complete(new CassandraConncectionIOException());
+                        ar.Complete(new CassandraConnectionIOException());
             }
         }
 

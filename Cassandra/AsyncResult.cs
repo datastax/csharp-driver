@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Reflection;
 
+//based on http://blogs.msdn.com/b/nikos/archive/2011/03/14/how-to-implement-iasyncresult-in-another-way.aspx
+
 namespace Cassandra
 {
     internal class AsyncTimeoutException : TimeoutException

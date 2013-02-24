@@ -1,5 +1,6 @@
 ﻿using Cassandra;
 
+//based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
 
 namespace TPLSample
 {
