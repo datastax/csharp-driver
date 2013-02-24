@@ -4,6 +4,10 @@ Datastax C# Driver for Apache Cassandra (Beta)
 A C# client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.
 
+JIRA: https://datastax-oss.atlassian.net/browse/CSHARP
+
+IRC: #datastax-drivers (freenode)
+
 The driver architecture is based on layers. At the bottom lies the driver core,
 located in Cassandra.dll Assembly. This core handles everything related to the 
 connections to the Cassandra cluster (connection pool, discovering new nodes, ...) 
