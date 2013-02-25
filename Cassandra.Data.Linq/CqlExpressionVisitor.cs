@@ -56,7 +56,7 @@ namespace Cassandra.Data.Linq
             if (OrderBy.Count > 0)
             {
                 sb.Append(" ORDER BY ");
-                sb.Append(string.Join(", ", OrderBy));
+                sb.Append(string.Join(", ", from f in OrderBy select f.CqlIdentifier()));
             }
 
             if (Limit > 0)
@@ -267,6 +267,12 @@ namespace Cassandra.Data.Linq
                     WhereClause.Append(")");
                     return node;
                 }
+                else
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    WhereClause.Append(val.Encode());
+                    return node;
+                }
 
             }
 
@@ -424,6 +430,12 @@ namespace Cassandra.Data.Linq
                     {
                         WhereClause.Append(val.Encode());
                     }
+                    return node;
+                }
+                else if (node.Expression.NodeType == ExpressionType.MemberAccess)
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    WhereClause.Append(val.Encode());
                     return node;
                 }
             }

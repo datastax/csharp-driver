@@ -73,7 +73,6 @@ namespace Cassandra.Data.Linq.Test
         }
 
         [Fact]
-        [Ignore]
         public void Test1()
         {
             var table = ents.GetTable<Tweets>();
