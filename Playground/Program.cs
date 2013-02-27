@@ -14,7 +14,7 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            Cluster.TraceSwitch.Level = TraceLevel.Verbose;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             CassandraLogWriter LogWriter = new CassandraLogWriter();
             TextWriterTraceListener twtl = new TextWriterTraceListener(LogWriter);
             

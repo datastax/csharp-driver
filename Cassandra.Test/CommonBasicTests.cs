@@ -45,7 +45,10 @@ namespace MyUTExt
             
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);
-            Cluster = clusterb.Build();            
+            Cluster = clusterb.Build();
+            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
+            Diagnostics.CassandraStackTraceIncluded= true;
+            Diagnostics.CassandraPerformanceCountersEnabled = true;
             Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(2), true);            
         }
 

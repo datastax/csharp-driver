@@ -26,19 +26,7 @@ namespace Cassandra
         private readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Configuration _configuration;
-
-
-        /// <summary>
-        /// Specifies what messages should be passed to the output log. 
-        /// <para></para>   
-        /// <para><value>TraceLevel.Off</value> - Output no tracing messages.</para>   
-        /// <para><value>TraceLevel.Error</value>  - Output error-handling messages.</para> 
-        /// <para><value>TraceLevel.Warning</value> - Output warnings and error-handling messages.</para>
-        /// <para><value>TraceLevel.Info</value> - Output informational messages, warnings, and error-handling messages.</para>
-        /// <para><value>TraceLevel.Verbose</value> - Output all debugging and tracing messages.</para>                
-        /// </summary>
-        public static readonly TraceSwitch TraceSwitch = new TraceSwitch("TraceSwitch", "This switch lets user to choose which kind of messages should be included in log.");
-
+        
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
             this._contactPoints = contactPoints;

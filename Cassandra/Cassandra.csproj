@@ -72,6 +72,7 @@
     <Compile Include="Cluster.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="DateTimePrecise.cs" />
+    <Compile Include="Diagnostics.cs" />
     <Compile Include="GuidGenerator.cs" />
     <Compile Include="GuidVersion.cs" />
     <Compile Include="Host.cs" />
@@ -145,6 +146,7 @@
     <Compile Include="Outputs\OutputVoid.cs" />
     <Compile Include="Outputs\OutputSetKeyspace.cs" />
     <Compile Include="Outputs\OutputError.cs" />
+    <Compile Include="CassandraCounters.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
     <Compile Include="Policies\DCAwareRoundRobinPolicy.cs" />
     <Compile Include="Policies\DefaultRetryPolicy.cs" />

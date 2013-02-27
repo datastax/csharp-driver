@@ -84,15 +84,15 @@ namespace Cassandra
 
         }
 
-        readonly List<CassandraConnection> _trahscan = new List<CassandraConnection>();
+        readonly List<CassandraConnection> _trashcan = new List<CassandraConnection>();
 
 
         internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, Dictionary<IPAddress, Exception> innerExceptions = null)
         {
             CheckDisposed();
-            lock (_trahscan)
+            lock (_trashcan)
             {
-                foreach (var conn in _trahscan)
+                foreach (var conn in _trashcan)
                 {
                     if (conn.IsEmpty())
                     {
@@ -141,8 +141,8 @@ namespace Cassandra
                                     {
                                         if (conn.IsFree(_poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(hostDistance)))
                                         {
-                                            lock (_trahscan)
-                                                _trahscan.Add(conn);
+                                            lock (_trashcan)
+                                                _trashcan.Add(conn);
                                             pool.Remove(conn);
                                         }
                                     }
@@ -185,8 +185,8 @@ namespace Cassandra
                     if (!hostsIter.MoveNext())
                     {
                         var ex = new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
-                        _logger.Error(ex);
-                        throw ex; 
+                        _logger.Error("Cannot connect to any host from pool.", ex);
+                        throw ex;
                     }
                 }
             }
@@ -405,7 +405,7 @@ namespace Cassandra
                                 }
                                 catch (QueryValidationException)
                                 {
-                                    _logger.Error("Cannot execute USE query. Query is invalid, unauthorized or syntaxically incorrect.");
+                                    _logger.Error("Cannot execute USE query. Query is invalid, unauthorized or syntactically incorrect.");
                                     throw;
                                 }
                                 if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != keyspaceId)
@@ -841,8 +841,10 @@ namespace Cassandra
         {
             public string CqlQuery;
             public bool IsTracing;
+            public Stopwatch StartedAt;            
             override public void Begin(Session owner)
-            {
+            {           
+                StartedAt = Stopwatch.StartNew();
                 Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
@@ -851,14 +853,25 @@ namespace Cassandra
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                CqlRowSet rowset = value as CqlRowSet;
-                var ar = LongActionAc as AsyncResult<CqlRowSet>;
-                if (exc != null)
-                    ar.Complete(exc);
-                else
-                {
-                    ar.SetResult(rowset);
-                    ar.Complete();
+                try
+                {                    
+                    CqlRowSet rowset = value as CqlRowSet;
+                    var ar = LongActionAc as AsyncResult<CqlRowSet>;
+                    if (exc != null)
+                        ar.Complete(exc);
+                    else
+                    {
+                        ar.SetResult(rowset);
+                        ar.Complete();
+                    }
+                }
+                finally
+                {                    
+                    var ts = StartedAt.ElapsedTicks;
+                    CassandraCounters.IncrementCqlQueryCount();
+                    CassandraCounters.IncrementCqlQueryBeats((ts * 1000000000));                    
+                    CassandraCounters.UpdateQueryTimeRollingAvrg((ts * 1000000000) / Stopwatch.Frequency);
+                    CassandraCounters.IncrementCqlQueryBeatsBase();                    
                 }
             }
         }

@@ -21,7 +21,7 @@ namespace Playground
         
         public void display()        
         {
-            Console.WriteLine(category + "\n " + date.ToString("o") + "\n " + message
+            Console.WriteLine(category + "\n " + date.ToString("MM/dd/yyyy H:mm:ss.fff zzz") + "\n " + message
                 + Environment.NewLine);
         }
     }
@@ -68,8 +68,8 @@ namespace Playground
         public override void WriteLine(string value)
         {            
             var category = value.Split(':')[0];
-            var message = value.Split('#')[1];            
-            var date = DateTimeOffset.Parse(value.Split('#')[0].Replace(category+":", ""));
+            var message = value.Split('#')[1];
+            var date = DateTimeOffset.ParseExact(value.Split('#')[0].Replace(category + ":", "").Trim(), "MM/dd/yyyy H:mm:ss.fff zzz", null);
             var newLog = new CassandraLog() { date = date , message = message, category = category };
             if (!canWrite)
                 logsTableLocal.Add(newLog);

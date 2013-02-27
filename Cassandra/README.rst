@@ -31,7 +31,7 @@ The features provided by this core module includes:
   - Configurable retry policy. A retry policy can be set to define a precise
     comportment to adopt on query execution exceptions (timeouts, unavailable).
     This avoids having to litter client code with retry related code.
-
+  - Performance counters which lets to monitor performance of the driver and Cassandra.
 
 Prerequisite
 ------------
@@ -71,3 +71,16 @@ this doesn't matter as long as the driver is able to contact one of the host
 provided as "contact points". Even if only one host was provided, the driver
 would use this host to discover the other ones and use the whole cluster
 automatically. This is also true for new nodes joining the cluster.
+
+
+Performance Counters
+--------------------
+
+To enable performance counters "Debugging.PerformanceCountersEnabled" property have to be set to true (it's set to false by default).
+Data collected by counters can be reached from Performance Monitor.
+To launch Performance Monitor(in Windows7): 
+	
+	Control Panel => Performance Information and Tools => Advanced Tools => Open Performance Monitor
+
+In Performance Monitor click "Add" button. From the list of counter categories select and expand "DataStax Cassandra C# driver".
+Add counters that you want to monitor.

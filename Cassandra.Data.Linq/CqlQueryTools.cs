@@ -201,7 +201,7 @@ namespace Cassandra.Data.Linq
             return ToUnixTime(val).ToString();
         }
 
-        static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public static long ToUnixTime(DateTimeOffset dt)
         {

@@ -4,7 +4,7 @@ namespace Cassandra
 {
     /// <summary>
     ///  An exception indicating that a query cannot be executed because it is
-    ///  incorrect syntaxically, invalid, unauthorized or any other reason.
+    ///  incorrect syntactically, invalid, unauthorized or any other reason.
     /// </summary>
     public abstract class QueryValidationException : DriverException
     {

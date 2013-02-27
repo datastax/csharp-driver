@@ -51,7 +51,7 @@ namespace Cassandra.Data.Linq.Test
         public void SetFixture(Dev.SettingsFixture setFix)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            Cluster.TraceSwitch.Level = TraceLevel.Verbose;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
             var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
             clusterb.WithDefaultKeyspace(keyspaceName);
