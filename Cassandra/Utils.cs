@@ -218,6 +218,13 @@ namespace Cassandra
 
     internal static class Utils
     {
+        public static long GetTimestampFromGuid(Guid guid)
+        {
+            byte[] bytes = guid.ToByteArray();
+            bytes[7] &= (byte)0x0f;
+            return BitConverter.ToInt64(bytes, 0);
+        }
+        
         public static bool ArrEqual(byte[] a1, byte[] a2)
         {
             if (ReferenceEquals(a1, a2))

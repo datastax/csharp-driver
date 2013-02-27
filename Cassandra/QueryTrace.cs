@@ -193,7 +193,7 @@ namespace Cassandra
                     foreach (var evRow in evRows.GetRows())
                     {
                         _events.Add(new Event(evRow.GetValue<string>("activity"),
-                                             GuidGenerator.GetDateTimeOffset(evRow.GetValue<Guid>("event_id")),
+                                             new DateTimeOffset(Utils.GetTimestampFromGuid(evRow.GetValue<Guid>("event_id")) + (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
                                              evRow.GetValue<IPEndPoint>("source").Address,
                                              evRow.GetValue<int>("source_elapsed"),
                                                 evRow.GetValue<string>("thread")));
