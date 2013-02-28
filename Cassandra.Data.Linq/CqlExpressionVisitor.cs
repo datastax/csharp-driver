@@ -311,8 +311,13 @@ namespace Cassandra.Data.Linq
                     WhereClause.Append(CQLTags[node.NodeType] + " (");
                     this.Visit(node.Operand);
                     WhereClause.Append(")");
-                    return node;
                 }
+                else
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    WhereClause.Append(val.Encode());
+                }
+                return node;
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
         }
