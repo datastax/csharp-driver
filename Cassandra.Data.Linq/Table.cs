@@ -125,11 +125,6 @@ namespace Cassandra.Data.Linq
         {
             return _session;
         }
-        
-        public CqlToken<T> Token<T>(T v)
-        {
-            return new CqlToken<T>(v);
-        }
 
         public CqlInsert<TEntity> Insert(TEntity entity)
         {

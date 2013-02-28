@@ -198,17 +198,13 @@ namespace Cassandra.Data.Linq
 
         public static string Encode(DateTimeOffset val)
         {
-            return ToUnixTime(val).ToString();
+            if (val == DateTimeOffset.MinValue) return 
+                0.ToString();
+            else
+                return Convert.ToInt64(Math.Floor((val - UnixStart).TotalMilliseconds)).ToString();
         }
 
         static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-
-        public static long ToUnixTime(DateTimeOffset dt)
-        {
-            if (dt == DateTimeOffset.MinValue) return 0;
-            // this was changed from .NET Ticks to the Unix Epoch to be compatible with other cassandra libraries
-            return Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds));
-        }
 
         static readonly Dictionary<Type, string> CQLTypeNames = new Dictionary<Type, string>() {
         { typeof(Int32), "int" }, 
@@ -600,14 +596,15 @@ namespace Cassandra.Data.Linq
         internal static object Select(object a, object b) { return null; }
         internal static object Where(object a, object b) { return null; }        
         internal static object First(object a, int b) { return null; }
-        public static object First(ITable a, int b, object c) { return null; }
         internal static object FirstOrDefault(object a, int b) { return null; }
-        public static object FirstOrDefault(ITable a, int b, object c) { return null; }
         internal static object Take(object a, int b) { return null; }
         internal static object Count(object a) { return null; }
         internal static object OrderBy(object a, object b) { return null; }
         internal static object OrderByDescending(object a, object b) { return null; }
         internal static object ThenBy(object a, object b) { return null; }
         internal static object ThenByDescending(object a, object b) { return null; }
+
+        public static object First(ITable a, int b, object c) { return null; }
+        public static object FirstOrDefault(ITable a, int b, object c) { return null; }
     }
 }

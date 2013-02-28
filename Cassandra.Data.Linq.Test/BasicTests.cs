@@ -146,12 +146,12 @@ namespace Cassandra.Data.Linq.Test
 
         
 
-        //[Fact]
+        [Fact]
         public void TestBuffering()
         {           
-            var table = ents.GetTable<Tweets>();           
+            var table = ents.GetTable<Tweets>();
 
-            var q2 = (from e in table where table.Token(e.idx) <= 0 select e).Take(10).OrderBy((e) => e.idx).ThenByDescending((e) => e.isok);
+            var q2 = (from e in table where e.idx.CqlToken() <= 0 select e).Take(10).OrderBy((e) => e.idx).ThenByDescending((e) => e.isok);
 
             var qxx = q2.ToString();
             int RowsNb = 10;

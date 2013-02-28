@@ -13,8 +13,8 @@ namespace Cassandra
             if ((frame.FrameHeader.Flags & 0x02) == 0x02)
             {
                 var buffer = new byte[16];
-                BEBinaryReader.Read(buffer,0,16);
-                TraceID = GuidTools.FromBytes(buffer);
+                BEBinaryReader.Read(buffer, 0, 16);
+                TraceID = new Guid(TypeInterpreter.GuidShuffle(buffer));
             }
         }
     }

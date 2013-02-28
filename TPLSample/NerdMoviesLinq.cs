@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 
+//based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
 namespace TPLSample.NerdMoviesLinqSample
 {
 

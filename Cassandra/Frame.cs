@@ -12,7 +12,7 @@
         public byte[] Len = new byte[4];
         public ResponseFrame MakeFrame(IProtoBuf stream)
         {
-            var bodyLen = ConversionHelper.FromBytesToInt32(Len, 0);
+            var bodyLen = TypeInterpreter.BytesToInt32(Len, 0);
 
             if (MaxFrameSize - 8 < bodyLen) throw new DriverInternalError("Frame length mismatch");
 

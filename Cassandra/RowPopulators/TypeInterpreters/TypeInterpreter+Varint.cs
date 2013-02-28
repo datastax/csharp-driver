@@ -7,8 +7,9 @@ namespace Cassandra
     {
         public static object ConvertFromVarint(IColumnInfo type_info, byte[] value)
         {
-            Array.Reverse(value);
-            return new BigInteger(value);
+            var buffer = (byte[])value.Clone();
+            Array.Reverse(buffer);
+            return new BigInteger(buffer);
         }
 
         public static Type GetTypeFromVarint(IColumnInfo type_info)

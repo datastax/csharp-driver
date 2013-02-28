@@ -56,7 +56,7 @@ namespace Cassandra.Data.Linq
             if (OrderBy.Count > 0)
             {
                 sb.Append(" ORDER BY ");
-                sb.Append(string.Join(", ", from f in OrderBy select f.CqlIdentifier()));
+                sb.Append(string.Join(", ", OrderBy));
             }
 
             if (Limit > 0)
@@ -395,14 +395,9 @@ namespace Cassandra.Data.Linq
                 Limit = (int)node.Value;
                 return node;
             }
-            else if (phasePhase.get() == ParsePhase.OrderBy)
+            else if (phasePhase.get() == ParsePhase.OrderBy || phasePhase.get() == ParsePhase.OrderByDescending)
             {
-                OrderBy.Add((string)node.Value + " ASC");
-                return node;
-            }
-            else if (phasePhase.get() == ParsePhase.OrderByDescending)
-            {
-                OrderBy.Add((string)node.Value + " DESC");
+                OrderBy.Add(((string)node.Value).CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
@@ -455,6 +450,19 @@ namespace Cassandra.Data.Linq
                     MappingVals.Add(currentBindingName.get(), name);
                     MappingNames.Add(name, currentBindingName.get());
                     SelectFields.Add(name);
+                    return node;
+                }
+            }
+            else if (phasePhase.get() == ParsePhase.OrderBy || phasePhase.get() == ParsePhase.OrderByDescending)
+            {
+                var name = node.Member.Name;
+                OrderBy.Add(name.CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                if ((node.Expression is ConstantExpression))
+                {
+                    return node;
+                }
+                else if (node.Expression.NodeType == ExpressionType.Parameter)
+                {
                     return node;
                 }
             }

@@ -6,7 +6,7 @@ namespace Cassandra
     {
         public static object ConvertFromUuid(IColumnInfo type_info, byte[] value)
         {
-            return GuidTools.FromBytes(value);
+            return new Guid(GuidShuffle(value));
         }
 
         public static Type GetTypeFromUuid(IColumnInfo type_info)
@@ -17,7 +17,7 @@ namespace Cassandra
         public static byte[] InvConvertFromUuid(IColumnInfo type_info, object value)
         {
             CheckArgument<Guid>(value);
-            return GuidTools.ToBytes((Guid)value);
+            return GuidShuffle(((Guid)value).ToByteArray());
         }
     }
 }

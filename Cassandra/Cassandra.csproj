@@ -82,7 +82,6 @@
     <Compile Include="Commands\CassandraConnection+Credentials.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="ControlConnection.cs" />
-    <Compile Include="ConversionHelper.cs" />
     <Compile Include="ClientOptions.cs" />
     <Compile Include="DictSet.cs" />
     <Compile Include="Exceptions\AlreadyExistsException.cs" />

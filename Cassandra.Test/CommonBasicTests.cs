@@ -47,8 +47,8 @@ namespace MyUTExt
                 clusterb.WithCompression(CompressionType.Snappy);
             Cluster = clusterb.Build();
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            Diagnostics.CassandraStackTraceIncluded= true;
-            Diagnostics.CassandraPerformanceCountersEnabled = true;
+            Diagnostics.CassandraStackTraceIncluded= false;
+            Diagnostics.CassandraPerformanceCountersEnabled = false;
             Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(2), true);            
         }
 
@@ -81,6 +81,25 @@ namespace MyUTExt
                 Console.WriteLine("CQL> Done.");                   
         }
 
+        public static bool ArrEqual(byte[] a1, byte[] a2)
+        {
+            if (ReferenceEquals(a1, a2))
+                return true;
+
+            if (a1 == null || a2 == null)
+                return false;
+
+            if (a1.Length != a2.Length)
+                return false;
+
+            EqualityComparer<byte> comparer = EqualityComparer<byte>.Default;
+            for (int i = 0; i < a1.Length; i++)
+            {
+                if (!comparer.Equals(a1[i], a2[i])) return false;
+            }
+            return true;
+        }
+
         public void valueComparator(CqlRowSet rowset, List<object[]> insertedRows)
         {                
             Assert.True(rowset.RowsCount == insertedRows.Count, string.Format("Returned rows count is not equal with the count of rows that were inserted! \n Returned: {0} \n Expected: {1} \n", rowset.RowsCount, insertedRows.Count));            
@@ -89,7 +108,7 @@ namespace MyUTExt
             {                
                 if (row.Columns.Any(col => col.GetType() == typeof(byte[])))
                     for (int j = 0; j < row.Length; j++)
-                        Assert.True(row[j].GetType() == typeof(byte[]) ? Utils.ArrEqual((byte[])row[j], (byte[])insertedRows[i][j]) : row[j].Equals(insertedRows[i][j]));                        
+                        Assert.True(row[j].GetType() == typeof(byte[]) ? ArrEqual((byte[])row[j], (byte[])insertedRows[i][j]) : row[j].Equals(insertedRows[i][j]));                        
                 else
                 {
                     for (int m = 0; m < row.Columns.Length; m++)

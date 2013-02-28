@@ -4,6 +4,79 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
+        internal static byte[] GuidShuffle(byte[] b)
+        {
+            return new byte[] { b[3], b[2], b[1], b[0], b[5], b[4], b[7], b[6], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15] };
+        }
+
+        internal static int BytesToInt32(byte[] buffer, int idx)
+        {
+            return (int)(
+                  (buffer[idx] << 24)
+                | (buffer[idx + 1] << 16 & 0xFF0000)
+                | (buffer[idx + 2] << 8 & 0xFF00)
+                | (buffer[idx + 3] & 0xFF)
+                );
+        }
+
+        static short BytesToInt16(byte[] buffer, int idx)
+        {
+            return (short)((buffer[idx] << 8) | (buffer[idx + 1] & 0xFF));
+        }
+
+        static byte[] Int32ToBytes(int value)
+        {
+            return new byte[] { 
+                (byte)((value & 0xFF000000) >> 24), 
+                (byte)((value & 0xFF0000) >> 16), 
+                (byte)((value & 0xFF00) >> 8), 
+                (byte)(value & 0xFF) };
+        }
+
+        static byte[] Int64ToBytes(long value)
+        {
+            return new byte[] { 
+                (byte)(((ulong)value & 0xFF00000000000000) >> 56), 
+                (byte)((value & 0xFF000000000000) >> 48), 
+                (byte)((value & 0xFF0000000000) >> 40), 
+                (byte)((value & 0xFF00000000) >> 32), 
+                (byte)((value & 0xFF000000) >> 24), 
+                (byte)((value & 0xFF0000) >> 16), 
+                (byte)((value & 0xFF00) >> 8), 
+                (byte)(value & 0xFF) };
+        }
+
+        static long BytesToInt64(byte[] buffer, int idx)
+        {
+            return (long)(
+                  (((ulong)buffer[idx] << 56) & 0xFF00000000000000)
+                | (((ulong)buffer[idx + 1] << 48) & 0xFF000000000000)
+                | (((ulong)buffer[idx + 2] << 40) & 0xFF0000000000)
+                | (((ulong)buffer[idx + 3] << 32) & 0xFF00000000)
+                | (((ulong)buffer[idx + 4] << 24) & 0xFF000000)
+                | (((ulong)buffer[idx + 5] << 16) & 0xFF0000)
+                | (((ulong)buffer[idx + 6] << 8) & 0xFF00)
+                | (((ulong)buffer[idx + 7]) & 0xFF)
+                );
+        }
+
+        static byte[] Int16ToBytes(short value)
+        {
+            return new byte[] { (byte)((value & 0xFF00) >> 8), (byte)(value & 0xFF) };
+        }
+
+        static DateTimeOffset BytesToDateTimeOffset(byte[] buffer, int idx)
+        {
+            return UnixStart.AddMilliseconds(BytesToInt64(buffer, 0));
+        }
+
+        static byte[] DateTimeOffsetToBytes(DateTimeOffset dt)
+        {
+            return Int64ToBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
+        }
+
+        static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
         static TypeInterpreter()
         {
             RegisterTypeInterpreter(ColumnTypeCode.Ascii);            
