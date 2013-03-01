@@ -67,12 +67,12 @@ namespace Cassandra
 
         static DateTimeOffset BytesToDateTimeOffset(byte[] buffer, int idx)
         {
-            return UnixStart.AddMilliseconds(BytesToInt64(buffer, 0));
+            return UnixStart.AddTicks(BytesToInt64(buffer, 0));
         }
 
         static byte[] DateTimeOffsetToBytes(DateTimeOffset dt)
         {
-            return Int64ToBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
+            return Int64ToBytes(Convert.ToInt64(dt.Ticks - UnixStart.Ticks));
         }
 
         static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);

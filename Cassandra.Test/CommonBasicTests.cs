@@ -47,8 +47,8 @@ namespace MyUTExt
                 clusterb.WithCompression(CompressionType.Snappy);
             Cluster = clusterb.Build();
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            Diagnostics.CassandraStackTraceIncluded= false;
-            Diagnostics.CassandraPerformanceCountersEnabled = false;
+            Diagnostics.CassandraStackTraceIncluded= true;
+            Diagnostics.CassandraPerformanceCountersEnabled = true;
             Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(2), true);            
         }
 
@@ -315,16 +315,12 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
         {
             string cassandraDataTypeName = convertTypeNameToCassandraEquivalent(tp);
             string tableName = "table" + Guid.NewGuid().ToString("N");
-            try
-            {
-                ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+            
+            ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, cassandraDataTypeName));
-            }
-            catch (AlreadyExistsException)
-            {
-            }
+
             List<object[]> toInsert = new List<object[]>(1);
             var val = RandomVal(tp);
             if (tp == typeof (string))
@@ -599,16 +595,10 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
         public void TimestampTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");
-            try
-            {
                 ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          ts timestamp
          );", tableName));
-            }
-            catch (AlreadyExistsException)
-            {
-            }
 
             ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), "2011-02-03 04:05+0000"), null);
             ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 220898707200000), null);

@@ -231,9 +231,21 @@ namespace Cassandra.Data.Linq
             {
                 if (node.Method.Name == "Contains")
                 {
-                    this.Visit(node.Arguments[0]);
+                    Expression what = null;
+                    Expression inp = null;
+                    if (node.Object == null)
+                    {
+                        what = node.Arguments[1];
+                        inp = node.Arguments[0];
+                    }
+                    else
+                    {
+                        what = node.Arguments[0];
+                        inp = node.Object;
+                    }
+                    this.Visit(what);
                     WhereClause.Append(" IN (");
-                    var values = (IEnumerable)Expression.Lambda(node.Object).Compile().DynamicInvoke();
+                    var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
                     bool first = false;
                     foreach (var obj in values)
                     {

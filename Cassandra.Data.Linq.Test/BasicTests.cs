@@ -31,9 +31,11 @@ namespace Cassandra.Data.Linq.Test
         public string author;
         [SecondaryIndex]
         public string body;
+       
         [ClusteringKey(1)]
         public bool isok;
-        
+
+        [ClusteringKey(2)]
         public int idx;
 
         public HashSet<string> exampleSet = new HashSet<string>();
@@ -173,32 +175,32 @@ namespace Cassandra.Data.Linq.Test
             var c = iq.Execute();
 
 
-            foreach (var r in (from e in table where e.idx == 0 select e).Execute())
+            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select e).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where new int[] { 0, 1, 2 }.Contains(e.idx) select new { x = e.idx, y = e.tweet_id }).Execute())
+            foreach (var r in (from e in table where e.isok == true && new int[] { 0, 1, 2 }.Contains(e.idx) select new { x = e.idx, y = e.tweet_id }).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.idx == 0 select new { Key = e.idx }).Execute())
+            foreach (var r in (from e in table where e.isok == false && e.idx == 0 select new { Key = e.idx }).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.idx == 0 select new { Key = e.idx, e.isok }).Execute())
+            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select new { Key = e.idx, e.isok }).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.idx == 0 select new X() { x = e.author, y = e.idx }).Execute())
+            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select new X() { x = e.author, y = e.idx }).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.idx == 0 select e.author).Execute())
+            foreach (var r in (from e in table where e.isok == false && e.idx == 0 select e.author).Execute())
             {
                 var x = r;
             }

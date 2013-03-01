@@ -65,7 +65,7 @@ namespace Cassandra.Test
             base.insertingSingleValuePrepared(typeof(System.String));
         }        
         
-        [Fact] //it works fine with precision to milisecond, but number of ticks is incorrect.
+        [Fact]
         public void testPreparedTimestamp()
         {
             base.insertingSingleValuePrepared(typeof(System.DateTimeOffset));

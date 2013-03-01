@@ -108,7 +108,7 @@ namespace Cassandra
         {
             if (!CategoryReady)
                 lock (guard)
-                    if (!CategoryReady && Diagnostics.CassandraPerformanceCountersEnabled) SetupCategory();
+                    if (!CategoryReady) SetupCategory();
 
             return CategoryReady ? new PerformanceCounter(counterCategory, counterName, false) : null;
         }
@@ -134,9 +134,9 @@ namespace Cassandra
                         _logger.Info("Successfully deleted performance counters category: " + CassandraCountersCategory);
                     }
                     catch (System.UnauthorizedAccessException ex)
-                    {
-                        Diagnostics.CassandraPerformanceCountersEnabled = false;
-                        _logger.Error(string.Format("Cannot delete performance counters category '{0}' due to insufficient administrative rights. Performance counters are disabled now.", CassandraCountersCategory), ex);
+                    {                        
+                        _logger.Error(string.Format("Cannot delete performance counters category '{0}' due to insufficient administrative rights.", CassandraCountersCategory), ex);
+                        throw;
                     }
 
 
@@ -201,7 +201,7 @@ namespace Cassandra
             }
             catch (System.Security.SecurityException ex)
             {
-                _logger.Error("Cannot create performance counters category due to insufficient administrative rights. Performance counters are disabled now.", ex);
+                _logger.Error("Cannot create performance counters category due to insufficient administrative rights.", ex);
                 throw;
             }
         }

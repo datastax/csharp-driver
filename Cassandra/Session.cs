@@ -841,10 +841,15 @@ namespace Cassandra
         {
             public string CqlQuery;
             public bool IsTracing;
-            public Stopwatch StartedAt;            
+            public Stopwatch StartedAt;
+            override public void Connect(Session owner, bool moveNext)
+            {
+                StartedAt = Stopwatch.StartNew();
+                base.Connect(owner, moveNext);
+            }
+
             override public void Begin(Session owner)
             {           
-                StartedAt = Stopwatch.StartNew();
                 Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
