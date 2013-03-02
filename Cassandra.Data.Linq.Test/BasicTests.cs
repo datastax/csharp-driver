@@ -55,7 +55,7 @@ namespace Cassandra.Data.Linq.Test
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
-            var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
             clusterb.WithDefaultKeyspace(keyspaceName);
             var cluster = clusterb.Build();
             session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();

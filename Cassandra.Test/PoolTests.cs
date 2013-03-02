@@ -49,7 +49,7 @@ namespace Cassandra.Test
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var clusterb = Cluster.Builder().WithConnectionString(setFix.Settings["CassandraConnectionString"]);
+            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
             if (_compression)
                 clusterb.WithCompression(CompressionType.Snappy);
             var cluster = clusterb.Build();

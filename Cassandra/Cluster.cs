@@ -329,19 +329,6 @@ namespace Cassandra
             get { return _port; }
         }
 
-        public Builder WithConnectionString(string connectionString)
-        {
-            var cnb = new ConnectionStringBuilder(connectionString);
-
-            foreach (var addr in cnb.ContactPoints)
-                AddContactPoints(addr);
-
-            WithPort(cnb.Port);
-            WithCompression(cnb.CompressionType);
-            WithDefaultKeyspace(cnb.DefaultKeyspace);
-            return this;
-        }
-
         /// <summary>
         ///  The port to use to connect to the Cassandra host. If not set through this
         ///  method, the default port (9042) will be used instead.
