@@ -89,12 +89,12 @@ namespace MyUTExt
         {            
             return new BigDecimal(NextDecimal());
         }
-#endif
          	
         public BigInteger NextBigInteger()  	
         {	  	
             return new BigInteger(Int64.MaxValue) * 10;	  	
         }
+#endif
         public string NextString()
         {
             return NextChar();

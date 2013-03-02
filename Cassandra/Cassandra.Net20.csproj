@@ -68,6 +68,7 @@
     <Compile Include="AsyncResult.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
+    <Compile Include="CassandraCounters.cs" />
     <Compile Include="ClientOptions.cs" />
     <Compile Include="Cluster.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
@@ -76,10 +77,9 @@
     <Compile Include="Commands\CassandraConnection+Options.cs" />
     <Compile Include="Commands\CassandraConnection+Credentials.cs" />
     <Compile Include="Configuration.cs" />
-    <Compile Include="ConnectionStringBuilder.cs" />
+    <Compile Include="ConsistencyLevel.cs" />
     <Compile Include="ControlConnection.cs" />
-    <Compile Include="ConversionHelper.cs" />
-    <Compile Include="DateTimePrecise.cs" />
+    <Compile Include="Diagnostics.cs" />
     <Compile Include="DictSet.cs" />
     <Compile Include="Exceptions\AlreadyExistsException.cs" />
     <Compile Include="Exceptions\AuthenticationException.cs">
@@ -126,8 +126,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="FrameBuffering.cs" />
-    <Compile Include="GuidGenerator.cs" />
-    <Compile Include="GuidVersion.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
     <Compile Include="IBuffering.cs" />
