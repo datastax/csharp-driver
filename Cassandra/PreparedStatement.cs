@@ -64,7 +64,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Creates a new BoundStatement object and bind its variables to the provided
-        ///  values. <p> This method is a shortcut for <code>new
+        ///  values. This method is a shortcut for <code>new
         ///  BoundStatement(this).Bind(...)</code>. <p> Note that while no more
         ///  <code>values</code> than bound variables can be provided, it is allowed to
         ///  provide less <code>values</code> that there is variables. In that case, the

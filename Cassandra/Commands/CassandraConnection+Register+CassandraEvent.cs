@@ -7,7 +7,7 @@ namespace Cassandra
     {
     }
 
-    public class TopopogyChangeEventArgs : CassandraEventArgs
+    public class TopologyChangeEventArgs : CassandraEventArgs
     {
         public enum Reason
         {

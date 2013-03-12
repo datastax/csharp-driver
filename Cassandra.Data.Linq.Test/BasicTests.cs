@@ -205,5 +205,21 @@ namespace Cassandra.Data.Linq.Test
                 var x = r;
             }
         }
+        [Fact]
+        public void Bug16_JIRA()
+        {
+            var table = ents.GetTable<Tweets>();
+            
+            Guid _tweet_id = Guid.NewGuid();
+            int _idx = 1;
+            var _tweet = new { isok = false };
+
+            table.AddNew(new Tweets() { tweet_id = _tweet_id, author = "author", isok = _tweet.isok, body = "blablabla", idx = _idx }, EntityTrackingMode.KeepAttachedAfterSave);
+
+            table.Where((a) => a.tweet_id == _tweet_id && a.isok == _tweet.isok && a.idx == _idx).Select((t) => new Tweets { body = "Lorem Ipsum", author = "Anonymous" }).Update().Execute();
+
+            var smth = table.Where(x => x.isok == _tweet.isok).Execute().ToList();
+        }
+
     }
 }

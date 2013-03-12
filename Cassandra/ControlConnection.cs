@@ -88,17 +88,17 @@ namespace Cassandra
 
         private void conn_CassandraEvent(object sender, CassandraEventArgs e)
         {
-            if (e is TopopogyChangeEventArgs)
+            if (e is TopologyChangeEventArgs)
             {
-                var tce = e as TopopogyChangeEventArgs;
-                if (tce.What == TopopogyChangeEventArgs.Reason.NewNode)
+                var tce = e as TopologyChangeEventArgs;
+                if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
                 {
                     if (CCEvent != null)
                         CCEvent.Invoke(this, new CCEventArgs() {IPAddress = tce.Address, What = CCEventArgs.Kind.Add});
                     CheckConnectionUp(tce.Address);
                     return;
                 }
-                else if (tce.What == TopopogyChangeEventArgs.Reason.RemovedNode)
+                else if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
                     if (CCEvent != null)
                         CCEvent.Invoke(this, new CCEventArgs() { IPAddress = tce.Address, What = CCEventArgs.Kind.Remove });

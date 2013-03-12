@@ -13,10 +13,10 @@
             var eventTypeString = BEBinaryReader.ReadString();
             if (eventTypeString == "TOPOLOGY_CHANGE")
             {
-                var ce = new TopopogyChangeEventArgs();
+                var ce = new TopologyChangeEventArgs();
                 ce.What = BEBinaryReader.ReadString() == "NEW_NODE"
-                              ? TopopogyChangeEventArgs.Reason.NewNode
-                              : TopopogyChangeEventArgs.Reason.RemovedNode;
+                              ? TopologyChangeEventArgs.Reason.NewNode
+                              : TopologyChangeEventArgs.Reason.RemovedNode;
                 ce.Address = BEBinaryReader.ReadInet().Address;
                 CassandraEventArgs = ce;
                 return;

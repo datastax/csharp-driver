@@ -7,7 +7,7 @@ using System.Collections;
 
 namespace Cassandra.Data.Linq
 {
-    internal enum ParsePhase { None, Select, What, Condition, SelectBinding,Take, First, OrderBy, OrderByDescending };
+    internal enum ParsePhase { None, Select, What, Condition, SelectBinding, Take, OrderBy, OrderByDescending };
 
     public class CqlLinqNotSupportedException : NotSupportedException
     {
@@ -92,12 +92,18 @@ namespace Cassandra.Data.Linq
             sb.Append("UPDATE ");
             sb.Append(TableName.CqlIdentifier());
             sb.Append(" SET ");
+            bool first = false;
             foreach (var al in MappingNames)
             {
                 if (MappingVals.ContainsKey(al.Key))
                 {
+                    if (!first)
+                        first = true;
+                    else
+                        sb.Append(", ");
+
                     var o = MappingVals[al.Key];
-                    if (o.GetType().IsPrimitive)
+                    if (o.GetType().IsPrimitive || (!string.IsNullOrEmpty(al.Value) && o.GetType().GetField(al.Value) == null))
                     {
                         sb.Append(al.Key.CqlIdentifier() + "=" + o.Encode());
                     }
@@ -146,13 +152,12 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitMemberInit(MemberInitExpression node)
         {
-            if (phasePhase.get() == ParsePhase.What)
+            if (phasePhase.get() == ParsePhase.SelectBinding)
             {
                 foreach (var binding in node.Bindings)
                 {
                     if (binding is MemberAssignment)
                     {
-                        using (phasePhase.set(ParsePhase.SelectBinding))
                         using (currentBindingName.set(binding.Member.Name))
                             this.Visit((binding as MemberAssignment).Expression);
                     }
@@ -162,14 +167,25 @@ namespace Cassandra.Data.Linq
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
         }
 
-        protected override Expression VisitNew(NewExpression node)
+        protected override Expression VisitLambda<T>(Expression<T> node)
         {
             if (phasePhase.get() == ParsePhase.What)
+            {
+                using (phasePhase.set(ParsePhase.SelectBinding))
+                using (currentBindingName.set(node.Parameters[0].Name))
+                    this.Visit(node.Body);
+                return node;
+            }
+            return base.VisitLambda<T>(node);
+        }
+
+        protected override Expression VisitNew(NewExpression node)
+        {
+            if (phasePhase.get() == ParsePhase.SelectBinding)
             {
                 for (int i = 0; i < node.Members.Count; i++)
                 {
                     var binding = node.Arguments[i];
-                    using (phasePhase.set(ParsePhase.SelectBinding))
                     using (currentBindingName.set(node.Members[i].Name))
                         this.Visit(binding);
                 }
@@ -221,8 +237,12 @@ namespace Cassandra.Data.Linq
             }
             else if (node.Method.Name == "FirstOrDefault" || node.Method.Name == "First")
             {
-                using (phasePhase.set(ParsePhase.First))
-                    this.Visit(node.Arguments[0]);
+                this.Visit(node.Arguments[0]);
+                if (node.Arguments.Count == 3)
+                {
+                    using (phasePhase.set(ParsePhase.Condition))
+                        this.Visit(node.Arguments[2]);
+                }
                 Limit = 1;
                 return node;
             }

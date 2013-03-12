@@ -13,6 +13,9 @@
 
         public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
         {
+            if (values.Length != metadata.Columns.Length)
+                throw new System.ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");            
+
             this._streamId = streamId;
             this._values = values;
             this._id = id;
@@ -28,9 +31,9 @@
             wb.WriteFrameHeader(0x01, _flags, (byte)_streamId, OpCode);
             wb.WriteShortBytes(_id);
             wb.WriteUInt16((ushort) _values.Length);
-            for(int i =0;i<_metadata.Columns.Length;i++)
+            for (int i = 0; i < _metadata.Columns.Length; i++)
             {
-                var bytes = _metadata.ConvertFromObject(i,_values[i]);
+                var bytes = _metadata.ConvertFromObject(i, _values[i]);
                 wb.WriteBytes(bytes);
             }
             wb.WriteInt16((short)_consistency);
