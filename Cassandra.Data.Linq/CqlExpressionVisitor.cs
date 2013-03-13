@@ -25,8 +25,7 @@ namespace Cassandra.Data.Linq
         public StringBuilder WhereClause = new StringBuilder();
         public string TableName;
 
-        public Dictionary<string, object> MappingVals = new Dictionary<string, object>();
-        public Dictionary<string, string> MappingNames = new Dictionary<string, string>();
+        public Dictionary<string, Tuple<string, object>> Mappings = new Dictionary<string, Tuple<string, object>>();
         public HashSet<string> SelectFields = new HashSet<string>();
         public List<string> OrderBy = new List<string>();
 
@@ -92,29 +91,30 @@ namespace Cassandra.Data.Linq
             sb.Append("UPDATE ");
             sb.Append(TableName.CqlIdentifier());
             sb.Append(" SET ");
-            bool first = false;
-            foreach (var al in MappingNames)
-            {
-                if (MappingVals.ContainsKey(al.Key))
-                {
-                    if (!first)
-                        first = true;
-                    else
-                        sb.Append(", ");
 
-                    var o = MappingVals[al.Key];
-                    if (o.GetType().IsPrimitive || (!string.IsNullOrEmpty(al.Value) && o.GetType().GetField(al.Value) == null))
-                    {
-                        sb.Append(al.Key.CqlIdentifier() + "=" + o.Encode());
-                    }
-                    else
-                    {
-                        var val = o.GetType().GetField(al.Value).GetValue(o);
-                        sb.Append(al.Key.CqlIdentifier() + "=" + val.Encode());
-                    }
-                }
-            }
+			var setStatements = new List<string>();
 
+			foreach (var mapping in Mappings)
+			{
+				var o = mapping.Value.Item2;
+				var columnName = mapping.Key.CqlIdentifier();
+				var val = (object)null;
+                var propsOrField = o.GetType().GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Value.Item1);
+
+				if (o.GetType().IsPrimitive || propsOrField == null)
+				{
+					val = o;
+				}
+				else
+				{
+					val = propsOrField.GetValueFromPropertyOrField(o);
+				}
+
+				setStatements.Add(columnName + "=" + val.Encode());
+			}
+
+			sb.Append(String.Join(",", setStatements));
+	
             if (WhereClause.Length > 0)
             {
                 sb.Append(" WHERE ");
@@ -422,8 +422,7 @@ namespace Cassandra.Data.Linq
             }
             else if (phasePhase.get() == ParsePhase.SelectBinding)
             {
-                MappingVals.Add(currentBindingName.get(), node.Value);
-                MappingNames.Add(currentBindingName.get(), currentBindingName.get());
+                Mappings[currentBindingName.get()] = Tuple.Create<string, object>(currentBindingName.get(), node.Value);
                 SelectFields.Add(currentBindingName.get());
                 return node;
             }
@@ -474,18 +473,16 @@ namespace Cassandra.Data.Linq
             else if (phasePhase.get() == ParsePhase.SelectBinding)
             {
                 var name = node.Member.Name;
-                if ((node.Expression is ConstantExpression))
+                if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
                 {
                     var val = Expression.Lambda(node.Expression).Compile().DynamicInvoke();
-                    MappingVals.Add(currentBindingName.get(), val);
-                    MappingNames.Add(name, currentBindingName.get());
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object>(name, val);
                     SelectFields.Add(name);
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.Parameter)
                 {
-                    MappingVals.Add(currentBindingName.get(), name);
-                    MappingNames.Add(name, currentBindingName.get());
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object>(name, name);
                     SelectFields.Add(name);
                     return node;
                 }

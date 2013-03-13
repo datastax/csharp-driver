@@ -478,7 +478,7 @@ namespace Cassandra.Data.Linq
             return ret.ToString();
         }
 
-        public static T GetRowFromCqlRow<T>(CqlRow cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, string> alter)
+        public static T GetRowFromCqlRow<T>(CqlRow cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object>> alter)
         {
             var ncstr = typeof(T).GetConstructor(new Type[] { });
             if (ncstr != null)
@@ -493,8 +493,8 @@ namespace Cassandra.Data.Linq
                         int idx;
                         if (colToIdx.ContainsKey(prop.Name))
                             idx = colToIdx[prop.Name];
-                        else if (alter.ContainsKey(prop.Name) && colToIdx.ContainsKey(alter[prop.Name]))
-                            idx = colToIdx[alter[prop.Name]];
+                        else if (alter.ContainsKey(prop.Name) && colToIdx.ContainsKey(alter[prop.Name].Item1))
+                            idx = colToIdx[alter[prop.Name].Item1];
                         else 
                             continue;
                         var val = cqlRow[idx];
@@ -505,8 +505,8 @@ namespace Cassandra.Data.Linq
                         int idx;
                         if (colToIdx.ContainsKey(prop.Name))
                             idx = colToIdx[prop.Name];
-                        else if (alter.ContainsKey(prop.Name) && colToIdx.ContainsKey(alter[prop.Name]))
-                            idx = colToIdx[alter[prop.Name]];
+                        else if (alter.ContainsKey(prop.Name) && colToIdx.ContainsKey(alter[prop.Name].Item1))
+                            idx = colToIdx[alter[prop.Name].Item1];
                         else
                             continue; 
                         var val = cqlRow[idx];

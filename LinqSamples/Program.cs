@@ -45,6 +45,7 @@ namespace LinqSamples
                 var table = session.GetTable<NerdMovie>();
                 table.CreateIfNotExists();
 
+
                 {
                     var batch = session.CreateBatch();
 
@@ -59,7 +60,12 @@ namespace LinqSamples
                     batch.Execute();
                 }
 
-        
+                var testmovie = new NerdMovie { Year = 2005, Director = "Quentin Tarantino", Movie = "Pulp Fiction" };
+                table.Where(m => m.Movie == testmovie.Movie && m.Director == testmovie.Director).Select(m => new NerdMovie { Year = testmovie.Year }).Update().Execute();
+
+
+                var anonMovie = new { Director = "Quentin Tarantino", Year = 2005 };
+                table.Where(m => m.Movie == "Pulp Fiction" && m.Director == anonMovie.Director).Select(m => new NerdMovie { Year = anonMovie.Year, MainActor = "George Clooney" }).Update().Execute();
 
                 var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
