@@ -66,9 +66,13 @@
       <Project>{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}</Project>
       <Name>Cassandra.Data.Linq.Test</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Cassandra.Data.Test\Cassandra.Data.Test.csproj">
+      <Project>{04B64E0C-CE89-4921-AA2F-E7BC55ACEF3A}</Project>
+      <Name>Cassandra.Data.Test</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Cassandra.Test\Cassandra.Test.csproj">
       <Project>{D222E239-F11B-487E-819F-73FB732B6AD8}</Project>
-      <Name>Cassandra.Native.Test</Name>
+      <Name>Cassandra.Test</Name>
     </ProjectReference>
     <ProjectReference Include="TestRunnerLib\TestRunnerLib.csproj">
       <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>

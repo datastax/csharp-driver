@@ -33,10 +33,11 @@ namespace TestRunner
     {
         static string[] TestPacks = new string[] 
         {
+            "Cassandra.Data.Test",
 #if CASSANDRA_NET_40_OR_GREATER
             "Cassandra.Data.Linq.Test",
 #endif
-            "Cassandra.Native.Test"
+            "Cassandra.Test",
         };
 
 

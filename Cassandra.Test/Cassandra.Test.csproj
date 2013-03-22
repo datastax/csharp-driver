@@ -8,8 +8,8 @@
     <ProjectGuid>{D222E239-F11B-487E-819F-73FB732B6AD8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cassandra.Native.Test</RootNamespace>
-    <AssemblyName>Cassandra.Native.Test</AssemblyName>
+    <RootNamespace>Cassandra.Test</RootNamespace>
+    <AssemblyName>Cassandra.Test</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

@@ -25,7 +25,7 @@ namespace LinqSamples
         
         static void Main(string[] args)
         {
-            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
+            Cluster cluster = Cluster.Builder().WithConnectionString("Contact Points=cassi.cloudapp.net;Port=9042").Build();
 
             using (var session = cluster.Connect())
             {

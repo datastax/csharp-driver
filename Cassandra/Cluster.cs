@@ -480,6 +480,17 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        ///  Configure the cluster by applying settings from ConnectionString. 
+        /// </summary>
+        /// <param name="connectionString"> the ConnectionString to use </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithConnectionString(string connectionString)
+        {
+            var cnb = new CassandraConnectionStringBuilder(connectionString);
+            return cnb.ApplyToBuilder(this);
+        }
 
         /// <summary>
         ///  The configuration that will be used for the new cluster. <p> You <b>should
