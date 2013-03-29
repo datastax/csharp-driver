@@ -3,13 +3,20 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Net20", "Cassandra\Cassandra.Net20.csproj", "{FEB5DABD-3857-4A60-8A1D-306A4C8B7A0C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Test.Net20", "Cassandra.Test\Cassandra.Test.Net20.csproj", "{2B262794-08CA-4D4C-9284-84C0397E3932}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7594DF9A-1A28-4446-A5F9-B4059444F546}"
+	ProjectSection(SolutionItems) = preProject
+		Cassandra.vsmdi = Cassandra.vsmdi
+		Local.testsettings = Local.testsettings
+		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRunner.Net20", "TestRunner\TestRunner.Net20.csproj", "{BE029DEE-B993-404B-8AB0-09EF84355C7E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.MSTest", "Cassandra.MSTest\Cassandra.MSTest.csproj", "{11DB4AF5-7318-4CF0-9C56-2A6584CF138C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRunnerLib", "TestRunner\TestRunnerLib\TestRunnerLib.csproj", "{E8876ACA-CFC9-43B5-892A-8A1B772B0406}"
-EndProject
+
 Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = Cassandra.vsmdi
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -29,36 +36,6 @@ Global
 		{FEB5DABD-3857-4A60-8A1D-306A4C8B7A0C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{FEB5DABD-3857-4A60-8A1D-306A4C8B7A0C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{FEB5DABD-3857-4A60-8A1D-306A4C8B7A0C}.Release|x86.ActiveCfg = Release|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{2B262794-08CA-4D4C-9284-84C0397E3932}.Release|x86.ActiveCfg = Release|Any CPU
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|x86.ActiveCfg = Debug|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Debug|x86.Build.0 = Debug|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Release|Any CPU.ActiveCfg = Release|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Release|Mixed Platforms.Build.0 = Release|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Release|x86.ActiveCfg = Release|x86
-		{BE029DEE-B993-404B-8AB0-09EF84355C7E}.Release|x86.Build.0 = Release|x86
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{E8876ACA-CFC9-43B5-892A-8A1B772B0406}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

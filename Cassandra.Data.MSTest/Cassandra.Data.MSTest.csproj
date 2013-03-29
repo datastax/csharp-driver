@@ -3,16 +3,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
+    <ProductVersion>
+    </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}</ProjectGuid>
+    <ProjectGuid>{1C6F05A9-16C0-4E2B-B2DD-749FC4078DA3}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cassandra.Data</RootNamespace>
-    <AssemblyName>Cassandra.Data</AssemblyName>
+    <RootNamespace>Cassandra.Data.MSTest</RootNamespace>
+    <AssemblyName>Cassandra.Data.MSTest</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,46 +32,35 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>KeyFile.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
     <Reference Include="System.Data" />
-    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CqlBatchTransaction.cs" />
-    <Compile Include="CqlCommandBuilder.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="CqlDataAdapter.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="CqlCommand.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="CqlConnection.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="CqlProviderFactory.cs" />
-    <Compile Include="CqlReader.cs" />
+    <CodeAnalysisDependentAssemblyPaths Condition=" '$(VS100COMNTOOLS)' != '' " Include="$(VS100COMNTOOLS)..\IDE\PrivateAssemblies">
+      <Visible>False</Visible>
+    </CodeAnalysisDependentAssemblyPaths>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestTools\Basics.cs" />
+    <Compile Include="BasicTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Cassandra.Data\Cassandra.Data.csproj">
+      <Project>{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}</Project>
+      <Name>Cassandra.Data</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="README.rst" />
-    <None Include="KeyFile.snk" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
