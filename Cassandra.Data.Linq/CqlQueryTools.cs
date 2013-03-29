@@ -241,7 +241,12 @@ namespace Cassandra.Data.Linq
                         return "list<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
                     }
                 }
+                else
+                    if (tpy.Name == "BigDecimal")
+                        return "decimal";
+                   
             }
+
             throw new InvalidOperationException();
         }
 

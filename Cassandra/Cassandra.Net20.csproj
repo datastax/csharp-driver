@@ -215,6 +215,7 @@
     <Compile Include="Statement.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TokenFactory.cs" />
+    <Compile Include="TypeAdapters.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>

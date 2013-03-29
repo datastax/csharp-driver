@@ -23,12 +23,6 @@ namespace Cassandra.Test
         }
                 
 #if CASSANDRA_NET_40_OR_GREATER
-        [Fact]
-        public void testPreparedDecimal2()
-        {
-            insertingSingleValuePrepared(typeof(BigDecimal));
-        }
-
         [Fact] 
         public void testPreparedVarInt()
         {

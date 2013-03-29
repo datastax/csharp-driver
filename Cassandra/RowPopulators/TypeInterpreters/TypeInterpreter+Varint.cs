@@ -9,19 +9,17 @@ namespace Cassandra
         {
             var buffer = (byte[])value.Clone();
             Array.Reverse(buffer);
-            return new BigInteger(buffer);
+            return TypeAdapters.VarIntTypeAdapter.ConvertFrom(buffer);
         }
 
         public static Type GetTypeFromVarint(IColumnInfo type_info)
         {
-            return typeof(BigInteger);
+            return TypeAdapters.VarIntTypeAdapter.GetDataType();
         }
 
         public static byte[] InvConvertFromVarint(IColumnInfo type_info, object value)
         {
-            CheckArgument<BigInteger>(value);
-            var ret  = ((BigInteger)value).ToByteArray();
-            
+            var ret = TypeAdapters.VarIntTypeAdapter.ConvertTo(value);
             Array.Reverse(ret);
             return ret;
         }

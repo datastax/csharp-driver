@@ -74,12 +74,12 @@ namespace Cassandra.Test
             base.Test();
         }
 
-#if CASSANDRA_NET_40_OR_GREATER
         [Fact]
         public void testDecimal()
         {
-            insertingSingleValue(typeof(BigDecimal));
-        }        
+            insertingSingleValue(typeof(Decimal));
+        }      
+#if CASSANDRA_NET_40_OR_GREATER
         [Fact]
         public void testVarInt()
         {

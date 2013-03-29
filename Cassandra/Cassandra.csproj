@@ -66,7 +66,6 @@
       <Link>Snappy\Snappy.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
-    <Compile Include="BigDecimal.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="Cluster.cs" />
@@ -221,6 +220,7 @@
     <Compile Include="Statement.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TokenFactory.cs" />
+    <Compile Include="TypeAdapters.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>

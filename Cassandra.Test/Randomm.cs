@@ -53,43 +53,7 @@ namespace MyUTExt
                                sign,
                                scale);
         }
-        //public DecimalBuffer NextDecimal()
-        //{
-        //    //byte scale = (byte)this.Next(29);
-        //    //bool sign = this.Next(2) == 1;
-        //    //decimal number = new decimal(this.NextInt32(),
-        //    //       this.NextInt32(),
-        //    //       this.NextInt32(),
-        //    //       sign,
-        //    //       scale);            
-            
-        //    //byte[] bArray = null;
-
-        //    //MemoryStream memStream = new MemoryStream();
-        //    //BinaryWriter writer = new BinaryWriter(memStream);
-        //    //writer.Write(number);
-        //    //bArray = memStream.ToArray();
-        //    //memStream.Close();
-        //    //writer.Close();
-            
-        //    //DecimalBuffer decbuf;
-                
-        //    //decbuf.BigIntegerBytes = bArray;
-        //    //decbuf.Scale = scale;
-
-        //    return Extensions.ToDecimalBuffer(NextDecimalNormal()); ;
-        //}
-
-        //public VarintBuffer NextBigInteger()
-        //{
-        //    return Extensions.ToVarintBuffer(NextBigIntegerNormal());
-        //}
-
-        public BigDecimal NextBigDecimal()
-        {            
-            return new BigDecimal(NextDecimal());
-        }
-         	
+                 	
         public BigInteger NextBigInteger()  	
         {	  	
             return new BigInteger(Int64.MaxValue) * 10;	  	
