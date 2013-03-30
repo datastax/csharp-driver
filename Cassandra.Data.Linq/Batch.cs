@@ -14,17 +14,20 @@ namespace Cassandra.Data.Linq
             _session = session;
         }
 
-        private readonly List<CqlCommand> _commands = new List<CqlCommand>();
+        private readonly StringBuilder _batchScript = new StringBuilder();
+        private string _batchType = "";
 
         public void Append(CqlCommand cqlCommand)
         {
-            _commands.Add(cqlCommand);
+            if (cqlCommand.GetTable().GetTableType() == TableType.Counter)
+                _batchType = "COUNTER ";
+            _batchScript.AppendLine(cqlCommand.GetCql());
         }
 
         public void Append(IEnumerable<CqlCommand> cqlCommands)
         {
-            foreach(var cmd in cqlCommands)
-                _commands.Add(cmd);
+            foreach (var cmd in cqlCommands)
+                Append(cmd);
         }
 
         public void Execute()
@@ -39,18 +42,10 @@ namespace Cassandra.Data.Linq
 
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            StringBuilder batchScript = new StringBuilder();
-            string BT = "";
-            foreach (var cmd in _commands)
-            {
-                if (cmd.GetTable().GetTableType() == TableType.Counter)
-                    BT = "COUNTER ";
-                batchScript.AppendLine(cmd.GetCql());
-            }
-            if (batchScript.Length != 0)
+            if (_batchScript.Length != 0)
             {
                 var ctx = _session;
-                var cqlQuery = "BEGIN " + BT + "BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY " + BT + "BATCH";
+                var cqlQuery = "BEGIN " + _batchType + "BATCH\r\n" + _batchScript.ToString() + "\r\nAPPLY " + _batchType + "BATCH";
                 return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
                                     new CqlQueryTag() { Session = ctx }, callback, state);
             }
@@ -75,7 +70,7 @@ namespace Cassandra.Data.Linq
         }
 
         public QueryTrace QueryTrace { get; private set; }
-        
+
         private CqlRowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
@@ -84,7 +79,7 @@ namespace Cassandra.Data.Linq
             QueryTrace = outp.QueryTrace;
             return outp;
         }
-        
+
         protected override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             if (!ReferenceEquals(_session, session))
