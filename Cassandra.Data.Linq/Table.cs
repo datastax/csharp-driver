@@ -9,6 +9,22 @@ namespace Cassandra.Data.Linq
     {
     }
 
+    [AttributeUsageAttribute(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+    public sealed class TableAttribute : Attribute
+    {
+        public TableAttribute() {}
+        public TableAttribute(string Name) { this.Name = Name; }
+        public string Name = null;
+    }
+    
+    [AttributeUsageAttribute(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
+    public sealed class ColumnAttribute : Attribute
+    {
+        public ColumnAttribute() {}
+        public ColumnAttribute(string Name) { this.Name = Name; }
+        public string Name = null;
+    }
+
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class PartitionKeyAttribute : Attribute
     {
@@ -60,6 +76,22 @@ namespace Cassandra.Data.Linq
         readonly Session _session;
         readonly string _tableName;
 
+        internal static string CalculateName(string tableName)
+        {
+            var tableAttr = typeof(TEntity).GetCustomAttributes(typeof(TableAttribute), false).FirstOrDefault() as TableAttribute;
+            if (tableAttr != null)
+            {
+                if (!string.IsNullOrEmpty(tableAttr.Name))
+                {
+                    if (tableName != null)
+                        new ArgumentException("Table name mapping is already specified within [Table(...)] attribute", tableName);
+                    else
+                        tableName = tableAttr.Name;
+                }
+            }
+            return tableName ?? typeof(TEntity).Name;
+        }
+
         internal Table(Session session, string tableName)
         {
             this._session = session;
@@ -84,7 +116,7 @@ namespace Cassandra.Data.Linq
 
         public void Create(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)
         {
-            var cqls = CqlQueryTools.GetCreateCQL(this, _tableName);
+            var cqls = CqlQueryTools.GetCreateCQL(this);
             foreach (var cql in cqls)
                 _session.Execute(cql, consictencyLevel);
         }

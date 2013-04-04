@@ -53,14 +53,15 @@ namespace Cassandra.Data.Linq
         {
             public Session Session;
             public Dictionary<string, Tuple<string, object>> Mappings;
+            public Dictionary<string, string> Alter;
         }
 
-        protected IAsyncResult InternalBeginExecute(string cqlQuery, Dictionary<string, Tuple<string, object>> mappingNames, AsyncCallback callback, object state)
+        protected IAsyncResult InternalBeginExecute(string cqlQuery, Dictionary<string, Tuple<string, object>> mappingNames, Dictionary<string, string> alter, AsyncCallback callback, object state)
         {
             var session = GetTable().GetSession();
 
             return session.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
-                                new CqlQueryTag() { Mappings = mappingNames, Session = session }, callback, state);
+                                new CqlQueryTag() { Mappings = mappingNames, Alter = alter, Session = session }, callback, state);
         }
 
         protected CqlRowSet InternalEndExecute(IAsyncResult ar)
@@ -111,7 +112,7 @@ namespace Cassandra.Data.Linq
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return InternalBeginExecute(visitor.GetSelect(), visitor.Mappings, callback, state);
+            return InternalBeginExecute(visitor.GetSelect(), visitor.Mappings, visitor.Alter, callback, state);
         }
 
         public TEntity EndExecute(IAsyncResult ar)
@@ -131,7 +132,7 @@ namespace Cassandra.Data.Linq
                     colToIdx.Add(cols[idx].Name, idx);
 
                 var tag = (CqlQueryTag)Session.GetTag(ar);
-                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, tag.Mappings);
+                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, tag.Mappings, tag.Alter);
             }
         }
 
@@ -163,7 +164,7 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
 
-            return InternalBeginExecute(visitor.GetCount(),visitor.Mappings, callback, state);
+            return InternalBeginExecute(visitor.GetCount(),visitor.Mappings, visitor.Alter, callback, state);
         }
 
         public TEntity EndExecute(IAsyncResult ar)
@@ -230,8 +231,8 @@ namespace Cassandra.Data.Linq
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
             var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression); 
-            return InternalBeginExecute(visitor.GetSelect(), visitor.Mappings, callback, state); 
+            visitor.Evaluate(Expression);
+            return InternalBeginExecute(visitor.GetSelect(), visitor.Mappings, visitor.Alter, callback, state); 
         }
 
         public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
@@ -248,7 +249,7 @@ namespace Cassandra.Data.Linq
                 var tag = (CqlQueryTag)Session.GetTag(ar);
                 foreach (var row in rows)
                 {
-                    yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings);
+                    yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
                 }
             }
         }

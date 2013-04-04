@@ -96,7 +96,7 @@ namespace Cassandra.Data.Linq
 
         public ContextTable<TEntity> AddTable<TEntity>(string tableName = null) where TEntity : class
         {
-            var tn = tableName ?? typeof (TEntity).Name;
+            var tn = Table<TEntity>.CalculateName(tableName);
             if (_tables.ContainsKey(tn))
                 return new ContextTable<TEntity>((Table<TEntity>)_tables[tn], this);
             else
@@ -110,13 +110,13 @@ namespace Cassandra.Data.Linq
 
         public bool HasTable<TEntity>(string tableName = null) where TEntity : class
         {
-            var tn = tableName ?? typeof (TEntity).Name;
+            var tn = Table<TEntity>.CalculateName(tableName);
             return _tables.ContainsKey(tn);
         }
 
         public ContextTable<TEntity> GetTable<TEntity>(string tableName = null) where TEntity : class
         {
-            var tn = tableName ?? typeof (TEntity).Name;
+            var tn = Table<TEntity>.CalculateName(tableName);
             return new ContextTable<TEntity>((Table<TEntity>)_tables[tn], this);
         }
 

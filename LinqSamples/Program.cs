@@ -10,16 +10,21 @@ namespace LinqSamples
     class Program
     {
         [AllowFiltering]
+        [Table("nerdiStuff")]
         public class NerdMovie
         {
             [ClusteringKey(1)]
+            [Column("diri")]
             public string Director;
 
+            [Column("mainGuy")]
             public string MainActor;
 
             [PartitionKey]
+            [Column("movieTile")]
             public string Movie;
 
+            [Column("When-Made")]
             public int Year;
         }
         
@@ -30,7 +35,7 @@ namespace LinqSamples
             using (var session = cluster.Connect())
             {
 
-                const string keyspaceName = "Excelsior";
+                string keyspaceName = "Excelsior"+Guid.NewGuid().ToString("N");
 
                 try
                 {
@@ -67,6 +72,8 @@ namespace LinqSamples
                 var anonMovie = new { Director = "Quentin Tarantino", Year = 2005 };
                 table.Where(m => m.Movie == "Pulp Fiction" && m.Director == anonMovie.Director).Select(m => new NerdMovie { Year = anonMovie.Year, MainActor = "George Clooney" }).Update().Execute();
 
+                var all = (from m in table select m).Execute().ToList();
+
                 var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
 
@@ -79,6 +86,7 @@ namespace LinqSamples
                 (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
 
                 var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
 
                 session.DeleteKeyspaceIfExists(keyspaceName);
             }

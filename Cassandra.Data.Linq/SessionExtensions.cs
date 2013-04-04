@@ -9,7 +9,8 @@ namespace Cassandra.Data.Linq
     {
         public static Table<TEntity> GetTable<TEntity>(this Session @this, string tableName = null) where TEntity : class
         {
-            return new Table<TEntity>(@this, tableName ?? typeof(TEntity).Name);
+
+            return new Table<TEntity>(@this, Table<TEntity>.CalculateName(tableName));
         }
 
         public static Batch CreateBatch(this Session @this)

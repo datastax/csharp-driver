@@ -25,6 +25,7 @@ namespace Cassandra.Data.Linq
         public StringBuilder WhereClause = new StringBuilder();
         public string TableName;
 
+        public Dictionary<string, string> Alter = new Dictionary<string, string>();
         public Dictionary<string, Tuple<string, object>> Mappings = new Dictionary<string, Tuple<string, object>>();
         public HashSet<string> SelectFields = new HashSet<string>();
         public List<string> OrderBy = new List<string>();
@@ -41,7 +42,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT ");
-            sb.Append(SelectFields.Count == 0?"* ":string.Join(",", from f in SelectFields select f.CqlIdentifier()));
+            sb.Append(SelectFields.Count == 0?"* ":string.Join(",", from f in SelectFields select Alter[f].CqlIdentifier()));
 
             sb.Append(" FROM ");
             sb.Append(TableName.CqlIdentifier());
@@ -97,7 +98,6 @@ namespace Cassandra.Data.Linq
 			foreach (var mapping in Mappings)
 			{
 				var o = mapping.Value.Item2;
-				var columnName = mapping.Key.CqlIdentifier();
 				var val = (object)null;
                 var propsOrField = o.GetType().GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Value.Item1);
 
@@ -110,7 +110,7 @@ namespace Cassandra.Data.Linq
 					val = propsOrField.GetValueFromPropertyOrField(o);
 				}
 
-				setStatements.Add(columnName + "=" + val.Encode());
+				setStatements.Add(Alter[mapping.Key].CqlIdentifier() + "=" + val.Encode());
 			}
 
 			sb.Append(String.Join(",", setStatements));
@@ -411,8 +411,16 @@ namespace Cassandra.Data.Linq
         {
             if (node.Value is ITable)
             {
-                TableName = (node.Value as ITable).GetTableName();
-                AllowFiltering = (node.Value as ITable).GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute), false).Any();
+                var table = (node.Value as ITable);
+                TableName = table.GetTableName();
+                AllowFiltering = table.GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute), false).Any();
+                
+                var props = table.GetEntityType().GetPropertiesOrFields();
+                foreach (var prop in props)
+                {
+                    var memName = CqlQueryTools.CalculateMemberName(prop);
+                    Alter[prop.Name] = memName;
+                }
                 return node;
             }
             else if (phasePhase.get() == ParsePhase.Condition)
@@ -433,7 +441,7 @@ namespace Cassandra.Data.Linq
             }
             else if (phasePhase.get() == ParsePhase.OrderBy || phasePhase.get() == ParsePhase.OrderByDescending)
             {
-                OrderBy.Add(((string)node.Value).CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                OrderBy.Add(Alter[(string)node.Value].CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
@@ -445,7 +453,7 @@ namespace Cassandra.Data.Linq
             {
                 if (node.Expression.NodeType == ExpressionType.Parameter)
                 {
-                    WhereClause.Append(node.Member.Name.CqlIdentifier());
+                    WhereClause.Append(Alter[node.Member.Name].CqlIdentifier());
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.Constant)
