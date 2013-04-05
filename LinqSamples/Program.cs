@@ -20,14 +20,18 @@ namespace LinqSamples
             [Column("mainGuy")]
             public string MainActor;
 
-            [PartitionKey]
+            [PartitionKey(1)]
             [Column("movieTile")]
             public string Movie;
+
+            [PartitionKey(5)]
+            [Column("movieMaker")]
+            public string Maker;
 
             [Column("When-Made")]
             public int Year;
         }
-        
+
         static void Main(string[] args)
         {
             Cluster cluster = Cluster.Builder().WithConnectionString("Contact Points=cassi.cloudapp.net;Port=9042").Build();
@@ -56,8 +60,8 @@ namespace LinqSamples
 
                     var movies = new List<NerdMovie>()
                     {
-                        new NerdMovie(){ Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005},
-                        new NerdMovie(){ Movie = "Pulp Fiction", Director = "Quentin Tarantino", MainActor = "John Travolta", Year = 1994},
+                        new NerdMovie(){ Movie = "Serenity", Maker="20CentFox",  Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005},
+                        new NerdMovie(){ Movie = "Pulp Fiction", Maker = "Pixar", Director = "Quentin Tarantino", MainActor = "John Travolta", Year = 1994},
                     };
 
                     batch.Append(from m in movies select table.Insert(m));
@@ -65,25 +69,26 @@ namespace LinqSamples
                     batch.Execute();
                 }
 
-                var testmovie = new NerdMovie { Year = 2005, Director = "Quentin Tarantino", Movie = "Pulp Fiction" };
-                table.Where(m => m.Movie == testmovie.Movie && m.Director == testmovie.Director).Select(m => new NerdMovie { Year = testmovie.Year }).Update().Execute();
+                var testmovie = new NerdMovie { Year = 2005, Director = "Quentin Tarantino", Movie = "Pulp Fiction", Maker = "Pixar" };
+                table.Where(m => m.Movie == testmovie.Movie && m.Maker==testmovie.Maker && m.Director == testmovie.Director).Select(m => new NerdMovie { Year = testmovie.Year }).Update().Execute();
 
 
                 var anonMovie = new { Director = "Quentin Tarantino", Year = 2005 };
-                table.Where(m => m.Movie == "Pulp Fiction" && m.Director == anonMovie.Director).Select(m => new NerdMovie { Year = anonMovie.Year, MainActor = "George Clooney" }).Update().Execute();
+                table.Where(m => m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == anonMovie.Director).Select(m => new NerdMovie { Year = anonMovie.Year, MainActor = "George Clooney" }).Update().Execute();
 
-                var all = (from m in table select m).Execute().ToList();
+                var all2 = table.Where((m) => CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar")).Execute().ToList();
+                var all = (from m in table where CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar") select m).Execute().ToList();
 
                 var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
 
-                (from m in table where m.Movie.Equals("Pulp Fiction") && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
+                (from m in table where m.Movie.Equals("Pulp Fiction") && m.Maker.Equals("Pixar") && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
 
-                table.Where((m) => m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino").Select((m) => new NerdMovie { Year = 1994 }).Update().Execute();
+                table.Where((m) => m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == "Quentin Tarantino").Select((m) => new NerdMovie { Year = 1994 }).Update().Execute();
 
                 var nm2 = table.Where((m) => m.Director == "Quentin Tarantino").Select((m) => new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
-                (from m in table where m.Movie == "Pulp Fiction" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
+                (from m in table where m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
 
                 var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 

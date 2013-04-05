@@ -292,10 +292,16 @@ namespace Cassandra.Data.Linq
                     this.Visit(node.Arguments[0]);
                     return node;
                 }
-                else if (node.Method.Name == "CqlToken")
+                else if (node.Type.Name == "CqlToken")
                 {
                     WhereClause.Append("token (");
-                    this.Visit(node.Arguments[0]);
+                    var exprs = node.Arguments;
+                    this.Visit(exprs.First());
+                    foreach (var e in exprs.Skip(1))
+                    {
+                        WhereClause.Append(" , ");
+                        this.Visit(e);
+                    }
                     WhereClause.Append(")");
                     return node;
                 }
@@ -459,10 +465,15 @@ namespace Cassandra.Data.Linq
                 else if (node.Expression.NodeType == ExpressionType.Constant)
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    if (val is ICqlToken)
+                    if (val is CqlToken)
                     {
                         WhereClause.Append("token (");
-                        WhereClause.Append((val as ICqlToken).Value.Encode());
+                        WhereClause.Append((val as CqlToken).Values.First().Encode());
+                        foreach (var e in (val as CqlToken).Values.Skip(1))
+                        {
+                            WhereClause.Append(" , ");
+                            WhereClause.Append(e.Encode());
+                        }
                         WhereClause.Append(")");
                     }
                     else

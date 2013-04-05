@@ -32,6 +32,7 @@ namespace Cassandra.Data.Linq.MSTest
         {
             [PartitionKey]
             public Guid tweet_id;
+
             public string author;
             [SecondaryIndex]
             public string body;
@@ -134,19 +135,19 @@ namespace Cassandra.Data.Linq.MSTest
             int PerPage = 1234;
 
             var firstPage = (from ent in table select ent).Take(PerPage).Execute();
-            var continuation = firstPage.Last().tweet_id.CqlToken();
+            var continuation = CqlToken.Create(firstPage.Last().tweet_id);
 
             int pages = 1;
             int lastcnt = 0;
             while (true)
             {
-                var nextPage = (from ent in table where ent.tweet_id.CqlToken() > continuation select ent).Take(PerPage).Execute().ToList();
+                var nextPage = (from ent in table where CqlToken.Create(ent.tweet_id) > continuation select ent).Take(PerPage).Execute().ToList();
                 if (nextPage.Count < PerPage)
                 {
                     lastcnt = nextPage.Count;
                     break;
                 }
-                continuation = nextPage.Last().tweet_id.CqlToken();
+                continuation = CqlToken.Create(nextPage.Last().tweet_id);
                 pages++;
             }
 
@@ -158,7 +159,7 @@ namespace Cassandra.Data.Linq.MSTest
         {
             var table = ents.GetTable<Tweets>();
 
-            var q2 = (from e in table where e.idx.CqlToken() <= 0 select e).Take(10).OrderBy((e) => e.idx).ThenByDescending((e) => e.isok);
+            var q2 = (from e in table where CqlToken.Create(e.idx) <= 0 select e).Take(10).OrderBy((e) => e.idx).ThenByDescending((e) => e.isok);
 
             var qxx = q2.ToString();
             int RowsNb = 10;

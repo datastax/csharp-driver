@@ -188,56 +188,43 @@ namespace Cassandra.Data.Linq
         }
     }
 
-    public interface ICqlToken 
+    public class CqlToken
     {
-        object Value { get; }
-    }
+        internal CqlToken(object[] v) { Values = v; }
 
-    public static class TokenExt
-    {
-        public static CqlToken<T> CqlToken<T>(this T @this)
-        {
-            return new CqlToken<T>(@this);
-        }
-    }
+        public static CqlToken Create<T>(T v) { return new CqlToken(new object[] { v }); }
+        public static CqlToken Create<T1, T2>(T1 v1, T2 v2) { return new CqlToken(new object[] { v1, v2 }); }
+        public static CqlToken Create<T1, T2, T3>(T1 v1, T2 v2, T3 v3) { return new CqlToken(new object[] { v1, v2, v3 }); }
 
-    public class CqlToken<T> : ICqlToken
-    {
-        internal CqlToken(T v) { _value = v; }
-        private readonly T _value;
-
-        object ICqlToken.Value
-        {
-            get { return _value; }
-        }
+        public readonly object[] Values;
         
-        public static bool operator ==(CqlToken<T> a, T b)
+        public static bool operator ==(CqlToken a, object b)
         {
             throw new NotImplementedException();
         }
-        public static bool operator !=(CqlToken<T> a, T b)
-        {
-            throw new NotImplementedException();
-        }
-        
-        public static bool operator <=(CqlToken<T> a, T b)
-        {
-            throw new NotImplementedException();
-        }
-        public static bool operator >=(CqlToken<T> a, T b)
-        {
-            throw new NotImplementedException();
-        }
-        public static bool operator <(CqlToken<T> a, T b)
-        {
-            throw new NotImplementedException();
-        }
-        public static bool operator >(CqlToken<T> a, T b)
+        public static bool operator !=(CqlToken a, object b)
         {
             throw new NotImplementedException();
         }
 
-        public static bool operator !=(CqlToken<T> a, CqlToken<T> b)
+        public static bool operator <=(CqlToken a, object b)
+        {
+            throw new NotImplementedException();
+        }
+        public static bool operator >=(CqlToken a, object b)
+        {
+            throw new NotImplementedException();
+        }
+        public static bool operator <(CqlToken a, object b)
+        {
+            throw new NotImplementedException();
+        }
+        public static bool operator >(CqlToken a, object b)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator !=(CqlToken a, CqlToken b)
         {
             throw new NotImplementedException();
         }
@@ -247,23 +234,23 @@ namespace Cassandra.Data.Linq
             throw new NotImplementedException();
         }
 
-        public static bool operator ==(CqlToken<T> a, CqlToken<T> b)
+        public static bool operator ==(CqlToken a, CqlToken b)
         {
             throw new NotImplementedException();
         }
-        public static bool operator <=(CqlToken<T> a, CqlToken<T> b)
+        public static bool operator <=(CqlToken a, CqlToken b)
         {
             throw new NotImplementedException();
         }
-        public static bool operator >=(CqlToken<T> a, CqlToken<T> b)
+        public static bool operator >=(CqlToken a, CqlToken b)
         {
             throw new NotImplementedException();
         }
-        public static bool operator <(CqlToken<T> a, CqlToken<T> b)
+        public static bool operator <(CqlToken a, CqlToken b)
         {
             throw new NotImplementedException();
         }
-        public static bool operator >(CqlToken<T> a, CqlToken<T> b)
+        public static bool operator >(CqlToken a, CqlToken b)
         {
             throw new NotImplementedException();
         }
