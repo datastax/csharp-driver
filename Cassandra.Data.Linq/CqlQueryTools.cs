@@ -498,7 +498,7 @@ namespace Cassandra.Data.Linq
             return ret.ToString();
         }
 
-        public static T GetRowFromCqlRow<T>(CqlRow cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object>> mappings, Dictionary<string,string> alter)
+        public static T GetRowFromCqlRow<T>(CqlRow cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object,int>> mappings, Dictionary<string,string> alter)
         {
             var ncstr = typeof(T).GetConstructor(new Type[] { });
             if (ncstr != null)
@@ -508,33 +508,32 @@ namespace Cassandra.Data.Linq
                 var props = typeof(T).GetMembers();
                 foreach (var prop in props)
                 {
-                    if (prop is PropertyInfo)
+                    if (prop is FieldInfo || prop is PropertyInfo)
                     {
                         int idx;
-                        if (colToIdx.ContainsKey(prop.Name))
-                            idx = colToIdx[prop.Name];
-                        else if (mappings.ContainsKey(prop.Name) && colToIdx.ContainsKey(mappings[prop.Name].Item1))
-                            idx = colToIdx[mappings[prop.Name].Item1];
-                        else 
+
+                        string propName = prop.Name;
+                        if (alter.ContainsKey(propName))
+                            propName = alter[propName];
+
+                        if (colToIdx.ContainsKey(propName))
+                            idx = colToIdx[propName];
+                        else if (mappings.ContainsKey(propName) && mappings[propName].Item1 == null)
+                        {
+                            prop.SetValueFromPropertyOrField(row, mappings[propName].Item2);
                             continue;
-                        var val = cqlRow[idx];
-                        (prop as PropertyInfo).SetValue(row, val, null);
-                    }
-                    else if (prop is FieldInfo)
-                    {
-                        int idx;
-                        if (colToIdx.ContainsKey(alter[prop.Name]))
-                            idx = colToIdx[alter[prop.Name]];
-                        else if (mappings.ContainsKey(alter[prop.Name]) && colToIdx.ContainsKey(mappings[alter[prop.Name]].Item1))
-                            idx = colToIdx[mappings[alter[prop.Name]].Item1];
+                        }
+                        else if (mappings.ContainsKey(propName) && colToIdx.ContainsKey(alter[mappings[propName].Item1]))
+                            idx = colToIdx[alter[mappings[propName].Item1]];
                         else
                             continue; 
                         var val = cqlRow[idx];
                         if (val == null)
-                            (prop as FieldInfo).SetValue(row, val);
+                            prop.SetValueFromPropertyOrField(row, val);
                         else
                         {
-                            var tpy = (prop as FieldInfo).FieldType;
+                            Type tpy = (prop is FieldInfo) ? (prop as FieldInfo).FieldType : (prop as PropertyInfo).PropertyType;
+
                             if (tpy.IsGenericType)
                             {
                                 if (tpy.GetInterface("IDictionary`2") != null)
@@ -542,7 +541,7 @@ namespace Cassandra.Data.Linq
                                     var openType = typeof(IDictionary<,>);
                                     var dictType = openType.MakeGenericType(tpy.GetGenericArguments()[0], tpy.GetGenericArguments()[1]);
                                     var dt = tpy.GetConstructor(new Type[] { dictType });
-                                    (prop as FieldInfo).SetValue(row, dt.Invoke(new object[] { val }));
+                                    prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] { val }));
                                 }                                
                                 else
                                     if (tpy.GetInterface("IEnumerable`1") != null)
@@ -550,13 +549,13 @@ namespace Cassandra.Data.Linq
                                         var openType = typeof(IEnumerable<>);
                                         var listType = openType.MakeGenericType(tpy.GetGenericArguments().First());
                                         var dt = tpy.GetConstructor(new Type[] { listType });
-                                        (prop as FieldInfo).SetValue(row, dt.Invoke(new object[] { val }));
+                                        prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] { val }));
                                     }
                                 else
                                     throw new InvalidOperationException();
                             }
                             else
-                                (prop as FieldInfo).SetValue(row, val);
+                                prop.SetValueFromPropertyOrField(row, val);
                         }
                     }
                 }
@@ -577,16 +576,23 @@ namespace Cassandra.Data.Linq
                     }
                     else
                     {
-                        var objs = new object[cqlRow.Length];
+                        var objs = new object[mappings.Count];
                         var props = typeof(T).GetMembers();
                         int idx = 0;
                         foreach (var prop in props)
                         {
                             if (prop is PropertyInfo || prop is FieldInfo)
                             {
-                                var val = cqlRow[idx];
-                                objs[idx] = val;
-                                idx++;
+                                if (mappings[prop.Name].Item1 == null)
+                                {
+                                    objs[mappings[prop.Name].Item3] = mappings[prop.Name].Item2;
+                                }
+                                else
+                                {
+                                    var val = cqlRow[idx];
+                                    objs[mappings[prop.Name].Item3] = val;
+                                    idx++;
+                                }
                             }
                         }
                         return (T)Activator.CreateInstance(typeof(T), objs);

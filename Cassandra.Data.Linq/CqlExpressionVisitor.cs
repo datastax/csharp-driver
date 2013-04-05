@@ -26,7 +26,7 @@ namespace Cassandra.Data.Linq
         public string TableName;
 
         public Dictionary<string, string> Alter = new Dictionary<string, string>();
-        public Dictionary<string, Tuple<string, object>> Mappings = new Dictionary<string, Tuple<string, object>>();
+        public Dictionary<string, Tuple<string, object, int>> Mappings = new Dictionary<string, Tuple<string, object, int>>();
         public HashSet<string> SelectFields = new HashSet<string>();
         public List<string> OrderBy = new List<string>();
 
@@ -436,8 +436,15 @@ namespace Cassandra.Data.Linq
             }
             else if (phasePhase.get() == ParsePhase.SelectBinding)
             {
-                Mappings[currentBindingName.get()] = Tuple.Create<string, object>(currentBindingName.get(), node.Value);
-                SelectFields.Add(currentBindingName.get());
+                if (Alter.ContainsKey(currentBindingName.get()))
+                {
+                    Mappings[currentBindingName.get()] = Tuple.Create(currentBindingName.get(), node.Value, Mappings.Count);
+                    SelectFields.Add(currentBindingName.get());
+                }
+                else
+                {
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object, int>(null, node.Value, Mappings.Count);
+                }
                 return node;
             }
             else if (phasePhase.get() == ParsePhase.Take)
@@ -494,14 +501,22 @@ namespace Cassandra.Data.Linq
                 var name = node.Member.Name;
                 if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
                 {
-                    var val = Expression.Lambda(node.Expression).Compile().DynamicInvoke();
-                    Mappings[currentBindingName.get()] = Tuple.Create<string, object>(name, val);
-                    SelectFields.Add(name);
+                    if (Alter.ContainsKey(currentBindingName.get()))
+                    {
+                        var val = Expression.Lambda(node.Expression).Compile().DynamicInvoke();
+                        Mappings[currentBindingName.get()] = Tuple.Create(name, val, Mappings.Count);
+                        SelectFields.Add(name);
+                    }
+                    else
+                    {
+                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                        Mappings[currentBindingName.get()] = Tuple.Create<string,object,int>(null, val, Mappings.Count);
+                    }
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.Parameter)
                 {
-                    Mappings[currentBindingName.get()] = Tuple.Create<string, object>(name, name);
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object, int>(name, name, Mappings.Count);
                     SelectFields.Add(name);
                     return node;
                 }

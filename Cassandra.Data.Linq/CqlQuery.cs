@@ -52,11 +52,11 @@ namespace Cassandra.Data.Linq
         protected struct CqlQueryTag
         {
             public Session Session;
-            public Dictionary<string, Tuple<string, object>> Mappings;
+            public Dictionary<string, Tuple<string, object,int>> Mappings;
             public Dictionary<string, string> Alter;
         }
 
-        protected IAsyncResult InternalBeginExecute(string cqlQuery, Dictionary<string, Tuple<string, object>> mappingNames, Dictionary<string, string> alter, AsyncCallback callback, object state)
+        protected IAsyncResult InternalBeginExecute(string cqlQuery, Dictionary<string, Tuple<string, object,int>> mappingNames, Dictionary<string, string> alter, AsyncCallback callback, object state)
         {
             var session = GetTable().GetSession();
 

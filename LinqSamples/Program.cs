@@ -15,7 +15,7 @@ namespace LinqSamples
         {
             [ClusteringKey(1)]
             [Column("diri")]
-            public string Director;
+            public string Director { get; set; }
 
             [Column("mainGuy")]
             public string MainActor;
@@ -29,7 +29,14 @@ namespace LinqSamples
             public string Maker;
 
             [Column("When-Made")]
-            public int Year;
+            public int Year { get; set; }
+        }
+
+        public class ExtMovie
+        {
+            public string TheDirector;
+            public int Size;
+            public string TheMaker;
         }
 
         static void Main(string[] args)
@@ -79,8 +86,10 @@ namespace LinqSamples
                 var all2 = table.Where((m) => CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar")).Execute().ToList();
                 var all = (from m in table where CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar") select m).Execute().ToList();
 
-                var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+                var nmT = (from m in table where m.Director == "Quentin Tarantino" select new ExtMovie { TheDirector = m.MainActor, Size=all.Count, TheMaker = m.Director }).Execute().ToList();
+                var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Z = 10, Y = m.Year }).Execute().ToList();
 
+                var nmX = (from m in table where m.Director == "Quentin Tarantino" select new { m.MainActor, Z = 10, m.Year }).Execute().ToList();
 
                 (from m in table where m.Movie.Equals("Pulp Fiction") && m.Maker.Equals("Pixar") && m.Director == "Quentin Tarantino" select new NerdMovie { Year = 1994 }).Update().Execute();
 
