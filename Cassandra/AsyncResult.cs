@@ -182,7 +182,9 @@ namespace Cassandra
             // Operation is done: if an exception occurred, throw it
             if (asyncResult._exception != null)
             {
-                typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(asyncResult._exception, null);
+                var mth = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
+                if(mth!=null)
+                    mth.Invoke(asyncResult._exception, null);
                 throw asyncResult._exception;
             }
         }

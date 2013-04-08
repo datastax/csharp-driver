@@ -397,7 +397,10 @@ namespace Cassandra
                                     }
 
                                     if (act == null)
-                                        throw new InvalidOperationException();
+                                    {
+
+                                        throw new InvalidOperationException("Protocol error! Unmached response. Terminating all requests now...");
+                                    }
 
                                     act.BeginInvoke(frame, (tar) =>
                                     {
