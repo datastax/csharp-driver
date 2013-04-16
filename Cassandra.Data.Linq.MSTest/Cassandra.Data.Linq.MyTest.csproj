@@ -3,24 +3,23 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>
-    </ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{1C6F05A9-16C0-4E2B-B2DD-749FC4078DA3}</ProjectGuid>
+    <ProjectGuid>{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cassandra.Data.MSTest</RootNamespace>
-    <AssemblyName>Cassandra.Data.MSTest</AssemblyName>
+    <RootNamespace>Cassandra.Data.Linq.MSTest</RootNamespace>
+    <AssemblyName>Cassandra.Data.Linq.MyTest</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;MYTEST</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -33,34 +32,44 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="System" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
     <Reference Include="System.Data" />
+    <Reference Include="System.Data.Entity" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <CodeAnalysisDependentAssemblyPaths Condition=" '$(VS100COMNTOOLS)' != '' " Include="$(VS100COMNTOOLS)..\IDE\PrivateAssemblies">
-      <Visible>False</Visible>
-    </CodeAnalysisDependentAssemblyPaths>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Basics.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Include="Basics.cs" />
     <Compile Include="BasicTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cassandra.Data\Cassandra.Data.csproj">
-      <Project>{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}</Project>
-      <Name>Cassandra.Data</Name>
+    <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
+      <Project>{7FD62B8B-365D-48D6-8C21-2EF215294F64}</Project>
+      <Name>Cassandra.Data.Linq</Name>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
-      <Name>Cassandra</Name>
+      <Name>Cassandra.Native</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MyTestRun\MyTestLib\MyTestLib.csproj">
+      <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
+      <Name>MyTestLib</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

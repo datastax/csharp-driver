@@ -49,22 +49,22 @@
     <Compile Include="..\Cassandra\Utils.cs">
       <Link>TestTools\Utils.cs</Link>
     </Compile>
+    <Compile Include="Advanced.cs" />
     <Compile Include="AdvancedTests.cs" />
+    <Compile Include="Basics.cs" />
+    <Compile Include="Collections.cs" />
     <Compile Include="CollectionsTests.cs" />
+    <Compile Include="PreparedStatements.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="TestTools\Advanced.cs" />
-    <Compile Include="TestTools\PreparedStatements.cs" />
     <Compile Include="PreparedStatementsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QueryTools.cs" />
+    <Compile Include="Randomm.cs" />
     <Compile Include="TestTools\Assert.cs" />
-    <Compile Include="TestTools\Collections.cs" />
-    <Compile Include="TestTools\QueryTools.cs" />
-    <Compile Include="TestTools\Randomm.cs" />
-    <Compile Include="TestTools\Basics.cs" />
     <Compile Include="BasicTests.cs" />
   </ItemGroup>
   <ItemGroup>

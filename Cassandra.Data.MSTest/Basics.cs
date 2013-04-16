@@ -1,5 +1,9 @@
 ﻿using System;
+#if MYTEST
+using MyTest;
+#else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
 using System.Text;
 
 namespace Cassandra.Data.MSTest

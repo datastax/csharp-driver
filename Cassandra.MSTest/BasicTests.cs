@@ -1,5 +1,10 @@
 ﻿using System;
+#if MYTEST
+using MyTest;
+#else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
+
 #if NET_40_OR_GREATER
 using System.Numerics;
 #endif  

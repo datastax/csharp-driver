@@ -5,8 +5,14 @@ using System.Text;
 using Cassandra;
 using System.Threading;
 using System.Globalization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
+
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
+using System.Text;
 
 namespace Cassandra.MSTest
 {    
