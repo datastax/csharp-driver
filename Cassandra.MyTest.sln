@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.MyTest", "Cassand
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data.Linq.MyTest", "Cassandra.Data.Linq.MSTest\Cassandra.Data.Linq.MyTest.csproj", "{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCMBridge", "CCMBridge\CCMBridge.csproj", "{45A2F5D8-B314-498A-9556-85A772E88A07}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = Cassandra.vsmdi
@@ -146,6 +148,16 @@ Global
 		{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{D62DCBEA-758F-4FB7-AAEC-5F430EEFF04B}.Release|x86.ActiveCfg = Release|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Cassandra.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="CASSANDRA_DIR" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="CASSANDRA_VERSION" Type="System.String" Scope="User">
+      <Value Profile="(Default)">1.2.4</Value>
+    </Setting>
+    <Setting Name="IP_PREFIX" Type="System.String" Scope="User">
+      <Value Profile="(Default)">127.0.0.</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
