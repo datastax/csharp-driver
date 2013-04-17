@@ -58,5 +58,53 @@ namespace Cassandra.Properties {
                 this["IP_PREFIX"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("localhost")]
+        public string SSH_HOST {
+            get {
+                return ((string)(this["SSH_HOST"]));
+            }
+            set {
+                this["SSH_HOST"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("22")]
+        public int SSH_PORT {
+            get {
+                return ((int)(this["SSH_PORT"]));
+            }
+            set {
+                this["SSH_PORT"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("user")]
+        public string SSH_USERNAME {
+            get {
+                return ((string)(this["SSH_USERNAME"]));
+            }
+            set {
+                this["SSH_USERNAME"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("passwd")]
+        public string SSH_PASSWORD {
+            get {
+                return ((string)(this["SSH_PASSWORD"]));
+            }
+            set {
+                this["SSH_PASSWORD"] = value;
+            }
+        }
     }
 }

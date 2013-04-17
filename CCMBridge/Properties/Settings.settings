@@ -11,5 +11,17 @@
     <Setting Name="IP_PREFIX" Type="System.String" Scope="User">
       <Value Profile="(Default)">127.0.0.</Value>
     </Setting>
+    <Setting Name="SSH_HOST" Type="System.String" Scope="User">
+      <Value Profile="(Default)">localhost</Value>
+    </Setting>
+    <Setting Name="SSH_PORT" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">22</Value>
+    </Setting>
+    <Setting Name="SSH_USERNAME" Type="System.String" Scope="User">
+      <Value Profile="(Default)">user</Value>
+    </Setting>
+    <Setting Name="SSH_PASSWORD" Type="System.String" Scope="User">
+      <Value Profile="(Default)">passwd</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

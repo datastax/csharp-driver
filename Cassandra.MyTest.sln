@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data.Linq.MyTest"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCMBridge", "CCMBridge\CCMBridge.csproj", "{45A2F5D8-B314-498A-9556-85A772E88A07}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCMBridgeTest", "CCMBridgeTest\CCMBridgeTest.csproj", "{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = Cassandra.vsmdi
@@ -158,6 +160,16 @@ Global
 		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{45A2F5D8-B314-498A-9556-85A772E88A07}.Release|x86.ActiveCfg = Release|Any CPU
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Debug|x86.ActiveCfg = Debug|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Debug|x86.Build.0 = Debug|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Release|Any CPU.ActiveCfg = Release|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Release|Mixed Platforms.Build.0 = Release|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Release|x86.ActiveCfg = Release|x86
+		{49AB7AED-86F8-4EAC-8C8A-1A2EB45D9277}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
