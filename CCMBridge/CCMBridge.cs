@@ -48,12 +48,21 @@ namespace Cassandra
 
         private readonly DirectoryInfo ccmDir;
         private Renci.SshNet.SshClient client;
+        private Renci.SshNet.ShellStream shellStream;
 
         private CCMBridge()
         {
             this.ccmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
             client = new Renci.SshNet.SshClient(host, port, username, password);
             client.Connect();
+            shellStream = client.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
+            while (true)
+            {
+                var txt = shellStream.Read();
+                Console.Write(txt);
+                if (txt.Contains("$"))
+                    break;
+            }
         }
 
         public void Dispose()
@@ -154,31 +163,24 @@ namespace Cassandra
 
         private void ExecuteCCM(string args)
         {
-            var cmd = client.CreateCommand("ccm " + args); //+ " --config-dir=" + ccmDir;
-            cmd.Execute();
-            if (cmd.ExitStatus != 0)
+            shellStream.WriteLine("ccm " + args);
+            while (true)
             {
-                var pro = new StreamReader(cmd.OutputStream);
-                while (true)
-                {
-                    var l = pro.ReadLine();
-                    if (l == null) break;
-                    Trace.WriteLine("out> " + l);
-                }
-                Trace.WriteLine("err> " + cmd.Error);
+                var txt = shellStream.Read();
+                if (txt.Contains("$"))
+                    break;
             }
         }
 
         private void ExecuteCCMAndPrint(string args)
         {
-            var cmd = client.CreateCommand("ccm " + args); //+ " --config-dir=" + ccmDir;
-            cmd.Execute();
-            var pro = new StreamReader(cmd.OutputStream);
+            shellStream.WriteLine("ccm " + args);
             while (true)
             {
-                var l = pro.ReadLine();
-                if (l == null) break;
-                Trace.WriteLine("out> " + l);
+                var txt = shellStream.Read();
+                Console.Write(txt);
+                if (txt.Contains("$"))
+                    break;
             }
         }
 
