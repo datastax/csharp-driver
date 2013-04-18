@@ -11,8 +11,8 @@ namespace CCMBridgeTest
         {
             using (var cluster = Cassandra.CCMBridge.Create("test", 3))
             {
-                cluster.stop();
-                cluster.start();
+                cluster.Stop();
+                cluster.Start();
             }
         }
     }

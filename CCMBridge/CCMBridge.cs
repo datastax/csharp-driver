@@ -3,6 +3,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Text;
 namespace Cassandra
 {
 
@@ -34,50 +35,51 @@ namespace Cassandra
             if (string.IsNullOrEmpty(IP_PREFIX))
                 IP_PREFIX = "127.0.0.";
 
-            host = Cassandra.Properties.Settings.Default.SSH_HOST;
-            port = Cassandra.Properties.Settings.Default.SSH_PORT;
-            username = Cassandra.Properties.Settings.Default.SSH_USERNAME;
-            password = Cassandra.Properties.Settings.Default.SSH_PASSWORD;
+            _ssh_host = Cassandra.Properties.Settings.Default.SSH_HOST;
+            _ssh_port = Cassandra.Properties.Settings.Default.SSH_PORT;
+            _ssh_username = Cassandra.Properties.Settings.Default.SSH_USERNAME;
+            _ssh_password = Cassandra.Properties.Settings.Default.SSH_PASSWORD;
 
         }
 
-        static string host;
-        static int port;
-        static string username;
-        static string password;
+        static string _ssh_host;
+        static int _ssh_port;
+        static string _ssh_username;
+        static string _ssh_password;
 
-        private readonly DirectoryInfo ccmDir;
-        private Renci.SshNet.SshClient client;
-        private Renci.SshNet.ShellStream shellStream;
+        private readonly DirectoryInfo _ccmDir;
+        private Renci.SshNet.SshClient _ssh_client;
+        private Renci.SshNet.ShellStream _ssh_shellStream;
 
         private CCMBridge()
         {
-            this.ccmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
-            client = new Renci.SshNet.SshClient(host, port, username, password);
-            client.Connect();
-            shellStream = client.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
+            _ccmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+            _ssh_client = new Renci.SshNet.SshClient(_ssh_host, _ssh_port, _ssh_username, _ssh_password);
+            _ssh_client.Connect();
+
+            _ssh_shellStream = _ssh_client.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
+            var outp = new StringBuilder();
             while (true)
             {
-                var txt = shellStream.Read();
-                Console.Write(txt);
-                if (txt.Contains("$"))
+                outp.Append(_ssh_shellStream.Read());
+                if (outp.ToString().Trim().EndsWith("$"))
                     break;
             }
         }
 
         public void Dispose()
         {
-            if (client != null)
+            if (_ssh_client != null)
             {
-                client.Disconnect();
-                client = null;
+                _ssh_client.Disconnect();
+                _ssh_client = null;
             }
         }
 
         ~CCMBridge()
         {
-            if (client != null)
-                client.Disconnect();
+            if (_ssh_client != null)
+                _ssh_client.Disconnect();
         }
 
         public static CCMBridge Create(string name)
@@ -101,53 +103,53 @@ namespace Cassandra
             return bridge;
         }
 
-        public void start()
+        public void Start()
         {
             ExecuteCCM("start");
         }
 
-        public void stop()
+        public void Stop()
         {
             ExecuteCCM("stop");
         }
 
-        public void forceStop()
+        public void ForceStop()
         {
             ExecuteCCM("stop --not-gently");
         }
 
-        public void start(int n)
+        public void Start(int n)
         {
             ExecuteCCM(string.Format("node{0} start", n));
         }
 
-        public void stop(int n)
+        public void Stop(int n)
         {
             ExecuteCCM(string.Format("node{0} stop", n));
         }
 
-        public void forceStop(int n)
+        public void ForceStop(int n)
         {
             ExecuteCCM(string.Format("node{0} stop --not-gently", n));
         }
 
-        public void remove()
+        public void Remove()
         {
-            stop();
+            Stop();
             ExecuteCCM(string.Format("remove"));
         }
 
-        public void ring(int n)
+        public void Ring(int n)
         {
             ExecuteCCMAndPrint(string.Format("node{0} ring", n));
         }
 
-        public void bootstrapNode(int n)
+        public void BootstrapNode(int n)
         {
-            bootstrapNode(n, null);
+            BootstrapNode(n, null);
         }
 
-        public void bootstrapNode(int n, string dc)
+        public void BootstrapNode(int n, string dc)
         {
             if (dc == null)
                 ExecuteCCM(string.Format("add node{0} -i {1}{2} -j {3} -b", n, IP_PREFIX, n, 7000 + 100 * n));
@@ -156,32 +158,57 @@ namespace Cassandra
             ExecuteCCM(string.Format("node%d start", n));
         }
 
-        public void decommissionNode(int n)
+        public void DecommissionNode(int n)
         {
             ExecuteCCM(string.Format("node{0} decommission", n));
         }
 
         private void ExecuteCCM(string args)
         {
-            shellStream.WriteLine("ccm " + args);
+            if (_ssh_shellStream.DataAvailable)
+                _ssh_shellStream.Read();
+            _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
+            var outp = new StringBuilder();
             while (true)
             {
-                var txt = shellStream.Read();
+                var txt = _ssh_shellStream.Read();
+                outp.Append(txt);
                 if (txt.Contains("$"))
                     break;
+            }
+            if (outp.ToString().Contains("[Errno"))
+            {
+                var lines = outp.ToString().Split('\n');
+                for (int i = 0; i < lines.Length; i++)
+                    Trace.TraceError("err>" + lines[i].Trim());
+                throw new InvalidOperationException();
             }
         }
 
         private void ExecuteCCMAndPrint(string args)
         {
-            shellStream.WriteLine("ccm " + args);
+            _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
+            var outp = new StringBuilder();
             while (true)
             {
-                var txt = shellStream.Read();
-                Console.Write(txt);
+                var txt = _ssh_shellStream.Read();
+                outp.Append(txt);
                 if (txt.Contains("$"))
                     break;
             }
+            var iserror = outp.ToString().Contains("[Errno");
+            var lines = outp.ToString().Split('\n');
+
+            for (int i = 0; i < lines.Length - 1; i++)
+            {
+                if (iserror)
+                    Trace.TraceError("err>" + lines[i].Trim());
+                else
+                    Trace.TraceInformation("out>" + lines[i].Trim());
+            }
+
+            if(iserror)
+                throw new InvalidOperationException();
         }
 
         // One cluster for the whole test class
@@ -195,14 +222,14 @@ namespace Cassandra
             protected static Cluster cluster;
             protected static Session session;
 
-            protected abstract ICollection<string> getTableDefinitions();
+            protected abstract ICollection<string> GetTableDefinitions();
 
-            public void errorOut()
+            public void ErrorOut()
             {
                 erroredOut = true;
             }
 
-            public static void createCluster()
+            public static void CreateCluster()
             {
                 erroredOut = false;
                 schemaCreated = false;
@@ -221,7 +248,7 @@ namespace Cassandra
                 }
             }
 
-            public static void discardCluster()
+            public static void DiscardCluster()
             {
                 if (cluster != null)
                     cluster.Shutdown();
@@ -232,23 +259,23 @@ namespace Cassandra
                 }
                 else if (erroredOut)
                 {
-                    cassandraCluster.stop();
-                    Trace.TraceInformation("Error during tests, kept C* logs in " + cassandraCluster.ccmDir);
+                    cassandraCluster.Stop();
+                    Trace.TraceInformation("Error during tests, kept C* logs in " + cassandraCluster._ccmDir);
                 }
                 else
                 {
-                    cassandraCluster.remove();
-                    cassandraCluster.ccmDir.Delete();
+                    cassandraCluster.Remove();
+                    cassandraCluster._ccmDir.Delete();
                 }
             }
 
-            public void beforeClass()
+            public void BeforeClass()
             {
-                createCluster();
-                maybeCreateSchema();
+                CreateCluster();
+                MaybeCreateSchema();
             }
 
-            public void maybeCreateSchema()
+            public void MaybeCreateSchema()
             {
 
                 try
@@ -267,7 +294,7 @@ namespace Cassandra
 
                     session.Execute("USE " + TestUtils.SIMPLE_KEYSPACE);
 
-                    foreach (string tableDef in getTableDefinitions())
+                    foreach (string tableDef in GetTableDefinitions())
                     {
                         try
                         {
@@ -292,14 +319,14 @@ namespace Cassandra
         public class CCMCluster
         {
 
-            public readonly Cluster cluster;
-            public readonly Session session;
+            public readonly Cluster Cluster;
+            public readonly Session Session;
 
-            public readonly CCMBridge cassandraCluster;
+            public readonly CCMBridge CassandraCluster;
 
             private bool erroredOut;
 
-            public static CCMCluster create(int nbNodes, Builder builder)
+            public static CCMCluster Create(int nbNodes, Builder builder)
             {
                 if (nbNodes == 0)
                     throw new ArgumentException();
@@ -307,7 +334,7 @@ namespace Cassandra
                 return new CCMCluster(CCMBridge.Create("test", nbNodes), builder);
             }
 
-            public static CCMCluster create(int nbNodesDC1, int nbNodesDC2, Builder builder)
+            public static CCMCluster Create(int nbNodesDC1, int nbNodesDC2, Builder builder)
             {
                 if (nbNodesDC1 == 0)
                     throw new ArgumentException();
@@ -317,11 +344,11 @@ namespace Cassandra
 
             private CCMCluster(CCMBridge cassandraCluster, Builder builder)
             {
-                this.cassandraCluster = cassandraCluster;
+                this.CassandraCluster = cassandraCluster;
                 try
                 {
-                    this.cluster = builder.AddContactPoints(IP_PREFIX + "1").Build();
-                    this.session = cluster.Connect();
+                    this.Cluster = builder.AddContactPoints(IP_PREFIX + "1").Build();
+                    this.Session = Cluster.Connect();
 
                 }
                 catch (NoHostAvailableException e)
@@ -332,29 +359,29 @@ namespace Cassandra
                 }
             }
 
-            public void errorOut()
+            public void ErrorOut()
             {
                 erroredOut = true;
             }
 
-            public void discard()
+            public void Discard()
             {
-                if (cluster != null)
-                    cluster.Shutdown();
+                if (Cluster != null)
+                    Cluster.Shutdown();
 
-                if (cassandraCluster == null)
+                if (CassandraCluster == null)
                 {
                     Trace.TraceError("No cluster to discard");
                 }
                 else if (erroredOut)
                 {
-                    cassandraCluster.stop();
-                    Trace.TraceInformation("Error during tests, kept C* logs in " + cassandraCluster.ccmDir);
+                    CassandraCluster.Stop();
+                    Trace.TraceInformation("Error during tests, kept C* logs in " + CassandraCluster._ccmDir);
                 }
                 else
                 {
-                    cassandraCluster.remove();
-                    cassandraCluster.ccmDir.Delete();
+                    CassandraCluster.Remove();
+                    CassandraCluster._ccmDir.Delete();
                 }
             }
         }
