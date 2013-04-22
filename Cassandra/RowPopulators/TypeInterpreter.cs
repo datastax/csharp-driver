@@ -147,7 +147,7 @@ namespace Cassandra
             if (value == null)
                 throw new ArgumentNullException();
             else if (!(value.GetType().Equals(t)))
-                throw new ArgumentOutOfRangeException("value", value.GetType().FullName, "Should be: " + t.FullName);
+                throw new InvalidTypeException("value", value.GetType().FullName, new object[]{t.FullName});
         }
         
         static internal void CheckArgument<T>(object value)
@@ -155,7 +155,7 @@ namespace Cassandra
             if (value == null)
                 throw new ArgumentNullException();
             else if (!(value is T))
-                throw new ArgumentOutOfRangeException("value", value.GetType().FullName, "Should be: " + typeof(T).FullName);
+                throw new InvalidTypeException("value", value.GetType().FullName,  new object[]{typeof(T).FullName});
         }
 
         static internal void CheckArgument<T1,T2>(object value)
@@ -163,7 +163,7 @@ namespace Cassandra
             if (value == null)
                 throw new ArgumentNullException();
             else if ( !(value is T1 || value is T2) )
-                throw new ArgumentOutOfRangeException("value", value.GetType().FullName, "Should be: " + typeof(T1).FullName + " or " + typeof(T2).FullName);
+                throw new InvalidTypeException("value", value.GetType().FullName, new object[]{typeof(T1).FullName,typeof(T2).FullName});
         }
     }
 }

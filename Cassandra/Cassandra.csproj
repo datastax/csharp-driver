@@ -78,6 +78,8 @@
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="ConsistencyLevel.cs" />
     <Compile Include="Diagnostics.cs" />
+    <Compile Include="Exceptions\InvalidTypeException.cs" />
+    <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
     <Compile Include="Metadata.cs" />
