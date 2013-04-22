@@ -47,7 +47,7 @@ namespace Cassandra.MSTest
                 }
                 catch (AlreadyExistsException e)
                 {
-                    String expected = String.Format("Keyspace %s already exists", keyspace.ToLower());
+                    String expected = String.Format("Keyspace {0} already exists", keyspace.ToLower());
                     Assert.Equal(e.Message, expected);
                     Assert.Equal(e.Keyspace, keyspace.ToLower());
                     Assert.Equal(e.Table, null);
@@ -356,7 +356,7 @@ namespace Cassandra.MSTest
         [TestMethod]
         public void unavailableException()
         {
-            var builder = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
+            var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
@@ -385,7 +385,7 @@ namespace Cassandra.MSTest
                 }
                 catch (UnavailableException e)
                 {
-                    String expectedError = String.Format("Not enough replica available for query at consistency %s (%d required but only %d alive)", "ALL", 3, 2);
+                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", "ALL", 3, 2);
                     Assert.Equal(e.Message, expectedError);
                     Assert.Equal(e.Consistency, ConsistencyLevel.All);
                     Assert.Equal(e.RequiredReplicas, replicationFactor);
@@ -398,7 +398,7 @@ namespace Cassandra.MSTest
                 }
                 catch (UnavailableException e)
                 {
-                    String expectedError = String.Format("Not enough replica available for query at consistency %s (%d required but only %d alive)", "ALL", 3, 2);
+                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", "ALL", 3, 2);
                     Assert.Equal(e.Message, expectedError);
                     Assert.Equal(e.Consistency, ConsistencyLevel.All);
                     Assert.Equal(e.RequiredReplicas, replicationFactor);

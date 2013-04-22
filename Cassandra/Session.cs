@@ -652,6 +652,10 @@ namespace Cassandra
                     return new CqlRowSet(outp as OutputVoid, this);
                 else if (outp is OutputSchemaChange)
                     return new CqlRowSet(outp as OutputSchemaChange, this);
+                else if (outp is OutputSetKeyspace)
+                {
+                    return new CqlRowSet(outp as OutputSetKeyspace, this);
+                }
                 else if (outp is OutputRows)
                 {
                     ok = true;

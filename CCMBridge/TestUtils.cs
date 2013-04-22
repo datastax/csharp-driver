@@ -9,8 +9,8 @@ namespace Cassandra
 
 public static class TestUtils {
 
-    public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT = "CREATE KEYSPACE {0} WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor' : {1} }";
-    public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = { 'class' : '{1}', {2} }";
+    public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
+    public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
 
     public static readonly string SIMPLE_KEYSPACE = "ks";
 

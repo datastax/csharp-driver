@@ -30,6 +30,10 @@ namespace Cassandra
                 _queryTrace = new QueryTrace(output.TraceID.Value, session);
         }
 
+        internal CqlRowSet(OutputSetKeyspace output, Session session)
+        {
+        }
+
         internal CqlRowSet(OutputSchemaChange output, Session session)
         {
             if (output.TraceID != null)
