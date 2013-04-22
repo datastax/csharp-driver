@@ -293,7 +293,7 @@ namespace Cassandra
             {
                 foreach (var row in rowset.GetRows())
                 {
-                    var hstip = row.GetValue<IPAddress>("peer");
+                    var hstip = row.GetValue<IPEndPoint>("peer").Address;
                     if (hstip != null)
                     {
                         foundHosts.Add(hstip);

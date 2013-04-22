@@ -4,6 +4,8 @@ using System.Text;
 using System.Reflection;
 using TestRunner.Properties;
 using System.IO;
+using System.Threading;
+using System.Globalization;
 
 namespace MyTest
 {
@@ -121,6 +123,8 @@ namespace MyTest
 
         static void Main(string[] args)
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+
             var tstDir = Settings.Default.TestFolder.Replace("$TEST_ROOT", Directory.GetCurrentDirectory());
             Directory.CreateDirectory(tstDir);
 

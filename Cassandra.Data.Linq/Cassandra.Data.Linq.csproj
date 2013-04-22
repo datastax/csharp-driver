@@ -56,7 +56,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
-      <Name>Cassandra.Native</Name>
+      <Name>Cassandra</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

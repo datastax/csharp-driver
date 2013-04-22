@@ -73,6 +73,11 @@ namespace MyTest
 
     public static class Assert
     {
+        public static void Fail()
+        {
+            throw new AssertException("FAILED");
+        }
+
         public static void True(bool condition)
         {
             if (!condition)

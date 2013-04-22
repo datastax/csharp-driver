@@ -374,7 +374,7 @@ namespace Cassandra
         }
     }
 
-    internal class Logger
+    public class Logger
     {                        
         private string category;
         private StringBuilder sb = null;

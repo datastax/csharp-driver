@@ -17,7 +17,6 @@ namespace Cassandra.MSTest
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
         /// </summary>
-        [Priority] 
         [TestMethod]
         public void alreadyExistsException()
         {
@@ -30,10 +29,10 @@ namespace Cassandra.MSTest
                 String table = "TestTable";
 
                 String[] cqlCommands = new String[]{
-                String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1),
-                "USE " + keyspace,
-                String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)
-            };
+                    String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1),
+                    "USE " + keyspace,
+                    String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)
+                };
 
                 // Create the schema once
                 session.Execute(cqlCommands[0]);
@@ -47,10 +46,11 @@ namespace Cassandra.MSTest
                 }
                 catch (AlreadyExistsException e)
                 {
-                    String expected = String.Format("Keyspace {0} already exists", keyspace.ToLower());
+
+                    String expected = String.Format("Cannot add existing keyspace \"{0}\"", keyspace.ToLower());
                     Assert.Equal(e.Message, expected);
                     Assert.Equal(e.Keyspace, keyspace.ToLower());
-                    Assert.Equal(e.Table, null);
+                    Assert.Equal(e.Table, "");
                     Assert.Equal(e.WasTableCreation, false);
                 }
 
@@ -63,10 +63,8 @@ namespace Cassandra.MSTest
                 }
                 catch (AlreadyExistsException e)
                 {
-                    // TODO: Pending CASSANDRA-5362 this won't work. So let's re-enable this once C* 1.2.4
-                    // is released
-                    //assertEquals(e.getKeyspace(), keyspace.toLowerCase());
-                    //assertEquals(e.getTable(), table.toLowerCase());
+                    Assert.Equal(e.Keyspace, keyspace.ToLower());
+                    Assert.Equal(e.Table, table.ToLower());
                     Assert.Equal(e.WasTableCreation, true);
                 }
             }
@@ -118,6 +116,25 @@ namespace Cassandra.MSTest
 
         /// <summary>
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
+        /// </summary>
+        [TestMethod]
+        public void invalidConfigurationInQueryException()
+        {
+            String errorMessage = "Test Message";
+
+            try
+            {
+                throw new InvalidConfigurationInQueryException(errorMessage);
+            }
+            catch (InvalidConfigurationInQueryException e)
+            {
+                Assert.Equal(e.Message, errorMessage);
+            }
+        }
+
+
+        /// <summary>
+        ///  Tests InvalidConfigurationInQueryException. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
         public void InvalidConfigurationInQueryException()
@@ -193,9 +210,10 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+        [Priority]
         public void readTimeoutException()
         {
-            var builder = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
+            var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
