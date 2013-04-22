@@ -120,25 +120,6 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
         [TestMethod]
-        public void invalidConfigurationInQueryException()
-        {
-            String errorMessage = "Test Message";
-
-            try
-            {
-                throw new InvalidConfigurationInQueryException(errorMessage);
-            }
-            catch (InvalidConfigurationInQueryException e)
-            {
-                Assert.Equal(e.Message, errorMessage);
-            }
-        }
-
-
-        /// <summary>
-        ///  Tests InvalidConfigurationInQueryException. Tests basic message and copy abilities.
-        /// </summary>
-        [TestMethod]
         public void InvalidConfigurationInQueryException()
         {
             string errorMessage = "Test Message";
@@ -281,26 +262,23 @@ namespace Cassandra.MSTest
             }
         }
 
-        ///// <summary>
-        /////  Tests TraceRetrievalException. Tests basic message and copy abilities.
-        ///// </summary>
-        //[TestMethod]
-        //public void traceRetrievalException()
-        //{
-        //    String errorMessage = "Test Message";
+        /// <summary>
+        ///  Tests TraceRetrievalException. Tests basic message.
+        /// </summary>
+        [TestMethod]
+        public void traceRetrievalException()
+        {
+            String errorMessage = "Test Message";
 
-        //    try
-        //    {
-        //        throw new TraceRetrievalException(errorMessage);
-        //    }
-        //    catch (TraceRetrievalException e)
-        //    {
-        //        Assert.Equal(e.Message, errorMessage);
-
-        //        TraceRetrievalException copy = (TraceRetrievalException)e.copy();
-        //        Assert.Equal(copy.Message, e.Message);
-        //    }
-        //}
+            try
+            {
+                throw new TraceRetrievalException(errorMessage);
+            }
+            catch (TraceRetrievalException e)
+            {
+                Assert.Equal(e.Message, errorMessage);
+            }
+        }
 
         /// <summary>
         ///  Tests TruncateException. Tests basic message and copy abilities.

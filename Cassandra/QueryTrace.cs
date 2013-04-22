@@ -204,6 +204,7 @@ namespace Cassandra
             catch (Exception ex)
             {
                 _logger.Error("Unexpected exception while fetching query trace", ex);
+                throw new TraceRetrievalException("Unexpected exception while fetching query trace", ex);
             }
         }
 
