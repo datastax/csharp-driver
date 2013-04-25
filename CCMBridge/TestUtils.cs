@@ -58,11 +58,19 @@ public static class TestUtils {
 
         Metadata metadata = cluster.Metadata;
         for (int i = 0; i < maxTry; ++i) {
+            bool found = false;
             foreach(Host host in metadata.AllHosts()) 
             {
-                if (host.Address.Equals(address) && testHost(host, waitForDead))
-                    return;
+                if (host.Address.Equals(address))
+                {
+                    found = true;
+                    if (testHost(host, waitForDead))
+                        return;
+                }
+
             }
+            if (waitForDead && !found)
+                return;
             try { Thread.Sleep(1000); } catch (Exception e) {}
         }
 

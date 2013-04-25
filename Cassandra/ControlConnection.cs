@@ -175,52 +175,66 @@ namespace Cassandra
 
         private CassandraConnection _connection = null;
 
+        internal void RefreshHosts()
+        {
+            lock (this)
+            {
+                if (!_isDiconnected && _connection != null) 
+                    RefreshNodeListAndTokenMap(_connection);
+            }
+        }
+
         private void Go(bool refresh)
         {
-            try
+            lock (this)
             {
-                if (_hostsIter == null)
+                try
                 {
-                    _logger.Info("Retrieving hosts list.");
-                    _hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
-                }
+                    if (_hostsIter == null)
+                    {
+                        _logger.Info("Retrieving hosts list.");
+                        _hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                    }
 
-                if (!_hostsIter.MoveNext())
+                    if (!_hostsIter.MoveNext())
+                    {
+                        _isDiconnected = true;
+                        _hostsIter = null;
+                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                    }
+                    else
+                    {
+                        _logger.Info("Establishing ControlConnection...");
+                        _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                        var triedHosts = new List<IPAddress>();
+                        var innerExceptions = new Dictionary<IPAddress, Exception>();
+                        _connection = _session.Connect(null, _hostsIter, triedHosts, innerExceptions);
+                        SetupEventListeners(_connection);
+                        if (refresh)
+                            RefreshNodeListAndTokenMap(_connection);
+                        _logger.Info("ControlConnection has been established!");
+                    }
+                }
+                catch (NoHostAvailableException)
                 {
+                    _logger.Error("Cannot connect to any host. Retrying..");
                     _isDiconnected = true;
                     _hostsIter = null;
                     _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
-                else
-                {                    
-                    _logger.Info("Establishing ControlConnection...");
-                    _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                    _connection = _session.Connect(null, _hostsIter);
-                    SetupEventListeners(_connection);
-                    if (refresh)
-                        RefreshNodeListAndTokenMap(_connection);
-                    _logger.Info("ControlConnection has been established!"); 
-                }
-            }
-            catch (NoHostAvailableException)
-            {
-                _logger.Error("Cannot connect to any host. Retrying..");
-                _isDiconnected = true;
-                _hostsIter = null;
-                _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-            }
-            catch (Exception ex)
-            {
-                if (CassandraConnection.IsStreamRelatedException(ex))
+                catch (Exception ex)
                 {
-                    _isDiconnected = true;
-                    _hostsIter = null;
-                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                }
-                else
-                {
-                    _logger.Error("Unexpected error occurred during ControlConnection establishment.", ex);
-                    throw;
+                    if (CassandraConnection.IsStreamRelatedException(ex))
+                    {
+                        _isDiconnected = true;
+                        _hostsIter = null;
+                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                    }
+                    else
+                    {
+                        _logger.Error("Unexpected error occurred during ControlConnection establishment.", ex);
+                        throw;
+                    }
                 }
             }
         }
@@ -270,15 +284,17 @@ namespace Cassandra
                     // In theory host can't be null. However there is no point in risking a NPE in case we
                     // have a race between a node removal and this.
                     if (host != null)
+                    {
                         host.SetLocationInfo(localRow.GetValue<string>("data_center"), localRow.GetValue<string>("rack"));
 
-                    partitioner = localRow.GetValue<string>("partitioner");
-                    var tokens = localRow.GetValue<IList<string>>("tokens");
-                    if (partitioner != null && tokens.Count > 0)
-                    {
-                        if (!tokenMap.ContainsKey(host.Address))
-                            tokenMap.Add(host.Address, new DictSet<string>());
-                        tokenMap[host.Address].AddRange(tokens);
+                        partitioner = localRow.GetValue<string>("partitioner");
+                        var tokens = localRow.GetValue<IList<string>>("tokens");
+                        if (partitioner != null && tokens.Count > 0)
+                        {
+                            if (!tokenMap.ContainsKey(host.Address))
+                                tokenMap.Add(host.Address, new DictSet<string>());
+                            tokenMap[host.Address].AddRange(tokens);
+                        }
                     }
                     break;
                 }

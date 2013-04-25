@@ -70,7 +70,7 @@ namespace Cassandra
 
         }
 
-        internal  void Init()
+        internal void Init()
         {
             var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
             if (!ci.MoveNext())
@@ -80,14 +80,15 @@ namespace Cassandra
                 throw ex;
             }
 
-            Connect(null, ci);
-
+            var triedHosts = new List<IPAddress>();
+            var innerExceptions = new Dictionary<IPAddress, Exception>();
+            Connect(null, ci, triedHosts, innerExceptions);
         }
 
         readonly List<CassandraConnection> _trashcan = new List<CassandraConnection>();
 
 
-        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, Dictionary<IPAddress, Exception> innerExceptions = null)
+        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter,List<IPAddress> triedHosts, Dictionary<IPAddress, Exception> innerExceptions)
         {
             CheckDisposed();
             lock (_trashcan)
@@ -108,12 +109,13 @@ namespace Cassandra
                     var currentHost = hostsIter.Current;
                     if (currentHost == null)
                     {
-                        var ex = new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
+                        var ex = new NoHostAvailableException(innerExceptions);
                         _logger.Error("All hosts are not responding.", ex);
                         throw ex;
                     }
                     if (currentHost.IsConsiderablyUp)
                     {
+                        triedHosts.Add(currentHost.Address);
                         var hostDistance = _policies.LoadBalancingPolicy.Distance(currentHost);
                         if (!_connectionPool.ContainsKey(currentHost.Address))
                             _connectionPool.Add(currentHost.Address, new List<CassandraConnection>());
@@ -168,8 +170,6 @@ namespace Cassandra
                                 }
                                 else
                                 {
-                                    if (innerExceptions == null)
-                                        innerExceptions = new Dictionary<IPAddress, Exception>();
                                     innerExceptions[currentHost.Address] = outExc;
                                     _logger.Info("New connection attempt failed - goto another host.");
                                     error = true;
@@ -184,7 +184,7 @@ namespace Cassandra
                     
                     if (!hostsIter.MoveNext())
                     {
-                        var ex = new NoHostAvailableException(innerExceptions ?? new Dictionary<IPAddress, Exception>());
+                        var ex = new NoHostAvailableException(innerExceptions);
                         _logger.Error("Cannot connect to any host from pool.", ex);
                         throw ex;
                     }
@@ -684,6 +684,7 @@ namespace Cassandra
             private IEnumerator<Host> _hostsIter = null;
             public IAsyncResult LongActionAc;
             public readonly Dictionary<IPAddress, Exception> InnerExceptions = new Dictionary<IPAddress, Exception>();
+            public readonly List<IPAddress> TriedHosts = new List<IPAddress>();
             public int QueryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
             {
@@ -702,13 +703,13 @@ namespace Cassandra
                     if (moveNext)
                         if (!_hostsIter.MoveNext())
                         {
-                            var ex = new NoHostAvailableException(InnerExceptions ?? new Dictionary<IPAddress, Exception>());
+                            var ex = new NoHostAvailableException(InnerExceptions);
                             _logger.Error(ex);
                             throw ex;
                         }
                 }
 
-                Connection = owner.Connect(Query, _hostsIter, InnerExceptions);
+                Connection = owner.Connect(Query, _hostsIter, TriedHosts, InnerExceptions);
             }
             abstract public void Begin(Session owner);
             abstract public void Process(Session owner, IAsyncResult ar, out object value);
@@ -870,6 +871,7 @@ namespace Cassandra
                         ar.Complete(exc);
                     else
                     {
+                        rowset.SetTriedHosts(TriedHosts);
                         ar.SetResult(rowset);
                         ar.Complete();
                     }

@@ -9,7 +9,7 @@ namespace Cassandra
 
         public WriteTimeoutException(ConsistencyLevel consistency, int received, int required,
                                      string writeType) :
-            base(string.Format("Cassandra timeout during write query at consitency {0} ({1} replica acknowledged the write over {2} required)", consistency, received, required),
+            base(string.Format("Cassandra timeout during write query at consitency {0} ({1} replica acknowledged the write over {2} required)", consistency.ToString().ToUpper(), received, required),
               consistency,
               received,
               required)

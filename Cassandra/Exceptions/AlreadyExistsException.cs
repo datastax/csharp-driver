@@ -23,12 +23,19 @@ namespace Cassandra
         /// </summary>
         public bool WasTableCreation { get { return !string.IsNullOrEmpty((Table)); } }
 
-        public AlreadyExistsException(string message, string keyspace, string table) :
-            base(message)
+        public AlreadyExistsException(string keyspace, string table) :
+            base(makeMsg(keyspace, table))
         {
-            this.Keyspace = keyspace;
-            this.Table = table;
+            this.Keyspace = string.IsNullOrWhiteSpace(keyspace) ? null : keyspace;
+            this.Table = string.IsNullOrWhiteSpace(table) ? null : table;
         }
 
+        private static string makeMsg(string keyspace, string table)
+        {
+            if (string.IsNullOrEmpty(table))
+                return string.Format("Keyspace {0} already exists", keyspace);
+            else
+                return string.Format("Table {0}.{1} already exists", keyspace, table);
+        }
     }
 }

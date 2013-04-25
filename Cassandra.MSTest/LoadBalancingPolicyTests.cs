@@ -5,6 +5,7 @@ using System.Text;
 using MyTest;
 using System.Net;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Cassandra.MSTest
 {
@@ -25,23 +26,28 @@ namespace Cassandra.MSTest
 
         private void createSchema(Session session, int replicationFactor)
         {
-            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor));
-            session.Execute("USE " + TestUtils.SIMPLE_KEYSPACE);
+            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor), ConsistencyLevel.All);
+            Thread.Sleep(1000); 
+            session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
+            Thread.Sleep(1000);
         }
 
         private void createMultiDCSchema(Session session)
         {
 
             session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", "'dc1' : 1, 'dc2' : 1"));
-            session.Execute("USE " + TestUtils.SIMPLE_KEYSPACE);
+            session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
         }
 
         private void addCoordinator(CqlRowSet rs)
         {
-            IPAddress coordinator = rs.QueryTrace.Coordinator;
-            coordinators.Add(coordinator, !coordinators.ContainsKey(coordinator) ? 1 : coordinators[coordinator] + 1);                                  
+            IPAddress coordinator = rs.QueriedHost;
+            if (!coordinators.ContainsKey(coordinator))
+                coordinators.Add(coordinator, 0);
+            var n = coordinators[coordinator];
+            coordinators[coordinator] = n + 1;
         }
 
         private void assertQueried(String host, int n)
@@ -99,6 +105,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Priority]
         public void roundRobinTest()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -106,7 +113,6 @@ namespace Cassandra.MSTest
             createSchema(c.Session);
             try
             {
-
                 init(c, 12);
                 query(c, 12);
 
@@ -115,7 +121,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.BootstrapNode(3);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
+                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 60);
 
                 query(c, 12);
 
@@ -125,7 +131,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.DecommissionNode(1);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "1", c.Cluster, 20);
+                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "1", c.Cluster, 60);
 
                 query(c, 12);
 

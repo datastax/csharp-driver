@@ -255,7 +255,7 @@ namespace Cassandra
         }
         public override DriverException CreateException()
         {
-            return new AlreadyExistsException(Message, _info.Ks, _info.Table);
+            return new AlreadyExistsException(_info.Ks, _info.Table);
         }
     }
 

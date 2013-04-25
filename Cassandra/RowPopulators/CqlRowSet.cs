@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace Cassandra
 {
@@ -13,8 +14,13 @@ namespace Cassandra
         readonly OutputRows _rawrows=null;
         readonly bool _ownRows;
         private readonly QueryTrace _queryTrace = null;
+        private List<IPAddress> _tiedHosts = null;
 
         public QueryTrace QueryTrace { get { return _queryTrace; } }
+        public List<IPAddress> TriedHosts { get { return _tiedHosts; } }
+        public IPAddress QueriedHost { get { return _tiedHosts.Count > 0 ? _tiedHosts[_tiedHosts.Count - 1] : null; } }
+
+        internal void SetTriedHosts(List<IPAddress> triedHosts) { _tiedHosts = triedHosts; }
 
         internal CqlRowSet(OutputRows rawrows, Session session, bool ownRows = true)
         {

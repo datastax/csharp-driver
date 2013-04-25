@@ -155,7 +155,7 @@ namespace Cassandra
                 ExecuteCCM(string.Format("add node{0} -i {1}{2} -j {3} -b", n, IP_PREFIX, n, 7000 + 100 * n));
             else
                 ExecuteCCM(string.Format("add node{0} -i {1}{2} -j {3} -b -d {4}", n, IP_PREFIX, n, 7000 + 100 * n, dc));
-            ExecuteCCM(string.Format("node%d start", n));
+            ExecuteCCM(string.Format("node{0} start", n));
         }
 
         public void DecommissionNode(int n)

@@ -241,24 +241,26 @@ namespace Cassandra
             Shutdown();
         }
 
-        public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
-        {
-            var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,null,
-                                                             Timeout.Infinite);
+        //public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
+        //{
+        //    var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,null,
+        //                                                     Timeout.Infinite);
 
-            _controlConnection.SubmitSchemaRefresh(keyspace, table, ar);
 
-            return ar;
-        }
+        //    return ar;
+        //}
 
-        public void EndRefreshSchema(IAsyncResult ar)
-        {
-            AsyncResultNoResult.End(ar, this, "RefreshSchema");
-        }
+        //public void EndRefreshSchema(IAsyncResult ar)
+        //{
+        //    AsyncResultNoResult.End(ar, this, "RefreshSchema");
+        //}
 
         public void RefreshSchema(string keyspace = null, string table = null)
         {
-            EndRefreshSchema(BeginRefreshSchema(null, null, keyspace, table));
+            _controlConnection.SubmitSchemaRefresh(keyspace, table);
+            if (keyspace == null && table == null)
+                _controlConnection.RefreshHosts();
+//            EndRefreshSchema(BeginRefreshSchema(null, null, keyspace, table));
         }
 
     }

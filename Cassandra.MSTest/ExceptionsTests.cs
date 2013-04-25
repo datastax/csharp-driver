@@ -46,11 +46,11 @@ namespace Cassandra.MSTest
                 }
                 catch (AlreadyExistsException e)
                 {
+                    String expected = String.Format("Keyspace {0} already exists", keyspace.ToLower());
 
-                    String expected = String.Format("Cannot add existing keyspace \"{0}\"", keyspace.ToLower());
                     Assert.Equal(e.Message, expected);
                     Assert.Equal(e.Keyspace, keyspace.ToLower());
-                    Assert.Equal(e.Table, "");
+                    Assert.Equal(e.Table, null);
                     Assert.Equal(e.WasTableCreation, false);
                 }
 
@@ -210,7 +210,6 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        [Priority]
         public void readTimeoutException()
         {
             var builder = Cluster.Builder();
@@ -381,7 +380,7 @@ namespace Cassandra.MSTest
                 }
                 catch (UnavailableException e)
                 {
-                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", "ALL", 3, 2);
+                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", ConsistencyLevel.All, 3, 2);
                     Assert.Equal(e.Message, expectedError);
                     Assert.Equal(e.Consistency, ConsistencyLevel.All);
                     Assert.Equal(e.RequiredReplicas, replicationFactor);
@@ -394,7 +393,7 @@ namespace Cassandra.MSTest
                 }
                 catch (UnavailableException e)
                 {
-                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", "ALL", 3, 2);
+                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", ConsistencyLevel.All, 3, 2);
                     Assert.Equal(e.Message, expectedError);
                     Assert.Equal(e.Consistency, ConsistencyLevel.All);
                     Assert.Equal(e.RequiredReplicas, replicationFactor);
@@ -420,7 +419,7 @@ namespace Cassandra.MSTest
         [TestMethod]
         public void writeTimeoutException()
         {
-            var builder = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
+            var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
@@ -449,7 +448,7 @@ namespace Cassandra.MSTest
                     Assert.Equal(e.ConsistencyLevel, ConsistencyLevel.All);
                     Assert.Equal(e.ReceivedAcknowledgements, 2);
                     Assert.Equal(e.RequiredAcknowledgements, 3);
-                    //Assert.Equal(e.WriteType, WriteType.SIMPLE);
+                    Assert.Equal(e.WriteType, "SIMPLE");
                 }
             }
             catch (Exception e)
