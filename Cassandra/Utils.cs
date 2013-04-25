@@ -183,7 +183,8 @@ namespace Cassandra
                 foreach (var elem in source)
                 {
                     counter++;
-                    sb.Append("'" + elem.Key + "'" + " : " + (elem.Key == "class" ? "'"+elem.Value+"'" : elem.Value) + ((source.Count != counter) ? ", " : "}"));
+                    sb.Append("'" + elem.Key + "'" + " : " + "'"+elem.Value+"'"  + ((source.Count != counter) ? ", " : "}"));
+                    //sb.Append("'" + elem.Key + "'" + " : " + (elem.Key == "class" ? "'" + elem.Value + "'" : elem.Value) + ((source.Count != counter) ? ", " : "}"));
                 }
             }
             else sb.Append("}");
@@ -191,7 +192,19 @@ namespace Cassandra
             return sb.ToString();
         }
 
-        public static IDictionary<string, int> ConvertStringToMap(string source)
+        public static IDictionary<string, string> ConvertStringToMap(string source)
+        {
+            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
+            var map = new SortedDictionary<string, string>();
+
+            if (source != "{}")
+                foreach (var elem in elements)
+                    map.Add(elem.Split(':')[0].Replace("\"", ""), elem.Split(':')[1].Replace("\"", ""));
+                
+            return map;
+        }
+        
+        public static IDictionary<string, int> ConvertStringToMapInt(string source)
         {
             var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
             var map = new SortedDictionary<string,int>();
@@ -221,6 +234,25 @@ namespace Cassandra
                 var hst = Dns.GetHostEntry(address);
                 return hst.AddressList;
             }
+        }
+
+        public static bool CompareIDictionary<TKey, TValue>(IDictionary<TKey, TValue> dict1, IDictionary<TKey, TValue> dict2)
+        {
+            if (dict1 == dict2) return true;
+            if ((dict1 == null) || (dict2 == null)) return false;
+            if (dict1.Count != dict2.Count) return false;
+
+            var comp = EqualityComparer<TValue>.Default;
+
+            foreach (KeyValuePair<TKey, TValue> kvp in dict1)
+            {
+                TValue value2;
+                if (!dict2.TryGetValue(kvp.Key, out value2))
+                    return false;
+                if (!comp.Equals(kvp.Value, value2))
+                    return false;
+            }
+            return true;
         }
 
     }

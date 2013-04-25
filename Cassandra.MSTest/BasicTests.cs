@@ -1,6 +1,7 @@
 ﻿using System;
 #if MYTEST
 using MyTest;
+using System.Collections.Generic;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
@@ -20,7 +21,7 @@ namespace Cassandra.MSTest
             BigInsertTest(3000);
         }
 
-        [TestMethod]
+        [TestMethod]        
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
@@ -38,11 +39,20 @@ namespace Cassandra.MSTest
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
         }
 
-        [TestMethod]
+        [TestMethod]        
         public void checkTableMetadata()
         {
             checkMetadata();
         }
+        
+        [TestMethod]      
+        [Priority]
+        public void checkTableMetadataWithOptions()
+        {
+            checkMetadata(tableOptions: new TableOptions("Comment",0.5,0.6, true,42,0.01,"ALL",
+                new SortedDictionary<string,string>{{"class","org.apache.cassandra.db.compaction.LeveledCompactionStrategy"} , {"sstable_size_in_mb" , "15"}},
+                new SortedDictionary<string,string>{{"sstable_compression" , "org.apache.cassandra.io.compress.SnappyCompressor"}, {"chunk_length_kb" , "128"}}));
+        }        
         
         [TestMethod]
         public void checkKeyspaceMetadata()

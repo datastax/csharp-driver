@@ -133,52 +133,24 @@ namespace MyTest
             int Passed = 0;
             int Failed = 0;
 
+            bool priorityTestsRun = true;
+second_round: // Iterate again over the test packs, and run tests without priority attribute 
             foreach (var asmn in TestPacks)
             {
-                var asm = Assembly.Load(asmn);
-                foreach (var type in asm.GetTypes())
-                {
-                    if (type.GetCustomAttributes(typeof(MyTest.IgnoreAttribute), true).Length > 0)
-                        continue;
-                    if (type.Name.EndsWith("Tests") && type.IsPublic)
-                    {
-                        object testObj = null;
-                        foreach (var mth in type.GetMethods())
-                        {
-                            if (mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0)
-                                continue;
-                            if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)
-                                Test(ref testObj, type, mth, output, ref Passed, ref Failed);
-                        }
-                        if (testObj != null)
-                        {
-                            var ist = FindMethodWithAttribute(type, typeof(TestCleanupAttribute));
-                            if (ist != null)
-                                ist.Invoke(testObj, new object[] { });
-                            GC.Collect();
-                            GC.WaitForPendingFinalizers();
-                        }
-                    }
-                }
-            }
+                var asm = Assembly.Load(asmn);                
 
-            foreach (var asmn in TestPacks)
-            {
-                var asm = Assembly.Load(asmn);
                 foreach (var type in asm.GetTypes())
                 {
                     if (type.GetCustomAttributes(typeof(MyTest.IgnoreAttribute), true).Length > 0)
-                        continue;
-                    if (type.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length > 0)
                         continue;
                     if (type.Name.EndsWith("Tests") && type.IsPublic)
                     {
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
-                            if (mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length > 0)
+                            if (( mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
                                 continue;
-                            if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)
+                            if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0 )
                             {
                                 Test(ref testObj, type, mth, output, ref Passed, ref Failed);
                             }
@@ -194,6 +166,13 @@ namespace MyTest
                     }
                 }
             }
+            
+            if (priorityTestsRun)
+            {
+                priorityTestsRun = false;
+                goto second_round;
+            }
+
             Console.ForegroundColor = ConsoleColor.Black;
             if (Failed > 0)
                 Console.BackgroundColor = ConsoleColor.Red;

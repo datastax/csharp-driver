@@ -38,6 +38,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Cassandra\BEBinaryWriter.cs">
+      <Link>BEBinaryWriter.cs</Link>
+    </Compile>
     <Compile Include="ExceptionsTests.cs" />
     <Compile Include="LoadBalancingPolicyTests.cs" />
     <Compile Include="Properties\Settings.Designer.cs">

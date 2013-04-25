@@ -234,7 +234,7 @@ PRIMARY KEY(tweet_id)
         }
 
 
-        public void checkMetadata(string TableName = null, string KeyspaceName = null)
+        public void checkMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
         {
             Dictionary<string, ColumnTypeCode> columns = new Dictionary
                 <string, ColumnTypeCode>()
@@ -258,7 +258,7 @@ PRIMARY KEY(tweet_id)
                     {"q14map", ColumnTypeCode.Map}
                     //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
                 };
-
+            
             string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
             StringBuilder sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
             Randomm urndm = new Randomm(DateTimeOffset.Now.Millisecond);
@@ -277,7 +277,8 @@ PRIMARY KEY(tweet_id)
             for (int i = 0; i < rowKeys; i++)
                 sb.Append(columns.Keys.Where(key => key.StartsWith("q" + i.ToString())).First() +
                           ((i == rowKeys - 1) ? "" : ", "));
-            sb.Append("));");
+            var opt = tableOptions != null ? " WITH " + tableOptions.ToString() : "";
+            sb.Append("))" + opt + ";");
 
             QueryTools.ExecuteSyncNonQuery(Session, sb.ToString());
 
@@ -290,6 +291,9 @@ PRIMARY KEY(tweet_id)
                 Assert.True(metaCol.Table == tablename);
                 Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
             }
+            if (tableOptions != null)                                   
+                Assert.True(tableOptions.Equals(table.Options));
+            
         }
 
 

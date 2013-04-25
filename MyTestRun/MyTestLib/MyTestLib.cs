@@ -138,15 +138,27 @@ namespace MyTest
                 return true;
 
             if (a1 == null || a2 == null)
-                return false;
+            {
+                Debugger.Break();
+                throw new AssertException("At least one array is null.");
+            }
+                
 
             if (a1.Length != a2.Length)
-                return false;
+            {
+                Debugger.Break();
+                throw new AssertException(string.Format("Arrays length is not equal: '{0}'!='{1}'", a1.Length, a2.Length));
+            }
+            
 
             EqualityComparer<byte> comparer = EqualityComparer<byte>.Default;
             for (int i = 0; i < a1.Length; i++)
             {
-                if (!comparer.Equals(a1[i], a2[i])) return false;
+                if (!comparer.Equals(a1[i], a2[i]))
+                {
+                    Debugger.Break();
+                    throw new AssertException(string.Format("Arrays values are not equal: '{0}'!='{1}' at {2} position.", a1[i], a2[i], i));
+                }
             }
             return true;
         }
