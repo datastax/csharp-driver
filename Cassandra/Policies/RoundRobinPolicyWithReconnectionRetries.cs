@@ -46,15 +46,17 @@ namespace Cassandra
                 List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
                 for (int i = 0; i < copyOfHosts.Count; i++)
                 {
-                    if (_startidx == -1 || _startidx >= copyOfHosts.Count - 1)
+                    if (_startidx == -1)
                         _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
 
+                    _startidx %= copyOfHosts.Count;
+                    
                     var h = copyOfHosts[_startidx];
-                    if (h.IsConsiderablyUp)
-                        yield return h;
 
                     _startidx++;
-                    _startidx = _startidx % copyOfHosts.Count;
+
+                    if (h.IsConsiderablyUp)
+                        yield return h;
                 }
                 if (ReconnectionEvent != null)
                 {

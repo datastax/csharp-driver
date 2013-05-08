@@ -6,6 +6,8 @@ using System.Diagnostics;
 
 namespace Cassandra.MSTest
 {
+    public class PriorityAttribute : Attribute { }
+
     public class AssertException : Exception
     {
         public string UserMessage { get; private set; }

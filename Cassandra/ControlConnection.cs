@@ -10,7 +10,6 @@ namespace Cassandra
     {
         private readonly Logger _logger = new Logger(typeof(ControlConnection));
         private readonly Session _session;
-        private IEnumerator<Host> _hostsIter = null;
         private readonly Cluster _cluster;
 
         internal ControlConnection(Cluster cluster, 
@@ -24,17 +23,40 @@ namespace Cassandra
                                    bool metricsEnabled)
         {
             this._cluster = cluster;
+            this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
             _session = new Session(cluster, clusterEndpoints, policies, protocolOptions, poolingOptions, socketOptions,
                                    clientOptions, authProvider, metricsEnabled, "", _cluster._hosts);
         }
 
+        void Metadata_HostsEvent(object sender, HostsEventArgs e)
+        {
+            if (sender == this)
+                return;
+
+            Action act = new Action(() =>
+            {
+                if (e.What == HostsEventArgs.Kind.Down)
+                {
+                    if (e.IPAddress.Equals(listeningOnHost))
+                        SetupControlConnection();
+                }
+                else if (e.What == HostsEventArgs.Kind.Up)
+                {
+                    if (_isDiconnected)
+                        SetupControlConnection();
+                }
+            });
+            act.BeginInvoke((ar) => act.EndInvoke(ar), null);
+        }
+
         internal void Init()
         {
+            _cluster.Metadata.HostsEvent += new HostsEventHandler(Metadata_HostsEvent);
+
             _session.Init();
-            CCEvent += new CCEventHandler(ControlConnection_CCEvent);
-            Go(true);
+            SetupControlConnection();
         }
 
         public void Dispose()
@@ -42,18 +64,24 @@ namespace Cassandra
             _session.Dispose();
         }
 
-        private void ControlConnection_CCEvent(object sender, ControlConnection.CCEventArgs e)
+        IPAddress listeningOnHost;
+        private void SetupEventListener()
         {
-            if (e.What == CCEventArgs.Kind.Add)
-                _session.OnAddHost(e.IPAddress);
-            if (e.What == CCEventArgs.Kind.Remove)
-                _session.OnRemovedHost(e.IPAddress);
-            if (e.What == CCEventArgs.Kind.Down)
-                _session.OnDownHost(e.IPAddress);
-        }
+            var triedHosts = new List<IPAddress>();
+            var innerExceptions = new Dictionary<IPAddress, Exception>();
 
-        private void SetupEventListeners(CassandraConnection nconn)
-        {
+            var hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+            
+            if (!hostsIter.MoveNext())
+            {
+                var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                _logger.Error(ex);
+                throw ex;
+            }
+
+            var nconn = _session.Connect(null, hostsIter, triedHosts, innerExceptions);
+            listeningOnHost = nconn.GetHostAdress();
+
             Exception theExc = null;
 
             nconn.CassandraEvent += new CassandraEventHandler(conn_CassandraEvent);
@@ -74,17 +102,8 @@ namespace Cassandra
                 _logger.Error(theExc);
                 throw theExc;
             }
-        }
 
-        internal class CCEventArgs : EventArgs
-        {
-            public enum Kind {Add,Remove,Down}
-            public Kind What;
-            public IPAddress IPAddress;
         }
-
-        public delegate void CCEventHandler(object sender, CCEventArgs e);
-        public event CCEventHandler CCEvent;
 
         private void conn_CassandraEvent(object sender, CassandraEventArgs e)
         {
@@ -93,16 +112,14 @@ namespace Cassandra
                 var tce = e as TopologyChangeEventArgs;
                 if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
                 {
-                    if (CCEvent != null)
-                        CCEvent.Invoke(this, new CCEventArgs() {IPAddress = tce.Address, What = CCEventArgs.Kind.Add});
-                    CheckConnectionUp(tce.Address);
+                    SetupControlConnection(true);
+                    _cluster.Metadata.AddHost(tce.Address);
                     return;
                 }
                 else if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
-                    if (CCEvent != null)
-                        CCEvent.Invoke(this, new CCEventArgs() { IPAddress = tce.Address, What = CCEventArgs.Kind.Remove });
-                    CheckConnectionDown(tce.Address);
+                    _cluster.Metadata.RemoveHost(tce.Address);
+                    SetupControlConnection(!tce.Address.Equals(listeningOnHost));
                     return;
                 }
             }
@@ -111,16 +128,12 @@ namespace Cassandra
                 var sce = e as StatusChangeEventArgs;
                 if (sce.What == StatusChangeEventArgs.Reason.Up)
                 {
-                    if (CCEvent != null)
-                        CCEvent.Invoke(this, new CCEventArgs() { IPAddress = sce.Address, What = CCEventArgs.Kind.Add }); 
-                    CheckConnectionUp(sce.Address);
+                    _cluster.Metadata.BringUpHost(sce.Address, this);
                     return;
                 }
                 else if (sce.What == StatusChangeEventArgs.Reason.Down)
                 {
-                    if (CCEvent != null)
-                        CCEvent.Invoke(this, new CCEventArgs() { IPAddress = sce.Address, What = CCEventArgs.Kind.Down });
-                    CheckConnectionDown(sce.Address);
+                    _cluster.Metadata.SetDownHost(sce.Address, this);
                     return;
                 }
             }
@@ -150,76 +163,69 @@ namespace Cassandra
             throw ex; 
         }
 
-        internal void OwnerHostIsDown(IPAddress endpoint)
-        {
-            _session.OnDownHost(endpoint);
-            CheckConnectionDown(endpoint);
-        }
-
-        internal void OwnerHostBringUpIfDown(IPAddress endpoint)
-        {
-            _session.OnAddHost(endpoint);
-            CheckConnectionUp(endpoint);
-        }
-
         private bool _isDiconnected = false;
         private readonly Timer _reconnectionTimer;
 
         private void ReconnectionClb(object state)
         {
-            Go(true);
+            SetupControlConnection();
         }
 
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
         private IReconnectionSchedule _reconnectionSchedule = null;
 
-        private CassandraConnection _connection = null;
-
-        internal void RefreshHosts()
-        {
-            lock (this)
-            {
-                if (!_isDiconnected && _connection != null) 
-                    RefreshNodeListAndTokenMap(_connection);
-            }
-        }
-
-        private void Go(bool refresh)
+        internal bool RefreshHosts()
         {
             lock (this)
             {
                 try
                 {
-                    if (_hostsIter == null)
+                    if (!_isDiconnected)
                     {
-                        _logger.Info("Retrieving hosts list.");
-                        _hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                        RefreshNodeListAndTokenMap();
+                        return true;
                     }
-
-                    if (!_hostsIter.MoveNext())
-                    {
-                        _isDiconnected = true;
-                        _hostsIter = null;
-                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                    }
-                    else
-                    {
-                        _logger.Info("Establishing ControlConnection...");
-                        _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                        var triedHosts = new List<IPAddress>();
-                        var innerExceptions = new Dictionary<IPAddress, Exception>();
-                        _connection = _session.Connect(null, _hostsIter, triedHosts, innerExceptions);
-                        SetupEventListeners(_connection);
-                        if (refresh)
-                            RefreshNodeListAndTokenMap(_connection);
-                        _logger.Info("ControlConnection has been established!");
-                    }
+                    return false;
                 }
                 catch (NoHostAvailableException)
                 {
-                    _logger.Error("Cannot connect to any host. Retrying..");
+                    _logger.Error("ControlConnection is lost now.");
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    if (CassandraConnection.IsStreamRelatedException(ex))
+                    {
+                        _logger.Error("ControlConnection is lost now.");
+                        return false;
+                    }
+                    else
+                    {
+                        _logger.Error("Unexpected error occurred during forced ControlConnection refresh.", ex);
+                        throw;
+                    }
+                }
+            }
+        }
+
+        private void SetupControlConnection(bool refreshOnly = false)
+        {
+            lock (this)
+            {
+                try
+                {
+                    _logger.Info("Refreshing ControlConnection...");
+                    _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    if (!refreshOnly)
+                        SetupEventListener();
+                    RefreshNodeListAndTokenMap();
+                    _isDiconnected = false;
+                    _logger.Info("ControlConnection is fresh!");
+                }
+                catch (NoHostAvailableException)
+                {
                     _isDiconnected = true;
-                    _hostsIter = null;
+                    _logger.Error("ControlConnection is lost. Retrying..");
                     _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                 }
                 catch (Exception ex)
@@ -227,36 +233,17 @@ namespace Cassandra
                     if (CassandraConnection.IsStreamRelatedException(ex))
                     {
                         _isDiconnected = true;
-                        _hostsIter = null;
+                        _logger.Error("ControlConnection is lost. Retrying..");
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                     }
                     else
                     {
-                        _logger.Error("Unexpected error occurred during ControlConnection establishment.", ex);
+                        _logger.Error("Unexpected error occurred during ControlConnection refresh.", ex);
                         throw;
                     }
                 }
             }
         }
-
-        private void CheckConnectionDown(IPAddress endpoint)
-        {
-            if (_hostsIter != null && _hostsIter.Current.Address == endpoint)
-            {
-                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-                Go(false);
-            }
-        }
-
-        private void CheckConnectionUp(IPAddress endpoint)
-        {
-            if (_isDiconnected)
-            {
-                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-                Go(true);
-            }
-        }
-
 
         // schema
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens FROM system.peers";
@@ -264,49 +251,22 @@ namespace Cassandra
         private const string SelectLocal =
             "SELECT cluster_name, data_center, rack, tokens, partitioner FROM system.local WHERE key='local'";
 
-        private void RefreshNodeListAndTokenMap(CassandraConnection connection)
+        private void RefreshNodeListAndTokenMap()
         {
             _logger.Info("Refreshing NodeList and TokenMap..");
             // Make sure we're up to date on nodes and tokens            
             var tokenMap = new Dictionary<IPAddress, DictSet<string>>();
             string partitioner = null;
 
-            using (var rowset = _session.Query(SelectLocal, ConsistencyLevel.Default))
-            {
-                // Update cluster name, DC and rack for the one node we are connected to
-                foreach (var localRow in rowset.GetRows())
-                {
-                    var clusterName = localRow.GetValue<string>("cluster_name");
-                    if (clusterName != null)
-                        _cluster.Metadata.ClusterName = clusterName;
-
-                    var host = _cluster.Metadata.GetHost(connection.GetHostAdress());
-                    // In theory host can't be null. However there is no point in risking a NPE in case we
-                    // have a race between a node removal and this.
-                    if (host != null)
-                    {
-                        host.SetLocationInfo(localRow.GetValue<string>("data_center"), localRow.GetValue<string>("rack"));
-
-                        partitioner = localRow.GetValue<string>("partitioner");
-                        var tokens = localRow.GetValue<IList<string>>("tokens");
-                        if (partitioner != null && tokens.Count > 0)
-                        {
-                            if (!tokenMap.ContainsKey(host.Address))
-                                tokenMap.Add(host.Address, new DictSet<string>());
-                            tokenMap[host.Address].AddRange(tokens);
-                        }
-                    }
-                    break;
-                }
-            }
-
             var foundHosts = new List<IPAddress>();
             var dcs = new List<string>();
             var racks = new List<string>();
             var allTokens = new List<DictSet<string>>();
+            IPAddress queriedHost;
 
             using (var rowset = _session.Query(SelectPeers, ConsistencyLevel.Default))
             {
+                queriedHost = rowset.QueriedHost;
                 foreach (var row in rowset.GetRows())
                 {
                     var hstip = row.GetValue<IPEndPoint>("peer").Address;
@@ -315,7 +275,53 @@ namespace Cassandra
                         foundHosts.Add(hstip);
                         dcs.Add(row.GetValue<string>("data_center"));
                         racks.Add(row.GetValue<string>("rack"));
-                        allTokens.Add(new DictSet<string>(row.GetValue<IEnumerable<string>>("tokens")));
+                        var col = row.GetValue<IEnumerable<string>>("tokens");
+                        if (col == null)
+                            allTokens.Add(new DictSet<string>());
+                        else
+                            allTokens.Add(new DictSet<string>(col));
+                    }
+                }
+            }
+
+            var localhost = _cluster.Metadata.GetHost(queriedHost);
+            var iterLiof = new List<Host>() { localhost }.GetEnumerator();
+            iterLiof.MoveNext();
+            List<IPAddress> tr = new List<IPAddress>();
+            Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+            var cn = _session.Connect(null, iterLiof, tr, exx);
+
+            using (var outp = cn.Query(SelectLocal, ConsistencyLevel.Default,false))
+            {
+                if (outp is OutputRows)
+                {
+                    var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                    // Update cluster name, DC and rack for the one node we are connected to
+                    foreach (var localRow in rowset.GetRows())
+                    {
+                        var clusterName = localRow.GetValue<string>("cluster_name");
+                        if (clusterName != null)
+                            _cluster.Metadata.ClusterName = clusterName;
+
+
+
+                        // In theory host can't be null. However there is no point in risking a NPE in case we
+                        // have a race between a node removal and this.
+                        if (localhost != null)
+                        {
+                            localhost.SetLocationInfo(localRow.GetValue<string>("data_center"), localRow.GetValue<string>("rack"));
+
+                            partitioner = localRow.GetValue<string>("partitioner");
+                            var tokens = localRow.GetValue<IList<string>>("tokens");
+                            if (partitioner != null && tokens.Count > 0)
+                            {
+                                if (!tokenMap.ContainsKey(localhost.Address))
+                                    tokenMap.Add(localhost.Address, new DictSet<string>());
+                                tokenMap[localhost.Address].AddRange(tokens);
+                            }
+                        }
+
+                        break; //fetch only one row
                     }
                 }
             }
@@ -326,7 +332,7 @@ namespace Cassandra
                 if (host == null)
                 {
                     // We don't know that node, add it.
-                    host = _cluster.Metadata.AddHost(foundHosts[i], _session._policies.ReconnectionPolicy);
+                    host = _cluster.Metadata.AddHost(foundHosts[i]);
                 }
                 host.SetLocationInfo(dcs[i], racks[i]);
 
@@ -337,11 +343,12 @@ namespace Cassandra
             // Removes all those that seems to have been removed (since we lost the control connection)
             var foundHostsSet = new DictSet<IPAddress>(foundHosts);
             foreach (var host in _cluster.Metadata.AllReplicas())
-                if (!host.Equals(connection.GetHostAdress()) && !foundHostsSet.Contains(host))
+                if (!host.Equals(queriedHost) && !foundHostsSet.Contains(host))
                     _cluster.Metadata.RemoveHost(host);
 
             if (partitioner != null)
                 _cluster.Metadata.RebuildTokenMap(partitioner, tokenMap);
+
             _logger.Info("NodeList and TokenMap have been successfully refreshed!");
         }
 

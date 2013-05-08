@@ -87,7 +87,8 @@ namespace Cassandra.MSTest
         }
         public DateTimeOffset NextDateTimeOffset()
         {
-            return DateTimeOffset.Now.UtcDateTime;
+            var now = DateTimeOffset.Now.UtcDateTime;
+            return new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Millisecond, TimeSpan.Zero);
         }
         
         public byte[] NextByte()

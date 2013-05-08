@@ -61,10 +61,11 @@ namespace Cassandra
                 if (_startidx == -1)
                     _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
 
+                _startidx %= copyOfHosts.Count;
+
                 var h = copyOfHosts[_startidx];
 
                 _startidx++;
-                _startidx = _startidx % copyOfHosts.Count;
 
                 if (h.IsConsiderablyUp)
                     yield return h;

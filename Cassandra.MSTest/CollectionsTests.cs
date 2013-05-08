@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cassandra.MSTest
 {
     [TestClass]
-    public partial class Collections
+    public partial class CollectionsTests
     {
         [TestMethod]
         public void testListOrderPrepending()

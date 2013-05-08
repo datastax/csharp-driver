@@ -26,8 +26,8 @@ namespace Cassandra
         public AlreadyExistsException(string keyspace, string table) :
             base(makeMsg(keyspace, table))
         {
-            this.Keyspace = string.IsNullOrWhiteSpace(keyspace) ? null : keyspace;
-            this.Table = string.IsNullOrWhiteSpace(table) ? null : table;
+            this.Keyspace = string.IsNullOrEmpty(keyspace.Trim()) ? null : keyspace;
+            this.Table = string.IsNullOrEmpty(table.Trim()) ? null : table;
         }
 
         private static string makeMsg(string keyspace, string table)

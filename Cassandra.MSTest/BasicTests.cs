@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+
 #if MYTEST
 using MyTest;
-using System.Collections.Generic;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
@@ -15,7 +16,7 @@ namespace Cassandra.MSTest
     [TestClass]
     public partial class BasicTests
     {
-        [TestMethod]
+        [TestMethod]        
         public void BigInsert()
         {
             BigInsertTest(3000);
@@ -45,8 +46,7 @@ namespace Cassandra.MSTest
             checkMetadata();
         }
         
-        [TestMethod]      
-        [Priority]
+        [TestMethod]              
         public void checkTableMetadataWithOptions()
         {
             checkMetadata(tableOptions: new TableOptions("Comment",0.5,0.6, true,42,0.01,"ALL",

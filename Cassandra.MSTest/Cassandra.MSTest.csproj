@@ -72,6 +72,10 @@
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>
     </ProjectReference>
+    <ProjectReference Include="..\CCMBridge\CCMBridge.csproj">
+      <Project>{45A2F5D8-B314-498A-9556-85A772E88A07}</Project>
+      <Name>CCMBridge</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

@@ -18,7 +18,7 @@ namespace Cassandra.MSTest
         ///  Catch and test all the exception methods.
         /// </summary>
         [TestMethod]
-        public void alreadyExistsException()
+        public void alreadyExistsExceptionCCM()
         {
             var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(1, builder);
@@ -79,7 +79,7 @@ namespace Cassandra.MSTest
         }
 
 
-        public void authenticationException()
+        public void authenticationExceptionCCM()
         {
             // TODO: Modify CCM to accept authenticated sessions
         }
@@ -118,7 +118,7 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
         [TestMethod]
-        public void invalidConfigurationInQueryException()
+        public void invalidConfigurationInQueryExceptionCCM()
         {
             String errorMessage = "Test Message";
 
@@ -137,7 +137,7 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
-        public void InvalidConfigurationInQueryException()
+        public void InvalidConfigurationInQueryExceptionCCM()
         {
             string errorMessage = "Test Message";
 
@@ -182,7 +182,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        public void noHostAvailableException()
+        public void noHostAvailableExceptionCCM()
         {
             String ipAddress = "255.255.255.255";
             Dictionary<IPAddress, Exception> errorsHashMap = new Dictionary<IPAddress, Exception>();
@@ -210,7 +210,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        public void readTimeoutException()
+        public void readTimeoutExceptionCCM()
         {
             var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
@@ -262,7 +262,7 @@ namespace Cassandra.MSTest
         ///  Tests SyntaxError. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
-        public void syntaxError()
+        public void syntaxErrorCCM()
         {
             String errorMessage = "Test Message";
 
@@ -283,7 +283,7 @@ namespace Cassandra.MSTest
         ///  Tests TraceRetrievalException. Tests basic message.
         /// </summary>
         [TestMethod]
-        public void traceRetrievalException()
+        public void traceRetrievalExceptionCCM()
         {
             String errorMessage = "Test Message";
 
@@ -302,7 +302,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        public void truncateException()
+        public void truncateExceptionCCM()
         {
             String errorMessage = "Test Message";
 
@@ -324,7 +324,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        public void unauthorizedException()
+        public void unauthorizedExceptionCCM()
         {
             String errorMessage = "Test Message";
 
@@ -349,7 +349,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        public void unavailableException()
+        public void unavailableExceptionCCM()
         {
             var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
@@ -417,7 +417,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        public void writeTimeoutException()
+        public void writeTimeoutExceptionCCM()
         {
             var builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);

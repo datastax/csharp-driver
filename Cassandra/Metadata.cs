@@ -4,6 +4,14 @@ using System.Net;
 
 namespace Cassandra
 {
+    public class HostsEventArgs : EventArgs
+    {
+        public enum Kind { Up, Down }
+        public Kind What;
+        public IPAddress IPAddress;
+    }
+
+    public delegate void HostsEventHandler(object sender, HostsEventArgs e);
 
     /// <summary>
     ///  Keeps metadata on the connected cluster, including known nodes and schema
@@ -21,6 +29,8 @@ namespace Cassandra
             this._controlConnection = controlConnection;
         }
 
+        public event HostsEventHandler HostsEvent;
+        
         /// <summary>
         ///  Returns the name of currently connected cluster.
         /// </summary>
@@ -37,10 +47,10 @@ namespace Cassandra
             return _hosts[address];
         }
 
-        public Host AddHost(IPAddress address, IReconnectionPolicy rp)
+        public Host AddHost(IPAddress address)
         {
-             _hosts.AddIfNotExistsOrBringUpIfDown(address, rp);
-             return _hosts[address];
+            _hosts.AddIfNotExistsOrBringUpIfDown(address);
+            return _hosts[address];
         }
 
         public void RemoveHost(IPAddress address)
@@ -48,7 +58,19 @@ namespace Cassandra
             _hosts.RemoveIfExists(address);
         }
 
+        public void SetDownHost(IPAddress address, object sender = null)
+        {
+            if (_hosts.SetDownIfExists(address))
+                if (HostsEvent != null)
+                    HostsEvent(sender ?? this, new HostsEventArgs() { IPAddress = address, What = HostsEventArgs.Kind.Down });
+        }
 
+        public void BringUpHost(IPAddress address, object sender = null)
+        {
+            if (_hosts.AddIfNotExistsOrBringUpIfDown(address))
+                if (HostsEvent != null)
+                    HostsEvent(sender ?? this, new HostsEventArgs() { IPAddress = address, What = HostsEventArgs.Kind.Up });
+        }
 
         /// <summary>
         ///  Returns all known hosts of this cluster.

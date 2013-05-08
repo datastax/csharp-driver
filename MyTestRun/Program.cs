@@ -37,7 +37,7 @@ namespace MyTest
         {
             "Cassandra.MyTest",
             "Cassandra.Data.MyTest",
-#if CASSANDRA_NET_40_OR_GREATER
+#if NET_40_OR_GREATER
             "Cassandra.Data.Linq.MyTest",
 #endif
         };
@@ -56,11 +56,11 @@ namespace MyTest
         static void Test(ref object testObj, Type type, MethodInfo mth, StreamWriter output, ref int Passed, ref int Failed)
         {
             if (testObj == null)
-            {
-                testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });
-                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));
+            {                
+                testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });                                
+                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));                
                 if (ist != null)
-                    ist.Invoke(testObj, new object[] { });
+                    ist.Invoke(testObj, new object[] {});
             }
             try
             {

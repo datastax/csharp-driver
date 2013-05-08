@@ -191,10 +191,11 @@ namespace Cassandra.Data.Linq.MSTest
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.isok == true && new int[] { 0, 1, 2 }.Contains(e.idx) select new { x = e.idx, y = e.tweet_id }).Execute())
-            {
-                var x = r;
-            }
+            //https://issues.apache.org/jira/browse/CASSANDRA-5303?page=com.atlassian.streams.streams-jira-plugin:activity-stream-issue-tab
+            //foreach (var r in (from e in table where e.isok == true && new int[] { 0, 1, 2 }.Contains(e.idx) select new { x = e.idx, y = e.tweet_id }).Execute())
+            //{
+            //    var x = r;
+            //}
 
             foreach (var r in (from e in table where e.isok == false && e.idx == 0 select new { Key = e.idx }).Execute())
             {

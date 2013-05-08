@@ -31,9 +31,6 @@ namespace Cassandra
         private readonly Hosts _hosts;
         readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
 
-        private readonly ControlConnection _controlConnection;
-
-
         internal Session(Cluster cluster,
                          IEnumerable<IPAddress> clusterEndpoints,
                          Policies policies,
@@ -44,7 +41,7 @@ namespace Cassandra
                          IAuthInfoProvider authProvider,
                          bool metricsEnabled,
                          string keyspace,
-                         Hosts hosts,ControlConnection controlConnection=null)
+                         Hosts hosts)
         {
             this._cluster = cluster;
 
@@ -59,10 +56,8 @@ namespace Cassandra
 
             _hosts = hosts ;
 
-            this._controlConnection = controlConnection;
-
             foreach (var ep in clusterEndpoints)
-                _hosts.AddIfNotExistsOrBringUpIfDown(ep, this._policies.ReconnectionPolicy);
+                _hosts.AddIfNotExistsOrBringUpIfDown(ep);
 
             this._policies.LoadBalancingPolicy.Initialize(_cluster);
 
@@ -86,7 +81,6 @@ namespace Cassandra
         }
 
         readonly List<CassandraConnection> _trashcan = new List<CassandraConnection>();
-
 
         internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter,List<IPAddress> triedHosts, Dictionary<IPAddress, Exception> innerExceptions)
         {
@@ -163,9 +157,8 @@ namespace Cassandra
                                 conn = AllocateConnection(currentHost.Address, out outExc);
                                 if (conn != null)
                                 {
-                                    currentHost.BringUpIfDown();
-                                    if (_controlConnection != null)
-                                        _controlConnection.OwnerHostBringUpIfDown(currentHost.Address);
+                                    if (_cluster.Metadata != null)
+                                        _cluster.Metadata.BringUpHost(currentHost.Address, this);
                                     pool.Add(conn);
                                 }
                                 else
@@ -192,29 +185,11 @@ namespace Cassandra
             }
         }
 
-        internal void OnAddHost(IPAddress endpoint)
-        {
-            _hosts.AddIfNotExistsOrBringUpIfDown(endpoint, _policies.ReconnectionPolicy);
-        }
-
-        internal void OnDownHost(IPAddress endpoint)
-        {
-            _hosts.SetDownIfExists(endpoint);
-        }
-
-        internal void OnRemovedHost(IPAddress endpoint)
-        {
-            _hosts.RemoveIfExists(endpoint);
-        }
 
         internal void HostIsDown(IPAddress endpoint)
         {
-            lock (_connectionPool)
-            {
-                _hosts.SetDownIfExists(endpoint);
-                if (_controlConnection != null)
-                    _controlConnection.OwnerHostIsDown(endpoint);
-            }
+            if(_cluster.Metadata!=null)
+                _cluster.Metadata.SetDownHost(endpoint, this);
         }
 
         CassandraConnection AllocateConnection(IPAddress endPoint, out Exception outExc)
@@ -231,42 +206,7 @@ namespace Cassandra
                 if (!string.IsNullOrEmpty(_keyspace))
                 {
                     var keyspaceId = CqlQueryTools.CqlIdentifier(_keyspace);
-                    string retKeyspaceId;
-                    try
-                    {
-                        retKeyspaceId = ProcessSetKeyspace(nconn.Query(GetUseKeyspaceCQL(keyspaceId), ConsistencyLevel.Ignore,false));
-                    }
-                    catch (InvalidException)
-                    {
-                        throw;
-                    }
-                    catch (QueryValidationException)
-                    {
-                        return null;
-                    }
-
-                    if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != CqlQueryTools.CqlIdentifier(keyspaceId))
-                    {
-                        var ex = new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
-                        _logger.Error(ex);
-                        throw ex; 
-                    }
-
-                    lock(_preparedQueries)
-                        foreach (var prepQ in _preparedQueries)
-                        {
-                            try
-                            {
-                                byte[] queryid;
-                                RowSetMetadata metadata;
-                                ProcessPrepareQuery(nconn.PrepareQuery(prepQ.Key), out metadata, out queryid);
-                            }
-                            catch (QueryValidationException)
-                            {
-                                return null;
-                            }
-                            //TODO: makesure that ids are equal;
-                        }
+                    nconn.SetKeyspace(keyspaceId);
                 }
             }
             catch (Exception ex)
@@ -276,6 +216,7 @@ namespace Cassandra
 
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
+                    HostIsDown(endPoint);
                     outExc = ex;
                     return null;
                 }
@@ -291,14 +232,14 @@ namespace Cassandra
         static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string,string> replication, bool durable_writes)
         {
             if (replication == null)
-                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "2" } };  
+                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "1" } };  
             return string.Format(
   @"CREATE KEYSPACE {0} 
   WITH replication = {1} 
    AND durable_writes = {2}"
   , Cassandra.CqlQueryTools.CqlIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
         }
-        
+
         static string GetUseKeyspaceCQL(string keyspace)
         {
             return string.Format(
@@ -321,11 +262,11 @@ namespace Cassandra
         /// <param name="replication">Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
-        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
+        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 1</code></p></param>
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Ignore);
+            Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Default);
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
@@ -386,6 +327,8 @@ namespace Cassandra
         /// <param name="keyspace_name">Name of keyspace that is to be used.</param>
         public void ChangeKeyspace(string keyspace_name)
         {
+            Execute(GetUseKeyspaceCQL(keyspace_name));
+            
             lock (_connectionPool)
             {
                 foreach (var kv in _connectionPool)
@@ -394,32 +337,8 @@ namespace Cassandra
                     {
                         if (conn.IsHealthy)
                         {
-                        retry:
-                            try
-                            {
-                                var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace_name);
-                                string retKeyspaceId;
-                                try
-                                {
-                                    retKeyspaceId = ProcessSetKeyspace(conn.Query(GetUseKeyspaceCQL(keyspace_name), ConsistencyLevel.Ignore,false));
-                                }
-                                catch (QueryValidationException)
-                                {
-                                    _logger.Error("Cannot execute USE query. Query is invalid, unauthorized or syntactically incorrect.");
-                                    throw;
-                                }
-                                if (CqlQueryTools.CqlIdentifier(retKeyspaceId) != keyspaceId)
-                                {
-                                    var ex = new DriverInternalError("USE query returned " + retKeyspaceId + ". We expected " + keyspaceId + ".");
-                                    _logger.Error(ex);
-                                    throw ex;
-                                }
-                            }
-                            catch (Cassandra.CassandraConnection.StreamAllocationException)
-                            {
-                                _logger.Warning("Cannot allocate stream during keyspace change. Retrying..");
-                                goto retry;
-                            }
+                            var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace_name);
+                            conn.SetKeyspace(keyspaceId);
                         }
                     }
                 }
@@ -790,55 +709,55 @@ namespace Cassandra
             }
         }
 
-        #region SetKeyspace
+        //#region SetKeyspace
 
-        class LongSetKeyspaceToken : LongToken
-        {
-            public string CqlQuery;
-            override public void Begin(Session owner)
-            {
-                Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency,false);
-            }
-            override public void Process(Session owner, IAsyncResult ar, out object value)
-            {
-                value = owner.ProcessSetKeyspace(Connection.EndQuery(ar, owner));
-            }
-            override public void Complete(Session owner, object value, Exception exc = null)
-            {
-                var ar = LongActionAc as AsyncResult<string>;
-                if (exc != null)
-                    ar.Complete(new ExecutionException("Unable to complete the query.", exc, InnerExceptions));
-                else
-                {
-                    ar.SetResult(value as string);
-                    ar.Complete();
-                }
-            }
-        }
+        //class LongSetKeyspaceToken : LongToken
+        //{
+        //    public string CqlQuery;
+        //    override public void Begin(Session owner)
+        //    {
+        //        Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency,false);
+        //    }
+        //    override public void Process(Session owner, IAsyncResult ar, out object value)
+        //    {
+        //        value = owner.ProcessSetKeyspace(Connection.EndQuery(ar, owner));
+        //    }
+        //    override public void Complete(Session owner, object value, Exception exc = null)
+        //    {
+        //        var ar = LongActionAc as AsyncResult<string>;
+        //        if (exc != null)
+        //            ar.Complete(new ExecutionException("Unable to complete the query.", exc, InnerExceptions));
+        //        else
+        //        {
+        //            ar.SetResult(value as string);
+        //            ar.Complete();
+        //        }
+        //    }
+        //}
 
-        internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
-        {
-            var longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, null,_clientOptions.AsyncCallAbortTimeout);
-            var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc };
+        //internal IAsyncResult BeginSetKeyspace(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
+        //{
+        //    var longActionAc = new AsyncResult<string>(callback, state, this, "SessionSetKeyspace", null, null,_clientOptions.AsyncCallAbortTimeout);
+        //    var token = new LongSetKeyspaceToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc };
 
-            ExecConn(token, false);
+        //    ExecConn(token, false);
 
-            return longActionAc;
-        }
+        //    return longActionAc;
+        //}
 
-        internal object EndSetKeyspace(IAsyncResult ar)
-        {
-            var longActionAc = ar as AsyncResult<string>;
-            return AsyncResult<string>.End(ar, this, "SessionSetKeyspace");
-        }
+        //internal object EndSetKeyspace(IAsyncResult ar)
+        //{
+        //    var longActionAc = ar as AsyncResult<string>;
+        //    return AsyncResult<string>.End(ar, this, "SessionSetKeyspace");
+        //}
 
-        internal object SetKeyspace(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
-        {
-            var ar = BeginSetKeyspace(cqlQuery, null, null, consistency, query);
-            return EndSetKeyspace(ar);
-        }
+        //internal object SetKeyspace(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null)
+        //{
+        //    var ar = BeginSetKeyspace(cqlQuery, null, null, consistency, query);
+        //    return EndSetKeyspace(ar);
+        //}
 
-        #endregion
+        //#endregion
 
         #region Query
 
@@ -911,7 +830,7 @@ namespace Cassandra
 
         #region Prepare
 
-        readonly Dictionary<string, KeyValuePair<RowSetMetadata, byte[]>> _preparedQueries = new Dictionary<string, KeyValuePair<RowSetMetadata, byte[]>>();
+        readonly Dictionary<byte[], string> _preparedQueries = new Dictionary<byte[], string>();
 
 
         class LongPrepareQueryToken : LongToken
@@ -938,7 +857,7 @@ namespace Cassandra
                     var kv = (KeyValuePair<RowSetMetadata, byte[]>)value;
                     ar.SetResult(kv);
                     lock (owner._preparedQueries)
-                        owner._preparedQueries[CqlQuery] = kv;
+                        owner._preparedQueries[kv.Value] = CqlQuery;
                     ar.Complete();
                 }
             }
@@ -976,12 +895,13 @@ namespace Cassandra
         class LongExecuteQueryToken : LongToken
         {
             public byte[] Id;
+            public string cql;
             public RowSetMetadata Metadata;
             public object[] Values;
             public bool IsTracinig;
             override public void Begin(Session owner)
             {
-                Connection.BeginExecuteQuery(Id, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency, IsTracinig);
+                Connection.BeginExecuteQuery(Id, cql, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency, IsTracinig);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -1004,7 +924,7 @@ namespace Cassandra
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null, object tag = null, bool isTracing=false)
         {
             var longActionAc = new AsyncResult<CqlRowSet>(callback, state, this, "SessionExecuteQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
-            var token = new LongExecuteQueryToken() { Consistency = consistency, Id = id, Metadata = metadata, Values = values, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing};
+            var token = new LongExecuteQueryToken() { Consistency = consistency, Id = id, cql= _preparedQueries[id], Metadata = metadata, Values = values, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing};
 
             ExecConn(token, false);
 

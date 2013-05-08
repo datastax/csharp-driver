@@ -3,24 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 #if MYTEST
 using MyTest;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
-using System.Text;
+
 
 namespace Cassandra.MSTest
 {
     
-    public partial class PreparedStatements
-    {
+    public partial class PreparedStatementsTests
+    {     
         string Keyspace = "tester";
         Cluster Cluster;
         Session Session;
-
-        public PreparedStatements()
+        
+        public PreparedStatementsTests()
         {
         }
 
@@ -42,7 +43,7 @@ namespace Cassandra.MSTest
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
             Diagnostics.CassandraStackTraceIncluded = true;
             Diagnostics.CassandraPerformanceCountersEnabled = true;
-            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(2), true);
+            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(1), true);
         }
 
         [TestCleanup]
@@ -117,6 +118,5 @@ namespace Cassandra.MSTest
 
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
         }
-
     }
 }

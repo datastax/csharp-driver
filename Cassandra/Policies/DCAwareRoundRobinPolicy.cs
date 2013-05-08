@@ -20,15 +20,16 @@ namespace Cassandra
         private readonly string _localDc;
         private readonly int _usedHostsPerRemoteDc;
         Cluster _cluster;
+        int _startidx = -1;
 
-    	/// <summary>
-		///  Creates a new datacenter aware round robin policy given the name of the local
-		///  datacenter. <p> The name of the local datacenter provided must be the local
-		///  datacenter name as known by Cassandra. </p><p> The policy created will ignore all
-		///  remote hosts. In other words, this is equivalent to 
-		///  <code>new DCAwareRoundRobinPolicy(localDc, 0)</code>.</p>
-		/// </summary>
-		/// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
+        /// <summary>
+        ///  Creates a new datacenter aware round robin policy given the name of the local
+        ///  datacenter. <p> The name of the local datacenter provided must be the local
+        ///  datacenter name as known by Cassandra. </p><p> The policy created will ignore all
+        ///  remote hosts. In other words, this is equivalent to 
+        ///  <code>new DCAwareRoundRobinPolicy(localDc, 0)</code>.</p>
+        /// </summary>
+        /// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
         public DCAwareRoundRobinPolicy(string localDc)
             : this(localDc, 0)
         {
@@ -69,17 +70,17 @@ namespace Cassandra
             return dc ?? _localDc;
         }
 
-    	/// <summary>
-		///  Return the HostDistance for the provided host. <p> This policy consider nodes
-		///  in the local datacenter as <code>Local</code>. For each remote datacenter, it
-		///  considers a configurable number of hosts as <code>Remote</code> and the rest
-		///  is <code>Ignored</code>. </p><p> To configure how many host in each remote
-		///  datacenter is considered <code>Remote</code>, see
-		///  <link>#DCAwareRoundRobinPolicy(String, int)</link>.</p>
-		/// </summary>
-		/// <param name="host"> the host of which to return the distance of. </param>
-		/// <returns>the HostDistance to <code>host</code>.</returns>
-		public HostDistance Distance(Host host)
+        /// <summary>
+        ///  Return the HostDistance for the provided host. <p> This policy consider nodes
+        ///  in the local datacenter as <code>Local</code>. For each remote datacenter, it
+        ///  considers a configurable number of hosts as <code>Remote</code> and the rest
+        ///  is <code>Ignored</code>. </p><p> To configure how many host in each remote
+        ///  datacenter is considered <code>Remote</code>, see
+        ///  <link>#DCAwareRoundRobinPolicy(String, int)</link>.</p>
+        /// </summary>
+        /// <param name="host"> the host of which to return the distance of. </param>
+        /// <returns>the HostDistance to <code>host</code>.</returns>
+        public HostDistance Distance(Host host)
         {
             string dc = DC(host);
             if (dc.Equals(_localDc))
@@ -88,8 +89,13 @@ namespace Cassandra
             int ix = 0;
             foreach (var h in _cluster.Metadata.AllHosts())
             {
-                if (h == host)
-                    return ix < _usedHostsPerRemoteDc ? HostDistance.Ignored : HostDistance.Remote;
+                if (h.Address.Equals(host.Address))
+                {
+                    if (ix < _usedHostsPerRemoteDc)
+                        return HostDistance.Remote;
+                    else
+                        return HostDistance.Ignored;
+                }
                 else if (dc.Equals(DC(h)))
                     ix++;
             }
@@ -108,28 +114,52 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            foreach (var h in _cluster.Metadata.AllHosts())
+            List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
+
+            for (int i = 0; i < copyOfHosts.Count; i++)
             {
-                if (_localDc.Equals(DC(h)))
-                {
-                    if (h.IsConsiderablyUp)
+                if (_startidx == -1)
+                    _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+
+                _startidx %= copyOfHosts.Count;
+
+                var h = copyOfHosts[_startidx];
+
+                _startidx++;
+
+                if (h.IsConsiderablyUp)
+                    if (_localDc.Equals(DC(h)))
                         yield return h;
-                }
             }
+
+            var remoteHosts = new List<Host>();
             var ixes = new Dictionary<string, int>();
-            foreach (var h in _cluster.Metadata.AllHosts())
+            for (int i = 0; i < copyOfHosts.Count; i++)
             {
-                if (!_localDc.Equals(DC(h)))
-                {
-                    if (h.IsConsiderablyUp && (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc))
-                    {
-                        yield return h;
-                        if (!ixes.ContainsKey(DC(h)))
-                            ixes.Add(DC(h), 1);
-                        else
-                            ixes[DC(h)] = ixes[DC(h)] + 1;
-                    }
-                }
+                var h = copyOfHosts[i];
+                if (h.IsConsiderablyUp)
+                    if (!_localDc.Equals(DC(h)))
+                        if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
+                        {
+                            remoteHosts.Add(h);
+                            if (!ixes.ContainsKey(DC(h)))
+                                ixes.Add(DC(h), 1);
+                            else
+                                ixes[DC(h)] = ixes[DC(h)] + 1;
+                        }
+            }
+
+            for (int i = 0; i < remoteHosts.Count; i++)
+            {
+                if (_startidx == -1)
+                    _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+
+                _startidx %= remoteHosts.Count;
+
+                var h = remoteHosts[_startidx];
+
+                _startidx++;
+                yield return h;
             }
         }
     }

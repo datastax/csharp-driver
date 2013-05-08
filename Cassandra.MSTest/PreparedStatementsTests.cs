@@ -6,15 +6,15 @@ using MyTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 
-#if CASSANDRA_NET_40_OR_GREATER
+#if NET_40_OR_GREATER
 using System.Numerics;
 #endif
 
 namespace Cassandra.MSTest
 {
     [TestClass]
-    public partial class PreparedStatements
-    {
+    public partial class PreparedStatementsTests
+    {        
         [TestMethod]
         public void testMassivePrepared()
         {
@@ -27,7 +27,7 @@ namespace Cassandra.MSTest
             insertingSingleValuePrepared(typeof(System.Decimal));
         }
 
-#if CASSANDRA_NET_40_OR_GREATER     
+#if NET_40_OR_GREATER     
         [TestMethod] 
         public void testPreparedVarInt()
         {
@@ -81,12 +81,11 @@ namespace Cassandra.MSTest
         {
             insertingSingleValuePrepared(typeof(System.Byte));
         }
-
-        [TestMethod]
+        
+        [TestMethod]   
         public void testPreparedUUID()
         {
             insertingSingleValuePrepared(typeof(System.Guid));
-        }
-
+        }                        
     }
 }

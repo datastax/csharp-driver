@@ -84,14 +84,14 @@ namespace Cassandra
             if (_controlConnection == null)
             {
                 var controlpolicies = new Cassandra.Policies(
-                    new RoundRobinPolicy(),
+                    _configuration.Policies.LoadBalancingPolicy,
                     new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
                     Cassandra.Policies.DefaultRetryPolicy);
 
-                _hosts = new Hosts();
+                _hosts = new Hosts(_configuration.Policies.ReconnectionPolicy);
 
                 foreach (var ep in _contactPoints)
-                    _hosts.AddIfNotExistsOrBringUpIfDown(ep, _configuration.Policies.ReconnectionPolicy);
+                    _hosts.AddIfNotExistsOrBringUpIfDown(ep);
 
                 var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
 
@@ -107,7 +107,6 @@ namespace Cassandra
 
                 _metadata = new Metadata(_hosts, _controlConnection);
 
-                _controlConnection.CCEvent += new ControlConnection.CCEventHandler(_controlConnection_CCEvent);
                 _controlConnection.Init();
             }
 
@@ -122,23 +121,6 @@ namespace Cassandra
             _logger.Info("Session connected!");
             return scs;
         }
-
-        private void _controlConnection_CCEvent(object sender, ControlConnection.CCEventArgs e)
-        {
-            List<Session> conccpy;
-            lock (_connectedSessions)
-                conccpy = new List<Session>(_connectedSessions);
-            foreach (var session in conccpy)
-            {
-                if (e.What == ControlConnection.CCEventArgs.Kind.Add)
-                    session.OnAddHost(e.IPAddress);
-                if (e.What == ControlConnection.CCEventArgs.Kind.Remove)
-                    session.OnRemovedHost(e.IPAddress);
-                if (e.What == ControlConnection.CCEventArgs.Kind.Down)
-                    session.OnDownHost(e.IPAddress);
-            }
-        }
-
 
 
         /// <summary>
@@ -255,11 +237,12 @@ namespace Cassandra
         //    AsyncResultNoResult.End(ar, this, "RefreshSchema");
         //}
 
-        public void RefreshSchema(string keyspace = null, string table = null)
+        public bool RefreshSchema(string keyspace = null, string table = null)
         {
             _controlConnection.SubmitSchemaRefresh(keyspace, table);
             if (keyspace == null && table == null)
-                _controlConnection.RefreshHosts();
+                return _controlConnection.RefreshHosts();
+            return true;
 //            EndRefreshSchema(BeginRefreshSchema(null, null, keyspace, table));
         }
 

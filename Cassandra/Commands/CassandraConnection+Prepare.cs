@@ -6,13 +6,18 @@ namespace Cassandra
     {
         public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "PREPARE", new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "PREPARE", SetupKeyspace((streamId) =>
             {
                 Evaluate(new PrepareRequest(streamId, cqlQuery), streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
-                        JobFinished(streamId, (response as ResultResponse).Output);
+                    {
+                        var outp = (response as ResultResponse).Output ;
+                        if (outp is OutputPrepared)
+                            preparedQueries[(outp as OutputPrepared).QueryID] = cqlQuery;
+                        JobFinished(streamId, outp);
+                    }
                     else
                         _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
 

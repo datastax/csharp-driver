@@ -73,9 +73,9 @@ namespace MyTest
 
     public static class Assert
     {
-        public static void Fail()
+        public static void Fail(string msg = "FAILED")
         {
-            throw new AssertException("FAILED");
+            throw new AssertException(msg);
         }
 
         public static void True(bool condition)

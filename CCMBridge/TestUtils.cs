@@ -45,9 +45,13 @@ public static class TestUtils {
         // tried doing an actual query, the driver won't realize that last node is dead until'
         // keep alive kicks in, but that's a fairly long time. So we cheat and trigger a force'
         // the detection by forcing a request.
+        bool disconnected = false;
         if (waitForDead || waitForOut)
-            cluster.RefreshSchema(null, null);
-        
+            disconnected = !cluster.RefreshSchema(null, null);
+
+        if (disconnected)
+            return;
+
         IPAddress address;
         try {
              address = IPAddress.Parse(node);
@@ -59,7 +63,7 @@ public static class TestUtils {
         Metadata metadata = cluster.Metadata;
         for (int i = 0; i < maxTry; ++i) {
             bool found = false;
-            foreach(Host host in metadata.AllHosts()) 
+            foreach (Host host in metadata.AllHosts())
             {
                 if (host.Address.Equals(address))
                 {
@@ -67,7 +71,6 @@ public static class TestUtils {
                     if (testHost(host, waitForDead))
                         return;
                 }
-
             }
             if (waitForDead && !found)
                 return;

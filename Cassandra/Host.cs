@@ -51,16 +51,27 @@ namespace Cassandra
             }
         }
 
-        public void SetDown()
+        public bool SetDown()
         {
-            _isUpNow = false;
-            _nextUpTime = DateTime.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
+            if (IsConsiderablyUp)
+                _nextUpTime = DateTime.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
+            if (_isUpNow)
+            {
+                _isUpNow = false;
+                return true;
+            }
+            return false;
         }
 
-        public void BringUpIfDown()
+        public bool BringUpIfDown()
         {
-            this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-            _isUpNow = true;
+            _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
+            if (!_isUpNow)
+            {
+                _isUpNow = true;
+                return true;
+            }
+            return false;
         }
 
         public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
@@ -119,7 +130,23 @@ namespace Cassandra
 
     internal class Hosts
     {
-        private readonly Dictionary<IPAddress, Host> _hosts = new Dictionary<IPAddress, Host>();
+        IReconnectionPolicy rp;
+
+        public Hosts(IReconnectionPolicy rp)
+        {
+            this.rp = rp;
+        }
+
+        class IPAddressComparer : IComparer<IPAddress>
+        {
+            public int Compare(IPAddress x, IPAddress y)
+            {
+                return x.ToString().CompareTo(y.ToString());
+            }
+        }
+
+        private readonly SortedDictionary<IPAddress, Host> _hosts = new SortedDictionary<IPAddress, Host>(new IPAddressComparer());
+       
 
         public Host this[IPAddress endpoint]
         {
@@ -141,22 +168,26 @@ namespace Cassandra
                 return new List<Host>(_hosts.Values);
         }
 
-        public void AddIfNotExistsOrBringUpIfDown(IPAddress ep, IReconnectionPolicy rp)
+        public bool AddIfNotExistsOrBringUpIfDown(IPAddress ep)
         {
             lock (_hosts)
             {
                 if (!_hosts.ContainsKey(ep))
+                {
                     _hosts.Add(ep, new Host(ep, rp));
+                    return true;
+                }
                 else
-                    _hosts[ep].BringUpIfDown();
+                    return _hosts[ep].BringUpIfDown();
             }
         }
 
-        public void SetDownIfExists(IPAddress ep)
+        public bool SetDownIfExists(IPAddress ep)
         {
             lock (_hosts)
                 if (_hosts.ContainsKey(ep))
-                    _hosts[ep].SetDown();
+                    return _hosts[ep].SetDown();
+            return false;
         }
 
         public void RemoveIfExists(IPAddress ep)

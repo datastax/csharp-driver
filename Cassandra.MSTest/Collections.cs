@@ -12,13 +12,13 @@ using System.Text;
 
 namespace Cassandra.MSTest
 {    
-    public partial class Collections
+    public partial class CollectionsTests
     {
         string Keyspace = "tester";
         Cluster Cluster;
         Session Session;
 
-        public Collections()
+        public CollectionsTests()
         {
         }
 
@@ -40,7 +40,7 @@ namespace Cassandra.MSTest
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
             Diagnostics.CassandraStackTraceIncluded = true;
             Diagnostics.CassandraPerformanceCountersEnabled = true;
-            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(2), true);
+            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(1), true);
         }
 
         [TestCleanup]

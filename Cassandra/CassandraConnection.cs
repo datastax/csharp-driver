@@ -287,7 +287,7 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                if (!SetupWriterException(ex, streamId))
+                if (!SetupSocketException(ex))
                     throw;
             }
 
@@ -312,7 +312,7 @@ namespace Cassandra
         {
             int streamId = (int)state;
 
-            SetupReaderException(new CassandraConnectionTimeoutException());
+            SetupSocketException(new CassandraConnectionTimeoutException());
 
             lock (_socket)
                 if (_socket.Value != null)
@@ -410,7 +410,7 @@ namespace Cassandra
                                         }
                                         catch (Exception ex)
                                         {
-                                            SetupReaderException(ex);
+                                                SetupSocketException(ex);
                                         }
                                         finally
                                         {
@@ -425,7 +425,7 @@ namespace Cassandra
                         }
                         catch (Exception ex)
                         {
-                            SetupReaderException(ex);
+                            SetupSocketException(ex);
                         }
                         finally
                         {
@@ -448,7 +448,7 @@ namespace Cassandra
             }
             catch (IOException e)
             {
-                if (!SetupReaderException(e))
+                if (!SetupSocketException(e))
                     throw;
             }
         }
@@ -486,7 +486,7 @@ namespace Cassandra
             }
         }
 
-        private bool SetupReaderException(Exception ex)
+        private bool SetupSocketException(Exception ex)
         {
             var toCompl = new List<AsyncResult<IOutput>>();
             try
@@ -522,31 +522,6 @@ namespace Cassandra
 
         readonly object _statusGuardier = new object();
         bool _alreadyDisposed = false;
-
-        private bool SetupWriterException(Exception ex, int streamId)
-        {
-            AsyncResult<IOutput> ar = null;
-            try
-            {
-                lock (_frameGuardier)
-                {
-                    if (_frameReadTimers[streamId] != null)
-                        _frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
-                    ar = _frameReadAsyncResult[streamId];
-                    FreeStreamId(streamId);
-                    HostIsDown();
-                    lock (_statusGuardier)
-                        _socketExceptionOccured = true;
-                    return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
-                }
-            }
-            finally
-            {
-                if(ar!=null)
-                    if (!ar.IsCompleted)
-                        ar.Complete(ex);
-            }
-        }
 
         void CheckDisposed()
         {
@@ -611,7 +586,7 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                if (!SetupWriterException(ex, streamId))
+                if (!SetupSocketException(ex))
                     throw;
             }
         }

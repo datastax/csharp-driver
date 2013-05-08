@@ -1,14 +1,41 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteQuery(byte[] Id, RowSetMetadata Metadata, object[] values,
+        Dictionary<byte[], string> preparedQueries = new Dictionary<byte[], string>();
+
+        public Action<int> SetupPreparedQuery(byte[] Id, string cql, Action<int> dx)
+        {
+            return new Action<int>((streamId) =>
+            {
+                if (!preparedQueries.ContainsKey(Id))
+                {
+                    Evaluate(new PrepareRequest(streamId, cql), streamId, new Action<ResponseFrame>((frame2) =>
+                    {
+                        var response = FrameParser.Parse(frame2);
+                        if (response is ResultResponse)
+                        {
+                            preparedQueries[Id] = cql;
+                            dx(streamId);
+                        }
+                        else
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+
+                    }));
+                }
+                else
+                    dx(streamId);
+            });
+        }
+
+        public IAsyncResult BeginExecuteQuery(byte[] Id, string cql, RowSetMetadata Metadata, object[] values,
                                               AsyncCallback callback, object state, object owner,
                                               ConsistencyLevel consistency, bool isTracing)
         {
-            return BeginJob(callback, state, owner, "EXECUTE", new Action<int>((streamId) =>
+            return BeginJob(callback, state, owner, "EXECUTE", SetupKeyspace(SetupPreparedQuery(Id, cql, (streamId) =>
                 {
                     Evaluate(new ExecuteRequest(streamId, Id, Metadata, values, consistency, isTracing), streamId,
                              new Action<ResponseFrame>((frame2) =>
@@ -24,7 +51,7 @@ namespace Cassandra
                                              });
 
                                  }));
-                }));
+                })));
         }
 
         public IOutput EndExecuteQuery(IAsyncResult result, object owner)
@@ -32,10 +59,10 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteQuery(byte[] Id, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
+        public IOutput ExecuteQuery(byte[] Id, string cql, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
                                     bool isTracing)
         {
-            return EndExecuteQuery(BeginExecuteQuery(Id, Metadata, values, null, null, this, consistency, isTracing),
+            return EndExecuteQuery(BeginExecuteQuery(Id, cql, Metadata, values, null, null, this, consistency, isTracing),
                                    this);
         }
     }

@@ -66,6 +66,7 @@
     </Compile>
     <Compile Include="AbstractResponse.cs" />
     <Compile Include="AsyncResult.cs" />
+    <Compile Include="BEBinaryWriterFrame.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="CassandraCounters.cs" />
@@ -77,6 +78,7 @@
     <Compile Include="Commands\CassandraConnection+Options.cs" />
     <Compile Include="Commands\CassandraConnection+Credentials.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="ConsistencyLevel.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="Diagnostics.cs" />
@@ -94,6 +96,7 @@
     <Compile Include="Exceptions\InvalidQueryException.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Exceptions\InvalidTypeException.cs" />
     <Compile Include="Exceptions\NoHostAvailableException.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -113,6 +116,7 @@
     <Compile Include="Exceptions\SyntaxError.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Exceptions\TruncateException.cs">
       <SubType>Code</SubType>
     </Compile>
