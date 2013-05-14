@@ -14,7 +14,7 @@ namespace Cassandra
 
         public Builder ApplyToBuilder(Builder builder)
         {
-            return builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace);
+            return builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace).WithAuthInfoProvider(new SimpleAuthInfoProvider().Add("username", Username).Add("password",Password));
         }
 
         public Builder MakeClusterBuilder()
@@ -60,7 +60,16 @@ namespace Cassandra
             set { base["Contact Points"] = string.Join(",", value); }
         }
 
+        public string Username
+        {
+            get { return DefaultIfNotExists<string>("Username", null); }
+            set { base["Username"] = value; }
+        }
 
-
+        public string Password
+        {
+            get { return DefaultIfNotExists<string>("Password", null); }
+            set { base["Password"] = value; }
+        }
     }
 }
