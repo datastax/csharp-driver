@@ -14,7 +14,7 @@ namespace Cassandra
         All = 0x0005,
         LocalQuorum = 0x0006,
         EachQuorum = 0x0007,
-        Default = Quorum,
+        Default = One,
         Ignore = Any
     }
 }

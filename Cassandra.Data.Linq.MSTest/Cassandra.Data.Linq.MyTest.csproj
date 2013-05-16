@@ -10,9 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Cassandra.Data.Linq.MSTest</RootNamespace>
     <AssemblyName>Cassandra.Data.Linq.MyTest</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -55,7 +53,7 @@
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
-      <Name>Cassandra.Native</Name>
+      <Name>Cassandra</Name>
     </ProjectReference>
     <ProjectReference Include="..\MyTestRun\MyTestLib\MyTestLib.csproj">
       <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
