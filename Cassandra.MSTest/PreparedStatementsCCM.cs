@@ -48,8 +48,8 @@ namespace Cassandra.MSTest
             Thread.Sleep(1000);
             string modifiedKs = "";
 
-            if (useKeyspace)            
-                Session.ChangeKeyspace(Keyspace);                            
+            if (useKeyspace)
+                Session.ChangeKeyspace(Keyspace);
             else
                 modifiedKs = Keyspace + ".";
 
@@ -60,7 +60,7 @@ namespace Cassandra.MSTest
             catch (AlreadyExistsException)
             {
             }
-
+            Thread.Sleep(1000);
             Session.Execute("INSERT INTO " + modifiedKs +"test (k, i) VALUES ('123', 17)");
             Session.Execute("INSERT INTO " + modifiedKs +"test (k, i) VALUES ('124', 18)");
 

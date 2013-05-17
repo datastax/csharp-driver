@@ -190,6 +190,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.BootstrapNode(4, "dc3");
+                c.Session.Execute("ALTER KEYSPACE "+ TestUtils.SIMPLE_KEYSPACE + " WITH REPLICATION ={'class' : 'NetworkTopologyStrategy','dc1' : 1, 'dc2' : 1, 'dc3' : 1}");
                 TestUtils.waitFor(CCMBridge.IP_PREFIX + "4", c.Cluster, 60);
 
 

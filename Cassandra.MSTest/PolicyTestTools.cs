@@ -6,6 +6,7 @@ using System.Threading;
 using MyTest;
 using System.Diagnostics;
 using System.Linq;
+using Cassandra.Data.Linq;
 
 namespace Cassandra.MSTest
 {
@@ -35,10 +36,14 @@ namespace Cassandra.MSTest
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
             Thread.Sleep(1000);
         }
-
         public static void createMultiDCSchema(Session session)
         {
-            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", "'dc1' : 1, 'dc2' : 1"));
+            createMultiDCSchema(session);
+        }
+
+        public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
+        {
+            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, string.Format("NetworkTopologyStrategy", "'dc1' : {0}, 'dc2' : {1}",dc1RF,dc2RF) ));
             Thread.Sleep(1000);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
@@ -96,27 +101,83 @@ namespace Cassandra.MSTest
             }
         }
 
+        /// <summary>
+        ///  Init methods that handle writes using batch and consistency options.
+        /// </summary>
 
-        public static void init(CCMBridge.CCMCluster c, int n)
+        protected void init(CCMBridge.CCMCluster c, int n)
+        {
+            init(c, n, false, ConsistencyLevel.One);
+        }
+
+        protected void init(CCMBridge.CCMCluster c, int n, bool batch)
+        {
+            init(c, n, batch, ConsistencyLevel.One);
+        }
+
+        protected void init(CCMBridge.CCMCluster c, int n, ConsistencyLevel cl)
+        {
+            init(c, n, false, cl);
+        }
+        //Only for tests purpose:
+        //private class InsertQuery : CqlCommand
+        //{
+        //    string Query;
+
+        //    internal InsertQuery(string query)                
+        //    {
+        //        this.Query = query;
+        //    }
+
+        //    public override string GetCql()
+        //    {
+        //        return Query;
+        //    }
+        //}
+        protected void init(CCMBridge.CCMCluster c, int n, bool batch, ConsistencyLevel cl)
         {
             // We don't use insert for our test because the resultSet don't ship the queriedHost
             // Also note that we don't use tracing because this would trigger requests that screw up the test'
             for (int i = 0; i < n; ++i)
-                c.Session.Execute(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TABLE));
+                if (batch)
+                // BUG: WriteType == SIMPLE                    
+                {                    
+                    //var bth = c.Session.CreateBatch();
+                    //bth.Append(new InsertQuery(string.Format("BEGIN BATCH INSERT INTO {0} VALUES {1} APPLY BATCH", TestUtils.SIMPLE_TABLE, "(0,0)")));
+                    //bth.SetConsistencyLevel(cl);
+                    //bth.Execute();
+                    
+                    //c.Session.Execute(batch()
+                    //        .add(string.Format("INSERT INTO {0} VALUES {1}", TestUtils.SIMPLE_TABLE, new String[] { "k", "i" }, new Object[] { 0, 0 })) //insertInto(SIMPLE_TABLE).values(new String[] { "k", "i" }, new Object[] { 0, 0 }))
+                    //        .SetConsistencyLevel(cl));
+                }
+                else
+                    c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO %s(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
 
-            prepared = c.Session.Prepare("SELECT * FROM " + TABLE + " WHERE k = ?");
+            prepared = c.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);
         }
 
-    		/// <summary>
-		///  Query methods that handle reads based on PreparedStatements and/or
-		///  ConsistencyLevels.
-		/// </summary>
-        public static void query(CCMBridge.CCMCluster c, int n)
+
+        /// <summary>
+        ///  Query methods that handle reads based on PreparedStatements and/or
+        ///  ConsistencyLevels.
+        /// </summary>
+        protected void query(CCMBridge.CCMCluster c, int n)
         {
-            query(c, n, false);
+            query(c, n, false, ConsistencyLevel.One);
         }
 
-        public static void query(CCMBridge.CCMCluster c, int n, bool usePrepared)
+        protected void query(CCMBridge.CCMCluster c, int n, bool usePrepared)
+        {
+            query(c, n, usePrepared, ConsistencyLevel.One);
+        }
+
+        protected void query(CCMBridge.CCMCluster c, int n, ConsistencyLevel cl)
+        {
+            query(c, n, false, cl);
+        }
+
+        protected void query(CCMBridge.CCMCluster c, int n, bool usePrepared, ConsistencyLevel cl)
         {
             if (usePrepared)
             {
@@ -130,8 +191,7 @@ namespace Cassandra.MSTest
                 routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
                 for (int i = 0; i < n; ++i)
                     addCoordinator(c.Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey)));
-
             }
-        }
+        }      
     }
 }

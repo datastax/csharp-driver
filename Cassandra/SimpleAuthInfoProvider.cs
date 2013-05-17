@@ -37,7 +37,7 @@ namespace Cassandra
         /// <summary>
         ///  Adds a new property to the authentication info returned by this provider.
         /// </summary>
-        /// <param name="property"> the name of the property to add. </param>
+        /// <param name="property"> the name of the property to add. For example "username","password" etc. </param>
         /// <param name="value"> the value to add for <code>property</code>. </param>
         /// 
         /// <returns><code>this</code> object.</returns>

@@ -37,7 +37,7 @@ namespace Cassandra.Data.MSTest
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
             cmd.CommandText = string.Format(@"CREATE KEYSPACE {0} 
-                     WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                     WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                  , keyspaceName);
             cmd.ExecuteNonQuery();
 

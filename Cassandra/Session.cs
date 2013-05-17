@@ -328,7 +328,10 @@ namespace Cassandra
         public void ChangeKeyspace(string keyspace_name)
         {
             Execute(GetUseKeyspaceCQL(keyspace_name));
-            
+        }
+
+        private void SetKeyspace(string keyspace_name)
+        {
             lock (_connectionPool)
             {
                 foreach (var kv in _connectionPool)
@@ -336,10 +339,7 @@ namespace Cassandra
                     foreach (var conn in kv.Value)
                     {
                         if (conn.IsHealthy)
-                        {
-                            var keyspaceId = CqlQueryTools.CqlIdentifier(keyspace_name);
-                            conn.SetKeyspace(keyspaceId);
-                        }
+                            conn.SetKeyspace(keyspace_name);
                     }
                 }
                 this._keyspace = keyspace_name;
@@ -507,29 +507,6 @@ namespace Cassandra
         //    }
         //}
 
-        private string ProcessSetKeyspace(IOutput outp)
-        {
-            using (outp)
-            {
-                if (outp is OutputError)
-                {
-                    var ex = (outp as OutputError).CreateException();
-                    _logger.Error(ex);
-                    throw ex; 
-                }
-                else if (outp is OutputSetKeyspace)
-                {                   
-                    return (outp as OutputSetKeyspace).Value;
-                }
-                else
-                {
-                    var ex = new DriverInternalError("Unexpected output kind");
-                    _logger.Error(ex);
-                    throw ex; 
-                }
-            }
-        }
-
         private void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId)
         {
             using (outp)
@@ -573,6 +550,7 @@ namespace Cassandra
                     return new CqlRowSet(outp as OutputSchemaChange, this);
                 else if (outp is OutputSetKeyspace)
                 {
+                    SetKeyspace((outp as OutputSetKeyspace).Value);
                     return new CqlRowSet(outp as OutputSetKeyspace, this);
                 }
                 else if (outp is OutputRows)

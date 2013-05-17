@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Threading;
+using System.Diagnostics;
 namespace Cassandra
 {
 
@@ -15,6 +16,7 @@ public static class TestUtils {
     public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
 
     public static readonly string SIMPLE_KEYSPACE = "ks";
+    public static readonly string SIMPLE_TABLE = "test";
 
     public static readonly string CREATE_TABLE_SIMPLE_FORMAT = "CREATE TABLE {0} (k text PRIMARY KEY, t text, i int, f float)";
 
@@ -39,7 +41,22 @@ public static class TestUtils {
     {
         waitFor(node, cluster, maxTry, true, true);
     }
+    
+    public static void waitForDownWithWait(String node, Cluster cluster, int waitTime)
+    {
+        waitFor(node, cluster, 20, true, false);
 
+        // FIXME: Once stop() works, remove this line
+        try
+        {
+            Thread.Sleep(waitTime * 1000);
+        }
+        catch (InvalidException e)
+        {
+            Debug.Write(e.StackTrace);
+        }
+    }
+    
     private static void waitFor(string node, Cluster cluster, int maxTry, bool waitForDead, bool waitForOut) {
         // In the case where the we've killed the last node in the cluster, if we haven't
         // tried doing an actual query, the driver won't realize that last node is dead until'

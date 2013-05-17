@@ -1,0 +1,333 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using MyTest;
+
+namespace Cassandra.MSTest
+{
+    [TestClass]
+    public class LargeDataTests
+    {
+        Cluster cluster;
+        Session session;
+        string ksname = "large_data";
+        int key = 0; 
+        /*
+         * Test a wide row of size 1,000,000
+         * @param c The cluster object
+         * @param key The key value that will receive the data
+         * @throws Exception
+         */
+        private void testWideRows()
+        {
+            // Write data
+            for (int i = 0; i < 500; ++i) //1000000
+                session.Execute("INSERT INTO wide_rows(k,i) VALUES("+key+","+i+")");
+                
+            // Read data        
+            var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key.ToString());
+
+            // Verify data
+            int j = 0;
+            foreach (CqlRow row in rs.GetRows())
+                Assert.True((int)row["i"] == j++);
+
+        }
+
+        /*
+         * Test a batch that writes a row of size 10,000
+         */
+        private void testWideBatchRows()
+        {
+            // Write data        
+            StringBuilder sb = new StringBuilder("BEGIN BATCH ");
+            for (int i = 0; i < 500; ++i) // 10000
+                sb.AppendLine(string.Format("INSERT INTO wide_batch_rows(k,i) VALUES({0},{1})", key, i));
+            sb.Append("APPLY BATCH");
+            session.Execute(sb.ToString());
+
+            // Read data
+            var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key.ToString());
+            // Verify data
+            int j = 0;
+            foreach (CqlRow row in rs.GetRows())
+                Assert.True((int)row["i"] == j++);
+
+        }
+
+        /*
+         * Test a wide row of size 1,000,000 consisting of a ByteBuffer
+         */
+        private void testByteRows()
+        {
+            // Build small ByteBuffer sample
+            BEBinaryWriter bw = new BEBinaryWriter();
+            for (int i = 0; i < 56; i++)
+                bw.WriteByte(0);
+            bw.WriteUInt16((ushort)0xCAFE);
+            byte[] bb = new byte[58];
+            Array.Copy(bw.GetBuffer(), bb, 58);
+
+            // Write data
+            for (int i = 0; i < 500; ++i)//1000000
+                session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, Cassandra.CqlQueryTools.ToHex(bb)));
+
+            // Read data
+            var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key.ToString());
+
+            // Verify data            
+            foreach (CqlRow row in rs.GetRows())
+                Assert.ArrEqual((byte[])row["i"], bb);
+
+        }
+
+        /*
+         * Test a row with a single extra large text value
+         */
+        private void testLargeText()
+        {
+            // Write data
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < 1000; ++i)
+                b.Append(i.ToString());// Create ultra-long text
+
+            session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b.ToString()));
+
+            // Read data
+            CqlRow row = session.Execute("SELECT * FROM large_text WHERE k = " + key.ToString()).GetRows().FirstOrDefault();// select().all().from("large_text").where(eq("k", key))).one();
+
+            // Verify data
+            Assert.True(b.ToString().Equals(row["i"]));
+        }
+        
+        /*
+         * Converts an integer to an string of letters
+         */
+        private static String createColumnName(int i)
+        {
+            String[] letters = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j" };
+
+            StringBuilder columnName;
+            int currentI;
+
+            currentI = i;
+            columnName = new StringBuilder();
+            while (true)
+            {
+                columnName.Append(letters[currentI % 10]);
+                currentI /= 10;
+                if (currentI == 0)
+                    break;
+            }
+
+            return columnName.ToString();
+        }
+
+        /*
+         * Creates a table with 330 columns
+         */
+        private void testWideTable()
+        {
+            // Write data            
+            StringBuilder insrt = new StringBuilder("INSERT INTO wide_table(k");
+            StringBuilder valus = new StringBuilder(" VALUES(" + key.ToString());
+            for (int i = 0; i < 330; ++i)
+            {
+                insrt.Append("," + createColumnName(i));
+                valus.Append("," + i.ToString());
+            }
+            insrt.Append(") " + valus.ToString() + ")");
+            session.Execute(insrt.ToString());
+
+            // Read data
+            CqlRow row = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString()).GetRows().FirstOrDefault();
+
+            // Verify data
+            for (int i = 0; i < 330; ++i)
+                Assert.True((int)row[createColumnName(i)] == i);
+
+        }
+
+        [TestInitialize]
+        public void SetFixture()
+        {
+            cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithDefaultKeyspace(ksname).Build(); 
+            session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
+        }
+        [TestCleanup]
+        public void Dispose()
+        {
+            session.DeleteKeyspace(ksname);
+            session.Dispose();
+            cluster.Shutdown();
+        }
+
+        private void largeDataTest(string tableName, string cqlType = "int")
+        {
+            try
+            {session.Execute("DROP TABLE " + tableName);}
+            catch (InvalidConfigurationInQueryException ex) { }
+
+            if (tableName == "wide_table")                            
+                session.Execute(GetTableDeclaration());            
+            else                           
+                session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, cqlType));
+            
+            try
+            {
+                switch (tableName)
+                {
+                    case "wide_rows":
+                        testWideRows();
+                        break;
+                    case "wide_batch_rows":
+                        testWideBatchRows();
+                        break;
+                    case "wide_byte_rows":
+                        testByteRows();
+                        break;
+                    case "large_text":
+                        testLargeText();
+                        break;
+                    case "wide_table":
+                        testWideTable();
+                        break;
+
+                    default:
+                        throw new InvalidOperationException();
+                }
+
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+        }
+
+
+        /// <summary>
+        ///  Test a wide row of size 1,000,000
+        /// </summary>
+        /// <throws name="Exception"></throws>
+
+        [TestMethod]
+        public void wideRows()
+        {
+            largeDataTest("wide_rows");
+        }
+
+        /// <summary>
+        ///  Test a batch that writes a row of size 10,000
+        /// </summary>
+        /// <throws name="Exception"></throws>
+
+        [TestMethod]
+        public void wideBatchRows()
+        {
+            largeDataTest("wide_batch_rows");
+        }
+
+        /// <summary>
+        ///  Test a wide row of size 1,000,000 consisting of a ByteBuffer
+        /// </summary>
+        /// <throws name="Exception"></throws>
+
+        [TestMethod]
+        public void wideByteRows()
+        {
+            largeDataTest("wide_byte_rows", "blob");
+        }
+
+        /// <summary>
+        ///  Test a row with a single extra large text value
+        /// </summary>
+        /// <throws name="Exception"></throws>
+
+        [TestMethod]
+        public void largeText()
+        {
+            largeDataTest("large_text", "text");
+        }
+
+        /// <summary>
+        ///  Creates a table with 330 columns
+        /// </summary>
+        /// <throws name="Exception"></throws>
+
+        [TestMethod]
+        public void wideTable()
+        {
+            largeDataTest("wide_table");
+        }
+
+        private static String GetTableDeclaration()
+        {
+            StringBuilder tableDeclaration = new StringBuilder();
+            tableDeclaration.Append("CREATE TABLE wide_table (");
+            tableDeclaration.Append("k INT PRIMARY KEY");
+            for (int i = 0; i < 330; ++i)
+            {
+                tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
+            }
+            tableDeclaration.Append(")");
+            return tableDeclaration.ToString();
+        }
+
+        /// <summary>
+        ///  Tests 10 random tests consisting of the other methods in this class
+        /// </summary>
+        /// <throws name="Exception"></throws>
+        [TestMethod]    
+        public void mixedDurationTestCCM()
+        {                          
+            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, Cluster.Builder());
+            cluster = c.Cluster;
+            session = c.Session;
+
+            session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
+            session.ChangeKeyspace("large_data");
+            session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows"));
+            session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows"));
+            session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows"));
+            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text"));
+
+            // Create the extra wide table definition
+            StringBuilder tableDeclaration = new StringBuilder();
+            tableDeclaration.Append("CREATE TABLE wide_table (");
+            tableDeclaration.Append("k INT PRIMARY KEY");
+            for (int i = 0; i < 330; ++i)
+            {
+                tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
+            }
+            tableDeclaration.Append(")");
+            session.Execute(tableDeclaration.ToString());
+
+            Random rndm = new Random(DateTime.Now.Millisecond);
+            try
+            {
+                for (int i = 0; i < 10; ++i)
+                {
+                    switch ((int)rndm.Next(0,5))
+                    {
+                        case 0: testWideRows(); break;
+                        case 1: testWideBatchRows(); break;
+                        case 2: testByteRows(); break;
+                        case 3: testLargeText(); break;
+                        case 4: testWideTable(); break;
+                        default: break;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                c.ErrorOut();
+                throw e;
+            }
+            finally
+            {
+                c.Discard();
+            }
+        }
+    }
+}

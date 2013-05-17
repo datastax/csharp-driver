@@ -39,6 +39,8 @@
     <Compile Include="..\Cassandra\BEBinaryWriter.cs">
       <Link>BEBinaryWriter.cs</Link>
     </Compile>
+    <Compile Include="ConsistencyTests.cs" />
+    <Compile Include="LargeDataTests.cs" />
     <Compile Include="PolicyTestTools.cs" />
     <Compile Include="PreparedStatementsCCMTests.cs" />
     <Compile Include="PreparedStatementsCCM.cs" />
@@ -68,6 +70,10 @@
     <Compile Include="ReconnectionPolicyTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
+      <Project>{7FD62B8B-365D-48D6-8C21-2EF215294F64}</Project>
+      <Name>Cassandra.Data.Linq</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>

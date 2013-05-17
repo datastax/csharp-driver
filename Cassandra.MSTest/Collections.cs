@@ -196,7 +196,5 @@ namespace Cassandra.MSTest
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
-
-
     }
 }

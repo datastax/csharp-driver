@@ -16,7 +16,7 @@ namespace Cassandra.MSTest
     public partial class PreparedStatementsCCMTests
     {        
                         
-        [TestMethod]
+        [TestMethod]        
         public void reprepareOnNewlyUpNodeTestCCM()
         {
             reprepareOnNewlyUpNodeTest(true);

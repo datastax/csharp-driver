@@ -178,6 +178,12 @@ namespace Cassandra
             }
             if (outp.ToString().Contains("[Errno"))
             {
+                if (outp.ToString().Contains("[Errno 17]"))
+                {
+                    ExecuteCCMAndPrint("remove test");
+                    ExecuteCCM(args);
+                    return;
+                }
                 var lines = outp.ToString().Split('\n');
                 for (int i = 0; i < lines.Length; i++)
                     Trace.TraceError("err>" + lines[i].Trim());

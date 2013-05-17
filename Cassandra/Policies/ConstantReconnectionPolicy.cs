@@ -1,3 +1,4 @@
+using System;
 namespace Cassandra
 {
     /// <summary>
@@ -15,7 +16,10 @@ namespace Cassandra
         /// <param name="constantDelayMs"> the constant delay in milliseconds to use.</param>
         public ConstantReconnectionPolicy(long constantDelayMs)
         {
-            this._delayMs = constantDelayMs;
+            if (constantDelayMs > 0)
+                this._delayMs = constantDelayMs;
+            else
+                throw new ArgumentException("Constant delay time for reconnection policy have to be bigger than 0.");
         }
 
         /// <summary>
