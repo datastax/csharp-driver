@@ -6,30 +6,11 @@ using TestRunner.Properties;
 using System.IO;
 using System.Threading;
 using System.Globalization;
+using CommandLine.Text;
+using CommandLine;
 
 namespace MyTest
 {
-    //class MySettings : MyTest.ISettings
-    //{
-    //    Action<string> wrt; 
-    //    public MySettings(Action<string> wrt)
-    //    {
-    //        this.wrt = wrt;
-    //    }
-    //    public string this[string name]
-    //    {
-    //        get
-    //        {
-    //            return (string)Settings.Default[name];
-    //        }
-    //    }
-
-
-    //    public Action<string> GetWriter()
-    //    {
-    //        return wrt;
-    //    }
-    //}
 
     class Program
     {
@@ -56,11 +37,11 @@ namespace MyTest
         static void Test(ref object testObj, Type type, MethodInfo mth, StreamWriter output, ref int Passed, ref int Failed)
         {
             if (testObj == null)
-            {                
-                testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });                                
-                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));                
+            {
+                testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });
+                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));
                 if (ist != null)
-                    ist.Invoke(testObj, new object[] {});
+                    ist.Invoke(testObj, new object[] { });
             }
             try
             {
@@ -118,11 +99,17 @@ namespace MyTest
                 output.Flush();
             }
             Console.WriteLine();
-            output.WriteLine();            
+            output.WriteLine();
         }
-
-        static void Main(string[] args)
+        
+        static int Main(string[] args)
         {
+            if (!CommandLine.Parser.Default.ParseArguments(args, MyTestOptions.Default))
+            {
+                MyTestOptions.Default.GetUsage();
+                return 1;
+            }
+
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
             var tstDir = Settings.Default.TestFolder.Replace("$TEST_ROOT", Directory.GetCurrentDirectory());
@@ -134,10 +121,10 @@ namespace MyTest
             int Failed = 0;
 
             bool priorityTestsRun = true;
-second_round: // Iterate again over the test packs, and run tests without priority attribute 
+        second_round: // Iterate again over the test packs, and run tests without priority attribute 
             foreach (var asmn in TestPacks)
             {
-                var asm = Assembly.Load(asmn);                
+                var asm = Assembly.Load(asmn);
 
                 foreach (var type in asm.GetTypes())
                 {
@@ -148,9 +135,9 @@ second_round: // Iterate again over the test packs, and run tests without priori
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
-                            if (( mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
+                            if ((mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
                                 continue;
-                            if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0 )
+                            if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)
                             {
                                 Test(ref testObj, type, mth, output, ref Passed, ref Failed);
                             }
@@ -166,7 +153,7 @@ second_round: // Iterate again over the test packs, and run tests without priori
                     }
                 }
             }
-            
+
             if (priorityTestsRun)
             {
                 priorityTestsRun = false;
@@ -190,6 +177,8 @@ second_round: // Iterate again over the test packs, and run tests without priori
             output.Close();
             if (Failed > 0)
                 Console.ReadKey();
+
+            return 0;
         }
 
         static void printInnerException(Exception ex, StreamWriter output)

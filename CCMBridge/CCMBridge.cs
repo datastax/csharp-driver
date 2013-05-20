@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Text;
+
+
 namespace Cassandra
 {
 
@@ -19,7 +21,19 @@ namespace Cassandra
 
         static CCMBridge()
         {
+#if MYTEST
+            var version = MyTest.MyTestOptions.Default.CassandraVersion;
+            IP_PREFIX = MyTest.MyTestOptions.Default.IpPrefix;
+            _ssh_host = MyTest.MyTestOptions.Default.SSHHost;
+            _ssh_port = MyTest.MyTestOptions.Default.SSHPort;
+            _ssh_username = MyTest.MyTestOptions.Default.SSHUser;
+            _ssh_password = MyTest.MyTestOptions.Default.SSHPassword;
+            CASSANDRA_VERSION = "-v " + version;
+#else
             var version = Cassandra.Properties.Settings.Default.CASSANDRA_VERSION;
+            IP_PREFIX = Cassandra.Properties.Settings.Default.IP_PREFIX;
+            if (string.IsNullOrEmpty(IP_PREFIX))
+                IP_PREFIX = "127.0.0.";
 
             if (new Regex(CASSANDRA_VERSION_REGEXP).IsMatch(version))
             {
@@ -31,14 +45,13 @@ namespace Cassandra
                 CASSANDRA_DIR = Cassandra.Properties.Settings.Default.CASSANDRA_DIR;
                 CASSANDRA_VERSION = null;
             }
-            IP_PREFIX = Cassandra.Properties.Settings.Default.IP_PREFIX;
-            if (string.IsNullOrEmpty(IP_PREFIX))
-                IP_PREFIX = "127.0.0.";
 
             _ssh_host = Cassandra.Properties.Settings.Default.SSH_HOST;
             _ssh_port = Cassandra.Properties.Settings.Default.SSH_PORT;
             _ssh_username = Cassandra.Properties.Settings.Default.SSH_USERNAME;
             _ssh_password = Cassandra.Properties.Settings.Default.SSH_PASSWORD;
+#endif
+
 
         }
 

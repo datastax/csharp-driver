@@ -28,39 +28,6 @@ namespace MyTest
     {
     }
 
-    //public interface ISettings
-    //{
-    //    string this[string name] { get; }
-    //    Action<string> GetWriter();
-    //}
-
-
-    //public class SettingsFixture
-    //{
-    //    private ISettings _settings;
-
-    //    public SettingsFixture()
-    //    {
-    //    }
-
-    //    public void Initialize(ISettings settings)
-    //    {
-    //        this._settings = settings;
-    //    }
-
-    //    public ISettings Settings
-    //    {
-    //        get { return _settings; }
-    //    }
-
-    //    public void InfoMessage(string msg)
-    //    {
-    //        var we = _settings.GetWriter();
-    //        if (we != null)
-    //            we(msg);
-    //    }
-    //}
-
     public class AssertException : Exception
     {
         public string UserMessage { get; private set; }

@@ -2,4 +2,4 @@
 git pull
 mdtool build -t:Clean -c:Release Cassandra.MyTest.sln
 mdtool build -t:Build -c:Release Cassandra.MyTest.sln
-mono ./MyTestRun/bin/Release/MyTestRun.exe
+mono ./MyTestRun/bin/Release/MyTestRun.exe -u username -p password
