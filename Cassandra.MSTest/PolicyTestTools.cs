@@ -152,7 +152,7 @@ namespace Cassandra.MSTest
                     //        .SetConsistencyLevel(cl));
                 }
                 else
-                    c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO %s(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
+                    c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
 
             prepared = c.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);
         }

@@ -10,7 +10,6 @@ namespace Cassandra.MSTest
     public class ConsistencyTests : PolicyTestTools
     {
         [TestMethod]
-        [Priority]
         public void testRFOneTokenAware() {
         var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
         CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
@@ -205,7 +204,6 @@ namespace Cassandra.MSTest
     }
 
         [TestMethod]
-        [Priority]
         public void testRFThreeTokenAware() {
         var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
         CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
