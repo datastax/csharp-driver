@@ -30,6 +30,9 @@ namespace LinqSamples
 
             [Column("When-Made")]
             public int Year { get; set; }
+
+            [Column("List")]
+            public List<string> exampleSet = new List<string>();
         }
 
         public class ExtMovie
@@ -67,8 +70,8 @@ namespace LinqSamples
 
                     var movies = new List<NerdMovie>()
                     {
-                        new NerdMovie(){ Movie = "Serenity", Maker="20CentFox",  Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005},
-                        new NerdMovie(){ Movie = "Pulp Fiction", Maker = "Pixar", Director = "Quentin Tarantino", MainActor = "John Travolta", Year = 1994},
+                        new NerdMovie(){ Movie = "Serenity", Maker="20CentFox",  Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 , exampleSet = new List<string>(){"x","y"}},
+                        new NerdMovie(){ Movie = "Pulp Fiction", Maker = "Pixar", Director = "Quentin Tarantino", MainActor = "John Travolta", Year = 1994, exampleSet = new List<string>(){"1","2","3"}},
                     };
 
                     batch.Append(from m in movies select table.Insert(m));

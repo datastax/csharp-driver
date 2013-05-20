@@ -550,7 +550,7 @@ namespace Cassandra
                     return new CqlRowSet(outp as OutputSchemaChange, this);
                 else if (outp is OutputSetKeyspace)
                 {
-                    SetKeyspace((outp as OutputSetKeyspace).Value);
+                    SetKeyspace(CqlQueryTools.CqlIdentifier((outp as OutputSetKeyspace).Value));
                     return new CqlRowSet(outp as OutputSetKeyspace, this);
                 }
                 else if (outp is OutputRows)
