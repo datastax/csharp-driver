@@ -36,10 +36,6 @@ namespace Cassandra.MSTest
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
             Thread.Sleep(1000);
         }
-        public static void createMultiDCSchema(Session session)
-        {
-            createMultiDCSchema(session);
-        }
 
         public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
         {
