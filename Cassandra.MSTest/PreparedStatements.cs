@@ -7,6 +7,8 @@ using System.Diagnostics;
 
 #if MYTEST
 using MyTest;
+using System.Globalization;
+using System.Threading;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
@@ -20,40 +22,26 @@ namespace Cassandra.MSTest
         string Keyspace = "tester";
         Cluster Cluster;
         Session Session;
-        
-        public PreparedStatementsTests()
-        {
-        }
+        CCMBridge.CCMCluster CCMCluster;
 
         [TestInitialize]
         public void SetFixture()
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-US");
-            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
-            clusterb.WithDefaultKeyspace(Keyspace);
-
-            if (Cassandra.MSTest.Properties.Settings.Default.Compression)
-            {
-                clusterb.WithCompression(CompressionType.Snappy);
-                Console.WriteLine("Compression: Snappy Compression");
-            }
-            else Console.WriteLine("Compression: No Compression");
-
-            Cluster = clusterb.Build();
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            Diagnostics.CassandraStackTraceIncluded = true;
-            Diagnostics.CassandraPerformanceCountersEnabled = true;
-            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(1), true);
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            Session = CCMCluster.Session;
+            Cluster = CCMCluster.Cluster;
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            Session.DeleteKeyspace(Keyspace);
-            Session.Dispose();
-            Cluster.Shutdown();
+            CCMCluster.Discard();
         }
-
+        
+        public PreparedStatementsTests()
+        {
+        }
 
         public void insertingSingleValuePrepared(Type tp)
         {

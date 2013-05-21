@@ -9,14 +9,19 @@ using MyTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 using System.Text;
+using System.Threading;
+using System.Globalization;
 
 namespace Cassandra.MSTest
 {    
     public partial class CollectionsTests
     {
-        string Keyspace = "tester";
+
+        string Keyspace = "";
         Cluster Cluster;
         Session Session;
+        CCMBridge.CCMCluster CCMCluster;
+
 
         public CollectionsTests()
         {
@@ -25,30 +30,16 @@ namespace Cassandra.MSTest
         [TestInitialize]
         public void SetFixture()
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-US");
-            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
-            clusterb.WithDefaultKeyspace(Keyspace);
-
-            if (Cassandra.MSTest.Properties.Settings.Default.Compression)
-            {
-                clusterb.WithCompression(CompressionType.Snappy);
-                Console.WriteLine("Compression: Snappy Compression");
-            }
-            else Console.WriteLine("Compression: No Compression");
-
-            Cluster = clusterb.Build();
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            Diagnostics.CassandraStackTraceIncluded = true;
-            Diagnostics.CassandraPerformanceCountersEnabled = true;
-            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(1), true);
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            Session = CCMCluster.Session;
+            Cluster = CCMCluster.Cluster;
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            Session.DeleteKeyspace(Keyspace);
-            Session.Dispose();
-            Cluster.Shutdown();
+            CCMCluster.Discard();
         }
 
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null, string pendingMode = "")

@@ -46,11 +46,6 @@
     <Compile Include="PreparedStatementsCCM.cs" />
     <Compile Include="ExceptionsTests.cs" />
     <Compile Include="LoadBalancingPolicyTests.cs" />
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
     <Compile Include="..\Cassandra\Utils.cs">
       <Link>Utils.cs</Link>
     </Compile>
@@ -86,15 +81,6 @@
       <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
       <Name>MyTestLib</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

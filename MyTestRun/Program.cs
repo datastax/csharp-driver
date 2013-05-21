@@ -135,6 +135,8 @@ namespace MyTest
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
+                            if ((mth.GetCustomAttributes(typeof(MyTest.IgnoreAttribute), true).Length > 0))
+                                continue;
                             if ((mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
                                 continue;
                             if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)

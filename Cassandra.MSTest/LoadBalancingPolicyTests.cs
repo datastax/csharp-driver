@@ -13,7 +13,6 @@ namespace Cassandra.MSTest
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
 
-        [Priority]
         [TestMethod]
         public void roundRobinTestCCM()
         {
@@ -60,7 +59,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Priority]
         [TestMethod]
         public void roundRobinWith2DCsTestCCM()
         {
@@ -102,7 +100,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Priority]
         [TestMethod]
         public void DCAwareRoundRobinTestCCM()
         {
@@ -134,7 +131,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Priority]
         [TestMethod]
         public void forceStopCCM()
         {

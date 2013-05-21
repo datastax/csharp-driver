@@ -3,16 +3,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MyTest;
+using System.Globalization;
+using System.Threading;
 
 namespace Cassandra.MSTest
 {
     [TestClass]
     public class LargeDataTests
     {
+        string ksname = "large_data";
+        int key = 0;
+
+
         Cluster cluster;
         Session session;
-        string ksname = "large_data";
-        int key = 0; 
+        CCMBridge.CCMCluster CCMCluster;
+
+        [TestInitialize]
+        public void SetFixture()
+        {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            session = CCMCluster.Session;
+            cluster = CCMCluster.Cluster;
+        }
+
+        [TestCleanup]
+        public void Dispose()
+        {
+            CCMCluster.Discard();
+        }
+        
         /*
          * Test a wide row of size 1,000,000
          * @param c The cluster object
@@ -149,19 +170,7 @@ namespace Cassandra.MSTest
 
         }
 
-        [TestInitialize]
-        public void SetFixture()
-        {
-            cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithDefaultKeyspace(ksname).Build(); 
-            session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
-        }
-        [TestCleanup]
-        public void Dispose()
-        {
-            session.DeleteKeyspace(ksname);
-            session.Dispose();
-            cluster.Shutdown();
-        }
+
 
         private void largeDataTest(string tableName, string cqlType = "int")
         {

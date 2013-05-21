@@ -10,6 +10,7 @@ using MyTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 using System.Text;
+using System.Globalization;
 
 namespace Cassandra.MSTest
 {
@@ -19,6 +20,7 @@ namespace Cassandra.MSTest
         string Keyspace = "";
         Cluster Cluster;
         Session Session;
+        CCMBridge.CCMCluster CCMCluster;
 
         public AdvancedTests()
         {
@@ -27,38 +29,16 @@ namespace Cassandra.MSTest
         [TestInitialize]
         public void SetFixture()
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-US");
-            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
-            clusterb.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
-            if (Cassandra.MSTest.Properties.Settings.Default.Compression)
-            {
-                clusterb.WithCompression(CompressionType.Snappy);
-                Console.WriteLine("Compression: Snappy Compression");
-            }
-            else Console.WriteLine("Compression: No Compression");
-
-            if (!Cassandra.MSTest.Properties.Settings.Default.Buffering)
-            {
-                clusterb.WithoutRowSetBuffering();
-                Console.WriteLine("Buffering: Without Row Set Buffering");
-            }
-
-            var rp = new RoundRobinPolicyWithReconnectionRetries(new ConstantReconnectionPolicy(100));
-            rp.ReconnectionEvent += new EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs>((s, ev) =>
-            {
-                Console.Write("o");
-                System.Threading.Thread.Sleep((int)ev.DelayMs);
-            });
-            clusterb.WithLoadBalancingPolicy(rp);
-            clusterb.WithQueryTimeout(60 * 1000);
-            Cluster = clusterb.Build();
-            Session = Cluster.Connect(this.Keyspace);
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            Session = CCMCluster.Session;
+            Cluster = CCMCluster.Cluster;
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            Session.Dispose();
+            CCMCluster.Discard();
         }
 
 

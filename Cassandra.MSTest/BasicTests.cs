@@ -27,13 +27,15 @@ namespace Cassandra.MSTest
         {
             createSecondaryIndexTest();
         }
-
+        
+        [Ignore]
         [TestMethod]
         public void checkSimpleStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
         }
 
+        [Ignore]
         [TestMethod]
         public void checkNetworkTopologyStrategyKeyspace()
         {

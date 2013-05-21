@@ -53,6 +53,8 @@ namespace Cassandra.Data.Linq.MSTest
 
 
         Session session;
+        CCMBridge.CCMCluster CCMCluster;
+        Cluster Cluster;
         TweetsContext ents;
         string keyspaceName = "Tweets" + Guid.NewGuid().ToString("N");
 
@@ -60,27 +62,16 @@ namespace Cassandra.Data.Linq.MSTest
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-
-            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
-            clusterb.WithDefaultKeyspace(keyspaceName);
-            if (Cassandra.Data.Linq.MSTest.Properties.Settings.Default.Compression)
-            {
-                clusterb.WithCompression(CompressionType.Snappy);
-                Console.WriteLine("Compression: Snappy Compression");
-            }
-            else Console.WriteLine("Compression: No Compression");
-
-            var cluster = clusterb.Build();
-            session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists();
+            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            session = CCMCluster.Session;
+            Cluster = CCMCluster.Cluster;
             ents = new TweetsContext(session);
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            session.DeleteKeyspace(keyspaceName);
-            session.Dispose();
+            CCMCluster.Discard();
         }
 
         class X

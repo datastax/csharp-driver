@@ -21,6 +21,8 @@ namespace Cassandra.MSTest
         string Keyspace = "tester";
         Cluster Cluster;
         Session Session;
+        CCMBridge.CCMCluster CCMCluster;
+
 
         public BasicTests()
         {
@@ -30,29 +32,17 @@ namespace Cassandra.MSTest
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            var clusterb = Cluster.Builder().AddContactPoint("cassi.cloudapp.net");
-            clusterb.WithDefaultKeyspace(Keyspace);
-
-            if (Cassandra.MSTest.Properties.Settings.Default.Compression)
-            {
-                clusterb.WithCompression(CompressionType.Snappy);
-                Console.WriteLine("Compression: Snappy Compression");
-            }
-            else Console.WriteLine("Compression: No Compression");
-
-            Cluster = clusterb.Build();
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            Diagnostics.CassandraStackTraceIncluded = true;
-            Diagnostics.CassandraPerformanceCountersEnabled = true;
-            Session = Cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(ReplicationStrategies.CreateSimpleStrategyReplicationProperty(1), true);
+            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            Session = CCMCluster.Session;
+            Cluster = CCMCluster.Cluster;
+            Session.CreateKeyspaceIfNotExists(Keyspace);
+            Session.ChangeKeyspace(Keyspace);
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            Session.DeleteKeyspace(Keyspace);
-            Session.Dispose();
-            Cluster.Shutdown();
+            CCMCluster.Discard();
         }    
 
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
@@ -357,11 +347,7 @@ string.Format(@"CREATE KEYSPACE {0}
 
         public void BigInsertTest(int RowsNo = 5000)
         {
-            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
             Randomm rndm = new Randomm(DateTime.Now.Millisecond);
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                , keyspaceName));
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
@@ -397,8 +383,6 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
             QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
             QueryTools.ExecuteSyncQuery(Session, string.Format(@"SELECT * from {0};", tableName));
             QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"DROP TABLE {0};", tableName));
-
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"DROP KEYSPACE {0};", keyspaceName));
         }
 
     }

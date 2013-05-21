@@ -178,6 +178,7 @@ namespace Cassandra
 
         private void ExecuteCCM(string args)
         {
+            Console.WriteLine("CCM>"+args);
             if (_ssh_shellStream.DataAvailable)
                 _ssh_shellStream.Read();
             _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
@@ -206,6 +207,7 @@ namespace Cassandra
 
         private void ExecuteCCMAndPrint(string args)
         {
+            Console.WriteLine("CCM>"+args);
             _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
             var outp = new StringBuilder();
             while (true)
@@ -361,7 +363,7 @@ namespace Cassandra
                 return new CCMCluster(CCMBridge.Create("test", nbNodesDC1, nbNodesDC2), builder);
             }
 
-            private CCMCluster(CCMBridge cassandraCluster, Builder builder)
+            public CCMCluster(CCMBridge cassandraCluster, Builder builder)
             {
                 this.CassandraCluster = cassandraCluster;
                 try
