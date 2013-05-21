@@ -168,7 +168,14 @@ namespace Cassandra
 
         private void ReconnectionClb(object state)
         {
-            SetupControlConnection();
+            try
+            {
+                SetupControlConnection();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex);
+            }
         }
 
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
@@ -214,8 +221,8 @@ namespace Cassandra
             {
                 try
                 {
-                    _logger.Info("Refreshing ControlConnection...");
                     _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    _logger.Info("Refreshing ControlConnection...");
                     if (!refreshOnly)
                         SetupEventListener();
                     RefreshNodeListAndTokenMap();
