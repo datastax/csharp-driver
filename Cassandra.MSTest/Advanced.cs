@@ -17,7 +17,6 @@ namespace Cassandra.MSTest
     [TestClass]
     public partial class AdvancedTests
     {
-        string Keyspace = "";
         Cluster Cluster;
         Session Session;
         CCMBridge.CCMCluster CCMCluster;

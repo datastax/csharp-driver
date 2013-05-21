@@ -101,7 +101,6 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [Priority]
         public void DCAwareRoundRobinTestCCM()
         {
 

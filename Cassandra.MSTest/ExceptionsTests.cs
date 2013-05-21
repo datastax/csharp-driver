@@ -9,7 +9,7 @@ using System.Net;
 
 namespace Cassandra.MSTest
 {
-    
+    [Ignore]
     [TestClass]
     public class ExceptionsTests
     {

@@ -176,6 +176,8 @@ namespace Cassandra
             ExecuteCCM(string.Format("node{0} decommission", n));
         }
 
+        private int dead = 0;
+
         private void ExecuteCCM(string args)
         {
             Console.WriteLine("CCM>"+args);
@@ -192,8 +194,9 @@ namespace Cassandra
             }
             if (outp.ToString().Contains("[Errno"))
             {
-                if (outp.ToString().Contains("[Errno 17]"))
+                if (outp.ToString().Contains("[Errno 17]") && dead<2)
                 {
+                    dead++;
                     ExecuteCCMAndPrint("remove test");
                     ExecuteCCM(args);
                     return;
@@ -203,6 +206,7 @@ namespace Cassandra
                     Trace.TraceError("err>" + lines[i].Trim());
                 throw new InvalidOperationException();
             }
+            dead = 0;
         }
 
         private void ExecuteCCMAndPrint(string args)

@@ -8,6 +8,7 @@ using System.Diagnostics;
 
 namespace Cassandra.MSTest
 {
+    [Ignore]
     public class ReconnectionPolicyTests : PolicyTestTools
     {
         /*

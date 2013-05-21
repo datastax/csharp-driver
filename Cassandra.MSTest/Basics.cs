@@ -36,6 +36,7 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
+            Thread.Sleep(1000);
             Session.ChangeKeyspace(Keyspace);
         }
 

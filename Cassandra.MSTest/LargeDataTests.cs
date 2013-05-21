@@ -8,6 +8,7 @@ using System.Threading;
 
 namespace Cassandra.MSTest
 {
+    [Ignore]
     [TestClass]
     public class LargeDataTests
     {
