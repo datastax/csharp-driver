@@ -29,7 +29,19 @@ namespace Cassandra.MSTest
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+   	     var clusterb = Cluster.Builder();
+            clusterb.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
+
+            var rp = new RoundRobinPolicyWithReconnectionRetries(new ConstantReconnectionPolicy(100));
+            rp.ReconnectionEvent += new EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs>((s, ev) =>
+            {
+                Console.Write("o");
+                System.Threading.Thread.Sleep((int)ev.DelayMs);
+            });
+            clusterb.WithLoadBalancingPolicy(rp);
+            clusterb.WithQueryTimeout(60 * 1000);
+
+            CCMCluster = CCMBridge.CCMCluster.Create(2, clusterb);
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
         }
@@ -49,6 +61,8 @@ namespace Cassandra.MSTest
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                 , keyspaceName));
+			
+			Thread.Sleep(3000);
 
             Session.ChangeKeyspace(keyspaceName);
 
@@ -183,7 +197,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                     , keyspaceName));
-            
+			Thread.Sleep(3000);
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();

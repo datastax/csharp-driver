@@ -35,8 +35,6 @@ namespace Cassandra
             if (sender == this)
                 return;
 
-            Action act = new Action(() =>
-            {
                 if (e.What == HostsEventArgs.Kind.Down)
                 {
                     if (e.IPAddress.Equals(listeningOnHost))
@@ -47,9 +45,7 @@ namespace Cassandra
                     if (_isDiconnected)
                         SetupControlConnection();
                 }
-            });
-            act.BeginInvoke((ar) => act.EndInvoke(ar), null);
-        }
+		}
 
         internal void Init()
         {
@@ -246,7 +242,7 @@ namespace Cassandra
                     else
                     {
                         _logger.Error("Unexpected error occurred during ControlConnection refresh.", ex);
-                        throw;
+//                        throw;
                     }
                 }
             }

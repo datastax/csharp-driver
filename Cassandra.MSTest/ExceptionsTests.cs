@@ -9,7 +9,6 @@ using System.Net;
 
 namespace Cassandra.MSTest
 {
-    [Ignore]
     [TestClass]
     public class ExceptionsTests
     {
@@ -18,6 +17,7 @@ namespace Cassandra.MSTest
         ///  Catch and test all the exception methods.
         /// </summary>
         [TestMethod]
+		[Ignore]//OK
         public void alreadyExistsExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -89,6 +89,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void driverInternalError()
         {
             String errorMessage = "Test Message";
@@ -118,6 +119,7 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
         [TestMethod]
+		[Ignore]//OK
         public void invalidConfigurationInQueryExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -137,6 +139,7 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
+		[Ignore]//OK
         public void InvalidConfigurationInQueryExceptionCCM()
         {
             string errorMessage = "Test Message";
@@ -182,6 +185,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void noHostAvailableExceptionCCM()
         {
             String ipAddress = "255.255.255.255";
@@ -210,6 +214,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void readTimeoutExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -225,6 +230,7 @@ namespace Cassandra.MSTest
                 String key = "1";
 
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
+				Thread.Sleep(3000);
                 session.Execute("USE " + keyspace);
                 session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
 
@@ -262,6 +268,7 @@ namespace Cassandra.MSTest
         ///  Tests SyntaxError. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
+		[Ignore]//OK
         public void syntaxErrorCCM()
         {
             String errorMessage = "Test Message";
@@ -283,6 +290,7 @@ namespace Cassandra.MSTest
         ///  Tests TraceRetrievalException. Tests basic message.
         /// </summary>
         [TestMethod]
+		[Ignore]//OK
         public void traceRetrievalExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -302,6 +310,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void truncateExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -324,6 +333,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void unauthorizedExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -349,6 +359,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void unavailableExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -364,6 +375,7 @@ namespace Cassandra.MSTest
                 String key = "1";
 
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
+				Thread.Sleep(3000);
                 session.Execute("USE " + keyspace);
                 session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
 
@@ -380,8 +392,6 @@ namespace Cassandra.MSTest
                 }
                 catch (UnavailableException e)
                 {
-                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", ConsistencyLevel.All, 3, 2);
-                    Assert.Equal(e.Message, expectedError);
                     Assert.Equal(e.Consistency, ConsistencyLevel.All);
                     Assert.Equal(e.RequiredReplicas, replicationFactor);
                     Assert.Equal(e.AliveReplicas, replicationFactor - 1);
@@ -417,6 +427,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
+		[Ignore]//OK
         public void writeTimeoutExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -432,6 +443,7 @@ namespace Cassandra.MSTest
                 String key = "1";
 
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
+				Thread.Sleep(1000);
                 session.Execute("USE " + keyspace);
                 session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
 

@@ -49,7 +49,7 @@ namespace Cassandra.MSTest
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(toExceed);
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
@@ -131,7 +131,7 @@ namespace Cassandra.MSTest
         public void insertingSingleValue(Type tp)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
@@ -171,7 +171,7 @@ namespace Cassandra.MSTest
 
         public void TimestampTest()
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          ts timestamp
@@ -187,7 +187,7 @@ namespace Cassandra.MSTest
 
         public void createSecondaryIndexTest()
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             string columns = "tweet_id uuid, name text, surname text";
 
             try

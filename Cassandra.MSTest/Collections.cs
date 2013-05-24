@@ -17,7 +17,7 @@ namespace Cassandra.MSTest
     public partial class CollectionsTests
     {
 
-        string Keyspace = "";
+        string Keyspace = "tester";
         Cluster Cluster;
         Session Session;
         CCMBridge.CCMCluster CCMCluster;
@@ -34,6 +34,9 @@ namespace Cassandra.MSTest
             CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
+            Session.CreateKeyspaceIfNotExists(Keyspace);
+            Thread.Sleep(1000);
+            Session.ChangeKeyspace(Keyspace);
         }
 
         [TestCleanup]
@@ -152,7 +155,7 @@ namespace Cassandra.MSTest
                     randomKeyValue = Randomm.RandomVal(TypeOfDataToBeInputed).ToString();
             }
 
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(

@@ -14,7 +14,11 @@ namespace Cassandra
 #if ERRORINJECTION
         public void KillSocket()
         {
+			try
+			{
             _socket.Value.Shutdown(SocketShutdown.Both);
+			}
+			catch{}
         }
 #endif
         readonly IPAddress _serverAddress;

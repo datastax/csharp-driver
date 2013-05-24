@@ -16,12 +16,14 @@ namespace Cassandra.MSTest
     public partial class PreparedStatementsTests
     {        
         [TestMethod]
+		[Ignore]//OK
         public void testMassivePrepared()
         {
             massivePreparedStatementTest();
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedDecimal()
         {
             insertingSingleValuePrepared(typeof(System.Decimal));
@@ -29,42 +31,49 @@ namespace Cassandra.MSTest
 
 #if NET_40_OR_GREATER     
         [TestMethod] 
+		[Ignore]//OK
         public void testPreparedVarInt()
         {
             insertingSingleValuePrepared(typeof(BigInteger));            
         }
 #endif
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedBigInt()
         {
             insertingSingleValuePrepared(typeof(System.Int64));
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedDouble()
         {
             insertingSingleValuePrepared(typeof(System.Double));
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedFloat()
         {
             insertingSingleValuePrepared(typeof(System.Single));
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedInt()
         {
             insertingSingleValuePrepared(typeof(System.Int32));
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedVarchar()
         {
             insertingSingleValuePrepared(typeof(System.String));
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void testPreparedTimestamp()
         {
             insertingSingleValuePrepared(typeof(System.DateTimeOffset));
@@ -83,6 +92,7 @@ namespace Cassandra.MSTest
         }
         
         [TestMethod]   
+		[Ignore]//OK
         public void testPreparedUUID()
         {
             insertingSingleValuePrepared(typeof(System.Guid));

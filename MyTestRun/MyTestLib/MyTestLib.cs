@@ -49,7 +49,9 @@ namespace MyTest
         {
             if (!condition)
             {
+#if DEBUG				
                 Debugger.Break();
+#endif				
                 throw new AssertException("false");
             }
         }
@@ -58,8 +60,10 @@ namespace MyTest
         {
             if (!condition)
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException("false", userMessage);
+#endif
+				throw new AssertException("false", userMessage);
             }
         }
 
@@ -67,8 +71,10 @@ namespace MyTest
         {
             if (condition)
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException("true");
+#endif
+				throw new AssertException("true");
             }
         }
 
@@ -76,8 +82,10 @@ namespace MyTest
         {
             if (condition)
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException("true", userMessage);
+#endif
+				throw new AssertException("true", userMessage);
             }
         }
 
@@ -85,8 +93,10 @@ namespace MyTest
         {
             if (!((expected == null && actual == null) || (expected != null && expected.Equals(actual))))
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual));
+#endif
+				throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual));
             }
         }
 
@@ -94,8 +104,10 @@ namespace MyTest
         {
             if (!((expected == null && actual == null) || (expected != null && expected.Equals(actual))))
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual), userMessage);
+#endif
+				throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual), userMessage);
             }
         }
 
@@ -106,15 +118,19 @@ namespace MyTest
 
             if (a1 == null || a2 == null)
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException("At least one array is null.");
+#endif
+				throw new AssertException("At least one array is null.");
             }
                 
 
             if (a1.Length != a2.Length)
             {
+#if DEBUG				
                 Debugger.Break();
-                throw new AssertException(string.Format("Arrays length is not equal: '{0}'!='{1}'", a1.Length, a2.Length));
+#endif
+				throw new AssertException(string.Format("Arrays length is not equal: '{0}'!='{1}'", a1.Length, a2.Length));
             }
             
 
@@ -123,8 +139,10 @@ namespace MyTest
             {
                 if (!comparer.Equals(a1[i], a2[i]))
                 {
-                    Debugger.Break();
-                    throw new AssertException(string.Format("Arrays values are not equal: '{0}'!='{1}' at {2} position.", a1[i], a2[i], i));
+#if DEBUG				
+                Debugger.Break();
+#endif
+					throw new AssertException(string.Format("Arrays values are not equal: '{0}'!='{1}' at {2} position.", a1[i], a2[i], i));
                 }
             }
             return true;

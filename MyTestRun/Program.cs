@@ -36,33 +36,65 @@ namespace MyTest
 
         static void Test(ref object testObj, Type type, MethodInfo mth, StreamWriter output, ref int Passed, ref int Failed)
         {
-            if (testObj == null)
-            {
-                testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });
-                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));
-                if (ist != null)
-                    ist.Invoke(testObj, new object[] { });
-            }
             try
             {
-                Console.ForegroundColor = ConsoleColor.Black;
-                Console.BackgroundColor = ConsoleColor.White;
-                var s = type.FullName + "." + mth.Name + "() Start...";
-                Console.WriteLine(new string(' ', 79));
-                Console.WriteLine(s);
-                output.WriteLine(new string('-', 79));
-                output.WriteLine(s);
-                Console.ResetColor();
-                mth.Invoke(testObj, new object[] { });
-                Passed++;
-                Console.ForegroundColor = ConsoleColor.Black;
-                Console.BackgroundColor = ConsoleColor.Green;
-                s = type.FullName + "." + mth.Name + "() Passed";
-                Console.WriteLine(s);
-                Console.WriteLine(new string(' ', 79));
-                output.WriteLine(s);
-                output.WriteLine(new string('-', 79));
-                Console.ResetColor();
+	            if (mth!=null && testObj == null)
+	            {
+	                Console.ForegroundColor = ConsoleColor.Black;
+	                Console.BackgroundColor = ConsoleColor.White;
+	                var s = type.FullName +":Init";
+	                Console.WriteLine(new string(' ', 79));
+	                Console.WriteLine(s);
+	                output.WriteLine(new string('-', 79));
+	                output.WriteLine(s);
+	                Console.ResetColor();
+	
+					testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });
+	                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));
+	                if (ist != null)
+	                    ist.Invoke(testObj, new object[] { });
+	            }
+				if(mth==null)
+				{
+					if(testObj != null)
+					{
+		                Console.ForegroundColor = ConsoleColor.Black;
+		                Console.BackgroundColor = ConsoleColor.White;
+		                var s = type.FullName +":Cleanup";
+		                Console.WriteLine(new string(' ', 79));
+		                Console.WriteLine(s);
+		                output.WriteLine(new string('-', 79));
+		                output.WriteLine(s);
+		                Console.ResetColor();
+                        var ist = FindMethodWithAttribute(type, typeof(TestCleanupAttribute));
+                        if (ist != null)
+                            ist.Invoke(testObj, new object[] { });
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+					}
+					return;
+				}
+				{
+	                Console.ForegroundColor = ConsoleColor.Black;
+	                Console.BackgroundColor = ConsoleColor.White;
+	                var s = type.FullName + "." + mth.Name + "() Start...";
+	                Console.WriteLine(new string(' ', 79));
+	                Console.WriteLine(s);
+	                output.WriteLine(new string('-', 79));
+	                output.WriteLine(s);
+	                Console.ResetColor();
+	                mth.Invoke(testObj, new object[] { });
+	                Passed++;
+	                Console.ForegroundColor = ConsoleColor.Black;
+	                Console.BackgroundColor = ConsoleColor.Green;
+	                s = type.FullName + "." + mth.Name + "() Passed";
+	                Console.WriteLine(s);
+	                Console.WriteLine(new string(' ', 79));
+	                output.WriteLine(s);
+	                output.WriteLine(new string('-', 79));
+	                output.Flush();
+	                Console.ResetColor();
+				}
             }
             catch (Exception ex)
             {
@@ -78,6 +110,7 @@ namespace MyTest
                     Console.WriteLine(new string(' ', 79));
                     output.WriteLine(s);
                     output.WriteLine(new string('-', 79));
+	                output.Flush();
                 }
                 else
                 {
@@ -91,6 +124,7 @@ namespace MyTest
                     output.WriteLine(ex.InnerException.Message);
                     if (ex.InnerException.InnerException != null)
                         printInnerException(ex.InnerException.InnerException, output);
+                output.Flush();
                 }
                 Console.WriteLine(ex.InnerException.StackTrace);
                 output.WriteLine(ex.InnerException.StackTrace);
@@ -144,14 +178,7 @@ namespace MyTest
                                 Test(ref testObj, type, mth, output, ref Passed, ref Failed);
                             }
                         }
-                        if (testObj != null)
-                        {
-                            var ist = FindMethodWithAttribute(type, typeof(TestCleanupAttribute));
-                            if (ist != null)
-                                ist.Invoke(testObj, new object[] { });
-                            GC.Collect();
-                            GC.WaitForPendingFinalizers();
-                        }
+						Test (ref testObj,type,null,output,ref Passed, ref Failed);
                     }
                 }
             }

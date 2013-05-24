@@ -31,7 +31,7 @@ namespace Cassandra.MSTest
         public static void createSchema(Session session, int replicationFactor)
         {
             session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor), ConsistencyLevel.All);
-            Thread.Sleep(1000);
+            Thread.Sleep(3000);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
             Thread.Sleep(1000);
@@ -39,8 +39,8 @@ namespace Cassandra.MSTest
 
         public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
         {
-            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, string.Format("NetworkTopologyStrategy", "'dc1' : {0}, 'dc2' : {1}",dc1RF,dc2RF) ));
-            Thread.Sleep(1000);
+            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", string.Format("'dc1' : {0}, 'dc2' : {1}",dc1RF,dc2RF) ));
+            Thread.Sleep(3000);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
             Thread.Sleep(1000);
@@ -62,7 +62,7 @@ namespace Cassandra.MSTest
         }
 
 
-		///  Helper test methods
+		///  Helper test methodspt
 
        
         public static void assertQueried(String host, int n)

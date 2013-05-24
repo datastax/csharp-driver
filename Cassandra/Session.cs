@@ -188,8 +188,9 @@ namespace Cassandra
 
         internal void HostIsDown(IPAddress endpoint)
         {
-            if(_cluster.Metadata!=null)
-                _cluster.Metadata.SetDownHost(endpoint, this);
+			var metadata = _cluster.Metadata;
+            if(metadata!=null)
+                metadata.SetDownHost(endpoint, this);
         }
 
         CassandraConnection AllocateConnection(IPAddress endPoint, out Exception outExc)
@@ -266,7 +267,7 @@ namespace Cassandra
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Default);
+            Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.All);
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 

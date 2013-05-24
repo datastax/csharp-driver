@@ -17,25 +17,25 @@ namespace Cassandra.MSTest
     public partial class BasicTests
     {
         [TestMethod]        
+		[Ignore]//OK
         public void BigInsert()
         {
             BigInsertTest(3000);
         }
 
         [TestMethod]        
+		[Ignore]//OK
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
         }
         
-        [Ignore]
         [TestMethod]
         public void checkSimpleStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
         }
 
-        [Ignore]
         [TestMethod]
         public void checkNetworkTopologyStrategyKeyspace()
         {
@@ -57,6 +57,7 @@ namespace Cassandra.MSTest
         }        
         
         [TestMethod]
+		[Ignore]//OK
         public void checkKeyspaceMetadata()
         {
             checkKSMetadata();
@@ -137,28 +138,33 @@ namespace Cassandra.MSTest
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int32));
         }
         [TestMethod]
+		[Ignore]//OK
         public void MaxingBoundsOf_BIGINT()
         {
             ExceedingCassandraType(typeof(System.Int64), typeof(System.Int64));
         }
         [TestMethod]
+		[Ignore]//OK
         public void MaxingBoundsOf_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Single));
         }
         [TestMethod]
+		[Ignore]//OK
         public void MaxingBoundsOf_DOUBLE()
         {
             ExceedingCassandraType(typeof(System.Double), typeof(System.Double));
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void ExceedingCassandra_INT()
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int64), false);
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Double), false);

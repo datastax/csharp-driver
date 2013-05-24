@@ -7,9 +7,9 @@ using System.Threading;
 
 namespace Cassandra.MSTest
 {
+	[Ignore]
     public class ConsistencyTests : PolicyTestTools
     {
-        [Ignore]
         [TestMethod]
         public void testRFOneTokenAware()
         {
@@ -136,7 +136,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFTwoTokenAware()
         {
@@ -265,7 +264,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFThreeTokenAware()
         {
@@ -392,7 +390,6 @@ namespace Cassandra.MSTest
                 c.Discard();
             }
         }
-        [Ignore]
         [TestMethod]
         public void testRFOneDowngradingCL()
         {
@@ -519,7 +516,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFTwoDowngradingCL()
         {
@@ -650,7 +646,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFThreeRoundRobinDowngradingCL()
         {
@@ -658,7 +653,6 @@ namespace Cassandra.MSTest
             testRFThreeDowngradingCL(builder);
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFThreeTokenAwareDowngradingCL()
         {
@@ -804,7 +798,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFThreeDowngradingCLTwoDCs()
         {
@@ -925,7 +918,6 @@ namespace Cassandra.MSTest
             }
         }
 
-        [Ignore]
         [TestMethod]
         public void testRFThreeDowngradingCLTwoDCsDCAware()
         {

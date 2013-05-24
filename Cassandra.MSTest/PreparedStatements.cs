@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Globalization;
+using System.Threading;
 
 #if MYTEST
 using MyTest;
-using System.Globalization;
-using System.Threading;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
@@ -31,7 +31,9 @@ namespace Cassandra.MSTest
             CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
-        }
+            Session.CreateKeyspaceIfNotExists(Keyspace);
+            Thread.Sleep(1000);
+            Session.ChangeKeyspace(Keyspace);        }
 
         [TestCleanup]
         public void Dispose()
@@ -52,6 +54,8 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, cassandraDataTypeName));
+			
+			Thread.Sleep(1000);
 
             List<object[]> toInsert = new List<object[]>(1);
             var val = Randomm.RandomVal(tp);

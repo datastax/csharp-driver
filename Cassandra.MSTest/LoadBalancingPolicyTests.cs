@@ -14,6 +14,7 @@ namespace Cassandra.MSTest
     {
 
         [TestMethod]
+		[Ignore]//OK
         public void roundRobinTestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -60,6 +61,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void roundRobinWith2DCsTestCCM()
         {
 
@@ -101,6 +103,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+		[Ignore]//OK
         public void DCAwareRoundRobinTestCCM()
         {
 
@@ -132,6 +135,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+		[Priority]
         public void forceStopCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -262,12 +266,14 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+		[Ignore]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
         }
 
         [TestMethod]
+		[Ignore]
         public void tokenAwarePreparedTestCCM()
         {
             tokenAwareTest(true);
@@ -343,6 +349,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+		[Ignore]
         public void tokenAwareWithRF2TestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));

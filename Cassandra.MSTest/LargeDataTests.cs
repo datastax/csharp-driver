@@ -8,7 +8,6 @@ using System.Threading;
 
 namespace Cassandra.MSTest
 {
-    [Ignore]
     [TestClass]
     public class LargeDataTests
     {
@@ -27,6 +26,9 @@ namespace Cassandra.MSTest
             CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             session = CCMCluster.Session;
             cluster = CCMCluster.Cluster;
+            session.CreateKeyspaceIfNotExists(ksname);
+            Thread.Sleep(1000);
+            session.ChangeKeyspace(ksname);
         }
 
         [TestCleanup]
@@ -222,8 +224,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
+		[Ignore]//OK
         public void wideRows()
         {
+            session.ChangeKeyspace(ksname);
             largeDataTest("wide_rows");
         }
 
@@ -233,8 +237,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
+		[Ignore]//OK
         public void wideBatchRows()
         {
+            session.ChangeKeyspace(ksname);
             largeDataTest("wide_batch_rows");
         }
 
@@ -244,8 +250,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
+		[Ignore]//OK
         public void wideByteRows()
         {
+            session.ChangeKeyspace(ksname);
             largeDataTest("wide_byte_rows", "blob");
         }
 
@@ -255,6 +263,7 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
+		[Ignore]//OK
         public void largeText()
         {
             largeDataTest("large_text", "text");
@@ -266,6 +275,7 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
+		[Ignore]//OK
         public void wideTable()
         {
             largeDataTest("wide_table");
@@ -296,6 +306,7 @@ namespace Cassandra.MSTest
             session = c.Session;
 
             session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
+			Thread.Sleep(3000);
             session.ChangeKeyspace("large_data");
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows"));
