@@ -29,39 +29,6 @@ namespace Cassandra.MSTest
         {
             createSecondaryIndexTest();
         }
-        
-        [TestMethod]
-        public void checkSimpleStrategyKeyspace()
-        {
-            CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
-        }
-
-        [TestMethod]
-        public void checkNetworkTopologyStrategyKeyspace()
-        {
-            CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
-        }
-
-        [TestMethod]        
-        public void checkTableMetadata()
-        {
-            checkMetadata();
-        }
-        
-        [TestMethod]              
-        public void checkTableMetadataWithOptions()
-        {
-            checkMetadata(tableOptions: new TableOptions("Comment",0.5,0.6, true,42,0.01,"ALL",
-                new SortedDictionary<string,string>{{"class","org.apache.cassandra.db.compaction.LeveledCompactionStrategy"} , {"sstable_size_in_mb" , "15"}},
-                new SortedDictionary<string,string>{{"sstable_compression" , "org.apache.cassandra.io.compress.SnappyCompressor"}, {"chunk_length_kb" , "128"}}));
-        }        
-        
-        [TestMethod]
-		[Ignore]//OK
-        public void checkKeyspaceMetadata()
-        {
-            checkKSMetadata();
-        }
 
         [TestMethod]
         public void testCounter()

@@ -41,6 +41,7 @@
     </Compile>
     <Compile Include="ConsistencyTests.cs" />
     <Compile Include="LargeDataTests.cs" />
+    <Compile Include="MetadataTests.cs" />
     <Compile Include="PolicyTestTools.cs" />
     <Compile Include="PreparedStatementsCCMTests.cs" />
     <Compile Include="PreparedStatementsCCM.cs" />

@@ -135,7 +135,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-		[Priority]
+		[Ignore]//OK
         public void forceStopCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -151,7 +151,14 @@ namespace Cassandra.MSTest
                 c.CassandraCluster.ForceStop(2);
                 TestUtils.waitForDown(CCMBridge.IP_PREFIX + "1", c.Cluster, 20);
                 TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
-                
+
+                query(c, 12);
+
+                c.CassandraCluster.ForceStop(3);
+                c.CassandraCluster.ForceStop(4);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "4", c.Cluster, 20);
+
                 try
                 {
                     query(c, 12);
