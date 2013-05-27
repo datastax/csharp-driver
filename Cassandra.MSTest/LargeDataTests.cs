@@ -299,6 +299,7 @@ namespace Cassandra.MSTest
         /// </summary>
         /// <throws name="Exception"></throws>
         [TestMethod]    
+        [Ignore]
         public void mixedDurationTestCCM()
         {                          
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, Cluster.Builder());

@@ -17,18 +17,21 @@ namespace Cassandra.Data.Linq.MSTest
         }
 
         [TestMethod]
+        [Ignore]
         public void TestPagination()
         {
             testPagination();
         }
 
         [TestMethod]
+        [Ignore]
         public void TestBuffering()
         {
             testBuffering();
         }
 
         [TestMethod]
+        [Ignore]
         public void TestBug16_JIRA()
         {
             Bug16_JIRA();

@@ -38,6 +38,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testBlob()
         {
             insertingSingleValue(typeof(byte));
@@ -64,6 +65,7 @@ namespace Cassandra.MSTest
 #endif
 
         [TestMethod]
+        [Ignore]//OK
         public void testBigInt()
         {
             insertingSingleValue(typeof(System.Int64));
@@ -75,34 +77,40 @@ namespace Cassandra.MSTest
             insertingSingleValue(typeof(System.Double));
         }
         [TestMethod]
+        [Ignore]//OK
         public void testFloat()
         {
             insertingSingleValue(typeof(System.Single));
         }
         [TestMethod]
+        [Ignore]//OK
         public void testInt()
         {
             insertingSingleValue(typeof(System.Int32));
         }
         [TestMethod]
+        [Ignore]//OK
         public void testBoolean()
         {
             insertingSingleValue(typeof(System.Boolean));
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testUUID()
         {
             insertingSingleValue(typeof(System.Guid));
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testTimestamp()
         {
             TimestampTest();
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void MaxingBoundsOf_INT()
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int32));
