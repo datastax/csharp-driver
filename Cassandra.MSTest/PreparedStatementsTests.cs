@@ -80,12 +80,14 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testPreparedBoolean()
         {
             insertingSingleValuePrepared(typeof(System.Boolean));
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testPreparedBlob()
         {
             insertingSingleValuePrepared(typeof(System.Byte));

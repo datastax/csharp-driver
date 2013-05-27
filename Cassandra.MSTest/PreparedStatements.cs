@@ -84,6 +84,8 @@ namespace Cassandra.MSTest
          numb1 double,
          numb2 int
          );", tableName));
+
+                Thread.Sleep(1000);
             }
             catch (AlreadyExistsException)
             {

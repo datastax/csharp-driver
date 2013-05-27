@@ -183,6 +183,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));

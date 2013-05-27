@@ -31,6 +31,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testCounter()
         {
             testCounters();
@@ -43,6 +44,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testASCII()
         {
             insertingSingleValue(typeof(Char));
@@ -67,6 +69,7 @@ namespace Cassandra.MSTest
             insertingSingleValue(typeof(System.Int64));
         }
         [TestMethod]
+        [Ignore]//OK
         public void testDouble()
         {
             insertingSingleValue(typeof(System.Double));

@@ -241,7 +241,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [Priority]
+        [Ignore]//OK
         public void checkKeyspaceMetadata()
         {
             checkKSMetadata();

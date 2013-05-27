@@ -56,6 +56,7 @@ namespace Cassandra.MSTest
          label text,
          number {1}
          );", tableName, cassandraDataTypeName));
+                Thread.Sleep(1000);
             }
             catch (AlreadyExistsException)
             {
@@ -111,6 +112,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          incdec counter
          );", tableName));
+                Thread.Sleep(1000);
             }
             catch (AlreadyExistsException)
             {
@@ -137,6 +139,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, cassandraDataTypeName));
+                Thread.Sleep(1000);
             }
             catch (AlreadyExistsException)
             {
@@ -175,6 +178,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          ts timestamp
          );", tableName));
+            Thread.Sleep(1000);
 
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), "2011-02-03 04:05+0000"), null);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 220898707200000), null);
@@ -195,6 +199,7 @@ namespace Cassandra.MSTest
          {1},
 PRIMARY KEY(tweet_id)
          );", tableName, columns));
+                Thread.Sleep(1000);
             }
             catch (AlreadyExistsException)
             {
@@ -239,6 +244,7 @@ PRIMARY KEY(tweet_id)
 		 fval float,
 		 dval double,
          PRIMARY KEY(tweet_id))", tableName));
+                Thread.Sleep(1000);
             }
             catch (AlreadyExistsException)
             {
