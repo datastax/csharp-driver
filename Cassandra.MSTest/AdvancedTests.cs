@@ -10,14 +10,14 @@ namespace Cassandra.MSTest
     public partial class AdvancedTests
     {
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void ParallelInsert()
         {
             parallelInsertTest();
         }
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void ErrorInjectionParallelInsert()
         {
             ErrorInjectionInParallelInsertTest();

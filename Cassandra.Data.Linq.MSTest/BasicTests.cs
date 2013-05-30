@@ -11,28 +11,28 @@ namespace Cassandra.Data.Linq.MSTest
     public partial class BasicLinqTests
     {
         [TestMethod]
-        [Ignore]
+        [WorksForMe]
         public void Test()
         {
             Test1();
         }
 
         [TestMethod]
-        [Ignore]
+        [WorksForMe]
         public void TestPagination()
         {
             testPagination();
         }
 
         [TestMethod]
-        [Ignore]
+        [WorksForMe]
         public void TestBuffering()
         {
             testBuffering();
         }
 
         [TestMethod]
-        [Ignore]
+        [WorksForMe]
         public void TestBug16_JIRA()
         {
             Bug16_JIRA();

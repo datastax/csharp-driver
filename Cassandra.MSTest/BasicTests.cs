@@ -17,49 +17,49 @@ namespace Cassandra.MSTest
     public partial class BasicTests
     {
         [TestMethod]        
-		[Ignore]//OK
+		[WorksForMe]
         public void BigInsert()
         {
             BigInsertTest(3000);
         }
 
         [TestMethod]        
-		[Ignore]//OK
+		[WorksForMe]
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testCounter()
         {
             testCounters();
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testBlob()
         {
             insertingSingleValue(typeof(byte));
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testASCII()
         {
             insertingSingleValue(typeof(Char));
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testDecimal()
         {
             insertingSingleValue(typeof(Decimal));
         }
 #if NET_40_OR_GREATER
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testVarInt()
         {
             insertingSingleValue(typeof(BigInteger));
@@ -67,84 +67,84 @@ namespace Cassandra.MSTest
 #endif
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testBigInt()
         {
             insertingSingleValue(typeof(System.Int64));
         }
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testDouble()
         {
             insertingSingleValue(typeof(System.Double));
         }
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testFloat()
         {
             insertingSingleValue(typeof(System.Single));
         }
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testInt()
         {
             insertingSingleValue(typeof(System.Int32));
         }
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testBoolean()
         {
             insertingSingleValue(typeof(System.Boolean));
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testUUID()
         {
             insertingSingleValue(typeof(System.Guid));
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void testTimestamp()
         {
             TimestampTest();
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void MaxingBoundsOf_INT()
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int32));
         }
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void MaxingBoundsOf_BIGINT()
         {
             ExceedingCassandraType(typeof(System.Int64), typeof(System.Int64));
         }
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void MaxingBoundsOf_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Single));
         }
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void MaxingBoundsOf_DOUBLE()
         {
             ExceedingCassandraType(typeof(System.Double), typeof(System.Double));
         }
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void ExceedingCassandra_INT()
         {
             ExceedingCassandraType(typeof(System.Int32), typeof(System.Int64), false);
         }
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof(System.Single), typeof(System.Double), false);

@@ -211,28 +211,28 @@ namespace Cassandra.MSTest
 
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void checkSimpleStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void checkNetworkTopologyStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void checkTableMetadata()
         {
             checkMetadata();
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void checkTableMetadataWithOptions()
         {
             checkMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
@@ -241,7 +241,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [Ignore]//OK
+        [WorksForMe]
         public void checkKeyspaceMetadata()
         {
             checkKSMetadata();

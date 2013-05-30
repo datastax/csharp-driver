@@ -4,26 +4,37 @@ using System.Collections.Generic;
 
 namespace MyTest
 {
+    [AttributeUsage(AttributeTargets.Class)]
     public class TestClass : Attribute
     {
     }
 
+    [AttributeUsage(AttributeTargets.Method)]
     public class TestMethodAttribute : Attribute
     {
     }
 
-    public class IgnoreAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Method)]
+    public class WorksForMeAttribute : Attribute
     {
     }
 
+    [AttributeUsage(AttributeTargets.Method)]
+    public class NeedSomeFixAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
     public class PriorityAttribute : Attribute
     {
     }
 
+    [AttributeUsage(AttributeTargets.Method)]
     public class TestInitializeAttribute : Attribute
     {
     }
 
+    [AttributeUsage(AttributeTargets.Method)]
     public class TestCleanupAttribute : Attribute
     {
     }

@@ -7,10 +7,10 @@ using System.Threading;
 
 namespace Cassandra.MSTest
 {
-	[Ignore]
     public class ConsistencyTests : PolicyTestTools
     {
         [TestMethod]
+        [NeedSomeFix]
         public void testRFOneTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -137,6 +137,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFTwoTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -265,6 +266,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFThreeTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -390,7 +392,9 @@ namespace Cassandra.MSTest
                 c.Discard();
             }
         }
+
         [TestMethod]
+        [NeedSomeFix]
         public void testRFOneDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -517,6 +521,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFTwoDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -647,6 +652,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFThreeRoundRobinDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy()).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -654,6 +660,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFThreeTokenAwareDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -799,6 +806,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFThreeDowngradingCLTwoDCs()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -919,6 +927,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [NeedSomeFix]
         public void testRFThreeDowngradingCLTwoDCsDCAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2"))).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);

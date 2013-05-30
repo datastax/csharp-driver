@@ -23,6 +23,13 @@ namespace Cassandra.MSTest
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+        }
+
+        private void SetupDefaultCluster()
+        {
+            if (CCMCluster != null)
+                CCMCluster.Discard();
+
             CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             session = CCMCluster.Session;
             cluster = CCMCluster.Cluster;
@@ -34,7 +41,8 @@ namespace Cassandra.MSTest
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            if(CCMCluster!=null)
+                CCMCluster.Discard();
         }
         
         /*
@@ -224,9 +232,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void wideRows()
         {
+            SetupDefaultCluster();
             session.ChangeKeyspace(ksname);
             largeDataTest("wide_rows");
         }
@@ -237,9 +246,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void wideBatchRows()
         {
+            SetupDefaultCluster();
             session.ChangeKeyspace(ksname);
             largeDataTest("wide_batch_rows");
         }
@@ -250,9 +260,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void wideByteRows()
         {
+            SetupDefaultCluster();
             session.ChangeKeyspace(ksname);
             largeDataTest("wide_byte_rows", "blob");
         }
@@ -263,9 +274,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void largeText()
         {
+            SetupDefaultCluster();
             largeDataTest("large_text", "text");
         }
 
@@ -275,9 +287,10 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void wideTable()
         {
+            SetupDefaultCluster();
             largeDataTest("wide_table");
         }
 
@@ -299,12 +312,14 @@ namespace Cassandra.MSTest
         /// </summary>
         /// <throws name="Exception"></throws>
         [TestMethod]    
-        [Ignore]
+        [WorksForMe]
         public void mixedDurationTestCCM()
-        {                          
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, Cluster.Builder());
-            cluster = c.Cluster;
-            session = c.Session;
+        {
+            if (CCMCluster != null)
+                CCMCluster.Discard();
+            CCMCluster = CCMBridge.CCMCluster.Create(3, Cluster.Builder());
+            cluster = CCMCluster.Cluster;
+            session = CCMCluster.Session;
 
             session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
 			Thread.Sleep(3000);
@@ -343,12 +358,12 @@ namespace Cassandra.MSTest
             }
             catch (Exception e)
             {
-                c.ErrorOut();
+                CCMCluster.ErrorOut();
                 throw e;
             }
             finally
             {
-                c.Discard();
+                CCMCluster.Discard();
             }
         }
     }

@@ -17,14 +17,14 @@ namespace Cassandra.MSTest
     {        
                         
         [TestMethod]        
-		[Ignore]//OK
+		[WorksForMe]
         public void reprepareOnNewlyUpNodeTestCCM()
         {
             reprepareOnNewlyUpNodeTest(true);
         }
         
         [TestMethod]
- 		[Ignore]//OK
+ 		[WorksForMe]
        public void reprepareOnNewlyUpNodeNoKeyspaceTestCCM()
         {
             // This is the same test than reprepareOnNewlyUpNodeTest, except that the

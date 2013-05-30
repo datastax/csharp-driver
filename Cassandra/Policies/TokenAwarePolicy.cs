@@ -68,7 +68,7 @@ namespace Cassandra
         /// <returns>the new query plan.</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            var routingKey = query.RoutingKey;
+            var routingKey = query==null?null:query.RoutingKey;
             if (routingKey == null)
             {
                 foreach (var iter in _childPolicy.NewQueryPlan(null))

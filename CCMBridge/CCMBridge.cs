@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 
 namespace Cassandra
@@ -207,6 +208,7 @@ namespace Cassandra
                 throw new InvalidOperationException();
             }
             dead = 0;
+            Thread.Sleep(2000);
         }
 
         private void ExecuteCCMAndPrint(string args)
@@ -234,6 +236,8 @@ namespace Cassandra
 
             if(iserror)
                 throw new InvalidOperationException();
+
+            Thread.Sleep(2000);
         }
 
         // One cluster for the whole test class
@@ -406,7 +410,11 @@ namespace Cassandra
                 else
                 {
                     CassandraCluster.Remove();
-                    CassandraCluster._ccmDir.Delete();
+                    try
+                    {
+                        CassandraCluster._ccmDir.Delete();
+                    }
+                    catch { }
                 }
             }
         }

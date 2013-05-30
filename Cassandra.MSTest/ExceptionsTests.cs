@@ -17,7 +17,7 @@ namespace Cassandra.MSTest
         ///  Catch and test all the exception methods.
         /// </summary>
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void alreadyExistsExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -89,7 +89,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void driverInternalError()
         {
             String errorMessage = "Test Message";
@@ -119,7 +119,7 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void invalidConfigurationInQueryExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -139,7 +139,7 @@ namespace Cassandra.MSTest
         ///  Tests InvalidConfigurationInQueryException. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void InvalidConfigurationInQueryExceptionCCM()
         {
             string errorMessage = "Test Message";
@@ -185,7 +185,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void noHostAvailableExceptionCCM()
         {
             String ipAddress = "255.255.255.255";
@@ -214,7 +214,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void readTimeoutExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -268,7 +268,7 @@ namespace Cassandra.MSTest
         ///  Tests SyntaxError. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void syntaxErrorCCM()
         {
             String errorMessage = "Test Message";
@@ -290,7 +290,7 @@ namespace Cassandra.MSTest
         ///  Tests TraceRetrievalException. Tests basic message.
         /// </summary>
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void traceRetrievalExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -310,7 +310,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void truncateExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -333,7 +333,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void unauthorizedExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -359,7 +359,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void unavailableExceptionCCM()
         {
             var builder = Cluster.Builder();
@@ -427,7 +427,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void writeTimeoutExceptionCCM()
         {
             var builder = Cluster.Builder();

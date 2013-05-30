@@ -162,23 +162,27 @@ namespace MyTest
 
                 foreach (var type in asm.GetTypes())
                 {
-                    if (type.GetCustomAttributes(typeof(MyTest.IgnoreAttribute), true).Length > 0)
-                        continue;
                     if (type.Name.EndsWith("Tests") && type.IsPublic)
                     {
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
-                            if ((mth.GetCustomAttributes(typeof(MyTest.IgnoreAttribute), true).Length > 0))
-                                continue;
-                            if ((mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
-                                continue;
                             if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)
                             {
+                                if (mth.GetCustomAttributes(typeof(MyTest.NeedSomeFixAttribute), true).Length > 0)
+                                    if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
+                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
+                                        continue;
+                                if (mth.GetCustomAttributes(typeof(MyTest.WorksForMeAttribute), true).Length > 0)
+                                    if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
+                                        || (MyTestOptions.Default.TestRunMode == MyTestOptions.TestRunModeEnum.Fixing))
+                                        continue;
+                                if ((mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
+                                    continue;
                                 Test(ref testObj, type, mth, output, ref Passed, ref Failed);
                             }
                         }
-						Test (ref testObj,type,null,output,ref Passed, ref Failed);
+                        Test(ref testObj, type, null, output, ref Passed, ref Failed);
                     }
                 }
             }

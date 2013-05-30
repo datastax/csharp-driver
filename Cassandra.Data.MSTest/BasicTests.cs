@@ -10,7 +10,7 @@ namespace Cassandra.Data.MSTest
     public partial class BasicTests
     {
         [TestMethod]
-		[Ignore]//OK
+		[WorksForMe]
         public void ComplexTest()
         {
             complexTest();
