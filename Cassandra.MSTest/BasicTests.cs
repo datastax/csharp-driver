@@ -52,12 +52,14 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Ignore]//OK
         public void testDecimal()
         {
             insertingSingleValue(typeof(Decimal));
         }
 #if NET_40_OR_GREATER
         [TestMethod]
+        [Ignore]//OK
         public void testVarInt()
         {
             insertingSingleValue(typeof(BigInteger));

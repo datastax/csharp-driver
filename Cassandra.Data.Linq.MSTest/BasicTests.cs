@@ -8,9 +8,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cassandra.Data.Linq.MSTest
 {
-    public partial class BasicTests
+    public partial class BasicLinqTests
     {
         [TestMethod]
+        [Ignore]
         public void Test()
         {
             Test1();

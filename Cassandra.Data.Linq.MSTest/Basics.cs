@@ -15,7 +15,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cassandra.Data.Linq.MSTest
 {
     [TestClass]
-    public partial class BasicTests
+    public partial class BasicLinqTests
     {
         public class TweetsContext : Context
         {
@@ -55,6 +55,7 @@ namespace Cassandra.Data.Linq.MSTest
         Session session;
         CCMBridge.CCMCluster CCMCluster;
         Cluster Cluster;
+
         TweetsContext ents;
         string keyspaceName = "Tweets" + Guid.NewGuid().ToString("N");
 
@@ -65,13 +66,17 @@ namespace Cassandra.Data.Linq.MSTest
             CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
+            session.CreateKeyspaceIfNotExists(keyspaceName);
+            Thread.Sleep(1000);
+            session.ChangeKeyspace(keyspaceName);
             ents = new TweetsContext(session);
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            if(CCMCluster!=null)
+                CCMCluster.Discard();
         }
 
         class X

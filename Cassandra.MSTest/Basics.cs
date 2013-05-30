@@ -42,7 +42,8 @@ namespace Cassandra.MSTest
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            if (CCMCluster != null)
+                CCMCluster.Discard();
         }    
 
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
