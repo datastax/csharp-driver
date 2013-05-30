@@ -174,7 +174,8 @@ namespace MyTest
                                         && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
                                         continue;
                                 if (mth.GetCustomAttributes(typeof(MyTest.WorksForMeAttribute), true).Length > 0)
-                                    if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
+                                    if (((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
+                                        && (MyTestOptions.Default.TestRunMode !=MyTestOptions.TestRunModeEnum.ShouldBeOk))
                                         || (MyTestOptions.Default.TestRunMode == MyTestOptions.TestRunModeEnum.Fixing))
                                         continue;
                                 if ((mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)

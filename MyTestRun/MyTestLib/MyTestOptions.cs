@@ -35,7 +35,7 @@ namespace MyTest
           HelpText = "CCM SSH password")]
         public string SSHPassword { get; set; }
 
-        public enum TestRunModeEnum { FullTest, Fixing, Checking };
+        public enum TestRunModeEnum { FullTest, Fixing, Checking, ShouldBeOk };
 
         [Option('m', "mode",
           HelpText = "Test run mode", DefaultValue = TestRunModeEnum.Fixing)]
