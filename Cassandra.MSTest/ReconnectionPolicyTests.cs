@@ -83,7 +83,6 @@ namespace Cassandra.MSTest
          * Test the ConstantReconnectionPolicy.
          */
         [TestMethod]
-        [Priority]
         [WorksForMe]
         public void constantReconnectionPolicyTest()
         {

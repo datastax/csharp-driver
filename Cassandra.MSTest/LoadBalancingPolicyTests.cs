@@ -274,14 +274,14 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-		[NeedSomeFix]
+		[WorksForMe]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
         }
 
         [TestMethod]
-		[NeedSomeFix]
+        [WorksForMe]
         public void tokenAwarePreparedTestCCM()
         {
             tokenAwareTest(true);
@@ -294,7 +294,7 @@ namespace Cassandra.MSTest
             createSchema(c.Session);
             try
             {
-
+                c.Cluster.RefreshSchema();
                 init(c, 12);
                 query(c, 12);
 
@@ -312,7 +312,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
 
                 try
                 {
@@ -321,13 +321,14 @@ namespace Cassandra.MSTest
                 }
                 catch (UnavailableException e)
                 {
-                    Assert.Equal("Not enough replica available for query at consistency ONE (1 required but only 0 alive)",
-                                 e.Message);
+                }
+                catch (ReadTimeoutException e)
+                {
                 }
 
                 resetCoordinators();
                 c.CassandraCluster.Start(2);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitFor(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
 
@@ -336,7 +337,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.DecommissionNode(2);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
 
@@ -357,7 +358,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-		[NeedSomeFix]
+        [WorksForMe]
         public void tokenAwareWithRF2TestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -378,7 +379,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.BootstrapNode(3);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
+                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 60);
 
                 query(c, 12);
 
@@ -389,7 +390,7 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.Stop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
 

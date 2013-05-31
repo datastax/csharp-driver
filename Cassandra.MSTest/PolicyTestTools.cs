@@ -186,7 +186,7 @@ namespace Cassandra.MSTest
                 CassandraRoutingKey routingKey = new CassandraRoutingKey();
                 routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
                 for (int i = 0; i < n; ++i)
-                    addCoordinator(c.Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey)));
+                    addCoordinator(c.Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey).SetConsistencyLevel(cl)));
             }
         }      
     }

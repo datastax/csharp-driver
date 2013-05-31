@@ -209,7 +209,7 @@ namespace Cassandra
         {
 
             // Find the primary replica
-            int i = _ring.IndexOf(token);
+            int i = Array.BinarySearch(_ring.ToArray(),token);
             if (i < 0)
             {
                 i = (i + 1) * (-1);
