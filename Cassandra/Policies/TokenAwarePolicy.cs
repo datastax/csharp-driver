@@ -68,7 +68,7 @@ namespace Cassandra
         /// <returns>the new query plan.</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            var routingKey = query==null?null:query.RoutingKey;
+            var routingKey = query == null ? null : query.RoutingKey;
             if (routingKey == null)
             {
                 foreach (var iter in _childPolicy.NewQueryPlan(null))
@@ -92,10 +92,22 @@ namespace Cassandra
                     yield return host;
             }
 
-            foreach (var host in _childPolicy.NewQueryPlan(query))
+            var childIterator = _childPolicy.NewQueryPlan(query);
+            HashSet<Host> remoteChildren = new HashSet<Host>();
+            foreach (var host in childIterator)
             {
-                if (!replicas.Contains(host.Address) || _childPolicy.Distance(host) != HostDistance.Local)
-                    yield return host;
+                if (!replicas.Contains(host.Address))
+                {
+                    if (_childPolicy.Distance(host) != HostDistance.Local)
+                        remoteChildren.Add(host);
+                    else
+                        yield return host;
+                }
+            }
+
+            foreach (var host in remoteChildren)
+            {
+                yield return host;
             }
 
         }

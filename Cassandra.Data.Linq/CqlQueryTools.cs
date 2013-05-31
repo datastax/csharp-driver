@@ -289,9 +289,9 @@ namespace Cassandra.Data.Linq
                     countersCount++;
                     countersSpotted = true;
                     if (prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
-                        throw new InvalidException("Counter can not be a part of PRIMARY KEY !");
+                        throw new InvalidQueryException("Counter can not be a part of PRIMARY KEY !");
                     if (tpy != typeof(Int64))
-                        throw new InvalidException("Counters can be only of Int64(long) type !");
+                        throw new InvalidQueryException("Counters can be only of Int64(long) type !");
                     else
                         ret.Append("counter");
                 }
@@ -330,7 +330,7 @@ namespace Cassandra.Data.Linq
 
             if (countersSpotted)// validating if table consists only of counters
                 if (countersCount + clusteringKeys.Count + 1 != props.Count())
-                    throw new InvalidException("Counter table can consist only of counters."); 
+                    throw new InvalidQueryException("Counter table can consist only of counters."); 
 
             ret.Append("PRIMARY KEY(");
             if (partitionKeys.Count > 1)

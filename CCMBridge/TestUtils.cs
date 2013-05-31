@@ -51,7 +51,7 @@ public static class TestUtils {
         {
             Thread.Sleep(waitTime * 1000);
         }
-        catch (InvalidException e)
+        catch (InvalidQueryException e)
         {
             Debug.Write(e.StackTrace);
         }

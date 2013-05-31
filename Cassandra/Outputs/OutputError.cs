@@ -24,11 +24,6 @@ namespace Cassandra
         public IsBootstrappingException(string Message) : base(Message) { }
     }
 
-    public class InvalidException : QueryValidationException
-    {
-        public InvalidException(string Message) : base(Message) { }
-    }
-
 }
 
 namespace Cassandra
@@ -226,7 +221,7 @@ namespace Cassandra
     {
         public override DriverException CreateException()
         {
-            return new InvalidException(Message);
+            return new InvalidQueryException(Message);
         }
     }
 

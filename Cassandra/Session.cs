@@ -301,7 +301,7 @@ namespace Cassandra
         /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspace(string keyspace_name)
         {
-            Query(GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Ignore);
+            Query(GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Default);
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -473,7 +473,7 @@ namespace Cassandra
             else if (exc is InvalidConfigurationInQueryException) return RetryDecision.Rethrow();
             else if (exc is PreparedQueryNotFoundException) return RetryDecision.Rethrow();
             else if (exc is ProtocolErrorException) return RetryDecision.Rethrow();
-            else if (exc is InvalidException) return RetryDecision.Rethrow();
+            else if (exc is InvalidQueryException) return RetryDecision.Rethrow();
             else if (exc is UnauthorizedException) return RetryDecision.Rethrow();
             else if (exc is SyntaxError) return RetryDecision.Rethrow();
 
@@ -845,7 +845,7 @@ namespace Cassandra
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender, tag,  _clientOptions.AsyncCallAbortTimeout);
-            var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Ignore, CqlQuery = cqlQuery, LongActionAc = longActionAc };
+            var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Default, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
 

@@ -117,7 +117,7 @@
         /// <returns>a Rethrow retry decision.</returns>
         public static RetryDecision Rethrow()
         {
-            return new RetryDecision(RetryDecisionType.Rethrow, ConsistencyLevel.Ignore);
+            return new RetryDecision(RetryDecisionType.Rethrow, ConsistencyLevel.Default);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@
         /// <returns>an Ignore retry decision.</returns>
         public static RetryDecision Ignore()
         {
-            return new RetryDecision(RetryDecisionType.Ignore, ConsistencyLevel.Ignore);
+            return new RetryDecision(RetryDecisionType.Ignore, ConsistencyLevel.Default);
         }
     }
 }

@@ -89,7 +89,7 @@ namespace Cassandra.MSTest
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert_and_Check[0][0], toInsert_and_Check[0][1], Minimum), null);
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName, toInsert_and_Check[1][0].ToString(), toInsert_and_Check[1][1], Maximum), null);
             }
-            catch (InvalidException)
+            catch (InvalidQueryException)
             {
                 if (!sameOutput && toExceed == typeof(Int32)) //for ExceedingCassandra_INT() test case
                 {

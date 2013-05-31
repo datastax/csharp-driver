@@ -144,7 +144,7 @@ namespace Cassandra
             {
                 session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);                
             }
-            catch (InvalidException)
+            catch (InvalidQueryException)
             {
                 session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durable_writes);
                 session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);

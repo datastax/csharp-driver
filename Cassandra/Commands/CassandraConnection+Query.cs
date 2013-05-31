@@ -18,7 +18,7 @@ namespace Cassandra
             {
                 if (currentKs != selectedKs)
                 {
-                    Evaluate(new QueryRequest(streamId, "USE "+selectedKs, ConsistencyLevel.Ignore, false), streamId, new Action<ResponseFrame>((frame3) =>
+                    Evaluate(new QueryRequest(streamId, "USE "+selectedKs, ConsistencyLevel.Default, false), streamId, new Action<ResponseFrame>((frame3) =>
                     {
                         var response = FrameParser.Parse(frame3);
                         if (response is ResultResponse)

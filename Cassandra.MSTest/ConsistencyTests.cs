@@ -10,25 +10,27 @@ namespace Cassandra.MSTest
     public class ConsistencyTests : PolicyTestTools
     {
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void testRFOneTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 1);
+            c.Cluster.RefreshSchema();
             try
             {
 
                 init(c, 12, ConsistencyLevel.One);
                 query(c, 12, ConsistencyLevel.One);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                var assC = coordinators.First().Key.ToString();
+                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+
+                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                c.CassandraCluster.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>() { ConsistencyLevel.Any };
 
@@ -50,7 +52,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -75,14 +77,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
                     {
@@ -102,14 +104,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<string> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "EACH_QUORUM ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -138,6 +140,7 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [NeedSomeFix]
+        [Priority]
         public void testRFTwoTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -149,13 +152,14 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                var assC = coordinators.First().Key.ToString();
+                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+
+                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                c.CassandraCluster.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -179,7 +183,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -204,14 +208,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<string> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
                     {
@@ -231,14 +235,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "EACH_QUORUM ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -267,6 +271,7 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [NeedSomeFix]
+        [Priority]
         public void testRFThreeTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -278,13 +283,14 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                var assC = coordinators.First().Key.ToString();
+                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+
+                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                c.CassandraCluster.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -307,7 +313,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -332,14 +338,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
                     {
@@ -359,14 +365,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "EACH_QUORUM ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -395,6 +401,7 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [NeedSomeFix]
+        [Priority]
         public void testRFOneDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -406,13 +413,14 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.One);
                 query(c, 12, ConsistencyLevel.One);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                var assC = coordinators.First().Key.ToString();
+                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+
+                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                c.CassandraCluster.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>() { ConsistencyLevel.Any };
 
@@ -434,7 +442,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -459,14 +467,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
                     {
@@ -486,14 +494,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "EACH_QUORUM ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -522,6 +530,7 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [NeedSomeFix]
+        [Priority]
         public void testRFTwoDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -533,12 +542,15 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                var assC = coordinators.First().Key.ToString();
+                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+
+                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
+                c.CassandraCluster.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                
                 // FIXME: This sleep is needed to allow the waitFor() to work
                 Thread.Sleep(20000);
                 TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
@@ -565,7 +577,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -590,14 +602,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
                     {
@@ -617,14 +629,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "EACH_QUORUM ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -719,7 +731,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -744,14 +756,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
                     {
@@ -771,14 +783,14 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
                         List<String> acceptableErrorMessages = new List<string>(){
                         "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
                         "EACH_QUORUM ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -853,7 +865,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -869,7 +881,7 @@ namespace Cassandra.MSTest
                         List<String> acceptableErrorMessages = new List<string>(){
                         "EACH_QUORUM ConsistencyLevel is only supported for writes",
                         "ANY ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                 }
 
@@ -879,7 +891,7 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (UnavailableException e)
                     {
@@ -899,7 +911,7 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (ReadTimeoutException e)
                     {
@@ -977,7 +989,7 @@ namespace Cassandra.MSTest
                     }
                     catch (Exception e)
                     {
-                        Assert.Fail(String.Format("Test failed at CL.%s with message: %s", cl, e.Message));
+                        Assert.Fail(String.Format("Test failed at CL.{0} with message: {1}", cl, e.Message));
                     }
                 }
 
@@ -993,7 +1005,7 @@ namespace Cassandra.MSTest
                         List<String> acceptableErrorMessages = new List<string>(){
                         "EACH_QUORUM ConsistencyLevel is only supported for writes",
                         "ANY ConsistencyLevel is only supported for writes"};
-                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: %s", e.Message));
+                        Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                 }
 
@@ -1003,7 +1015,7 @@ namespace Cassandra.MSTest
                     try
                     {
                         init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (UnavailableException e)
                     {
@@ -1023,7 +1035,7 @@ namespace Cassandra.MSTest
                     try
                     {
                         query(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.%s.", cl));
+                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (ReadTimeoutException e)
                     {

@@ -57,6 +57,7 @@ namespace Cassandra.MSTest
         {
             insertingSingleValue(typeof(Decimal));
         }
+
 #if NET_40_OR_GREATER
         [TestMethod]
         [WorksForMe]
