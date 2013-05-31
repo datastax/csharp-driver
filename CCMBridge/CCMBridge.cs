@@ -373,15 +373,23 @@ namespace Cassandra
 
             public CCMCluster(CCMBridge cassandraCluster, Builder builder)
             {
+                int tryNo = 0;
+                this.Cluster = builder.AddContactPoints(IP_PREFIX + "1").Build();
+            RETRY:
                 this.CassandraCluster = cassandraCluster;
                 try
                 {
-                    this.Cluster = builder.AddContactPoints(IP_PREFIX + "1").Build();
                     this.Session = Cluster.Connect();
-
                 }
                 catch (NoHostAvailableException e)
                 {
+                    if (tryNo < 10)
+                    {
+                        Console.WriteLine("CannotConnect to CCM node - give another try");
+                        tryNo++;
+                        Thread.Sleep(1000);
+                        goto RETRY;
+                    }
                     foreach (var entry in e.Errors)
                         Trace.TraceError("Error connecting to " + entry.Key + ": " + entry.Value);
                     throw new InvalidOperationException(null, e);

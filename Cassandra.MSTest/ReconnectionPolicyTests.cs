@@ -83,10 +83,11 @@ namespace Cassandra.MSTest
          * Test the ConstantReconnectionPolicy.
          */
         [TestMethod]
-        [NeedSomeFix]
+        [Priority]
+        [WorksForMe]
         public void constantReconnectionPolicyTest()
         {
-            Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(10 * 1000));
+            Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25 * 1000));
 
             // Ensure that ConstantReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ConstantReconnectionPolicy))
@@ -96,7 +97,7 @@ namespace Cassandra.MSTest
 
             // Test basic getters
             ConstantReconnectionPolicy reconnectionPolicy = (ConstantReconnectionPolicy)builder.GetConfiguration().Policies.ReconnectionPolicy;
-            Assert.True(reconnectionPolicy.ConstantDelayMs == 10 * 1000);
+            Assert.True(reconnectionPolicy.ConstantDelayMs == 25 * 1000);
 
             // Test erroneous instantiations
             try
@@ -115,8 +116,8 @@ namespace Cassandra.MSTest
             Assert.True(schedule.NextDelayMs() == 10000);
 
             // Run integration test
-            int restartTime = 16;      // matches the above test
-            int retryTime = 20;        // 2nd cycle start time
+            int restartTime = 32;   
+            int retryTime = 50;        
             int breakTime = 10;        // time until next reconnection attempt
             reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
