@@ -132,23 +132,29 @@ namespace Cassandra.MSTest
         //}
         protected void init(CCMBridge.CCMCluster c, int n, bool batch, ConsistencyLevel cl)
         {
+            CassandraRoutingKey routingKey = new CassandraRoutingKey();
+            routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
+
+
             // We don't use insert for our test because the resultSet don't ship the queriedHost
             // Also note that we don't use tracing because this would trigger requests that screw up the test'
             for (int i = 0; i < n; ++i)
                 if (batch)
                 // BUG: WriteType == SIMPLE                    
-                {                    
+                {
                     //var bth = c.Session.CreateBatch();
                     //bth.Append(new InsertQuery(string.Format("BEGIN BATCH INSERT INTO {0} VALUES {1} APPLY BATCH", TestUtils.SIMPLE_TABLE, "(0,0)")));
                     //bth.SetConsistencyLevel(cl);
                     //bth.Execute();
-                    
+
                     //c.Session.Execute(batch()
                     //        .add(string.Format("INSERT INTO {0} VALUES {1}", TestUtils.SIMPLE_TABLE, new String[] { "k", "i" }, new Object[] { 0, 0 })) //insertInto(SIMPLE_TABLE).values(new String[] { "k", "i" }, new Object[] { 0, 0 }))
                     //        .SetConsistencyLevel(cl));
                 }
                 else
-                    c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
+                {
+                    var qh = c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetRoutingKey(routingKey).SetConsistencyLevel(cl)).QueriedHost;
+                }
 
             prepared = c.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);
         }

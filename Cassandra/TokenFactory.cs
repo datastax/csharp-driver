@@ -109,12 +109,20 @@ namespace Cassandra
 
         public override bool Equals(object obj)
         {
-            if (this == obj)
+            if (ReferenceEquals(this, obj))
                 return true;
-            if (obj == null || this.GetType() != obj.GetType())
+            if (obj == null || (this.GetType() != obj.GetType()))
                 return false;
 
-            return _value == ((OPPToken)obj)._value;
+            var other = obj as OPPToken;
+            if (_value.Length != other._value.Length)
+                return false;
+
+            for (int i = 0; i < _value.Length; i++)
+                if (_value[i] != other._value[i])
+                    return false;
+
+            return true;
         }
 
         public override int GetHashCode()

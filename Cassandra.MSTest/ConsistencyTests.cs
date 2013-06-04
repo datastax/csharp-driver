@@ -139,13 +139,13 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
-        [Priority]
+        [WorksForMe]
         public void testRFTwoTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 2);
+            c.Cluster.RefreshSchema();
             try
             {
 
@@ -270,13 +270,13 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
-        [Priority]
+        [WorksForMe]
         public void testRFThreeTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 3);
+            c.Cluster.RefreshSchema();
             try
             {
 
@@ -400,15 +400,16 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
-        [Priority]
+        [WorksForMe]
         public void testRFOneDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 1);
+            c.Cluster.RefreshSchema();
             try
             {
+                c.Cluster.RefreshSchema();
 
                 init(c, 12, ConsistencyLevel.One);
                 query(c, 12, ConsistencyLevel.One);
@@ -529,13 +530,13 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
-        [Priority]
+        [WorksForMe]
         public void testRFTwoDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 2);
+            c.Cluster.RefreshSchema();
             try
             {
 
@@ -551,10 +552,6 @@ namespace Cassandra.MSTest
                 c.CassandraCluster.ForceStop(awareCoord);
                 TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
                 
-                // FIXME: This sleep is needed to allow the waitFor() to work
-                Thread.Sleep(20000);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
-
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
                                                     ConsistencyLevel.One,
@@ -664,7 +661,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void testRFThreeRoundRobinDowngradingCL()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy()).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -683,27 +680,12 @@ namespace Cassandra.MSTest
         {
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 3);
+            c.Cluster.RefreshSchema();
             try
             {
 
                 init(c, 12, ConsistencyLevel.All);
                 query(c, 12, ConsistencyLevel.All);
-
-                try
-                {
-                    // This test catches TokenAwarePolicy
-                    // However, full tests in LoadBalancingPolicyTest.java
-                    assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                    assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                    assertQueried(CCMBridge.IP_PREFIX + "3", 0);
-                }
-                catch (AssertException e)
-                {
-                    // This test catches RoundRobinPolicy
-                    assertQueried(CCMBridge.IP_PREFIX + "1", 4);
-                    assertQueried(CCMBridge.IP_PREFIX + "2", 4);
-                    assertQueried(CCMBridge.IP_PREFIX + "3", 4);
-                }
 
                 resetCoordinators();
                 c.CassandraCluster.ForceStop(2);
@@ -824,6 +806,7 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
             createMultiDCSchema(c.Session, 3, 3);
+            c.Cluster.RefreshSchema();
             try
             {
 
@@ -945,6 +928,7 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2"))).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
             createMultiDCSchema(c.Session, 3, 3);
+            c.Cluster.RefreshSchema();
             try
             {
 

@@ -163,14 +163,15 @@ namespace Cassandra
     {
 
         private readonly Dictionary<IToken, DictSet<IPAddress>> _tokenToCassandraClusterHosts;
-        private readonly List<IToken> _ring;
+        private readonly IToken[] _ring;
         internal readonly TokenFactory Factory;
 
         private TokenMap(TokenFactory factory, Dictionary<IToken, DictSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
         {
             this.Factory = factory;
             this._tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
-            this._ring = ring;
+            this._ring = ring.ToArray();
+            Array.Sort(this._ring);
         }
 
         public static TokenMap Build(String partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
@@ -209,11 +210,11 @@ namespace Cassandra
         {
 
             // Find the primary replica
-            int i = Array.BinarySearch(_ring.ToArray(),token);
+            int i = Array.BinarySearch(_ring,token);
             if (i < 0)
             {
                 i = (i + 1) * (-1);
-                if (i >= _ring.Count)
+                if (i >= _ring.Length)
                     i = 0;
             }
 
