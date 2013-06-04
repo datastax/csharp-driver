@@ -26,7 +26,7 @@ namespace Cassandra
         {
             this._rawrows = rawrows;
             this._ownRows = ownRows;
-            if (rawrows.TraceID != null)
+            if (rawrows!=null && rawrows.TraceID != null)
                 _queryTrace = new QueryTrace(rawrows.TraceID.Value, session);
         }
 

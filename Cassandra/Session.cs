@@ -763,16 +763,18 @@ namespace Cassandra
             {
                 try
                 {                    
-                    CqlRowSet rowset = value as CqlRowSet;
                     var ar = LongActionAc as AsyncResult<CqlRowSet>;
                     if (exc != null)
                         ar.Complete(exc);
                     else
                     {
+	                    CqlRowSet rowset = value as CqlRowSet;
+						if(rowset==null)
+							rowset = new CqlRowSet(null,owner,false);
                         rowset.SetTriedHosts(TriedHosts);
                         ar.SetResult(rowset);
                         ar.Complete();
-                    }
+					}
                 }
                 finally
                 {                    
