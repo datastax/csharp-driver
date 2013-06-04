@@ -92,6 +92,8 @@ namespace Cassandra.MSTest
 
             QueryTools.ExecuteSyncNonQuery(Session, sb.ToString());
 
+            Thread.Sleep(2000);
+
             var table = this.Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
             foreach (var metaCol in table.TableColumns)
             {
@@ -132,7 +134,7 @@ namespace Cassandra.MSTest
                 Session = CCMCluster.Session;
                 Cluster = CCMCluster.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
-                Thread.Sleep(1000);
+                Thread.Sleep(6000);
                 Session.ChangeKeyspace(Keyspace);
 
                 string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();

@@ -200,7 +200,7 @@ namespace Cassandra.MSTest
          {1},
 PRIMARY KEY(tweet_id)
          );", tableName, columns));
-                Thread.Sleep(1000);
+                Thread.Sleep(3000);
             }
             catch (AlreadyExistsException)
             {
@@ -224,7 +224,7 @@ PRIMARY KEY(tweet_id)
             }
 
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName));
-            Thread.Sleep(50);
+            Thread.Sleep(3000);
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), toReturn);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
