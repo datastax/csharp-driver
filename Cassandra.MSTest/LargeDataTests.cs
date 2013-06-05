@@ -34,7 +34,6 @@ namespace Cassandra.MSTest
             session = CCMCluster.Session;
             cluster = CCMCluster.Cluster;
             session.CreateKeyspaceIfNotExists(ksname);
-            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace(ksname);
         }
 
@@ -322,16 +321,15 @@ namespace Cassandra.MSTest
             session = CCMCluster.Session;
 
             session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
-            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace("large_data");
-            session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows"));
-            session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows"));
-            session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows"));
-            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text"));
-            session.Cluster.WaitForSchemaAgreement();
-            session.Cluster.WaitForSchemaAgreement();
-            session.Cluster.WaitForSchemaAgreement();
-            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows")).QueriedHost);
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows")).QueriedHost);
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows")).QueriedHost);
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text")).QueriedHost);
 
             // Create the extra wide table definition
             StringBuilder tableDeclaration = new StringBuilder();

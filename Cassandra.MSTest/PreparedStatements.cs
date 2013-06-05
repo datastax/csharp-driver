@@ -32,7 +32,6 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.Cluster.WaitForSchemaAgreement();
             Session.ChangeKeyspace(Keyspace);
         }
 
@@ -51,12 +50,12 @@ namespace Cassandra.MSTest
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
             string tableName = "table" + Guid.NewGuid().ToString("N");
 
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+            Session.Cluster.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          value {1}
-         );", tableName, cassandraDataTypeName));
-
-            Session.Cluster.WaitForSchemaAgreement();
+         );", tableName, cassandraDataTypeName))
+            );
 
             List<object[]> toInsert = new List<object[]>(1);
             var val = Randomm.RandomVal(tp);
@@ -80,13 +79,13 @@ namespace Cassandra.MSTest
 
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(
+                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          numb1 double,
          numb2 int
-         );", tableName));
-
-                Session.Cluster.WaitForSchemaAgreement();
+         );", tableName))
+                );
             }
             catch (AlreadyExistsException)
             {

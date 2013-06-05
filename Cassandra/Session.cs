@@ -269,8 +269,8 @@ namespace Cassandra
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.All);
-            Cluster.WaitForSchemaAgreement();
+            Cluster.WaitForSchemaAgreement(
+                Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Default).QueriedHost);
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 

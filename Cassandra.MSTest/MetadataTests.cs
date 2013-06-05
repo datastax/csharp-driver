@@ -90,9 +90,10 @@ namespace Cassandra.MSTest
             var opt = tableOptions != null ? " WITH " + tableOptions.ToString() : "";
             sb.Append("))" + opt + ";");
 
-            QueryTools.ExecuteSyncNonQuery(Session, sb.ToString());
+            Session.Cluster.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, sb.ToString())
 
-            Session.Cluster.WaitForSchemaAgreement();
+            );
 
             var table = this.Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
             foreach (var metaCol in table.TableColumns)
@@ -115,7 +116,6 @@ namespace Cassandra.MSTest
                 Session = CCMCluster.Session;
                 Cluster = CCMCluster.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
-                Session.Cluster.WaitForSchemaAgreement();
                 Session.ChangeKeyspace(Keyspace);
 
                 checkPureMetadata(TableName, KeyspaceName, tableOptions);
@@ -134,19 +134,19 @@ namespace Cassandra.MSTest
                 Session = CCMCluster.Session;
                 Cluster = CCMCluster.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
-                Session.Cluster.WaitForSchemaAgreement();
                 Session.ChangeKeyspace(Keyspace);
 
                 string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
                 bool durableWrites = false;
                 string strgyClass = "SimpleStrategy";
                 short rplctnFactor = 1;
-                Session.Execute(
+                Session.Cluster.WaitForSchemaAgreement(
+                    Session.Execute(
     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
-    , keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString()));
-                Session.Cluster.WaitForSchemaAgreement();
+    , keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString())).QueriedHost
+                );
                 Session.ChangeKeyspace(keyspacename);
 
 
@@ -184,7 +184,6 @@ namespace Cassandra.MSTest
                 {
                     replication_factor = rndm.Next(1, 21);
                     Session.CreateKeyspaceIfNotExists(Keyspace,ReplicationStrategies.CreateSimpleStrategyReplicationProperty((int)replication_factor), durable_writes);
-                    Session.Cluster.WaitForSchemaAgreement();
                     Session.ChangeKeyspace(Keyspace);
                 }
                 else

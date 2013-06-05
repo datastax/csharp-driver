@@ -57,26 +57,24 @@ namespace Cassandra.MSTest
         {            
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
-            Session.Execute(
+            Session.Cluster.WaitForSchemaAgreement(
+                Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                , keyspaceName));
-
-            Session.Cluster.WaitForSchemaAgreement();
+                , keyspaceName)).QueriedHost);
 
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Execute(string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(
+                    Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
-         PRIMARY KEY(tweet_id))", tableName));
-
-                Session.Cluster.WaitForSchemaAgreement();
+         PRIMARY KEY(tweet_id))", tableName)).QueriedHost);
             }
             catch (AlreadyExistsException)
             {
@@ -195,23 +193,23 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
         public void ErrorInjectionInParallelInsertTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-                Session.Execute(
+                Session.Cluster.WaitForSchemaAgreement(
+                    Session.Execute(
                 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                    , keyspaceName));
-                Session.Cluster.WaitForSchemaAgreement();
+                    , keyspaceName)).QueriedHost);
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Execute(string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(
+                    Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
-         PRIMARY KEY(tweet_id))", tableName));
-                Session.Cluster.WaitForSchemaAgreement();
+         PRIMARY KEY(tweet_id))", tableName)).QueriedHost);
             }
             catch (AlreadyExistsException)
             {

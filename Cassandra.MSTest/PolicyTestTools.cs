@@ -31,20 +31,20 @@ namespace Cassandra.MSTest
 
         public static void createSchema(Session session, int replicationFactor)
         {
-            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor), ConsistencyLevel.All);
-            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor), ConsistencyLevel.All).QueriedHost);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
-            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)).QueriedHost);
         }
 
         public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
         {
-            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", string.Format("'dc1' : {0}, 'dc2' : {1}",dc1RF,dc2RF) ));
-            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF))).QueriedHost);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
-            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)).QueriedHost);
         }
 
         ///  Coordinator management/count

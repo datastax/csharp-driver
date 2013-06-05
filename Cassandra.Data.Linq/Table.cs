@@ -118,8 +118,7 @@ namespace Cassandra.Data.Linq
         {
             var cqls = CqlQueryTools.GetCreateCQL(this);
             foreach (var cql in cqls)
-                _session.Execute(cql, consictencyLevel);
-            _session.Cluster.WaitForSchemaAgreement();
+                _session.Cluster.WaitForSchemaAgreement(_session.Execute(cql, consictencyLevel).QueriedHost);
         }
 
         public void CreateIfNotExists(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)

@@ -9,6 +9,7 @@ using MyTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 using System.Text;
+using System.Net;
 
 namespace Cassandra.MSTest
 {
@@ -62,7 +63,7 @@ namespace Cassandra.MSTest
             }
         }
 
-        internal static void ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel consistency = ConsistencyLevel.Default)
+        internal static IPAddress ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel consistency = ConsistencyLevel.Default)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -70,6 +71,7 @@ namespace Cassandra.MSTest
                 Console.WriteLine("CQL< Query:\t" + query);
             var ret = session.Execute(query, consistency);
             Console.WriteLine("CQL> (OK).");
+            return ret.QueriedHost;
         }
 
 
@@ -84,14 +86,15 @@ namespace Cassandra.MSTest
             return ret;
         }
 
-        internal static void ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, string messageInstead = null)
+        internal static IPAddress ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Executing Prepared Query:\t");
-            session.Execute(prepared.Bind(values).SetConsistencyLevel(consistency));
+            var ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(consistency));
             Console.WriteLine("CQL> (OK).");
+            return ret.QueriedHost;
         }
 
         internal static string convertTypeNameToCassandraEquivalent(Type t)

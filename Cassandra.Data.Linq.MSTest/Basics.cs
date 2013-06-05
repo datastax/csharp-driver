@@ -24,7 +24,6 @@ namespace Cassandra.Data.Linq.MSTest
             {
                 AddTables();
                 CreateTablesIfNotExist(createConsistencyLevel);
-                session.Cluster.WaitForSchemaAgreement();
             }
 
             private void AddTables()
@@ -68,7 +67,6 @@ namespace Cassandra.Data.Linq.MSTest
             session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             session.CreateKeyspaceIfNotExists(keyspaceName);
-            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace(keyspaceName);
             ents = new TweetsContext(session);
         }

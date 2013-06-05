@@ -45,7 +45,6 @@ namespace Cassandra.MSTest
         private void reprepareOnNewlyUpNodeTest(bool useKeyspace)
         {
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.Cluster.WaitForSchemaAgreement();
             string modifiedKs = "";
 
             if (useKeyspace)
@@ -55,8 +54,9 @@ namespace Cassandra.MSTest
 
             try
             {
-                Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)");
-                Session.Cluster.WaitForSchemaAgreement();
+                Session.Cluster.WaitForSchemaAgreement(
+                    Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)").QueriedHost
+                );
             }
             catch (AlreadyExistsException)
             {

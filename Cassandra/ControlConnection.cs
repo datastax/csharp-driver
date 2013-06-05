@@ -220,8 +220,18 @@ namespace Cassandra
                     _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
                     _logger.Info("Refreshing ControlConnection...");
                     if (!refreshOnly)
-                        SetupEventListener();
-                    RefreshNodeListAndTokenMap();
+                    {
+                        Monitor.Exit(this);
+                        try
+                        {
+                            SetupEventListener();
+                        }
+                        finally
+                        {
+                            Monitor.Enter(this);
+                        }
+                    } 
+                     RefreshNodeListAndTokenMap();
                     _isDiconnected = false;
                     _logger.Info("ControlConnection is fresh!");
                 }
@@ -360,7 +370,7 @@ namespace Cassandra
         private const string SelectSchemaPeers = "SELECT peer, schema_version FROM system.peers";
         private const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
 
-        internal bool WaitForSchemaAgreement()
+        internal bool WaitForSchemaAgreement(IPAddress forHost = null)
         {
             var start = DateTimeOffset.Now;
             long elapsed = 0;
@@ -368,40 +378,74 @@ namespace Cassandra
             {
                 var versions = new DictSet<Guid>();
 
-                IPAddress queriedHost;
-                using (var rowset = _session.Query(SelectSchemaPeers, ConsistencyLevel.Quorum))
-                {
-                    queriedHost = rowset.QueriedHost;
-                    foreach (var row in rowset.GetRows())
-                    {
-                        if (row.IsNull("peer") || row.IsNull("schema_version"))
-                            continue;
 
-                        Host peer = _cluster.Metadata.GetHost(row.GetValue<IPEndPoint>("peer").Address);
-                        if (peer != null && peer.IsConsiderablyUp)
-                            versions.Add(row.GetValue<Guid>("schema_version"));
+                IPAddress queriedHost;
+
+                if (forHost == null)
+                {
+                    using (var rowset = _session.Query(SelectSchemaPeers, ConsistencyLevel.Default))
+                    {
+                        queriedHost = rowset.QueriedHost;
+                        foreach (var row in rowset.GetRows())
+                        {
+                            if (row.IsNull("peer") || row.IsNull("schema_version"))
+                                continue;
+
+                            Host peer = _cluster.Metadata.GetHost(row.GetValue<IPEndPoint>("peer").Address);
+                            if (peer != null && peer.IsConsiderablyUp)
+                                versions.Add(row.GetValue<Guid>("schema_version"));
+                        }
+                    }
+                }
+                else
+                {
+                    queriedHost = forHost;
+                    var localhost = _cluster.Metadata.GetHost(queriedHost);
+                    var iterLiof = new List<Host>() { localhost }.GetEnumerator();
+                    iterLiof.MoveNext();
+                    List<IPAddress> tr = new List<IPAddress>();
+                    Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+                    var cn = _session.Connect(null, iterLiof, tr, exx);
+
+                    using (var outp = cn.Query(SelectSchemaPeers, ConsistencyLevel.Default, false))
+                    {
+                        if (outp is OutputRows)
+                        {
+                            var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                            foreach (var row in rowset.GetRows())
+                            {
+                                if (row.IsNull("peer") || row.IsNull("schema_version"))
+                                    continue;
+
+                                Host peer = _cluster.Metadata.GetHost(row.GetValue<IPEndPoint>("peer").Address);
+                                if (peer != null && peer.IsConsiderablyUp)
+                                    versions.Add(row.GetValue<Guid>("schema_version"));
+                            }
+                        }
                     }
                 }
 
-                var localhost = _cluster.Metadata.GetHost(queriedHost);
-                var iterLiof = new List<Host>() { localhost }.GetEnumerator();
-                iterLiof.MoveNext();
-                List<IPAddress> tr = new List<IPAddress>();
-                Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
-                var cn = _session.Connect(null, iterLiof, tr, exx);
-
-                using (var outp = cn.Query(SelectSchemaLocal, ConsistencyLevel.Default, false))
                 {
-                    if (outp is OutputRows)
+                    var localhost = _cluster.Metadata.GetHost(queriedHost);
+                    var iterLiof = new List<Host>() { localhost }.GetEnumerator();
+                    iterLiof.MoveNext();
+                    List<IPAddress> tr = new List<IPAddress>();
+                    Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+                    var cn = _session.Connect(null, iterLiof, tr, exx);
+
+                    using (var outp = cn.Query(SelectSchemaLocal, ConsistencyLevel.Default, false))
                     {
-                        var rowset = new CqlRowSet((outp as OutputRows), null, false);
-                        // Update cluster name, DC and rack for the one node we are connected to
-                        foreach (var localRow in rowset.GetRows())
-                            if (!localRow.IsNull("schema_version"))
-                            {
-                                versions.Add(localRow.GetValue<Guid>("schema_version"));
-                                break;
-                            }
+                        if (outp is OutputRows)
+                        {
+                            var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                            // Update cluster name, DC and rack for the one node we are connected to
+                            foreach (var localRow in rowset.GetRows())
+                                if (!localRow.IsNull("schema_version"))
+                                {
+                                    versions.Add(localRow.GetValue<Guid>("schema_version"));
+                                    break;
+                                }
+                        }
                     }
                 }
 

@@ -35,7 +35,6 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.Cluster.WaitForSchemaAgreement();
             Session.ChangeKeyspace(Keyspace);
         }
 
@@ -52,12 +51,11 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          label text,
          number {1}
-         );", tableName, cassandraDataTypeName));
-                Session.Cluster.WaitForSchemaAgreement();
+         );", tableName, cassandraDataTypeName)));
             }
             catch (AlreadyExistsException)
             {
@@ -109,11 +107,10 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          incdec counter
-         );", tableName));
-                Session.Cluster.WaitForSchemaAgreement();
+         );", tableName)));
             }
             catch (AlreadyExistsException)
             {
@@ -136,11 +133,11 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(
+                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          value {1}
-         );", tableName, cassandraDataTypeName));
-                Session.Cluster.WaitForSchemaAgreement();
+         );", tableName, cassandraDataTypeName)));
             }
             catch (AlreadyExistsException)
             {
@@ -175,11 +172,11 @@ namespace Cassandra.MSTest
         public void TimestampTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+            Session.Cluster.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          ts timestamp
-         );", tableName));
-            Session.Cluster.WaitForSchemaAgreement();
+         );", tableName)));
 
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), "2011-02-03 04:05+0000"), null);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 220898707200000), null);
@@ -196,11 +193,12 @@ namespace Cassandra.MSTest
 
             try
             {
+                Session.Cluster.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          {1},
 PRIMARY KEY(tweet_id)
-         );", tableName, columns));
-                Session.Cluster.WaitForSchemaAgreement();
+         );", tableName, columns))
+                );
             }
             catch (AlreadyExistsException)
             {
@@ -223,8 +221,9 @@ PRIMARY KEY(tweet_id)
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[i][0], toInsert[i][1], toInsert[i][2]));
             }
 
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName));
-            Session.Cluster.WaitForSchemaAgreement();
+            Session.Cluster.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName))
+            );
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), toReturn);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
@@ -237,15 +236,16 @@ PRIMARY KEY(tweet_id)
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(
+                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
 		 fval float,
 		 dval double,
-         PRIMARY KEY(tweet_id))", tableName));
-                Session.Cluster.WaitForSchemaAgreement();
+         PRIMARY KEY(tweet_id))", tableName))
+                );
             }
             catch (AlreadyExistsException)
             {

@@ -35,7 +35,6 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.Cluster.WaitForSchemaAgreement();
             Session.ChangeKeyspace(Keyspace);
         }
 
@@ -158,11 +157,12 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
+                Session.Cluster.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
-         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
-                Session.Cluster.WaitForSchemaAgreement();
+         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName))
+                );
             }
             catch (AlreadyExistsException)
             {

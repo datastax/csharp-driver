@@ -258,10 +258,10 @@ namespace Cassandra
             }
         }
 
-        public void WaitForSchemaAgreement()
+        public void WaitForSchemaAgreement(IPAddress queriedHost=null)
         {
             lock (_controlConnectionGuard)
-                _controlConnection.WaitForSchemaAgreement();
+                _controlConnection.WaitForSchemaAgreement(queriedHost);
         }
 
     }
