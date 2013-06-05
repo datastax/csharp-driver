@@ -267,7 +267,7 @@ namespace Cassandra
             var allTokens = new List<DictSet<string>>();
             IPAddress queriedHost;
 
-            using (var rowset = _session.Query(SelectPeers, ConsistencyLevel.Default))
+            using (var rowset = _session.Query(SelectPeers, ConsistencyLevel.Quorum))
             {
                 queriedHost = rowset.QueriedHost;
                 foreach (var row in rowset.GetRows())
@@ -369,7 +369,7 @@ namespace Cassandra
                 var versions = new DictSet<Guid>();
 
                 IPAddress queriedHost;
-                using (var rowset = _session.Query(SelectSchemaPeers, ConsistencyLevel.Default))
+                using (var rowset = _session.Query(SelectSchemaPeers, ConsistencyLevel.Quorum))
                 {
                     queriedHost = rowset.QueriedHost;
                     foreach (var row in rowset.GetRows())

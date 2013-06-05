@@ -146,7 +146,7 @@ namespace Cassandra.MSTest
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
     , keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString()));
-
+                Session.Cluster.WaitForSchemaAgreement();
                 Session.ChangeKeyspace(keyspacename);
 
 

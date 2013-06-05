@@ -270,6 +270,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             Query(GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.All);
+            Cluster.WaitForSchemaAgreement();
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 

@@ -119,6 +119,7 @@ namespace Cassandra.Data.Linq
             var cqls = CqlQueryTools.GetCreateCQL(this);
             foreach (var cql in cqls)
                 _session.Execute(cql, consictencyLevel);
+            _session.Cluster.WaitForSchemaAgreement();
         }
 
         public void CreateIfNotExists(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)
@@ -200,6 +201,11 @@ namespace Cassandra.Data.Linq
         public static CqlToken Create<T1, T2, T3, T4, T5, T6>(T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6) { return new CqlToken(new object[] { v1, v2, v3, v4, v5, v6 }); }
 
         public readonly object[] Values;
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
         
         public static bool operator ==(CqlToken a, object b)
         {
