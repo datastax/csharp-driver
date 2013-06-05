@@ -34,7 +34,7 @@ namespace Cassandra.MSTest
             session = CCMCluster.Session;
             cluster = CCMCluster.Cluster;
             session.CreateKeyspaceIfNotExists(ksname);
-            session.Cluster.WaitForSchema(ksname);
+            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace(ksname);
         }
 
@@ -322,16 +322,16 @@ namespace Cassandra.MSTest
             session = CCMCluster.Session;
 
             session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
-            session.Cluster.WaitForSchema("large_data");
+            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace("large_data");
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text"));
-            session.Cluster.WaitForSchema("large_data", "wide_rows");
-            session.Cluster.WaitForSchema("large_data", "wide_batch_rows");
-            session.Cluster.WaitForSchema("large_data", "wide_byte_rows");
-            session.Cluster.WaitForSchema("large_data", "large_text");
+            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement();
 
             // Create the extra wide table definition
             StringBuilder tableDeclaration = new StringBuilder();
@@ -343,7 +343,7 @@ namespace Cassandra.MSTest
             }
             tableDeclaration.Append(")");
             session.Execute(tableDeclaration.ToString());
-            session.Cluster.WaitForSchema("large_data", "wide_table");
+            session.Cluster.WaitForSchemaAgreement();
 
             Random rndm = new Random(DateTime.Now.Millisecond);
             try

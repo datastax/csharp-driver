@@ -230,10 +230,10 @@ namespace Cassandra.MSTest
                 String key = "1";
 
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
-                session.Cluster.WaitForSchema(keyspace);
+                session.Cluster.WaitForSchemaAgreement();
                 session.Execute("USE " + keyspace);
                 session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
-                session.Cluster.WaitForSchema(keyspace, table);
+                session.Cluster.WaitForSchemaAgreement();
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
                 session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
@@ -376,10 +376,10 @@ namespace Cassandra.MSTest
                 String key = "1";
 
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
-                session.Cluster.WaitForSchema(keyspace);
+                session.Cluster.WaitForSchemaAgreement();
                 session.Execute("USE " + keyspace);
                 session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
-                session.Cluster.WaitForSchema(keyspace,table);
+                session.Cluster.WaitForSchemaAgreement();
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
                 session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
@@ -445,10 +445,10 @@ namespace Cassandra.MSTest
                 String key = "1";
 
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
-                session.Cluster.WaitForSchema(keyspace);
+                session.Cluster.WaitForSchemaAgreement();
                 session.Execute("USE " + keyspace);
                 session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
-                session.Cluster.WaitForSchema(table);
+                session.Cluster.WaitForSchemaAgreement();
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
                 session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));

@@ -32,19 +32,19 @@ namespace Cassandra.MSTest
         public static void createSchema(Session session, int replicationFactor)
         {
             session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor), ConsistencyLevel.All);
-            session.Cluster.WaitForSchema(TestUtils.SIMPLE_KEYSPACE);
+            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
-            session.Cluster.WaitForSchema(TestUtils.SIMPLE_KEYSPACE,TABLE);
+            session.Cluster.WaitForSchemaAgreement();
         }
 
         public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
         {
             session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", string.Format("'dc1' : {0}, 'dc2' : {1}",dc1RF,dc2RF) ));
-            session.Cluster.WaitForSchema(TestUtils.SIMPLE_KEYSPACE);
+            session.Cluster.WaitForSchemaAgreement();
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
-            session.Cluster.WaitForSchema(TestUtils.SIMPLE_KEYSPACE, TABLE);
+            session.Cluster.WaitForSchemaAgreement();
         }
 
         ///  Coordinator management/count

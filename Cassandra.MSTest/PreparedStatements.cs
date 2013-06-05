@@ -32,7 +32,7 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.Cluster.WaitForSchema(Keyspace);
+            Session.Cluster.WaitForSchemaAgreement();
             Session.ChangeKeyspace(Keyspace);
         }
 
@@ -56,7 +56,7 @@ namespace Cassandra.MSTest
          value {1}
          );", tableName, cassandraDataTypeName));
 
-            Session.Cluster.WaitForSchema(Keyspace, tableName);
+            Session.Cluster.WaitForSchemaAgreement();
 
             List<object[]> toInsert = new List<object[]>(1);
             var val = Randomm.RandomVal(tp);
@@ -86,7 +86,7 @@ namespace Cassandra.MSTest
          numb2 int
          );", tableName));
 
-                Session.Cluster.WaitForSchema(Keyspace, tableName);
+                Session.Cluster.WaitForSchemaAgreement();
             }
             catch (AlreadyExistsException)
             {

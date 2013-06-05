@@ -62,7 +62,7 @@ namespace Cassandra.MSTest
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                 , keyspaceName));
 
-            Session.Cluster.WaitForSchema(keyspaceName);
+            Session.Cluster.WaitForSchemaAgreement();
 
             Session.ChangeKeyspace(keyspaceName);
 
@@ -76,7 +76,7 @@ namespace Cassandra.MSTest
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
 
-                Session.Cluster.WaitForSchema(keyspaceName, tableName);
+                Session.Cluster.WaitForSchemaAgreement();
             }
             catch (AlreadyExistsException)
             {
@@ -199,7 +199,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
                     , keyspaceName));
-                Session.Cluster.WaitForSchema(keyspaceName);
+                Session.Cluster.WaitForSchemaAgreement();
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -211,7 +211,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
          body text,
          isok boolean,
          PRIMARY KEY(tweet_id))", tableName));
-                Session.Cluster.WaitForSchema(keyspaceName, tableName);
+                Session.Cluster.WaitForSchemaAgreement();
             }
             catch (AlreadyExistsException)
             {

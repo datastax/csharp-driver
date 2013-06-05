@@ -83,10 +83,12 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
+            bool controlConnectionCreated = false;
             lock (_controlConnectionGuard)
             {
                 if (_controlConnection == null)
                 {
+                    controlConnectionCreated = true;
                     var controlpolicies = new Cassandra.Policies(
                         _configuration.Policies.LoadBalancingPolicy,
                         new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
@@ -123,6 +125,10 @@ namespace Cassandra
             lock (_connectedSessions)
                 _connectedSessions.Add(scs);
             _logger.Info("Session connected!");
+
+            if (controlConnectionCreated)
+                RefreshSchema();
+
             return scs;
         }
 
@@ -241,20 +247,6 @@ namespace Cassandra
             Shutdown();
         }
 
-        //public IAsyncResult BeginRefreshSchema(AsyncCallback callback, object state, string keyspace = null, string table = null)
-        //{
-        //    var ar = new AsyncResultNoResult(callback, state, this, "RefreshSchema", this,null,
-        //                                                     Timeout.Infinite);
-
-
-        //    return ar;
-        //}
-
-        //public void EndRefreshSchema(IAsyncResult ar)
-        //{
-        //    AsyncResultNoResult.End(ar, this, "RefreshSchema");
-        //}
-
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
             lock (_controlConnectionGuard)
@@ -264,59 +256,12 @@ namespace Cassandra
                     return _controlConnection.RefreshHosts();
                 return true;
             }
-            //            EndRefreshSchema(BeginRefreshSchema(null, null, keyspace, table));
         }
 
-        Dictionary<string, HashSet<string>> _confirmations = new Dictionary<string, HashSet<string>>();
-
-        internal void ConfirmCreation(string keyspace, string table)
+        public void WaitForSchemaAgreement()
         {
-            lock (_confirmations)
-            {
-                if (!_confirmations.ContainsKey(keyspace))
-                    _confirmations.Add(keyspace, new HashSet<string>());
-                if(table!=null)
-                    _confirmations[keyspace].Add(table);
-                Monitor.PulseAll(_confirmations);
-            }
-        }
-
-        public void WaitForSchema(string keyspace, string table = null)
-        {
-            lock (_confirmations)
-            {
-                while (!_confirmations.ContainsKey(keyspace))
-                {
-                    if (!Monitor.Wait(_confirmations, 10000))
-                        return;
-                }
-                if (table != null)
-                    while (!_confirmations[keyspace].Contains(table))
-                    {
-                        if (!Monitor.Wait(_confirmations, 10000))
-                            return;
-                    }
-                return;
-            }
-        //    while (!Metadata.GetKeyspaces().Contains(keyspace))
-        //        Thread.Sleep(200);
-        //    if (table != null)
-        //    {
-        //        while (!Metadata.GetKeyspace(keyspace).GetTablesNames().Contains(table))
-        //            Thread.Sleep(200);
-        //        if (columnNameWithSecondaryIndex != null)
-        //            while (true)
-        //            {
-        //                var cols = Metadata.GetKeyspace(keyspace).GetTableMetadata(table).TableColumns;
-        //                foreach (var c in cols)
-        //                {
-        //                    if (c.Name == columnNameWithSecondaryIndex)
-        //                        if (c.KeyType == KeyType.SecondaryIndex)
-        //                            return;
-        //                }
-        //                Thread.Sleep(200);
-        //            }
-        //    }
+            lock (_controlConnectionGuard)
+                _controlConnection.WaitForSchemaAgreement();
         }
 
     }

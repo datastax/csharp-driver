@@ -140,7 +140,6 @@ namespace Cassandra
                 if (ssc.What == SchemaChangeEventArgs.Reason.Created)
                 {
                     SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
-                    _cluster.ConfirmCreation(ssc.Keyspace, ssc.Table);
                     return;
                 }
                 else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
@@ -369,18 +368,10 @@ namespace Cassandra
             {
                 var versions = new DictSet<Guid>();
 
-                using (var rowset = _session.Query(SelectSchemaLocal, ConsistencyLevel.Default))
-                {
-                    foreach (var localRow in rowset.GetRows())
-                        if (!localRow.IsNull("schema_version"))
-                        {
-                            versions.Add(localRow.GetValue<Guid>("schema_version"));
-                            break;
-                        }
-                }
-
+                IPAddress queriedHost;
                 using (var rowset = _session.Query(SelectSchemaPeers, ConsistencyLevel.Default))
                 {
+                    queriedHost = rowset.QueriedHost;
                     foreach (var row in rowset.GetRows())
                     {
                         if (row.IsNull("peer") || row.IsNull("schema_version"))
@@ -392,12 +383,35 @@ namespace Cassandra
                     }
                 }
 
+                var localhost = _cluster.Metadata.GetHost(queriedHost);
+                var iterLiof = new List<Host>() { localhost }.GetEnumerator();
+                iterLiof.MoveNext();
+                List<IPAddress> tr = new List<IPAddress>();
+                Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+                var cn = _session.Connect(null, iterLiof, tr, exx);
+
+                using (var outp = cn.Query(SelectSchemaLocal, ConsistencyLevel.Default, false))
+                {
+                    if (outp is OutputRows)
+                    {
+                        var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                        // Update cluster name, DC and rack for the one node we are connected to
+                        foreach (var localRow in rowset.GetRows())
+                            if (!localRow.IsNull("schema_version"))
+                            {
+                                versions.Add(localRow.GetValue<Guid>("schema_version"));
+                                break;
+                            }
+                    }
+                }
+
+
                 if (versions.Count <= 1)
                     return true;
 
                 // let's not flood the node too much
                 Thread.Sleep(200);
-                elapsed = (long) (DateTimeOffset.Now - start).TotalMilliseconds;
+                elapsed = (long)(DateTimeOffset.Now - start).TotalMilliseconds;
             }
 
             return false;

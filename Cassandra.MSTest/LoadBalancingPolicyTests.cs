@@ -294,7 +294,7 @@ namespace Cassandra.MSTest
             createSchema(c.Session);
             try
             {
-                c.Cluster.RefreshSchema();
+                //c.Cluster.RefreshSchema();
                 init(c, 12);
                 query(c, 12);
 
