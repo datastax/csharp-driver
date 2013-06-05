@@ -70,10 +70,11 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.Cluster.WaitForSchemaAgreement(
+                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
-         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
+         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName)));
             }
             catch (AlreadyExistsException)
             {

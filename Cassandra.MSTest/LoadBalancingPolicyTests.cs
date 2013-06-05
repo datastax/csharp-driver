@@ -359,7 +359,6 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [WorksForMe]
-        [Priority]
         public void tokenAwareWithRF2TestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));

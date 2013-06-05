@@ -16,7 +16,7 @@ namespace Cassandra.MSTest
     public partial class PreparedStatementsTests
     {        
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void testMassivePrepared()
         {
             massivePreparedStatementTest();

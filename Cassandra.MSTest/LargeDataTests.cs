@@ -189,9 +189,11 @@ namespace Cassandra.MSTest
             catch (InvalidConfigurationInQueryException ex) { }
 
             if (tableName == "wide_table")                            
-                session.Execute(GetTableDeclaration());            
+                session.Cluster.WaitForSchemaAgreement(
+                    session.Execute(GetTableDeclaration()).QueriedHost);            
             else                           
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, cqlType));
+                session.Cluster.WaitForSchemaAgreement(
+                    session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, cqlType)).QueriedHost);
             
             try
             {

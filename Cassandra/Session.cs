@@ -883,6 +883,14 @@ namespace Cassandra
             public RowSetMetadata Metadata;
             public object[] Values;
             public bool IsTracinig;
+            public Stopwatch StartedAt;
+            
+            override public void Connect(Session owner, bool moveNext)
+            {
+                StartedAt = Stopwatch.StartNew();
+                base.Connect(owner, moveNext);
+            }
+            
             override public void Begin(Session owner)
             {
                 Connection.BeginExecuteQuery(Id, cql, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency, IsTracinig);
@@ -893,14 +901,28 @@ namespace Cassandra
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                var rowset = value as CqlRowSet;
-                var ar = LongActionAc as AsyncResult<CqlRowSet>;
-                if (exc != null)
-                    ar.Complete(exc);
-                else
+                try
                 {
-                    ar.SetResult(rowset);
-                    ar.Complete();
+                    var ar = LongActionAc as AsyncResult<CqlRowSet>;
+                    if (exc != null)
+                        ar.Complete(exc);
+                    else
+                    {
+                        CqlRowSet rowset = value as CqlRowSet;
+                        if (rowset == null)
+                            rowset = new CqlRowSet(null, owner, false);
+                        rowset.SetTriedHosts(TriedHosts);
+                        ar.SetResult(rowset);
+                        ar.Complete();
+                    }
+                }
+                finally
+                {
+                    var ts = StartedAt.ElapsedTicks;
+                    CassandraCounters.IncrementCqlQueryCount();
+                    CassandraCounters.IncrementCqlQueryBeats((ts * 1000000000));
+                    CassandraCounters.UpdateQueryTimeRollingAvrg((ts * 1000000000) / Stopwatch.Frequency);
+                    CassandraCounters.IncrementCqlQueryBeatsBase();
                 }
             }
         }
