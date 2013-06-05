@@ -42,6 +42,8 @@
     <Compile Include="ConsistencyTests.cs" />
     <Compile Include="LargeDataTests.cs" />
     <Compile Include="MetadataTests.cs" />
+    <Compile Include="Policies\AlwaysIgnoreRetryPolicy.cs" />
+    <Compile Include="Policies\AlwaysRetryRetryPolicy.cs" />
     <Compile Include="PolicyTestTools.cs" />
     <Compile Include="PreparedStatementsCCMTests.cs" />
     <Compile Include="PreparedStatementsCCM.cs" />
@@ -64,6 +66,7 @@
     <Compile Include="QueryTools.cs" />
     <Compile Include="Randomm.cs" />
     <Compile Include="ReconnectionPolicyTests.cs" />
+    <Compile Include="RetryPolicyTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">

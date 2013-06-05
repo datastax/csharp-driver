@@ -143,14 +143,12 @@ namespace Cassandra.MSTest
                 if (batch)
                 // BUG: WriteType == SIMPLE                    
                 {
-                    //var bth = c.Session.CreateBatch();
-                    //bth.Append(new InsertQuery(string.Format("BEGIN BATCH INSERT INTO {0} VALUES {1} APPLY BATCH", TestUtils.SIMPLE_TABLE, "(0,0)")));
-                    //bth.SetConsistencyLevel(cl);
-                    //bth.Execute();
+                    StringBuilder bth = new StringBuilder();
+                    bth.AppendLine("BEGIN BATCH");
+                    bth.AppendLine(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE));
+                    bth.AppendLine("APPLY BATCH");
 
-                    //c.Session.Execute(batch()
-                    //        .add(string.Format("INSERT INTO {0} VALUES {1}", TestUtils.SIMPLE_TABLE, new String[] { "k", "i" }, new Object[] { 0, 0 })) //insertInto(SIMPLE_TABLE).values(new String[] { "k", "i" }, new Object[] { 0, 0 }))
-                    //        .SetConsistencyLevel(cl));
+                    var qh = c.Session.Execute(new SimpleStatement(bth.ToString()).SetRoutingKey(routingKey).SetConsistencyLevel(cl)).QueriedHost;
                 }
                 else
                 {
