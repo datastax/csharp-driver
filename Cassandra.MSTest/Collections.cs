@@ -35,7 +35,7 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Thread.Sleep(1000);
+            Session.Cluster.WaitForSchema(Keyspace);
             Session.ChangeKeyspace(Keyspace);
         }
 
@@ -162,7 +162,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
          );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
-                Thread.Sleep(3000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {

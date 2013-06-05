@@ -35,7 +35,7 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Thread.Sleep(1000);
+            Session.Cluster.WaitForSchema(Keyspace);
             Session.ChangeKeyspace(Keyspace);
         }
 
@@ -57,7 +57,7 @@ namespace Cassandra.MSTest
          label text,
          number {1}
          );", tableName, cassandraDataTypeName));
-                Thread.Sleep(1000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {
@@ -113,7 +113,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          incdec counter
          );", tableName));
-                Thread.Sleep(1000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {
@@ -140,7 +140,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, cassandraDataTypeName));
-                Thread.Sleep(1000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {
@@ -179,7 +179,7 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          ts timestamp
          );", tableName));
-            Thread.Sleep(1000);
+            Session.Cluster.WaitForSchema(Keyspace, tableName);
 
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), "2011-02-03 04:05+0000"), null);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 220898707200000), null);
@@ -200,7 +200,7 @@ namespace Cassandra.MSTest
          {1},
 PRIMARY KEY(tweet_id)
          );", tableName, columns));
-                Thread.Sleep(3000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {
@@ -224,7 +224,7 @@ PRIMARY KEY(tweet_id)
             }
 
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName));
-            Thread.Sleep(3000);
+            Session.Cluster.WaitForSchema(Keyspace, tableName, "name");
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), toReturn);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
@@ -245,7 +245,7 @@ PRIMARY KEY(tweet_id)
 		 fval float,
 		 dval double,
          PRIMARY KEY(tweet_id))", tableName));
-                Thread.Sleep(1000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {

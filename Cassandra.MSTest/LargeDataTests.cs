@@ -34,7 +34,7 @@ namespace Cassandra.MSTest
             session = CCMCluster.Session;
             cluster = CCMCluster.Cluster;
             session.CreateKeyspaceIfNotExists(ksname);
-            Thread.Sleep(6000);
+            session.Cluster.WaitForSchema(ksname);
             session.ChangeKeyspace(ksname);
         }
 
@@ -322,12 +322,16 @@ namespace Cassandra.MSTest
             session = CCMCluster.Session;
 
             session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
-			Thread.Sleep(3000);
+            session.Cluster.WaitForSchema("large_data");
             session.ChangeKeyspace("large_data");
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows"));
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text"));
+            session.Cluster.WaitForSchema("large_data", "wide_rows");
+            session.Cluster.WaitForSchema("large_data", "wide_batch_rows");
+            session.Cluster.WaitForSchema("large_data", "wide_byte_rows");
+            session.Cluster.WaitForSchema("large_data", "large_text");
 
             // Create the extra wide table definition
             StringBuilder tableDeclaration = new StringBuilder();
@@ -339,6 +343,7 @@ namespace Cassandra.MSTest
             }
             tableDeclaration.Append(")");
             session.Execute(tableDeclaration.ToString());
+            session.Cluster.WaitForSchema("large_data", "wide_table");
 
             Random rndm = new Random(DateTime.Now.Millisecond);
             try

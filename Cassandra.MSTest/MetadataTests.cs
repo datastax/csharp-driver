@@ -92,7 +92,7 @@ namespace Cassandra.MSTest
 
             QueryTools.ExecuteSyncNonQuery(Session, sb.ToString());
 
-            Thread.Sleep(2000);
+            Session.Cluster.WaitForSchema(Keyspace, tablename);
 
             var table = this.Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
             foreach (var metaCol in table.TableColumns)
@@ -115,7 +115,7 @@ namespace Cassandra.MSTest
                 Session = CCMCluster.Session;
                 Cluster = CCMCluster.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
-                Thread.Sleep(1000);
+                Session.Cluster.WaitForSchema(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
 
                 checkPureMetadata(TableName, KeyspaceName, tableOptions);
@@ -134,7 +134,7 @@ namespace Cassandra.MSTest
                 Session = CCMCluster.Session;
                 Cluster = CCMCluster.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
-                Thread.Sleep(6000);
+                Session.Cluster.WaitForSchema(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
 
                 string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
@@ -184,7 +184,7 @@ namespace Cassandra.MSTest
                 {
                     replication_factor = rndm.Next(1, 21);
                     Session.CreateKeyspaceIfNotExists(Keyspace,ReplicationStrategies.CreateSimpleStrategyReplicationProperty((int)replication_factor), durable_writes);
-                    Thread.Sleep(1000);
+                    Session.Cluster.WaitForSchema(Keyspace);
                     Session.ChangeKeyspace(Keyspace);
                 }
                 else

@@ -28,6 +28,8 @@ namespace Cassandra
         public string Keyspace { get { return _keyspace; } }
         private string _keyspace;
 
+        public Cluster Cluster { get { return _cluster; } }
+
         private readonly Hosts _hosts;
         readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
 

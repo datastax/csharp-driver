@@ -45,7 +45,7 @@ namespace Cassandra.MSTest
         private void reprepareOnNewlyUpNodeTest(bool useKeyspace)
         {
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Thread.Sleep(1000);
+            Session.Cluster.WaitForSchema(Keyspace);
             string modifiedKs = "";
 
             if (useKeyspace)
@@ -56,11 +56,11 @@ namespace Cassandra.MSTest
             try
             {
                 Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)");
+                Session.Cluster.WaitForSchema(Keyspace, "test");
             }
             catch (AlreadyExistsException)
             {
             }
-            Thread.Sleep(1000);
             Session.Execute("INSERT INTO " + modifiedKs +"test (k, i) VALUES ('123', 17)");
             Session.Execute("INSERT INTO " + modifiedKs +"test (k, i) VALUES ('124', 18)");
 

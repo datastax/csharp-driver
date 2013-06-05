@@ -32,8 +32,9 @@ namespace Cassandra.MSTest
             Session = CCMCluster.Session;
             Cluster = CCMCluster.Cluster;
             Session.CreateKeyspaceIfNotExists(Keyspace);
-            Thread.Sleep(1000);
-            Session.ChangeKeyspace(Keyspace);        }
+            Session.Cluster.WaitForSchema(Keyspace);
+            Session.ChangeKeyspace(Keyspace);
+        }
 
         [TestCleanup]
         public void Dispose()
@@ -54,8 +55,8 @@ namespace Cassandra.MSTest
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, cassandraDataTypeName));
-			
-			Thread.Sleep(1000);
+
+            Session.Cluster.WaitForSchema(Keyspace, tableName);
 
             List<object[]> toInsert = new List<object[]>(1);
             var val = Randomm.RandomVal(tp);
@@ -85,7 +86,7 @@ namespace Cassandra.MSTest
          numb2 int
          );", tableName));
 
-                Thread.Sleep(1000);
+                Session.Cluster.WaitForSchema(Keyspace, tableName);
             }
             catch (AlreadyExistsException)
             {
