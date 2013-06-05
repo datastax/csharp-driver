@@ -140,6 +140,7 @@ namespace Cassandra
                 if (ssc.What == SchemaChangeEventArgs.Reason.Created)
                 {
                     SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                    _cluster.ConfirmCreation(ssc.Keyspace, ssc.Table);
                     return;
                 }
                 else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)

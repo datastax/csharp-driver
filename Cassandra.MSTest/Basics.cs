@@ -224,7 +224,7 @@ PRIMARY KEY(tweet_id)
             }
 
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName));
-            Session.Cluster.WaitForSchema(Keyspace, tableName, "name");
+            Thread.Sleep(30000);
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), toReturn);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }

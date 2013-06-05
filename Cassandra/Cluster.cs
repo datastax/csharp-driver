@@ -267,27 +267,56 @@ namespace Cassandra
             //            EndRefreshSchema(BeginRefreshSchema(null, null, keyspace, table));
         }
 
-        public void WaitForSchema(string keyspace, string table = null, string columnNameWithSecondaryIndex = null)
+        Dictionary<string, HashSet<string>> _confirmations = new Dictionary<string, HashSet<string>>();
+
+        internal void ConfirmCreation(string keyspace, string table)
         {
-            while (!Metadata.GetKeyspaces().Contains(keyspace))
-                Thread.Sleep(200);
-            if (table != null)
+            lock (_confirmations)
             {
-                while (!Metadata.GetKeyspace(keyspace).GetTablesNames().Contains(table))
-                    Thread.Sleep(200);
-                if (columnNameWithSecondaryIndex != null)
-                    while (true)
-                    {
-                        var cols = Metadata.GetKeyspace(keyspace).GetTableMetadata(table).TableColumns;
-                        foreach(var c in cols)
-                        {
-                            if (c.Name == columnNameWithSecondaryIndex)
-                                if (c.KeyType == KeyType.SecondaryIndex)
-                                    return;
-                        }
-                        Thread.Sleep(200);
-                    }
+                if (!_confirmations.ContainsKey(keyspace))
+                    _confirmations.Add(keyspace, new HashSet<string>());
+                if(table!=null)
+                    _confirmations[keyspace].Add(table);
+                Monitor.PulseAll(_confirmations);
             }
+        }
+
+        public void WaitForSchema(string keyspace, string table = null)
+        {
+            lock (_confirmations)
+            {
+                while (!_confirmations.ContainsKey(keyspace))
+                {
+                    if (!Monitor.Wait(_confirmations, 10000))
+                        return;
+                }
+                if (table != null)
+                    while (!_confirmations[keyspace].Contains(table))
+                    {
+                        if (!Monitor.Wait(_confirmations, 10000))
+                            return;
+                    }
+                return;
+            }
+        //    while (!Metadata.GetKeyspaces().Contains(keyspace))
+        //        Thread.Sleep(200);
+        //    if (table != null)
+        //    {
+        //        while (!Metadata.GetKeyspace(keyspace).GetTablesNames().Contains(table))
+        //            Thread.Sleep(200);
+        //        if (columnNameWithSecondaryIndex != null)
+        //            while (true)
+        //            {
+        //                var cols = Metadata.GetKeyspace(keyspace).GetTableMetadata(table).TableColumns;
+        //                foreach (var c in cols)
+        //                {
+        //                    if (c.Name == columnNameWithSecondaryIndex)
+        //                        if (c.KeyType == KeyType.SecondaryIndex)
+        //                            return;
+        //                }
+        //                Thread.Sleep(200);
+        //            }
+        //    }
         }
 
     }
