@@ -25,7 +25,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;CASSANDRA_NET_40_OR_GREATER;MYTEST</DefineConstants>
+    <DefineConstants>TRACE;NET_40_OR_GREATER;MYTEST</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>

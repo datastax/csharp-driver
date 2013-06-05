@@ -52,7 +52,6 @@ namespace Cassandra.MSTest
             return BitConverter.ToInt64(buffer, 0);
         }
 
-#if NET_40_OR_GREATER
         public decimal NextDecimal()
         {
             byte scale = (byte)this.Next(29);
@@ -64,7 +63,8 @@ namespace Cassandra.MSTest
                                sign,
                                scale);
         }
-        	
+
+#if NET_40_OR_GREATER
         public BigInteger NextBigInteger()  	
         {	  	
             return new BigInteger(Int64.MaxValue) * 10;	  	
