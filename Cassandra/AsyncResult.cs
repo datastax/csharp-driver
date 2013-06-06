@@ -6,10 +6,10 @@ using System.Reflection;
 
 namespace Cassandra
 {
-    internal class AsyncTimeoutException : TimeoutException
+    public class AsyncCallException : TimeoutException
     {
-        public AsyncTimeoutException()
-            : base("async operation timeout exception")
+        public AsyncCallException()
+            : base("async operation  exception")
         {
         }
     }
@@ -175,7 +175,7 @@ namespace Cassandra
                 asyncResult.AsyncWaitHandle.Close();
                 if (!asyncResult.IsCompleted)
                 {
-                    asyncResult.Complete(new AsyncTimeoutException());
+                    asyncResult.Complete(new AsyncCallException());
                 }
                 asyncResult._asyncWaitHandle = null;  // Allow early GC                
             }
@@ -222,25 +222,32 @@ namespace Cassandra
             }
             public override bool WaitOne(int millisecondsTimeout)
             {
-                if (_timeout == Timeout.Infinite)
+                try
                 {
-                    return _resetEvent.WaitOne(millisecondsTimeout);
-                }
-                else
-                {
-                    var fixTim = _timeout - (int)(DateTimeOffset.Now - _started).TotalMilliseconds;
-                    if (fixTim < 0) fixTim = 0;
-
-                    var tim = millisecondsTimeout == Timeout.Infinite ?
-                        fixTim
-                       : Math.Min(millisecondsTimeout, fixTim);
-                    if (millisecondsTimeout == Timeout.Infinite || millisecondsTimeout <= fixTim)
-                        return _resetEvent.WaitOne(tim);
+                    if (_timeout == Timeout.Infinite)
+                    {
+                        return _resetEvent.WaitOne(millisecondsTimeout);
+                    }
                     else
                     {
-                        _resetEvent.WaitOne(tim);
-                        return true;
+                        var fixTim = _timeout - (int)(DateTimeOffset.Now - _started).TotalMilliseconds;
+                        if (fixTim < 0) fixTim = 0;
+
+                        var tim = millisecondsTimeout == Timeout.Infinite ?
+                            fixTim
+                           : Math.Min(millisecondsTimeout, fixTim);
+                        if (millisecondsTimeout == Timeout.Infinite || millisecondsTimeout <= fixTim)
+                            return _resetEvent.WaitOne(tim);
+                        else
+                        {
+                            _resetEvent.WaitOne(tim);
+                            return true;
+                        }
                     }
+                }
+                catch(ThreadInterruptedException)
+                {
+                    return false;
                 }
             }
         }
