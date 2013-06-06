@@ -174,9 +174,18 @@ namespace Cassandra.MSTest
             // Read data
             CqlRow row = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString()).GetRows().FirstOrDefault();
 
+            Assert.True(row != null, "row is null");
+
+            Assert.True(row.Columns.Length >= 330, "not enough columns");
+
             // Verify data
             for (int i = 0; i < 330; ++i)
-                Assert.True((int)row[createColumnName(i)] == i);
+            {
+                var cn = createColumnName(i);
+                Assert.True(row[cn] != null, "column is null");
+                Assert.True(row[cn] is int, "column is not int");
+                Assert.True((int)row[cn] == i);
+            }
 
         }
 
@@ -342,8 +351,9 @@ namespace Cassandra.MSTest
                 tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
             }
             tableDeclaration.Append(")");
-            session.Execute(tableDeclaration.ToString());
-            session.Cluster.WaitForSchemaAgreement();
+            session.Cluster.WaitForSchemaAgreement(
+                session.Execute(tableDeclaration.ToString()).QueriedHost
+            );
 
             Random rndm = new Random(DateTime.Now.Millisecond);
             try
