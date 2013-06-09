@@ -28,6 +28,7 @@ namespace Playground
             
             using(var session = cluster.Connect())
             {
+
                 var keyspaceName = "test" + Guid.NewGuid().ToString("N");
                 
                 try

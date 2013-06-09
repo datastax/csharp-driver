@@ -54,7 +54,7 @@ namespace Cassandra.MSTest
         {
             // Write data
             for (int i = 0; i < 500; ++i) //1000000
-                session.Execute("INSERT INTO wide_rows(k,i) VALUES("+key+","+i+")");
+                session.Execute("INSERT INTO wide_rows(k,i) VALUES("+key+","+i+")",ConsistencyLevel.Quorum);
                 
             // Read data        
             var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key.ToString());
@@ -68,7 +68,10 @@ namespace Cassandra.MSTest
 
         /*
          * Test a batch that writes a row of size 10,000
-         */
+     * @param c The cluster object
+     * @param key The key value that will receive the data
+     * @throws Throwable
+     */
         private void testWideBatchRows()
         {
             // Write data        
@@ -76,7 +79,7 @@ namespace Cassandra.MSTest
             for (int i = 0; i < 500; ++i) // 10000
                 sb.AppendLine(string.Format("INSERT INTO wide_batch_rows(k,i) VALUES({0},{1})", key, i));
             sb.Append("APPLY BATCH");
-            session.Execute(sb.ToString());
+            session.Execute(sb.ToString(),ConsistencyLevel.Quorum);
 
             // Read data
             var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key.ToString());
@@ -102,7 +105,7 @@ namespace Cassandra.MSTest
 
             // Write data
             for (int i = 0; i < 500; ++i)//1000000
-                session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, Cassandra.CqlQueryTools.ToHex(bb)));
+                session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, Cassandra.CqlQueryTools.ToHex(bb)),ConsistencyLevel.Quorum);
 
             // Read data
             var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key.ToString());
@@ -123,7 +126,7 @@ namespace Cassandra.MSTest
             for (int i = 0; i < 1000; ++i)
                 b.Append(i.ToString());// Create ultra-long text
 
-            session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b.ToString()));
+            session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b.ToString()),ConsistencyLevel.Quorum);
 
             // Read data
             CqlRow row = session.Execute("SELECT * FROM large_text WHERE k = " + key.ToString()).GetRows().FirstOrDefault();// select().all().from("large_text").where(eq("k", key))).one();
@@ -169,7 +172,7 @@ namespace Cassandra.MSTest
                 valus.Append("," + i.ToString());
             }
             insrt.Append(") " + valus.ToString() + ")");
-            session.Execute(insrt.ToString());
+            session.Execute(insrt.ToString(),ConsistencyLevel.Quorum);
 
             // Read data
             CqlRow row = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString()).GetRows().FirstOrDefault();
@@ -194,7 +197,10 @@ namespace Cassandra.MSTest
         private void largeDataTest(string tableName, string cqlType = "int")
         {
             try
-            {session.Execute("DROP TABLE " + tableName);}
+            {
+                session.Cluster.WaitForSchemaAgreement(
+                    session.Execute("DROP TABLE " + tableName).QueriedHost);
+            }
             catch (InvalidConfigurationInQueryException ex) { }
 
             if (tableName == "wide_table")                            

@@ -16,7 +16,6 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 1);
-            //c.Cluster.RefreshSchema();
             try
             {
 
@@ -145,7 +144,6 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 2);
-            //c.Cluster.RefreshSchema();
             try
             {
 
@@ -276,7 +274,6 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 3);
-            //c.Cluster.RefreshSchema();
             try
             {
 
@@ -406,10 +403,8 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 1);
-            //c.Cluster.RefreshSchema();
             try
             {
-                //c.Cluster.RefreshSchema();
 
                 init(c, 12, ConsistencyLevel.One);
                 query(c, 12, ConsistencyLevel.One);
@@ -536,7 +531,6 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 2);
-            //c.Cluster.RefreshSchema();
             try
             {
 
@@ -680,7 +674,6 @@ namespace Cassandra.MSTest
         {
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 3);
-            //c.Cluster.RefreshSchema();
             try
             {
 
@@ -928,7 +921,6 @@ namespace Cassandra.MSTest
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2"))).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
             createMultiDCSchema(c.Session, 3, 3);
-            //c.Cluster.RefreshSchema();
             try
             {
 

@@ -115,6 +115,90 @@ namespace Cassandra.MSTest
         {
             insertingSingleCollection("set", typeof(Int64));
         }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testMapPrepared()
+        {
+            insertingSingleCollectionPrepared("map", typeof(string), typeof(DateTimeOffset));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testMapDoublePrepared()
+        {
+            insertingSingleCollectionPrepared("map", typeof(Double), typeof(DateTimeOffset));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testMapInt32Prepared()
+        {
+            insertingSingleCollectionPrepared("map", typeof(Int32), typeof(DateTimeOffset));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testMapInt64Prepared()
+        {
+            insertingSingleCollectionPrepared("map", typeof(Int64), typeof(DateTimeOffset));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testListDoublePrepared()
+        {
+            insertingSingleCollectionPrepared("list", typeof(Double));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testListInt64Prepared()
+        {
+            insertingSingleCollectionPrepared("list", typeof(Int64));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testListInt32Prepared()
+        {
+            insertingSingleCollectionPrepared("list", typeof(Int32));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testListStringPrepared()
+        {
+            insertingSingleCollectionPrepared("list", typeof(string));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testSetStringPrepared()
+        {
+            insertingSingleCollectionPrepared("set", typeof(string));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testSetDoublePrepared()
+        {
+            insertingSingleCollectionPrepared("set", typeof(Double));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testSetInt32Prepared()
+        {
+            insertingSingleCollectionPrepared("set", typeof(Int32));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testSetInt64Prepared()
+        {
+            insertingSingleCollectionPrepared("set", typeof(Int64));
+        }
  
     }
 }

@@ -62,6 +62,7 @@ namespace Cassandra
             {
                 var buf = TypeInterpreter.InvCqlConvert(obj, list_typecode, list_typeinfo);
                 bufs.Add(buf);
+                bsize += 2; //size of value
                 bsize += buf.Length;
                 cnt++;
             }
@@ -74,6 +75,9 @@ namespace Cassandra
             idx += 2;
             foreach (var buf in bufs)
             {
+                var val_buf_size = Int16ToBytes((short)buf.Length);
+                Buffer.BlockCopy(val_buf_size, 0, ret, idx, 2);
+                idx += 2;
                 Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
                 idx += buf.Length;
             }

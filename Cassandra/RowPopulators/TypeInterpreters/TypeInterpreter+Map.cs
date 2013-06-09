@@ -68,7 +68,7 @@ namespace Cassandra
 
         public static byte[] InvConvertFromMap(IColumnInfo type_info, object value)
         {
-            var dicType = GetTypeFromList(type_info);
+            var dicType = GetTypeFromMap(type_info);
             CheckArgument(dicType, value);
             var key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
             var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
@@ -90,12 +90,14 @@ namespace Cassandra
                     var obj = key_prop.GetValue(kv, new object[] { });
                     var buf = TypeInterpreter.InvCqlConvert(obj, key_typecode, key_typeinfo);
                     bufs.Add(buf);
+                    bsize += 2; //size of key
                     bsize += buf.Length;
                 }
                 {
                     var obj = value_prop.GetValue(kv, new object[] { });
                     var buf = TypeInterpreter.InvCqlConvert(obj, value_typecode, value_typeinfo);
                     bufs.Add(buf);
+                    bsize += 2; //size of value
                     bsize += buf.Length;
                 }
                 cnt++;
@@ -109,6 +111,9 @@ namespace Cassandra
             idx += 2;
             foreach (var buf in bufs)
             {
+                var keyval_buf_size = Int16ToBytes((short)buf.Length);
+                Buffer.BlockCopy(keyval_buf_size, 0, ret, idx, 2);
+                idx += 2;
                 Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
                 idx += buf.Length;
             }

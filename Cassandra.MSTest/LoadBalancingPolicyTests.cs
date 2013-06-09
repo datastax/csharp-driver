@@ -66,7 +66,7 @@ namespace Cassandra.MSTest
         {
 
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(1, 1, builder);
+            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
             createSchema(c.Session);
             try
             {
@@ -74,21 +74,24 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
+            assertQueried(CCMBridge.IP_PREFIX + "1", 3);
+            assertQueried(CCMBridge.IP_PREFIX + "2", 3);
+            assertQueried(CCMBridge.IP_PREFIX + "3", 3);
+            assertQueried(CCMBridge.IP_PREFIX + "4", 3);
 
                 resetCoordinators();
-                c.CassandraCluster.BootstrapNode(3, "dc2");
+                c.CassandraCluster.BootstrapNode(5, "dc2");
                 c.CassandraCluster.DecommissionNode(1);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
+                TestUtils.waitFor(CCMBridge.IP_PREFIX + "5", c.Cluster, 20);
                 TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "1", c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 6);
-
+            assertQueried(CCMBridge.IP_PREFIX + "1", 0);
+            assertQueried(CCMBridge.IP_PREFIX + "2", 3);
+            assertQueried(CCMBridge.IP_PREFIX + "3", 3);
+            assertQueried(CCMBridge.IP_PREFIX + "4", 3);
+            assertQueried(CCMBridge.IP_PREFIX + "5", 3);
             }
             catch (Exception e)
             {
@@ -149,15 +152,15 @@ namespace Cassandra.MSTest
                 resetCoordinators();
                 c.CassandraCluster.ForceStop(1);
                 c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "1", c.Cluster, 20);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "1", c.Cluster, 40);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 40);
 
                 query(c, 12);
 
                 c.CassandraCluster.ForceStop(3);
                 c.CassandraCluster.ForceStop(4);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "4", c.Cluster, 20);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "3", c.Cluster, 40);
+                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "4", c.Cluster, 40);
 
                 try
                 {
@@ -187,7 +190,7 @@ namespace Cassandra.MSTest
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 1, builder);
+            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
             createMultiDCSchema(c.Session);
             try
             {
@@ -196,22 +199,23 @@ namespace Cassandra.MSTest
                 query(c, 12);
 
                 assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
+            assertQueried(CCMBridge.IP_PREFIX + "2", 0);
+            assertQueried(CCMBridge.IP_PREFIX + "3", 6);
+            assertQueried(CCMBridge.IP_PREFIX + "4", 6);
+            assertQueried(CCMBridge.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.BootstrapNode(4, "dc3");
-                c.Session.Execute("ALTER KEYSPACE "+ TestUtils.SIMPLE_KEYSPACE + " WITH REPLICATION ={'class' : 'NetworkTopologyStrategy','dc1' : 1, 'dc2' : 1, 'dc3' : 1}");
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "4", c.Cluster, 60);
+                c.CassandraCluster.BootstrapNode(5, "dc3");
+                TestUtils.waitFor(CCMBridge.IP_PREFIX + "5", c.Cluster, 60);
 
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
+            assertQueried(CCMBridge.IP_PREFIX + "1", 0);
+            assertQueried(CCMBridge.IP_PREFIX + "2", 0);
+            assertQueried(CCMBridge.IP_PREFIX + "3", 6);
+            assertQueried(CCMBridge.IP_PREFIX + "4", 6);
+            assertQueried(CCMBridge.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
                 c.CassandraCluster.DecommissionNode(3);

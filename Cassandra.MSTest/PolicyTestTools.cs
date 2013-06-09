@@ -32,7 +32,7 @@ namespace Cassandra.MSTest
         public static void createSchema(Session session, int replicationFactor)
         {
             session.Cluster.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor), ConsistencyLevel.All).QueriedHost);
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor)).QueriedHost);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Cluster.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)).QueriedHost);
@@ -116,27 +116,8 @@ namespace Cassandra.MSTest
         {
             init(c, n, false, cl);
         }
-        //Only for tests purpose:
-        //private class InsertQuery : CqlCommand
-        //{
-        //    string Query;
-
-        //    internal InsertQuery(string query)                
-        //    {
-        //        this.Query = query;
-        //    }
-
-        //    public override string GetCql()
-        //    {
-        //        return Query;
-        //    }
-        //}
         protected void init(CCMBridge.CCMCluster c, int n, bool batch, ConsistencyLevel cl)
         {
-            CassandraRoutingKey routingKey = new CassandraRoutingKey();
-            routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
-
-
             // We don't use insert for our test because the resultSet don't ship the queriedHost
             // Also note that we don't use tracing because this would trigger requests that screw up the test'
             for (int i = 0; i < n; ++i)
@@ -148,11 +129,11 @@ namespace Cassandra.MSTest
                     bth.AppendLine(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE));
                     bth.AppendLine("APPLY BATCH");
 
-                    var qh = c.Session.Execute(new SimpleStatement(bth.ToString()).SetRoutingKey(routingKey).SetConsistencyLevel(cl)).QueriedHost;
+                    var qh = c.Session.Execute(new SimpleStatement(bth.ToString()).SetConsistencyLevel(cl)).QueriedHost;
                 }
                 else
                 {
-                    var qh = c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetRoutingKey(routingKey).SetConsistencyLevel(cl)).QueriedHost;
+                    var qh = c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl)).QueriedHost;
                 }
 
             prepared = c.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);

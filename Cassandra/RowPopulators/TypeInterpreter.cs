@@ -146,7 +146,7 @@ namespace Cassandra
         {
             if (value == null)
                 throw new ArgumentNullException();
-            else if (!(value.GetType().Equals(t)))
+            else if (!t.IsInstanceOfType(value))
                 throw new InvalidTypeException("value", value.GetType().FullName, new object[]{t.FullName});
         }
         

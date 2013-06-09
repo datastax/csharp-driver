@@ -171,6 +171,7 @@ namespace Cassandra.MSTest
 
             Guid tweet_id = Guid.NewGuid();
 
+
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES ({1}, {2});", tableName, tweet_id.ToString(), openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue) ? "" : " : ") + randomValue + closeBracket));
 
             StringBuilder longQ = new StringBuilder();
@@ -189,6 +190,74 @@ namespace Cassandra.MSTest
             longQ.AppendLine("APPLY BATCH;");
             QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
 
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
+        }
+
+        public void insertingSingleCollectionPrepared(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null)
+        {
+            string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
+            string cassandraKeyDataTypeName = "";
+            string mapSyntax = "";
+
+            object valueCollection = null;
+
+            int Cnt = 10;
+
+            if(CassandraCollectionType=="list" || CassandraCollectionType=="set")
+            {
+                var openType = CassandraCollectionType=="list"? typeof(List<>) : typeof(HashSet<>);
+                var listType = openType.MakeGenericType(TypeOfDataToBeInputed);
+                valueCollection = Activator.CreateInstance(listType);
+                var addM = listType.GetMethod("Add");
+                for (int i = 0; i < Cnt; i++)
+                {
+                    var randomValue = Randomm.RandomVal(TypeOfDataToBeInputed);
+                    addM.Invoke(valueCollection, new object[] { randomValue });
+                }
+            }
+            else if (CassandraCollectionType=="map")
+            {
+                cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
+                mapSyntax = cassandraKeyDataTypeName + ",";
+
+                var openType = typeof(SortedDictionary<,>);
+                var dicType = openType.MakeGenericType(TypeOfKeyForMap,TypeOfDataToBeInputed);
+                valueCollection = Activator.CreateInstance(dicType);
+                var addM = dicType.GetMethod("Add");
+                for (int i = 0; i < Cnt; i++)
+                {
+                RETRY:
+                    try
+                    {
+                    var randomKey = Randomm.RandomVal(TypeOfKeyForMap);
+                    var randomValue = Randomm.RandomVal(TypeOfDataToBeInputed);
+                    addM.Invoke(valueCollection, new object[] { randomKey, randomValue });
+                    }
+                    catch
+                    {
+                        goto RETRY;
+                    }
+                }
+            }
+
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            try
+            {
+                Session.Cluster.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid PRIMARY KEY,
+         some_collection {1}<{2}{3}>
+         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName))
+                );
+            }
+            catch (AlreadyExistsException)
+            {
+            }
+
+            Guid tweet_id = Guid.NewGuid();
+            var prepInsert = QueryTools.PrepareQuery(Session, string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES (?, ?);", tableName));
+            Session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }

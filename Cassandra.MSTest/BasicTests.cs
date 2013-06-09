@@ -23,8 +23,8 @@ namespace Cassandra.MSTest
             BigInsertTest(3000);
         }
 
-        [TestMethod]        
-		[WorksForMe]
+        [TestMethod]
+        [WorksForMe]
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
