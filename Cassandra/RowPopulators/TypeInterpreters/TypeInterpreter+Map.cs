@@ -58,9 +58,8 @@ namespace Cassandra
                 var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
-                var kvType = typeof(KeyValuePair<,>);
-                var openType = typeof(IEnumerable<>);
-                var dicType = openType.MakeGenericType(kvType.MakeGenericType(key_type, value_type));
+                var openType = typeof(IDictionary<,>);
+                var dicType = openType.MakeGenericType(key_type, value_type);
                 return dicType;
             }
             throw new DriverInternalError("Invalid ColumnInfo");
@@ -77,31 +76,31 @@ namespace Cassandra
             var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
             var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
 
-            List<byte[]> bufs = new List<byte[]>();
+            List<byte[]> kbufs = new List<byte[]>();
+            List<byte[]> vbufs = new List<byte[]>();
             int cnt = 0;
             int bsize = 2;
-                var kvoType = typeof(KeyValuePair<,>);
-            var kvType  =kvoType.MakeGenericType(key_type, value_type);
-            var key_prop = kvType.GetProperty("Key");
-            var value_prop = kvType.GetProperty("Value");
-            foreach (var kv in (value as IEnumerable))
+
+            var key_prop = dicType.GetProperty("Keys");
+            var value_prop = dicType.GetProperty("Values");
+
+            foreach (var obj in key_prop.GetValue(value, new object[] { }) as IEnumerable)
             {
-                {
-                    var obj = key_prop.GetValue(kv, new object[] { });
-                    var buf = TypeInterpreter.InvCqlConvert(obj, key_typecode, key_typeinfo);
-                    bufs.Add(buf);
-                    bsize += 2; //size of key
-                    bsize += buf.Length;
-                }
-                {
-                    var obj = value_prop.GetValue(kv, new object[] { });
-                    var buf = TypeInterpreter.InvCqlConvert(obj, value_typecode, value_typeinfo);
-                    bufs.Add(buf);
-                    bsize += 2; //size of value
-                    bsize += buf.Length;
-                }
+                var buf = TypeInterpreter.InvCqlConvert(obj, key_typecode, key_typeinfo);
+                kbufs.Add(buf);
+                bsize += 2; //size of key
+                bsize += buf.Length;
                 cnt++;
             }
+
+            foreach (var obj in value_prop.GetValue(value, new object[] { }) as IEnumerable)
+            {
+                var buf = TypeInterpreter.InvCqlConvert(obj, value_typecode, value_typeinfo);
+                vbufs.Add(buf);
+                bsize += 2; //size of value
+                bsize += buf.Length;
+            }
+
             var ret = new byte[bsize];
 
             var cntbuf = Int16ToBytes((short)cnt); // short or ushort ? 
@@ -109,13 +108,24 @@ namespace Cassandra
             int idx = 0;
             Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);
             idx += 2;
-            foreach (var buf in bufs)
+            for (int i = 0; i < cnt; i++)
             {
-                var keyval_buf_size = Int16ToBytes((short)buf.Length);
-                Buffer.BlockCopy(keyval_buf_size, 0, ret, idx, 2);
-                idx += 2;
-                Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
-                idx += buf.Length;
+                {
+                    var buf = kbufs[i];
+                    var keyval_buf_size = Int16ToBytes((short)buf.Length);
+                    Buffer.BlockCopy(keyval_buf_size, 0, ret, idx, 2);
+                    idx += 2;
+                    Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
+                    idx += buf.Length;
+                }
+                {
+                    var buf = vbufs[i];
+                    var keyval_buf_size = Int16ToBytes((short)buf.Length);
+                    Buffer.BlockCopy(keyval_buf_size, 0, ret, idx, 2);
+                    idx += 2;
+                    Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
+                    idx += buf.Length;
+                }
             }
 
             return ret;
