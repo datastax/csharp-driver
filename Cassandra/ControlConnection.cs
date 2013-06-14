@@ -26,8 +26,8 @@ namespace Cassandra
             this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
-            _session = new Session(cluster, clusterEndpoints, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, metricsEnabled, "", _cluster._hosts);
+            _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
+                                   clientOptions, authProvider, metricsEnabled, "");
         }
 
         void Metadata_HostsEvent(object sender, HostsEventArgs e)
@@ -103,60 +103,64 @@ namespace Cassandra
 
         private void conn_CassandraEvent(object sender, CassandraEventArgs e)
         {
-            if (e is TopologyChangeEventArgs)
+            var act = new Action(() =>
             {
-                var tce = e as TopologyChangeEventArgs;
-                if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
+                if (e is TopologyChangeEventArgs)
                 {
-                    SetupControlConnection(true);
-                    _cluster.Metadata.AddHost(tce.Address);
-                    return;
+                    var tce = e as TopologyChangeEventArgs;
+                    if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
+                    {
+                        SetupControlConnection(true);
+                        _cluster.Metadata.AddHost(tce.Address);
+                        return;
+                    }
+                    else if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
+                    {
+                        _cluster.Metadata.RemoveHost(tce.Address);
+                        SetupControlConnection(!tce.Address.Equals(listeningOnHost));
+                        return;
+                    }
                 }
-                else if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
+                else if (e is StatusChangeEventArgs)
                 {
-                    _cluster.Metadata.RemoveHost(tce.Address);
-                    SetupControlConnection(!tce.Address.Equals(listeningOnHost));
-                    return;
+                    var sce = e as StatusChangeEventArgs;
+                    if (sce.What == StatusChangeEventArgs.Reason.Up)
+                    {
+                        _cluster.Metadata.BringUpHost(sce.Address, this);
+                        return;
+                    }
+                    else if (sce.What == StatusChangeEventArgs.Reason.Down)
+                    {
+                        _cluster.Metadata.SetDownHost(sce.Address, this);
+                        return;
+                    }
                 }
-            }
-            else if (e is StatusChangeEventArgs)
-            {
-                var sce = e as StatusChangeEventArgs;
-                if (sce.What == StatusChangeEventArgs.Reason.Up)
+                else if (e is SchemaChangeEventArgs)
                 {
-                    _cluster.Metadata.BringUpHost(sce.Address, this);
-                    return;
-                }
-                else if (sce.What == StatusChangeEventArgs.Reason.Down)
-                {
-                    _cluster.Metadata.SetDownHost(sce.Address, this);
-                    return;
-                }
-            }
-            else if (e is SchemaChangeEventArgs)
-            {
-                var ssc = e as SchemaChangeEventArgs;
+                    var ssc = e as SchemaChangeEventArgs;
 
-                if (ssc.What == SchemaChangeEventArgs.Reason.Created)
-                {
-                    SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
-                    return;
+                    if (ssc.What == SchemaChangeEventArgs.Reason.Created)
+                    {
+                        SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                        return;
+                    }
+                    else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
+                    {
+                        SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                        return;
+                    }
+                    else if (ssc.What == SchemaChangeEventArgs.Reason.Updated)
+                    {
+                        SubmitSchemaRefresh(ssc.Keyspace, string.IsNullOrEmpty(ssc.Table) ? null : ssc.Table);
+                        return;
+                    }
                 }
-                else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
-                {
-                    SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
-                    return;
-                }
-                else if (ssc.What == SchemaChangeEventArgs.Reason.Updated)
-                {
-                    SubmitSchemaRefresh(ssc.Keyspace, string.IsNullOrEmpty(ssc.Table) ? null : ssc.Table);
-                    return;
-                }
-            }
 
-            var ex = new DriverInternalError("Unknown Event");
-            _logger.Error(ex);
-            throw ex; 
+                var ex = new DriverInternalError("Unknown Event");
+                _logger.Error(ex);
+                throw ex;
+            });
+            act.BeginInvoke((ar) => { act.EndInvoke(ar); }, null);
         }
 
         private bool _isDiconnected = false;

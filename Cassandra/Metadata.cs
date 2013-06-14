@@ -17,16 +17,26 @@ namespace Cassandra
     ///  Keeps metadata on the connected cluster, including known nodes and schema
     ///  definitions.
     /// </summary>
-    public class Metadata
+    public class Metadata : IDisposable
     {
         internal string ClusterName;
         private readonly Hosts _hosts;
-        private readonly ControlConnection _controlConnection;
+        private ControlConnection _controlConnection = null;
 
-        internal Metadata(Hosts hosts, ControlConnection controlConnection)
+        internal Metadata(IReconnectionPolicy rp) 
         {
-            this._hosts = hosts;
+            this._hosts = new Hosts(rp);
+        }
+
+        internal void SetupControllConnection(ControlConnection controlConnection)
+        {
             this._controlConnection = controlConnection;
+            _controlConnection.Init();
+        }
+
+        internal bool AlreadySetUp()
+        {
+            return _controlConnection != null;
         }
 
         public event HostsEventHandler HostsEvent;
@@ -95,8 +105,6 @@ namespace Cassandra
 
         private volatile TokenMap _tokenMap;
 
-
-
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
             if(_tokenMap==null)
@@ -157,6 +165,26 @@ namespace Cassandra
         {
             return _controlConnection.GetTable(keyspace, tableName);
         }
+
+        public void Dispose()
+        {
+            if (_controlConnection != null)
+                _controlConnection.Dispose();
+        }
+
+        public bool RefreshSchema(string keyspace = null, string table = null)
+        {
+            _controlConnection.SubmitSchemaRefresh(keyspace, table);
+            if (keyspace == null && table == null)
+                return _controlConnection.RefreshHosts();
+            return true;
+        }
+
+        public void WaitForSchemaAgreement(IPAddress queriedHost = null)
+        {
+            _controlConnection.WaitForSchemaAgreement(queriedHost);
+        }
+
     }
 
     internal class TokenMap

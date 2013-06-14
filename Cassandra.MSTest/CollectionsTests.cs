@@ -118,7 +118,6 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [WorksForMe]
-        [Priority]
         public void testMapPrepared()
         {
             insertingSingleCollectionPrepared("map", typeof(string), typeof(DateTimeOffset));

@@ -131,6 +131,31 @@ namespace Cassandra
             throw new ArgumentException("invalid identifier");
         }
 
+        public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes)
+        {
+            if (replication == null)
+                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "1" } };
+            return string.Format(
+  @"CREATE KEYSPACE {0} 
+  WITH replication = {1} 
+   AND durable_writes = {2}"
+  , Cassandra.CqlQueryTools.CqlIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
+        }
+
+        public static string GetUseKeyspaceCQL(string keyspace)
+        {
+            return string.Format(
+  @"USE {0}"
+              , CqlQueryTools.CqlIdentifier(keyspace));
+        }
+
+        public static string GetDropKeyspaceCQL(string keyspace)
+        {
+            return string.Format(
+  @"DROP KEYSPACE {0}"
+              , CqlQueryTools.CqlIdentifier(keyspace));
+        }
+
         private static readonly string[] HexStringTable = new string[]
 {
     "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B", "0C", "0D", "0E", "0F",

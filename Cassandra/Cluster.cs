@@ -31,6 +31,7 @@ namespace Cassandra
         {
             this._contactPoints = contactPoints;
             this._configuration = configuration;
+            this._metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
         }
 
         /// <summary>
@@ -73,8 +74,6 @@ namespace Cassandra
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
 
-        object _controlConnectionGuard = new object();
-
         /// <summary>
         ///  Creates a new session on this cluster and sets a keyspace to use.
         /// </summary>
@@ -83,25 +82,21 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            bool controlConnectionCreated = false;
-            lock (_controlConnectionGuard)
+            lock (_metadata)
             {
-                if (_controlConnection == null)
+                if (!_metadata.AlreadySetUp())
                 {
-                    controlConnectionCreated = true;
                     var controlpolicies = new Cassandra.Policies(
                         _configuration.Policies.LoadBalancingPolicy,
                         new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
                         Cassandra.Policies.DefaultRetryPolicy);
 
-                    _hosts = new Hosts(_configuration.Policies.ReconnectionPolicy);
-
                     foreach (var ep in _contactPoints)
-                        _hosts.AddIfNotExistsOrBringUpIfDown(ep);
+                        Metadata.AddHost(ep);
 
                     var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
 
-                    _controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
+                    var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
                                                                _configuration.ProtocolOptions,
                                                                poolingOptions, _configuration.SocketOptions,
                                                                new ClientOptions(
@@ -111,23 +106,21 @@ namespace Cassandra
                                                                _configuration.AuthInfoProvider,
                                                                _configuration.MetricsEnabled);
 
-                    _metadata = new Metadata(_hosts, _controlConnection);
+                    _metadata.SetupControllConnection(controlConnection);
 
-                    _controlConnection.Init();
                 }
             }
-            var scs = new Session(this, _contactPoints, _configuration.Policies,
+            var scs = new Session(this, _configuration.Policies,
                                   _configuration.ProtocolOptions,
                                   _configuration.PoolingOptions, _configuration.SocketOptions,
                                   _configuration.ClientOptions,
-                                  _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace, _hosts);
+                                  _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace);
             scs.Init();
             lock (_connectedSessions)
                 _connectedSessions.Add(scs);
             _logger.Info("Session connected!");
 
-            if (controlConnectionCreated)
-                RefreshSchema();
+            _metadata.RefreshSchema();
 
             return scs;
         }
@@ -167,8 +160,6 @@ namespace Cassandra
         }
 
         private List<Session> _connectedSessions = new List<Session>();
-        private ControlConnection _controlConnection = null;
-        internal Hosts _hosts = null;
 
         private Metadata _metadata = null;
         /// <summary>
@@ -178,16 +169,7 @@ namespace Cassandra
         /// </summary>
         public Metadata Metadata
         {
-            get
-            {
-                lock (_controlConnectionGuard)
-                {
-                    if (_controlConnection == null)
-                        return null;
-
-                    return _metadata;
-                }
-            }
+            get { return _metadata; }
         }
 
         /// <summary>
@@ -217,24 +199,9 @@ namespace Cassandra
             {
                 ses.Dispose();
             }
-            lock (_controlConnectionGuard)
-            {
-                if (_controlConnection != null)
-                {
-                    string cluster_name = this.Metadata.GetClusterName();
-                    try
-                    {
-                        Monitor.Exit(_controlConnectionGuard);
-                        _controlConnection.Dispose();
-                    }
-                    finally
-                    {
-                        Monitor.Enter(_controlConnectionGuard);
-                        _controlConnection = null;
-                        _logger.Info("Cluster [" + cluster_name + "] has been shut down.");
-                    }
-                }
-            }
+            _metadata.Dispose();
+
+            _logger.Info("Cluster [" + _metadata.GetClusterName() + "] has been shut down.");
         }
 
         public void Dispose()
@@ -249,19 +216,12 @@ namespace Cassandra
 
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            lock (_controlConnectionGuard)
-            {
-                _controlConnection.SubmitSchemaRefresh(keyspace, table);
-                if (keyspace == null && table == null)
-                    return _controlConnection.RefreshHosts();
-                return true;
-            }
+            return _metadata.RefreshSchema(keyspace, table);
         }
 
         public void WaitForSchemaAgreement(IPAddress queriedHost=null)
         {
-            lock (_controlConnectionGuard)
-                _controlConnection.WaitForSchemaAgreement(queriedHost);
+            _metadata.WaitForSchemaAgreement(queriedHost);
         }
 
     }
