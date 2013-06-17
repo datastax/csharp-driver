@@ -49,6 +49,8 @@ namespace Cassandra.Data.Linq.MSTest
             public int idx;
 
             public HashSet<string> exampleSet = new HashSet<string>();
+
+            public byte[] data;
         }
 
 
@@ -90,6 +92,10 @@ namespace Cassandra.Data.Linq.MSTest
         {
             var table = ents.GetTable<Tweets>();
 
+            byte[] buf = new byte[256];
+            for (int i = 0; i < 256; i++)
+                buf[i] = (byte)i;
+
             int RowsNo = 2000;
             List<Tweets> entL = new List<Tweets>();
             for (int i = 0; i < RowsNo; i++)
@@ -98,6 +104,7 @@ namespace Cassandra.Data.Linq.MSTest
                 ent.exampleSet.Add(i.ToString());
                 ent.exampleSet.Add((i + 1).ToString());
                 ent.exampleSet.Add((i - 1).ToString());
+                ent.data = buf;
                 table.AddNew(ent, EntityTrackingMode.KeepAttachedAfterSave);
                 entL.Add(ent);
             }
@@ -106,6 +113,10 @@ namespace Cassandra.Data.Linq.MSTest
             var cnt = table.Count().Execute();
 
             Assert.Equal(RowsNo, cnt);
+
+            var q = (from e in table select e.data).FirstOrDefault().Execute();
+            for (int i = 0; i < 256; i++)
+                Assert.Equal(q[i], (byte)i);
 
             foreach (var ent in entL)
                 table.Delete(ent);
@@ -226,7 +237,6 @@ namespace Cassandra.Data.Linq.MSTest
 
             var smth = table.Where(x => x.isok == isok).Execute().ToList();
         }
-
 
     }
 }

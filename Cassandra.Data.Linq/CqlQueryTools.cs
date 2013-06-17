@@ -178,7 +178,7 @@ namespace Cassandra.Data.Linq
 
         public static string Encode(byte[] val)
         {
-            return "\'" + val.ToHex() + "\'";
+            return "0x" + val.ToHex();
         }
 
         public static string Encode(Double val)
