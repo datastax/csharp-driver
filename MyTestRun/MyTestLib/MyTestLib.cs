@@ -45,7 +45,7 @@ namespace MyTest
 
         public AssertException(string message, string userMessage = "") : base(message)
         {
-            UserMessage = message;
+            UserMessage = userMessage;
         }
     }
 

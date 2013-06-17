@@ -288,15 +288,19 @@ namespace Cassandra
                 queriedHost = rowset.QueriedHost;
                 foreach (var row in rowset.GetRows())
                 {
-                    var hstip = row.GetValue<IPEndPoint>("rpc_address").Address;
+                    IPAddress hstip = null;
+                    if(!row.IsNull("rpc_address"))
+                         hstip = row.GetValue<IPEndPoint>("rpc_address").Address;
                     if (hstip == null)
                     {
-                        hstip = row.GetValue<IPEndPoint>("peer").Address;
-             //           logger.error("No rpc_address found for host {} in {}'s peers system table. That should not happen but using address {} instead", addr, connection.address, addr);
+                        if (!row.IsNull("peer"))
+                            hstip = row.GetValue<IPEndPoint>("peer").Address;
+                        _logger.Error("No rpc_address found for host in peers system table. ");
                     }
                     else if (hstip.Equals(bindAllAddress))
                     {
-                        hstip = row.GetValue<IPEndPoint>("peer").Address;
+                        if (!row.IsNull("peer"))
+                            hstip = row.GetValue<IPEndPoint>("peer").Address;
                     }
 
                     if (hstip != null)
@@ -404,10 +408,15 @@ namespace Cassandra
                         queriedHost = rowset.QueriedHost;
                         foreach (var row in rowset.GetRows())
                         {
-                            if (row.IsNull("peer") || row.IsNull("schema_version"))
+                            if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
                                 continue;
 
-                            Host peer = _cluster.Metadata.GetHost(row.GetValue<IPEndPoint>("peer").Address);
+                            var rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
+                            if (rpc.Equals(bindAllAddress))
+                                if (!row.IsNull("peer"))
+                                    rpc = row.GetValue<IPEndPoint>("peer").Address;
+
+                            Host peer = _cluster.Metadata.GetHost(rpc);
                             if (peer != null && peer.IsConsiderablyUp)
                                 versions.Add(row.GetValue<Guid>("schema_version"));
                         }
@@ -435,7 +444,10 @@ namespace Cassandra
 
                                 var rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
                                 if (rpc.Equals(bindAllAddress))
-                                    rpc = row.GetValue<IPEndPoint>("peer").Address;
+                                {
+                                    if (!row.IsNull("peer"))
+                                        rpc = row.GetValue<IPEndPoint>("peer").Address;
+                                }
 
                                 Host peer = _cluster.Metadata.GetHost(rpc);
                                 if (peer != null && peer.IsConsiderablyUp)

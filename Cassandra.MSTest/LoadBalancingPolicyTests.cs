@@ -61,7 +61,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void roundRobinWith2DCsTestCCM()
         {
 
@@ -74,10 +74,10 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-            assertQueried(CCMBridge.IP_PREFIX + "1", 3);
-            assertQueried(CCMBridge.IP_PREFIX + "2", 3);
-            assertQueried(CCMBridge.IP_PREFIX + "3", 3);
-            assertQueried(CCMBridge.IP_PREFIX + "4", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "1", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "2", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "3", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "4", 3);
 
                 resetCoordinators();
                 c.CassandraCluster.BootstrapNode(5, "dc2");
@@ -87,11 +87,11 @@ namespace Cassandra.MSTest
 
                 query(c, 12);
 
-            assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-            assertQueried(CCMBridge.IP_PREFIX + "2", 3);
-            assertQueried(CCMBridge.IP_PREFIX + "3", 3);
-            assertQueried(CCMBridge.IP_PREFIX + "4", 3);
-            assertQueried(CCMBridge.IP_PREFIX + "5", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
+                assertQueried(CCMBridge.IP_PREFIX + "2", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "3", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "4", 3);
+                assertQueried(CCMBridge.IP_PREFIX + "5", 3);
             }
             catch (Exception e)
             {

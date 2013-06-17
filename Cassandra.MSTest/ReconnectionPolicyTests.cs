@@ -15,7 +15,7 @@ namespace Cassandra.MSTest
  */
         
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         public void exponentialReconnectionPolicyTest()
         {
             var builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000));
@@ -198,7 +198,7 @@ namespace Cassandra.MSTest
                         query(c, 12);
                         Assert.Fail("Test race condition where node has not shut off quickly enough.");
                     }
-                    catch (NoHostAvailableException e) { }
+                    catch (NoHostAvailableException) { }
 
                     restarted = false;
                     while (true)
@@ -223,7 +223,7 @@ namespace Cassandra.MSTest
                             // Ensure the time when the query completes successfully is what was expected
                             Assert.True(retryTime - 2 < elapsedSeconds && elapsedSeconds < retryTime + 2, String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
                         }
-                        catch (NoHostAvailableException e)
+                        catch (NoHostAvailableException)
                         {
                             Thread.Sleep(1000);
                             continue;
