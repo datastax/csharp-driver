@@ -50,9 +50,6 @@ namespace Cassandra.Data.Linq.MSTest
 
             public HashSet<string> exampleSet = new HashSet<string>();
 
-            [Column("testlist")]
-            public ListColumnInfo TestList; 
-
             public byte[] data;
         }
 
@@ -121,7 +118,6 @@ namespace Cassandra.Data.Linq.MSTest
             for (int i = 0; i < 256; i++)
                 Assert.Equal(q[i], (byte)i);
 
-            var q2 = (from e in table select e.TestList).FirstOrDefault().Execute();
 
             foreach (var ent in entL)
                 table.Delete(ent);
