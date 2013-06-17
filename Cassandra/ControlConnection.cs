@@ -265,7 +265,7 @@ namespace Cassandra
         }
 
         // schema
-        private const string SelectPeers = "SELECT peer, data_center, rack, tokens FROM system.peers";
+        private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";                                            
 
         private const string SelectLocal =
             "SELECT cluster_name, data_center, rack, tokens, partitioner FROM system.local WHERE key='local'";
@@ -383,7 +383,7 @@ namespace Cassandra
 
         private const long MaxSchemaAgreementWaitMs = 10000;
 
-        private const string SelectSchemaPeers = "SELECT peer, schema_version FROM system.peers";
+        private const string SelectSchemaPeers = "SELECT peer, rpc_address, schema_version FROM system.peers";
         private const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
 
         internal bool WaitForSchemaAgreement(IPAddress forHost = null)
