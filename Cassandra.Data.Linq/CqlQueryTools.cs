@@ -244,10 +244,15 @@ namespace Cassandra.Data.Linq
                 else
                     if (tpy.Name == "BigDecimal")
                         return "decimal";
-                   
+
             }
 
-            throw new InvalidOperationException();
+            StringBuilder supportedTypes = new StringBuilder();
+            foreach (var tn in CQLTypeNames.Keys)
+                supportedTypes.Append(tn.FullName + ",");
+            supportedTypes.Append(" and implementations of IEnumerable<T>, IDictionary<K,V>");
+
+            throw new ArgumentException("Unsupported datatype " + tpy.Name + ". Supported are: " + supportedTypes.ToString() + ".");
         }
 
         internal static string CalculateMemberName(MemberInfo prop)
@@ -372,6 +377,8 @@ namespace Cassandra.Data.Linq
             bool first = true;
             foreach (var prop in props)
             {
+                var val = prop.GetValueFromPropertyOrField(row);
+                if (val == null) continue;
                 if (first) first = false; else ret.Append(",");
                 var memName = CalculateMemberName(prop);
                 ret.Append(memName.CqlIdentifier());
@@ -380,8 +387,10 @@ namespace Cassandra.Data.Linq
             first = true;
             foreach (var prop in props)
             {
+                var val = prop.GetValueFromPropertyOrField(row);
+                if (val == null) continue;
                 if (first) first = false; else ret.Append(",");
-                ret.Append(prop.GetValueFromPropertyOrField(row).Encode());
+                ret.Append(val.Encode());
             }
             ret.Append(");");
             return ret.ToString();
