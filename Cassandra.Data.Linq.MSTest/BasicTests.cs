@@ -11,8 +11,7 @@ namespace Cassandra.Data.Linq.MSTest
     public partial class BasicLinqTests
     {
         [TestMethod]
-        [NeedSomeFix]
-        [Priority]
+        [WorksForMe]
         public void Test()
         {
             Test1();
