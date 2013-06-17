@@ -11,6 +11,7 @@ namespace Cassandra
     {
         private readonly long _baseDelayMs;
         private readonly long _maxDelayMs;
+        private readonly long _maxAttempts;
 
         /// <summary>
         ///  Creates a reconnection policy waiting exponentially longer for each new
@@ -24,11 +25,29 @@ namespace Cassandra
         {
             if (baseDelayMs < 0 || maxDelayMs < 0)
                 throw new ArgumentOutOfRangeException("Invalid negative delay");
+            if (baseDelayMs == 0)
+                throw new ArgumentOutOfRangeException("baseDelayMs must be strictly positive");
             if (maxDelayMs < baseDelayMs)
-                throw new ArgumentOutOfRangeException(string.Format("maxDelayMs (got {0}) cannot be smaller than baseDelayMs (got {1})", maxDelayMs, baseDelayMs)); 
-            
+                throw new ArgumentOutOfRangeException(string.Format("maxDelayMs (got {0}) cannot be smaller than baseDelayMs (got {1})", maxDelayMs, baseDelayMs));
+
             this._baseDelayMs = baseDelayMs;
             this._maxDelayMs = maxDelayMs;
+
+            // Maximum number of attempts after which we overflow (which is kind of theoretical anyway, you'll'
+            // die of old age before reaching that but hey ...)
+            int ceil = (baseDelayMs & (baseDelayMs - 1)) == 0 ? 0 : 1;
+            this._maxAttempts = 64 - LeadingZeros(long.MaxValue / baseDelayMs) - ceil;
+        }
+
+        static int LeadingZeros(long value)
+        {
+            int leadingZeros = 0;
+            while (value != 0)
+            {
+                value = value >> 1;
+                leadingZeros++;
+            }
+            return (64 - leadingZeros);
         }
 
         /// <summary>
@@ -79,8 +98,7 @@ namespace Cassandra
 
             public long NextDelayMs()
             {
-                // We "overflow" at 64 attempts but I doubt this matter
-                if (_attempts >= 64)
+                if (_attempts >= _policy._maxAttempts)
                     return _policy._maxDelayMs;
 
                 return Math.Min(_policy._baseDelayMs * (1L << _attempts++), _policy._maxDelayMs);
