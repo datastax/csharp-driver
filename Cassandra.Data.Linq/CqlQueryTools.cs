@@ -430,15 +430,18 @@ namespace Cassandra.Data.Linq
                         else
                         {
                             var newVal = prop.GetValueFromPropertyOrField(newRow);
-                            bool areDifferent = !prop.GetValueFromPropertyOrField(row).Equals(newVal);
-                            if (all || (areDifferent))
+                            if (newVal != null)
                             {
-                                if (areDifferent)
-                                    changeDetected = true;
-                                if (firstSet) firstSet = false; else set.Append(",");
-                                set.Append(memName.CqlIdentifier());
-                                set.Append("=");
-                                set.Append(Encode(newVal));
+                                bool areDifferent = !prop.GetValueFromPropertyOrField(row).Equals(newVal);
+                                if (all || (areDifferent))
+                                {
+                                    if (areDifferent)
+                                        changeDetected = true;
+                                    if (firstSet) firstSet = false; else set.Append(",");
+                                    set.Append(memName.CqlIdentifier());
+                                    set.Append("=");
+                                    set.Append(Encode(newVal));
+                                }
                             }
                             continue;
                         }

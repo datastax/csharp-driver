@@ -9,7 +9,7 @@ namespace Cassandra.MSTest
     public class FoundBugTests
     {
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void Jira_CSHARP_40()
         //During reconnect the tablespace name becomes invalid
         {
