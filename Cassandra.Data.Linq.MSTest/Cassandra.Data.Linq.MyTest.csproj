@@ -37,6 +37,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FoundBugTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Basics.cs" />
     <Compile Include="BasicTests.cs" />

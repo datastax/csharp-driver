@@ -42,7 +42,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT ");
-            sb.Append(SelectFields.Count == 0?"* ":string.Join(",", from f in SelectFields select Alter[f].CqlIdentifier()));
+            sb.Append(SelectFields.Count == 0?"*":string.Join(",", from f in SelectFields select Alter[f].CqlIdentifier()));
 
             sb.Append(" FROM ");
             sb.Append(TableName.CqlIdentifier());
@@ -66,7 +66,7 @@ namespace Cassandra.Data.Linq
             }
 
             if (AllowFiltering)
-                sb.Append(" ALLOW FILTERING ");
+                sb.Append(" ALLOW FILTERING");
             
             return sb.ToString();
         }
@@ -210,8 +210,11 @@ namespace Cassandra.Data.Linq
                 this.Visit(node.Arguments[0]);
 
                 using (phasePhase.set(ParsePhase.Condition))
+                {
+                    if (WhereClause.Length != 0)
+                        WhereClause.Append(" AND ");
                     this.Visit(node.Arguments[1]);
-                
+                }
                 return node;
             }
             else if (node.Method.Name == "Take")
@@ -524,7 +527,8 @@ namespace Cassandra.Data.Linq
             else if (phasePhase.get() == ParsePhase.OrderBy || phasePhase.get() == ParsePhase.OrderByDescending)
             {
                 var name = node.Member.Name;
-                OrderBy.Add(name.CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                OrderBy.Add(Alter[(string)name].CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+
                 if ((node.Expression is ConstantExpression))
                 {
                     return node;
