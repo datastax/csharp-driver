@@ -199,7 +199,7 @@ namespace Cassandra.MSTest
             catch (NoHostAvailableException e)
             {
                 Assert.Equal(e.Message, String.Format("All host tried for query are in error (tried: {0})", ipAddress));
-                Assert.Equal(e.Errors, errorsHashMap);
+                Assert.ArrEqual(e.Errors.Keys.ToArray(), errorsHashMap.Keys.ToArray());
 
                 //NoHostAvailableException copy = (NoHostAvailableException)e.copy();
                 //Assert.Equal(copy.Message, e.Message);

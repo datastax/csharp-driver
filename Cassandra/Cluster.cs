@@ -32,6 +32,28 @@ namespace Cassandra
             this._contactPoints = contactPoints;
             this._configuration = configuration;
             this._metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
+
+            var controlpolicies = new Cassandra.Policies(
+                _configuration.Policies.LoadBalancingPolicy,
+                new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
+                Cassandra.Policies.DefaultRetryPolicy);
+
+            foreach (var ep in _contactPoints)
+                Metadata.AddHost(ep);
+
+            var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
+
+            var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
+                                                       _configuration.ProtocolOptions,
+                                                       poolingOptions, _configuration.SocketOptions,
+                                                       new ClientOptions(
+                                                           _configuration.ClientOptions.WithoutRowSetBuffering,
+                                                           _configuration.ClientOptions.QueryAbortTimeout, null,
+                                                           _configuration.ClientOptions.AsyncCallAbortTimeout),
+                                                       _configuration.AuthInfoProvider,
+                                                       _configuration.MetricsEnabled);
+
+            _metadata.SetupControllConnection(controlConnection);
         }
 
         /// <summary>
@@ -46,9 +68,9 @@ namespace Cassandra
         /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
-            IEnumerable<IPAddress> contactPoints = initializer.ContactPoints;
-            //if (contactPoints.)
-            //    throw new IllegalArgumentException("Cannot build a cluster without contact points");
+            ICollection<IPAddress> contactPoints = initializer.ContactPoints;
+            if (contactPoints.Count == 0)
+                throw new ArgumentException("Cannot build a cluster without contact points");
 
             return new Cluster(contactPoints, initializer.GetConfiguration());
         }
@@ -82,34 +104,6 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            lock (_metadata)
-            {
-                if (!_metadata.AlreadySetUp())
-                {
-                    var controlpolicies = new Cassandra.Policies(
-                        _configuration.Policies.LoadBalancingPolicy,
-                        new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
-                        Cassandra.Policies.DefaultRetryPolicy);
-
-                    foreach (var ep in _contactPoints)
-                        Metadata.AddHost(ep);
-
-                    var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
-
-                    var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
-                                                               _configuration.ProtocolOptions,
-                                                               poolingOptions, _configuration.SocketOptions,
-                                                               new ClientOptions(
-                                                                   _configuration.ClientOptions.WithoutRowSetBuffering,
-                                                                   _configuration.ClientOptions.QueryAbortTimeout, null,
-                                                                   _configuration.ClientOptions.AsyncCallAbortTimeout),
-                                                               _configuration.AuthInfoProvider,
-                                                               _configuration.MetricsEnabled);
-
-                    _metadata.SetupControllConnection(controlConnection);
-
-                }
-            }
             var scs = new Session(this, _configuration.Policies,
                                   _configuration.ProtocolOptions,
                                   _configuration.PoolingOptions, _configuration.SocketOptions,
@@ -201,7 +195,7 @@ namespace Cassandra
             }
             _metadata.Dispose();
 
-            _logger.Info("Cluster [" + _metadata.GetClusterName() + "] has been shut down.");
+            _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
 
         public void Dispose()
@@ -241,7 +235,7 @@ namespace Cassandra
         ///  Gets the initial Cassandra hosts to connect to.See
         ///  <link>Builder.AddContactPoint</link> for more details on contact
         /// </summary>
-        IEnumerable<IPAddress> ContactPoints { get; }
+        ICollection<IPAddress> ContactPoints { get; }
 
         /// <summary>
         ///  The configuration to use for the new cluster. <p> Note that some
@@ -280,9 +274,7 @@ namespace Cassandra
         private int _queryAbortTimeout = Timeout.Infinite;
         private int _asyncCallAbortTimeout = Timeout.Infinite;
 
-        private TraceSwitch _traceSwitch;
-        
-        public IEnumerable<IPAddress> ContactPoints
+        public ICollection<IPAddress> ContactPoints
         {
             get { return _addresses; }
         }

@@ -19,7 +19,6 @@ namespace Cassandra
     /// </summary>
     public class Metadata : IDisposable
     {
-        internal string ClusterName;
         private readonly Hosts _hosts;
         private ControlConnection _controlConnection = null;
 
@@ -46,10 +45,7 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the Cassandra name of currently connected cluster.</returns>
-        public String GetClusterName()
-        {
-            return ClusterName;
-        }
+        public String ClusterName { get; internal set; }
 
 
         public Host GetHost(IPAddress address)
@@ -57,25 +53,25 @@ namespace Cassandra
             return _hosts[address];
         }
 
-        public Host AddHost(IPAddress address)
+        internal Host AddHost(IPAddress address)
         {
             _hosts.AddIfNotExistsOrBringUpIfDown(address);
             return _hosts[address];
         }
 
-        public void RemoveHost(IPAddress address)
+        internal void RemoveHost(IPAddress address)
         {
             _hosts.RemoveIfExists(address);
         }
 
-        public void SetDownHost(IPAddress address, object sender = null)
+        internal void SetDownHost(IPAddress address, object sender = null)
         {
             if (_hosts.SetDownIfExists(address))
                 if (HostsEvent != null)
                     HostsEvent(sender ?? this, new HostsEventArgs() { IPAddress = address, What = HostsEventArgs.Kind.Down });
         }
 
-        public void BringUpHost(IPAddress address, object sender = null)
+        internal void BringUpHost(IPAddress address, object sender = null)
         {
             if (_hosts.AddIfNotExistsOrBringUpIfDown(address))
                 if (HostsEvent != null)

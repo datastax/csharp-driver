@@ -80,7 +80,7 @@ namespace Cassandra.MSTest
             {
             }
             Randomm rndm = new Randomm();
-            int RowsNo = 300;
+            int RowsNo = 1000;
             IAsyncResult[] ar = new IAsyncResult[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();
@@ -215,7 +215,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             {
             }
             Randomm rndm = new Randomm();
-            int RowsNo = 300;
+            int RowsNo = 1000;
             bool[] ar = new bool[RowsNo];
             List<Thread> threads = new List<Thread>();
             object monit = new object();

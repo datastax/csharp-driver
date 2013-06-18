@@ -63,19 +63,17 @@ namespace Cassandra
                     yield return _rawrows.Metadata.GetRow(_rawrows);
         }
 
-        readonly Guarded<bool> _alreadyDisposed = new Guarded<bool>(false);
+        bool _alreadyDisposed = false;
 
         public void Dispose()
         {
-            lock (_alreadyDisposed)
-            {
-                if (_alreadyDisposed.Value)
-                    return;
+            if (_alreadyDisposed)
+                return;
 
-                if (_ownRows)
-                    _rawrows.Dispose();
-                _alreadyDisposed.Value = true;
-            }
+            if (_ownRows)
+                _rawrows.Dispose();
+
+            _alreadyDisposed = true;
         }
 
         ~CqlRowSet()

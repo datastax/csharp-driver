@@ -219,29 +219,21 @@ namespace Cassandra.MSTest
 
                 resetCoordinators();
                 c.CassandraCluster.DecommissionNode(3);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
-
-                query(c, 12);
-
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 6);
-
-                resetCoordinators();
                 c.CassandraCluster.DecommissionNode(4);
+                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
                 TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "4", c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 12);
+                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
                 assertQueried(CCMBridge.IP_PREFIX + "2", 0);
                 assertQueried(CCMBridge.IP_PREFIX + "3", 0);
                 assertQueried(CCMBridge.IP_PREFIX + "4", 0);
+                assertQueried(CCMBridge.IP_PREFIX + "5", 12);
 
                 resetCoordinators();
-                c.CassandraCluster.DecommissionNode(1);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "1", c.Cluster, 20);
+                c.CassandraCluster.DecommissionNode(5);
+                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "5", c.Cluster, 20);
 
                 query(c, 12);
 
@@ -249,9 +241,22 @@ namespace Cassandra.MSTest
                 assertQueried(CCMBridge.IP_PREFIX + "2", 12);
                 assertQueried(CCMBridge.IP_PREFIX + "3", 0);
                 assertQueried(CCMBridge.IP_PREFIX + "4", 0);
+                assertQueried(CCMBridge.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
+                c.CassandraCluster.DecommissionNode(2);
+                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+
+                query(c, 12);
+
+                assertQueried(CCMBridge.IP_PREFIX + "1", 12);
+                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
+                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
+                assertQueried(CCMBridge.IP_PREFIX + "5", 0);
+
+                resetCoordinators();
+                c.CassandraCluster.ForceStop(1);
                 TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
 
                 try
