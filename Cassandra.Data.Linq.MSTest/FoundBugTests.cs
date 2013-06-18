@@ -65,7 +65,7 @@ namespace Cassandra.Data.Linq.MSTest
 
 
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         //https://datastax-oss.atlassian.net/browse/CSHARP-43
         //LINQ query with multiple "where" generate wrong cql and it is failed to execute
         public void Bug_CSHARP_43()
@@ -78,6 +78,12 @@ namespace Cassandra.Data.Linq.MSTest
             var table = session.GetTable<TestTable>();
             table.CreateIfNotExists();
 
+            table.Insert(new TestTable() { UserId = 1, Date = 2, Token = 1 }).Execute();
+            table.Insert(new TestTable() { UserId = 1, Date = 2, Token = 2 }).Execute();
+            table.Insert(new TestTable() { UserId = 1, Date = 2, Token = 3 }).Execute();
+            table.Insert(new TestTable() { UserId = 1, Date = 2, Token = 4 }).Execute();
+            table.Insert(new TestTable() { UserId = 1, Date = 2, Token = 5 }).Execute();
+
             var query = table.Where(i => i.UserId == userId && i.Date == date);
 
             var query2 = query.Where(i => i.Token >= time); query2 = query2.OrderBy(i => i.Token); 
@@ -88,7 +94,13 @@ namespace Cassandra.Data.Linq.MSTest
             Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 AND time >= 3 ORDER BY time ASC ALLOW FILTERING", query2.CqlString());
             Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 AND time <= 3 ORDER BY time DESC ALLOW FILTERING", query3.CqlString());
 
-            var result = query.Execute();
+            var result2 = query2.Execute().ToList();
+            var result3 = query3.Execute().ToList();
+
+            Assert.Equal(3, result2.First().Token);
+            Assert.Equal(5, result2.Last().Token);
+            Assert.Equal(3, result3.First().Token);
+            Assert.Equal(1, result3.Last().Token);
 
         }
     }
