@@ -54,39 +54,31 @@ namespace Cassandra.Data.Linq.MSTest
         }
 
 
-        Session session;
-        CCMBridge.CCMCluster CCMCluster;
-        Cluster Cluster;
-
-        TweetsContext ents;
-        string keyspaceName = "Tweets" + Guid.NewGuid().ToString("N");
+        Session Session;
 
         [TestInitialize]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
-            session = CCMCluster.Session;
-            Cluster = CCMCluster.Cluster;
-            session.CreateKeyspaceIfNotExists(keyspaceName);
-            session.ChangeKeyspace(keyspaceName);
-            ents = new TweetsContext(session);
+            CCMBridge.ReusableCCMCluster.Setup(2);
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            ents = new TweetsContext(Session);
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            if(CCMCluster!=null)
-                CCMCluster.Discard();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
+
+        TweetsContext ents;
 
         class X
         {
             public string x;
             public int y;
         }
-
-
 
         public void Test1()
         {

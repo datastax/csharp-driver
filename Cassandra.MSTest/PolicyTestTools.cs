@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Threading;
-using MyTest;
 using System.Diagnostics;
 using System.Linq;
-using Cassandra.Data.Linq;
+
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 
 namespace Cassandra.MSTest
 {
@@ -19,15 +24,14 @@ namespace Cassandra.MSTest
         public static Dictionary<IPAddress, int> coordinators = new Dictionary<IPAddress, int>();
         public static PreparedStatement prepared;
 
-    	/// <summary>
-		///  Create schemas for the policy tests, depending on replication
-		///  factors/strategies.
-		/// </summary>
+        /// <summary>
+        ///  Create schemas for the policy tests, depending on replication
+        ///  factors/strategies.
+        /// </summary>
         public static void createSchema(Session session)
         {
             createSchema(session, 1);
         }
-
 
         public static void createSchema(Session session, int replicationFactor)
         {
@@ -48,10 +52,9 @@ namespace Cassandra.MSTest
         }
 
         ///  Coordinator management/count
-        
-        public static void addCoordinator(CqlRowSet rs)
+
+        public static void addCoordinator(IPAddress coordinator)
         {
-            IPAddress coordinator = rs.QueriedHost;
             if (!coordinators.ContainsKey(coordinator))
                 coordinators.Add(coordinator, 0);
             var n = coordinators[coordinator];
@@ -63,9 +66,9 @@ namespace Cassandra.MSTest
         }
 
 
-		///  Helper test methodspt
+        ///  Helper test methodspt
 
-       
+
         public static void assertQueried(String host, int n)
         {
             try
@@ -86,7 +89,6 @@ namespace Cassandra.MSTest
             try
             {
                 int queried = coordinators[IPAddress.Parse(host)];
-                queried = queried == null ? 0 : queried;
                 if (DEBUG)
                     Debug.WriteLine(String.Format("Expected > {0}\tReceived: {1}", n, queried));
                 else
@@ -165,15 +167,25 @@ namespace Cassandra.MSTest
             {
                 BoundStatement bs = prepared.Bind(0);
                 for (int i = 0; i < n; ++i)
-                    addCoordinator(c.Session.Execute(bs));
+                {
+                    IPAddress ccord;
+                    using (var rs = c.Session.Execute(bs))
+                        ccord = rs.QueriedHost;
+                    addCoordinator(ccord);
+                }
             }
             else
             {
                 CassandraRoutingKey routingKey = new CassandraRoutingKey();
                 routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
                 for (int i = 0; i < n; ++i)
-                    addCoordinator(c.Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey).SetConsistencyLevel(cl)));
+                {
+                    IPAddress ccord;
+                    using (var rs = c.Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey).SetConsistencyLevel(cl)))
+                        ccord = rs.QueriedHost;
+                    addCoordinator(ccord);
+                }
             }
-        }      
+        }
     }
 }

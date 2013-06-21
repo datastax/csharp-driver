@@ -2,15 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MyTest;
 using System.Threading;
+
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 
 namespace Cassandra.MSTest
 {
+    [TestClass]
     public class ConsistencyTests : PolicyTestTools
     {
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         public void testRFOneTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -25,11 +32,11 @@ namespace Cassandra.MSTest
                 var assC = coordinators.First().Key.ToString();
                 var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                c.CCMBridge.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>() { ConsistencyLevel.Any };
 
@@ -153,11 +160,11 @@ namespace Cassandra.MSTest
                 var assC = coordinators.First().Key.ToString();
                 var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                c.CCMBridge.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -283,11 +290,11 @@ namespace Cassandra.MSTest
                 var assC = coordinators.First().Key.ToString();
                 var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                c.CCMBridge.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -412,11 +419,11 @@ namespace Cassandra.MSTest
                 var assC = coordinators.First().Key.ToString();
                 var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                c.CCMBridge.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>() { ConsistencyLevel.Any };
 
@@ -540,11 +547,11 @@ namespace Cassandra.MSTest
                 var assC = coordinators.First().Key.ToString();
                 var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(CCMBridge.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                c.CCMBridge.ForceStop(awareCoord);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
                 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -681,8 +688,8 @@ namespace Cassandra.MSTest
                 query(c, 12, ConsistencyLevel.All);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                c.CCMBridge.ForceStop(2);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -806,18 +813,18 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "5", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "6", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 12);
+                assertQueried(Options.Default.IP_PREFIX + "4", 0);
+                assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                assertQueried(Options.Default.IP_PREFIX + "6", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
+                c.CCMBridge.ForceStop(2);
                 // FIXME: This sleep is needed to allow the waitFor() to work
                 Thread.Sleep(20000);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
 
                 List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Any,
@@ -927,19 +934,19 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 0);
                 // BUG: JAVA-88
-                //assertQueried(CCMBridge.IP_PREFIX + "4", 12);
-                //assertQueried(CCMBridge.IP_PREFIX + "5", 0);
-                //assertQueried(CCMBridge.IP_PREFIX + "6", 0);
+                //assertQueried(Options.Default.IP_PREFIX + "4", 12);
+                //assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                //assertQueried(Options.Default.IP_PREFIX + "6", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
+                c.CCMBridge.ForceStop(2);
                 // FIXME: This sleep is needed to allow the waitFor() to work
                 Thread.Sleep(20000);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
 
 
 

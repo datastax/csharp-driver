@@ -2,10 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MyTest;
 using System.Threading;
 using System.Net;
 
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 
 namespace Cassandra.MSTest
 {
@@ -222,7 +227,7 @@ namespace Cassandra.MSTest
             try
             {
                 Session session = cluster.Session;
-                CCMBridge bridge = cluster.CassandraCluster;
+                CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";
                 String table = "TestTable";
@@ -236,12 +241,12 @@ namespace Cassandra.MSTest
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)).QueriedHost                );
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
 
                 bridge.ForceStop(2);
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
                 }
                 catch (ReadTimeoutException e)
                 {
@@ -368,7 +373,7 @@ namespace Cassandra.MSTest
             try
             {
                 Session session = cluster.Session;
-                CCMBridge bridge = cluster.CassandraCluster;
+                CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";
                 String table = "TestTable";
@@ -384,7 +389,7 @@ namespace Cassandra.MSTest
                 );
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
 
                 bridge.Stop(2);
                 // Ensure that gossip has reported the node as down.
@@ -392,7 +397,7 @@ namespace Cassandra.MSTest
 
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
                 }
                 catch (UnavailableException e)
                 {
@@ -439,7 +444,7 @@ namespace Cassandra.MSTest
             try
             {
                 Session session = cluster.Session;
-                CCMBridge bridge = cluster.CassandraCluster;
+                CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";
                 String table = "TestTable";
@@ -455,7 +460,7 @@ namespace Cassandra.MSTest
                                 );
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
 
                 bridge.ForceStop(2);
                 try

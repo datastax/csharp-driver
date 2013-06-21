@@ -5,14 +5,11 @@
     <Setting Name="CASSANDRA_DIR" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="CASSANDRA_VERSION" Type="System.String" Scope="User">
-      <Value Profile="(Default)">1.2.4</Value>
-    </Setting>
     <Setting Name="IP_PREFIX" Type="System.String" Scope="User">
-      <Value Profile="(Default)">127.0.0.</Value>
+      <Value Profile="(Default)">192.168.13.</Value>
     </Setting>
     <Setting Name="SSH_HOST" Type="System.String" Scope="User">
-      <Value Profile="(Default)">localhost</Value>
+      <Value Profile="(Default)">192.168.13.1</Value>
     </Setting>
     <Setting Name="SSH_PORT" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">22</Value>
@@ -21,7 +18,19 @@
       <Value Profile="(Default)">user</Value>
     </Setting>
     <Setting Name="SSH_PASSWORD" Type="System.String" Scope="User">
-      <Value Profile="(Default)">passwd</Value>
+      <Value Profile="(Default)">password</Value>
+    </Setting>
+    <Setting Name="CASSANDRA_VERSION" Type="System.String" Scope="User">
+      <Value Profile="(Default)">1.2.5</Value>
+    </Setting>
+    <Setting Name="USE_COMPRESSION" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="USE_NOBUFFERING" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="USE_LOGGER" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

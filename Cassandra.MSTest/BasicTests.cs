@@ -16,8 +16,8 @@ namespace Cassandra.MSTest
     [TestClass]
     public partial class BasicTests
     {
-        [TestMethod]        
-		[WorksForMe]
+        [TestMethod]
+        [WorksForMe]
         public void BigInsert()
         {
             BigInsertTest(3000);

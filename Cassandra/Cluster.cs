@@ -44,10 +44,10 @@ namespace Cassandra
             var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
-                                                       _configuration.ProtocolOptions,
+                                                        new ProtocolOptions(_configuration.ProtocolOptions.Port),
                                                        poolingOptions, _configuration.SocketOptions,
                                                        new ClientOptions(
-                                                           _configuration.ClientOptions.WithoutRowSetBuffering,
+                                                           true,
                                                            _configuration.ClientOptions.QueryAbortTimeout, null,
                                                            _configuration.ClientOptions.AsyncCallAbortTimeout),
                                                        _configuration.AuthInfoProvider,

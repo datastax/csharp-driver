@@ -2,10 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+
+#if MYTEST
 using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 
 namespace Cassandra.MSTest
 {
+    [TestClass]
     public class FoundBugTests
     {
         [TestMethod]
@@ -23,37 +30,36 @@ namespace Cassandra.MSTest
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
                 var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
                 {
-                    var result = Session.Execute(query);
-
-                    foreach (var resKeyspace in result.GetRows())
-                    {
-                        Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                          resKeyspace.GetValue<bool>("durable_writes"),
-                                          resKeyspace.GetValue<string>("keyspace_name"),
-                                          resKeyspace.GetValue<string>("strategy_class"),
-                                          resKeyspace.GetValue<string>("strategy_options"));
-                    }
+                    using (var result = Session.Execute(query))
+                        foreach (var resKeyspace in result.GetRows())
+                        {
+                            Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
+                                              resKeyspace.GetValue<bool>("durable_writes"),
+                                              resKeyspace.GetValue<string>("keyspace_name"),
+                                              resKeyspace.GetValue<string>("strategy_class"),
+                                              resKeyspace.GetValue<string>("strategy_options"));
+                        }
                 }
 
-                CCMCluster.CassandraCluster.ForceStop(1);
-                CCMCluster.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "1", CCMCluster.Cluster, 40);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", CCMCluster.Cluster, 40);
+                CCMCluster.CCMBridge.ForceStop(1);
+                CCMCluster.CCMBridge.ForceStop(2);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", CCMCluster.Cluster, 40);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", CCMCluster.Cluster, 40);
 
                 try
                 {
-                    var result = Session.Execute(query);
-
-                    foreach (var resKeyspace in result.GetRows())
-                    {
-                    }
+                    using (var result = Session.Execute(query))
+                        foreach (var resKeyspace in result.GetRows())
+                        {
+                            Console.WriteLine(resKeyspace.GetValue<string>("keyspace_name"));
+                        }
                 }
                 catch (Exception)
                 {
                 }
 
-                CCMCluster.CassandraCluster.Start(1);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "1", CCMCluster.Cluster, 60);
+                CCMCluster.CCMBridge.Start(1);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "1", CCMCluster.Cluster, 60);
 
                 {
                     var result = Session.Execute(query);

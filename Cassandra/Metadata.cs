@@ -33,11 +33,6 @@ namespace Cassandra
             _controlConnection.Init();
         }
 
-        internal bool AlreadySetUp()
-        {
-            return _controlConnection != null;
-        }
-
         public event HostsEventHandler HostsEvent;
         
         /// <summary>

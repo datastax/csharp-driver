@@ -2,12 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MyTest;
 using System.Threading;
 using System.Diagnostics;
 
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
+
 namespace Cassandra.MSTest
 {
+    [TestClass]
     public class ReconnectionPolicyTests : PolicyTestTools
     {
         /*
@@ -132,9 +139,9 @@ namespace Cassandra.MSTest
                 query(c, 12);
 
                 // Ensure a basic test works
-                assertQueried(CCMBridge.IP_PREFIX + "1", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 12);
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(1);
+                c.CCMBridge.ForceStop(1);
 
                 // Start timing and ensure that the node is down
 
@@ -158,7 +165,7 @@ namespace Cassandra.MSTest
                     // Restart node at restartTime
                     if (!restarted && elapsedSeconds > restartTime)
                     {
-                        c.CassandraCluster.Start(1);
+                        c.CCMBridge.Start(1);
                         restarted = true;
                     }
 
@@ -166,7 +173,7 @@ namespace Cassandra.MSTest
                     try
                     {                        
                         query(c, 12);
-                        assertQueried(CCMBridge.IP_PREFIX + "1", 12);
+                        assertQueried(Options.Default.IP_PREFIX + "1", 12);
                         resetCoordinators();
 
                         // Ensure the time when the query completes successfully is what was expected
@@ -182,11 +189,11 @@ namespace Cassandra.MSTest
 
                     // The same query once more, just to be sure
                     query(c, 12);
-                    assertQueried(CCMBridge.IP_PREFIX + "1", 12);
+                    assertQueried(Options.Default.IP_PREFIX + "1", 12);
                     resetCoordinators();
 
                     // Ensure the reconnection times reset
-                    c.CassandraCluster.ForceStop(1);
+                    c.CCMBridge.ForceStop(1);
 
                     // Start timing and ensure that the node is down
                     //startTime = 0;
@@ -209,7 +216,7 @@ namespace Cassandra.MSTest
                         // Restart node at restartTime
                         if (!restarted && elapsedSeconds > restartTime)
                         {
-                            c.CassandraCluster.Start(1);
+                            c.CCMBridge.Start(1);
                             restarted = true;
                         }
 
@@ -217,7 +224,7 @@ namespace Cassandra.MSTest
                         try
                         {
                             query(c, 12);
-                            assertQueried(CCMBridge.IP_PREFIX + "1", 12);
+                            assertQueried(Options.Default.IP_PREFIX + "1", 12);
                             resetCoordinators();
 
                             // Ensure the time when the query completes successfully is what was expected

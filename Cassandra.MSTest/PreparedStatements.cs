@@ -16,29 +16,24 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cassandra.MSTest
 {
-    
+
+    [TestClass]
     public partial class PreparedStatementsTests
-    {     
-        string Keyspace = "tester";
-        Cluster Cluster;
+    {
         Session Session;
-        CCMBridge.CCMCluster CCMCluster;
 
         [TestInitialize]
         public void SetFixture()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
-            Session = CCMCluster.Session;
-            Cluster = CCMCluster.Cluster;
-            Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.ChangeKeyspace(Keyspace);
+            CCMBridge.ReusableCCMCluster.Setup(2);
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
         
         public PreparedStatementsTests()

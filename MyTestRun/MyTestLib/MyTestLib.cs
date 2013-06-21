@@ -15,12 +15,27 @@ namespace MyTest
     }
 
     [AttributeUsage(AttributeTargets.Method)]
+    public class TestCategoryAttribute : Attribute
+    {
+        public string CategoryName { get; private set; }
+        public TestCategoryAttribute(string categoryName)
+        {
+            CategoryName = categoryName;
+        }
+    }
+    
+    [AttributeUsage(AttributeTargets.Method)]
     public class WorksForMeAttribute : Attribute
     {
     }
 
     [AttributeUsage(AttributeTargets.Method)]
     public class NeedSomeFixAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class IntegrationAttribute : Attribute
     {
     }
 
@@ -122,7 +137,7 @@ namespace MyTest
             }
         }
 
-        public static bool ArrEqual(byte[] a1, byte[] a2)
+        public static bool ArrEqual<T>(T[] a1, T[] a2)
         {
             if (ReferenceEquals(a1, a2))
                 return true;
@@ -145,7 +160,7 @@ namespace MyTest
             }
             
 
-            EqualityComparer<byte> comparer = EqualityComparer<byte>.Default;
+            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
             for (int i = 0; i < a1.Length; i++)
             {
                 if (!comparer.Equals(a1[i], a2[i]))

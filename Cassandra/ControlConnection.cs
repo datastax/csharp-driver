@@ -37,17 +37,19 @@ namespace Cassandra
             if (sender == this)
                 return;
 
-                if (e.What == HostsEventArgs.Kind.Down)
-                {
-                    if (e.IPAddress.Equals(listeningOnHost))
-                        SetupControlConnection();
-                }
-                else if (e.What == HostsEventArgs.Kind.Up)
-                {
-                    if (_isDiconnected)
-                        SetupControlConnection();
-                }
-		}
+            Action act = new Action(() => SetupControlConnection());
+
+            if (e.What == HostsEventArgs.Kind.Down)
+            {
+                if (e.IPAddress.Equals(listeningOnHost))
+                    act.BeginInvoke((ar) => { act.EndInvoke(ar); }, null);
+            }
+            else if (e.What == HostsEventArgs.Kind.Up)
+            {
+                if (_isDiconnected)
+                    act.BeginInvoke((ar) => { act.EndInvoke(ar); }, null);
+            }
+        }
 
         internal void Init()
         {
@@ -66,13 +68,13 @@ namespace Cassandra
         private void SetupEventListener()
         {
             var triedHosts = new List<IPAddress>();
-            var innerExceptions = new Dictionary<IPAddress, Exception>();
+            var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
 
             var hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
             
             if (!hostsIter.MoveNext())
             {
-                var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
                 _logger.Error(ex);
                 throw ex;
             }
@@ -321,7 +323,7 @@ namespace Cassandra
             var iterLiof = new List<Host>() { localhost }.GetEnumerator();
             iterLiof.MoveNext();
             List<IPAddress> tr = new List<IPAddress>();
-            Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+            Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
             var cn = _session.Connect(null, iterLiof, tr, exx);
 
             using (var outp = cn.Query(SelectLocal, ConsistencyLevel.Default,false))
@@ -429,7 +431,7 @@ namespace Cassandra
                     var iterLiof = new List<Host>() { localhost }.GetEnumerator();
                     iterLiof.MoveNext();
                     List<IPAddress> tr = new List<IPAddress>();
-                    Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+                    Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
                     var cn = _session.Connect(null, iterLiof, tr, exx);
 
                     using (var outp = cn.Query(SelectSchemaPeers, ConsistencyLevel.Default, false))
@@ -462,7 +464,7 @@ namespace Cassandra
                     var iterLiof = new List<Host>() { localhost }.GetEnumerator();
                     iterLiof.MoveNext();
                     List<IPAddress> tr = new List<IPAddress>();
-                    Dictionary<IPAddress, Exception> exx = new Dictionary<IPAddress, Exception>();
+                    Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
                     var cn = _session.Connect(null, iterLiof, tr, exx);
 
                     using (var outp = cn.Query(SelectSchemaLocal, ConsistencyLevel.Default, false))

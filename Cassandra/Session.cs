@@ -64,19 +64,19 @@ namespace Cassandra
             var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
             if (!ci.MoveNext())
             {
-                var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
                 _logger.Error(ex.Message);
                 throw ex;
             }
 
             var triedHosts = new List<IPAddress>();
-            var innerExceptions = new Dictionary<IPAddress, Exception>();
+            var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
             Connect(null, ci, triedHosts, innerExceptions);
         }
 
         readonly List<CassandraConnection> _trashcan = new List<CassandraConnection>();
 
-        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter,List<IPAddress> triedHosts, Dictionary<IPAddress, Exception> innerExceptions)
+        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions)
         {
             CheckDisposed();
             lock (_trashcan)
@@ -157,7 +157,9 @@ namespace Cassandra
                                 }
                                 else
                                 {
-                                    innerExceptions[currentHost.Address] = outExc;
+                                    if (!innerExceptions.ContainsKey(currentHost.Address))
+                                        innerExceptions.Add(currentHost.Address, new List<Exception>());
+                                    innerExceptions[currentHost.Address].Add(outExc);
                                     _logger.Info("New connection attempt failed - goto another host.");
                                     error = true;
                                     break;
@@ -271,7 +273,8 @@ namespace Cassandra
         /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspace(string keyspace_name)
         {
-            Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Default);
+            Cluster.WaitForSchemaAgreement(
+                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Default).QueriedHost);
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -451,33 +454,6 @@ namespace Cassandra
             else return null;
         }
 
-        //private void ProcessRegisterForEvent(IOutput outp)
-        //{
-        //    using (outp)
-        //    {
-        //        if (!(outp is OutputVoid))
-        //        {
-        //            if (outp is OutputError)
-        //            {
-        //                var ex = (outp as OutputError).CreateException();
-        //                _logger.Error(ex);
-        //                throw ex;
-        //            }
-        //            else
-        //            {
-        //                var ex = new DriverInternalError("Unexpected output kind: " + outp.GetType().Name);
-        //                _logger.Error(ex);
-        //                throw ex;
-        //            }
-        //        }
-        //        else
-        //        {
-        //            _logger.Info("Checked register for event - ok");
-        //            return; //ok
-        //        }
-        //    }
-        //}
-
         private void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId)
         {
             using (outp)
@@ -551,7 +527,7 @@ namespace Cassandra
             public Query Query;
             private IEnumerator<Host> _hostsIter = null;
             public IAsyncResult LongActionAc;
-            public readonly Dictionary<IPAddress, Exception> InnerExceptions = new Dictionary<IPAddress, Exception>();
+            public readonly Dictionary<IPAddress, List<Exception>> InnerExceptions = new Dictionary<IPAddress, List<Exception>>();
             public readonly List<IPAddress> TriedHosts = new List<IPAddress>();
             public int QueryRetries = 0;
             virtual public void Connect(Session owner, bool moveNext)
@@ -561,7 +537,7 @@ namespace Cassandra
                     _hostsIter = owner._policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
                     if (!_hostsIter.MoveNext())
                     {
-                        var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
+                        var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
                         _logger.Error(ex);
                         throw ex;
                     }
@@ -623,7 +599,10 @@ namespace Cassandra
                     var decision = GetRetryDecision(token.Query, exc, _policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
                     {
-                        token.InnerExceptions[token.Connection.GetHostAdress()] = exc;
+                        if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
+                            token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
+
+                        token.InnerExceptions[token.Connection.GetHostAdress()].Add(exc);
                         ExecConn(token, true);
                     }
                     else
@@ -634,9 +613,15 @@ namespace Cassandra
                                 token.Complete(this, null, exc);
                                 return;
                             case RetryDecision.RetryDecisionType.Retry:
+                                if (token.LongActionAc.IsCompleted)
+                                    return;
                                 token.Consistency = decision.RetryConsistencyLevel ?? token.Consistency;
                                 token.QueryRetries++;
-                                token.InnerExceptions[token.Connection.GetHostAdress()] = exc;
+
+                                if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
+                                    token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
+
+                                token.InnerExceptions[token.Connection.GetHostAdress()].Add(exc);
                                 ExecConn(token, false);
                                 return;
                             default:
@@ -650,7 +635,9 @@ namespace Cassandra
             {
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
-                    token.InnerExceptions[token.Connection.GetHostAdress()] = ex;
+                    if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
+                        token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
+                    token.InnerExceptions[token.Connection.GetHostAdress()].Add(ex);
                     ExecConn(token, true);
                 }
                 else

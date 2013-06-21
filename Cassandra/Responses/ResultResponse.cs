@@ -36,7 +36,7 @@
                     Output = new OutputSchemaChange(BEBinaryReader, TraceID);
                     break;
                 default:
-                    throw new DriverInternalError("Unknown Event Type");
+                    throw new DriverInternalError("Unknown ResultResponseKind Type");
             }
         }
 

@@ -12,7 +12,6 @@ using System.Numerics;
 
 namespace Cassandra.MSTest
 {
-    [TestClass]
     public partial class PreparedStatementsCCMTests
     {        
                         

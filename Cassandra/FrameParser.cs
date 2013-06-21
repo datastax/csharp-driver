@@ -30,7 +30,7 @@ namespace Cassandra
             var opcode = frame.FrameHeader.Opcode;
             if (RegisteredResponses[opcode] != null)
                 return RegisteredResponses[opcode](frame);
-            return null;
+            throw new DriverInternalError("Unknown Response Frame type");
         }
     }
 }

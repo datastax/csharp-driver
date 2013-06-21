@@ -15,12 +15,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cassandra.MSTest
 {
-    
+
+    [TestClass]
     public partial class PreparedStatementsCCMTests
     {     
-        string Keyspace = "tester";
-        Cluster Cluster;
-        CCMBridge.CCMCluster CCMCluster;
         Session Session;
 
 
@@ -31,26 +29,27 @@ namespace Cassandra.MSTest
         [TestInitialize]
         public void SetFixture()
         {
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
-            Session = CCMCluster.Session;
-            Cluster = CCMCluster.Cluster;
+            CCMBridge.ReusableCCMCluster.Setup(2);
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            Session = CCMBridge.ReusableCCMCluster.Connect();
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
 
         private void reprepareOnNewlyUpNodeTest(bool useKeyspace)
         {
-            Session.CreateKeyspaceIfNotExists(Keyspace);
+            string keyspace = "tester";
+            Session.CreateKeyspaceIfNotExists(keyspace);
             string modifiedKs = "";
 
             if (useKeyspace)
-                Session.ChangeKeyspace(Keyspace);
+                Session.ChangeKeyspace(keyspace);
             else
-                modifiedKs = Keyspace + ".";
+                modifiedKs = keyspace + ".";
 
             try
             {
@@ -66,17 +65,22 @@ namespace Cassandra.MSTest
 
             PreparedStatement ps = Session.Prepare("SELECT * FROM " + modifiedKs + "test WHERE k = ?");
 
-            Assert.Equal(Session.Execute(ps.Bind("123")).GetRows().First().GetValue<int>("i"), 17); // ERROR
+            using (var rs = Session.Execute(ps.Bind("123")))
+            {
+                Assert.Equal(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
+            }
+            CCMBridge.ReusableCCMCluster.CCMBridge.Stop();            
+            TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 20);
 
-            CCMCluster.CassandraCluster.Stop();            
-            TestUtils.waitForDown(CCMBridge.IP_PREFIX + "1", Cluster, 20);            
-
-            CCMCluster.CassandraCluster.Start();
-            TestUtils.waitFor(CCMBridge.IP_PREFIX + "1", Cluster, 20);
+            CCMBridge.ReusableCCMCluster.CCMBridge.Start();
+            TestUtils.waitFor(Options.Default.IP_PREFIX + "1", Session.Cluster, 20);
 
             try
             {
-                Assert.Equal(Session.Execute(ps.Bind("124")).GetRows().First().GetValue<int>("i"), 18);
+                using (var rowset = Session.Execute(ps.Bind("124")))
+                {
+                    Assert.Equal(rowset.GetRows().First().GetValue<int>("i"), 18);
+                }
             }
             catch (NoHostAvailableException e)
             {

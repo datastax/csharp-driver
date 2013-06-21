@@ -17,20 +17,23 @@ namespace Cassandra.MSTest
     [TestClass]
     public partial class AdvancedTests
     {
-        Cluster Cluster;
-        Session Session;
-        CCMBridge.CCMCluster CCMCluster;
 
         public AdvancedTests()
         {
         }
-                
+
+        Session Session;
+
         [TestInitialize]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-   	     var clusterb = Cluster.Builder();
-            clusterb.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
+
+            CCMBridge.ReusableCCMCluster.Setup(2);
+
+            var builder = Cluster.Builder();
+
+            builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
 
             var rp = new RoundRobinPolicyWithReconnectionRetries(new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += new EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs>((s, ev) =>
@@ -38,18 +41,17 @@ namespace Cassandra.MSTest
                 Console.Write("o");
                 System.Threading.Thread.Sleep((int)ev.DelayMs);
             });
-            clusterb.WithLoadBalancingPolicy(rp);
-            clusterb.WithQueryTimeout(60 * 1000);
+            builder.WithLoadBalancingPolicy(rp);
+            builder.WithQueryTimeout(60 * 1000);
 
-            CCMCluster = CCMBridge.CCMCluster.Create(2, clusterb);
-            Session = CCMCluster.Session;
-            Cluster = CCMCluster.Cluster;
+            CCMBridge.ReusableCCMCluster.Build(builder);
+            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
 
 

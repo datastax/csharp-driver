@@ -2,9 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MyTest;
 using System.Globalization;
 using System.Threading;
+
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 
 namespace Cassandra.MSTest
 {
@@ -54,16 +60,17 @@ namespace Cassandra.MSTest
         {
             // Write data
             for (int i = 0; i < 500; ++i) //1000000
-                session.Execute("INSERT INTO wide_rows(k,i) VALUES("+key+","+i+")",ConsistencyLevel.Quorum);
-                
+                session.Execute("INSERT INTO wide_rows(k,i) VALUES(" + key + "," + i + ")", ConsistencyLevel.Quorum);
+
             // Read data        
-            var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key.ToString());
+            using (var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key.ToString()))
+            {
+                // Verify data
+                int j = 0;
+                foreach (CqlRow row in rs.GetRows())
+                    Assert.True((int)row["i"] == j++);
 
-            // Verify data
-            int j = 0;
-            foreach (CqlRow row in rs.GetRows())
-                Assert.True((int)row["i"] == j++);
-
+            }
         }
 
         /*
@@ -82,12 +89,13 @@ namespace Cassandra.MSTest
             session.Execute(sb.ToString(),ConsistencyLevel.Quorum);
 
             // Read data
-            var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key.ToString());
-            // Verify data
-            int j = 0;
-            foreach (CqlRow row in rs.GetRows())
-                Assert.True((int)row["i"] == j++);
-
+            using (var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key.ToString()))
+            {
+                // Verify data
+                int j = 0;
+                foreach (CqlRow row in rs.GetRows())
+                    Assert.True((int)row["i"] == j++);
+            }
         }
 
         /*
@@ -108,12 +116,12 @@ namespace Cassandra.MSTest
                 session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, Cassandra.CqlQueryTools.ToHex(bb)),ConsistencyLevel.Quorum);
 
             // Read data
-            var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key.ToString());
-
-            // Verify data            
-            foreach (CqlRow row in rs.GetRows())
-                Assert.ArrEqual((byte[])row["i"], bb);
-
+            using (var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key.ToString()))
+            {
+                // Verify data            
+                foreach (CqlRow row in rs.GetRows())
+                    Assert.ArrEqual((byte[])row["i"], bb);
+            }
         }
 
         /*
@@ -126,13 +134,15 @@ namespace Cassandra.MSTest
             for (int i = 0; i < 1000; ++i)
                 b.Append(i.ToString());// Create ultra-long text
 
-            session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b.ToString()),ConsistencyLevel.Quorum);
+            session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b.ToString()), ConsistencyLevel.Quorum);
 
             // Read data
-            CqlRow row = session.Execute("SELECT * FROM large_text WHERE k = " + key.ToString()).GetRows().FirstOrDefault();// select().all().from("large_text").where(eq("k", key))).one();
-
-            // Verify data
-            Assert.True(b.ToString().Equals(row["i"]));
+            using (var rs = session.Execute("SELECT * FROM large_text WHERE k = " + key.ToString()))
+            {
+                CqlRow row = rs.GetRows().FirstOrDefault();// select().all().from("large_text").where(eq("k", key))).one();
+                // Verify data
+                Assert.True(b.ToString().Equals(row["i"]));
+            }
         }
         
         /*
@@ -175,21 +185,23 @@ namespace Cassandra.MSTest
             session.Execute(insrt.ToString(),ConsistencyLevel.Quorum);
 
             // Read data
-            CqlRow row = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString()).GetRows().FirstOrDefault();
-
-            Assert.True(row != null, "row is null");
-
-            Assert.True(row.Columns.Length >= 330, "not enough columns");
-
-            // Verify data
-            for (int i = 0; i < 330; ++i)
+            using (var rs = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString()))
             {
-                var cn = createColumnName(i);
-                Assert.True(row[cn] != null, "column is null");
-                Assert.True(row[cn] is int, "column is not int");
-                Assert.True((int)row[cn] == i);
-            }
+                CqlRow row = rs.GetRows().FirstOrDefault();
 
+                Assert.True(row != null, "row is null");
+
+                Assert.True(row.Columns.Length >= 330, "not enough columns");
+
+                // Verify data
+                for (int i = 0; i < 330; ++i)
+                {
+                    var cn = createColumnName(i);
+                    Assert.True(row[cn] != null, "column is null");
+                    Assert.True(row[cn] is int, "column is not int");
+                    Assert.True((int)row[cn] == i);
+                }
+            }
         }
 
 

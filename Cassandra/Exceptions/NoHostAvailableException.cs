@@ -19,15 +19,15 @@ namespace Cassandra
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
-        public Dictionary<IPAddress, Exception> Errors { get; private set; }
+        public Dictionary<IPAddress, List<Exception>> Errors { get; private set; }
 
-        public NoHostAvailableException(Dictionary<IPAddress, Exception> errors)
+        public NoHostAvailableException(Dictionary<IPAddress, List<Exception>> errors)
             : base(MakeMessage(errors))
         {
             this.Errors = errors;
         }
 
-        private static String MakeMessage(Dictionary<IPAddress, Exception> errors)
+        private static String MakeMessage(Dictionary<IPAddress, List<Exception>> errors)
         {
             List<string> addrs = new List<string>();
             foreach (var err in errors.Keys)

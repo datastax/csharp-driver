@@ -2,12 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MyTest;
+
 using System.Threading;
 using System.Diagnostics;
 
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
+
 namespace Cassandra.MSTest
 {
+    [TestClass]
     public class RetryPolicyTests : PolicyTestTools
     {
 
@@ -82,8 +90,8 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
 
                 resetCoordinators();
 
@@ -99,19 +107,19 @@ namespace Cassandra.MSTest
                         // Force a ReadTimeoutException to be performed once
                         if (!readTimeoutOnce)
                         {
-                            c.CassandraCluster.ForceStop(2);
+                            c.CCMBridge.ForceStop(2);
                         }
 
                         // Force an UnavailableException to be performed once
                         if (readTimeoutOnce && !unavailableOnce)
                         {
-                            TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                            TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
                         }
 
                         // Bring back node to ensure other errors are not thrown on restart
                         if (unavailableOnce && !restartOnce)
                         {
-                            c.CassandraCluster.Start(2);
+                            c.CCMBridge.Start(2);
                             restartOnce = true;
                         }
 
@@ -138,8 +146,8 @@ namespace Cassandra.MSTest
                 Assert.True(unavailableOnce, "Hit testing race condition. [Never encountered an UnavailableException.] (Shouldn't be an issue.):\n");
 
                 // A weak test to ensure that the nodes were contacted
-                assertQueriedAtLeast(CCMBridge.IP_PREFIX + "1", 1);
-                assertQueriedAtLeast(CCMBridge.IP_PREFIX + "2", 1);
+                assertQueriedAtLeast(Options.Default.IP_PREFIX + "1", 1);
+                assertQueriedAtLeast(Options.Default.IP_PREFIX + "2", 1);
 
                 resetCoordinators();
 
@@ -156,19 +164,19 @@ namespace Cassandra.MSTest
                         // Force a WriteTimeoutException to be performed once
                         if (!writeTimeoutOnce)
                         {
-                            c.CassandraCluster.ForceStop(2);
+                            c.CCMBridge.ForceStop(2);
                         }
 
                         // Force an UnavailableException to be performed once
                         if (writeTimeoutOnce && !unavailableOnce)
                         {
-                            TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                            TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
                         }
 
                         // Bring back node to ensure other errors are not thrown on restart
                         if (unavailableOnce && !restartOnce)
                         {
-                            c.CassandraCluster.Start(2);
+                            c.CCMBridge.Start(2);
                             restartOnce = true;
                         }
 
@@ -207,19 +215,19 @@ namespace Cassandra.MSTest
                         // Force a WriteTimeoutException to be performed once
                         if (!writeTimeoutOnce)
                         {
-                            c.CassandraCluster.ForceStop(2);
+                            c.CCMBridge.ForceStop(2);
                         }
 
                         // Force an UnavailableException to be performed once
                         if (writeTimeoutOnce && !unavailableOnce)
                         {
-                            TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 5);
+                            TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
                         }
 
                         // Bring back node to ensure other errors are not thrown on restart
                         if (unavailableOnce && !restartOnce)
                         {
-                            c.CassandraCluster.Start(2);
+                            c.CCMBridge.Start(2);
                             restartOnce = true;
                         }
 
@@ -299,23 +307,23 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.All);
                 query(c, 12, ConsistencyLevel.All);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 4);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 4);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 4);
+                assertQueried(Options.Default.IP_PREFIX + "1", 4);
+                assertQueried(Options.Default.IP_PREFIX + "2", 4);
+                assertQueried(Options.Default.IP_PREFIX + "3", 4);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "2", c.Cluster, 10);
+                c.CCMBridge.ForceStop(2);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 10);
 
                 query(c, 12, ConsistencyLevel.All);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(1);
-                TestUtils.waitForDownWithWait(CCMBridge.IP_PREFIX + "1", c.Cluster, 5);
+                c.CCMBridge.ForceStop(1);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "1", c.Cluster, 5);
                 Thread.Sleep(5000);
 
                 try
@@ -329,25 +337,25 @@ namespace Cassandra.MSTest
 
                 query(c, 12, ConsistencyLevel.Quorum);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
                 resetCoordinators();
 
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
                 resetCoordinators();
 
                 query(c, 12, ConsistencyLevel.One);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
             }
             catch (Exception e)
@@ -378,26 +386,26 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
 
                 resetCoordinators();
 
                 // Test failed reads
-                c.CassandraCluster.ForceStop(2);
+                c.CCMBridge.ForceStop(2);
                 for (int i = 0; i < 10; ++i)
                 {
                     query(c, 12);
                 }
 
                 // A weak test to ensure that the nodes were contacted
-                assertQueried(CCMBridge.IP_PREFIX + "1", 120);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 120);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 resetCoordinators();
 
 
-                c.CassandraCluster.Start(2);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "2", c.Cluster, 30);
+                c.CCMBridge.Start(2);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "2", c.Cluster, 30);
 
                 // Test successful reads
                 for (int i = 0; i < 10; ++i)
@@ -406,8 +414,8 @@ namespace Cassandra.MSTest
                 }
 
                 // A weak test to ensure that the nodes were contacted
-                assertQueriedAtLeast(CCMBridge.IP_PREFIX + "1", 1);
-                assertQueriedAtLeast(CCMBridge.IP_PREFIX + "2", 1);
+                assertQueriedAtLeast(Options.Default.IP_PREFIX + "1", 1);
+                assertQueriedAtLeast(Options.Default.IP_PREFIX + "2", 1);
                 resetCoordinators();
 
 
@@ -421,7 +429,7 @@ namespace Cassandra.MSTest
 
 
                 // Test failed writes
-                c.CassandraCluster.ForceStop(2);
+                c.CCMBridge.ForceStop(2);
                 for (int i = 0; i < 100; ++i)
                 {
                     init(c, 12);
@@ -450,35 +458,51 @@ namespace Cassandra.MSTest
         [WorksForMe]
         public void alwaysRetryRetryPolicyTest()
         {
+            Console.Write("MainThread is");
+            Console.Write("[");
+            Console.Write(Thread.CurrentThread.ManagedThreadId);
+            Console.WriteLine("]");
+
             var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(AlwaysRetryRetryPolicy.Instance));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
             createSchema(c.Session);
 
             try
             {
+
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
 
                 resetCoordinators();
 
                 // Test failed reads
-                c.CassandraCluster.ForceStop(2);
+                c.CCMBridge.ForceStop(2);
 
                 Thread t1 = new Thread(() =>
                 {
-                    Console.WriteLine("1 Thread started");
+                    Console.Write("Thread started");
+                    Console.Write("[");
+                    Console.Write(Thread.CurrentThread.ManagedThreadId);
+                    Console.WriteLine("]");
+                    
                     try
                     {
                         query(c, 12);
                     }
                     catch (AsyncCallException)
                     {
-                        Console.WriteLine("1 Thread async call broke");
-                    } 
-                    Console.WriteLine("1 Thread finished");
+                        Console.Write("Thread broke");
+                        Console.Write("[");
+                        Console.Write(Thread.CurrentThread.ManagedThreadId);
+                        Console.WriteLine("]");
+                    }
+                    Console.Write("Thread finished");
+                    Console.Write("[");
+                    Console.Write(Thread.CurrentThread.ManagedThreadId);
+                    Console.WriteLine("]");
                 });
                 t1.Start();
                 t1.Join(10000);
@@ -486,13 +510,18 @@ namespace Cassandra.MSTest
                     t1.Interrupt();
 
                 // A weak test to ensure that the nodes were contacted
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 resetCoordinators();
 
 
-                c.CassandraCluster.Start(2);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "2", c.Cluster, 30);
+                c.CCMBridge.Start(2);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "2", c.Cluster, 30);
+
+                Console.Write("MainThread started");
+                Console.Write("[");
+                Console.Write(Thread.CurrentThread.ManagedThreadId);
+                Console.WriteLine("]");
 
                 // Test successful reads
                 for (int i = 0; i < 10; ++i)
@@ -503,13 +532,21 @@ namespace Cassandra.MSTest
                     }
                     catch (AsyncCallException)
                     {
-                        Console.WriteLine("Main Thread async call broke");
+                        Console.Write("Main Thread broke");
+                        Console.Write("[");
+                        Console.Write(Thread.CurrentThread.ManagedThreadId);
+                        Console.WriteLine("]");
                     }
                 }
 
+                Console.Write("Main Thread finished");
+                Console.Write("[");
+                Console.Write(Thread.CurrentThread.ManagedThreadId);
+                Console.WriteLine("]");
+
                 // A weak test to ensure that the nodes were contacted
-                assertQueriedAtLeast(CCMBridge.IP_PREFIX + "1", 1);
-                assertQueriedAtLeast(CCMBridge.IP_PREFIX + "2", 1);
+                assertQueriedAtLeast(Options.Default.IP_PREFIX + "1", 1);
+                assertQueriedAtLeast(Options.Default.IP_PREFIX + "2", 1);
                 resetCoordinators();
 
 
@@ -523,7 +560,7 @@ namespace Cassandra.MSTest
 
 
                 // Test failed writes
-                c.CassandraCluster.ForceStop(2);
+                c.CCMBridge.ForceStop(2);
                 Thread t2 = new Thread(() =>
                 {
                     Console.WriteLine("2 Thread started");

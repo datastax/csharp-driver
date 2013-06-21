@@ -4,6 +4,7 @@
 using MyTest;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
 #endif
 
 namespace Cassandra.Data.Linq.MSTest

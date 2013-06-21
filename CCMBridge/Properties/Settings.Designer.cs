@@ -37,19 +37,7 @@ namespace Cassandra.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1.2.4")]
-        public string CASSANDRA_VERSION {
-            get {
-                return ((string)(this["CASSANDRA_VERSION"]));
-            }
-            set {
-                this["CASSANDRA_VERSION"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.")]
+        [global::System.Configuration.DefaultSettingValueAttribute("192.168.13.")]
         public string IP_PREFIX {
             get {
                 return ((string)(this["IP_PREFIX"]));
@@ -61,7 +49,7 @@ namespace Cassandra.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("localhost")]
+        [global::System.Configuration.DefaultSettingValueAttribute("192.168.13.1")]
         public string SSH_HOST {
             get {
                 return ((string)(this["SSH_HOST"]));
@@ -97,13 +85,61 @@ namespace Cassandra.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("passwd")]
+        [global::System.Configuration.DefaultSettingValueAttribute("password")]
         public string SSH_PASSWORD {
             get {
                 return ((string)(this["SSH_PASSWORD"]));
             }
             set {
                 this["SSH_PASSWORD"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1.2.5")]
+        public string CASSANDRA_VERSION {
+            get {
+                return ((string)(this["CASSANDRA_VERSION"]));
+            }
+            set {
+                this["CASSANDRA_VERSION"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool USE_COMPRESSION {
+            get {
+                return ((bool)(this["USE_COMPRESSION"]));
+            }
+            set {
+                this["USE_COMPRESSION"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool USE_NOBUFFERING {
+            get {
+                return ((bool)(this["USE_NOBUFFERING"]));
+            }
+            set {
+                this["USE_NOBUFFERING"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool USE_LOGGER {
+            get {
+                return ((bool)(this["USE_LOGGER"]));
+            }
+            set {
+                this["USE_LOGGER"] = value;
             }
         }
     }

@@ -55,9 +55,17 @@
       <Project>{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}</Project>
       <Name>Cassandra.Data</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Cassandra.MSTest\Cassandra.MSTest.csproj">
+      <Project>{11DB4AF5-7318-4CF0-9C56-2A6584CF138C}</Project>
+      <Name>Cassandra.MSTest</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CCMBridge\CCMBridge.MSTest.csproj">
+      <Project>{45A2F5D8-B314-498A-9556-85A772E88A07}</Project>
+      <Name>CCMBridge.MSTest</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

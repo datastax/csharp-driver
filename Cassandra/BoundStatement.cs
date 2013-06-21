@@ -72,7 +72,16 @@ namespace Cassandra
         ///  has been set through <link>PreparedStatement#setRoutingKey</link>, that value
         ///  takes precedence even if the partition key is part of the bound variables.</p>
         /// </summary>
-        public override CassandraRoutingKey RoutingKey { get { return null; } }
+        public override CassandraRoutingKey RoutingKey
+        {
+            get
+            {
+                if (_statement.RoutingKey != null)
+                    return _statement.RoutingKey;
+
+                return null;
+            }
+        }
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {

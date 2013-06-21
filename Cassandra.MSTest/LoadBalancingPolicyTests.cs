@@ -2,10 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MyTest;
 using System.Net;
 using System.Diagnostics;
 using System.Threading;
+
+#if MYTEST
+using MyTest;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 
 namespace Cassandra.MSTest
 {
@@ -25,27 +31,27 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
 
                 resetCoordinators();
-                c.CassandraCluster.BootstrapNode(3);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 60);
+                c.CCMBridge.BootstrapNode(3);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "3", c.Cluster, 60);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 4);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 4);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 4);
+                assertQueried(Options.Default.IP_PREFIX + "1", 4);
+                assertQueried(Options.Default.IP_PREFIX + "2", 4);
+                assertQueried(Options.Default.IP_PREFIX + "3", 4);
 
                 resetCoordinators();
-                c.CassandraCluster.DecommissionNode(1);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "1", c.Cluster, 60);
+                c.CCMBridge.DecommissionNode(1);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "1", c.Cluster, 60);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "2", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
 
             }
             catch (Exception e)
@@ -74,24 +80,24 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 3);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 3);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 3);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 3);
+                assertQueried(Options.Default.IP_PREFIX + "1", 3);
+                assertQueried(Options.Default.IP_PREFIX + "2", 3);
+                assertQueried(Options.Default.IP_PREFIX + "3", 3);
+                assertQueried(Options.Default.IP_PREFIX + "4", 3);
 
                 resetCoordinators();
-                c.CassandraCluster.BootstrapNode(5, "dc2");
-                c.CassandraCluster.DecommissionNode(1);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "5", c.Cluster, 20);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "1", c.Cluster, 20);
+                c.CCMBridge.BootstrapNode(5, "dc2");
+                c.CCMBridge.DecommissionNode(1);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "5", c.Cluster, 20);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "1", c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 3);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 3);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 3);
-                assertQueried(CCMBridge.IP_PREFIX + "5", 3);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 3);
+                assertQueried(Options.Default.IP_PREFIX + "3", 3);
+                assertQueried(Options.Default.IP_PREFIX + "4", 3);
+                assertQueried(Options.Default.IP_PREFIX + "5", 3);
             }
             catch (Exception e)
             {
@@ -119,10 +125,10 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "4", 6);
 
             }
             catch (Exception e)
@@ -150,17 +156,17 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(1);
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "1", c.Cluster, 40);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 40);
+                c.CCMBridge.ForceStop(1);
+                c.CCMBridge.ForceStop(2);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", c.Cluster, 40);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 40);
 
                 query(c, 12);
 
-                c.CassandraCluster.ForceStop(3);
-                c.CassandraCluster.ForceStop(4);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "3", c.Cluster, 40);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "4", c.Cluster, 40);
+                c.CCMBridge.ForceStop(3);
+                c.CCMBridge.ForceStop(4);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "3", c.Cluster, 40);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "4", c.Cluster, 40);
 
                 try
                 {
@@ -198,66 +204,66 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-            assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-            assertQueried(CCMBridge.IP_PREFIX + "3", 6);
-            assertQueried(CCMBridge.IP_PREFIX + "4", 6);
-            assertQueried(CCMBridge.IP_PREFIX + "5", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+            assertQueried(Options.Default.IP_PREFIX + "2", 0);
+            assertQueried(Options.Default.IP_PREFIX + "3", 6);
+            assertQueried(Options.Default.IP_PREFIX + "4", 6);
+            assertQueried(Options.Default.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.BootstrapNode(5, "dc3");
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "5", c.Cluster, 60);
+                c.CCMBridge.BootstrapNode(5, "dc3");
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "5", c.Cluster, 60);
 
 
                 query(c, 12);
 
-            assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-            assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-            assertQueried(CCMBridge.IP_PREFIX + "3", 6);
-            assertQueried(CCMBridge.IP_PREFIX + "4", 6);
-            assertQueried(CCMBridge.IP_PREFIX + "5", 0);
+            assertQueried(Options.Default.IP_PREFIX + "1", 0);
+            assertQueried(Options.Default.IP_PREFIX + "2", 0);
+            assertQueried(Options.Default.IP_PREFIX + "3", 6);
+            assertQueried(Options.Default.IP_PREFIX + "4", 6);
+            assertQueried(Options.Default.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.DecommissionNode(3);
-                c.CassandraCluster.DecommissionNode(4);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "3", c.Cluster, 20);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "4", c.Cluster, 20);
+                c.CCMBridge.DecommissionNode(3);
+                c.CCMBridge.DecommissionNode(4);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "3", c.Cluster, 20);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "4", c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "5", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 0);
+                assertQueried(Options.Default.IP_PREFIX + "4", 0);
+                assertQueried(Options.Default.IP_PREFIX + "5", 12);
 
                 resetCoordinators();
-                c.CassandraCluster.DecommissionNode(5);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "5", c.Cluster, 20);
+                c.CCMBridge.DecommissionNode(5);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "5", c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "5", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 12);
+                assertQueried(Options.Default.IP_PREFIX + "3", 0);
+                assertQueried(Options.Default.IP_PREFIX + "4", 0);
+                assertQueried(Options.Default.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.DecommissionNode(2);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                c.CCMBridge.DecommissionNode(2);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "4", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "5", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 12);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 0);
+                assertQueried(Options.Default.IP_PREFIX + "4", 0);
+                assertQueried(Options.Default.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(1);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 20);
+                c.CCMBridge.ForceStop(1);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
 
                 try
                 {
@@ -310,18 +316,18 @@ namespace Cassandra.MSTest
                 // Not the best test ever, we should use OPP and check we do it the
                 // right nodes. But since M3P is hard-coded for now, let just check
                 // we just hit only one node.
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 12);
 
                 resetCoordinators();
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 12);
 
                 resetCoordinators();
-                c.CassandraCluster.ForceStop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
+                c.CCMBridge.ForceStop(2);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
 
                 try
                 {
@@ -336,22 +342,22 @@ namespace Cassandra.MSTest
                 }
 
                 resetCoordinators();
-                c.CassandraCluster.Start(2);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
+                c.CCMBridge.Start(2);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 12);
 
                 resetCoordinators();
-                c.CassandraCluster.DecommissionNode(2);
-                TestUtils.waitForDecommission(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
+                c.CCMBridge.DecommissionNode(2);
+                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 12);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
 
             }
             catch (Exception e)
@@ -382,30 +388,30 @@ namespace Cassandra.MSTest
                 // Not the best test ever, we should use OPP and check we do it the
                 // right nodes. But since M3P is hard-coded for now, let just check
                 // we just hit only one node.
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 12);
+                assertQueried(Options.Default.IP_PREFIX + "3", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.BootstrapNode(3);
-                TestUtils.waitFor(CCMBridge.IP_PREFIX + "3", c.Cluster, 60);
+                c.CCMBridge.BootstrapNode(3);
+                TestUtils.waitFor(Options.Default.IP_PREFIX + "3", c.Cluster, 60);
 
                 query(c, 12);
 
                 // We should still be hitting only one node
-                assertQueried(CCMBridge.IP_PREFIX + "1", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 12);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 12);
+                assertQueried(Options.Default.IP_PREFIX + "3", 0);
 
                 resetCoordinators();
-                c.CassandraCluster.Stop(2);
-                TestUtils.waitForDown(CCMBridge.IP_PREFIX + "2", c.Cluster, 60);
+                c.CCMBridge.Stop(2);
+                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
 
-                assertQueried(CCMBridge.IP_PREFIX + "1", 6);
-                assertQueried(CCMBridge.IP_PREFIX + "2", 0);
-                assertQueried(CCMBridge.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
 
             }
             catch (Exception e)

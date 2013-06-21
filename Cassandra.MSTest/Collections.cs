@@ -17,31 +17,26 @@ namespace Cassandra.MSTest
     public partial class CollectionsTests
     {
 
-        string Keyspace = "tester";
-        Cluster Cluster;
-        Session Session;
-        CCMBridge.CCMCluster CCMCluster;
-
 
         public CollectionsTests()
         {
         }
 
+        Session Session;
+
         [TestInitialize]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
-            Session = CCMCluster.Session;
-            Cluster = CCMCluster.Cluster;
-            Session.CreateKeyspaceIfNotExists(Keyspace);
-            Session.ChangeKeyspace(Keyspace);
+            CCMBridge.ReusableCCMCluster.Setup(2);
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            CCMCluster.Discard();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
 
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null, string pendingMode = "")
@@ -110,9 +105,7 @@ namespace Cassandra.MSTest
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            CqlRowSet rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.Default);
-
-            using (rs)
+            using (var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.Default))
             {
                 int ind = 0;
                 foreach (var row in rs.GetRows())
