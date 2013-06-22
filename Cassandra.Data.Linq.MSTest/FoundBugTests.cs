@@ -20,26 +20,23 @@ namespace Cassandra.Data.Linq.MSTest
     {
         private string KeyspaceName = "test";
 
-        Session session;
-        CCMBridge.CCMCluster CCMCluster;
-        Cluster Cluster;
+        Session Session;
 
         [TestInitialize]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
-            session = CCMCluster.Session;
-            Cluster = CCMCluster.Cluster;
-            session.CreateKeyspaceIfNotExists(KeyspaceName);
-            session.ChangeKeyspace(KeyspaceName);
+            CCMBridge.ReusableCCMCluster.Setup(2);
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            Session.CreateKeyspaceIfNotExists(KeyspaceName);
+            Session.ChangeKeyspace(KeyspaceName);
         }
 
         [TestCleanup]
         public void Dispose()
         {
-            if (CCMCluster != null)
-                CCMCluster.Discard();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
 
 
@@ -76,7 +73,7 @@ namespace Cassandra.Data.Linq.MSTest
             var date = 2;
             var time = 3;
 
-            var table = session.GetTable<TestTable>();
+            var table = Session.GetTable<TestTable>();
             table.CreateIfNotExists();
 
             table.Insert(new TestTable() { UserId = 1, Date = 2, Token = 1 }).Execute();
@@ -87,7 +84,7 @@ namespace Cassandra.Data.Linq.MSTest
 
             var query = table.Where(i => i.UserId == userId && i.Date == date);
 
-            var query2 = query.Where(i => i.Token >= time); query2 = query2.OrderBy(i => i.Token); 
+            var query2 = query.Where(i => i.Token >= time); query2 = query2.OrderBy(i => i.Token);
 
             var query3 = query.Where(i => i.Token <= time); query3 = query3.OrderByDescending(i => i.Token);
 

@@ -432,7 +432,7 @@ namespace Cassandra.Data.Linq
                             var newVal = prop.GetValueFromPropertyOrField(newRow);
                             if (newVal != null)
                             {
-                                bool areDifferent = !prop.GetValueFromPropertyOrField(row).Equals(newVal);
+                                bool areDifferent = !newVal.Equals(prop.GetValueFromPropertyOrField(row));
                                 if (all || (areDifferent))
                                 {
                                     if (areDifferent)

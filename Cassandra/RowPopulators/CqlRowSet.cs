@@ -51,6 +51,7 @@ namespace Cassandra
             get { return _rawrows == null ? new CqlColumn[] {} : _rawrows.Metadata.Columns; }
         }
 
+        [Obsolete("This property is going to be removed from API in further versions of the driver")]
         public int RowsCount
         {
             get { return _rawrows == null ? 0 : _rawrows.Rows; }

@@ -17,7 +17,7 @@ namespace Cassandra.MSTest
     public class ConsistencyTests : PolicyTestTools
     {
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void testRFOneTokenAware()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
