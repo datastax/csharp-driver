@@ -65,10 +65,6 @@
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>
     </ProjectReference>
-    <ProjectReference Include="..\MyTestRun\MyTestLib\MyTestLib.csproj">
-      <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
-      <Name>MyTestLib</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
