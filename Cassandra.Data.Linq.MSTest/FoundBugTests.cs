@@ -47,7 +47,6 @@ namespace Cassandra.Data.Linq.MSTest
             [PartitionKey(1)]
             [Column("user")]
             public int UserId
-
             { get; set; }
 
             [PartitionKey(2)]
@@ -57,7 +56,6 @@ namespace Cassandra.Data.Linq.MSTest
 
             [Column("time")]
             public long Token
-
             { get; set; }
         }
 

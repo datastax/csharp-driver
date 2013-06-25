@@ -61,27 +61,27 @@ namespace Cassandra
             return bridge;
         }
 
-        public static CCMBridge Create(string name, int nbNodes)
+        public static CCMBridge Create(string name, int nbNodes, bool useAlreadyExisting= false)
         {
 #if !MYTEST
-            if (nbNodes > 4)
+            if (!useAlreadyExisting && (nbNodes > 4))
                 throw new InvalidOperationException();
 #endif
 
             CCMBridge bridge = new CCMBridge();
-            bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b {3}", name, nbNodes, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION));
+            bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b {3}", name, nbNodes, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
         }
 
-        public static CCMBridge Create(string name, int nbNodesDC1, int nbNodesDC2)
+        public static CCMBridge Create(string name, int nbNodesDC1, int nbNodesDC2, bool useAlreadyExisting =false)
         {
 #if !MYTEST
-            if (nbNodesDC1+nbNodesDC2 > 4)
+            if (!useAlreadyExisting && (nbNodesDC1 + nbNodesDC2 > 4))
                 throw new InvalidOperationException();
 #endif
 
             CCMBridge bridge = new CCMBridge();
-            bridge.ExecuteCCM(string.Format("Create {0} -n {1}:{2} -s -i {3} -b {4}", name, nbNodesDC1, nbNodesDC2, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION));
+            bridge.ExecuteCCM(string.Format("Create {0} -n {1}:{2} -s -i {3} -b {4}", name, nbNodesDC1, nbNodesDC2, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
         }
 
@@ -152,7 +152,7 @@ namespace Cassandra
 
         private int dead = 0;
 
-        private void ExecuteCCM(string args)
+        private void ExecuteCCM(string args, bool useAlreadyExisting = false)
         {
             Console.WriteLine("CCM>"+args);
             if (_ssh_shellStream.DataAvailable)
@@ -170,6 +170,8 @@ namespace Cassandra
             {
                 if (outp.ToString().Contains("[Errno 17]") && dead<2)
                 {
+                    if (useAlreadyExisting)
+                        return;
                     dead++;
                     ExecuteCCMAndPrint("remove test");
                     PureExecute("killall java");
@@ -358,14 +360,14 @@ namespace Cassandra
                 NbNodesDC2 = 0;
             }
 
-            public static void Setup(int nbNodesDC1, int nbNodesDC2 = 0)
+            public static void Setup(int nbNodesDC1, int nbNodesDC2 = 0,bool useAlreadyExisting = false)
             {
                 if (nbNodesDC2 == 0)
                 {
                     if (nbNodesDC1 != NbNodesDC1)
                     {
                         Console.WriteLine("Cassandra:" + Options.Default.CASSANDRA_VERSION);
-                        CCMBridge = CCMBridge.Create("test", nbNodesDC1);
+                        CCMBridge = CCMBridge.Create("test", nbNodesDC1, useAlreadyExisting);
                         NbNodesDC1 = nbNodesDC1;
                         NbNodesDC2 = 0;
                     }
@@ -374,7 +376,7 @@ namespace Cassandra
                 {
                     if (nbNodesDC1 != NbNodesDC1 || nbNodesDC2 != NbNodesDC2)
                     {
-                        CCMBridge = CCMBridge.Create("test", nbNodesDC1, nbNodesDC2);
+                        CCMBridge = CCMBridge.Create("test", nbNodesDC1, nbNodesDC2, useAlreadyExisting);
                         NbNodesDC1 = nbNodesDC1;
                         NbNodesDC2 = nbNodesDC2;
                     }

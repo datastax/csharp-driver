@@ -52,23 +52,23 @@ namespace Cassandra.Data.Linq
         }
     
     }
-    
+
     internal static class CqlQueryTools
     {
         static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
 
         public static string CqlIdentifier(this string id)
-        {            
+        {
             if (!string.IsNullOrWhiteSpace(id))
             {
-                    if (!IdentifierRx.IsMatch(id))
-                    {
-                        return "\"" + id.Replace("\"","\"\"") + "\"";
-                    }
-                    else
-                    {
-                        return id;
-                    }
+                if (!IdentifierRx.IsMatch(id))
+                {
+                    return "\"" + id.Replace("\"", "\"\"") + "\"";
+                }
+                else
+                {
+                    return id;
+                }
             }
             throw new ArgumentException("invalid identifier");
         }
@@ -198,7 +198,7 @@ namespace Cassandra.Data.Linq
 
         public static string Encode(DateTimeOffset val)
         {
-            if (val == DateTimeOffset.MinValue) return 
+            if (val == DateTimeOffset.MinValue) return
                 0.ToString();
             else
                 return Convert.ToInt64(Math.Floor((val - UnixStart).TotalMilliseconds)).ToString();
@@ -216,7 +216,6 @@ namespace Cassandra.Data.Linq
         { typeof(Double), "double" },
         { typeof(Single), "float" },
         { typeof(Guid), "uuid" },
-        { typeof(Guid?), "uuid" },
         { typeof(DateTimeOffset), "timestamp" },
         };
 
@@ -228,7 +227,11 @@ namespace Cassandra.Data.Linq
             {
                 if (tpy.IsGenericType)
                 {
-                    if (tpy.GetInterface("ISet`1") != null)
+                    if (tpy.Name.Equals("Nullable`1"))
+                    {
+                        return GetCqlTypeFromType(tpy.GetGenericArguments()[0]);
+                    }
+                    else if (tpy.GetInterface("ISet`1") != null)
                     {
                         return "set<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
                     }
@@ -244,13 +247,12 @@ namespace Cassandra.Data.Linq
                 else
                     if (tpy.Name == "BigDecimal")
                         return "decimal";
-
             }
 
             StringBuilder supportedTypes = new StringBuilder();
             foreach (var tn in CQLTypeNames.Keys)
                 supportedTypes.Append(tn.FullName + ",");
-            supportedTypes.Append(" and implementations of IEnumerable<T>, IDictionary<K,V>");
+            supportedTypes.Append(", their nullable counterparts, and implementations of IEnumerable<T>, IDictionary<K,V>");
 
             throw new ArgumentException("Unsupported datatype " + tpy.Name + ". Supported are: " + supportedTypes.ToString() + ".");
         }
@@ -290,7 +292,7 @@ namespace Cassandra.Data.Linq
                 ret.Append(" ");
 
                 if (prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute != null)
-                {                    
+                {
                     countersCount++;
                     countersSpotted = true;
                     if (prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
@@ -300,9 +302,9 @@ namespace Cassandra.Data.Linq
                     else
                         ret.Append("counter");
                 }
-                else 
+                else
                     ret.Append(GetCqlTypeFromType(tpy));
-                
+
                 ret.Append(",");
                 var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
@@ -310,10 +312,10 @@ namespace Cassandra.Data.Linq
                     var idx = pk.Index;
                     if (idx == -1)
                         idx = curLevel++;
-                    partitionKeys.Add(idx, memName); 
+                    partitionKeys.Add(idx, memName);
                 }
                 else
-                {                    
+                {
                     var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
@@ -335,7 +337,7 @@ namespace Cassandra.Data.Linq
 
             if (countersSpotted)// validating if table consists only of counters
                 if (countersCount + clusteringKeys.Count + 1 != props.Count())
-                    throw new InvalidQueryException("Counter table can consist only of counters."); 
+                    throw new InvalidQueryException("Counter table can consist only of counters.");
 
             ret.Append("PRIMARY KEY(");
             if (partitionKeys.Count > 1)
@@ -357,9 +359,9 @@ namespace Cassandra.Data.Linq
                 ret.Append(kv.Value.CqlIdentifier());
             }
             ret.Append("));");
-            commands.Add(ret.ToString());                        
+            commands.Add(ret.ToString());
 
-            if(commands.Count > 1)
+            if (commands.Count > 1)
                 commands.Reverse();
             return commands;
         }
@@ -451,7 +453,7 @@ namespace Cassandra.Data.Linq
 
 
                 var pv = prop.GetValueFromPropertyOrField(row);
-                if ( pv != null)
+                if (pv != null)
                 {
                     if (firstWhere) firstWhere = false; else where.Append(" AND ");
                     where.Append(memName.CqlIdentifier());
@@ -470,10 +472,10 @@ namespace Cassandra.Data.Linq
             ret.Append(set);
             ret.Append(" WHERE ");
             ret.Append(where);
-            ret.Append(";");            
+            ret.Append(";");
             return ret.ToString();
         }
-        
+
         public static string GetDeleteCQL(object row, string tablename)
         {
             var rowType = row.GetType();
@@ -510,7 +512,7 @@ namespace Cassandra.Data.Linq
             return ret.ToString();
         }
 
-        public static T GetRowFromCqlRow<T>(CqlRow cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object,int>> mappings, Dictionary<string,string> alter)
+        public static T GetRowFromCqlRow<T>(CqlRow cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object, int>> mappings, Dictionary<string, string> alter)
         {
             var ncstr = typeof(T).GetConstructor(new Type[] { });
             if (ncstr != null)
@@ -538,7 +540,7 @@ namespace Cassandra.Data.Linq
                         else if (mappings.ContainsKey(propName) && colToIdx.ContainsKey(alter[mappings[propName].Item1]))
                             idx = colToIdx[alter[mappings[propName].Item1]];
                         else
-                            continue; 
+                            continue;
                         var val = cqlRow[idx];
                         if (val == null)
                             prop.SetValueFromPropertyOrField(row, val);
@@ -546,7 +548,7 @@ namespace Cassandra.Data.Linq
                         {
                             Type tpy = (prop is FieldInfo) ? (prop as FieldInfo).FieldType : (prop as PropertyInfo).PropertyType;
 
-                            if (tpy.IsGenericType)
+                            if (tpy.IsGenericType && !tpy.Name.Equals("Nullable`1"))
                             {
                                 if (tpy.GetInterface("IDictionary`2") != null)
                                 {
@@ -554,7 +556,7 @@ namespace Cassandra.Data.Linq
                                     var dictType = openType.MakeGenericType(tpy.GetGenericArguments()[0], tpy.GetGenericArguments()[1]);
                                     var dt = tpy.GetConstructor(new Type[] { dictType });
                                     prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] { val }));
-                                }                                
+                                }
                                 else
                                     if (tpy.GetInterface("IEnumerable`1") != null)
                                     {
@@ -563,8 +565,8 @@ namespace Cassandra.Data.Linq
                                         var dt = tpy.GetConstructor(new Type[] { listType });
                                         prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] { val }));
                                     }
-                                else
-                                    throw new InvalidOperationException();
+                                    else
+                                        throw new InvalidOperationException();
                             }
                             else
                                 prop.SetValueFromPropertyOrField(row, val);

@@ -10,6 +10,7 @@ using System.Diagnostics;
 using MyTest;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
 #endif
 
 namespace Cassandra.Data.Linq.MSTest
@@ -39,6 +40,7 @@ namespace Cassandra.Data.Linq.MSTest
             public Guid tweet_id;
 
             public string author;
+
             [SecondaryIndex]
             public string body;
 
@@ -52,7 +54,6 @@ namespace Cassandra.Data.Linq.MSTest
 
             public byte[] data;
         }
-
 
         Session Session;
 
@@ -75,7 +76,7 @@ namespace Cassandra.Data.Linq.MSTest
         TweetsContext ents;
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         //https://datastax-oss.atlassian.net/browse/CSHARP-44
         //Linq: Attach entity, update entity values, save changes. Comparison of null property values throws exception
         public void Bug_CSHARP_44()
@@ -118,4 +119,3 @@ namespace Cassandra.Data.Linq.MSTest
 
     }
 }
-

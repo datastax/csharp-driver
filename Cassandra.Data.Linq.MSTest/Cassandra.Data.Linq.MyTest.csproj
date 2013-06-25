@@ -37,11 +37,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ComplexTests.cs" />
     <Compile Include="FoundBug2Tests.cs" />
+    <Compile Include="FoundBug3Tests.cs" />
     <Compile Include="FoundBugTests.cs" />
+    <Compile Include="LinqSessionTests.cs" />
+    <Compile Include="LinqUTTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Basics.cs" />
     <Compile Include="BasicTests.cs" />
+    <Compile Include="Structures\Author.cs" />
+    <Compile Include="Structures\CassandraLog.cs" />
+    <Compile Include="Structures\FollowedTweet.cs" />
+    <Compile Include="Structures\Statistics.cs" />
+    <Compile Include="Structures\Tweet.cs" />
+    <Compile Include="Structures\TwitterContext.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
@@ -61,6 +71,7 @@
       <Name>MyTestLib</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -13,11 +13,18 @@ namespace Cassandra.Data.Linq
     {
         public Expression Expression { get; private set; }
         internal CqlLinqNotSupportedException(Expression expression, ParsePhase parsePhase)
-            : base(string.Format("The expression '{0}' is not supported in '{1}' parse phase.",
-                        expression.NodeType.ToString(), parsePhase.ToString()))
+            : base(string.Format("The expression {0} = [{1}] is not supported in {2} parse phase.",
+                        expression.NodeType.ToString(), expression.ToString(), parsePhase.ToString()))
         {
             Expression = expression;
         }
+    }
+
+    public class CqlArgumentException : ArgumentException
+    {
+        internal CqlArgumentException(string message)
+            : base(message)
+        { }
     }
 
     internal class CqlExpressionVisitor : ExpressionVisitor
@@ -42,7 +49,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT ");
-            sb.Append(SelectFields.Count == 0?"*":string.Join(",", from f in SelectFields select Alter[f].CqlIdentifier()));
+            sb.Append(SelectFields.Count == 0?"*":string.Join(", ", from f in SelectFields select Alter[f].CqlIdentifier()));
 
             sb.Append(" FROM ");
             sb.Append(TableName.CqlIdentifier());
@@ -186,6 +193,9 @@ namespace Cassandra.Data.Linq
                 for (int i = 0; i < node.Members.Count; i++)
                 {
                     var binding = node.Arguments[i];
+                    if(binding.NodeType == ExpressionType.Parameter)
+                        throw new CqlLinqNotSupportedException(binding, phasePhase.get());
+
                     using (currentBindingName.set(node.Members[i].Name))
                         this.Visit(binding);
                 }
@@ -278,6 +288,8 @@ namespace Cassandra.Data.Linq
                             WhereClause.Append(", ");
                         WhereClause.Append(obj.Encode());
                     }
+                    if (!first)
+                        throw new CqlArgumentException("Collection " + inp.ToString() + " is empty.");
                     WhereClause.Append(")");
                     return node;
                 }
@@ -359,6 +371,13 @@ namespace Cassandra.Data.Linq
                     WhereClause.Append(val.Encode());
                 }
                 return node;
+            }
+            if (phasePhase.get() == ParsePhase.SelectBinding)
+            {
+                if (node.NodeType == ExpressionType.Convert && node.Type.Name == "Nullable`1")
+                {
+                    return this.Visit(node.Operand);
+                }
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
         }

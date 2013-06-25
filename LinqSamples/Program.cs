@@ -29,7 +29,7 @@ namespace LinqSamples
             public string Maker;
 
             [Column("When-Made")]
-            public int Year { get; set; }
+            public int? Year { get; set; }
 
             [Column("List")]
             public List<string> exampleSet = new List<string>();
@@ -44,7 +44,7 @@ namespace LinqSamples
 
         static void Main(string[] args)
         {
-            Cluster cluster = Cluster.Builder().WithConnectionString("Contact Points=cassi.cloudapp.net;Port=9042").Build();
+            Cluster cluster = Cluster.Builder().WithConnectionString("Contact Points=192.168.13.1;Port=9042").Build();
 
             using (var session = cluster.Connect())
             {
