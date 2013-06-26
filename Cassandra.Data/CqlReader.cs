@@ -151,7 +151,7 @@ namespace Cassandra.Data
 
         public override bool HasRows
         {
-            get { return popul.RowsCount > 0; }
+            get { return true; }
         }
 
         public override bool IsClosed

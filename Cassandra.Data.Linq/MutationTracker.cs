@@ -91,7 +91,7 @@ namespace Cassandra.Data.Linq
         private enum MutationType { None, Add, Delete }
 
 
-        private class TableEntry<TEntity>
+        private class TableEntry
         {
             public TEntity Entity;
             public MutationType MutationType;
@@ -100,7 +100,7 @@ namespace Cassandra.Data.Linq
             public bool QueryTracingEnabled = false;
         }
 
-        Dictionary<TEntity, TableEntry<TEntity>> _table = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
+        Dictionary<TEntity, TableEntry> _table = new Dictionary<TEntity, TableEntry>(CqlEqualityComparer<TEntity>.Default);
         Dictionary<TEntity, QueryTrace> _traces = new Dictionary<TEntity, QueryTrace>(CqlEqualityComparer<TEntity>.Default);
 
         public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
@@ -112,7 +112,7 @@ namespace Cassandra.Data.Linq
                 _table[entity].Entity = entity;
             }
             else
-                _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.None, CqlEntityUpdateMode = updmod, CqlEntityTrackingMode = trmod });
+                _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.None, CqlEntityUpdateMode = updmod, CqlEntityTrackingMode = trmod });
         }
 
         public void Detach(TEntity entity)
@@ -125,7 +125,7 @@ namespace Cassandra.Data.Linq
             if (_table.ContainsKey(entity))
                 _table[entity].MutationType = MutationType.Delete;
             else
-                _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Delete });
+                _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.Delete });
         }
 
         public void AddNew(TEntity entity,EntityTrackingMode trmod)
@@ -136,7 +136,7 @@ namespace Cassandra.Data.Linq
                 _table[entity].CqlEntityTrackingMode = trmod;
             }
             else
-                _table.Add(Clone(entity), new TableEntry<TEntity>() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
+                _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
         }
 
         public void EnableQueryTracing(TEntity entity, bool enable)
@@ -217,7 +217,7 @@ namespace Cassandra.Data.Linq
                                     _traces[nkv.Key] = trace;
                         _table.Remove(nkv.Key);
                         if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
-                            _table.Add(Clone(nkv.Value.Entity), new TableEntry<TEntity>() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
+                            _table.Add(Clone(nkv.Value.Entity), new TableEntry() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
                     });
                 }
             }
@@ -263,7 +263,7 @@ namespace Cassandra.Data.Linq
 
         public void BatchCompleted(QueryTrace trace)
         {
-            var newtable = new Dictionary<TEntity, TableEntry<TEntity>>(CqlEqualityComparer<TEntity>.Default);
+            var newtable = new Dictionary<TEntity, TableEntry>(CqlEqualityComparer<TEntity>.Default);
 
             foreach (var kv in _table)
             {
@@ -275,7 +275,7 @@ namespace Cassandra.Data.Linq
                         _traces[kv.Key] = trace; 
                 
                 if (kv.Value.MutationType != MutationType.Delete)
-                    newtable.Add(Clone(kv.Value.Entity), new TableEntry<TEntity>() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
+                    newtable.Add(Clone(kv.Value.Entity), new TableEntry() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
             }
 
             _table = newtable;

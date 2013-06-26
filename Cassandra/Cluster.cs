@@ -191,11 +191,17 @@ namespace Cassandra
 
             foreach (var ses in conccpy)
             {
-                ses.Dispose();
+                ses.InternalDispose();
             }
             _metadata.Dispose();
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
+        }
+
+        internal void SessionDisposed(Session s)
+        {
+            lock (_connectedSessions)
+                _connectedSessions.Remove(s);
         }
 
         public void Dispose()

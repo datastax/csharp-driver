@@ -44,7 +44,7 @@ namespace Cassandra
 
         public static void waitForDownWithWait(String node, Cluster cluster, int waitTime)
         {
-            waitFor(node, cluster, 20, true, false);
+            waitFor(node, cluster, 60, true, false);
 
             // FIXME: Once stop() works, remove this line
             try
@@ -130,7 +130,7 @@ namespace Cassandra
 
         private static bool testHost(Host host, bool testForDown)
         {
-            return testForDown ? !host.IsConsiderablyUp : host.IsConsiderablyUp;
+            return testForDown ? !host.IsUp : host.IsConsiderablyUp;
         }
     }
 }	// end namespace

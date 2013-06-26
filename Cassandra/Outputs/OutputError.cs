@@ -49,8 +49,8 @@ namespace Cassandra
 
     internal abstract class OutputError : IOutput, IWaitableForDispose
     {
-        public CassandraErrorType CassandraErrorType;
-        public string Message;
+        public CassandraErrorType CassandraErrorType = CassandraErrorType.Invalid;
+        public string Message = "";
         internal OutputError() { }
 
         internal static OutputError CreateOutputError(CassandraErrorType code, string message, BEBinaryReader cb)

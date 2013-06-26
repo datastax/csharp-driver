@@ -23,6 +23,7 @@ namespace Cassandra
 #else
         public static ITypeAdapter VarIntTypeAdapter = new NullTypeAdapter();
 #endif
+        public static ITypeAdapter CustomTypeAdapter = new DynamicCompositeTypeAdapter();
     }
 
     public class NullTypeAdapter : ITypeAdapter
@@ -156,4 +157,23 @@ namespace Cassandra
         }
     }
 #endif
+
+    public class DynamicCompositeTypeAdapter : ITypeAdapter
+    {
+        public Type GetDataType()
+        {
+            return typeof(BigInteger);
+        }
+
+        public object ConvertFrom(byte[] decimalBuf)
+        {
+            return new BigInteger(decimalBuf);
+        }
+
+        public byte[] ConvertTo(object value)
+        {
+            TypeInterpreter.CheckArgument<BigInteger>(value);
+            return ((BigInteger)value).ToByteArray();
+        }
+    }
 }

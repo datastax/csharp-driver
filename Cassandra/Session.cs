@@ -330,7 +330,7 @@ namespace Cassandra
                     throw new ObjectDisposedException("CassandraSession");
         }
 
-        public void Dispose()
+        internal void InternalDispose()
         {
             lock (_alreadyDisposed)
             {
@@ -344,6 +344,15 @@ namespace Cassandra
                         foreach (var conn in kv.Value)
                             conn.Dispose();
                 }
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_alreadyDisposed)
+            {
+                InternalDispose();
+                Cluster.SessionDisposed(this);
             }
         }
 

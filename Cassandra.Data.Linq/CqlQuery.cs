@@ -119,8 +119,8 @@ namespace Cassandra.Data.Linq
         {
             using (var outp = InternalEndExecute(ar))
             {
-
-                if (outp.RowsCount == 0)
+                var row = outp.GetRows().FirstOrDefault();
+                if (row == null)
                     if (((MethodCallExpression)Expression).Method.Name == "First")
                         throw new InvalidOperationException("Sequence contains no elements.");
                     else if (((MethodCallExpression)Expression).Method.Name == "FirstOrDefault")
@@ -132,7 +132,7 @@ namespace Cassandra.Data.Linq
                     colToIdx.Add(cols[idx].Name, idx);
 
                 var tag = (CqlQueryTag)Session.GetTag(ar);
-                return CqlQueryTools.GetRowFromCqlRow<TEntity>(outp.GetRows().First(), colToIdx, tag.Mappings, tag.Alter);
+                return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
             }
         }
 
@@ -173,17 +173,26 @@ namespace Cassandra.Data.Linq
             {
                 QueryTrace = outp.QueryTrace;
 
-                if (outp.RowsCount != 1)
-                    throw new InvalidOperationException();
-
                 var cols = outp.Columns;
                 if (cols.Length != 1)
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Single column is expected.");
+
                 var rows = outp.GetRows();
+                bool first = false;
+                TEntity ret = default(TEntity);
                 foreach (var row in rows)
                 {
-                    return (TEntity)row[0];
+                    if (first == false)
+                    {
+                        ret = (TEntity)row[0];
+                        first = true;
+                    }
+                    else
+                        throw new InvalidOperationException("Single row is expected.");
                 }
+                if (!first)
+                    throw new InvalidOperationException("Single row is expected.");
+                return ret;
             }
 
             throw new InvalidOperationException();

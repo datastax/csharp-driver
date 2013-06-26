@@ -216,7 +216,7 @@ namespace Cassandra
                             tokenToCassandraClusterHosts.Add(t, new DictSet<IPAddress>());
                         tokenToCassandraClusterHosts[t].Add(cassandraClusterHost);
                     }
-                    catch (ArgumentException e)
+                    catch (ArgumentException)
                     {
                         // If we failed parsing that token, skip it
                     }

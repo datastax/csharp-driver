@@ -17,11 +17,10 @@ namespace Cassandra
 
         }
 
-
-
         private readonly DirectoryInfo _ccmDir;
         private Renci.SshNet.SshClient _ssh_client;
         private Renci.SshNet.ShellStream _ssh_shellStream;
+        private Options trick = Options.Default;
 
         private CCMBridge()
         {

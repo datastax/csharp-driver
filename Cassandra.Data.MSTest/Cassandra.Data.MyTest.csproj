@@ -48,6 +48,10 @@
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>
     </ProjectReference>
+    <ProjectReference Include="..\CCMBridge\CCMBridge.csproj">
+      <Project>{45A2F5D8-B314-498A-9556-85A772E88A07}</Project>
+      <Name>CCMBridge</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MyTestRun\MyTestLib\MyTestLib.csproj">
       <Project>{E8876ACA-CFC9-43B5-892A-8A1B772B0406}</Project>
       <Name>MyTestLib</Name>

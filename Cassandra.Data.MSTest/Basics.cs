@@ -1,10 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Cassandra;
+using System.Threading;
+using System.Globalization;
+using System.Threading.Tasks;
+
 #if MYTEST
 using MyTest;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
-using System.Text;
 
 namespace Cassandra.Data.MSTest
 {
@@ -16,17 +23,27 @@ namespace Cassandra.Data.MSTest
         }
 
         CqlConnection connection = null;
+        Session session = null;
 
         [TestInitialize]
         public void SetFixture()
         {
-            connection = new CqlConnection("Contact Points=cassi.cloudapp.net;Port=9042");
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+            CCMBridge.ReusableCCMCluster.Setup(2);
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            session = CCMBridge.ReusableCCMCluster.Connect("tester");
+
+            CassandraConnectionStringBuilder cb = new CassandraConnectionStringBuilder();
+            cb.ContactPoints = new string[] { Options.Default.IP_PREFIX + "1" };
+            cb.Port = 9042;
+            connection = new CqlConnection(cb.ToString());
         }
 
         [TestCleanup]
         public void Dispose()
         {
             connection.Dispose();
+            CCMBridge.ReusableCCMCluster.Drop();
         }
 
         public void complexTest()

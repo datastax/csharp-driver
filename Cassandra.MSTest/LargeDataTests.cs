@@ -63,7 +63,7 @@ namespace Cassandra.MSTest
                 session.Execute("INSERT INTO wide_rows(k,i) VALUES(" + key + "," + i + ")", ConsistencyLevel.Quorum);
 
             // Read data        
-            using (var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key.ToString()))
+            using (var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 // Verify data
                 int j = 0;
@@ -86,10 +86,10 @@ namespace Cassandra.MSTest
             for (int i = 0; i < 500; ++i) // 10000
                 sb.AppendLine(string.Format("INSERT INTO wide_batch_rows(k,i) VALUES({0},{1})", key, i));
             sb.Append("APPLY BATCH");
-            session.Execute(sb.ToString(),ConsistencyLevel.Quorum);
+            session.Execute(sb.ToString(), ConsistencyLevel.Quorum);
 
             // Read data
-            using (var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key.ToString()))
+            using (var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 // Verify data
                 int j = 0;
@@ -113,10 +113,10 @@ namespace Cassandra.MSTest
 
             // Write data
             for (int i = 0; i < 500; ++i)//1000000
-                session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, Cassandra.CqlQueryTools.ToHex(bb)),ConsistencyLevel.Quorum);
+                session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, Cassandra.CqlQueryTools.ToHex(bb)), ConsistencyLevel.Quorum);
 
             // Read data
-            using (var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key.ToString()))
+            using (var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 // Verify data            
                 foreach (CqlRow row in rs.GetRows())
@@ -137,7 +137,7 @@ namespace Cassandra.MSTest
             session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b.ToString()), ConsistencyLevel.Quorum);
 
             // Read data
-            using (var rs = session.Execute("SELECT * FROM large_text WHERE k = " + key.ToString()))
+            using (var rs = session.Execute("SELECT * FROM large_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 CqlRow row = rs.GetRows().FirstOrDefault();// select().all().from("large_text").where(eq("k", key))).one();
                 // Verify data
@@ -182,10 +182,10 @@ namespace Cassandra.MSTest
                 valus.Append("," + i.ToString());
             }
             insrt.Append(") " + valus.ToString() + ")");
-            session.Execute(insrt.ToString(),ConsistencyLevel.Quorum);
+            session.Execute(insrt.ToString(), ConsistencyLevel.Quorum);
 
             // Read data
-            using (var rs = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString()))
+            using (var rs = session.Execute("SELECT * FROM wide_table WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 CqlRow row = rs.GetRows().FirstOrDefault();
 

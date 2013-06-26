@@ -108,7 +108,13 @@ namespace Cassandra.Data
 
         public override int ExecuteNonQuery()
         {
-            CqlConnection.ManagedConnection.Execute(commandText);
+            var cm = commandText.ToUpper().TrimStart();
+            if (cm.StartsWith("CREATE ")
+                || cm.StartsWith("DROP ")
+                || cm.StartsWith("ALTER "))
+                CqlConnection.ManagedConnection.Cluster.WaitForSchemaAgreement(CqlConnection.ManagedConnection.Execute(commandText).QueriedHost);
+            else
+                CqlConnection.ManagedConnection.Execute(commandText);
             return -1;
         }
 

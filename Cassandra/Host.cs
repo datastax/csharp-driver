@@ -43,6 +43,11 @@ namespace Cassandra
         readonly IReconnectionPolicy _reconnectionPolicy;
         private IReconnectionSchedule _reconnectionSchedule;
 
+        public bool IsUp
+        {
+            get { return _isUpNow; }
+        }
+
         public bool IsConsiderablyUp
         {
             get
