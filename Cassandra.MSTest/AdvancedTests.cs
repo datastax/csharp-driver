@@ -17,10 +17,17 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void ErrorInjectionParallelInsert()
         {
             ErrorInjectionInParallelInsertTest();
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void MassiveAsync()
+        {
+            MassiveAsyncTest();
         }
 
     }

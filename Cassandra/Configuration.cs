@@ -18,26 +18,23 @@ namespace Cassandra
         private readonly ClientOptions _clientOptions;
 
         private readonly IAuthInfoProvider _authProvider;
-        private readonly bool _metricsEnabled;
 
-        public Configuration() :
+        internal Configuration() :
             this(new Policies(),
                  new ProtocolOptions(),
                  new PoolingOptions(),
                  new SocketOptions(),
                  new ClientOptions(),
-                 null,
-                 true)
+                 null)
         {
         }
 
-        public Configuration(Policies policies,
+        internal Configuration(Policies policies,
                              ProtocolOptions protocolOptions,
                              PoolingOptions poolingOptions,
                              SocketOptions socketOptions,
                              ClientOptions clientOptions,
-                             IAuthInfoProvider authProvider,
-                             bool metricsEnabled)
+                             IAuthInfoProvider authProvider)
         {
             this._policies = policies;
             this._protocolOptions = protocolOptions;
@@ -45,7 +42,6 @@ namespace Cassandra
             this._socketOptions = socketOptions;
             this._clientOptions = clientOptions;
             this._authProvider = authProvider;
-            this._metricsEnabled = metricsEnabled;
         }
 
         /// <summary>
@@ -97,23 +93,10 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the authentication provider in use.</returns>
-        public IAuthInfoProvider AuthInfoProvider
+        internal IAuthInfoProvider AuthInfoProvider
+        // Not exposed yet on purpose
         {
             get { return _authProvider; }
-        }
-
-        /// <summary>
-        ///  Whether metrics collection is enabled for the cluster instance. <p> Metrics
-        ///  collection is enabled by default but can be disabled at cluster construction
-        ///  time through <link>Cluster.Builder#withoutMetrics</link>.
-        /// </summary>
-        /// 
-        /// <returns>whether metrics collection is enabled for the cluster
-        ///  instance.</returns>
-
-        public bool MetricsEnabled
-        {
-            get { return _metricsEnabled; }
         }
 
     }

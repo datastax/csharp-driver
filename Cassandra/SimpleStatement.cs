@@ -11,7 +11,7 @@ namespace Cassandra
     {
 
         private readonly string _query;
-        private volatile CassandraRoutingKey _routingKey;
+        private volatile RoutingKey _routingKey;
 
         /// <summary>
         ///  Creates a new <code>SimpleStatement</code> with the provided query string.
@@ -33,7 +33,7 @@ namespace Cassandra
         ///  return <code>null</code> (to avoid having to parse the query string to
         ///  retrieve the partition key).</p>
         /// </summary>
-        public override CassandraRoutingKey RoutingKey { get { return _routingKey; } }
+        public override RoutingKey RoutingKey { get { return _routingKey; } }
 
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually
@@ -49,9 +49,9 @@ namespace Cassandra
         /// 
         /// <returns>this <code>SimpleStatement</code> object.
         ///  <see>Query#getRoutingKey</returns>
-        public SimpleStatement SetRoutingKey(params CassandraRoutingKey[] routingKeyComponents) 
+        public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents) 
         {
-            this._routingKey = CassandraRoutingKey.Compose(routingKeyComponents); return this; 
+            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this; 
         }
 
 
@@ -60,7 +60,7 @@ namespace Cassandra
             return session.BeginQuery(QueryString, callback, state, ConsistencyLevel,IsTracing, this, this, tag);
         }
 
-        protected internal override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
+        protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             return session.EndQuery(ar);
         }

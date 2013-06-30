@@ -86,9 +86,9 @@ namespace Cassandra.Data.Linq.MSTest
 
             var query3 = query.Where(i => i.Token <= time); query3 = query3.OrderByDescending(i => i.Token);
 
-            Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 ALLOW FILTERING", query.CqlString());
-            Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 AND time >= 3 ORDER BY time ASC ALLOW FILTERING", query2.CqlString());
-            Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 AND time <= 3 ORDER BY time DESC ALLOW FILTERING", query3.CqlString());
+            Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 ALLOW FILTERING", query.ToString());
+            Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 AND time >= 3 ORDER BY time ASC ALLOW FILTERING", query2.ToString());
+            Assert.Equal("SELECT * FROM test1 WHERE user = 1 AND date = 2 AND time <= 3 ORDER BY time DESC ALLOW FILTERING", query3.ToString());
 
             var result2 = query2.Execute().ToList();
             var result3 = query3.Execute().ToList();

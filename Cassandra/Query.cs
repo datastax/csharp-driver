@@ -84,7 +84,7 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the routing key for this query or <code>null</code>.</returns>
-        public abstract CassandraRoutingKey RoutingKey { get; }
+        public abstract RoutingKey RoutingKey { get; }
 
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace Cassandra
 
         protected internal abstract IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state);
 
-        protected internal abstract CqlRowSet EndSessionExecute(Session session, IAsyncResult ar);
+        protected internal abstract RowSet EndSessionExecute(Session session, IAsyncResult ar);
 
     }
 }

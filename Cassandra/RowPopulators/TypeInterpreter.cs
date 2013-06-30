@@ -79,7 +79,7 @@ namespace Cassandra
 
         static TypeInterpreter()
         {
-            RegisterTypeInterpreter(ColumnTypeCode.Ascii);            
+            RegisterTypeInterpreter(ColumnTypeCode.Ascii);
             RegisterTypeInterpreter(ColumnTypeCode.Bigint);
             RegisterTypeInterpreter(ColumnTypeCode.Blob);
             RegisterTypeInterpreter(ColumnTypeCode.Boolean);
@@ -103,23 +103,23 @@ namespace Cassandra
 #endif
         }
 
-        delegate object CqlConvertDel(IColumnInfo type_info, byte[] buffer);
-        delegate Type GetTypeFromCqlTypeDel(IColumnInfo type_info);
+        delegate object CqlConvertDel(IColumnInfo type_info, byte[] buffer, Type cSharpType);
+        delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo type_info);
         delegate byte[] InvCqlConvertDel(IColumnInfo type_info, object value);
 
         static readonly CqlConvertDel[] GoMethods = new CqlConvertDel[byte.MaxValue + 1];
-        static readonly GetTypeFromCqlTypeDel[] TypMethods = new GetTypeFromCqlTypeDel[byte.MaxValue + 1];
+        static readonly GetDefaultTypeFromCqlTypeDel[] TypMethods = new GetDefaultTypeFromCqlTypeDel[byte.MaxValue + 1];
         static readonly InvCqlConvertDel[] InvMethods = new InvCqlConvertDel[byte.MaxValue + 1];
 
         internal static void RegisterTypeInterpreter(ColumnTypeCode type_code)
         {
             {
-                var mth = typeof(TypeInterpreter).GetMethod("ConvertFrom" + (type_code.ToString()), new Type[] { typeof(IColumnInfo), typeof(byte[]) });
+                var mth = typeof(TypeInterpreter).GetMethod("ConvertFrom" + (type_code.ToString()), new Type[] { typeof(IColumnInfo), typeof(byte[]), typeof(Type) });
                 GoMethods[(byte)type_code] = (CqlConvertDel)Delegate.CreateDelegate(typeof(CqlConvertDel), mth);
             }
             {
-                var mth = typeof(TypeInterpreter).GetMethod("GetTypeFrom" + (type_code.ToString()), new Type[] { typeof(IColumnInfo) });
-                TypMethods[(byte)type_code] = (GetTypeFromCqlTypeDel)Delegate.CreateDelegate(typeof(GetTypeFromCqlTypeDel), mth);
+                var mth = typeof(TypeInterpreter).GetMethod("GetDefaultTypeFrom" + (type_code.ToString()), new Type[] { typeof(IColumnInfo) });
+                TypMethods[(byte)type_code] = (GetDefaultTypeFromCqlTypeDel)Delegate.CreateDelegate(typeof(GetDefaultTypeFromCqlTypeDel), mth);
             }
             {
                 var mth = typeof(TypeInterpreter).GetMethod("InvConvertFrom" + (type_code.ToString()), new Type[] { typeof(IColumnInfo), typeof(byte[]) });
@@ -127,12 +127,12 @@ namespace Cassandra
             }
         }
 
-        public static object CqlConvert(byte[] buffer, ColumnTypeCode type_code, IColumnInfo type_info)
+        public static object CqlConvert(byte[] buffer, ColumnTypeCode type_code, IColumnInfo type_info, Type cSharpType = null)
         {
-            return GoMethods[(byte)type_code](type_info, buffer);
+            return GoMethods[(byte)type_code](type_info, buffer, cSharpType);
         }
 
-        public static Type GetTypeFromCqlType(ColumnTypeCode type_code, IColumnInfo type_info)
+        public static Type GetDefaultTypeFromCqlType(ColumnTypeCode type_code, IColumnInfo type_info)
         {
             return TypMethods[(byte)type_code](type_info);
         }
@@ -147,23 +147,23 @@ namespace Cassandra
             if (value == null)
                 throw new ArgumentNullException();
             else if (!t.IsInstanceOfType(value))
-                throw new InvalidTypeException("value", value.GetType().FullName, new object[]{t.FullName});
+                throw new InvalidTypeException("value", value.GetType().FullName, new object[] { t.FullName });
         }
-        
+
         static internal void CheckArgument<T>(object value)
         {
             if (value == null)
                 throw new ArgumentNullException();
             else if (!(value is T))
-                throw new InvalidTypeException("value", value.GetType().FullName,  new object[]{typeof(T).FullName});
+                throw new InvalidTypeException("value", value.GetType().FullName, new object[] { typeof(T).FullName });
         }
 
-        static internal void CheckArgument<T1,T2>(object value)
+        static internal void CheckArgument<T1, T2>(object value)
         {
             if (value == null)
                 throw new ArgumentNullException();
-            else if ( !(value is T1 || value is T2) )
-                throw new InvalidTypeException("value", value.GetType().FullName, new object[]{typeof(T1).FullName,typeof(T2).FullName});
+            else if (!(value is T1 || value is T2))
+                throw new InvalidTypeException("value", value.GetType().FullName, new object[] { typeof(T1).FullName, typeof(T2).FullName });
         }
     }
 }

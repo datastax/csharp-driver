@@ -12,7 +12,7 @@ namespace Cassandra
     public class PreparedStatement
     {
         private volatile ConsistencyLevel _consistency;
-        private volatile CassandraRoutingKey _routingKey;
+        private volatile RoutingKey _routingKey;
 
         internal readonly RowSetMetadata Metadata;
         internal readonly byte[] Id;
@@ -44,7 +44,7 @@ namespace Cassandra
             return this;
         }
 
-        public CassandraRoutingKey RoutingKey { get { return _routingKey; } }
+        public RoutingKey RoutingKey { get { return _routingKey; } }
 
         /// <summary>
         ///  Set the routing key for this query. <p> See
@@ -57,9 +57,9 @@ namespace Cassandra
         /// 
         /// <returns>this <code>PreparedStatement</code> object.
         ///  <see>Query#GetRoutingKey</returns>
-        public PreparedStatement SetRoutingKey(params CassandraRoutingKey[] routingKeyComponents)
+        public PreparedStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = CassandraRoutingKey.Compose(routingKeyComponents); return this;
+            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this;
         }
 
         /// <summary>

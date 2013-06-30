@@ -50,8 +50,7 @@ namespace Cassandra
                                                            true,
                                                            _configuration.ClientOptions.QueryAbortTimeout, null,
                                                            _configuration.ClientOptions.AsyncCallAbortTimeout),
-                                                       _configuration.AuthInfoProvider,
-                                                       _configuration.MetricsEnabled);
+                                                       _configuration.AuthInfoProvider);
 
             _metadata.SetupControllConnection(controlConnection);
         }
@@ -108,7 +107,7 @@ namespace Cassandra
                                   _configuration.ProtocolOptions,
                                   _configuration.PoolingOptions, _configuration.SocketOptions,
                                   _configuration.ClientOptions,
-                                  _configuration.AuthInfoProvider, _configuration.MetricsEnabled, keyspace);
+                                  _configuration.AuthInfoProvider, keyspace);
             scs.Init();
             lock (_connectedSessions)
                 _connectedSessions.Add(scs);
@@ -167,15 +166,6 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Gets the cluster metrics, or <code>null</code> if metrics collection has
-        ///  been disabled (see <link>Configuration#isMetricsEnabled</link>).
-        /// </summary>
-        public Metrics Metrics
-        {
-            get { return null; }
-        }
-
-        /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <code>* Cluster</code> instance and reclaim all resources
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
@@ -224,6 +214,11 @@ namespace Cassandra
             _metadata.WaitForSchemaAgreement(queriedHost);
         }
 
+        public void WaitForSchemaAgreement(RowSet rs)
+        {
+            _metadata.WaitForSchemaAgreement(rs.Info.QueriedHost);
+        }
+
     }
 
     /// <summary>
@@ -266,7 +261,6 @@ namespace Cassandra
         private int _port = ProtocolOptions.DefaultPort;
         private IAuthInfoProvider _authProvider = null;
         private CompressionType _compression = CompressionType.NoCompression;
-        private bool _metricsEnabled = true;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
 
@@ -313,18 +307,6 @@ namespace Cassandra
         public Builder WithCompression(CompressionType compression)
         {
             this._compression = compression;
-            return this;
-        }
-
-        /// <summary>
-        ///  Disable metrics collection for the created cluster (metrics are enabled by
-        ///  default otherwise).
-        /// </summary>
-        /// 
-        /// <returns>this builder</returns>
-        public Builder WithoutMetrics()
-        {
-            this._metricsEnabled = false;
             return this;
         }
 
@@ -474,23 +456,25 @@ namespace Cassandra
                                      _poolingOptions,
                                      _socketOptions,
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace, _asyncCallAbortTimeout),
-                                     _authProvider,
-                                     _metricsEnabled
+                                     _authProvider
                 );
         }
 
         /// <summary>
-        ///  Use the provided <code>AuthInfoProvider</code> to connect to Cassandra hosts.
-        ///  <p> This is optional if the Cassandra cluster has been configured to not
-        ///  require authentication (the default).</p>
+        ///  Uses the provided credentials when connecting to Cassandra hosts.
+        ///  <p> This should be used if the Cassandra cluster has been configured to
+        ///  use the {@code PasswordAuthenticator}. If the the default 
+        ///  <code>AllowAllAuthenticator</code> is used instead, using this 
+        ///  method has no effect.</p>
         /// </summary>
-        /// <param name="authInfoProvider"> the authentication info provider to use
+        /// <param name="username"> the username to use to login to Cassandra hosts.
+        /// <param name="password"> the password corresponding to <code>username</code>.
         ///  </param>
         /// 
         /// <returns>this Builder</returns>
-        public Builder WithAuthInfoProvider(IAuthInfoProvider authInfoProvider)
+        public Builder WithCredentials(String username, String password)
         {
-            this._authProvider = authInfoProvider;
+            this._authProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password",password);
             return this;
         }
 

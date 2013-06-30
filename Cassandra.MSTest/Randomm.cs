@@ -11,24 +11,22 @@ namespace Cassandra.MSTest
 {
     internal class Randomm : Random
     {
-        public Randomm()
-            : base(5)
+        [ThreadStatic]
+        static Randomm _rnd = null;
+        public static Randomm Instance
         {
+            get { return _rnd ?? (_rnd = new Randomm(5)); }
         }
-        public Randomm(int mili)
-            : base(mili)
-        {                 
-        }
-        
+
+        private Randomm(int seed) : base(seed) { }
+
         internal static object RandomVal(Type tp)
         {
-            Randomm rndm = new Randomm();
             if (tp != null)
-                return rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { });
+                return Instance.GetType().GetMethod("Next" + tp.Name).Invoke(Instance, new object[] { });
             else
                 return "";
         }
-
 
         public float NextSingle()
         {

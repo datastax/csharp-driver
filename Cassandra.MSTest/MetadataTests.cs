@@ -71,7 +71,6 @@ namespace Cassandra.MSTest
 
             string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
             StringBuilder sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
-            Randomm urndm = new Randomm(DateTimeOffset.Now.Millisecond);
 
             foreach (var col in columns)
                 sb.Append(col.Key + " " + col.Value.ToString() +
@@ -82,7 +81,7 @@ namespace Cassandra.MSTest
                                : "") + ", ");
 
             sb.Append("PRIMARY KEY(");
-            int rowKeys = urndm.Next(1, columns.Count - 3);
+            int rowKeys = Randomm.Instance.Next(1, columns.Count - 3);
 
             for (int i = 0; i < rowKeys; i++)
                 sb.Append(columns.Keys.Where(key => key.StartsWith("q" + i.ToString())).First() +
@@ -145,7 +144,7 @@ namespace Cassandra.MSTest
     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
-    , keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString())).QueriedHost
+    , keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString()))
                 );
                 Session.ChangeKeyspace(keyspacename);
 
@@ -173,8 +172,7 @@ namespace Cassandra.MSTest
                 Session = CCMCluster.Session;
                 Cluster = CCMCluster.Cluster;
 
-                Randomm rndm = new Randomm(DateTime.Now.Millisecond);
-                bool durable_writes = rndm.NextBoolean();
+                bool durable_writes = Randomm.Instance.NextBoolean();
 
                 int? replication_factor = null;
                 int? data_centers_count = null;
@@ -182,17 +180,17 @@ namespace Cassandra.MSTest
 
                 if (strategy_class == ReplicationStrategies.SimpleStrategy)
                 {
-                    replication_factor = rndm.Next(1, 21);
+                    replication_factor = Randomm.Instance.Next(1, 21);
                     Session.CreateKeyspaceIfNotExists(Keyspace,ReplicationStrategies.CreateSimpleStrategyReplicationProperty((int)replication_factor), durable_writes);
                     Session.ChangeKeyspace(Keyspace);
                 }
                 else
                     if (strategy_class == ReplicationStrategies.NetworkTopologyStrategy)
                     {
-                        data_centers_count = rndm.Next(1, 11);
+                        data_centers_count = Randomm.Instance.Next(1, 11);
                         datacenters_replication_factors = new Dictionary<string, int>((int)data_centers_count);
                         for (int i = 0; i < data_centers_count; i++)
-                            datacenters_replication_factors.Add("dc" + i.ToString(), rndm.Next(1, 21));
+                            datacenters_replication_factors.Add("dc" + i.ToString(), Randomm.Instance.Next(1, 21));
                         Session.CreateKeyspaceIfNotExists(Keyspace, ReplicationStrategies.CreateNetworkTopologyStrategyReplicationProperty(datacenters_replication_factors), durable_writes);
                     }
 

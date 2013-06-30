@@ -89,7 +89,8 @@ namespace Cassandra.Data.Linq
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
             }
-
+            if (SelectFields.Count > 0)
+                throw new CqlArgumentException("Unable to delete entity partially");
             return sb.ToString();
         }
 
@@ -117,10 +118,14 @@ namespace Cassandra.Data.Linq
 					val = propsOrField.GetValueFromPropertyOrField(o);
 				}
 
-				setStatements.Add(Alter[mapping.Key].CqlIdentifier() + "=" + val.Encode());
+                if (!Alter.ContainsKey(mapping.Key))
+                    throw new CqlArgumentException("Unknown column: " + mapping.Key);
+				setStatements.Add(Alter[mapping.Key].CqlIdentifier() + " = " + val.Encode());
 			}
 
-			sb.Append(String.Join(",", setStatements));
+            if (setStatements.Count == 0)
+                throw new CqlArgumentException("Nothing to update");
+			sb.Append(String.Join(", ", setStatements));
 	
             if (WhereClause.Length > 0)
             {
@@ -309,12 +314,12 @@ namespace Cassandra.Data.Linq
                 }
                 else if (node.Type.Name == "CqlToken")
                 {
-                    WhereClause.Append("token (");
+                    WhereClause.Append("token(");
                     var exprs = node.Arguments;
                     this.Visit(exprs.First());
                     foreach (var e in exprs.Skip(1))
                     {
-                        WhereClause.Append(" , ");
+                        WhereClause.Append(", ");
                         this.Visit(e);
                     }
                     WhereClause.Append(")");
@@ -496,11 +501,11 @@ namespace Cassandra.Data.Linq
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
                     if (val is CqlToken)
                     {
-                        WhereClause.Append("token (");
+                        WhereClause.Append("token(");
                         WhereClause.Append((val as CqlToken).Values.First().Encode());
                         foreach (var e in (val as CqlToken).Values.Skip(1))
                         {
-                            WhereClause.Append(" , ");
+                            WhereClause.Append(", ");
                             WhereClause.Append(e.Encode());
                         }
                         WhereClause.Append(")");

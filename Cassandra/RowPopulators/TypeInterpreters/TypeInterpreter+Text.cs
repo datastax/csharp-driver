@@ -5,12 +5,12 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromText(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromText(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             return Encoding.UTF8.GetString((byte[])value);
         }
 
-        public static Type GetTypeFromText(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromText(IColumnInfo type_info)
         {
             return typeof(string);
         }

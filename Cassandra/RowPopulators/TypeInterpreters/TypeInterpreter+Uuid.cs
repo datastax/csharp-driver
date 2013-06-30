@@ -4,12 +4,12 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromUuid(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromUuid(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             return new Guid(GuidShuffle(value));
         }
 
-        public static Type GetTypeFromUuid(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromUuid(IColumnInfo type_info)
         {
             return typeof(Guid);
         }

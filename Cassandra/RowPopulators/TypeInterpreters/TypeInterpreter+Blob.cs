@@ -4,12 +4,12 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromBlob(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromBlob(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             return value;
         }
 
-        public static Type GetTypeFromBlob(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromBlob(IColumnInfo type_info)
         {
             return typeof(byte[]);
         }

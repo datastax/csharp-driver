@@ -1,39 +1,43 @@
 ﻿using System.Collections.Generic;
+using System.Collections;
+using System;
 
 namespace Cassandra
 {
-    public class CqlRow
+    public class Row : IEnumerable<object>, IEnumerable
     {
-        public readonly object[] Columns;
+        readonly byte[][] _columns;
         readonly Dictionary<string, int> _columnIdxes;
-        internal CqlRow(OutputRows rawrows, Dictionary<string, int> columnIdxes)
+        RowSetMetadata _metadata;
+        internal Row(OutputRows rawrows, Dictionary<string, int> columnIdxes)
         {
-            Columns = new object[rawrows.Metadata.Columns.Length];
+            var l = new List<byte[]>();
             this._columnIdxes = columnIdxes;
+            this._metadata = rawrows.Metadata;
             int i = 0;
             foreach (var len in rawrows.GetRawColumnLengths())
             {
                 if (len < 0)
-                    Columns[i] = null;
+                    l.Add(null);
                 else
                 {
                     byte[] buffer = new byte[len];
-
                     rawrows.ReadRawColumnValue(buffer, 0, len);
-                    Columns[i] = rawrows.Metadata.ConvertToObject(i,buffer);                    
+                    l.Add(buffer);
                 }
 
                 i++;
-                if (i >= rawrows.Metadata.Columns.Length)
-                    break;                                
+                if (i >= _metadata.Columns.Length)
+                    break;
             }
+            _columns = l.ToArray();
         }
 
         public int Length
         {
             get
             {
-                return Columns.Length;
+                return _columns.Length;
             }
         }
 
@@ -41,7 +45,7 @@ namespace Cassandra
         {
             get
             {
-                return Columns[idx];
+                return _columns[idx] == null ? null : _metadata.ConvertToObject(idx, _columns[idx]);
             }
         }
 
@@ -49,28 +53,74 @@ namespace Cassandra
         {
             get
             {
-                return Columns[_columnIdxes[name]];
+                return this[_columnIdxes[name]];
             }
         }
 
         public bool IsNull(string name)
         {
-            return this[name] == null;
+            return _columns[_columnIdxes[name]] == null;
         }
 
         public bool IsNull(int idx)
         {
-            return this[idx] == null;
+            return _columns[idx] == null;
         }
 
-        public T GetValue<T>(string name)
+        public object GetValue(Type tpy, int idx)
         {
-            return (T)this[name];
+            return (_columns[idx] == null ? null : _metadata.ConvertToObject(idx, _columns[idx], tpy));
+        }
+
+        public object GetValue(Type tpy, string name)
+        {
+            return GetValue(tpy, _columnIdxes[name]);
         }
 
         public T GetValue<T>(int idx)
         {
-            return (T)this[idx];
+            return (T)(_columns[idx] == null ? null : _metadata.ConvertToObject(idx, _columns[idx], typeof(T)));
+        }
+
+        public T GetValue<T>(string name)
+        {
+            return GetValue<T>(_columnIdxes[name]);
+        }
+
+        public class ColumnEnumerator : IEnumerator, IEnumerator<object>
+        {
+            Row owner;
+            int idx = -1;
+            public ColumnEnumerator(Row owner) { this.owner = owner; }
+            public object Current
+            {
+                get { if (idx == -1 || idx >= owner._columns.Length) return null; else return owner[idx]; }
+            }
+
+            public bool MoveNext()
+            {
+                idx++;
+                return idx < owner._columns.Length;
+            }
+
+            public void Reset()
+            {
+                idx = -1;
+            }
+
+            public void Dispose()
+            {
+            }
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+            return new ColumnEnumerator(this);
+        }
+
+        IEnumerator<object> IEnumerable<object>.GetEnumerator()
+        {
+            return new ColumnEnumerator(this);
         }
     }
 }

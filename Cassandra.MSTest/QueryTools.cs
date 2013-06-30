@@ -37,26 +37,27 @@ namespace Cassandra.MSTest
             Console.WriteLine("CQL> Done.");
         }
 
-        internal static void valueComparator(CqlRowSet rowset, List<object[]> insertedRows)
+        internal static void valueComparator(RowSet rawrowset, List<object[]> insertedRows)
         {
-            Assert.True(rowset.RowsCount == insertedRows.Count, string.Format("Returned rows count is not equal with the count of rows that were inserted! \n Returned: {0} \n Expected: {1} \n", rowset.RowsCount, insertedRows.Count));
+            var rowset = rawrowset.GetRows().ToList();
+            Assert.True(rowset.Count == insertedRows.Count, string.Format("Returned rows count is not equal with the count of rows that were inserted! \n Returned: {0} \n Expected: {1} \n", rowset.Count, insertedRows.Count));
             int i = 0;
-            foreach (var row in rowset.GetRows())
+            foreach (var row in rowset)
             {
-                if (row.Columns.Any(col => col.GetType() == typeof(byte[])))
+                if (row.Any(col => col.GetType() == typeof(byte[])))
                     for (int j = 0; j < row.Length; j++)
                         Assert.True(row[j].GetType() == typeof(byte[]) ? Assert.ArrEqual((byte[])row[j], (byte[])insertedRows[i][j]) : row[j].Equals(insertedRows[i][j]));
                 else
                 {
-                    for (int m = 0; m < row.Columns.Length; m++)
+                    for (int m = 0; m < row.Length; m++)
                     {
-                        if (!row.Columns[m].Equals(insertedRows[i][m]))
+                        if (!row[m].Equals(insertedRows[i][m]))
                         {
                             insertedRows.Reverse();// To check if needed and why 
-                            if (!row.Columns[m].Equals(insertedRows[i][m]))
+                            if (!row[m].Equals(insertedRows[i][m]))
                                 insertedRows.Reverse();
                         }
-                        Assert.True(row.Columns[m].Equals(insertedRows[i][m]), "Inserted data !Equals with returned data.");
+                        Assert.True(row[m].Equals(insertedRows[i][m]), "Inserted data !Equals with returned data.");
                     }
                 }
                 i++;
@@ -71,7 +72,7 @@ namespace Cassandra.MSTest
                 Console.WriteLine("CQL< Query:\t" + query);
             var ret = session.Execute(query, consistency);
             Console.WriteLine("CQL> (OK).");
-            return ret.QueriedHost;
+            return ret.Info.QueriedHost;
         }
 
 
@@ -94,7 +95,7 @@ namespace Cassandra.MSTest
                 Console.WriteLine("CQL< Executing Prepared Query:\t");
             var ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(consistency));
             Console.WriteLine("CQL> (OK).");
-            return ret.QueriedHost;
+            return ret.Info.QueriedHost;
         }
 
         internal static string convertTypeNameToCassandraEquivalent(Type t)

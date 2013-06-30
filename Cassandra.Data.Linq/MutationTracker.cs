@@ -205,7 +205,7 @@ namespace Cassandra.Data.Linq
                     {
                        var res= context.ExecuteWriteQuery(cql,consistencyLevel, kv.Value.QueryTracingEnabled);
                        if (kv.Value.QueryTracingEnabled)
-                           trace = res.QueryTrace;
+                           trace = res.Info.QueryTrace;
                     }
 
                     var nkv = kv;
@@ -237,13 +237,13 @@ namespace Cassandra.Data.Linq
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
-                
+
                 if (kv.Value.QueryTracingEnabled)
                     enableTracing = true;
 
                 var cql = "";
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename);                    
+                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename);
                 else if (kv.Value.MutationType == MutationType.Delete)
                     cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                 else if (kv.Value.MutationType == MutationType.None)
@@ -255,11 +255,11 @@ namespace Cassandra.Data.Linq
                 }
                 else
                     continue;
-                if(cql!=null)
-                    batchScript.AppendLine(cql);
+                if (cql != null)
+                    batchScript.AppendLine(cql + ";");
             }
             return enableTracing;
-          }
+        }
 
         public void BatchCompleted(QueryTrace trace)
         {

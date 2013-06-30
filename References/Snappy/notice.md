@@ -1,6 +1,7 @@
 Snappy Copyright Notices 
 =========================
 
+* Copyright 2011 Dain Sundstrom <dain@iq80.com>
 * Copyright 2011, Google Inc.<opensource@google.com>
 
 

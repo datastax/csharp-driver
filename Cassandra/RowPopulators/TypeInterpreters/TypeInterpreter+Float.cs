@@ -4,14 +4,14 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromFloat(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromFloat(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             var buffer = (byte[])value.Clone();
             Array.Reverse(buffer);
             return BitConverter.ToSingle(buffer, 0);
         }
 
-        public static Type GetTypeFromFloat(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromFloat(IColumnInfo type_info)
         {
             return typeof(float);
         }

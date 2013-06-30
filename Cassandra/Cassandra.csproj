@@ -33,10 +33,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>KeyFile.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -45,26 +46,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\References\Snappy\src\Core\BufferManager.cs">
-      <Link>Snappy\BufferManager.cs</Link>
+    <Compile Include="..\References\Cassandra\MurmurHash.cs">
+      <Link>MurmurHash.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\src\Core\Compressor.cs">
-      <Link>Snappy\Compressor.cs</Link>
-    </Compile>
-    <Compile Include="..\References\Snappy\src\Core\CorruptionException.cs">
+    <Compile Include="..\References\Snappy\CorruptionException.cs">
       <Link>Snappy\CorruptionException.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\src\Core\DataHelper.cs">
-      <Link>Snappy\DataHelper.cs</Link>
+    <Compile Include="..\References\Snappy\Memory.cs">
+      <Link>Snappy\Memory.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\src\Core\Decompressor.cs">
-      <Link>Snappy\Decompressor.cs</Link>
+    <Compile Include="..\References\Snappy\SlowMemory.cs">
+      <Link>Snappy\SlowMemory.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\src\Core\Extensions.cs">
-      <Link>Snappy\Extensions.cs</Link>
+    <Compile Include="..\References\Snappy\SnappyDecompressor.cs">
+      <Link>Snappy\SnappyDecompressor.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\src\Core\Snappy.cs">
-      <Link>Snappy\Snappy.cs</Link>
+    <Compile Include="..\References\Snappy\SnappyInternalUtils.cs">
+      <Link>Snappy\SnappyInternalUtils.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
     <Compile Include="BEBinaryWriterFrame.cs" />
@@ -136,8 +134,6 @@
     <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />
     <Compile Include="IProtoBufComporessor.cs" />
-    <Compile Include="Metrics.cs" />
-    <Compile Include="MurmurHash.cs" />
     <Compile Include="NoBuffering.cs" />
     <Compile Include="Outputs\OutputOptions.cs" />
     <Compile Include="KeyspaceMetadata.cs" />
@@ -228,7 +224,6 @@
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="KeyFile.snk" />
     <None Include="README.rst" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

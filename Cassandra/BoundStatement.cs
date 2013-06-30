@@ -72,7 +72,7 @@ namespace Cassandra
         ///  has been set through <link>PreparedStatement#setRoutingKey</link>, that value
         ///  takes precedence even if the partition key is part of the bound variables.</p>
         /// </summary>
-        public override CassandraRoutingKey RoutingKey
+        public override RoutingKey RoutingKey
         {
             get
             {
@@ -88,7 +88,7 @@ namespace Cassandra
             return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, _values, callback, state, ConsistencyLevel, this, this, tag, IsTracing);
         }
 
-        protected internal override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
+        protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             return session.EndExecuteQuery(ar);
         }

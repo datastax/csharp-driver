@@ -321,6 +321,8 @@ namespace Cassandra.MSTest
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 assertQueried(Options.Default.IP_PREFIX + "3", 6);
 
+                assertAchievedConsistencyLevel(ConsistencyLevel.Two);
+
                 resetCoordinators();
                 c.CCMBridge.ForceStop(1);
                 TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "1", c.Cluster, 5);
@@ -341,6 +343,8 @@ namespace Cassandra.MSTest
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
+                assertAchievedConsistencyLevel(ConsistencyLevel.One);
+
                 resetCoordinators();
 
                 query(c, 12, ConsistencyLevel.Two);
@@ -349,6 +353,8 @@ namespace Cassandra.MSTest
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
+                assertAchievedConsistencyLevel(ConsistencyLevel.One);
+
                 resetCoordinators();
 
                 query(c, 12, ConsistencyLevel.One);
@@ -356,6 +362,8 @@ namespace Cassandra.MSTest
                 assertQueried(Options.Default.IP_PREFIX + "1", 0);
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 assertQueried(Options.Default.IP_PREFIX + "3", 12);
+
+                assertAchievedConsistencyLevel(ConsistencyLevel.One);
 
             }
             catch (Exception e)

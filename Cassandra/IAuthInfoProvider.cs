@@ -9,7 +9,9 @@ namespace Cassandra
     ///  key-value pairs are required depends on the authenticator set for the
     ///  Cassandra nodes.</p>
     /// </summary>
-    public interface IAuthInfoProvider
+    /// 
+    internal interface IAuthInfoProvider
+// NOTE: we don't expose that yet, this will change to something better
     {
         /// <summary>
         ///  The authentication informations to use to connect to <code>host</code>.

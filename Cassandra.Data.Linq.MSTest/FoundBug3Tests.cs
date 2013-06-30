@@ -30,9 +30,9 @@ namespace Cassandra.Data.Linq.MSTest
         [Column("sales_person")]
         public string SalesPerson { get; set; }
         [Column("order_date")]
-        public DateTimeOffset OrderDate { get; set; }
+        public DateTime OrderDate { get; set; }
         [Column("ship_date")]
-        public DateTimeOffset ShipDate { get; set; }
+        public DateTime ShipDate { get; set; }
         //[Column("line_items")]
         //public List<LineItem> LineItems = new List<LineItem>();
         //[Column("shipping_address")]

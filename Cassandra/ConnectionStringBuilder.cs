@@ -14,7 +14,7 @@ namespace Cassandra
 
         public Builder ApplyToBuilder(Builder builder)
         {
-            return builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace).WithAuthInfoProvider(new SimpleAuthInfoProvider().Add("username", Username).Add("password",Password));
+            return builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace).WithCredentials(Username, Password);
         }
 
         public Builder MakeClusterBuilder()

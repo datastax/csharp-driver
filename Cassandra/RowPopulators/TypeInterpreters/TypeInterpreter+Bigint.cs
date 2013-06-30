@@ -4,12 +4,12 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromBigint(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromBigint(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             return BytesToInt64(value, 0);
         }
 
-        public static Type GetTypeFromBigint(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromBigint(IColumnInfo type_info)
         {
             return typeof(long);
         }

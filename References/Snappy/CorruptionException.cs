@@ -1,5 +1,5 @@
-﻿/*
- * Copyright (C) 2012 the original author or authors.
+/*
+ * Copyright (C) 2011 the original author or authors.
  * See the notice.md file distributed with this work for additional
  * information regarding copyright ownership.
  *
@@ -16,13 +16,17 @@
  * limitations under the License.
  */
 
+// based on java version by Dain Sundstrom (https://github.com/dain)
+// ported to C# from https://github.com/dain/snappy/blob/master/src/main/java/org/iq80/snappy/CorruptionException.java
+
+using System;
 namespace Snappy
 {
-    internal static class Extensions
+    internal class CorruptionException : Exception
     {
-        public static int BitwiseUnsignedRightShift(int value, int shift)
+        public CorruptionException(string message)
+            : base(message)
         {
-            return (int)((uint)value >> shift);
         }
     }
 }

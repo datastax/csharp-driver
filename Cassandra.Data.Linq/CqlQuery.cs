@@ -40,7 +40,7 @@ namespace Cassandra.Data.Linq
 
         public ITable GetTable() { return _table as ITable; }
 
-        public abstract string CqlString();
+        protected abstract string CqlString();
 
         public override string ToString()
         {
@@ -64,12 +64,12 @@ namespace Cassandra.Data.Linq
                                 new CqlQueryTag() { Mappings = mappingNames, Alter = alter, Session = session }, callback, state);
         }
 
-        protected CqlRowSet InternalEndExecute(IAsyncResult ar)
+        protected RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
             var ctx = tag.Session;
             var outp = ctx.EndExecute(ar);
-            QueryTrace = outp.QueryTrace;
+            QueryTrace = outp.Info.QueryTrace;
             return outp;
         }
 
@@ -82,14 +82,14 @@ namespace Cassandra.Data.Linq
             return BeginExecute(callback, state);
         }
 
-        protected override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
+        protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             if (!ReferenceEquals(GetTable().GetSession(), session))
                 throw new ArgumentOutOfRangeException("session");
             return InternalEndExecute(ar);
         }
 
-        public override CassandraRoutingKey RoutingKey
+        public override RoutingKey RoutingKey
         {
             get { return null; }
         }
@@ -101,7 +101,7 @@ namespace Cassandra.Data.Linq
             : base(expression, table) { }
 
 
-        public override string CqlString()
+        protected override string CqlString()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
@@ -151,8 +151,8 @@ namespace Cassandra.Data.Linq
         {
             return EndExecute(BeginExecute(null, null));
         }
-        
-        public override string CqlString()
+
+        protected override string CqlString()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
@@ -171,7 +171,7 @@ namespace Cassandra.Data.Linq
         {
             using (var outp = InternalEndExecute(ar))
             {
-                QueryTrace = outp.QueryTrace;
+                QueryTrace = outp.Info.QueryTrace;
 
                 var cols = outp.Columns;
                 if (cols.Length != 1)
@@ -225,7 +225,7 @@ namespace Cassandra.Data.Linq
             get { return GetTable() as IQueryProvider; }
         }
 
-        public override string CqlString()
+        protected override string CqlString()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
@@ -248,7 +248,7 @@ namespace Cassandra.Data.Linq
         {
             using (var outp = InternalEndExecute(ar))
             {
-                QueryTrace = outp.QueryTrace;
+                QueryTrace = outp.Info.QueryTrace;
 
                 var cols = outp.Columns;
                 var colToIdx = new Dictionary<string, int>();
@@ -266,7 +266,7 @@ namespace Cassandra.Data.Linq
 
     public abstract class CqlCommand : Query
     {
-        public abstract string GetCql();
+        protected abstract string GetCql();
         public void Execute()
         {
             EndExecute(BeginExecute(null, null));
@@ -304,7 +304,7 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        public override CassandraRoutingKey RoutingKey
+        public override RoutingKey RoutingKey
         {
             get { return null; }
         }
@@ -316,7 +316,7 @@ namespace Cassandra.Data.Linq
             return BeginExecute(callback, state);
         }
 
-        protected override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
+        protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             if (!ReferenceEquals(GetTable().GetSession(), session))
                 throw new ArgumentOutOfRangeException("session");
@@ -335,12 +335,12 @@ namespace Cassandra.Data.Linq
                                 new CqlQueryTag() {Session = session }, callback, state);
         }
         
-        protected CqlRowSet InternalEndExecute(IAsyncResult ar)
+        protected RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
             var ctx = tag.Session;
             var outp = ctx.EndExecute(ar);
-            QueryTrace = outp.QueryTrace;
+            QueryTrace = outp.Info.QueryTrace;
             return outp;
         }
 
@@ -359,7 +359,7 @@ namespace Cassandra.Data.Linq
     {
         internal CqlDelete(Expression expression, IQueryProvider table) : base(expression, table) { }
 
-        public override string GetCql()
+        protected override string GetCql()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
@@ -376,7 +376,7 @@ namespace Cassandra.Data.Linq
             this._entity = entity;
         }
 
-        public override string GetCql()
+        protected override string GetCql()
         {
             return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetTableName());
         }
@@ -386,7 +386,7 @@ namespace Cassandra.Data.Linq
     {
         internal CqlUpdate(Expression expression, IQueryProvider table) : base(expression, table) {}
 
-        public override string GetCql()
+        protected override string GetCql()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);

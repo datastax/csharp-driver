@@ -7,13 +7,13 @@ namespace Cassandra
 
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromSet(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromSet(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             if (type_info is SetColumnInfo)
             {
                 var list_typecode = (type_info as SetColumnInfo).KeyTypeCode;
                 var list_typeinfo = (type_info as SetColumnInfo).KeyTypeInfo;
-                var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
+                var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
                 int count = BytesToInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(List<>);
@@ -34,13 +34,13 @@ namespace Cassandra
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetTypeFromSet(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromSet(IColumnInfo type_info)
         {
             if (type_info is SetColumnInfo)
             {
                 var list_typecode = (type_info as SetColumnInfo).KeyTypeCode;
                 var list_typeinfo = (type_info as SetColumnInfo).KeyTypeInfo;
-                var value_type = TypeInterpreter.GetTypeFromCqlType(list_typecode, list_typeinfo);
+                var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
                 var openType = typeof(IEnumerable<>);
                 var listType = openType.MakeGenericType(value_type);
                 return listType;
@@ -50,7 +50,7 @@ namespace Cassandra
 
         public static byte[] InvConvertFromSet(IColumnInfo type_info, object value)
         {
-            var listType = GetTypeFromSet(type_info);
+            var listType = GetDefaultTypeFromSet(type_info);
             CheckArgument(listType, value);
             var list_typecode = (type_info as SetColumnInfo).KeyTypeCode;
             var list_typeinfo = (type_info as SetColumnInfo).KeyTypeInfo;

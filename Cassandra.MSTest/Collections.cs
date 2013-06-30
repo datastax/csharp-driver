@@ -171,9 +171,10 @@ namespace Cassandra.MSTest
             longQ.AppendLine("BEGIN BATCH ");
 
             int CollectionElementsNo = 100;
+            var rval = Randomm.RandomVal(TypeOfDataToBeInputed);
             for (int i = 0; i < CollectionElementsNo; i++)
             {
-                var val = Randomm.RandomVal(TypeOfDataToBeInputed);
+                var val = rval;
                 if (TypeOfDataToBeInputed == typeof(string))
                     val = "'" + val.ToString().Replace("'", "''") + "'";
 

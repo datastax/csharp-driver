@@ -51,7 +51,7 @@ namespace Cassandra.Data.Linq
 
     public interface ITable
     {
-        void Create(ConsistencyLevel consistencyLevel);
+        void Create();
         Type GetEntityType();
         string GetTableName();
         Session GetSession();
@@ -114,18 +114,18 @@ namespace Cassandra.Data.Linq
             return _tableName;
         }
 
-        public void Create(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)
+        public void Create()
         {
             var cqls = CqlQueryTools.GetCreateCQL(this);
             foreach (var cql in cqls)
-                _session.Cluster.WaitForSchemaAgreement(_session.Execute(cql, consictencyLevel).QueriedHost);
+                _session.Cluster.WaitForSchemaAgreement(_session.Execute(cql));
         }
 
-        public void CreateIfNotExists(ConsistencyLevel consictencyLevel = ConsistencyLevel.Default)
+        public void CreateIfNotExists()
         {
             try
             {
-                Create(consictencyLevel);
+                Create();
             }
             catch (AlreadyExistsException)
             {
@@ -203,64 +203,64 @@ namespace Cassandra.Data.Linq
 
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         
         public static bool operator ==(CqlToken a, object b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator !=(CqlToken a, object b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public static bool operator <=(CqlToken a, object b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator >=(CqlToken a, object b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator <(CqlToken a, object b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator >(CqlToken a, object b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public static bool operator !=(CqlToken a, CqlToken b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override bool Equals(object obj)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public static bool operator ==(CqlToken a, CqlToken b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator <=(CqlToken a, CqlToken b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator >=(CqlToken a, CqlToken b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator <(CqlToken a, CqlToken b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         public static bool operator >(CqlToken a, CqlToken b)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
     }
 }

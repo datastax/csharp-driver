@@ -7,7 +7,7 @@ namespace Cassandra
 
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromMap(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromMap(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             if (type_info is MapColumnInfo)
             {
@@ -15,8 +15,8 @@ namespace Cassandra
                 var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
                 var value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
                 var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
-                var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
-                var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
+                var key_type = TypeInterpreter.GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
+                var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
                 int count = BytesToInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(SortedDictionary<,>);
@@ -47,7 +47,7 @@ namespace Cassandra
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetTypeFromMap(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromMap(IColumnInfo type_info)
         {
             if (type_info is MapColumnInfo)
             {
@@ -55,8 +55,8 @@ namespace Cassandra
                 var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
                 var value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
                 var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
-                var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
-                var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
+                var key_type = TypeInterpreter.GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
+                var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
 
                 var openType = typeof(IDictionary<,>);
                 var dicType = openType.MakeGenericType(key_type, value_type);
@@ -67,14 +67,14 @@ namespace Cassandra
 
         public static byte[] InvConvertFromMap(IColumnInfo type_info, object value)
         {
-            var dicType = GetTypeFromMap(type_info);
+            var dicType = GetDefaultTypeFromMap(type_info);
             CheckArgument(dicType, value);
             var key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
             var key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
             var value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
             var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
-            var key_type = TypeInterpreter.GetTypeFromCqlType(key_typecode, key_typeinfo);
-            var value_type = TypeInterpreter.GetTypeFromCqlType(value_typecode, value_typeinfo);
+            var key_type = TypeInterpreter.GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
+            var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
 
             List<byte[]> kbufs = new List<byte[]>();
             List<byte[]> vbufs = new List<byte[]>();

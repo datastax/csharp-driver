@@ -1,5 +1,5 @@
-﻿/*
- * Copyright (C) 2012 the original author or authors.
+/*
+ * Copyright (C) 2011 the original author or authors.
  * See the notice.md file distributed with this work for additional
  * information regarding copyright ownership.
  *
@@ -16,15 +16,24 @@
  * limitations under the License.
  */
 
-using System;
+// ported to C# from https://github.com/dain/snappy/blob/master/src/main/java/org/iq80/snappy/Memory.java
 
 namespace Snappy
 {
-    public class CorruptionException : Exception
+    interface IMemory
     {
-        public CorruptionException(string message)
-            : base(message)
-        {
-        }
+        bool FastAccessSupported();
+
+        int LookupShort(short[] data, int index);
+
+        int LoadByte(byte[] data, int index);
+
+        int LoadInt(byte[] data, int index);
+
+        void CopyLong(byte[] src, int srcIndex, byte[] dest, int destIndex);
+
+        long LoadLong(byte[] data, int index);
+
+        void CopyMemory(byte[] input, int inputIndex, byte[] output, int outputIndex, int length);
     }
-}
+}	// end namespace

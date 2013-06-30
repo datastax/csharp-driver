@@ -54,7 +54,7 @@ namespace Cassandra.MSTest
             try
             {
                 Session.Cluster.WaitForSchemaAgreement(
-                    Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)").QueriedHost
+                    Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)")
                 );
             }
             catch (AlreadyExistsException)

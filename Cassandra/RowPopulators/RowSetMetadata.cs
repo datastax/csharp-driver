@@ -86,7 +86,7 @@ namespace Cassandra
         internal RowSetMetadata(BEBinaryReader reader)
         {
             var coldat = new List<ColumnDesc>();
-            var flags = (FlagBits) reader.ReadInt32();
+            var flags = (FlagBits)reader.ReadInt32();
             var numberOfcolumns = reader.ReadInt32();
             this._rawColumns = new ColumnDesc[numberOfcolumns];
             string gKsname = null;
@@ -111,7 +111,7 @@ namespace Cassandra
                     col.Table = gTablename;
                 }
                 col.Name = reader.ReadString();
-                col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
+                col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
                 col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
                 coldat.Add(col);
             }
@@ -126,11 +126,11 @@ namespace Cassandra
                         Name = _rawColumns[i].Name,
                         Keyspace = _rawColumns[i].Keyspace,
                         Table = _rawColumns[i].Table,
-                        Type = TypeInterpreter.GetTypeFromCqlType(
+                        Type = TypeInterpreter.GetDefaultTypeFromCqlType(
                             _rawColumns[i].TypeCode,
                             _rawColumns[i].TypeInfo),
-                     TypeCode = _rawColumns[i].TypeCode,
-                     TypeInfo = _rawColumns[i].TypeInfo
+                        TypeCode = _rawColumns[i].TypeCode,
+                        TypeInfo = _rawColumns[i].TypeInfo
                     };
                 //TODO: what with full long column names?
                 if (!_columnIdxes.ContainsKey(_rawColumns[i].Name))
@@ -144,18 +144,18 @@ namespace Cassandra
             switch (code)
             {
                 case ColumnTypeCode.Custom:
-                    return new CustomColumnInfo() {CustomTypeName = reader.ReadString()};
+                    return new CustomColumnInfo() { CustomTypeName = reader.ReadString() };
                 case ColumnTypeCode.List:
-                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    innercode = (ColumnTypeCode)reader.ReadUInt16();
                     return new ListColumnInfo()
                         {
                             ValueTypeCode = innercode,
                             ValueTypeInfo = GetColumnInfo(reader, innercode)
                         };
                 case ColumnTypeCode.Map:
-                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    innercode = (ColumnTypeCode)reader.ReadUInt16();
                     var kci = GetColumnInfo(reader, innercode);
-                    var vinnercode = (ColumnTypeCode) reader.ReadUInt16();
+                    var vinnercode = (ColumnTypeCode)reader.ReadUInt16();
                     var vci = GetColumnInfo(reader, vinnercode);
                     return new MapColumnInfo()
                         {
@@ -165,7 +165,7 @@ namespace Cassandra
                             ValueTypeInfo = vci
                         };
                 case ColumnTypeCode.Set:
-                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    innercode = (ColumnTypeCode)reader.ReadUInt16();
                     return new SetColumnInfo()
                         {
                             KeyTypeCode = innercode,
@@ -181,9 +181,9 @@ namespace Cassandra
             get { return _columns; }
         }
 
-        internal object ConvertToObject(int i, byte[] buffer)
+        internal object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
         {
-            return TypeInterpreter.CqlConvert(buffer, _rawColumns[i].TypeCode, _rawColumns[i].TypeInfo);
+            return TypeInterpreter.CqlConvert(buffer, _rawColumns[i].TypeCode, _rawColumns[i].TypeInfo, cSharpType);
         }
 
         internal byte[] ConvertFromObject(int i, object o)
@@ -191,9 +191,9 @@ namespace Cassandra
             return TypeInterpreter.InvCqlConvert(o, _rawColumns[i].TypeCode, _rawColumns[i].TypeInfo);
         }
 
-        internal CqlRow GetRow(OutputRows rawrows)
+        internal Row GetRow(OutputRows rawrows)
         {
-            return new CqlRow(rawrows, _columnIdxes);
+            return new Row(rawrows, _columnIdxes);
         }
     }
 }

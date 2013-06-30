@@ -17,8 +17,8 @@ namespace MyTest
         static string[] TestPacks = new string[] 
         {
             "Cassandra.MyTest",
-            "Cassandra.Data.MyTest",
 #if NET_40_OR_GREATER
+            "Cassandra.Data.MyTest",
             "Cassandra.Data.Linq.MyTest",
 #endif
         };
@@ -103,6 +103,9 @@ namespace MyTest
                     Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.Red;
                     var s = type.FullName + "." + mth.Name + "() Failed!";
+                    Console.WriteLine(s);
+                    output.WriteLine(s);
+                    s = ex.InnerException.Message;
                     Console.WriteLine(s);
                     output.WriteLine(s);
                     s = (ex.InnerException as MyTest.AssertException).UserMessage;

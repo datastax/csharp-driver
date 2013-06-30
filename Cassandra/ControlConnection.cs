@@ -21,15 +21,14 @@ namespace Cassandra
                                    PoolingOptions poolingOptions,
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
-                                   IAuthInfoProvider authProvider,
-                                   bool metricsEnabled)
+                                   IAuthInfoProvider authProvider)
         {
             this._cluster = cluster;
             this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
             _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, metricsEnabled, "");
+                                   clientOptions, authProvider, "");
         }
 
         void Metadata_HostsEvent(object sender, HostsEventArgs e)
@@ -37,17 +36,17 @@ namespace Cassandra
             if (sender == this)
                 return;
 
-            Action act = new Action(() => SetupControlConnection());
+            Action<object> act = new Action<object>((_) => SetupControlConnection());
 
             if (e.What == HostsEventArgs.Kind.Down)
             {
                 if (e.IPAddress.Equals(listeningOnHost))
-                    act.BeginInvoke((ar) => { act.EndInvoke(ar); }, null);
+                    act.BeginInvoke(null, (ar) => { act.EndInvoke(ar); }, null);
             }
             else if (e.What == HostsEventArgs.Kind.Up)
             {
                 if (_isDiconnected)
-                    act.BeginInvoke((ar) => { act.EndInvoke(ar); }, null);
+                    act.BeginInvoke(null, (ar) => { act.EndInvoke(ar); }, null);
             }
         }
 
@@ -107,7 +106,7 @@ namespace Cassandra
 
         private void conn_CassandraEvent(object sender, CassandraEventArgs e)
         {
-            var act = new Action(() =>
+            var act = new Action<object>((_) =>
             {
                 if (e is TopologyChangeEventArgs)
                 {
@@ -164,7 +163,7 @@ namespace Cassandra
                 _logger.Error(ex);
                 throw ex;
             });
-            act.BeginInvoke((ar) => { act.EndInvoke(ar); }, null);
+            act.BeginInvoke(null, (ar) => { act.EndInvoke(ar); }, null);
         }
 
         private bool _isDiconnected = false;
@@ -287,7 +286,7 @@ namespace Cassandra
 
             using (var rowset = _session.Query(SelectPeers, ConsistencyLevel.Quorum))
             {
-                queriedHost = rowset.QueriedHost;
+                queriedHost = rowset.Info.QueriedHost;
                 foreach (var row in rowset.GetRows())
                 {
                     IPAddress hstip = null;
@@ -330,7 +329,7 @@ namespace Cassandra
             {
                 if (outp is OutputRows)
                 {
-                    var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                    var rowset = new RowSet((outp as OutputRows), null, false);
                     // Update cluster name, DC and rack for the one node we are connected to
                     foreach (var localRow in rowset.GetRows())
                     {
@@ -407,7 +406,7 @@ namespace Cassandra
                 {
                     using (var rowset = _session.Query(SelectSchemaPeers, ConsistencyLevel.Default))
                     {
-                        queriedHost = rowset.QueriedHost;
+                        queriedHost = rowset.Info.QueriedHost;
                         foreach (var row in rowset.GetRows())
                         {
                             if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
@@ -438,7 +437,7 @@ namespace Cassandra
                     {
                         if (outp is OutputRows)
                         {
-                            var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                            var rowset = new RowSet((outp as OutputRows), null, false);
                             foreach (var row in rowset.GetRows())
                             {
                                 if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
@@ -471,7 +470,7 @@ namespace Cassandra
                     {
                         if (outp is OutputRows)
                         {
-                            var rowset = new CqlRowSet((outp as OutputRows), null, false);
+                            var rowset = new RowSet((outp as OutputRows), null, false);
                             // Update cluster name, DC and rack for the one node we are connected to
                             foreach (var localRow in rowset.GetRows())
                                 if (!localRow.IsNull("schema_version"))
@@ -707,7 +706,7 @@ namespace Cassandra
 
             return strClass;
         }
-        private SortedDictionary<string,string> getCompactionStrategyOptions(CqlRow row)
+        private SortedDictionary<string,string> getCompactionStrategyOptions(Row row)
         {
             SortedDictionary<string, string> result = new SortedDictionary<string, string>(){{"class",row.GetValue<string>("compaction_strategy_class")}};
             foreach(var entry in Utils.ConvertStringToMap(row.GetValue<string>("compaction_strategy_options")))            

@@ -4,7 +4,7 @@
     {
         public byte[] Decompress(byte[] buffer)
         {
-            return Snappy.Snappy.Decompress(buffer, 0, buffer.Length);
+            return Snappy.SnappyDecompressor.Uncompress(buffer,0,buffer.Length);
         }
     }
 }

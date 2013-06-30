@@ -1,11 +1,11 @@
 ﻿using System;
 namespace Cassandra
 {
-    public class CassandraRoutingKey
+    public class RoutingKey
     {
-        public static CassandraRoutingKey Empty = new CassandraRoutingKey();
+        public static RoutingKey Empty = new RoutingKey();
         public byte[] RawRoutingKey = null;
-        public static CassandraRoutingKey Compose(params CassandraRoutingKey[] components)
+        public static RoutingKey Compose(params RoutingKey[] components)
         {
             if (components.Length == 0)
                 throw new ArgumentOutOfRangeException();
@@ -14,12 +14,12 @@ namespace Cassandra
                 return components[0];
 
             int totalLength = 0;
-            foreach (CassandraRoutingKey bb in components)
+            foreach (RoutingKey bb in components)
                 totalLength += 2 + bb.RawRoutingKey.Length+1;
 
             byte[] res = new byte[totalLength];
             int idx = 0;
-            foreach (CassandraRoutingKey bb in components)
+            foreach (RoutingKey bb in components)
             {
                 PutShortLength(res, idx, bb.RawRoutingKey.Length);
                 idx+=2;
@@ -28,7 +28,7 @@ namespace Cassandra
                 res[idx]=0;
                 idx++;
             }
-            return new CassandraRoutingKey() { RawRoutingKey = res };
+            return new RoutingKey() { RawRoutingKey = res };
         }
 
         private static void PutShortLength(byte[] bb, int idx, int length)

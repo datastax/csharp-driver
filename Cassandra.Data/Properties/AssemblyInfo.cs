@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Cassandra.Data")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Datastax C# Ado.Net Driver for Apache Cassandra")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Cassandra.Data")]
-[assembly: AssemblyCopyright("Copyright ©  2012")]
+[assembly: AssemblyCompany("Datastax")]
+[assembly: AssemblyProduct("CassandraCSharpDriver")]
+[assembly: AssemblyCopyright("Copyright (coffee) 2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

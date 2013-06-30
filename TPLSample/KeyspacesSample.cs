@@ -24,7 +24,7 @@ namespace TPLSample.KeyspacesSample
                 var allTasks = new List<Task>();
                 for (int i = 0; i < 100; ++i)
                 {
-                    var futRes = Task<CqlRowSet>.Factory.FromAsync(session.BeginExecute, session.EndExecute, cqlKeyspaces, ConsistencyLevel.Default, null)
+                    var futRes = Task<RowSet>.Factory.FromAsync(session.BeginExecute, session.EndExecute, cqlKeyspaces, ConsistencyLevel.Default, null)
                         .ContinueWith(t => DisplayKeyspace(t.Result));
                     allTasks.Add(futRes);
                 }
@@ -35,7 +35,7 @@ namespace TPLSample.KeyspacesSample
             cluster.Shutdown();
         }
 
-        private static void DisplayKeyspace(CqlRowSet result)
+        private static void DisplayKeyspace(RowSet result)
         {
             try
             {

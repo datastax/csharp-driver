@@ -8,13 +8,13 @@ namespace Cassandra
     internal partial class TypeInterpreter
     {
 
-        public static object ConvertFromDecimal(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromDecimal(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             var buffer = (byte[])value.Clone();
             return TypeAdapters.DecimalTypeAdapter.ConvertFrom(buffer);
         }
 
-        public static Type GetTypeFromDecimal(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromDecimal(IColumnInfo type_info)
         {
             return TypeAdapters.DecimalTypeAdapter.GetDataType();
         }

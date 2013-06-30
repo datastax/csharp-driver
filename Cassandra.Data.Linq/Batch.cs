@@ -21,7 +21,8 @@ namespace Cassandra.Data.Linq
         {
             if (cqlCommand.GetTable().GetTableType() == TableType.Counter)
                 _batchType = "COUNTER ";
-            _batchScript.AppendLine(cqlCommand.GetCql());
+            _batchScript.Append(cqlCommand.ToString());
+            _batchScript.AppendLine(";");
         }
 
         public void Append(IEnumerable<CqlCommand> cqlCommands)
@@ -45,11 +46,21 @@ namespace Cassandra.Data.Linq
             if (_batchScript.Length != 0)
             {
                 var ctx = _session;
-                var cqlQuery = "BEGIN " + _batchType + "BATCH\r\n" + _batchScript.ToString() + "\r\nAPPLY " + _batchType + "BATCH";
+                var cqlQuery = GetCql();
                 return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
                                     new CqlQueryTag() { Session = ctx }, callback, state);
             }
             throw new ArgumentOutOfRangeException();
+        }
+
+        private string GetCql()
+        {
+            return "BEGIN " + _batchType + "BATCH\r\n" + _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
+        }
+
+        public override string ToString()
+        {
+            return GetCql();
         }
 
         public void EndExecute(IAsyncResult ar)
@@ -57,7 +68,7 @@ namespace Cassandra.Data.Linq
             InternalEndExecute(ar);
         }
 
-        public override CassandraRoutingKey RoutingKey
+        public override RoutingKey RoutingKey
         {
             get { return null; }
         }
@@ -71,16 +82,16 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        private CqlRowSet InternalEndExecute(IAsyncResult ar)
+        private RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
             var ctx = tag.Session;
             var outp = ctx.EndExecute(ar);
-            QueryTrace = outp.QueryTrace;
+            QueryTrace = outp.Info.QueryTrace;
             return outp;
         }
 
-        protected override CqlRowSet EndSessionExecute(Session session, IAsyncResult ar)
+        protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             if (!ReferenceEquals(_session, session))
                 throw new ArgumentOutOfRangeException("session");

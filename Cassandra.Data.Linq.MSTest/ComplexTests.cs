@@ -38,8 +38,12 @@ namespace Cassandra.Data.Linq.MSTest
         [TestCleanup]
         public void Dispose()
         {
+            if (twtl != null)
+                Trace.Listeners.Remove(twtl);
             CCMBridge.ReusableCCMCluster.Drop();
         }
+
+        TextWriterTraceListener twtl = null;
 
         [TestMethod]
         [WorksForMe]
@@ -47,7 +51,7 @@ namespace Cassandra.Data.Linq.MSTest
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             CassandraLogWriter LogWriter = new CassandraLogWriter();
-            TextWriterTraceListener twtl = new TextWriterTraceListener(LogWriter);
+            twtl = new TextWriterTraceListener(LogWriter);
 
             Trace.Listeners.Add(twtl);
 
@@ -90,6 +94,8 @@ namespace Cassandra.Data.Linq.MSTest
                 authorEnt.followers.ForEach(folo => statEnt.followers_count += 1);
                 statisticsLocal.Add(statEnt);
             }
+
+            
             twitterContext.SaveChanges(SaveChangesMode.Batch);
             var traces = AuthorsTable.RetriveAllQueryTraces();
             foreach (var trace in traces)

@@ -19,11 +19,11 @@ namespace Cassandra.Data.Linq.MSTest
     {
         public class TweetsContext : Context
         {
-            public TweetsContext(Session session, ConsistencyLevel createConsistencyLevel = ConsistencyLevel.Default)
+            public TweetsContext(Session session)
                 : base(session)
             {
                 AddTables();
-                CreateTablesIfNotExist(createConsistencyLevel);
+                CreateTablesIfNotExist();
             }
 
             private void AddTables()

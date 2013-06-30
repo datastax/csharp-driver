@@ -162,18 +162,18 @@ namespace Cassandra
     {
         public Type GetDataType()
         {
-            return typeof(BigInteger);
+            return typeof(byte[]);
         }
 
         public object ConvertFrom(byte[] decimalBuf)
         {
-            return new BigInteger(decimalBuf);
+            return decimalBuf;
         }
 
         public byte[] ConvertTo(object value)
         {
-            TypeInterpreter.CheckArgument<BigInteger>(value);
-            return ((BigInteger)value).ToByteArray();
+            TypeInterpreter.CheckArgument<byte[]>(value);
+            return (byte[])value;
         }
     }
 }

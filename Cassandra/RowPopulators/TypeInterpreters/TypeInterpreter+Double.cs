@@ -4,14 +4,14 @@ namespace Cassandra
 {
     internal partial class TypeInterpreter
     {
-        public static object ConvertFromDouble(IColumnInfo type_info, byte[] value)
+        public static object ConvertFromDouble(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
             var buffer = (byte[])value.Clone();
             Array.Reverse(buffer);
             return BitConverter.ToDouble(buffer, 0);
         }
 
-        public static Type GetTypeFromDouble(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromDouble(IColumnInfo type_info)
         {
             return typeof(double);
         }

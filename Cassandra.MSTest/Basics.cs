@@ -226,8 +226,6 @@ PRIMARY KEY(tweet_id)
 
         public void BigInsertTest(int RowsNo = 5000)
         {
-            Randomm rndm = new Randomm(DateTime.Now.Millisecond);
-
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
@@ -258,7 +256,7 @@ PRIMARY KEY(tweet_id)
          body,
 		 fval,
 		 dval)
-VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true", rndm.NextSingle(), rndm.NextDouble());
+VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true", Randomm.Instance.NextSingle(), Randomm.Instance.NextDouble());
             }
             longQ.AppendLine("APPLY BATCH;");
             QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");

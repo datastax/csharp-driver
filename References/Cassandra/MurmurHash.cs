@@ -16,13 +16,15 @@
  * limitations under the License.
  */
 
- // based on http://www.java2s.com/Code/Java/Development-Class/Thisisaveryfastnoncryptographichashsuitableforgeneralhashbasedlookup.htm
+// ported to C# from https://github.com/apache/cassandra/blob/trunk/src/java/org/apache/cassandra/utils/MurmurHash.java
 
 /// <summary>
-///  This is a very fast, non-cryptographic hash suitable for general hash-based
-///  lookup. See http://murmurhash.googlepages.com/ for more details.
-///  
-///  hash3_x64_128() is MurmurHash 3.0.
+/// This is a very fast, non-cryptographic hash suitable for general hash-based
+/// lookup. See http://murmurhash.googlepages.com/ for more details.
+/// Hash3_x64_128() is MurmurHash 3.0.
+/// 
+/// The C version of MurmurHash 2.0 found at that site was ported to Java by
+/// Andrzej Bialecki (ab at getopt org).
 /// </summary>
 internal class MurmurHash
 {

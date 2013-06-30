@@ -2,7 +2,7 @@
 
 namespace Cassandra
 {
-    public partial class CqlRowSet
+    public partial class RowSet
     {
         public delegate string CellEncoder(object val);                
 

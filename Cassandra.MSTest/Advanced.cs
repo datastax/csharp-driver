@@ -56,150 +56,319 @@ namespace Cassandra.MSTest
 
 
         public void parallelInsertTest()
-        {            
+        {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
             Session.Cluster.WaitForSchemaAgreement(
                 Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                , keyspaceName)).QueriedHost);
+         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                , keyspaceName)));
 
             Session.ChangeKeyspace(keyspaceName);
 
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            try
+            for (int KK = 0; KK < 10; KK++)
             {
-                Session.Cluster.WaitForSchemaAgreement(
-                    Session.Execute(string.Format(@"CREATE TABLE {0}(
+                Console.Write("Try no:" + KK);
+
+                string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+                try
+                {
+                    Session.Cluster.WaitForSchemaAgreement(
+                        Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
          body text,
          isok boolean,
-         PRIMARY KEY(tweet_id))", tableName)).QueriedHost);
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-            Randomm rndm = new Randomm();
-            int RowsNo = 1000;
-            IAsyncResult[] ar = new IAsyncResult[RowsNo];
-            List<Thread> threads = new List<Thread>();
-            object monit = new object();
-            int readyCnt = 0;
-            Console.WriteLine();
-            Console.WriteLine("Preparing...");
-
-            for (int idx = 0; idx < RowsNo; idx++)
-            {
-
-                var i = idx;
-                threads.Add(new Thread(() =>
+         PRIMARY KEY(tweet_id))", tableName)));
+                }
+                catch (AlreadyExistsException)
                 {
-                    try
-                    {
-                        Console.Write("+");
-                        lock (monit)
-                        {
-                            readyCnt++;
-                            Monitor.Wait(monit);
-                        }
+                }
 
-                        ar[i] = Session.BeginExecute(string.Format(@"INSERT INTO {0} (
+                int RowsNo = 1000;
+                IAsyncResult[] ar = new IAsyncResult[RowsNo];
+                List<Thread> threads = new List<Thread>();
+                object monit = new object();
+                int readyCnt = 0;
+                Console.WriteLine();
+                Console.WriteLine("Preparing...");
+
+                for (int idx = 0; idx < RowsNo; idx++)
+                {
+
+                    var i = idx;
+                    threads.Add(new Thread(() =>
+                    {
+                        try
+                        {
+                            Console.Write("+");
+                            lock (monit)
+                            {
+                                readyCnt++;
+                                Monitor.Wait(monit);
+                            }
+
+                            ar[i] = Session.BeginExecute(string.Format(@"INSERT INTO {0} (
          tweet_id,
          author,
          isok,
          body)
 VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                       , ConsistencyLevel.Default, null, null);
-                        Thread.MemoryBarrier();
-                    }
-                    catch
-                    {
-                        Console.Write("@");
-                    }
+                           , ConsistencyLevel.Quorum, null, null);
+                            Thread.MemoryBarrier();
+                        }
+                        catch
+                        {
+                            Console.Write("@");
+                        }
 
-                }));
-            }
+                    }));
+                }
 
-            for (int idx = 0; idx < RowsNo; idx++)
-            {
-                threads[idx].Start();
-            }
-
-            lock (monit)
-            {
-                while (true)
+                for (int idx = 0; idx < RowsNo; idx++)
                 {
-                    if (readyCnt < RowsNo)
+                    threads[idx].Start();
+                }
+
+                lock (monit)
+                {
+                    while (true)
                     {
-                        Monitor.Exit(monit);
-                        Thread.Sleep(100);
-                        Monitor.Enter(monit);
-                    }
-                    else
-                    {
-                        Monitor.PulseAll(monit);
-                        break;
+                        if (readyCnt < RowsNo)
+                        {
+                            Monitor.Exit(monit);
+                            Thread.Sleep(100);
+                            Monitor.Enter(monit);
+                        }
+                        else
+                        {
+                            Monitor.PulseAll(monit);
+                            break;
+                        }
                     }
                 }
-            }
 
-            Console.WriteLine();
-            Console.WriteLine("Start!");
+                Console.WriteLine();
+                Console.WriteLine("Start!");
 
-            HashSet<int> done = new HashSet<int>();
-            while (done.Count < RowsNo)
-            {
-                for (int i = 0; i < RowsNo; i++)
+                HashSet<int> done = new HashSet<int>();
+                while (done.Count < RowsNo)
                 {
-                    Thread.MemoryBarrier();
-                    if (!done.Contains(i) && ar[i] != null)
+                    for (int i = 0; i < RowsNo; i++)
                     {
-                        if (ar[i].AsyncWaitHandle.WaitOne(10))
+                        Thread.MemoryBarrier();
+                        if (!done.Contains(i) && ar[i] != null)
                         {
-                            try
+                            if (ar[i].AsyncWaitHandle.WaitOne(10))
                             {
-                                Session.EndExecute(ar[i]);
+                                try
+                                {
+                                    Session.EndExecute(ar[i]);
+                                }
+                                catch
+                                {
+                                    Console.Write("!");
+                                }
+                                done.Add(i);
+                                Console.Write("-");
                             }
-                            catch
+                        }
+                    }
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("Inserted... now we are checking the count");
+
+                using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                {
+                    Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+                }
+
+                Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
+
+                for (int idx = 0; idx < RowsNo; idx++)
+                {
+                    threads[idx].Join();
+                }
+            }
+            Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
+
+        }
+
+
+        public void ErrorInjectionInParallelInsertTest()
+        {
+            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+            Session.Cluster.WaitForSchemaAgreement(
+                Session.Execute(
+            string.Format(@"CREATE KEYSPACE {0} 
+         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                , keyspaceName)));
+            Session.ChangeKeyspace(keyspaceName);
+
+            for (int KK = 0; KK < 10; KK++)
+            {
+                Console.Write("Try no:" + KK);
+
+                string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+                try
+                {
+                    Session.Cluster.WaitForSchemaAgreement(
+                        Session.Execute(string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid,
+         author text,
+         body text,
+         isok boolean,
+         PRIMARY KEY(tweet_id))", tableName)));
+                }
+                catch (AlreadyExistsException)
+                {
+                }
+
+                int RowsNo = 1000;
+                bool[] ar = new bool[RowsNo];
+                List<Thread> threads = new List<Thread>();
+                object monit = new object();
+                int readyCnt = 0;
+
+                Thread errorInjector = new Thread(() =>
+                {
+                    lock (monit)
+                    {
+                        readyCnt++;
+                        Monitor.Wait(monit);
+                    }
+                    Thread.Sleep(5);
+                    Console.Write("#");
+                    Session.SimulateSingleConnectionDown();
+
+                    for (int i = 0; i < 100; i++)
+                    {
+                        Thread.Sleep(1);
+                        Console.Write("#");
+                        Session.SimulateSingleConnectionDown();
+                    }
+                });
+
+                Console.WriteLine();
+                Console.WriteLine("Preparing...");
+
+                for (int idx = 0; idx < RowsNo; idx++)
+                {
+
+                    var i = idx;
+                    threads.Add(new Thread(() =>
+                    {
+                        try
+                        {
+                            Console.Write("+");
+                            lock (monit)
                             {
-                                Console.Write("!");
+                                readyCnt++;
+                                Monitor.Wait(monit);
                             }
+
+                            Session.Execute(string.Format(@"INSERT INTO {0} (
+         tweet_id,
+         author,
+         isok,
+         body)
+VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true"), ConsistencyLevel.Quorum
+                           );
+                            ar[i] = true;
+                            Thread.MemoryBarrier();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            Console.WriteLine(ex.StackTrace);
+                            ar[i] = true;
+                            Thread.MemoryBarrier();
+                        }
+
+                    }));
+                }
+
+                for (int idx = 0; idx < RowsNo; idx++)
+                {
+                    threads[idx].Start();
+                }
+                errorInjector.Start();
+
+                lock (monit)
+                {
+                    while (true)
+                    {
+                        if (readyCnt < RowsNo + (1))
+                        {
+                            Monitor.Exit(monit);
+                            Thread.Sleep(100);
+                            Monitor.Enter(monit);
+                        }
+                        else
+                        {
+                            Monitor.PulseAll(monit);
+                            break;
+                        }
+                    }
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("Start!");
+
+                HashSet<int> done = new HashSet<int>();
+                while (done.Count < RowsNo)
+                {
+                    for (int i = 0; i < RowsNo; i++)
+                    {
+                        Thread.MemoryBarrier();
+                        if (!done.Contains(i) && ar[i])
+                        {
                             done.Add(i);
                             Console.Write("-");
                         }
                     }
                 }
+
+                for (int idx = 0; idx < RowsNo; idx++)
+                {
+                    threads[idx].Join();
+                }
+
+                errorInjector.Join();
+
+                Console.WriteLine();
+                Console.WriteLine("Inserted... now we are checking the count");
+
+                using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                {
+                    Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+                }
+
+                try
+                {
+                    Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
+                }
+                catch { }
             }
 
-            Console.WriteLine();
-            Console.WriteLine("Inserted... now we are checking the count");
 
-            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100)))
+            try
             {
-                Assert.Equal(RowsNo, ret.RowsCount);
+                Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
             }
-
-            Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
-
-            Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-
-            for (int idx = 0; idx < RowsNo; idx++)
-            {
-                threads[idx].Join();
-            }
+            catch { }
         }
 
-        
-        public void ErrorInjectionInParallelInsertTest()
+        public void MassiveAsyncTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-                Session.Cluster.WaitForSchemaAgreement(
-                    Session.Execute(
-                string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                    , keyspaceName)).QueriedHost);
+            Session.Cluster.WaitForSchemaAgreement(
+                Session.Execute(
+            string.Format(@"CREATE KEYSPACE {0} 
+         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                , keyspaceName)));
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -211,102 +380,37 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
          author text,
          body text,
          isok boolean,
-         PRIMARY KEY(tweet_id))", tableName)).QueriedHost);
+         PRIMARY KEY(tweet_id))", tableName)));
             }
             catch (AlreadyExistsException)
             {
             }
-            Randomm rndm = new Randomm();
-            int RowsNo = 1000;
+
+            int RowsNo = 100000;
+
             bool[] ar = new bool[RowsNo];
-            List<Thread> threads = new List<Thread>();
-            object monit = new object();
-            int readyCnt = 0;
 
-            Thread errorInjector = new Thread(() =>
-            {
-                lock (monit)
-                {
-                    readyCnt++;
-                    Monitor.Wait(monit);
-                }
-                Thread.Sleep(5);
-                Console.Write("#");
-                Session.SimulateSingleConnectionDown();
-
-                for (int i = 0; i < 100; i++)
-                {
-                    Thread.Sleep(1);
-                    Console.Write("#");
-                    Session.SimulateSingleConnectionDown();
-                }
-            });
-
-            Console.WriteLine();
-            Console.WriteLine("Preparing...");
-
-            for (int idx = 0; idx < RowsNo; idx++)
-            {
-
-                var i = idx;
-                threads.Add(new Thread(() =>
-                {
-                    try
+            var thr = new Thread(() =>
                     {
-                        Console.Write("+");
-                        lock (monit)
+                        for (int i = 0; i < RowsNo; i++)
                         {
-                            readyCnt++;
-                            Monitor.Wait(monit);
+                            Console.Write("+");
+                            int tmpi = i;
+                            Session.BeginExecute(string.Format(@"INSERT INTO {0} (
+             tweet_id,
+             author,
+             isok,
+             body)
+    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
+                           , ConsistencyLevel.Quorum, (_) =>
+                           {
+                               ar[tmpi] = true;
+                               Thread.MemoryBarrier();
+                           }, null);
                         }
+                    });
 
-                        Session.Execute(string.Format(@"INSERT INTO {0} (
-         tweet_id,
-         author,
-         isok,
-         body)
-VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                       );
-                        ar[i] = true;
-                        Thread.MemoryBarrier();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        Console.WriteLine(ex.StackTrace);
-                        ar[i] = true;
-                        Thread.MemoryBarrier();
-                    }
-
-                }));
-            }
-
-            for (int idx = 0; idx < RowsNo; idx++)
-            {
-                threads[idx].Start();
-            }
-            errorInjector.Start();
-
-            lock (monit)
-            {
-                while (true)
-                {
-                    if (readyCnt < RowsNo + (1))
-                    {
-                        Monitor.Exit(monit);
-                        Thread.Sleep(100);
-                        Monitor.Enter(monit);
-                    }
-                    else
-                    {
-                        Monitor.PulseAll(monit);
-                        break;
-                    }
-                }
-            }
-
-            Console.WriteLine();
-            Console.WriteLine("Start!");
+            thr.Start();
 
             HashSet<int> done = new HashSet<int>();
             while (done.Count < RowsNo)
@@ -322,19 +426,14 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 }
             }
 
-            for (int idx = 0; idx < RowsNo; idx++)
-            {
-                threads[idx].Join();
-            }
-
-            errorInjector.Join();
+            thr.Join();
 
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100)))
+            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
             {
-                Assert.Equal(RowsNo, ret.RowsCount);
+                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
             }
 
             try
@@ -342,14 +441,98 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             }
             catch { }
-
-            try
-            {
-                Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-            }
-            catch { }
         }
 
+        //        public void MassiveAsyncErrorInjectionTest()
+        //        {
+        //            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+        //            try
+        //            {
+        //                Session.Cluster.WaitForSchemaAgreement(
+        //                    Session.Execute(string.Format(@"CREATE TABLE {0}(
+        //         tweet_id uuid,
+        //         author text,
+        //         body text,
+        //         isok boolean,
+        //         PRIMARY KEY(tweet_id))", tableName)));
+        //            }
+        //            catch (AlreadyExistsException)
+        //            {
+        //            }
 
+        //            int RowsNo = 100000;
+
+        //            bool[] ar = new bool[RowsNo];
+
+        //            var thr = new Thread(() =>
+        //            {
+        //                for (int i = 0; i < RowsNo; i++)
+        //                {
+        //                    Console.Write("+");
+        //                    int tmpi = i;
+        //                    Session.BeginExecute(string.Format(@"INSERT INTO {0} (
+        //             tweet_id,
+        //             author,
+        //             isok,
+        //             body)
+        //    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
+        //                   , ConsistencyLevel.Default, (_) =>
+        //                   {
+        //                       ar[tmpi] = true;
+        //                       Thread.MemoryBarrier();
+        //                   }, null);
+        //                }
+        //            });
+
+        //            thr.Start();
+
+        //            Thread errorInjector = new Thread(() =>
+        //            {
+        //                lock (monit)
+        //                {
+        //                    readyCnt++;
+        //                    Monitor.Wait(monit);
+        //                }
+        //                Thread.Sleep(5);
+        //                Console.Write("#");
+        //                Session.SimulateSingleConnectionDown();
+
+        //                for (int i = 0; i < 100; i++)
+        //                {
+        //                    Thread.Sleep(1);
+        //                    Console.Write("#");
+        //                    Session.SimulateSingleConnectionDown();
+        //                }
+        //            });
+        //            HashSet<int> done = new HashSet<int>();
+        //            while (done.Count < RowsNo)
+        //            {
+        //                for (int i = 0; i < RowsNo; i++)
+        //                {
+        //                    Thread.MemoryBarrier();
+        //                    if (!done.Contains(i) && ar[i])
+        //                    {
+        //                        done.Add(i);
+        //                        Console.Write("-");
+        //                    }
+        //                }
+        //            }
+
+        //            thr.Join();
+
+        //            Console.WriteLine();
+        //            Console.WriteLine("Inserted... now we are checking the count");
+
+        //            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100)))
+        //            {
+        //                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+        //            }
+
+        //            try
+        //            {
+        //                Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
+        //            }
+        //            catch { }
+        //        }
     }
 }

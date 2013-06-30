@@ -10,11 +10,11 @@ namespace Cassandra.Data
 {
     public class CqlReader : DbDataReader
     {
-        CqlRowSet popul = null;
-        IEnumerable<CqlRow> enumRows = null;
-        IEnumerator<CqlRow> enumerRows = null;
+        RowSet popul = null;
+        IEnumerable<Row> enumRows = null;
+        IEnumerator<Row> enumerRows = null;
         Dictionary<string, int> colidx = new Dictionary<string, int>();
-        internal CqlReader(CqlRowSet rows)
+        internal CqlReader(RowSet rows)
         {
             this.popul = rows;
             for (int idx = 0; idx < popul.Columns.Length; idx++)
@@ -145,8 +145,10 @@ namespace Cassandra.Data
 
         public override int GetValues(object[] values)
         {
-            Array.Copy(enumerRows.Current.Columns, values,enumerRows.Current.Columns.Length);
-            return enumerRows.Current.Columns.Length;
+            values = new object[enumerRows.Current.Length];
+            for (int i = 0; i < enumerRows.Current.Length; i++)
+                values[i] = enumerRows.Current[i];
+            return enumerRows.Current.Length;
         }
 
         public override bool HasRows

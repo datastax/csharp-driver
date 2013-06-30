@@ -9,8 +9,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("Datastax C# Driver for Apache Cassandra")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Datastax")]
-[assembly: AssemblyProduct("Cassandra")]
-[assembly: AssemblyCopyright("Copyright ©  2012")]
+[assembly: AssemblyProduct("CassandraCSharpDriver")]
+[assembly: AssemblyCopyright("Copyright (coffee) 2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

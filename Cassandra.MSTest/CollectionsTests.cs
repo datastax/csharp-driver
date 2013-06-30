@@ -61,7 +61,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void testListDouble()
         {
             insertingSingleCollection("list", typeof(Double));
