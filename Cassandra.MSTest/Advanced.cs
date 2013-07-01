@@ -43,6 +43,7 @@ namespace Cassandra.MSTest
             });
             builder.WithLoadBalancingPolicy(rp);
             builder.WithQueryTimeout(60 * 1000);
+            builder.WithAsyncCallTimeout(360 * 1000);
 
             CCMBridge.ReusableCCMCluster.Build(builder);
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
@@ -67,7 +68,7 @@ namespace Cassandra.MSTest
 
             Session.ChangeKeyspace(keyspaceName);
 
-            for (int KK = 0; KK < 10; KK++)
+            for (int KK = 0; KK < 1; KK++)
             {
                 Console.Write("Try no:" + KK);
 
@@ -207,7 +208,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 , keyspaceName)));
             Session.ChangeKeyspace(keyspaceName);
 
-            for (int KK = 0; KK < 10; KK++)
+            for (int KK = 0; KK < 1; KK++)
             {
                 Console.Write("Try no:" + KK);
 
