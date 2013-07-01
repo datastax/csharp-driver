@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+    <metadata>
+        <id>CassandraCSharpDriver</id>
+        <version>1.0.0</version>
+        <title>Datastax C# Driver for Apache Cassandra</title>
+        <authors>Datastax</authors>
+        <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+        <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
+        <requireLicenseAcceptance>true</requireLicenseAcceptance>
+        <description>A C# client driver for Apache Cassandra. This driver works exclusively with
+the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.</description>
+        <releaseNotes />
+        <copyright>Copyright (C) 2012 DataStax Inc.</copyright>
+        <tags>cassandra apache datastax driver database nosql</tags>
+    </metadata>
+</package>
