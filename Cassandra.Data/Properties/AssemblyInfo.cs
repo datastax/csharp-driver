@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Datastax")]
 [assembly: AssemblyProduct("CassandraCSharpDriver")]
-[assembly: AssemblyCopyright("Copyright (coffee) 2012")]
+[assembly: AssemblyCopyright("Copyright (coffee) Datastax 2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
