@@ -187,9 +187,9 @@
     <Compile Include="Requests\StartupRequest.cs" />
     <Compile Include="Outputs\OutputRows.cs" />
     <Compile Include="RoutingKey.cs" />
-    <Compile Include="RowPopulators\CqlRowSet+Print.cs" />
-    <Compile Include="RowPopulators\CqlRowSet.cs" />
-    <Compile Include="RowPopulators\CqlRow.cs" />
+    <Compile Include="RowPopulators\RowSet+Print.cs" />
+    <Compile Include="RowPopulators\RowSet.cs" />
+    <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
     <Compile Include="RowPopulators\TypeInterpreter.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Counter.cs" />
