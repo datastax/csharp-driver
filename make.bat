@@ -8,3 +8,4 @@ cp MyTestRun/bin/Release/Cassandra.Data.dll Nuget/lib/Cassandra.Data.dll
 cp MyTestRun/bin/Release/Cassandra.Data.Linq.dll Nuget/lib/Cassandra.Data.Linq.dll
 "tools\nuget" pack "nuget\CassandraCSharpDriver.nuspec"
 rmdir /S /Q "Nuget\lib"
+msbuild Documentation.sln /p:Configuration=Release
