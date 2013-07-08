@@ -19,38 +19,38 @@ using System.Threading;
 
 namespace Cassandra
 {
-    public class RoundRobinPolicyWithReconnectionRetriesEventArgs : EventArgs
+    public class RetryLoadBalancingPolicyEventArgs : EventArgs
     {
         public long DelayMs { get; private set; }
         public bool Cancel = false;
-        public RoundRobinPolicyWithReconnectionRetriesEventArgs(long delayMs)
+        public RetryLoadBalancingPolicyEventArgs(long delayMs)
         {
             this.DelayMs = delayMs;
         }
     }
-    public class RoundRobinPolicyWithReconnectionRetries : ILoadBalancingPolicy
+    public class RetryLoadBalancingPolicy : ILoadBalancingPolicy
     {
 
-        public RoundRobinPolicyWithReconnectionRetries(IReconnectionPolicy reconnectionPolicy)
+        public RetryLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy, IReconnectionPolicy reconnectionPolicy)
         {
             this._reconnectionPolicy = reconnectionPolicy;
+            this._loadBalancingPolicy = loadBalancingPolicy;
         }
 
 
-        public EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs> ReconnectionEvent;
+        public EventHandler<RetryLoadBalancingPolicyEventArgs> ReconnectionEvent;
 
         readonly IReconnectionPolicy _reconnectionPolicy;
-        Cluster _cluster;
-        int _startidx = -1;
+        readonly ILoadBalancingPolicy _loadBalancingPolicy;
 
         public void Initialize(Cluster cluster)
         {
-            this._cluster = cluster;
+            _loadBalancingPolicy.Initialize(cluster);
         }
 
         public HostDistance Distance(Host host)
         {
-            return HostDistance.Local;
+            return _loadBalancingPolicy.Distance(host);
         }
 
         public IEnumerable<Host> NewQueryPlan(Query query)
@@ -58,24 +58,13 @@ namespace Cassandra
             var schedule = _reconnectionPolicy.NewSchedule();
             while (true)
             {
-                List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
-                for (int i = 0; i < copyOfHosts.Count; i++)
-                {
-                    if (_startidx == -1)
-                        _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+                var childQueryPlan = _loadBalancingPolicy.NewQueryPlan(query);
+                foreach (var host in childQueryPlan)
+                    yield return host;
 
-                    _startidx %= copyOfHosts.Count;
-                    
-                    var h = copyOfHosts[_startidx];
-
-                    _startidx++;
-
-                    if (h.IsConsiderablyUp)
-                        yield return h;
-                }
                 if (ReconnectionEvent != null)
                 {
-                    var ea = new RoundRobinPolicyWithReconnectionRetriesEventArgs(schedule.NextDelayMs());
+                    var ea = new RetryLoadBalancingPolicyEventArgs(schedule.NextDelayMs());
                     ReconnectionEvent(this, ea);
                     if (ea.Cancel)
                         break;

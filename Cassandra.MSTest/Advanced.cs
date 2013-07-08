@@ -50,8 +50,8 @@ namespace Cassandra.MSTest
 
             builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
 
-            var rp = new RoundRobinPolicyWithReconnectionRetries(new ConstantReconnectionPolicy(100));
-            rp.ReconnectionEvent += new EventHandler<RoundRobinPolicyWithReconnectionRetriesEventArgs>((s, ev) =>
+            var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
+            rp.ReconnectionEvent += new EventHandler<RetryLoadBalancingPolicyEventArgs>((s, ev) =>
             {
                 Console.Write("o");
                 System.Threading.Thread.Sleep((int)ev.DelayMs);

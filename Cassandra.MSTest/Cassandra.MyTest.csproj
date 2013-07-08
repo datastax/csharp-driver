@@ -40,6 +40,7 @@
       <Link>BEBinaryWriter.cs</Link>
     </Compile>
     <Compile Include="ConsistencyTests.cs" />
+    <Compile Include="StressTest2.cs" />
     <Compile Include="CustomTypeTest.cs" />
     <Compile Include="FoundBugTests.cs" />
     <Compile Include="LargeDataTests.cs" />
@@ -69,6 +70,7 @@
     <Compile Include="Randomm.cs" />
     <Compile Include="ReconnectionPolicyTests.cs" />
     <Compile Include="RetryPolicyTest.cs" />
+    <Compile Include="StressTest1.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">

@@ -145,6 +145,7 @@
     <Compile Include="Outputs\OutputError.cs" />
     <Compile Include="CassandraCounters.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
+    <Compile Include="Policies\RetryLoadBalancingPolicy.cs" />
     <Compile Include="Policies\DCAwareRoundRobinPolicy.cs" />
     <Compile Include="Policies\DefaultRetryPolicy.cs" />
     <Compile Include="Policies\DowngradingConsistencyRetryPolicy.cs" />
@@ -156,7 +157,6 @@
     <Compile Include="Policies\ReconnectionPolicy.cs" />
     <Compile Include="Policies\RetryPolicy.cs" />
     <Compile Include="Policies\RoundRobinPolicy.cs" />
-    <Compile Include="Policies\RoundRobinPolicyWithReconnectionRetries.cs" />
     <Compile Include="Policies\TokenAwarePolicy.cs" />
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />

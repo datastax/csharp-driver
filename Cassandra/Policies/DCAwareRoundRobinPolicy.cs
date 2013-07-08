@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -35,7 +36,7 @@ namespace Cassandra
         private readonly string _localDc;
         private readonly int _usedHostsPerRemoteDc;
         Cluster _cluster;
-        int _startidx = -1;
+        int _index;
 
         /// <summary>
         ///  Creates a new datacenter aware round robin policy given the name of the local
@@ -77,6 +78,7 @@ namespace Cassandra
         public void Initialize(Cluster cluster)
         {
             this._cluster = cluster;
+            this._index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
         }
 
         private string DC(Host host)
@@ -131,22 +133,35 @@ namespace Cassandra
         {
             List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
 
+            int startidx = Interlocked.Increment(ref _index);
+            
+            // Overflow protection; not theoretically thread safe but should be good enough
+            if (startidx > int.MaxValue - 10000)
+                Thread.VolatileWrite(ref _index, 0);
+
+
+            var localHosts = new List<Host>();
+
             for (int i = 0; i < copyOfHosts.Count; i++)
             {
-                if (_startidx == -1)
-                    _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
-
-                _startidx %= copyOfHosts.Count;
-
-                var h = copyOfHosts[_startidx];
-
-                _startidx++;
-
+                var h = copyOfHosts[i];
                 if (h.IsConsiderablyUp)
                     if (_localDc.Equals(DC(h)))
-                        yield return h;
+                        localHosts.Add(h);
             }
 
+
+            for (int i = 0; i < localHosts.Count; i++)
+            {
+                startidx %= localHosts.Count;
+
+                var h = localHosts[startidx];
+
+                startidx++;
+                yield return h;
+            }
+
+            
             var remoteHosts = new List<Host>();
             var ixes = new Dictionary<string, int>();
             for (int i = 0; i < copyOfHosts.Count; i++)
@@ -164,16 +179,14 @@ namespace Cassandra
                         }
             }
 
+
             for (int i = 0; i < remoteHosts.Count; i++)
             {
-                if (_startidx == -1)
-                    _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+                startidx %= remoteHosts.Count;
 
-                _startidx %= remoteHosts.Count;
+                var h = remoteHosts[startidx];
 
-                var h = remoteHosts[_startidx];
-
-                _startidx++;
+                startidx++;
                 yield return h;
             }
         }

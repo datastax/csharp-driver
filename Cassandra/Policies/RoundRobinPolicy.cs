@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 ﻿using System.Collections.Generic;
+using System.Threading;
 
 
 namespace Cassandra
@@ -36,11 +37,12 @@ namespace Cassandra
         public RoundRobinPolicy() { }
 
         Cluster _cluster;
-        int _startidx = -1;
+        int _index;
 
         public void Initialize(Cluster cluster)
         {
             this._cluster = cluster;
+            this._index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
         }
 
 
@@ -73,14 +75,17 @@ namespace Cassandra
             List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
             for (int i = 0; i < copyOfHosts.Count; i++)
             {
-                if (_startidx == -1)
-                    _startidx = StaticRandom.Instance.Next(copyOfHosts.Count);
+                int startidx = Interlocked.Increment(ref _index);
 
-                _startidx %= copyOfHosts.Count;
+                // Overflow protection; not theoretically thread safe but should be good enough
+                if (startidx > int.MaxValue - 10000)
+                    Thread.VolatileWrite(ref _index, 0);
 
-                var h = copyOfHosts[_startidx];
+                startidx %= copyOfHosts.Count;
 
-                _startidx++;
+                var h = copyOfHosts[startidx];
+
+                startidx++;
 
                 if (h.IsConsiderablyUp)
                     yield return h;
