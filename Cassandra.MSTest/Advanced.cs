@@ -459,6 +459,72 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             catch { }
         }
 
+        public void ShutdownAsyncTest()
+        {
+            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+            Session.Cluster.WaitForSchemaAgreement(
+                Session.Execute(
+            string.Format(@"CREATE KEYSPACE {0} 
+         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                , keyspaceName)));
+            Session.ChangeKeyspace(keyspaceName);
+
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            try
+            {
+                Session.Cluster.WaitForSchemaAgreement(
+                    Session.Execute(string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid,
+         author text,
+         body text,
+         isok boolean,
+         PRIMARY KEY(tweet_id))", tableName)));
+            }
+            catch (AlreadyExistsException)
+            {
+            }
+
+            int RowsNo = 100000;
+
+            bool[] ar = new bool[RowsNo];
+
+            for (int i = 0; i < RowsNo; i++)
+            {
+                int tmpi = i;
+                try
+                {
+                    Session.BeginExecute(string.Format(@"INSERT INTO {0} (
+             tweet_id,
+             author,
+             isok,
+             body)
+    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
+                   , ConsistencyLevel.Quorum, (arx) =>
+                   {
+                       try
+                       {
+                           Session.EndExecute(arx);
+                       }
+                       catch (ObjectDisposedException)
+                       {
+                           Console.Write("*");
+                       }
+                       finally
+                       {
+                           ar[tmpi] = true;
+                           Thread.MemoryBarrier();
+                       }
+                   }, null);
+                }
+                catch (ObjectDisposedException e)
+                {
+                    Console.Write("!");
+                    break;
+                }
+            }
+            CCMBridge.ReusableCCMCluster.Shutdown(); // it makes shutdown
+        }
+
         //        public void MassiveAsyncErrorInjectionTest()
         //        {
         //            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();

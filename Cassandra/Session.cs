@@ -375,14 +375,22 @@ namespace Cassandra
 
         #region Execute
 
-        public IAsyncResult BeginExecute(Query query, object tag , AsyncCallback callback, object state)
+        private HashSet<IAsyncResult> _startedActons = new HashSet<IAsyncResult>();
+
+        public IAsyncResult BeginExecute(Query query, object tag, AsyncCallback callback, object state)
         {
-            return query.BeginSessionExecute(this, tag, callback, state);
+            var ar = query.BeginSessionExecute(this, tag, callback, state);
+            lock (_startedActons)
+                _startedActons.Add(ar);
+            return ar;
         }
 
         public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state)
         {
-            return query.BeginSessionExecute(this, null, callback, state);
+            var ar = query.BeginSessionExecute(this, null, callback, state);
+            lock (_startedActons)
+                _startedActons.Add(ar);
+            return ar;
         }
 
         public static object GetTag(IAsyncResult ar)
@@ -394,7 +402,33 @@ namespace Cassandra
         public RowSet EndExecute(IAsyncResult ar)
         {
             var longActionAc = ar as AsyncResult<RowSet>;
-            return (longActionAc.AsyncSender as Query).EndSessionExecute(this, ar);
+            var ret = (longActionAc.AsyncSender as Query).EndSessionExecute(this, ar);
+            lock (_startedActons)
+                _startedActons.Remove(ar);
+            return ret;
+        }
+
+        internal void WaitForAllPendingActions(int timeoutMs)
+        {
+            lock (_startedActons)
+            {
+                while (_startedActons.Count > 0)
+                {
+                    var it = _startedActons.GetEnumerator();
+                    it.MoveNext();
+                    var item = it.Current;
+                    Monitor.Exit(_startedActons);
+                    try
+                    {
+                        item.AsyncWaitHandle.WaitOne(timeoutMs);
+                    }
+                    finally
+                    {
+                        Monitor.Enter(_startedActons);
+                        _startedActons.Remove(item);
+                    }
+                }
+            }
         }
 
         public RowSet Execute(Query query)
@@ -424,13 +458,18 @@ namespace Cassandra
 
         public IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state)
         {
-            return BeginPrepareQuery(cqlQuery, callback, state);
+            var ar= BeginPrepareQuery(cqlQuery, callback, state);
+            lock (_startedActons)
+                _startedActons.Add(ar);
+            return ar;
         }
 
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             RowSetMetadata metadata;
             var id = EndPrepareQuery(ar, out metadata);
+            lock (_startedActons)
+                _startedActons.Remove(ar);
             return new PreparedStatement(metadata, id);
         }
 

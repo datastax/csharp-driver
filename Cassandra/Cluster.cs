@@ -185,7 +185,7 @@ namespace Cassandra
         ///  sessions of this <code>* Cluster</code> instance and reclaim all resources
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
         /// </summary>
-        public void Shutdown()
+        public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
             List<Session> conccpy;
             lock (_connectedSessions)
@@ -196,6 +196,7 @@ namespace Cassandra
 
             foreach (var ses in conccpy)
             {
+                ses.WaitForAllPendingActions(timeoutMs);
                 ses.InternalDispose();
             }
             _metadata.Dispose();

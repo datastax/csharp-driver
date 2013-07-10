@@ -45,5 +45,11 @@ namespace Cassandra.MSTest
             MassiveAsyncTest();
         }
 
+        [TestMethod]
+        [WorksForMe]
+        public void ShutdownAsync()
+        {
+            ShutdownAsyncTest();
+        }
     }
 }

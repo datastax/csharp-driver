@@ -185,16 +185,17 @@ namespace Playground
                 float proportion = (float)authorsWithPunctuationProblems.Count() / AuthorsTable.Count().Execute() * 100;
                 Console.WriteLine(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion) + Environment.NewLine);
 
-
-                // This time I will help them, and update these tweets with a full stop..            
-                foreach (var tweet in TweetsTable.Where(x => authorsWithPunctuationProblems.Contains(x.author_id)).Execute())
+                if (authorsWithPunctuationProblems.Count > 0)
                 {
-                    TweetsTable.Attach(tweet);                    
-                    tweetsLocal.Where(twt => twt.tweet_id == tweet.tweet_id).First().body += ".";
-                    tweet.body += ".";
+                    // This time I will help them, and update these tweets with a full stop..            
+                    foreach (var tweet in TweetsTable.Where(x => authorsWithPunctuationProblems.Contains(x.author_id)).Execute())
+                    {
+                        TweetsTable.Attach(tweet);
+                        tweetsLocal.Where(twt => twt.tweet_id == tweet.tweet_id).First().body += ".";
+                        tweet.body += ".";
+                    }
+                    twitterContext.SaveChanges(SaveChangesMode.Batch);
                 }
-                twitterContext.SaveChanges(SaveChangesMode.Batch);
-
 
                 //Statistics before deletion of tweets:
                 Console.WriteLine(separator + "Before deletion of all tweets our \"Statistics\" table looks like:" + Environment.NewLine);

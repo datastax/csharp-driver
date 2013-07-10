@@ -451,6 +451,12 @@ namespace Cassandra
                     Session.DeleteKeyspaceIfExists(Session.Keyspace);
                 Cluster.Shutdown();
             }
+
+            public static void Shutdown()
+            {
+                Cluster.Shutdown();
+                Session = null;
+            }
         }
 
         public class CCMCluster
