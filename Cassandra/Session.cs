@@ -210,12 +210,10 @@ namespace Cassandra
             {
                 nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider);
 
-                var options = nconn.ExecuteOptions();
+                var options = ProcessExecuteOptions(nconn.ExecuteOptions());
 
                 if (!string.IsNullOrEmpty(_keyspace))
-                {
                     nconn.SetKeyspace(_keyspace);
-                }
             }
             catch (Exception ex)
             {
@@ -512,6 +510,29 @@ namespace Cassandra
 
             else if (exc is ServerErrorException) return null;
             else return null;
+        }
+
+        private IDictionary<string, string[]> ProcessExecuteOptions(IOutput outp)
+        {
+            using (outp)
+            {
+                if (outp is OutputError)
+                {
+                    var ex = (outp as OutputError).CreateException();
+                    _logger.Error(ex);
+                    throw ex;
+                }
+                else if (outp is OutputOptions)
+                {
+                    return (outp as OutputOptions).Options;
+                }
+                else
+                {
+                    var ex = new DriverInternalError("Unexpected output kind");
+                    _logger.Error("Prepared Query has returned an unexpected output kind.", ex);
+                    throw ex;
+                }
+            }
         }
 
         private void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId)

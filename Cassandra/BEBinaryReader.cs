@@ -99,6 +99,14 @@ namespace Cassandra
             return l;
         }
 
+        public byte[] ReadBytes()
+        {
+            var length = ReadInt32();
+            var buf = new byte[length];
+            Read(buf, 0, length);
+            return buf;
+        }
+
         public void Read(byte[] buffer, int offset, int count)
         {
             _stream.Read(buffer, offset, count);
