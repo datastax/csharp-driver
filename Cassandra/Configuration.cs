@@ -32,7 +32,7 @@ namespace Cassandra
         private readonly SocketOptions _socketOptions;
         private readonly ClientOptions _clientOptions;
 
-        private readonly IAuthInfoProvider _authProvider;
+        private readonly IAuthProvider _authProvider;
 
         internal Configuration() :
             this(new Policies(),
@@ -49,7 +49,7 @@ namespace Cassandra
                              PoolingOptions poolingOptions,
                              SocketOptions socketOptions,
                              ClientOptions clientOptions,
-                             IAuthInfoProvider authProvider)
+                             IAuthProvider authProvider)
         {
             this._policies = policies;
             this._protocolOptions = protocolOptions;
@@ -108,7 +108,7 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the authentication provider in use.</returns>
-        internal IAuthInfoProvider AuthInfoProvider
+        internal IAuthProvider AuthInfoProvider
         // Not exposed yet on purpose
         {
             get { return _authProvider; }

@@ -275,7 +275,7 @@ namespace Cassandra
 
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
         private int _port = ProtocolOptions.DefaultPort;
-        private IAuthInfoProvider _authProvider = null;
+        private IAuthProvider _authProvider = NoneAuthProvider.Instance;
         private CompressionType _compression = CompressionType.NoCompression;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
@@ -477,20 +477,37 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Uses the provided credentials when connecting to Cassandra hosts.
-        ///  <p> This should be used if the Cassandra cluster has been configured to
-        ///  use the {@code PasswordAuthenticator}. If the the default 
-        ///  <code>AllowAllAuthenticator</code> is used instead, using this 
-        ///  method has no effect.</p>
+        ///  Uses the provided credentials when connecting to Cassandra hosts. <p> This
+        ///  should be used if the Cassandra cluster has been configured to use the
+        ///  <code>PasswordAuthenticator</code>. If the the default <code>*
+        ///  AllowAllAuthenticator</code> is used instead, using this method has no effect.
         /// </summary>
         /// <param name="username"> the username to use to login to Cassandra hosts.
-        /// <param name="password"> the password corresponding to <code>username</code>.
         ///  </param>
+        /// <param name="password"> the password corresponding to </param>
+        /// <param name="<code>username"></code>. </param>
         /// 
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
-            this._authProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password",password);
+            this._authProvider = new PlainTextAuthProvider(username, password);
+            return this;
+        }
+
+        /// <summary>
+        ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
+        ///  this method when a custom authentication scheme is in place. You shouldn't
+        ///  call both this method and {@code withCredentials}' on the same
+        ///  <code>Builder</code> instance as one will supercede the other
+        /// </summary>
+        /// <param name="authProvider"> the </param>
+        /// <param name="<link>AuthProvider"></link> to use to login to Cassandra hosts.
+        ///  </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithAuthProvider(IAuthProvider authProvider)
+        {
+            this._authProvider = authProvider;
             return this;
         }
 

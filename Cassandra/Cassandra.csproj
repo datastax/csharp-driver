@@ -43,6 +43,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.IdentityModel" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -66,6 +67,7 @@
       <Link>Snappy\SnappyInternalUtils.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
+    <Compile Include="IAuthenticator.cs" />
     <Compile Include="BEBinaryWriterFrame.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
@@ -76,7 +78,7 @@
     <Compile Include="Exceptions\InvalidTypeException.cs" />
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
-    <Compile Include="IAuthInfoProvider.cs" />
+    <Compile Include="IAuthProvider.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
@@ -144,6 +146,7 @@
     <Compile Include="Outputs\OutputSetKeyspace.cs" />
     <Compile Include="Outputs\OutputError.cs" />
     <Compile Include="CassandraCounters.cs" />
+    <Compile Include="PlainTextAuthProvider.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
     <Compile Include="Policies\RetryLoadBalancingPolicy.cs" />
     <Compile Include="Policies\DCAwareRoundRobinPolicy.cs" />
@@ -164,6 +167,7 @@
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Query.cs" />
     <Compile Include="QueryTrace.cs" />
+    <Compile Include="Requests\AuthResponseRequest.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
     <Compile Include="Responses\AuthenticateResponse.cs" />
@@ -172,6 +176,8 @@
     <Compile Include="CassandraConnection.cs" />
     <Compile Include="Commands\CassandraConnection+Query.cs" />
     <Compile Include="Requests\PrepareRequest.cs" />
+    <Compile Include="Responses\AuthChallengeResponse.cs" />
+    <Compile Include="Responses\AuthSuccessResponse.cs" />
     <Compile Include="Responses\EventResponse.cs" />
     <Compile Include="Requests\QueryRequest.cs" />
     <Compile Include="Responses\ResultResponse.cs" />
@@ -213,8 +219,9 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Bigint.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
+    <Compile Include="Kerberos\DseAuthProvider.cs" />
+    <Compile Include="Kerberos\KerberosAuthenticator.cs" />
     <Compile Include="Session.cs" />
-    <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
     <Compile Include="SocketOptions.cs" />

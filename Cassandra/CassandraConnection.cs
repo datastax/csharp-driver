@@ -62,7 +62,7 @@ namespace Cassandra
 
         Action<ErrorActionParam> _protocolErrorHandlerAction;
 
-        readonly IAuthInfoProvider _authInfoProvider;
+        readonly IAuthProvider _authInfoProvider;
 
         readonly Session _owner;
 
@@ -75,7 +75,7 @@ namespace Cassandra
 
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
-                                     IAuthInfoProvider authInfoProvider)
+                                     IAuthProvider authInfoProvider)
         {
             this._owner = owner;
             _bufferingMode = null;
@@ -280,22 +280,8 @@ namespace Cassandra
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (_authInfoProvider == null)
-                                throw new AuthenticationException("Credentials are required.", _serverAddress);
-
-                            var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
-
-                            Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
-                            {
-                                var response2 = FrameParser.Parse(frame2);
-                                if (response2 is ReadyResponse)
-                                {
-                                    _isStreamOpened.Value = true;
-                                    job(streamId);
-                                }
-                                else
-                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
-                            }));
+                            var authenticator = _authInfoProvider.NewAuthenticator(this._serverAddress);
+                            WaitForSaslResponse(streamId, response, authenticator,job);
                         }
                         else
                             _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
@@ -311,6 +297,41 @@ namespace Cassandra
             }
 
             return ar;
+        }
+
+        private void WaitForSaslResponse(int streamId, AbstractResponse response, IAuthenticator authenticator, Action<int> job)
+        {
+            var initialResponse = authenticator.InitialResponse();
+            if (null == initialResponse)
+                initialResponse = new byte[0];
+
+            Evaluate(new AuthResponseRequest(streamId, initialResponse), streamId, new Action<ResponseFrame>((frame2) =>
+            {
+                var response2 = FrameParser.Parse(frame2);
+                if ((response2 is AuthSuccessResponse)
+                    || (response2 is ReadyResponse))
+                {
+                    _isStreamOpened.Value = true;
+                    job(streamId);
+                }
+                else if (response2 is AuthChallengeResponse)
+                {
+                    byte[] responseToServer = authenticator.EvaluateChallenge((response2 as AuthChallengeResponse).Token);
+                    if (responseToServer == null)
+                    {
+                        // If we generate a null response, then authentication has completed,return without
+                        // sending a further response back to the server.
+                        return;
+                    }
+                    else
+                    {
+                        // Otherwise, send the challenge response back to the server
+                        WaitForSaslResponse(streamId, response2, authenticator, job);
+                    }
+                }
+                else
+                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
+            }));
         }
 
         readonly IProtoBufComporessor _compressor = null;

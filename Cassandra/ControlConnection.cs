@@ -36,7 +36,7 @@ namespace Cassandra
                                    PoolingOptions poolingOptions,
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
-                                   IAuthInfoProvider authProvider)
+                                   IAuthProvider authProvider)
         {
             this._cluster = cluster;
             this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
