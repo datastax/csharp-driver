@@ -92,12 +92,19 @@ namespace Cassandra
         {
             get { return _rawrows == null ? 0 : _rawrows.Rows; }
         }
+        
+        bool _alreadyIterated = false;
 
         public IEnumerable<Row> GetRows()
         {
+            if (_alreadyIterated)
+                throw new InvalidOperationException("RowSet already iterated");
+            
             if (_rawrows != null)
                 for (int i = 0; i < _rawrows.Rows; i++)
                     yield return _rawrows.Metadata.GetRow(_rawrows);
+         
+            _alreadyIterated = true;
         }
 
         bool _alreadyDisposed = false;

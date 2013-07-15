@@ -499,5 +499,51 @@ namespace Cassandra.MSTest
                 cluster.Discard();
             }
         }
+
+        [TestMethod]
+        [WorksForMe]
+        public void rowsetIteratedTwice()
+        {
+            var builder = Cluster.Builder();
+            CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(1, builder);
+            try
+            {
+                Session session = cluster.Session;
+                CCMBridge bridge = cluster.CCMBridge;
+
+                String keyspace = "TestKeyspace";
+                String table = "TestTable";
+                String key = "1";
+
+                session.Cluster.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1))
+                );
+                session.Execute("USE " + keyspace);
+                session.Cluster.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
+                                );
+
+                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)));
+                var rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
+                var cnt = rowset.Count();
+                try
+                {
+                    foreach (var r in rowset)
+                        Console.Write(r.GetValue<string>("k"));
+                    Assert.Fail();
+                }
+                catch (InvalidOperationException)
+                { 
+                }
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+            finally
+            {
+                cluster.Discard();
+            }
+        }    
     }
 }

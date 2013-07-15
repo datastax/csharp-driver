@@ -190,7 +190,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void test1()
         {
             parallelInsertTestGeneric(10, 1);
