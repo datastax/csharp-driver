@@ -294,11 +294,17 @@ namespace Cassandra.Data.Linq
             ret.Append("(");
             string crtIndex = "CREATE INDEX ON " + table.GetTableName().CqlIdentifier() + "(";
             string crtIndexAll = string.Empty;
-
-            var clusteringKeys = new SortedDictionary<int, string>();
+             
+            var clusteringKeys = new SortedDictionary<int, ClusteringKeyAttribute>();
             var partitionKeys = new SortedDictionary<int, string>();
+            var directives = new List<string>(); 
+
             var props = table.GetEntityType().GetPropertiesOrFields();
             int curLevel = 0;
+
+            if (table.GetEntityType().GetCustomAttributes(typeof(CompactStorageAttribute), false).Any())
+                directives.Add("COMPACT STORAGE");
+
             foreach (var prop in props)
             {
                 Type tpy = prop.GetTypeFromPropertyOrField();
@@ -339,7 +345,8 @@ namespace Cassandra.Data.Linq
                         var idx = rk.Index;
                         if (idx == -1)
                             idx = curLevel++;
-                        clusteringKeys.Add(idx, memName);
+                        rk.Name = memName;
+                        clusteringKeys.Add(idx, rk);                                        
                     }
                     else
                     {
@@ -351,6 +358,12 @@ namespace Cassandra.Data.Linq
                     }
                 }
             }
+
+            foreach (var clustKey in clusteringKeys)
+                if (clustKey.Value.ClusteringOrder != null)
+                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string)clustKey.Value.Name, clustKey.Value.ClusteringOrder));
+                else
+                    break;
 
             if (countersSpotted)// validating if table consists only of counters
                 if (countersCount + clusteringKeys.Count + 1 != props.Count())
@@ -373,11 +386,24 @@ namespace Cassandra.Data.Linq
             foreach (var kv in clusteringKeys)
             {
                 ret.Append(", ");
-                ret.Append(kv.Value.CqlIdentifier());
+                ret.Append(kv.Value.Name.CqlIdentifier());
             }
-            ret.Append("));");
-            commands.Add(ret.ToString());
+            ret.Append("))");
 
+            if (directives.Count > 0)
+            {
+                ret.Append(" WITH ");
+                bool first = true;
+                foreach (var par in directives)
+                {
+                    ret.Append((first ? "" : " AND ") + par);
+                    first = false;
+                }
+            }
+
+            ret.Append(";");
+
+            commands.Add(ret.ToString());
             if (commands.Count > 1)
                 commands.Reverse();
             return commands;
