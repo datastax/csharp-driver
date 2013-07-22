@@ -16,59 +16,66 @@
 using System.Net;
 using System.Text;
 using System;
-using System.IdentityModel.Selectors;
-using System.Security.Principal;
-using System.IdentityModel.Tokens;
+using SSPI;
 
 namespace Cassandra
 {
     /// <summary>
     ///  Responsible for authenticating with secured DSE services using Kerberos over
-    ///  GSSAPI & SASL. The actual SASL negotiation is delegated to a
-    ///  PrivilegedSaslClient which performs the priviledged actions on behalf of the
-    ///  logged in user. </p> The SASL protocol name defaults to "dse"; should you
-    ///  need to change that it can be overridden using the
-    ///  <code>dse.sasl.protocol</code> system property. </p> Keytab and ticket cache
-    ///  settings are specified using a standard JAAS configuration file. The location
-    ///  of the file can be set using the <code>java.security.auth.login.config</code>
-    ///  system property or by adding a <code>login.config.url.n</code> entry in the
-    ///  <code>java.security</code> properties file. </p> See
-    ///  <link>http://docs.oracle.com/javase/1.4.2/docs/guide/security/jaas/tutorials/L
-    ///  oginConfigFile.html</link> for further details on the Login configuration
-    ///  file and
-    ///  <link>http://docs.oracle.com/javase/6/docs/technotes/guides/security/jaas/tuto
-    ///  rials/GeneralAcnOnly.html</link> for more on JAAS in general. </p>
-    ///  <h1>Authentication using ticket cache</h1> Run <code>kinit</code> to obtain a
-    ///  ticket and populate the cache before connecting. JAAS config: <pre> DseClient
-    ///  com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true
-    ///  renewTGT=true; }; </pre> <h1>Authentication using a keytab file</h1> <p>To
-    ///  enable authentication using a keytab file, specify its location on disk. If
-    ///  your keytab contains more than one principal key, you should also specify
-    ///  which one to select. <pre> DseClient
-    ///  com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true
-    ///  keyTab="/path/to/file.keytab" principal="user@MYDOMAIN.COM"; }; </pre>
+    ///  SSPI
     /// </summary>
 
     public class KerberosAuthenticator : IAuthenticator
     {
         private readonly Logger _logger = new Logger(typeof(KerberosAuthenticator));
 
-        private readonly KerberosSecurityTokenProvider _oProvider;
+        SSPIHelper _sspi;
 
-        public KerberosAuthenticator(IPAddress host)
+        public KerberosAuthenticator(string principal, NetworkCredential credentials)
         {
-            _oProvider = new KerberosSecurityTokenProvider("COGSERVER01", TokenImpersonationLevel.Identification, new NetworkCredential(@"p.kaplanski", "3wiOiSiDSa","COGNET"));
+            //KerberosSecurityTokenProvider _oProvider;
+
+            //_oProvider = new KerberosSecurityTokenProvider("COGSERVER01", TokenImpersonationLevel.Identification, 
+            //    new NetworkCredential(@"LinuxText1", "zaq12WSX", "COGNET.COGNITUM.EU"));
+
+            _sspi = new SSPIHelper(principal, credentials);
         }
+
+        bool _continueChallenge=true;
 
         public byte[] InitialResponse()
         {
-            KerberosRequestorSecurityToken oToken = (KerberosRequestorSecurityToken)_oProvider.GetToken(TimeSpan.FromHours(1));
-            return oToken.SecurityKey.GetSymmetricKey();
+            byte[] token = null;
+            byte[] challenge = null;
+            _sspi.InitializeClient(out token, challenge, out _continueChallenge);
+            return token;
+
+            //KerberosRequestorSecurityToken oToken = (KerberosRequestorSecurityToken)_oProvider.GetToken(TimeSpan.FromDays(365));
+            //var abRequest = oToken.GetRequest();
+            //return abRequest;
         }
 
         public byte[] EvaluateChallenge(byte[] challenge)
         {
-            return null;
+            if (_continueChallenge)
+            {
+                byte[] _token = null;
+                _sspi.InitializeClient(out _token, challenge, out _continueChallenge);
+                return _token;
+            }
+            else
+                return null;
+
+            //if (challenge == null || challenge.Length == 0)
+            //    return null;
+            //else
+            //{
+            //    KerberosRequestorSecurityToken oToken = (KerberosRequestorSecurityToken)_oProvider.GetToken(TimeSpan.FromDays(365));
+            //    var abRequest = oToken.GetRequest();
+            //    return abRequest;
+            //}
+            //var oReceivedToken = new KerberosReceiverSecurityToken(challenge, sId);
+            //return oReceivedToken.GetRequest();
         }
     }
 }

@@ -31,9 +31,41 @@ namespace Cassandra
 
     public class DseAuthProvider : IAuthProvider
     {
+        IDseCredentialsResolver _credentialsResolver;
+        public DseAuthProvider(IDseCredentialsResolver credentialsResolver)
+        {
+            _credentialsResolver = credentialsResolver;
+        }
         public IAuthenticator NewAuthenticator(IPAddress host)
         {
-            return new KerberosAuthenticator(host);
+            return new KerberosAuthenticator(_credentialsResolver.GetPrincipal(host), _credentialsResolver.GetCredentials(host));
+        }
+    }
+
+    public interface IDseCredentialsResolver
+    {
+        string GetPrincipal(IPAddress host);
+        NetworkCredential GetCredentials(IPAddress host);
+    }
+
+    public class SimpleDseCredentialsResolver : IDseCredentialsResolver
+    {
+        string _principal;
+        NetworkCredential _credential;
+
+        public SimpleDseCredentialsResolver(string principal, NetworkCredential credential)
+        {
+            _principal = principal;
+            _credential = credential;
+        }
+        public string GetPrincipal(IPAddress host)
+        {
+            return _principal;
+        }
+
+        public NetworkCredential GetCredentials(IPAddress host)
+        {
+            return _credential;
         }
     }
 }

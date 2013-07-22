@@ -321,6 +321,8 @@ namespace Cassandra
                     {
                         // If we generate a null response, then authentication has completed,return without
                         // sending a further response back to the server.
+                        _isStreamOpened.Value = true;
+                        job(streamId);
                         return;
                     }
                     else

@@ -43,7 +43,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.IdentityModel" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -79,6 +78,7 @@
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthProvider.cs" />
+    <Compile Include="Kerberos\SSPI.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
