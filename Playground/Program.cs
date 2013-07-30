@@ -40,9 +40,8 @@ namespace Playground
             Console.WriteLine("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            Cluster cluster = Cluster.Builder().AddContactPoint("192.168.0.125")
-                //.WithCredentials("cassandra", "cassandra")
-                .WithAuthProvider(new DseAuthProvider(new SimpleDseCredentialsResolver("Principal", new NetworkCredential("user", "password", "domain"))))
+            Cluster cluster = Cluster.Builder().AddContactPoint("192.168.0.116")
+                .WithAuthProvider(new DseAuthProvider())
                 .Build();
 
             using (var session = cluster.Connect())

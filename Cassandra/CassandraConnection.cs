@@ -281,7 +281,12 @@ namespace Cassandra
                         else if (response is AuthenticateResponse)
                         {
                             var authenticator = _authInfoProvider.NewAuthenticator(this._serverAddress);
-                            WaitForSaslResponse(streamId, response, authenticator,job);
+                           
+                            var initialResponse = authenticator.InitialResponse();
+                            if (null == initialResponse)
+                                initialResponse = new byte[0];
+
+                            WaitForSaslResponse(streamId, initialResponse, authenticator, job);
                         }
                         else
                             _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
@@ -299,13 +304,9 @@ namespace Cassandra
             return ar;
         }
 
-        private void WaitForSaslResponse(int streamId, AbstractResponse response, IAuthenticator authenticator, Action<int> job)
+        private void WaitForSaslResponse(int streamId, byte[] response, IAuthenticator authenticator, Action<int> job)
         {
-            var initialResponse = authenticator.InitialResponse();
-            if (null == initialResponse)
-                initialResponse = new byte[0];
-
-            Evaluate(new AuthResponseRequest(streamId, initialResponse), streamId, new Action<ResponseFrame>((frame2) =>
+            Evaluate(new AuthResponseRequest(streamId, response), streamId, new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
                 if ((response2 is AuthSuccessResponse)
@@ -328,7 +329,7 @@ namespace Cassandra
                     else
                     {
                         // Otherwise, send the challenge response back to the server
-                        WaitForSaslResponse(streamId, response2, authenticator, job);
+                        WaitForSaslResponse(streamId, responseToServer, authenticator, job);
                     }
                 }
                 else

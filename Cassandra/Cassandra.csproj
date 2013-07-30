@@ -78,7 +78,14 @@
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthProvider.cs" />
-    <Compile Include="Kerberos\SSPI.cs" />
+    <Compile Include="Kerberos\KerberosAuthenticator.SSPI.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Kerberos\SASL.cs" />
+    <Compile Include="Kerberos\SSPI.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Kerberos\WindowsAPI.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
@@ -220,7 +227,6 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
     <Compile Include="Kerberos\DseAuthProvider.cs" />
-    <Compile Include="Kerberos\KerberosAuthenticator.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />

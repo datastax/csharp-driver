@@ -17,6 +17,7 @@ using System.Net;
 using System.Text;
 using System;
 using SSPI;
+using System.Security.Principal;
 
 namespace Cassandra
 {
@@ -30,18 +31,19 @@ namespace Cassandra
         private readonly Logger _logger = new Logger(typeof(KerberosAuthenticator));
 
         SSPIHelper _sspi;
+        string _username;
 
-        public KerberosAuthenticator(string principal, NetworkCredential credentials)
+        public KerberosAuthenticator(string hostname, NetworkCredential credential, string principal)
         {
-            //KerberosSecurityTokenProvider _oProvider;
-
-            //_oProvider = new KerberosSecurityTokenProvider("COGSERVER01", TokenImpersonationLevel.Identification, 
-            //    new NetworkCredential(@"LinuxText1", "zaq12WSX", "COGNET.COGNITUM.EU"));
-
-            _sspi = new SSPIHelper(principal, credentials);
+            if (credential == null)
+                _username = Environment.UserName + "@" + System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName.ToUpper();
+            else
+                _username = credential.UserName + "@" + credential.Domain;
+            _sspi = new SSPIHelper(hostname, credential, principal);
         }
 
-        bool _continueChallenge=true;
+        bool _continueChallenge = true;
+        bool _finalHandshake = false;
 
         public byte[] InitialResponse()
         {
@@ -49,33 +51,33 @@ namespace Cassandra
             byte[] challenge = null;
             _sspi.InitializeClient(out token, challenge, out _continueChallenge);
             return token;
-
-            //KerberosRequestorSecurityToken oToken = (KerberosRequestorSecurityToken)_oProvider.GetToken(TimeSpan.FromDays(365));
-            //var abRequest = oToken.GetRequest();
-            //return abRequest;
         }
 
         public byte[] EvaluateChallenge(byte[] challenge)
         {
-            if (_continueChallenge)
+            if (_finalHandshake)
             {
-                byte[] _token = null;
-                _sspi.InitializeClient(out _token, challenge, out _continueChallenge);
-                return _token;
+                return SASL.FinalHandshake(_sspi, challenge, _username);
             }
             else
-                return null;
-
-            //if (challenge == null || challenge.Length == 0)
-            //    return null;
-            //else
-            //{
-            //    KerberosRequestorSecurityToken oToken = (KerberosRequestorSecurityToken)_oProvider.GetToken(TimeSpan.FromDays(365));
-            //    var abRequest = oToken.GetRequest();
-            //    return abRequest;
-            //}
-            //var oReceivedToken = new KerberosReceiverSecurityToken(challenge, sId);
-            //return oReceivedToken.GetRequest();
+            {
+                if (_continueChallenge)
+                {
+                    byte[] _token = null;
+                    _sspi.InitializeClient(out _token, challenge, out _continueChallenge);
+                    if (_continueChallenge == false)
+                    {
+                        _finalHandshake = true;
+                        if (_token == null) // RFC 2222 7.2.1:  Client responds with no data
+                            return new byte[0];
+                    }
+                    return _token;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Authentication already complete");
+                }
+            }
         }
     }
 }

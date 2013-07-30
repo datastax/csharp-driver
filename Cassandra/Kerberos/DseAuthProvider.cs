@@ -16,6 +16,7 @@
 using System.Net;
 using System.Text;
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -32,28 +33,34 @@ namespace Cassandra
     public class DseAuthProvider : IAuthProvider
     {
         IDseCredentialsResolver _credentialsResolver;
+        public DseAuthProvider()
+        {
+            _credentialsResolver = new SimpleDseCredentialsResolver();
+        }
         public DseAuthProvider(IDseCredentialsResolver credentialsResolver)
         {
             _credentialsResolver = credentialsResolver;
         }
         public IAuthenticator NewAuthenticator(IPAddress host)
         {
-            return new KerberosAuthenticator(_credentialsResolver.GetPrincipal(host), _credentialsResolver.GetCredentials(host));
+            return new KerberosAuthenticator(_credentialsResolver.GetHostName(host), _credentialsResolver.GetCredential(host), _credentialsResolver.GetPrincipal(host));
         }
     }
 
     public interface IDseCredentialsResolver
     {
         string GetPrincipal(IPAddress host);
-        NetworkCredential GetCredentials(IPAddress host);
+        string GetHostName(IPAddress host);
+        NetworkCredential GetCredential(IPAddress host);
     }
 
     public class SimpleDseCredentialsResolver : IDseCredentialsResolver
     {
         string _principal;
+        Dictionary<IPAddress, string> _hostnames = new Dictionary<IPAddress, string>();
         NetworkCredential _credential;
 
-        public SimpleDseCredentialsResolver(string principal, NetworkCredential credential)
+        public SimpleDseCredentialsResolver(NetworkCredential credential = null, string principal = null)
         {
             _principal = principal;
             _credential = credential;
@@ -63,9 +70,22 @@ namespace Cassandra
             return _principal;
         }
 
-        public NetworkCredential GetCredentials(IPAddress host)
+        public NetworkCredential GetCredential(IPAddress host)
         {
             return _credential;
+        }
+
+        public string GetHostName(IPAddress host)
+        {
+            lock (_hostnames)
+            {
+                if (!_hostnames.ContainsKey(host))
+                {
+                    IPHostEntry entry = Dns.GetHostEntry(host);
+                    _hostnames.Add(host, "dse/" + entry.HostName + "@" + (_credential == null ? System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName.ToUpper() : _credential.Domain));
+                }
+                return _hostnames[host];
+            }
         }
     }
 }
