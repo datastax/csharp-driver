@@ -16,6 +16,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Collections.Generic;
+using System.Net;
 
 namespace Cassandra
 {    
@@ -24,6 +26,37 @@ namespace Cassandra
         private static readonly Logger _logger = new Logger(typeof(CassandraCounters));
         private static bool CategoryReady = false;
         private const string CassandraCountersCategory = "DataStax Cassandra C# driver";
+
+        #region ConnectionsCount     
+                           
+        private static Dictionary<IPAddress, PerformanceCounter> NumberOfConnectionsCounters = null;
+
+        private static bool NOC_Counters_initiated = false;
+        public static void SetConnectionsCount(IPAddress node, int value)
+        {
+            if (Diagnostics.CassandraPerformanceCountersEnabled)
+            {
+                if (!NOC_Counters_initiated)
+                    lock (guard)
+                        if (!NOC_Counters_initiated)
+                        {
+                            NumberOfConnectionsCounters = new Dictionary<IPAddress, PerformanceCounter>();
+                            NOC_Counters_initiated = true;
+                        }
+
+                if (!NumberOfConnectionsCounters.ContainsKey(node))
+                    lock (node)
+                   {
+                        if (!NumberOfConnectionsCounters.ContainsKey(node))
+                        {                            
+                            NumberOfConnectionsCounters.Add(node, null);
+                            SetupCategory();
+                        }
+                    }                
+                setupAndIncrement(NumberOfConnectionsCounters[node], node.ToString(), value, true);                
+            }
+        }
+        #endregion
 
         #region CqlQueryCountPerSec
         [ThreadStatic]
@@ -57,7 +90,7 @@ namespace Cassandra
             setupAndIncrement(CqlQueryBeatsBase, CqlQueryBeatsNameBase);
         }
 
-        private static void setupAndIncrement(PerformanceCounter counter, string counterName, long? value = null)
+        private static void setupAndIncrement(PerformanceCounter counter, string counterName, long? value = null, bool raw_value = false)
         {
             if (Diagnostics.CassandraPerformanceCountersEnabled)
             {
@@ -66,7 +99,10 @@ namespace Cassandra
 
                 if (counter != null && CategoryReady)
                     if (value != null)
-                        counter.IncrementBy((long)value);
+                        if(raw_value)
+                            counter.RawValue = (long)value;
+                        else
+                            counter.IncrementBy((long)value);
                     else
                         counter.Increment();
             }
@@ -127,16 +163,26 @@ namespace Cassandra
 
             return CategoryReady ? new PerformanceCounter(counterCategory, counterName, false) : null;
         }
-
         private static void SetupCategory()
         {
             // Create category if:
             //  1) It not exists.
             //  2) New counter was added. - this situation occurs when category is already set on the machine, but it lacks the newly added counter, so it have to be recreated.                        
             if (PerformanceCounterCategory.Exists(CassandraCountersCategory))
-                if (PerformanceCounterCategory.CounterExists(CqlQueryBeatsName, CassandraCountersCategory) &&
+            {
+                bool dynCreated = true;
+                if(NumberOfConnectionsCounters != null)
+                foreach (var dynCntr in NumberOfConnectionsCounters.Keys)
+                    if (!PerformanceCounterCategory.CounterExists(dynCntr.ToString(), CassandraCountersCategory))
+                    {
+                        dynCreated = false;
+                        break;
+                    }
+
+                if (dynCreated &&
+                    PerformanceCounterCategory.CounterExists(CqlQueryBeatsName, CassandraCountersCategory) &&
                     PerformanceCounterCategory.CounterExists(CqlQueryCountPerSecName, CassandraCountersCategory) &&//Add here every counter that will be used in driver, to check if currently existing category contains it.
-                    PerformanceCounterCategory.CounterExists(QueryTimeRollingAvrgName, CassandraCountersCategory)) 
+                    PerformanceCounterCategory.CounterExists(QueryTimeRollingAvrgName, CassandraCountersCategory))
                 {
                     CategoryReady = true;
                     _logger.Info(string.Format("Performance counters category '{0}' already exists and contains all requiered counters.", CassandraCountersCategory));
@@ -149,11 +195,11 @@ namespace Cassandra
                         _logger.Info("Successfully deleted performance counters category: " + CassandraCountersCategory);
                     }
                     catch (System.UnauthorizedAccessException ex)
-                    {                        
+                    {
                         _logger.Error(string.Format("Cannot delete performance counters category '{0}' due to insufficient administrative rights.", CassandraCountersCategory), ex);
                         throw;
                     }
-
+            }
 
             CounterCreationDataCollection CCDC = new CounterCreationDataCollection();
 
@@ -166,6 +212,14 @@ namespace Cassandra
 
 
             CCDC.Add(CqlQueryCountPerSecData);
+            foreach (var dynCount in NumberOfConnectionsCounters.Keys)
+                CCDC.Add(
+            new CounterCreationData()
+            {
+                CounterName = dynCount.ToString(),
+                CounterHelp = string.Format("Number of connections in pool for {0} node.", dynCount.ToString()),
+                CounterType = PerformanceCounterType.NumberOfItems32
+            });
 
             
             CounterCreationData CqlQueryBeatsData = new CounterCreationData()

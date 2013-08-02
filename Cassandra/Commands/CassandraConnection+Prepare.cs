@@ -19,9 +19,10 @@ namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginPrepareQuery(int stramId, string cqlQuery, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "PREPARE", SetupKeyspace((streamId) =>
+            var jar = SetupJob(stramId, callback, state, owner, "PREPARE");
+            BeginJob(jar, SetupKeyspace((streamId) =>
             {
                 Evaluate(new PrepareRequest(streamId, cqlQuery), streamId, new Action<ResponseFrame>((frame2) =>
                 {
@@ -38,6 +39,7 @@ namespace Cassandra
 
                 }));
             }));
+            return jar;
         }
 
         public IOutput EndPrepareQuery(IAsyncResult result, object owner)
@@ -45,9 +47,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "PREPARE");
         }
 
-        public IOutput PrepareQuery(string cqlQuery)
+        public IOutput PrepareQuery(int streamId, string cqlQuery)
         {
-            return EndPrepareQuery(BeginPrepareQuery(cqlQuery, null, null, this), this);
+            return EndPrepareQuery(BeginPrepareQuery(streamId, cqlQuery, null, null, this), this);
         }
     }
 }

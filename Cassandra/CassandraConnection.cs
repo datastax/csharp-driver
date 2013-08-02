@@ -171,7 +171,7 @@ namespace Cassandra
 
         readonly IBuffering _bufferingMode;
 
-        private int AllocateStreamId()
+        internal int AllocateStreamId()
         {
             lock (_freeStreamIDs)
             {
@@ -182,7 +182,7 @@ namespace Cassandra
                     return i;
                 }
                 else
-                    return -1;
+                    throw new StreamAllocationException();
             }
         }
 
@@ -249,34 +249,36 @@ namespace Cassandra
         {
         }
 
-        private AsyncResult<IOutput> BeginJob(AsyncCallback callback, object state, object owner, string propId, Action<int> job, bool startup = true)
+        private AsyncResult<IOutput> SetupJob(int streamId, AsyncCallback callback, object state, object owner, string propId)
         {
-            var streamId = AllocateStreamId();
-            if (streamId == -1)
-                throw new StreamAllocationException();
-
             _defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
                 _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
             });
 
-            var ar = new AsyncResult<IOutput>(callback, state, owner, propId, null,null, _asyncCallAbortTimeout);
+            var ar = new AsyncResult<IOutput>(streamId, callback, state, owner, propId, null, null, _asyncCallAbortTimeout);
 
             lock (_frameGuardier)
                 _frameReadAsyncResult[streamId] = ar;
+
+            return ar;
+        }
+
+        private void BeginJob(AsyncResult<IOutput> jar,  Action<int> job, bool startup = true)
+        {
 
             try
             {
                 if (startup && !_isStreamOpened.Value)
                 {
-                    Evaluate(new StartupRequest(streamId, _startupOptions), streamId, (frame) =>
+                    Evaluate(new StartupRequest(jar.StreamId, _startupOptions), jar.StreamId, (frame) =>
                     {
                         var response = FrameParser.Parse(frame);
                         if (response is ReadyResponse)
                         {
                             _isStreamOpened.Value = true;
-                            job(streamId);
+                            job(jar.StreamId);
                         }
                         else if (response is AuthenticateResponse)
                         {
@@ -285,32 +287,30 @@ namespace Cassandra
 
                             var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
 
-                            Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
+                            Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                             {
                                 var response2 = FrameParser.Parse(frame2);
                                 if (response2 is ReadyResponse)
                                 {
                                     _isStreamOpened.Value = true;
-                                    job(streamId);
+                                    job(jar.StreamId);
                                 }
                                 else
-                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
+                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = jar.StreamId });
                             }));
                         }
                         else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = jar.StreamId });
                     });
                 }
                 else
-                    job(streamId);
+                    job(jar.StreamId);
             }
             catch (Exception ex)
             {
                 if (!SetupSocketException(ex))
                     throw;
             }
-
-            return ar;
         }
 
         readonly IProtoBufComporessor _compressor = null;
@@ -480,7 +480,7 @@ namespace Cassandra
             || ex is ObjectDisposedException
             || ex is StreamAllocationException
             || ex is CassandraConnectionTimeoutException;
-        }
+        }        
 
         private void CompleteReader()
         {
@@ -599,8 +599,8 @@ namespace Cassandra
                                 _frameReadTimers[streamId].Change(_queryAbortTimeout, Timeout.Infinite);
                         }
                     }
-                    _writerSocketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
-                    _writerSocketStream.Flush();
+                    var wr = _writerSocketStream.BeginWrite(frame.Buffer, 0, frame.Buffer.Length, null, null);
+                    _writerSocketStream.EndWrite(wr);
                 }
             }
             catch (Exception ex)

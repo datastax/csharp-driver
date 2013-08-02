@@ -46,27 +46,31 @@ namespace Cassandra
             });
         }
 
-        public IAsyncResult BeginExecuteQuery(byte[] Id, string cql, RowSetMetadata Metadata, object[] values,
+        public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata, object[] values,
                                               AsyncCallback callback, object state, object owner,
                                               ConsistencyLevel consistency, bool isTracing)
         {
-            return BeginJob(callback, state, owner, "EXECUTE", SetupKeyspace(SetupPreparedQuery(Id, cql, (streamId) =>
-                {
-                    Evaluate(new ExecuteRequest(streamId, Id, Metadata, values, consistency, isTracing), streamId,
-                             new Action<ResponseFrame>((frame2) =>
-                                 {
-                                     var response = FrameParser.Parse(frame2);
-                                     if (response is ResultResponse)
-                                         JobFinished(streamId, (response as ResultResponse).Output);
-                                     else
-                                         _protocolErrorHandlerAction(new ErrorActionParam()
-                                             {
-                                                 AbstractResponse = response,
-                                                 StreamId = streamId
-                                             });
+            var jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
 
-                                 }));
-                })));
+            BeginJob(jar, SetupKeyspace(SetupPreparedQuery(Id, cql, (streamId) =>
+               {
+                   Evaluate(new ExecuteRequest(streamId, Id, Metadata, values, consistency, isTracing), streamId,
+                            new Action<ResponseFrame>((frame2) =>
+                                {
+                                    var response = FrameParser.Parse(frame2);
+                                    if (response is ResultResponse)
+                                        JobFinished(streamId, (response as ResultResponse).Output);
+                                    else
+                                        _protocolErrorHandlerAction(new ErrorActionParam()
+                                            {
+                                                AbstractResponse = response,
+                                                StreamId = streamId
+                                            });
+
+                                }));
+               })));
+
+            return jar;
         }
 
         public IOutput EndExecuteQuery(IAsyncResult result, object owner)
@@ -74,10 +78,10 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteQuery(byte[] Id, string cql, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
+        public IOutput ExecuteQuery(int streamId, byte[] Id, string cql, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
                                     bool isTracing)
         {
-            return EndExecuteQuery(BeginExecuteQuery(Id, cql, Metadata, values, null, null, this, consistency, isTracing),
+            return EndExecuteQuery(BeginExecuteQuery(streamId, Id, cql, Metadata, values, null, null, this, consistency, isTracing),
                                    this);
         }
     }

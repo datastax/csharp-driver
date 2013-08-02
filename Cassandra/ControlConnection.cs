@@ -93,13 +93,14 @@ namespace Cassandra
                 throw ex;
             }
 
-            var nconn = _session.Connect(null, hostsIter, triedHosts, innerExceptions);
+            int streamId;
+            var nconn = _session.Connect(null, hostsIter, triedHosts, innerExceptions, out streamId);
             listeningOnHost = nconn.GetHostAdress();
 
             Exception theExc = null;
 
             nconn.CassandraEvent += new CassandraEventHandler(conn_CassandraEvent);
-            using (var ret = nconn.RegisterForCassandraEvent(
+            using (var ret = nconn.RegisterForCassandraEvent(streamId,
                 CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange))
             {
                 if (!(ret is OutputVoid))
@@ -338,9 +339,10 @@ namespace Cassandra
             iterLiof.MoveNext();
             List<IPAddress> tr = new List<IPAddress>();
             Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
-            var cn = _session.Connect(null, iterLiof, tr, exx);
+            int streamId;
+            var cn = _session.Connect(null, iterLiof, tr, exx, out streamId);
 
-            using (var outp = cn.Query(SelectLocal, ConsistencyLevel.Default,false))
+            using (var outp = cn.Query(streamId,SelectLocal, ConsistencyLevel.Default, false))
             {
                 if (outp is OutputRows)
                 {
@@ -446,9 +448,11 @@ namespace Cassandra
                     iterLiof.MoveNext();
                     List<IPAddress> tr = new List<IPAddress>();
                     Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
-                    var cn = _session.Connect(null, iterLiof, tr, exx);
+                    int streamId;
 
-                    using (var outp = cn.Query(SelectSchemaPeers, ConsistencyLevel.Default, false))
+                    var cn = _session.Connect(null, iterLiof, tr, exx, out streamId);
+
+                    using (var outp = cn.Query(streamId,SelectSchemaPeers, ConsistencyLevel.Default, false))
                     {
                         if (outp is OutputRows)
                         {
@@ -479,9 +483,10 @@ namespace Cassandra
                     iterLiof.MoveNext();
                     List<IPAddress> tr = new List<IPAddress>();
                     Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
-                    var cn = _session.Connect(null, iterLiof, tr, exx);
+                    int streamId;
+                    var cn = _session.Connect(null, iterLiof, tr, exx, out streamId);
 
-                    using (var outp = cn.Query(SelectSchemaLocal, ConsistencyLevel.Default, false))
+                    using (var outp = cn.Query(streamId,SelectSchemaLocal, ConsistencyLevel.Default, false))
                     {
                         if (outp is OutputRows)
                         {

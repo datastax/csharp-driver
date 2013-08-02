@@ -80,20 +80,22 @@ namespace Cassandra
             throw new DriverInternalError("Unexpected response frame");
         }
 
-        public IAsyncResult BeginRegisterForCassandraEvent(CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginRegisterForCassandraEvent(int _streamId, CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "REGISTER", new Action<int>((streamId) =>
+            var jar = SetupJob(_streamId, callback, state, owner, "REGISTER");
+            BeginJob(jar, new Action<int>((streamId) =>
             {
-                Evaluate(new RegisterForEventRequest(streamId, eventTypes),streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new RegisterForEventRequest(streamId, eventTypes), streamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
-                        JobFinished( streamId, new OutputVoid(null));
+                        JobFinished(streamId, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() {AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
 
                 }));
             }));
+            return jar;
         }
 
         public IOutput EndRegisterForCassandraEvent(IAsyncResult result, object owner)
@@ -101,9 +103,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "REGISTER");
         }
 
-        public IOutput RegisterForCassandraEvent(CassandraEventType eventTypes)
+        public IOutput RegisterForCassandraEvent(int streamId, CassandraEventType eventTypes)
         {
-            return EndRegisterForCassandraEvent(BeginRegisterForCassandraEvent(eventTypes, null, null, this), this);
+            return EndRegisterForCassandraEvent(BeginRegisterForCassandraEvent(streamId, eventTypes, null, null, this), this);
         }
     }
 }

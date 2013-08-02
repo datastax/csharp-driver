@@ -332,16 +332,18 @@ namespace Cassandra
     {
         // Field set when operation completes
         private TResult _result = default(TResult);
+        internal readonly int StreamId;
 
         internal void SetResult(TResult result)
         {
             _result = result;
         }
 
-        internal AsyncResult(AsyncCallback asyncCallback, object state, object owner, string operationId, object sender,
+        internal AsyncResult(int streamId, AsyncCallback asyncCallback, object state, object owner, string operationId, object sender,
                              object tag, int timeout) :
                                  base(asyncCallback, state, owner, operationId, sender, tag, timeout)
         {
+            this.StreamId = streamId;
         }
 
         new public static TResult End(IAsyncResult result, object owner, string operationId)

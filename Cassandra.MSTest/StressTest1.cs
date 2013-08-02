@@ -21,6 +21,9 @@ namespace Cassandra.MSTest
         [TestInitialize]
         public void SetFixture()
         {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            Diagnostics.CassandraPerformanceCountersEnabled = true;
+            Diagnostics.CassandraStackTraceIncluded = true;
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
 
@@ -36,13 +39,14 @@ namespace Cassandra.MSTest
         {
 
             var lbp = new RetryLoadBalancingPolicy(new DCAwareRoundRobinPolicy(datacenter), new ExponentialReconnectionPolicy(constDelayMS, constDelayMS * 100));
-          //  lbp.ReconnectionEvent += new EventHandler<RetryLoadBalancingPolicyEventArgs>((s, ea) => { Console.Write("~(" + ea.DelayMs + ")"); Thread.Sleep((int)ea.DelayMs); });
+            lbp.ReconnectionEvent += new EventHandler<RetryLoadBalancingPolicyEventArgs>((s, ea) => { Console.Write("~(" + ea.DelayMs + ")"); Thread.Sleep((int)ea.DelayMs); });
             Builder cassandraBuilder = Cluster.Builder()
-                   .WithLoadBalancingPolicy(lbp)
-                   .WithReconnectionPolicy(new ConstantReconnectionPolicy(constDelayMS))
-                   .WithRetryPolicy(DefaultRetryPolicy.Instance)
-//                   .WithQueryTimeout(queryTimeout)
-;
+                .WithLoadBalancingPolicy(lbp)// new DCAwareRoundRobinPolicy(datacenter))
+                    .WithReconnectionPolicy(new ConstantReconnectionPolicy(constDelayMS))
+                    .WithRetryPolicy( DefaultRetryPolicy.Instance)
+                    .WithQueryTimeout(queryTimeout)
+                    .WithCompression(CompressionType.NoCompression);
+
             cassandraBuilder.PoolingOptions.SetCoreConnectionsPerHost(HostDistance.Local, coreConnectionPerHost);
             cassandraBuilder.PoolingOptions.SetMaxConnectionsPerHost(HostDistance.Local, maxConnectionPerHost);
             cassandraBuilder.PoolingOptions.SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, cpCon);
@@ -55,12 +59,12 @@ namespace Cassandra.MSTest
 
         public void parallelInsertTestGeneric(int nThreads, int cpCon)
         {
-            CCMBridge.ReusableCCMCluster.Setup(1);
+            CCMBridge.ReusableCCMCluster.Setup(3, 0, true);
             string datacenter = "datacenter1";
             long constDelayMS = 100;
-            int queryTimeout = 50000;
-            int coreConnectionPerHost = 64;
-            int maxConnectionPerHost = 64;
+            int queryTimeout = Timeout.Infinite;
+            int coreConnectionPerHost = 2;
+            int maxConnectionPerHost = 8;
 
             CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost,cpCon));
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
@@ -68,11 +72,15 @@ namespace Cassandra.MSTest
             Console.WriteLine("Start parallel insert test (" + nThreads + " , " + cpCon + ")");
             string keyspaceName = "testkeyspace1" + nThreads + "x" + cpCon;
 //            Console.WriteLine("Creating keyspace");
-            Session.Cluster.WaitForSchemaAgreement(
-                 Session.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} 
+            try
+            {
+                Session.Cluster.WaitForSchemaAgreement(
+                     Session.Execute(
+                        string.Format(@"CREATE KEYSPACE {0} 
                         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                        , keyspaceName)));
+                            , keyspaceName)));
+            }
+            catch (AlreadyExistsException) { }
             Session.ChangeKeyspace(keyspaceName);
             string tableName = "testtable";
             try
@@ -176,15 +184,25 @@ namespace Cassandra.MSTest
                             "author"+idx,
                             idx % 2 == 0 ? false : true,
                             "body"+idx
-                        }).SetConsistencyLevel(ConsistencyLevel.Quorum), (ar) =>
+                        }).SetConsistencyLevel(ConsistencyLevel.One), (ar) =>
                         {
                             try
                             {
                                 Session.EndExecute(ar);
                             }
+                            catch (NoHostAvailableException ex)
+                            {
+                                foreach( var node in ex.Errors)
+                                {
+                                    Console.WriteLine("Error on " + node.Key.ToString());
+                                    var expts = node.Value;
+                                    foreach(var excpt in expts)
+                                        Console.WriteLine("      Error while inserting " + excpt.StackTrace + "\n!!!MESSAGE!!!\n" + excpt.Message);
+                                }
+                            }
                             catch (Exception ex)
                             {
-                                Console.WriteLine("Error while inserting " + ex.StackTrace);
+                                Console.WriteLine("Error while inserting " + ex.StackTrace + "\n!!!MESSAGE!!!\n" + ex.Message );
                             }
                             finally
                             {
@@ -209,7 +227,8 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [WorksForMe]
+        //[WorksForMe]
+        [Priority]
         public void test1()
         {
             parallelInsertTestGeneric(10, 50);

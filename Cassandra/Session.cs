@@ -83,27 +83,34 @@ namespace Cassandra
 
             var triedHosts = new List<IPAddress>();
             var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
-            Connect(null, ci, triedHosts, innerExceptions);
+            int streamId;
+            Connect(null, ci, triedHosts, innerExceptions, out streamId);
         }
 
         readonly List<CassandraConnection> _trashcan = new List<CassandraConnection>();
 
-        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions)
+        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
         {
             CheckDisposed();
-            lock (_trashcan)
+
+            lock (_connectionPool)
             {
+                List<CassandraConnection> toDel = null;
                 foreach (var conn in _trashcan)
                 {
                     if (conn.IsEmpty())
                     {
-                        _logger.Error("Connection trashed");
+                        _logger.Info("Connection trashed");
                         conn.Dispose();
+                        if (toDel == null)
+                            toDel = new List<CassandraConnection>();
+                        toDel.Add(conn);
                     }
                 }
-            }
-            lock (_connectionPool)
-            {
+                if (toDel != null)
+                    foreach (var d in toDel)
+                        _trashcan.Remove(d);
+
                 while (true)
                 {
                     var currentHost = hostsIter.Current;
@@ -122,6 +129,7 @@ namespace Cassandra
 
                         var pool = _connectionPool[currentHost.Address];
                         var poolCpy = new List<CassandraConnection>(pool);
+                        CassandraCounters.SetConnectionsCount(currentHost.Address, poolCpy.Count);
                         CassandraConnection toReturn = null;
                         foreach (var conn in poolCpy)
                         {
@@ -143,8 +151,7 @@ namespace Cassandra
                                     {
                                         if (conn.IsFree(_poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(hostDistance)))
                                         {
-                                            lock (_trashcan)
-                                                _trashcan.Add(conn);
+                                            _trashcan.Add(conn);
                                             pool.Remove(conn);
                                         }
                                     }
@@ -152,7 +159,10 @@ namespace Cassandra
                             }
                         }
                         if (toReturn != null)
+                        {
+                            streamId = toReturn.AllocateStreamId();
                             return toReturn;
+                        }
                         if (pool.Count < _poolingOptions.GetMaxConnectionPerHost(hostDistance) - 1)
                         {
                             bool error = false;
@@ -179,9 +189,14 @@ namespace Cassandra
                             }
                             while (pool.Count < _poolingOptions.GetCoreConnectionsPerHost(hostDistance));
                             if (!error)
+                            {
+                                streamId = conn.AllocateStreamId();
                                 return conn;
+                            }
                         }
                     }
+                    
+                    _logger.Verbose(string.Format("Currently tried host: {0} have all of connections busy. Switching to the next host.", currentHost.Address));
                     
                     if (!hostsIter.MoveNext())
                     {
@@ -210,7 +225,9 @@ namespace Cassandra
             {
                 nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider);
 
-                var options = ProcessExecuteOptions(nconn.ExecuteOptions());
+                var streamId = nconn.AllocateStreamId();
+
+                var options = ProcessExecuteOptions(nconn.ExecuteOptions(streamId));
 
                 if (!string.IsNullOrEmpty(_keyspace))
                     nconn.SetKeyspace(_keyspace);
@@ -611,7 +628,7 @@ namespace Cassandra
             public readonly Dictionary<IPAddress, List<Exception>> InnerExceptions = new Dictionary<IPAddress, List<Exception>>();
             public readonly List<IPAddress> TriedHosts = new List<IPAddress>();
             public int QueryRetries = 0;
-            virtual public void Connect(Session owner, bool moveNext)
+            virtual public void Connect(Session owner, bool moveNext, out int streamId)
             {
                 if (_hostsIter == null)
                 {
@@ -634,9 +651,9 @@ namespace Cassandra
                         }
                 }
 
-                Connection = owner.Connect(Query, _hostsIter, TriedHosts, InnerExceptions);
+                Connection = owner.Connect(Query, _hostsIter, TriedHosts, InnerExceptions, out streamId);
             }
-            abstract public void Begin(Session owner);
+            abstract public void Begin(Session owner, int steamId);
             abstract public void Process(Session owner, IAsyncResult ar, out object value);
             abstract public void Complete(Session owner, object value, Exception exc = null);
         }
@@ -647,8 +664,9 @@ namespace Cassandra
             {
                 try
                 {
-                    token.Connect(this, moveNext);
-                    token.Begin(this);
+                    int streamId;
+                    token.Connect(this, moveNext, out streamId);
+                    token.Begin(this,streamId);
                     return;
                 }
                 catch (Exception ex)
@@ -733,15 +751,15 @@ namespace Cassandra
             public string CqlQuery;
             public bool IsTracing;
             public Stopwatch StartedAt;
-            override public void Connect(Session owner, bool moveNext)
+            override public void Connect(Session owner, bool moveNext, out int streamId)
             {
                 StartedAt = Stopwatch.StartNew();
-                base.Connect(owner, moveNext);
+                base.Connect(owner, moveNext, out streamId);
             }
 
-            override public void Begin(Session owner)
-            {           
-                Connection.BeginQuery(CqlQuery, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
+            override public void Begin(Session owner, int streamId)
+            {
+                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -778,7 +796,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing=false, Query query = null, object sender = null, object tag = null)
         {
-            var longActionAc = new AsyncResult<RowSet>(callback, state, this, "SessionQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
             var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
@@ -806,9 +824,9 @@ namespace Cassandra
         class LongPrepareQueryToken : LongToken
         {
             public string CqlQuery;
-            override public void Begin(Session owner)
+            override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginPrepareQuery(CqlQuery, owner.ClbNoQuery, this, owner);
+                Connection.BeginPrepareQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -835,7 +853,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
         {
-            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(callback, state, this, "SessionPrepareQuery", sender, tag,  _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag,  _clientOptions.AsyncCallAbortTimeout);
             var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Default, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -870,16 +888,16 @@ namespace Cassandra
             public object[] Values;
             public bool IsTracinig;
             public Stopwatch StartedAt;
-            
-            override public void Connect(Session owner, bool moveNext)
+
+            override public void Connect(Session owner, bool moveNext, out int streamId)
             {
                 StartedAt = Stopwatch.StartNew();
-                base.Connect(owner, moveNext);
+                base.Connect(owner, moveNext, out streamId);
             }
             
-            override public void Begin(Session owner)
+            override public void Begin(Session owner,int streamId)
             {
-                Connection.BeginExecuteQuery(Id, cql, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency, IsTracinig);
+                Connection.BeginExecuteQuery(streamId, Id, cql, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency, IsTracinig);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -916,7 +934,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null, object tag = null, bool isTracing=false)
         {
-            var longActionAc = new AsyncResult<RowSet>(callback, state, this, "SessionExecuteQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = id, cql= _preparedQueries[id], Metadata = metadata, Values = values, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing};
 
             ExecConn(token, false);

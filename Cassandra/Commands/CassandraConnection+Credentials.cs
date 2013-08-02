@@ -20,9 +20,10 @@ namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteQueryCredentials(IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "CREDENTIALS", new Action<int>((streamId) =>
+            var jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
+            BeginJob(jar, new Action<int>((streamId) =>
             {
                 Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
                 {
@@ -34,6 +35,7 @@ namespace Cassandra
 
                 }));
             }));
+            return jar;
         }
 
         public IOutput EndExecuteQueryCredentials(IAsyncResult result, object owner)
@@ -41,9 +43,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "CREDENTIALS");
         }
 
-        public IOutput ExecuteCredentials(IDictionary<string, string> credentials)
+        public IOutput ExecuteCredentials(int streamId, IDictionary<string, string> credentials)
         {
-            return EndExecuteQueryCredentials(BeginExecuteQueryCredentials(credentials, null, null, this), this);
+            return EndExecuteQueryCredentials(BeginExecuteQueryCredentials(streamId, credentials, null, null, this), this);
         }
     }
 }
