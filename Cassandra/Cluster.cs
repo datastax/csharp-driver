@@ -42,6 +42,50 @@ namespace Cassandra
         private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Configuration _configuration;
 
+        private class ControlConnectionLoadBalancingPolicy : ILoadBalancingPolicy
+        {
+            ILoadBalancingPolicy _childPolicy;
+            IEnumerable<Host> _activeQueryPlan;
+            List<Host> _buffer;
+
+            public ControlConnectionLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
+            {
+                _childPolicy = childPolicy;
+            }
+
+            public void Initialize(Cluster cluster)
+            {
+                _childPolicy.Initialize(cluster);
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _childPolicy.Distance(host);
+            }
+
+            public IEnumerable<Host> NewQueryPlan(Query query)
+            {
+                if (_activeQueryPlan == null)
+                {
+                    _activeQueryPlan = _childPolicy.NewQueryPlan(query);
+                    _buffer = new List<Host>();
+                }
+
+                foreach (var host in _buffer)
+                {
+                    yield return host;
+                }
+
+                foreach (var host in _activeQueryPlan)
+                {
+                    _buffer.Add(host);
+                    yield return host;
+                }
+
+                _activeQueryPlan = null;
+            }
+        }
+
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
             this._contactPoints = contactPoints;
@@ -49,7 +93,7 @@ namespace Cassandra
             this._metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
             var controlpolicies = new Cassandra.Policies(
-                _configuration.Policies.LoadBalancingPolicy,
+                new ControlConnectionLoadBalancingPolicy(_configuration.Policies.LoadBalancingPolicy),
                 new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
                 Cassandra.Policies.DefaultRetryPolicy);
 

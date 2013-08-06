@@ -186,7 +186,7 @@ namespace Cassandra
             }
         }
 
-        private void FreeStreamId(int streamId)
+        internal void FreeStreamId(int streamId)
         {
             lock (_freeStreamIDs)
             {
@@ -342,6 +342,7 @@ namespace Cassandra
                         _writerSocketStream.Close();
                         _socket.Value.Shutdown(SocketShutdown.Both);
                         _socket.Value.Disconnect(_socketOptions.ReuseAddress ?? false);
+                        _socket.Value.Close();
                     }
                     catch (Exception ex)
                     {
@@ -565,6 +566,7 @@ namespace Cassandra
                         {
                             _socket.Value.Shutdown(SocketShutdown.Both);
                             _socket.Value.Disconnect(_socketOptions.ReuseAddress ?? false);
+                            _socket.Value.Close();
                         }
                         catch (ObjectDisposedException)
                         {
@@ -599,8 +601,20 @@ namespace Cassandra
                                 _frameReadTimers[streamId].Change(_queryAbortTimeout, Timeout.Infinite);
                         }
                     }
-                    var wr = _writerSocketStream.BeginWrite(frame.Buffer, 0, frame.Buffer.Length, null, null);
-                    _writerSocketStream.EndWrite(wr);
+                    _writerSocketStream.BeginWrite(frame.Buffer, 0, frame.Buffer.Length,
+                        (ar) =>
+                        {
+                            try
+                            {
+                                _writerSocketStream.EndWrite(ar);
+                            }
+                            catch (Exception ex)
+                            {
+                                if (!SetupSocketException(ex))
+                                    throw;
+                            }
+
+                        }, null);
                 }
             }
             catch (Exception ex)
