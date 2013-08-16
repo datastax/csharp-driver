@@ -410,7 +410,7 @@ namespace Cassandra.Data.Linq
         }
 
 
-        public static string GetInsertCQL(object row, string tablename)
+        public static string GetInsertCQL(object row, string tablename, InsertOptions options = null)
         {
             var rowType = row.GetType();
             var ret = new StringBuilder();
@@ -438,10 +438,16 @@ namespace Cassandra.Data.Linq
                 ret.Append(val.Encode());
             }
             ret.Append(")");
+
+            if (options != null)
+            {
+                ret.Append(options.GetCql());
+            }
+
             return ret.ToString();
         }
 
-        public static string GetUpdateCQL(object row, object newRow, string tablename, bool all = false)
+        public static string GetUpdateCQL(object row, object newRow, string tablename, UpdateOptions options = null, bool all = false)
         {
             var rowType = row.GetType();
             var set = new StringBuilder();
@@ -509,6 +515,12 @@ namespace Cassandra.Data.Linq
             var ret = new StringBuilder();
             ret.Append("UPDATE ");
             ret.Append(tablename.CqlIdentifier());
+
+            if (options != null)
+            {
+                ret.Append(options.GetCql());
+            }
+
             ret.Append(" SET ");
             ret.Append(set);
             ret.Append(" WHERE ");
@@ -516,13 +528,19 @@ namespace Cassandra.Data.Linq
             return ret.ToString();
         }
 
-        public static string GetDeleteCQL(object row, string tablename)
+        public static string GetDeleteCQL(object row, string tablename, DeleteOptions options = null)
         {
             var rowType = row.GetType();
 
             var ret = new StringBuilder();
             ret.Append("DELETE FROM ");
             ret.Append(tablename.CqlIdentifier());
+
+            if (options != null)
+            {
+                ret.Append(options.GetCql());
+            }
+
             ret.Append(" WHERE ");
 
             var props = rowType.GetPropertiesOrFields();

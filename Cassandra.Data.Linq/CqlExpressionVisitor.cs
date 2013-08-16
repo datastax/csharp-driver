@@ -93,11 +93,16 @@ namespace Cassandra.Data.Linq
             return sb.ToString();
         }
 
-        public string GetDelete()
+        public string GetDelete(DeleteOptions options = null)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
             sb.Append(TableName.CqlIdentifier());
+
+            if (options != null)
+            {
+                sb.Append(options.GetCql());
+            }
 
             if (WhereClause.Length > 0)
             {
@@ -109,11 +114,16 @@ namespace Cassandra.Data.Linq
             return sb.ToString();
         }
 
-        public string GetUpdate()
+        public string GetUpdate(UpdateOptions options = null)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
             sb.Append(TableName.CqlIdentifier());
+            if (options != null)
+            {
+                sb.Append(options.GetCql());
+            }
+
             sb.Append(" SET ");
 
 			var setStatements = new List<string>();

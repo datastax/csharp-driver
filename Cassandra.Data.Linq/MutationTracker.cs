@@ -211,7 +211,7 @@ namespace Cassandra.Data.Linq
                         cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                     else if (kv.Value.MutationType == MutationType.None)
                         cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, 
-                            kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
+                            all: kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
                     else
                         continue;
 
@@ -264,9 +264,9 @@ namespace Cassandra.Data.Linq
                 else if (kv.Value.MutationType == MutationType.None)
                 {
                     if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, true);
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, all: true);
                     else
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, false);
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, all: false);
                 }
                 else
                     continue;

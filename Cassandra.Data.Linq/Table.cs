@@ -199,6 +199,11 @@ namespace Cassandra.Data.Linq
             return new CqlInsert<TEntity>(entity,this);
         }
 
+        public CqlInsert<TEntity> Insert(TEntity entity, InsertOptions options)
+        {
+            return new CqlInsert<TEntity>(entity, this, options);
+        }
+
         static private TableType _tableType = TableType.All;
 
         public TableType GetTableType()
