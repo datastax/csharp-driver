@@ -221,7 +221,8 @@ namespace Cassandra.Data.Linq
             InternalInitialize(Expression.Constant(this), (Table<TEntity>)this);
         }
 
-        internal CqlQuery(Expression expression, IQueryProvider table) : base(expression,table)
+        internal CqlQuery(Expression expression, IQueryProvider table)
+            : base(expression, table)
         {
         }
 
@@ -372,13 +373,19 @@ namespace Cassandra.Data.Linq
 
     public class CqlDelete : CqlCommand
     {
-        internal CqlDelete(Expression expression, IQueryProvider table) : base(expression, table) { }
+        private readonly DeleteOptions _options;
+
+        internal CqlDelete(Expression expression, IQueryProvider table, DeleteOptions options = null)
+            : base(expression, table)
+        {
+            this._options = options;
+        }
 
         protected override string GetCql()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetDelete();
+            return visitor.GetDelete(_options);
         }
     }
 
@@ -386,26 +393,36 @@ namespace Cassandra.Data.Linq
     {
         private readonly TEntity _entity;
 
-        internal CqlInsert(TEntity entity, IQueryProvider table) : base(null,table)
+        private readonly InsertOptions _options;
+
+        internal CqlInsert(TEntity entity, IQueryProvider table, InsertOptions options = null)
+            : base(null, table)
         {
             this._entity = entity;
+            this._options = options;
         }
 
         protected override string GetCql()
         {
-            return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetTableName());
+            return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetTableName(), _options);
         }
     }
 
     public class CqlUpdate : CqlCommand
     {
-        internal CqlUpdate(Expression expression, IQueryProvider table) : base(expression, table) {}
+        private readonly UpdateOptions _options;
+
+        internal CqlUpdate(Expression expression, IQueryProvider table, UpdateOptions options = null)
+            : base(expression, table)
+        {
+            this._options = options;
+        }
 
         protected override string GetCql()
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate();   
+            return visitor.GetUpdate(_options);
         }
     }
 }

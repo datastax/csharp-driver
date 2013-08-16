@@ -135,11 +135,21 @@ namespace Cassandra.Data.Linq
             return new CqlDelete(source.Expression, source.Provider);
         }
 
+        public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source, DeleteOptions options)
+        {
+            return new CqlDelete(source.Expression, source.Provider, options);
+        }
+
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
             return new CqlUpdate(source.Expression, source.Provider);
         }
         
+        public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source, UpdateOptions options)
+        {
+            return new CqlUpdate(source.Expression, source.Provider, options);
+        }
+
         /// <summary>
         /// Returns a CqlQuery which after execution will return IEnumerable&lt;TSource&gt;
         /// with specified number of contiguous elements from the start of a sequence.

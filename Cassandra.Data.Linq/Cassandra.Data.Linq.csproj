@@ -49,6 +49,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QueryOptions.cs" />
     <Compile Include="SessionExtensions.cs" />
     <Compile Include="Table.cs" />
     <Compile Include="VisitingParam.cs" />
