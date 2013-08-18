@@ -14,15 +14,12 @@
 //   limitations under the License.
 //
 ﻿using System;
+using System.Numerics;
 
 #if MYTEST
 using MyTest;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
-
-#if NET_40_OR_GREATER
-using System.Numerics;
 #endif
 
 namespace Cassandra.MSTest
@@ -43,14 +40,13 @@ namespace Cassandra.MSTest
             insertingSingleValuePrepared(typeof(System.Decimal));
         }
 
-#if NET_40_OR_GREATER     
         [TestMethod] 
 		[WorksForMe]
         public void testPreparedVarInt()
         {
             insertingSingleValuePrepared(typeof(BigInteger));            
         }
-#endif
+
         [TestMethod]
 		[WorksForMe]
         public void testPreparedBigInt()

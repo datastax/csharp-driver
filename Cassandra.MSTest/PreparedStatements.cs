@@ -60,7 +60,7 @@ namespace Cassandra.MSTest
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
             string tableName = "table" + Guid.NewGuid().ToString("N");
 
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          value {1}
@@ -89,7 +89,7 @@ namespace Cassandra.MSTest
 
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          numb1 double,

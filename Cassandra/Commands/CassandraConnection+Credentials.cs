@@ -23,15 +23,15 @@ namespace Cassandra
         public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
         {
             var jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
-            BeginJob(jar, new Action<int>((streamId) =>
+            BeginJob(jar, new Action(() =>
             {
-                Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
-                        JobFinished(streamId, new OutputVoid(null));
+                        JobFinished(jar, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                 }));
             }));

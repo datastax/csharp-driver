@@ -19,6 +19,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Threading;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
@@ -49,6 +50,7 @@ namespace Cassandra
             this._metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
             var controlpolicies = new Cassandra.Policies(
+                //new ControlConnectionLoadBalancingPolicy(_configuration.Policies.LoadBalancingPolicy),
                 _configuration.Policies.LoadBalancingPolicy,
                 new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
                 Cassandra.Policies.DefaultRetryPolicy);
@@ -56,15 +58,19 @@ namespace Cassandra
             foreach (var ep in _contactPoints)
                 Metadata.AddHost(ep);
 
-            var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
+            var poolingOptions = new PoolingOptions()
+                .SetCoreConnectionsPerHost(HostDistance.Local, 0)
+                .SetMaxConnectionsPerHost(HostDistance.Local, 1)
+                .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
+                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127)
+                ;
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
                                                         new ProtocolOptions(_configuration.ProtocolOptions.Port),
                                                        poolingOptions, _configuration.SocketOptions,
                                                        new ClientOptions(
                                                            true,
-                                                           _configuration.ClientOptions.QueryAbortTimeout, null,
-                                                           _configuration.ClientOptions.AsyncCallAbortTimeout),
+                                                           _configuration.ClientOptions.QueryAbortTimeout, null),
                                                        _configuration.AuthInfoProvider);
 
             _metadata.SetupControllConnection(controlConnection);
@@ -124,15 +130,11 @@ namespace Cassandra
                                   _configuration.ClientOptions,
                                   _configuration.AuthInfoProvider, keyspace);
             scs.Init();
-            lock (_connectedSessions)
-                _connectedSessions.Add(scs);
+            _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
-
-            _metadata.RefreshSchema();
 
             return scs;
         }
-
 
         /// <summary>
         /// Creates new session on this cluster, and sets it to default keyspace. 
@@ -167,7 +169,7 @@ namespace Cassandra
             get { return _configuration; }
         }
 
-        private List<Session> _connectedSessions = new List<Session>();
+        private ConcurrentDictionary<Guid,Session> _connectedSessions = new ConcurrentDictionary<Guid,Session>();
 
         private Metadata _metadata = null;
         /// <summary>
@@ -187,27 +189,24 @@ namespace Cassandra
         /// </summary>
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            List<Session> conccpy;
-            lock (_connectedSessions)
+            foreach(var kv in _connectedSessions)
             {
-                conccpy = new List<Session>(_connectedSessions);
-                _connectedSessions = new List<Session>();
+                Session ses;
+                if (_connectedSessions.TryRemove(kv.Key, out ses))
+                {
+                    ses.WaitForAllPendingActions(timeoutMs);
+                    ses.InternalDispose();
+                }
             }
-
-            foreach (var ses in conccpy)
-            {
-                ses.WaitForAllPendingActions(timeoutMs);
-                ses.InternalDispose();
-            }
-            _metadata.Dispose();
+            _metadata.ShutDown(timeoutMs);
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
 
         internal void SessionDisposed(Session s)
         {
-            lock (_connectedSessions)
-                _connectedSessions.Remove(s);
+            Session ses;
+            _connectedSessions.TryRemove(s.Guid, out ses);
         }
 
         public void Dispose()
@@ -223,16 +222,6 @@ namespace Cassandra
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
             return _metadata.RefreshSchema(keyspace, table);
-        }
-
-        public void WaitForSchemaAgreement(IPAddress queriedHost=null)
-        {
-            _metadata.WaitForSchemaAgreement(queriedHost);
-        }
-
-        public void WaitForSchemaAgreement(RowSet rs)
-        {
-            _metadata.WaitForSchemaAgreement(rs.Info.QueriedHost);
         }
 
     }
@@ -288,7 +277,6 @@ namespace Cassandra
         private string _defaultKeyspace = null;
 
         private int _queryAbortTimeout = Timeout.Infinite;
-        private int _asyncCallAbortTimeout = Timeout.Infinite;
 
         public ICollection<IPAddress> ContactPoints
         {
@@ -471,7 +459,7 @@ namespace Cassandra
                                      new ProtocolOptions(_port).SetCompression(_compression),
                                      _poolingOptions,
                                      _socketOptions,
-                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace, _asyncCallAbortTimeout),
+                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
                                      _authProvider
                 );
         }
@@ -519,21 +507,6 @@ namespace Cassandra
             this._queryAbortTimeout = queryAbortTimeout;
             return this;
         }
-
-
-        /// <summary>
-        ///  Sets the asynchronous call timeout within created cluster.
-        ///  
-        ///  Default asynchronous call timeout value is set to <code>Infinity</code>
-        /// </summary>
-        /// <param name="asyncCallAbortTimeout">Timeout specified in milliseconds.</param>
-        /// <returns>this builder</returns>
-        public Builder WithAsyncCallTimeout(int asyncCallAbortTimeout)
-        {
-            this._asyncCallAbortTimeout = asyncCallAbortTimeout;
-            return this;
-        }
-
 
         /// <summary>
         ///  Sets default keyspace name for the created cluster.

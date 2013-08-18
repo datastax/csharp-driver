@@ -108,7 +108,7 @@ namespace Cassandra
             }
 
             var childIterator = _childPolicy.NewQueryPlan(query);
-            var remoteChildren = new DictSet<Host>();
+            var remoteChildren = new HashSet<Host>();
             foreach (var host in childIterator)
             {
                 if (!replicas.Contains(host.Address))

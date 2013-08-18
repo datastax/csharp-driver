@@ -58,7 +58,6 @@ namespace Cassandra.MSTest
             });
             builder.WithLoadBalancingPolicy(rp);
             builder.WithQueryTimeout(60 * 1000);
-            builder.WithAsyncCallTimeout(360 * 1000);
 
             CCMBridge.ReusableCCMCluster.Build(builder);
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
@@ -75,7 +74,7 @@ namespace Cassandra.MSTest
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
@@ -90,7 +89,7 @@ namespace Cassandra.MSTest
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
                 {
-                    Session.Cluster.WaitForSchemaAgreement(
+                    Session.WaitForSchemaAgreement(
                         Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
@@ -216,7 +215,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
         public void ErrorInjectionInParallelInsertTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
@@ -230,7 +229,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
                 {
-                    Session.Cluster.WaitForSchemaAgreement(
+                    Session.WaitForSchemaAgreement(
                         Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
@@ -380,7 +379,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
         public void MassiveAsyncTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
@@ -390,7 +389,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
@@ -402,7 +401,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             {
             }
 
-            int RowsNo = 100000;
+            int RowsNo = 1000;
 
             bool[] ar = new bool[RowsNo];
 
@@ -462,7 +461,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
         public void ShutdownAsyncTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 Session.Execute(
             string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
@@ -472,7 +471,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     Session.Execute(string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,
@@ -484,7 +483,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             {
             }
 
-            int RowsNo = 100000;
+            int RowsNo = 1000;
 
             bool[] ar = new bool[RowsNo];
 
@@ -530,7 +529,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
         //            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
         //            try
         //            {
-        //                Session.Cluster.WaitForSchemaAgreement(
+        //                Session.WaitForSchemaAgreement(
         //                    Session.Execute(string.Format(@"CREATE TABLE {0}(
         //         tweet_id uuid,
         //         author text,

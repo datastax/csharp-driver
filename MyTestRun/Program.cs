@@ -32,10 +32,8 @@ namespace MyTest
         static string[] TestPacks = new string[] 
         {
             "Cassandra.MyTest",
-#if NET_40_OR_GREATER
             "Cassandra.Data.MyTest",
             "Cassandra.Data.Linq.MyTest",
-#endif
         };
 
 

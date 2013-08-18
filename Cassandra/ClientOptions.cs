@@ -25,19 +25,17 @@ namespace Cassandra
         private readonly bool _withoutRowSetBuffering = false;
         private readonly int _queryAbortTimeout = Timeout.Infinite;
         private readonly string _defaultKeyspace = null;
-        private readonly int _asyncCallAbortTimeout = Timeout.Infinite;
 
         public ClientOptions()
-            : this(false, Timeout.Infinite,null,Timeout.Infinite)
+            : this(false, Timeout.Infinite,null)
         {
         }
 
-        public ClientOptions( bool withoutRowSetBuffering, int queryAbortTimeout, string defaultKeyspace, int asyncCallAbortTimeout)
+        public ClientOptions( bool withoutRowSetBuffering, int queryAbortTimeout, string defaultKeyspace)
         {
             this._withoutRowSetBuffering = withoutRowSetBuffering;
             this._queryAbortTimeout = queryAbortTimeout;
             this._defaultKeyspace = defaultKeyspace;
-            this._asyncCallAbortTimeout = asyncCallAbortTimeout;
         }
 
         public bool WithoutRowSetBuffering
@@ -53,11 +51,6 @@ namespace Cassandra
         public string DefaultKeyspace
         {
             get { return _defaultKeyspace; }
-        }
-
-        public int AsyncCallAbortTimeout
-        {
-            get { return _asyncCallAbortTimeout; }
         }
     }
 }

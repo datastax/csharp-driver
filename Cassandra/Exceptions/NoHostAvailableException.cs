@@ -51,4 +51,9 @@ namespace Cassandra
             return string.Format("All host tried for query are in error (tried: {0})", string.Join(",", addrs.ToArray()));
         }
     }
+
+    public class ToManyConnectionsPerHost : DriverException
+    {
+        public ToManyConnectionsPerHost() : base("Maximum number of connections per host is reached") { }
+    }
 }

@@ -17,6 +17,7 @@
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Cassandra.Data.Linq
 {
@@ -74,7 +75,7 @@ namespace Cassandra.Data.Linq
                 if (pk != null)
                 {
                     if (prop.GetValueFromPropertyOrField(obj) == null)
-                        throw new InvalidOperationException("Partition Key is not set"); 
+                        throw new InvalidOperationException("Partition Key is not set");
                     hashCode ^= prop.GetValueFromPropertyOrField(obj).GetHashCode();
                 }
                 else
@@ -116,7 +117,7 @@ namespace Cassandra.Data.Linq
         }
 
         Dictionary<TEntity, TableEntry> _table = new Dictionary<TEntity, TableEntry>(CqlEqualityComparer<TEntity>.Default);
-        Dictionary<TEntity, QueryTrace> _traces = new Dictionary<TEntity, QueryTrace>(CqlEqualityComparer<TEntity>.Default);
+        ConcurrentDictionary<TEntity, QueryTrace> _traces = new ConcurrentDictionary<TEntity, QueryTrace>(CqlEqualityComparer<TEntity>.Default);
 
         public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
         {
@@ -143,7 +144,7 @@ namespace Cassandra.Data.Linq
                 _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.Delete });
         }
 
-        public void AddNew(TEntity entity,EntityTrackingMode trmod)
+        public void AddNew(TEntity entity, EntityTrackingMode trmod)
         {
             if (_table.ContainsKey(entity))
             {
@@ -160,48 +161,44 @@ namespace Cassandra.Data.Linq
             {
                 _table[entity].QueryTracingEnabled = enable;
             }
-            else 
+            else
                 throw new ArgumentOutOfRangeException("entity");
         }
 
         public void ClearQueryTraces()
         {
-            lock(_traces)
-                _traces.Clear();
+            _traces.Clear();
         }
 
         public QueryTrace RetriveQueryTrace(TEntity entity)
         {
-            lock (_traces)
-            {
-                if (_traces.ContainsKey(entity))
-                {
-                    var tr = _traces[entity];
-                    _traces.Remove(entity);
-                    return tr;
-                }
-                else
-                    return null;
-            }
+            QueryTrace trace;
+            if (_traces.TryRemove(entity, out trace))
+                return trace;
+            else
+                return null;
         }
 
         public List<QueryTrace> RetriveAllQueryTraces()
         {
-            lock (_traces)
+            List<QueryTrace> ret = new List<QueryTrace>();
+            while (!_traces.IsEmpty)
             {
-                var ret = _traces.Values.ToList();
-                _traces.Clear();
-                return ret;
+                var kv = _traces.FirstOrDefault();
+                var trace = RetriveQueryTrace(kv.Key);
+                if (trace != null)
+                    ret.Add(trace);
             }
+            return ret;
         }
-        
+
         public void SaveChangesOneByOne(Context context, string tablename, ConsistencyLevel consistencyLevel)
         {
             var commitActions = new List<Action>();
             try
             {
                 foreach (var kv in _table)
-                {                    
+                {
                     if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                         throw new InvalidOperationException();
                     var cql = "";
@@ -210,7 +207,7 @@ namespace Cassandra.Data.Linq
                     else if (kv.Value.MutationType == MutationType.Delete)
                         cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                     else if (kv.Value.MutationType == MutationType.None)
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, 
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename,
                             kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
                     else
                         continue;
@@ -218,18 +215,17 @@ namespace Cassandra.Data.Linq
                     QueryTrace trace = null;
                     if (cql != null) // null if nothing to update
                     {
-                       var res= context.ExecuteWriteQuery(cql,consistencyLevel, kv.Value.QueryTracingEnabled);
-                       if (kv.Value.QueryTracingEnabled)
-                           trace = res.Info.QueryTrace;
+                        var res = context.ExecuteWriteQuery(cql, consistencyLevel, kv.Value.QueryTracingEnabled);
+                        if (kv.Value.QueryTracingEnabled)
+                            trace = res.Info.QueryTrace;
                     }
 
                     var nkv = kv;
                     commitActions.Add(() =>
                     {
                         if (nkv.Value.QueryTracingEnabled)
-                            if(trace!=null)
-                                lock (_traces)
-                                    _traces[nkv.Key] = trace;
+                            if (trace != null)
+                                _traces.TryAdd(nkv.Key, trace);
                         _table.Remove(nkv.Key);
                         if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
                             _table.Add(Clone(nkv.Value.Entity), new TableEntry() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
@@ -286,9 +282,8 @@ namespace Cassandra.Data.Linq
                     throw new InvalidOperationException();
 
                 if (kv.Value.QueryTracingEnabled)
-                    lock (_traces)
-                        _traces[kv.Key] = trace; 
-                
+                    _traces.TryAdd(kv.Key, trace);
+
                 if (kv.Value.MutationType != MutationType.Delete)
                     newtable.Add(Clone(kv.Value.Entity), new TableEntry() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
             }

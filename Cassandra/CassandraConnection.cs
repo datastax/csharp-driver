@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.IO;
 using System.Threading;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
@@ -29,23 +30,19 @@ namespace Cassandra
 #if ERRORINJECTION
         public void KillSocket()
         {
-			try
-			{
-            _socket.Value.Shutdown(SocketShutdown.Both);
-			}
-			catch{}
+            try
+            {
+                _socket.Shutdown(SocketShutdown.Both);
+            }
+            catch { }
         }
 #endif
         readonly IPAddress _serverAddress;
         readonly int _port;
-        readonly Guarded<Socket> _socket = new Guarded<Socket>(null);
-        readonly Guarded<Stack<int>> _freeStreamIDs = new Guarded<Stack<int>>(new Stack<int>());
-        readonly bool[] _freeStreamIDtaken = new bool[byte.MaxValue + 1];
+        readonly Socket _socket;
+        readonly ConcurrentStack<int> _freeStreamIDs = new ConcurrentStack<int>();
         readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
         readonly int _queryAbortTimeout = Timeout.Infinite;
-        readonly int _asyncCallAbortTimeout = Timeout.Infinite;
-
-        readonly object _frameGuardier = new object();
 
         readonly AtomicValue<Action<ResponseFrame>> _frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
         readonly AtomicArray<Action<ResponseFrame>> _frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
@@ -57,7 +54,7 @@ namespace Cassandra
         struct ErrorActionParam
         {
             public AbstractResponse AbstractResponse;
-            public int StreamId;
+            public AsyncResult<IOutput> Jar;
         }
 
         Action<ErrorActionParam> _protocolErrorHandlerAction;
@@ -73,10 +70,13 @@ namespace Cassandra
             _owner.HostIsDown(_serverAddress);
         }
 
+        internal Guid Guid;
+
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
                                      IAuthInfoProvider authInfoProvider)
         {
+            this.Guid = Guid.NewGuid();
             this._owner = owner;
             _bufferingMode = null;
             switch (protocolOptions.Compression)
@@ -100,36 +100,21 @@ namespace Cassandra
             this._serverAddress = serverAddress;
             this._port = protocolOptions.Port;
             this._queryAbortTimeout = clientOptions.QueryAbortTimeout;
-            this._asyncCallAbortTimeout = clientOptions.AsyncCallAbortTimeout;
 
             this._socketOptions = socketOptions;
 
-            CreateConnection();
-            if (IsHealthy)
-                BeginReading();
-        }
-
-        private void CreateConnection()
-        {
-            lock (_freeStreamIDs)
-            {
-                for (int i = 0; i <= sbyte.MaxValue; i++)
-                {
-                    _freeStreamIDs.Value.Push(i);
-                    _freeStreamIDtaken[i] = false;
-                }
-            }
+            for (int i = 0; i <= sbyte.MaxValue; i++)
+                _freeStreamIDs.Push(i);
 
             _protocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
                {
                    if (param.AbstractResponse is ErrorResponse)
                        JobFinished(
-                           param.StreamId,
+                           param.Jar,
                            (param.AbstractResponse as ErrorResponse).Output);
                });
 
-            lock (_frameGuardier)
-                _frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
+            _frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
 
             _buffer = new byte[][] { 
                     new byte[_bufferingMode.PreferedBufferSize()], 
@@ -157,84 +142,61 @@ namespace Cassandra
                 newSock.NoDelay = _socketOptions.TcpNoDelay.Value;
 
             newSock.Connect(new IPEndPoint(_serverAddress, _port));
-            _socket.Value = newSock;
+            _socket = newSock;
             _bufferingMode.Reset();
-            _readerSocketStream = new NetworkStream(_socket.Value);
-            _writerSocketStream = new NetworkStream(_socket.Value);
+            _socketStream = new NetworkStream(_socket);
+
+            if (IsHealthy)
+                BeginReading();
         }
 
         byte[][] _buffer = null;
         int _bufNo = 0;
 
-        private NetworkStream _readerSocketStream;
-        private NetworkStream _writerSocketStream;
+        private readonly NetworkStream _socketStream;
 
         readonly IBuffering _bufferingMode;
 
         internal int AllocateStreamId()
         {
-            lock (_freeStreamIDs)
-            {
-                if (_freeStreamIDs.Value.Count > 0)
-                {
-                    int i = _freeStreamIDs.Value.Pop();
-                    _freeStreamIDtaken[i] = true;
-                    return i;
-                }
-                else
-                    throw new StreamAllocationException();
-            }
+            int ret;
+            if (_freeStreamIDs.TryPop(out ret))
+                return ret;
+            else
+                throw new StreamAllocationException();
         }
 
-        private void FreeStreamId(int streamId)
+        internal void FreeStreamId(int streamId)
         {
-            lock (_freeStreamIDs)
-            {
-                if (!_freeStreamIDtaken[streamId])
-                    return;
-                _freeStreamIDtaken[streamId] = false;
-                _freeStreamIDs.Value.Push(streamId);
-            }
+            _freeStreamIDs.Push(streamId);
         }
 
         public bool IsBusy(int max)
         {
-            lock (_freeStreamIDs)
-                return sbyte.MaxValue + 1 - _freeStreamIDs.Value.Count >= max;
+            return sbyte.MaxValue + 1 - _freeStreamIDs.Count >= max;
         }
 
         public bool IsFree(int min)
         {
-            lock (_freeStreamIDs)
-                return sbyte.MaxValue + 1 - _freeStreamIDs.Value.Count <= min;
+            return sbyte.MaxValue + 1 - _freeStreamIDs.Count <= min;
         }
 
         public bool IsEmpty()
         {
-            lock (_freeStreamIDs)
-                return _freeStreamIDs.Value.Count == sbyte.MaxValue + 1;
+            return _freeStreamIDs.Count == sbyte.MaxValue + 1;
         }
 
-        private void JobFinished(int streamId, IOutput outp)
+        private void JobFinished(AsyncResult<IOutput> jar, IOutput outp)
         {
-            AsyncResult<IOutput> ar = null;
             try
             {
-                lock (_frameGuardier)
-                {
-                    ar = _frameReadAsyncResult[streamId];
-                    _frameReadAsyncResult[streamId] = null;
-                    FreeStreamId(streamId);
-                }
+                FreeStreamId(jar.StreamId);
             }
             finally
             {
-                if (ar != null)
-                {
-                    ar.SetResult(outp);
-                    ar.Complete();
-                    (outp as IWaitableForDispose).WaitForDispose();
-                }
+                jar.SetResult(outp);
+                jar.Complete();
+                (outp as IWaitableForDispose).WaitForDispose();
             }
         }
 
@@ -251,21 +213,21 @@ namespace Cassandra
 
         private AsyncResult<IOutput> SetupJob(int streamId, AsyncCallback callback, object state, object owner, string propId)
         {
+            var ar = new AsyncResult<IOutput>(streamId, callback, state, owner, propId, null, null);
+
             _defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
-                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = streamId });
+                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = ar });
             });
 
-            var ar = new AsyncResult<IOutput>(streamId, callback, state, owner, propId, null, null, _asyncCallAbortTimeout);
 
-            lock (_frameGuardier)
-                _frameReadAsyncResult[streamId] = ar;
+            _frameReadAsyncResult[streamId] = ar;
 
             return ar;
         }
 
-        private void BeginJob(AsyncResult<IOutput> jar,  Action<int> job, bool startup = true)
+        private void BeginJob(AsyncResult<IOutput> jar,  Action job, bool startup = true)
         {
 
             try
@@ -278,7 +240,7 @@ namespace Cassandra
                         if (response is ReadyResponse)
                         {
                             _isStreamOpened.Value = true;
-                            job(jar.StreamId);
+                            job();
                         }
                         else if (response is AuthenticateResponse)
                         {
@@ -293,18 +255,18 @@ namespace Cassandra
                                 if (response2 is ReadyResponse)
                                 {
                                     _isStreamOpened.Value = true;
-                                    job(jar.StreamId);
+                                    job();
                                 }
                                 else
-                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, StreamId = jar.StreamId });
+                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
                             }));
                         }
                         else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = jar.StreamId });
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar});
                     });
                 }
                 else
-                    job(jar.StreamId);
+                    job();
             }
             catch (Exception ex)
             {
@@ -315,40 +277,34 @@ namespace Cassandra
 
         readonly IProtoBufComporessor _compressor = null;
 
-        private bool _socketExceptionOccured = false;
+        private BoolSwitch _socketExceptionOccured = new BoolSwitch();
 
         public bool IsHealthy
         {
             get
             {
-                lock (_statusGuardier)
-                {
-                    return !_alreadyDisposed && !_socketExceptionOccured;
-                }
+                return !_alreadyDisposed.IsTaken() && !_socketExceptionOccured.IsTaken();
             }
         }
+
         private void AbortTimerProc(object state)
         {
             int streamId = (int)state;
 
             SetupSocketException(new CassandraConnectionTimeoutException());
 
-            lock (_socket)
-                if (_socket.Value != null)
-                {
-                    try
-                    {
-                        _readerSocketStream.Close();
-                        _writerSocketStream.Close();
-                        _socket.Value.Shutdown(SocketShutdown.Both);
-                        _socket.Value.Disconnect(_socketOptions.ReuseAddress ?? false);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (!IsStreamRelatedException(ex))
-                            throw;
-                    }
-                }
+            try
+            {
+                _socketStream.Close();
+                _socket.Shutdown(SocketShutdown.Both);
+                _socket.Disconnect(_socketOptions.ReuseAddress ?? false);
+                _socket.Close();
+            }
+            catch (Exception ex)
+            {
+                if (!IsStreamRelatedException(ex))
+                    throw;
+            }
 
             try
             {
@@ -361,109 +317,89 @@ namespace Cassandra
             }
         }
 
-        readonly Guarded<bool> _readerSocketStreamBusy = new Guarded<bool>(false);
+        readonly AutoResetEvent _readerSocketStreamBusy = new AutoResetEvent(true);
 
         private void BeginReading()
         {
             try
             {
                 if (!(_bufferingMode is FrameBuffering))
-                    lock (_readerSocketStreamBusy)
-                    {
-                        while (_readerSocketStreamBusy.Value)
-                            Monitor.Wait(_readerSocketStreamBusy);
-                        _readerSocketStreamBusy.Value = true;
-                    }
+                    _readerSocketStreamBusy.WaitOne();
 
-                lock (_readerSocketStream)
+                var rh = _socketStream.BeginRead(_buffer[_bufNo], 0, _buffer[_bufNo].Length, new AsyncCallback((ar) =>
                 {
-                    var rh = _readerSocketStream.BeginRead(_buffer[_bufNo], 0, _buffer[_bufNo].Length, new AsyncCallback((ar) =>
+
+                    try
                     {
-
-                        try
+                        int bytesReadCount = _socketStream.EndRead(ar);
+                        if (bytesReadCount == 0)
                         {
-                            int bytesReadCount;
-                            lock (_readerSocketStream)
-                                bytesReadCount = _readerSocketStream.EndRead(ar);
-
-                            if (bytesReadCount == 0)
+                            if (_alreadyDisposed.IsTaken())
                             {
-                                if (_alreadyDisposed)
+                                ForceComplete();
+                                return;
+                            }
+
+                            throw new CassandraConnectionIOException();
+                        }
+                        else
+                        {
+                            foreach (var frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _socketStream, _compressor))
+                            {
+                                Action<ResponseFrame> act = null;
+                                if (frame.FrameHeader.StreamId == 0xFF)
+                                    act = _frameEventCallback.Value;
+                                else if (frame.FrameHeader.StreamId <= sbyte.MaxValue)
                                 {
-                                    CompleteReader();
-                                    return;
+                                    if (_frameReadTimers[frame.FrameHeader.StreamId] != null)
+                                        _frameReadTimers[frame.FrameHeader.StreamId].Change(Timeout.Infinite,
+                                                                                            Timeout.Infinite);
+                                    act = _frameReadCallback[frame.FrameHeader.StreamId];
+                                    _frameReadCallback[frame.FrameHeader.StreamId] = null;
                                 }
 
-                                throw new CassandraConnectionIOException();
-                            }
-                            else
-                            {
-                                foreach (var frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _readerSocketStream, _compressor))
+                                if (act == null)
                                 {
-                                    Action<ResponseFrame> act = null;
-                                    lock (_frameGuardier)
+
+                                    throw new InvalidOperationException("Protocol error! Unmached response. Terminating all requests now...");
+                                }
+
+                                act.BeginInvoke(frame, (tar) =>
+                                {
+                                    try
                                     {
-                                        if (frame.FrameHeader.StreamId == 0xFF)
-                                            act = _frameEventCallback.Value;
-                                        else if (frame.FrameHeader.StreamId <= sbyte.MaxValue)
-                                        {
-                                            if (_frameReadTimers[frame.FrameHeader.StreamId] != null)
-                                                _frameReadTimers[frame.FrameHeader.StreamId].Change(Timeout.Infinite,
-                                                                                                    Timeout.Infinite);
-                                            act = _frameReadCallback[frame.FrameHeader.StreamId];
-                                            _frameReadCallback[frame.FrameHeader.StreamId] = null;
-                                        }
+                                        (tar.AsyncState as Action<ResponseFrame>).EndInvoke(tar);
                                     }
-
-                                    if (act == null)
+                                    catch (Exception ex)
                                     {
-
-                                        throw new InvalidOperationException("Protocol error! Unmached response. Terminating all requests now...");
+                                        SetupSocketException(ex);
                                     }
-
-                                    act.BeginInvoke(frame, (tar) =>
+                                    finally
                                     {
-                                        try
-                                        {
-                                            (tar.AsyncState as Action<ResponseFrame>).EndInvoke(tar);
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                                SetupSocketException(ex);
-                                        }
-                                        finally
-                                        {
-                                            if (!(_bufferingMode is FrameBuffering))
-                                                if (IsHealthy)
-                                                    BeginReading();
-                                        }
-                                    }, act);
-                                }
-                                _bufNo = 1 - _bufNo;
+                                        if (!(_bufferingMode is FrameBuffering))
+                                            if (IsHealthy)
+                                                BeginReading();
+                                    }
+                                }, act);
                             }
+                            _bufNo = 1 - _bufNo;
                         }
-                        catch (Exception ex)
+                    }
+                    catch (Exception ex)
+                    {
+                        SetupSocketException(ex);
+                    }
+                    finally
+                    {
+                        if (_bufferingMode is FrameBuffering)
                         {
-                            SetupSocketException(ex);
+                            if (IsHealthy)
+                                BeginReading();
                         }
-                        finally
-                        {
-                            if (_bufferingMode is FrameBuffering)
-                            {
-                                if (IsHealthy)
-                                    BeginReading();
-                            }
-                            else
-                            {
-                                lock (_readerSocketStreamBusy)
-                                {
-                                    _readerSocketStreamBusy.Value = false;
-                                    Monitor.PulseAll(_readerSocketStreamBusy);
-                                }
-                            }
-                        }
-                    }), null);
-                }
+                        else
+                            _readerSocketStreamBusy.Set();
+                    }
+                }), null);
             }
             catch (IOException e)
             {
@@ -480,99 +416,59 @@ namespace Cassandra
             || ex is ObjectDisposedException
             || ex is StreamAllocationException
             || ex is CassandraConnectionTimeoutException;
-        }        
+        }
 
-        private void CompleteReader()
+        private void ForceComplete(Exception ex=null)
         {
-            var toCompl = new List<AsyncResult<IOutput>>();
-            try
+            for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
             {
-                lock (_frameGuardier)
-                {
-                    for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
-                        if (_frameReadAsyncResult[streamId] != null)
-                        {
-                            toCompl.Add(_frameReadAsyncResult[streamId]);
-                            FreeStreamId(streamId);
-                        }
-                }
-            }
-            finally
-            {
-                foreach (var ar in toCompl)
-                    if (!ar.IsCompleted)
-                        ar.Complete(new CassandraConnectionIOException());
+                if (_frameReadTimers[streamId] != null)
+                    _frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
+                var ar = _frameReadAsyncResult[streamId];
+                if (ar != null && !ar.IsCompleted)
+                    _frameReadAsyncResult[streamId].Complete(ex ?? new CassandraConnectionIOException());
             }
         }
 
         private bool SetupSocketException(Exception ex)
         {
-            var toCompl = new List<AsyncResult<IOutput>>();
-            try
-            {
-                lock (_frameGuardier)
-                {
-                    for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
-                    {
-                        if (_frameReadTimers[streamId] != null)
-                            _frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
-                        if (_frameReadAsyncResult[streamId] != null)
-                        {
-                            toCompl.Add(_frameReadAsyncResult[streamId]);
-                            FreeStreamId(streamId);
-                        }
-                    }
-                    HostIsDown();
-                    try { _bufferingMode.Close(); }
-                    catch { }
+            ForceComplete(ex);
 
-                    lock (_statusGuardier)
-                        _socketExceptionOccured = true;
-                }
-                return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
-            }
-            finally
-            {
-                foreach (var ar in toCompl)
-                    if(!ar.IsCompleted)
-                        ar.Complete(ex);
-            }
+            HostIsDown();
+            try { _bufferingMode.Close(); }
+            catch { }
+
+            _socketExceptionOccured.TryTake();
+            return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
         }
 
-        readonly object _statusGuardier = new object();
-        bool _alreadyDisposed = false;
+        BoolSwitch _alreadyDisposed = new BoolSwitch();
 
         void CheckDisposed()
         {
-            lock (_statusGuardier)
-                if (_alreadyDisposed)
-                    throw new ObjectDisposedException("CassandraConnection");
+            if (_alreadyDisposed.IsTaken())
+                throw new ObjectDisposedException("CassandraConnection");
         }
 
         public void Dispose()
         {
-            lock (_statusGuardier)
+            if (!_alreadyDisposed.TryTake())
+                return;
+
+            try
             {
-                if (_alreadyDisposed)
-                    return;
-
-                _alreadyDisposed = true;
-
-                lock (_socket)
-                    if (_socket.Value != null)
-                    {
-                        try
-                        {
-                            _socket.Value.Shutdown(SocketShutdown.Both);
-                            _socket.Value.Disconnect(_socketOptions.ReuseAddress ?? false);
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                        }
-                        catch (SocketException)
-                        {
-                        }
-                    }
+                if (_socket != null)
+                {
+                    _socket.Shutdown(SocketShutdown.Both);
+                    _socket.Disconnect(_socketOptions.ReuseAddress ?? false);
+                    _socket.Close();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (SocketException)
+            {
             }
         }
 
@@ -586,21 +482,17 @@ namespace Cassandra
             try
             {
                 var frame = req.GetFrame();
-                lock (_writerSocketStream)
+                lock (_socketStream)
                 {
-                    lock (_frameGuardier)
+                    _frameReadCallback[streamId] = nextAction;
+                    if (_queryAbortTimeout != Timeout.Infinite)
                     {
-                        _frameReadCallback[streamId] = nextAction;
-                        if (_queryAbortTimeout != Timeout.Infinite)
-                        {
-                            if (_frameReadTimers[streamId] == null)
-                                _frameReadTimers[streamId] = new Timer(AbortTimerProc, streamId, _queryAbortTimeout, Timeout.Infinite);
-                            else
-                                _frameReadTimers[streamId].Change(_queryAbortTimeout, Timeout.Infinite);
-                        }
+                        if (_frameReadTimers[streamId] == null)
+                            _frameReadTimers[streamId] = new Timer(AbortTimerProc, streamId, _queryAbortTimeout, Timeout.Infinite);
+                        else
+                            _frameReadTimers[streamId].Change(_queryAbortTimeout, Timeout.Infinite);
                     }
-                    var wr = _writerSocketStream.BeginWrite(frame.Buffer, 0, frame.Buffer.Length, null, null);
-                    _writerSocketStream.EndWrite(wr);
+                    _socketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
                 }
             }
             catch (Exception ex)

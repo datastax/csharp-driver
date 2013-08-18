@@ -112,10 +112,8 @@ namespace Cassandra
             RegisterTypeInterpreter(ColumnTypeCode.List);
             RegisterTypeInterpreter(ColumnTypeCode.Map);
             RegisterTypeInterpreter(ColumnTypeCode.Set);
-#if NET_40_OR_GREATER
             RegisterTypeInterpreter(ColumnTypeCode.Decimal);
             RegisterTypeInterpreter(ColumnTypeCode.Varint);
-#endif
         }
 
         delegate object CqlConvertDel(IColumnInfo type_info, byte[] buffer, Type cSharpType);

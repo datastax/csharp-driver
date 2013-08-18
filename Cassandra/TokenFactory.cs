@@ -14,10 +14,8 @@
 //   limitations under the License.
 //
 using System;
-#if NET_40_OR_GREATER
 using System.Numerics;
 using System.Security.Cryptography;
-#endif
 
 namespace Cassandra
 {
@@ -29,10 +27,8 @@ namespace Cassandra
         {
             if (partitionerName.EndsWith("Murmur3Partitioner"))
                 return M3PToken.Factory;
-#if NET_40_OR_GREATER
             else if (partitionerName.EndsWith("RandomPartitioner"))
                 return RPToken.Factory;
-#endif
             else if (partitionerName.EndsWith("OrderedPartitioner"))
                 return OPPToken.Factory;
             else
@@ -159,7 +155,6 @@ namespace Cassandra
         }
     }
 
-#if NET_40_OR_GREATER
 
     // RandomPartitioner tokens
     class RPToken : IToken
@@ -212,5 +207,4 @@ namespace Cassandra
         }
     }
 
-#endif
 }

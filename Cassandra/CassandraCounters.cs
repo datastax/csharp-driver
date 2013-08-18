@@ -24,121 +24,77 @@ namespace Cassandra
     internal static class CassandraCounters
     {
         private static readonly Logger _logger = new Logger(typeof(CassandraCounters));
-        private static bool CategoryReady = false;
+        private static BoolSwitch _categoryReady = new BoolSwitch();
         private const string CassandraCountersCategory = "DataStax Cassandra C# driver";
 
-        #region ConnectionsCount     
-                           
-        private static Dictionary<IPAddress, PerformanceCounter> NumberOfConnectionsCounters = null;
-
-        private static bool NOC_Counters_initiated = false;
-        public static void SetConnectionsCount(IPAddress node, int value)
-        {
-            if (Diagnostics.CassandraPerformanceCountersEnabled)
-            {
-                if (!NOC_Counters_initiated)
-                    lock (guard)
-                        if (!NOC_Counters_initiated)
-                        {
-                            NumberOfConnectionsCounters = new Dictionary<IPAddress, PerformanceCounter>();
-                            NOC_Counters_initiated = true;
-                        }
-
-                if (!NumberOfConnectionsCounters.ContainsKey(node))
-                    lock (node)
-                   {
-                        if (!NumberOfConnectionsCounters.ContainsKey(node))
-                        {                            
-                            NumberOfConnectionsCounters.Add(node, null);
-                            SetupCategory();
-                        }
-                    }                
-                setupAndIncrement(NumberOfConnectionsCounters[node], node.ToString(), value, true);                
-            }
-        }
-        #endregion
-
         #region CqlQueryCountPerSec
-        [ThreadStatic]
-        static PerformanceCounter CqlQueryCountPerSec = null;
+        static AtomicValue<PerformanceCounter> CqlQueryCountPerSec = new AtomicValue<PerformanceCounter>(null);
         private const string CqlQueryCountPerSecName = "Number of executed CQL queries per second";
 
         public static void IncrementCqlQueryCount()
         {
-            setupAndIncrement(CqlQueryCountPerSec, CqlQueryCountPerSecName);
+            setupAndIncrement(ref CqlQueryCountPerSec, CqlQueryCountPerSecName);
         }
         
         #endregion
 
         #region CqlQueryBeatsCounter
 
-        [ThreadStatic]
-        static PerformanceCounter CqlQueryBeats = null;
+        static AtomicValue<PerformanceCounter> CqlQueryBeats = new AtomicValue<PerformanceCounter>(null);
         private const string CqlQueryBeatsName = "Average CQL query execution time between samples(in nanoseconds).";
 
-        [ThreadStatic]
-        static PerformanceCounter CqlQueryBeatsBase = null;
+        static AtomicValue<PerformanceCounter> CqlQueryBeatsBase = new AtomicValue<PerformanceCounter>(null);
         private const string CqlQueryBeatsNameBase = "Base average CQL query execution time between samples";
 
         public static void IncrementCqlQueryBeats(long value)
         {
-            setupAndIncrement(CqlQueryBeats, CqlQueryBeatsName, value);
+            setupAndIncrement(ref CqlQueryBeats, CqlQueryBeatsName, value);
         }
 
         public static void IncrementCqlQueryBeatsBase()
         {
-            setupAndIncrement(CqlQueryBeatsBase, CqlQueryBeatsNameBase);
+            setupAndIncrement(ref CqlQueryBeatsBase, CqlQueryBeatsNameBase);
         }
 
-        private static void setupAndIncrement(PerformanceCounter counter, string counterName, long? value = null, bool raw_value = false)
+        private static void setupAndIncrement(ref AtomicValue<PerformanceCounter> counter, string counterName, long? value = null, bool raw_value = false)
         {
             if (Diagnostics.CassandraPerformanceCountersEnabled)
             {
-                if (counter == null)
-                    counter = SetupCounter(CassandraCountersCategory, counterName);
+                SetupCounter(ref counter, CassandraCountersCategory, counterName);
 
-                if (counter != null && CategoryReady)
-                    if (value != null)
-                        if(raw_value)
-                            counter.RawValue = (long)value;
-                        else
-                            counter.IncrementBy((long)value);
+                if (value != null)
+                    if (raw_value)
+                        counter.Value.RawValue = (long)value;
                     else
-                        counter.Increment();
+                        counter.Value.IncrementBy((long)value);
+                else
+                    counter.Value.Increment();
             }
         }
         #endregion
 
         #region QueryTimeRollingArithmeticAvrgCounter
 
-        [ThreadStatic]
-        static PerformanceCounter QueryTimeRollingAvrg = null;
+        static AtomicValue<PerformanceCounter> QueryTimeRollingAvrg = new AtomicValue<PerformanceCounter>(null);
         private const string QueryTimeRollingAvrgName = "Rolling arithmetic average time of CQL queries(in nanoseconds)";
 
-        [ThreadStatic]
-        static PerformanceCounter QueryTimeRollingAvrgBase = null;
+        static AtomicValue<PerformanceCounter> QueryTimeRollingAvrgBase = new AtomicValue<PerformanceCounter>(null);
         private const string QueryTimeRollingAvrgNameBase = "Base rolling arithmetic average time of CQL queries";
 
         public static void UpdateQueryTimeRollingAvrg(long value)
         {
             if (Diagnostics.CassandraPerformanceCountersEnabled)
             {
-                if (QueryTimeRollingAvrg == null)
-                    QueryTimeRollingAvrg = SetupCounter(CassandraCountersCategory, QueryTimeRollingAvrgName);
+                SetupCounter(ref QueryTimeRollingAvrg, CassandraCountersCategory, QueryTimeRollingAvrgName);
+                SetupCounter(ref QueryTimeRollingAvrgBase, CassandraCountersCategory, QueryTimeRollingAvrgNameBase);
 
-                if (QueryTimeRollingAvrgBase == null)                
-                    QueryTimeRollingAvrgBase = SetupCounter(CassandraCountersCategory, QueryTimeRollingAvrgNameBase);                    
-                
-                if (QueryTimeRollingAvrg != null && QueryTimeRollingAvrgBase != null && CategoryReady)
-                {
-                    QueryTimeRollingAvrg.RawValue = getRollingArithmeticAverage(value)/100;
-                    QueryTimeRollingAvrgBase.RawValue = 1;
-                }                    
+                QueryTimeRollingAvrg.Value.RawValue = getRollingArithmeticAverage(value) / 100;
+                QueryTimeRollingAvrgBase.Value.RawValue = 1;
             }
         }
 
         private const int stepOfRollingAvrg = 30;
-        private static long[] circledBufferAvrg = new long[stepOfRollingAvrg] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        private static long[] circledBufferAvrg = new long[stepOfRollingAvrg];
         
         private static int current = 0;
         
@@ -149,20 +105,22 @@ namespace Cassandra
             double avg = 0;
             for (int i = 0; i < stepOfRollingAvrg; i++)
                 avg += circledBufferAvrg[i];
-            return current >= stepOfRollingAvrg ? (long)Math.Floor(avg / stepOfRollingAvrg) : 0;
+            return (long)Math.Floor(avg / stepOfRollingAvrg);
         }
         #endregion
 
 
-        private static object guard = new object();
-        private static PerformanceCounter SetupCounter(string counterCategory, string counterName)
+        private static void SetupCounter(ref AtomicValue<PerformanceCounter> counter, string counterCategory, string counterName)
         {
-            if (!CategoryReady)
-                lock (guard)
-                    if (!CategoryReady) SetupCategory();
+            if (_categoryReady.TryTake())
+                    SetupCategory();
 
-            return CategoryReady ? new PerformanceCounter(counterCategory, counterName, false) : null;
+            if (counter.Value == null)
+                lock (counter)
+                    if (counter.Value == null)
+                        counter.Value = new PerformanceCounter(counterCategory, counterName, false);
         }
+
         private static void SetupCategory()
         {
             // Create category if:
@@ -170,21 +128,11 @@ namespace Cassandra
             //  2) New counter was added. - this situation occurs when category is already set on the machine, but it lacks the newly added counter, so it have to be recreated.                        
             if (PerformanceCounterCategory.Exists(CassandraCountersCategory))
             {
-                bool dynCreated = true;
-                if(NumberOfConnectionsCounters != null)
-                foreach (var dynCntr in NumberOfConnectionsCounters.Keys)
-                    if (!PerformanceCounterCategory.CounterExists(dynCntr.ToString(), CassandraCountersCategory))
-                    {
-                        dynCreated = false;
-                        break;
-                    }
-
-                if (dynCreated &&
+                if (
                     PerformanceCounterCategory.CounterExists(CqlQueryBeatsName, CassandraCountersCategory) &&
                     PerformanceCounterCategory.CounterExists(CqlQueryCountPerSecName, CassandraCountersCategory) &&//Add here every counter that will be used in driver, to check if currently existing category contains it.
                     PerformanceCounterCategory.CounterExists(QueryTimeRollingAvrgName, CassandraCountersCategory))
                 {
-                    CategoryReady = true;
                     _logger.Info(string.Format("Performance counters category '{0}' already exists and contains all requiered counters.", CassandraCountersCategory));
                     return;
                 }
@@ -212,15 +160,6 @@ namespace Cassandra
 
 
             CCDC.Add(CqlQueryCountPerSecData);
-            foreach (var dynCount in NumberOfConnectionsCounters.Keys)
-                CCDC.Add(
-            new CounterCreationData()
-            {
-                CounterName = dynCount.ToString(),
-                CounterHelp = string.Format("Number of connections in pool for {0} node.", dynCount.ToString()),
-                CounterType = PerformanceCounterType.NumberOfItems32
-            });
-
             
             CounterCreationData CqlQueryBeatsData = new CounterCreationData()
             {
@@ -266,7 +205,6 @@ namespace Cassandra
                                                     PerformanceCounterCategoryType.SingleInstance,
                                                     CCDC);
                 _logger.Info("Successfully created performance counters category: " + CassandraCountersCategory);
-                CategoryReady = true;
             }
             catch (System.Security.SecurityException ex)
             {

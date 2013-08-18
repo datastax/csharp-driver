@@ -249,10 +249,10 @@ namespace Cassandra.MSTest
                 int replicationFactor = 3;
                 String key = "1";
 
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))                );
                 session.Execute("USE " + keyspace);
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))                );
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
@@ -395,11 +395,11 @@ namespace Cassandra.MSTest
                 int replicationFactor = 3;
                 String key = "1";
 
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
                 );
                 session.Execute("USE " + keyspace);
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
                 );
 
@@ -466,11 +466,11 @@ namespace Cassandra.MSTest
                 int replicationFactor = 3;
                 String key = "1";
 
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
                 );
                 session.Execute("USE " + keyspace);
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
                                 );
 
@@ -515,11 +515,11 @@ namespace Cassandra.MSTest
                 String table = "TestTable";
                 String key = "1";
 
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1))
                 );
                 session.Execute("USE " + keyspace);
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
                                 );
 

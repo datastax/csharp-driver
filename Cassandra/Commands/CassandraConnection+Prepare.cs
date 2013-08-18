@@ -22,9 +22,9 @@ namespace Cassandra
         public IAsyncResult BeginPrepareQuery(int stramId, string cqlQuery, AsyncCallback callback, object state, object owner)
         {
             var jar = SetupJob(stramId, callback, state, owner, "PREPARE");
-            BeginJob(jar, SetupKeyspace((streamId) =>
+            BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new PrepareRequest(streamId, cqlQuery), streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new PrepareRequest(jar.StreamId, cqlQuery), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
@@ -32,10 +32,10 @@ namespace Cassandra
                         var outp = (response as ResultResponse).Output ;
                         if (outp is OutputPrepared)
                             preparedQueries[(outp as OutputPrepared).QueryID] = cqlQuery;
-                        JobFinished(streamId, outp);
+                        JobFinished(jar, outp);
                     }
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                 }));
             }));

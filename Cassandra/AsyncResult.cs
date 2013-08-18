@@ -16,21 +16,18 @@
 ﻿using System;
 using System.Threading;
 using System.Reflection;
+using System.Collections.Concurrent;
 
 //based on http://blogs.msdn.com/b/nikos/archive/2011/03/14/how-to-implement-iasyncresult-in-another-way.aspx
 
 namespace Cassandra
 {
-    public class AsyncCallException : TimeoutException
-    {
-        public AsyncCallException()
-            : base("async operation  exception")
-        {
-        }
-    }
-
     internal partial class AsyncResultNoResult : IAsyncResult
     {
+        static long CurId;
+
+        public long Id;
+        
         // Fields set at construction which never change while 
         // operation is pending
         private readonly AsyncCallback _asyncCallback;
@@ -44,7 +41,7 @@ namespace Cassandra
         private int _completedState = StatePending;
 
         // Field that may or may not get set depending on usage
-        private MyWaitHandle _asyncWaitHandle;
+        private ManualResetEventSlim _asyncWaitHandle = new ManualResetEventSlim(false);
 
         // Fields set when operation completes
         private Exception _exception;
@@ -69,18 +66,15 @@ namespace Cassandra
         /// </summary>
         private readonly object _tag;
 
-        private readonly int _timeout;
-        private readonly DateTimeOffset _started;
-
         internal AsyncResultNoResult(
             AsyncCallback asyncCallback,
             object state,
             object owner,
             string operationId,
             object sender,
-            object tag,
-            int timeout)
+            object tag)
         {
+            Id = Interlocked.Increment(ref CurId);
             _asyncCallback = asyncCallback;
             _asyncState = state;
             _owner = owner;
@@ -88,9 +82,6 @@ namespace Cassandra
                 string.IsNullOrEmpty(operationId) ? string.Empty : operationId;
             _sender = sender;
             _tag = tag;
-            _timeout = timeout;
-            if (_timeout != Timeout.Infinite)
-                _started = DateTimeOffset.Now;
         }
 
         internal bool Complete()
@@ -110,13 +101,10 @@ namespace Cassandra
 
         internal bool Complete(Exception exception, bool completedSynchronously)
         {
-            bool result = false;
-
             // The _completedState field MUST be set prior calling the callback
-            int prevState = Interlocked.Exchange(ref _completedState,
+            if (Interlocked.Exchange(ref _completedState,
                 completedSynchronously ? StateCompletedSynchronously :
-                StateCompletedAsynchronously);
-            if (prevState == StatePending)
+                StateCompletedAsynchronously) == StatePending)
             {
                 // Passing null for exception means no error occurred. 
                 // This is the common case
@@ -125,21 +113,17 @@ namespace Cassandra
                 // Do any processing before completion.
                 this.Completing(exception, completedSynchronously);
 
-                // If the event exists, set it
-                if (_asyncWaitHandle != null) _asyncWaitHandle.Set();
+                _asyncWaitHandle.Set();
 
                 this.MakeCallback(_asyncCallback, this);
 
                 // Do any final processing after completion
                 this.Completed(exception, completedSynchronously);
 
-                result = true;
+                return true;
             }
             else
-            {
-                //already set
-            }
-            return result;
+                return false;
         }
 
         private void CheckUsage(object owner, string operationId)
@@ -183,17 +167,17 @@ namespace Cassandra
 
             // This method assumes that only 1 thread calls EndInvoke 
             // for this object
-            if (!asyncResult.IsCompleted)
+
+            try
             {
-                // If the operation isn't done, wait for it
                 asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
-                asyncResult.AsyncWaitHandle.Close();
-                if (!asyncResult.IsCompleted)
-                {
-                    asyncResult.Complete(new AsyncCallException());
-                }
-                asyncResult._asyncWaitHandle = null;  // Allow early GC                
             }
+            catch(ThreadInterruptedException tiex)
+            {
+                if (!asyncResult.IsCompleted)
+                    asyncResult.Complete(tiex);
+            }
+
             // Operation is done: if an exception occurred, throw it
             if (asyncResult._exception != null)
             {
@@ -220,79 +204,11 @@ namespace Cassandra
             }
         }
 
-        class MyWaitHandle : WaitHandle
-        {
-            readonly ManualResetEvent _resetEvent;
-            readonly DateTimeOffset _started;
-            readonly int _timeout;
-            public MyWaitHandle(bool state, DateTimeOffset started, int timeout) { _resetEvent = new ManualResetEvent(state); this._started = started; this._timeout = timeout; }
-            public void Set() { _resetEvent.Set(); }
-            public override bool WaitOne()
-            {
-                return WaitOne(Timeout.Infinite);
-            }
-            public override bool WaitOne(TimeSpan timeout)
-            {
-                return WaitOne((int)timeout.TotalMilliseconds);
-            }
-            public override bool WaitOne(int millisecondsTimeout)
-            {
-                try
-                {
-                    if (_timeout == Timeout.Infinite)
-                    {
-                        return _resetEvent.WaitOne(millisecondsTimeout);
-                    }
-                    else
-                    {
-                        var fixTim = _timeout - (int)(DateTimeOffset.Now - _started).TotalMilliseconds;
-                        if (fixTim < 0) fixTim = 0;
-
-                        var tim = millisecondsTimeout == Timeout.Infinite ?
-                            fixTim
-                           : Math.Min(millisecondsTimeout, fixTim);
-                        if (millisecondsTimeout == Timeout.Infinite || millisecondsTimeout <= fixTim)
-                            return _resetEvent.WaitOne(tim);
-                        else
-                        {
-                            _resetEvent.WaitOne(tim);
-                            return true;
-                        }
-                    }
-                }
-                catch(ThreadInterruptedException)
-                {
-                    return false;
-                }
-            }
-        }
-
         public WaitHandle AsyncWaitHandle
         {
             get
             {
-                if (_asyncWaitHandle == null)
-                {
-                    bool done = IsCompleted;
-                    var myWaitHandle = new MyWaitHandle(done, _started, _timeout);
-                    if (Interlocked.CompareExchange(ref _asyncWaitHandle,
-                        myWaitHandle, null) != null)
-                    {
-                        // Another thread created this object's event; dispose 
-                        // the event we just created
-                        myWaitHandle.Close();
-                    }
-                    else
-                    {
-                        if (!done && IsCompleted)
-                        {
-                            // If the operation wasn't done when we created 
-                            // the event but now it is done, set the event
-                            _asyncWaitHandle.Set();
-                        }
-                    }
-                }
-                return _asyncWaitHandle;
+                return _asyncWaitHandle.WaitHandle;
             }
         }
 
@@ -340,8 +256,8 @@ namespace Cassandra
         }
 
         internal AsyncResult(int streamId, AsyncCallback asyncCallback, object state, object owner, string operationId, object sender,
-                             object tag, int timeout) :
-                                 base(asyncCallback, state, owner, operationId, sender, tag, timeout)
+                             object tag) :
+                                 base(asyncCallback, state, owner, operationId, sender, tag)
         {
             this.StreamId = streamId;
         }

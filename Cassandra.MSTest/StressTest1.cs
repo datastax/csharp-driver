@@ -34,6 +34,31 @@ namespace Cassandra.MSTest
         {
         }
 
+        public class MyRetryRetryPolicy : IRetryPolicy
+        {
+            public static readonly MyRetryRetryPolicy Instance = new MyRetryRetryPolicy();
+
+            private MyRetryRetryPolicy() { }
+
+            public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+            {
+                Console.WriteLine("Read Timeout");
+                return null;
+            }
+
+            public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            {
+                Console.WriteLine("Write Timeout");
+                return null;
+            }
+
+            public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            {
+                Console.WriteLine("Unavailable");
+                return null;
+            }
+        }
+
         public Builder initialize(string datacenter, long constDelayMS, int queryTimeout, 
             int coreConnectionPerHost, int maxConnectionPerHost,int cpCon)
         {
@@ -43,14 +68,14 @@ namespace Cassandra.MSTest
             Builder cassandraBuilder = Cluster.Builder()
                 .WithLoadBalancingPolicy(lbp)// new DCAwareRoundRobinPolicy(datacenter))
                     .WithReconnectionPolicy(new ConstantReconnectionPolicy(constDelayMS))
-                    .WithRetryPolicy( DefaultRetryPolicy.Instance)
+                    .WithRetryPolicy(MyRetryRetryPolicy.Instance)
                     .WithQueryTimeout(queryTimeout)
                     .WithCompression(CompressionType.NoCompression);
 
             cassandraBuilder.PoolingOptions.SetCoreConnectionsPerHost(HostDistance.Local, coreConnectionPerHost);
             cassandraBuilder.PoolingOptions.SetMaxConnectionsPerHost(HostDistance.Local, maxConnectionPerHost);
             cassandraBuilder.PoolingOptions.SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, cpCon);
-            cassandraBuilder.PoolingOptions.SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0);
+            cassandraBuilder.PoolingOptions.SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 10);
 
             return cassandraBuilder;
 //            ConsoleReporter consoleReport = new ConsoleReporter();
@@ -59,22 +84,24 @@ namespace Cassandra.MSTest
 
         public void parallelInsertTestGeneric(int nThreads, int cpCon)
         {
-            CCMBridge.ReusableCCMCluster.Setup(3, 0, true);
+            //CCMBridge.ReusableCCMCluster.Setup(3, 0, true);
             string datacenter = "datacenter1";
-            long constDelayMS = 100;
+            long constDelayMS = 500;
             int queryTimeout = Timeout.Infinite;
             int coreConnectionPerHost = 2;
             int maxConnectionPerHost = 8;
 
-            CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost,cpCon));
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            CCMBridge.CCMCluster  ccmCluster = CCMBridge.CCMCluster.Create(3, initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost, cpCon));
+
+//            CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost,cpCon));
+            Session = ccmCluster.Session;
 
             Console.WriteLine("Start parallel insert test (" + nThreads + " , " + cpCon + ")");
             string keyspaceName = "testkeyspace1" + nThreads + "x" + cpCon;
 //            Console.WriteLine("Creating keyspace");
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                      Session.Execute(
                         string.Format(@"CREATE KEYSPACE {0} 
                         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
@@ -85,7 +112,7 @@ namespace Cassandra.MSTest
             string tableName = "testtable";
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                         Session.Execute(string.Format(@"CREATE TABLE {0}(
                          tweet_id int,
                          author text,
@@ -155,15 +182,24 @@ namespace Cassandra.MSTest
             Console.WriteLine("Avg query response time " + ((double)totalElapsedTime) / (double)RowsNo + "ms");
             Console.WriteLine("Avg single insert time " + ((double)t.ElapsedMilliseconds) / (double)RowsNo + "ms");
 
-            //using (var res = Session.Execute(string.Format(@"SELECT COUNT(*) FROM {0} LIMIT {1}", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
-            //{
-            //    var cnt = res.GetRows().FirstOrDefault().GetValue<long>(0);
-            //    Assert.Equal(RowsNo, cnt);
-            //}
+            RETRY:
+            try
+            {
+                using (var res = Session.Execute(string.Format(@"SELECT COUNT(*) FROM {0} LIMIT {1}", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                {
+                    var cnt = res.GetRows().FirstOrDefault().GetValue<long>(0);
+                    Assert.Equal(RowsNo, cnt);
+                }
+            }
+            catch (Exception)
+            {
+                goto RETRY;
+            }
 
             Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-            CCMBridge.ReusableCCMCluster.Drop();
+//            CCMBridge.ReusableCCMCluster.Drop();
+            ccmCluster.Discard();
         }
 
         static long totalElapsedTime = 0;
@@ -226,23 +262,24 @@ namespace Cassandra.MSTest
            // Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg +"ms");
         }
 
-        [TestMethod]
-        //[WorksForMe]
+//        [TestMethod]
+//        [WorksForMe]
         [Priority]
         public void test1()
         {
-            parallelInsertTestGeneric(10, 50);
-            parallelInsertTestGeneric(50, 50);
-            parallelInsertTestGeneric(100, 50);
-            parallelInsertTestGeneric(150, 50);
-            parallelInsertTestGeneric(300, 50);
-            parallelInsertTestGeneric(500, 50);
             parallelInsertTestGeneric(10, 100);
             parallelInsertTestGeneric(50, 100);
             parallelInsertTestGeneric(100, 100);
             parallelInsertTestGeneric(150, 100);
             parallelInsertTestGeneric(300, 100);
             parallelInsertTestGeneric(500, 100);
+
+            parallelInsertTestGeneric(10, 50);
+            parallelInsertTestGeneric(50, 50);
+            parallelInsertTestGeneric(100, 50);
+            parallelInsertTestGeneric(150, 50);
+            parallelInsertTestGeneric(300, 50);
+            parallelInsertTestGeneric(500, 50);
         }
     }
 }

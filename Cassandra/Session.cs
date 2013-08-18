@@ -19,12 +19,15 @@ using System.Net;
 using System.Threading;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
 
     public class Session : IDisposable
     {
+        internal Guid Guid;
+
         private readonly Logger _logger = new Logger(typeof(Session));
         
         private readonly Cluster _cluster;
@@ -44,7 +47,8 @@ namespace Cassandra
 
         public Cluster Cluster { get { return _cluster; } }
 
-        readonly Dictionary<IPAddress, List<CassandraConnection>> _connectionPool = new Dictionary<IPAddress, List<CassandraConnection>>();
+        readonly ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>> _connectionPool = new ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>>();
+        readonly ConcurrentDictionary<IPAddress, AtomicValue<int>> _allocatedConnections = new ConcurrentDictionary<IPAddress, AtomicValue<int>>();
 
         internal Session(Cluster cluster,
                          Policies policies,
@@ -69,141 +73,195 @@ namespace Cassandra
 
             _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
 
+            Guid = Guid.NewGuid();
         }
 
-        internal void Init()
+        Timer _trashcanCleaner;
+
+        internal void Init(bool allock=true)
         {
-            var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
-            if (!ci.MoveNext())
+            if (allock)
             {
-                var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
-                _logger.Error(ex.Message);
-                throw ex;
+                var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                if (!ci.MoveNext())
+                {
+                    var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
+                    _logger.Error(ex.Message);
+                    throw ex;
+                }
+
+                var triedHosts = new List<IPAddress>();
+                var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
+                int streamId;
+                var con = Connect(null, ci, triedHosts, innerExceptions, out streamId);
+                con.FreeStreamId(streamId);
             }
 
-            var triedHosts = new List<IPAddress>();
-            var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
-            int streamId;
-            Connect(null, ci, triedHosts, innerExceptions, out streamId);
+            _trashcanCleaner = new Timer(TranscanCleanup, null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        readonly List<CassandraConnection> _trashcan = new List<CassandraConnection>();
+        readonly ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>> _trashcan = new ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>>();
+
+        void TranscanCleanup(object state)
+        {
+            _trashcanCleaner.Change(Timeout.Infinite, Timeout.Infinite);
+
+            foreach (var kv in _trashcan)
+            {
+                foreach(var ckv in kv.Value)
+                {
+                    CassandraConnection conn;
+                    if(kv.Value.TryRemove(ckv.Key,out conn))
+                    {
+                        if (conn.IsEmpty())
+                        {
+                            _logger.Info("Connection trashed");
+                            FreeConnection(conn);
+                        }
+                        else
+                        {
+                            kv.Value.TryAdd(conn.Guid,conn);
+                        }
+                    }
+                }
+            }
+        }
+
+        void TrashcanPut(CassandraConnection conn)
+        {
+            RETRY:
+            if (!_trashcan.ContainsKey(conn.GetHostAdress()))
+                _trashcan.TryAdd(conn.GetHostAdress(), new ConcurrentDictionary<Guid, CassandraConnection>());
+
+            ConcurrentDictionary<Guid, CassandraConnection> trashes;
+            if (_trashcan.TryGetValue(conn.GetHostAdress(), out trashes))
+                trashes.TryAdd(conn.Guid,conn);
+            else
+                goto RETRY;
+
+            _trashcanCleaner.Change(10000, Timeout.Infinite);
+        }
+
+        CassandraConnection TrashcanRecycle(IPAddress addr)
+        {
+            if (!_trashcan.ContainsKey(addr))
+                return null;
+
+            ConcurrentDictionary<Guid, CassandraConnection> trashes;
+            if (_trashcan.TryGetValue(addr, out trashes))
+            {
+                foreach(var ckv in trashes)
+                {
+                    CassandraConnection conn;
+                    if(trashes.TryRemove(ckv.Key,out conn))
+                        return conn;
+                }
+            }
+
+            return null;
+        }
 
         internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
         {
             CheckDisposed();
 
-            lock (_connectionPool)
+            while (true)
             {
-                List<CassandraConnection> toDel = null;
-                foreach (var conn in _trashcan)
+                var currentHost = hostsIter.Current;
+                if (currentHost == null)
                 {
-                    if (conn.IsEmpty())
-                    {
-                        _logger.Info("Connection trashed");
-                        conn.Dispose();
-                        if (toDel == null)
-                            toDel = new List<CassandraConnection>();
-                        toDel.Add(conn);
-                    }
+                    var ex = new NoHostAvailableException(innerExceptions);
+                    _logger.Error("All hosts are not responding.", ex);
+                    throw ex;
                 }
-                if (toDel != null)
-                    foreach (var d in toDel)
-                        _trashcan.Remove(d);
-
-                while (true)
+                if (currentHost.IsConsiderablyUp)
                 {
-                    var currentHost = hostsIter.Current;
-                    if (currentHost == null)
-                    {
-                        var ex = new NoHostAvailableException(innerExceptions);
-                        _logger.Error("All hosts are not responding.", ex);
-                        throw ex;
-                    }
-                    if (currentHost.IsConsiderablyUp)
-                    {
-                        triedHosts.Add(currentHost.Address);
-                        var hostDistance = _policies.LoadBalancingPolicy.Distance(currentHost);
-                        if (!_connectionPool.ContainsKey(currentHost.Address))
-                            _connectionPool.Add(currentHost.Address, new List<CassandraConnection>());
+                    triedHosts.Add(currentHost.Address);
+                    var hostDistance = _policies.LoadBalancingPolicy.Distance(currentHost);
+                RETRY_GET_POOL:
+                    if (!_connectionPool.ContainsKey(currentHost.Address))
+                        _connectionPool.TryAdd(currentHost.Address, new ConcurrentDictionary<Guid, CassandraConnection>());
 
-                        var pool = _connectionPool[currentHost.Address];
-                        var poolCpy = new List<CassandraConnection>(pool);
-                        CassandraCounters.SetConnectionsCount(currentHost.Address, poolCpy.Count);
-                        CassandraConnection toReturn = null;
-                        foreach (var conn in poolCpy)
+                    ConcurrentDictionary<Guid, CassandraConnection> pool;
+
+                    if (!_connectionPool.TryGetValue(currentHost.Address, out pool))
+                        goto RETRY_GET_POOL;
+
+//                    CassandraCounters.SetConnectionsCount(currentHost.Address, pool.Count);
+                    foreach (var kv in pool)
+                    {
+                        CassandraConnection conn = kv.Value;
+                        if (!conn.IsHealthy)
                         {
-                            if (!conn.IsHealthy)
-                            {
-                                pool.Remove(conn);
-                                conn.Dispose();
-                            }
-                            else
-                            {
-                                if (toReturn == null)
-                                {
-                                    if (!conn.IsBusy(_poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(hostDistance)))
-                                        toReturn = conn;
-                                }
-                                else
-                                {
-                                    if (pool.Count > _poolingOptions.GetCoreConnectionsPerHost(hostDistance))
-                                    {
-                                        if (conn.IsFree(_poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(hostDistance)))
-                                        {
-                                            _trashcan.Add(conn);
-                                            pool.Remove(conn);
-                                        }
-                                    }
-                                }
-                            }
+                            CassandraConnection cc;
+                            if(pool.TryRemove(conn.Guid, out cc))
+                                FreeConnection(cc);
                         }
-                        if (toReturn != null)
+                        else
                         {
-                            streamId = toReturn.AllocateStreamId();
-                            return toReturn;
-                        }
-                        if (pool.Count < _poolingOptions.GetMaxConnectionPerHost(hostDistance) - 1)
-                        {
-                            bool error = false;
-                            CassandraConnection conn = null;
-                            do
-                            {
-                                Exception outExc;
-                                conn = AllocateConnection(currentHost.Address, out outExc);
-                                if (conn != null)
-                                {
-                                    if (_cluster.Metadata != null)
-                                        _cluster.Metadata.BringUpHost(currentHost.Address, this);
-                                    pool.Add(conn);
-                                }
-                                else
-                                {
-                                    if (!innerExceptions.ContainsKey(currentHost.Address))
-                                        innerExceptions.Add(currentHost.Address, new List<Exception>());
-                                    innerExceptions[currentHost.Address].Add(outExc);
-                                    _logger.Info("New connection attempt failed - goto another host.");
-                                    error = true;
-                                    break;
-                                }
-                            }
-                            while (pool.Count < _poolingOptions.GetCoreConnectionsPerHost(hostDistance));
-                            if (!error)
+                            if (!conn.IsBusy(_poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(hostDistance)))
                             {
                                 streamId = conn.AllocateStreamId();
                                 return conn;
                             }
+                            else
+                            {
+                                if (pool.Count > _poolingOptions.GetCoreConnectionsPerHost(hostDistance))
+                                {
+                                    if (conn.IsFree(_poolingOptions.GetMinSimultaneousRequestsPerConnectionTreshold(hostDistance)))
+                                    {
+                                        CassandraConnection cc;
+                                        if (pool.TryRemove(conn.Guid, out cc))
+                                            TrashcanPut(cc);
+                                    }
+                                }
+                            }
                         }
                     }
-                    
-                    _logger.Verbose(string.Format("Currently tried host: {0} have all of connections busy. Switching to the next host.", currentHost.Address));
-                    
-                    if (!hostsIter.MoveNext())
                     {
-                        var ex = new NoHostAvailableException(innerExceptions);
-                        _logger.Error("Cannot connect to any host from pool.", ex);
-                        throw ex;
+
+                        var conn = TrashcanRecycle(currentHost.Address);
+                        if (conn != null)
+                        {
+                            if (!conn.IsHealthy)
+                                FreeConnection(conn);
+                            else
+                            {
+                                pool.TryAdd(conn.Guid, conn);
+                                streamId = conn.AllocateStreamId();
+                                return conn;
+                            }
+                        }
+                        // if not recycled
+                        {
+                            Exception outExc;
+                            conn = AllocateConnection(currentHost.Address, hostDistance, out outExc);
+                            if (conn != null)
+                            {
+                                if (_cluster.Metadata != null)
+                                    _cluster.Metadata.BringUpHost(currentHost.Address, this);
+                                pool.TryAdd(conn.Guid, conn);
+                                streamId = conn.AllocateStreamId();
+                                return conn;
+                            }
+                            else
+                            {
+                                if (!innerExceptions.ContainsKey(currentHost.Address))
+                                    innerExceptions.Add(currentHost.Address, new List<Exception>());
+                                innerExceptions[currentHost.Address].Add(outExc);
+                                _logger.Info("New connection attempt failed - goto another host.");
+                            }
+                        }
                     }
+                }
+
+                _logger.Verbose(string.Format("Currently tried host: {0} have all of connections busy. Switching to the next host.", currentHost.Address));
+
+                if (!hostsIter.MoveNext())
+                {
+                    var ex = new NoHostAvailableException(innerExceptions);
+                    _logger.Error("Cannot connect to any host from pool.", ex);
+                    throw ex;
                 }
             }
         }
@@ -216,13 +274,35 @@ namespace Cassandra
                 metadata.SetDownHost(endpoint, this);
         }
 
-        CassandraConnection AllocateConnection(IPAddress endPoint, out Exception outExc)
+        void FreeConnection(CassandraConnection connection)
+        {
+            connection.Dispose();
+            AtomicValue<int> val;
+            _allocatedConnections.TryGetValue(connection.GetHostAdress(), out val);
+            var no = Interlocked.Decrement(ref val.RawValue);
+        }
+
+        CassandraConnection AllocateConnection(IPAddress endPoint, HostDistance hostDistance, out Exception outExc)
         {
             CassandraConnection nconn = null;
             outExc = null;
 
             try
             {
+                int no = 1;
+                if (!_allocatedConnections.TryAdd(endPoint, new AtomicValue<int>(1)))
+                {
+                    AtomicValue<int> val;
+                    _allocatedConnections.TryGetValue(endPoint, out val);
+                    no = Interlocked.Increment(ref val.RawValue);
+                    if (no > _poolingOptions.GetMaxConnectionPerHost(hostDistance))
+                    {
+                        Interlocked.Decrement(ref val.RawValue);
+                        outExc = new ToManyConnectionsPerHost();
+                        return null;
+                    }
+                }
+
                 nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider);
 
                 var streamId = nconn.AllocateStreamId();
@@ -235,7 +315,14 @@ namespace Cassandra
             catch (Exception ex)
             {
                 if (nconn != null)
+                {
                     nconn.Dispose();
+                    nconn = null;
+                }
+
+                AtomicValue<int> val;
+                _allocatedConnections.TryGetValue(endPoint, out val);
+                Interlocked.Decrement(ref val.RawValue); 
 
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
@@ -265,7 +352,7 @@ namespace Cassandra
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            Cluster.WaitForSchemaAgreement(
+            WaitForSchemaAgreement(
                 Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Default));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
@@ -300,7 +387,7 @@ namespace Cassandra
         /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspace(string keyspace_name)
         {
-            Cluster.WaitForSchemaAgreement(
+            WaitForSchemaAgreement(
                 Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Default));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
@@ -333,54 +420,57 @@ namespace Cassandra
 
         private void SetKeyspace(string keyspace_name)
         {
-            lock (_connectionPool)
+            foreach (var kv in _connectionPool)
             {
-                foreach (var kv in _connectionPool)
+                foreach (var kvv in kv.Value)
                 {
-                    foreach (var conn in kv.Value)
-                    {
-                        if (conn.IsHealthy)
-                            conn.SetKeyspace(keyspace_name);
-                    }
+                    var conn = kvv.Value;
+                    if (conn.IsHealthy)
+                        conn.SetKeyspace(keyspace_name);
                 }
-                this._keyspace = keyspace_name;
-                _logger.Info("Changed keyspace to [" + this._keyspace + "]");
             }
+            foreach (var kv in _trashcan)
+            {
+                foreach (var ckv in kv.Value)
+                {
+                    if (ckv.Value.IsHealthy)
+                        ckv.Value.SetKeyspace(keyspace_name);
+                }
+            }
+            this._keyspace = keyspace_name;
+            _logger.Info("Changed keyspace to [" + this._keyspace + "]");
         }
 
-        readonly Guarded<bool> _alreadyDisposed = new Guarded<bool>(false);
+        BoolSwitch _alreadyDisposed = new BoolSwitch();
 
         void CheckDisposed()
         {
-            lock (_alreadyDisposed)
-                if (_alreadyDisposed.Value)
-                    throw new ObjectDisposedException("CassandraSession");
+            if (_alreadyDisposed.IsTaken())
+                throw new ObjectDisposedException("CassandraSession");
         }
 
         internal void InternalDispose()
         {
-            lock (_alreadyDisposed)
-            {
-                if (_alreadyDisposed.Value)
-                    return;
-                _alreadyDisposed.Value = true;
+            if (!_alreadyDisposed.TryTake())
+                return;
 
-                lock (_connectionPool)
+            _trashcanCleaner.Change(Timeout.Infinite, Timeout.Infinite);
+
+            foreach (var kv in _connectionPool)
+                foreach (var kvv in kv.Value)
                 {
-                    foreach (var kv in _connectionPool)
-                        foreach (var conn in kv.Value)
-                            conn.Dispose();
+                    var conn = kvv.Value;
+                    FreeConnection(conn);
                 }
-            }
+            foreach (var kv in _trashcan)
+                foreach (var ckv in kv.Value)
+                    FreeConnection(ckv.Value);
         }
 
         public void Dispose()
         {
-            lock (_alreadyDisposed)
-            {
-                InternalDispose();
-                Cluster.SessionDisposed(this);
-            }
+            InternalDispose();
+            Cluster.SessionDisposed(this);
         }
 
         ~Session()
@@ -390,21 +480,19 @@ namespace Cassandra
 
         #region Execute
 
-        private HashSet<IAsyncResult> _startedActons = new HashSet<IAsyncResult>();
+        private ConcurrentDictionary<long, IAsyncResult> _startedActons = new ConcurrentDictionary<long, IAsyncResult>();
 
         public IAsyncResult BeginExecute(Query query, object tag, AsyncCallback callback, object state)
         {
-            var ar = query.BeginSessionExecute(this, tag, callback, state);
-            lock (_startedActons)
-                _startedActons.Add(ar);
+            var ar = query.BeginSessionExecute(this, tag, callback, state) as AsyncResultNoResult;
+            _startedActons.TryAdd(ar.Id, ar);
             return ar;
         }
 
         public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state)
         {
-            var ar = query.BeginSessionExecute(this, null, callback, state);
-            lock (_startedActons)
-                _startedActons.Add(ar);
+            var ar = query.BeginSessionExecute(this, null, callback, state) as AsyncResultNoResult;
+            _startedActons.TryAdd(ar.Id, ar) ;
             return ar;
         }
 
@@ -417,32 +505,22 @@ namespace Cassandra
         public RowSet EndExecute(IAsyncResult ar)
         {
             var longActionAc = ar as AsyncResult<RowSet>;
+            IAsyncResult oar;
+            _startedActons.TryRemove(longActionAc.Id, out oar);
             var ret = (longActionAc.AsyncSender as Query).EndSessionExecute(this, ar);
-            lock (_startedActons)
-                _startedActons.Remove(ar);
             return ret;
         }
 
         internal void WaitForAllPendingActions(int timeoutMs)
         {
-            lock (_startedActons)
+            while (_startedActons.Count > 0)
             {
-                while (_startedActons.Count > 0)
-                {
-                    var it = _startedActons.GetEnumerator();
-                    it.MoveNext();
-                    var item = it.Current;
-                    Monitor.Exit(_startedActons);
-                    try
-                    {
-                        item.AsyncWaitHandle.WaitOne(timeoutMs);
-                    }
-                    finally
-                    {
-                        Monitor.Enter(_startedActons);
-                        _startedActons.Remove(item);
-                    }
-                }
+                var it = _startedActons.GetEnumerator();
+                it.MoveNext();
+                var ar = it.Current.Value as AsyncResultNoResult;
+                ar.AsyncWaitHandle.WaitOne(timeoutMs);
+                IAsyncResult oar;
+                _startedActons.TryRemove(ar.Id, out oar);
             }
         }
 
@@ -473,18 +551,17 @@ namespace Cassandra
 
         public IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state)
         {
-            var ar= BeginPrepareQuery(cqlQuery, callback, state);
-            lock (_startedActons)
-                _startedActons.Add(ar);
+            var ar = BeginPrepareQuery(cqlQuery, callback, state) as AsyncResultNoResult;
+            _startedActons.TryAdd(ar.Id, ar);
             return ar;
         }
 
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
+            IAsyncResult oar;
+            _startedActons.TryRemove((ar as AsyncResultNoResult).Id, out oar);
             RowSetMetadata metadata;
             var id = EndPrepareQuery(ar, out metadata);
-            lock (_startedActons)
-                _startedActons.Remove(ar);
             return new PreparedStatement(metadata, id);
         }
 
@@ -676,6 +753,8 @@ namespace Cassandra
                         token.Complete(this, null, ex);
                         return;
                     }
+                    else if (_alreadyDisposed.IsTaken())
+                        return;
                     //else
                         //retry
                 }
@@ -796,7 +875,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing=false, Query query = null, object sender = null, object tag = null)
         {
-            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
             var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
@@ -818,7 +897,7 @@ namespace Cassandra
 
         #region Prepare
 
-        readonly Dictionary<byte[], string> _preparedQueries = new Dictionary<byte[], string>();
+        readonly ConcurrentDictionary<byte[], string> _preparedQueries = new ConcurrentDictionary<byte[], string>();
 
 
         class LongPrepareQueryToken : LongToken
@@ -844,8 +923,7 @@ namespace Cassandra
                 {
                     var kv = (KeyValuePair<RowSetMetadata, byte[]>)value;
                     ar.SetResult(kv);
-                    lock (owner._preparedQueries)
-                        owner._preparedQueries[kv.Value] = CqlQuery;
+                    owner._preparedQueries.AddOrUpdate(kv.Value, CqlQuery, (k, o) => o);
                     ar.Complete();
                 }
             }
@@ -853,7 +931,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
         {
-            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag,  _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag);
             var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Default, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -934,7 +1012,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null, object tag = null, bool isTracing=false)
         {
-            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag, _clientOptions.AsyncCallAbortTimeout);
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
             var token = new LongExecuteQueryToken() { Consistency = consistency, Id = id, cql= _preparedQueries[id], Metadata = metadata, Values = values, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing};
 
             ExecConn(token, false);
@@ -956,29 +1034,125 @@ namespace Cassandra
 
         #endregion
 
+        internal const long MaxSchemaAgreementWaitMs = 10000;
+        internal const string SelectSchemaPeers = "SELECT peer, rpc_address, schema_version FROM system.peers";
+        internal const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
+        internal static IPAddress bindAllAddress = new IPAddress(new byte[4]);
+
+
+        public void WaitForSchemaAgreement(RowSet rs)
+        {
+            WaitForSchemaAgreement(rs.Info.QueriedHost);
+        }
+
+        public bool WaitForSchemaAgreement(IPAddress forHost)
+        {
+            var start = DateTimeOffset.Now;
+            long elapsed = 0;
+            while (elapsed < MaxSchemaAgreementWaitMs)
+            {
+                var versions = new HashSet<Guid>();
+
+                int streamId1;
+                int streamId2;
+                CassandraConnection connection;
+                {
+                    var localhost = _cluster.Metadata.GetHost(forHost);
+                    var iterLiof = new List<Host>() { localhost }.GetEnumerator();
+                    iterLiof.MoveNext();
+                    List<IPAddress> tr = new List<IPAddress>();
+                    Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
+
+                    connection = Connect(null, iterLiof, tr, exx, out streamId1);
+                    while (true)
+                    {
+                        try
+                        {
+                            streamId2 = connection.AllocateStreamId();
+                            break;
+                        }
+                        catch (CassandraConnection.StreamAllocationException)
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
+                }
+                {
+
+                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, ConsistencyLevel.Default, false))
+                    {
+                        if (outp is OutputRows)
+                        {
+                            var rowset = new RowSet((outp as OutputRows), null, false);
+                            foreach (var row in rowset.GetRows())
+                            {
+                                if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
+                                    continue;
+
+                                var rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
+                                if (rpc.Equals(bindAllAddress))
+                                {
+                                    if (!row.IsNull("peer"))
+                                        rpc = row.GetValue<IPEndPoint>("peer").Address;
+                                }
+
+                                Host peer = _cluster.Metadata.GetHost(rpc);
+                                if (peer != null && peer.IsConsiderablyUp)
+                                    versions.Add(row.GetValue<Guid>("schema_version"));
+                            }
+                        }
+                    }
+                }
+
+                {
+                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, ConsistencyLevel.Default, false))
+                    {
+                        if (outp is OutputRows)
+                        {
+                            var rowset = new RowSet((outp as OutputRows), null, false);
+                            // Update cluster name, DC and rack for the one node we are connected to
+                            foreach (var localRow in rowset.GetRows())
+                                if (!localRow.IsNull("schema_version"))
+                                {
+                                    versions.Add(localRow.GetValue<Guid>("schema_version"));
+                                    break;
+                                }
+                        }
+                    }
+                }
+
+
+                if (versions.Count <= 1)
+                    return true;
+
+                // let's not flood the node too much
+                Thread.Sleep(200);
+                elapsed = (long)(DateTimeOffset.Now - start).TotalMilliseconds;
+            }
+
+            return false;
+        }
+
 #if ERRORINJECTION
         public void SimulateSingleConnectionDown()
         {
-            lock (_connectionPool)
-                if (_connectionPool.Count > 0)
+            if (_connectionPool.Count > 0)
+            {
+                var endpoints = new List<IPAddress>(_connectionPool.Keys);
+                var hostidx = StaticRandom.Instance.Next(endpoints.Count);
+                var endpoint = endpoints[hostidx];
+                ConcurrentDictionary<Guid, CassandraConnection> pool;
+                if (_connectionPool.TryGetValue(endpoint, out pool))
                 {
-                    var hostidx = StaticRandom.Instance.Next(_connectionPool.Keys.Count);
-                    var endpoint = new List<IPAddress>(_connectionPool.Keys)[hostidx];
-                    if (_connectionPool.Count > 0)
+                    var items = new List<Guid>(pool.Keys);
+                    if (items.Count < hostidx)
                     {
-                        var conn = _connectionPool[endpoint][StaticRandom.Instance.Next(_connectionPool[endpoint].Count)];
-                        conn.KillSocket();
+                        var conidx = StaticRandom.Instance.Next(items.Count);
+                        CassandraConnection con;
+                        if (pool.TryGetValue(items[conidx], out con))
+                            con.KillSocket();
                     }
                 }
-        }
-
-        public void SimulateAllConnectionsDown()
-        {
-            lock (_connectionPool)
-            {
-                foreach (var kv in _connectionPool)
-                    foreach (var conn in kv.Value)
-                        conn.KillSocket();
             }
         }
 #endif

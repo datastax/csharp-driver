@@ -21,6 +21,7 @@ using Cassandra;
 using System.Threading;
 using System.Globalization;
 using System.Threading.Tasks;
+using System.Numerics;
 
 #if MYTEST
 using MyTest;
@@ -28,9 +29,6 @@ using MyTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 
-#if NET_40_OR_GREATER
-using System.Numerics;
-#endif
 
 namespace Cassandra.MSTest
 {
@@ -74,10 +72,8 @@ namespace Cassandra.MSTest
                     {"q7boolean", ColumnTypeCode.Boolean},
                     {"q8inet", ColumnTypeCode.Inet},
                     {"q9blob", ColumnTypeCode.Blob},
-#if NET_40_OR_GREATER
-                         {"q10varint", ColumnTypeCode.Varint},
-                         {"q11decimal", ColumnTypeCode.Decimal},
-#endif
+                    {"q10varint", ColumnTypeCode.Varint},
+                    {"q11decimal", ColumnTypeCode.Decimal},
                     {"q12list", ColumnTypeCode.List},
                     {"q13set", ColumnTypeCode.Set},
                     {"q14map", ColumnTypeCode.Map}
@@ -104,7 +100,7 @@ namespace Cassandra.MSTest
             var opt = tableOptions != null ? " WITH " + tableOptions.ToString() : "";
             sb.Append("))" + opt + ";");
 
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, sb.ToString())
 
             );
@@ -154,7 +150,7 @@ namespace Cassandra.MSTest
                 bool durableWrites = false;
                 string strgyClass = "SimpleStrategy";
                 short rplctnFactor = 1;
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     Session.Execute(
     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}

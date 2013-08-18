@@ -83,15 +83,15 @@ namespace Cassandra
         public IAsyncResult BeginRegisterForCassandraEvent(int _streamId, CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
         {
             var jar = SetupJob(_streamId, callback, state, owner, "REGISTER");
-            BeginJob(jar, new Action<int>((streamId) =>
+            BeginJob(jar, new Action(() =>
             {
-                Evaluate(new RegisterForEventRequest(streamId, eventTypes), streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new RegisterForEventRequest(jar.StreamId, eventTypes), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
-                        JobFinished(streamId, new OutputVoid(null));
+                        JobFinished(jar, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                 }));
             }));

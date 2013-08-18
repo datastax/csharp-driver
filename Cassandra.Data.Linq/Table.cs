@@ -154,7 +154,7 @@ namespace Cassandra.Data.Linq
         {
             var cqls = CqlQueryTools.GetCreateCQL(this);
             foreach (var cql in cqls)
-                _session.Cluster.WaitForSchemaAgreement(_session.Execute(cql));
+                _session.WaitForSchemaAgreement(_session.Execute(cql));
         }
 
         public void CreateIfNotExists()
