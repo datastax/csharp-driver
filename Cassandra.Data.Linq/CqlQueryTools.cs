@@ -616,7 +616,7 @@ namespace Cassandra.Data.Linq
             }
             else
             {
-                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string) || typeof(T) == typeof(byte[])))
+                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string) || typeof(T) == typeof(byte[]) || typeof(T) == typeof(Guid)))
                 {
                     return (T)cqlRow[0];
                 }
