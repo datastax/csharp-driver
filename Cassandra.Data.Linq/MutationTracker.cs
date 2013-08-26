@@ -284,7 +284,7 @@ namespace Cassandra.Data.Linq
                 if (kv.Value.QueryTracingEnabled)
                     _traces.TryAdd(kv.Key, trace);
 
-                if (kv.Value.MutationType != MutationType.Delete)
+                if (kv.Value.MutationType != MutationType.Delete && kv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
                     newtable.Add(Clone(kv.Value.Entity), new TableEntry() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
             }
 
