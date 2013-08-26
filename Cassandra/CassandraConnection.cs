@@ -20,6 +20,8 @@ using System.Net.Sockets;
 using System.IO;
 using System.Threading;
 using System.Collections.Concurrent;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Cassandra
 {
@@ -144,7 +146,14 @@ namespace Cassandra
             newSock.Connect(new IPEndPoint(_serverAddress, _port));
             _socket = newSock;
             _bufferingMode.Reset();
-            _socketStream = new NetworkStream(_socket);
+
+            if (protocolOptions.SslOptions == null)
+                _socketStream = new NetworkStream(_socket);
+            else
+            {
+                _socketStream = new SslStream(new NetworkStream(_socket), false, new RemoteCertificateValidationCallback(protocolOptions.SslOptions.RemoteCertValidationCallback), null);
+                (_socketStream as SslStream).AuthenticateAsClient(serverAddress.ToString(), new X509CertificateCollection(), protocolOptions.SslOptions.SslProtocol, false);
+            }
 
             if (IsHealthy)
                 BeginReading();
@@ -153,7 +162,7 @@ namespace Cassandra
         byte[][] _buffer = null;
         int _bufNo = 0;
 
-        private readonly NetworkStream _socketStream;
+        private readonly Stream _socketStream;
 
         readonly IBuffering _bufferingMode;
 

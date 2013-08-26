@@ -221,6 +221,7 @@
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
     <Compile Include="SocketOptions.cs" />
+    <Compile Include="SSLOptions.cs" />
     <Compile Include="Statement.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TokenFactory.cs" />
