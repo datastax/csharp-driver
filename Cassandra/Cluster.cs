@@ -66,7 +66,7 @@ namespace Cassandra
                 ;
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
-                                                        new ProtocolOptions(_configuration.ProtocolOptions.Port),
+                                                        new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
                                                        poolingOptions, _configuration.SocketOptions,
                                                        new ClientOptions(
                                                            true,
@@ -126,7 +126,8 @@ namespace Cassandra
         {
             var scs = new Session(this, _configuration.Policies,
                                   _configuration.ProtocolOptions,
-                                  _configuration.PoolingOptions, _configuration.SocketOptions,
+                                  _configuration.PoolingOptions,
+                                  _configuration.SocketOptions,
                                   _configuration.ClientOptions,
                                   _configuration.AuthInfoProvider, keyspace);
             scs.Init();
@@ -268,6 +269,7 @@ namespace Cassandra
         private CompressionType _compression = CompressionType.NoCompression;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
+        private SSLOptions _sslOptions = null;
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private IReconnectionPolicy _reconnectionPolicy;
@@ -456,7 +458,7 @@ namespace Cassandra
                 );
 
             return new Configuration(policies,
-                                     new ProtocolOptions(_port).SetCompression(_compression),
+                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression),
                                      _poolingOptions,
                                      _socketOptions,
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
@@ -518,7 +520,41 @@ namespace Cassandra
             this._defaultKeyspace = defaultKeyspace;
             return this;
         }
-        
+
+        /// <summary>
+        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options. 
+        /// </summary>
+        /// <remarks>
+        /// If SSL is enabled, the driver will not connect to any
+        /// Cassandra nodes that doesn't have SSL enabled and it is strongly
+        /// advised to enable SSL on every Cassandra node if you plan on using
+        /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
+        /// </remarks>
+        /// <param name="sslOptions">SSL options to use.</param>
+        /// <returns>this builder</returns>        
+        public Builder WithSSL()
+        {
+            this._sslOptions = new SSLOptions();
+            return this;
+        }
+
+        /// <summary>
+        ///  Enables the use of SSL for the created Cluster using the provided options. 
+        /// </summary>
+        /// <remarks>
+        /// If SSL is enabled, the driver will not connect to any
+        /// Cassandra nodes that doesn't have SSL enabled and it is strongly
+        /// advised to enable SSL on every Cassandra node if you plan on using
+        /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
+        /// </remarks>
+        /// <param name="sslOptions">SSL options to use.</param>
+        /// <returns>this builder</returns>        
+        public Builder WithSSL(SSLOptions sslOptions)
+        {
+            this._sslOptions = sslOptions;
+            return this;
+        }
+
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and
         ///  policies. This is a shorthand for <code>Cluster.buildFrom(this)</code>.

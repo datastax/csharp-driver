@@ -20,6 +20,8 @@ using System.Net.Sockets;
 using System.IO;
 using System.Threading;
 using System.Collections.Concurrent;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Cassandra
 {
@@ -37,6 +39,7 @@ namespace Cassandra
             catch { }
         }
 #endif
+        private static Logger _logger = new Logger(typeof(CassandraConnection));
         readonly IPAddress _serverAddress;
         readonly int _port;
         readonly Socket _socket;
@@ -63,7 +66,7 @@ namespace Cassandra
 
         readonly Session _owner;
 
-        private readonly SocketOptions _socketOptions;
+        private readonly SocketOptions _socketOptions;        
 
         void HostIsDown()
         {
@@ -78,7 +81,7 @@ namespace Cassandra
         {
             this.Guid = Guid.NewGuid();
             this._owner = owner;
-            _bufferingMode = null;
+            _bufferingMode = null;           
             switch (protocolOptions.Compression)
             {
                 case CompressionType.Snappy:
@@ -144,7 +147,25 @@ namespace Cassandra
             newSock.Connect(new IPEndPoint(_serverAddress, _port));
             _socket = newSock;
             _bufferingMode.Reset();
-            _socketStream = new NetworkStream(_socket);
+
+            if (protocolOptions.SslOptions == null)
+                _socketStream = new NetworkStream(_socket);
+            else
+            {
+                string targetHost;                
+                try
+                {
+                    targetHost = Dns.GetHostEntry(_serverAddress).HostName;
+                }
+                catch (SocketException ex)
+                {
+                    targetHost = serverAddress.ToString();
+                    _logger.Error(string.Format("SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.", _serverAddress.ToString()), ex);
+                }
+
+                _socketStream = new SslStream(new NetworkStream(_socket), false, new RemoteCertificateValidationCallback(protocolOptions.SslOptions.RemoteCertValidationCallback), null);
+                (_socketStream as SslStream).AuthenticateAsClient(targetHost, new X509CertificateCollection(), protocolOptions.SslOptions.SslProtocol, false);
+            }
 
             if (IsHealthy)
                 BeginReading();
@@ -153,7 +174,7 @@ namespace Cassandra
         byte[][] _buffer = null;
         int _bufNo = 0;
 
-        private readonly NetworkStream _socketStream;
+        private readonly Stream _socketStream;
 
         readonly IBuffering _bufferingMode;
 

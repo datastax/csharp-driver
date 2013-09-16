@@ -361,7 +361,7 @@ namespace Cassandra.Data.Linq
 
             foreach (var clustKey in clusteringKeys)
                 if (clustKey.Value.ClusteringOrder != null)
-                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string)clustKey.Value.Name, clustKey.Value.ClusteringOrder));
+                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string)clustKey.Value.Name.CqlIdentifier(), clustKey.Value.ClusteringOrder));
                 else
                     break;
 
@@ -616,7 +616,7 @@ namespace Cassandra.Data.Linq
             }
             else
             {
-                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string) || typeof(T) == typeof(byte[])))
+                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string) || typeof(T) == typeof(byte[]) || typeof(T) == typeof(Guid)))
                 {
                     return (T)cqlRow[0];
                 }
