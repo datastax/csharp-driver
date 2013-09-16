@@ -40,6 +40,12 @@ namespace Cassandra.Data.Linq
             _batchScript.AppendLine(";");
         }
 
+        public Batch UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            this.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
         public void Append(IEnumerable<CqlCommand> cqlCommands)
         {
             foreach (var cmd in cqlCommands)

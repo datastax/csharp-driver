@@ -506,7 +506,13 @@ namespace Cassandra.Data.Linq
         {
             if (phasePhase.get() == ParsePhase.Condition)
             {
-                if (node.Expression.NodeType == ExpressionType.Parameter)
+                if (node.Expression == null)
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    WhereClause.Append(val.Encode());
+                    return node;
+                }
+                else if (node.Expression.NodeType == ExpressionType.Parameter)
                 {
                     WhereClause.Append(Alter[node.Member.Name].CqlIdentifier());
                     return node;

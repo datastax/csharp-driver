@@ -123,6 +123,12 @@ namespace Cassandra.Data.Linq
             return visitor.GetSelect();
         }
 
+        public CqlQuerySingleElement<TEntity> UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            this.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
             var visitor = new CqlExpressionVisitor();
@@ -165,6 +171,12 @@ namespace Cassandra.Data.Linq
         public TEntity Execute()
         {
             return EndExecute(BeginExecute(null, null));
+        }
+
+        public CqlScalar<TEntity> UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            this.SetConsistencyLevel(consistencyLevel);
+            return this;
         }
 
         protected override string CqlString()
@@ -223,6 +235,12 @@ namespace Cassandra.Data.Linq
 
         internal CqlQuery(Expression expression, IQueryProvider table) : base(expression,table)
         {
+        }
+
+        public CqlQuery<TEntity> UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            this.SetConsistencyLevel(consistencyLevel);
+            return this;
         }
 
         public IEnumerator<TEntity> GetEnumerator()
@@ -293,6 +311,12 @@ namespace Cassandra.Data.Linq
         public void SetQueryTrace(QueryTrace trace)
         {
             QueryTrace = trace;
+        }
+
+        public CqlCommand UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            this.SetConsistencyLevel(consistencyLevel);
+            return this;
         }
         
         internal CqlCommand(Expression expression, IQueryProvider table)
