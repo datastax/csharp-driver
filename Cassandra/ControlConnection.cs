@@ -113,7 +113,7 @@ namespace Cassandra
                 throw ex;
             }
 
-            _activeConnection.Value = _session.Connect(null, hostsIter, triedHosts, innerExceptions, out _lockingStreamId);
+            _activeConnection.Value = _session.Connect(hostsIter, triedHosts, innerExceptions, out _lockingStreamId);
 
             int streamId = _activeConnection.Value.AllocateStreamId();
 

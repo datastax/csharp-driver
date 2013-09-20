@@ -84,7 +84,7 @@ namespace Cassandra.MSTest
 
         public void parallelInsertTestGeneric(int nThreads, int cpCon)
         {
-            //CCMBridge.ReusableCCMCluster.Setup(3, 0, true);
+            CCMBridge.ReusableCCMCluster.Setup(3, 0, true);
             string datacenter = "datacenter1";
             long constDelayMS = 500;
             int queryTimeout = Timeout.Infinite;
@@ -93,7 +93,7 @@ namespace Cassandra.MSTest
 
             CCMBridge.CCMCluster  ccmCluster = CCMBridge.CCMCluster.Create(3, initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost, cpCon));
 
-//            CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost,cpCon));
+            CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost,cpCon));
             Session = ccmCluster.Session;
 
             Console.WriteLine("Start parallel insert test (" + nThreads + " , " + cpCon + ")");
@@ -198,7 +198,7 @@ namespace Cassandra.MSTest
 
             Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-//            CCMBridge.ReusableCCMCluster.Drop();
+            CCMBridge.ReusableCCMCluster.Drop();            
             ccmCluster.Discard();
         }
 
@@ -262,8 +262,8 @@ namespace Cassandra.MSTest
            // Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg +"ms");
         }
 
-//        [TestMethod]
-//        [WorksForMe]
+        [TestMethod]
+        [WorksForMe]
         [Priority]
         public void test1()
         {

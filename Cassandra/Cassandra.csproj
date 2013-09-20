@@ -81,6 +81,7 @@
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
+    <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />

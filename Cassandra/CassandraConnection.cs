@@ -513,7 +513,7 @@ namespace Cassandra
                         else
                             _frameReadTimers[streamId].Change(_queryAbortTimeout, Timeout.Infinite);
                     }
-                    _socketStream.Write(frame.Buffer, 0, frame.Buffer.Length);
+                    frame.Buffer.WriteTo(_socketStream);
                 }
             }
             catch (Exception ex)

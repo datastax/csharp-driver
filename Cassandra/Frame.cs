@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+﻿using System.IO;
+namespace Cassandra
 {
 
     internal class FrameHeader
@@ -44,7 +45,7 @@
 
     internal struct RequestFrame
     {
-        public byte[] Buffer;
+        public MemoryTributary Buffer;
 
         public const int VersionIdx = 0;
         public const int FlagsIdx = 1;
