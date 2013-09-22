@@ -181,16 +181,19 @@ namespace Cassandra
                     if (ssc.What == SchemaChangeEventArgs.Reason.Created)
                     {
                         SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Created, string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
                         return;
                     }
                     else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
                     {
                         SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
                         return;
                     }
                     else if (ssc.What == SchemaChangeEventArgs.Reason.Updated)
                     {
                         SubmitSchemaRefresh(ssc.Keyspace, string.IsNullOrEmpty(ssc.Table) ? null : ssc.Table);
+                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Updated, string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
                         return;
                     }
                 }
