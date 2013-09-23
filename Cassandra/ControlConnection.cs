@@ -638,12 +638,15 @@ namespace Cassandra
                 AtomicValue<KeyspaceMetadata> value;
                 if (ks.TryGetValue(keyspace, out value))
                 {
-                    var kss = value.Value.Tables.Value;
-                    if (kss != null)
+                    if (value.Value != null)
                     {
-                        AtomicValue<TableMetadata> tabval;
-                        if (kss.TryGetValue(table, out tabval))
-                            tabval.Value = null;
+                        var kss = value.Value.Tables.Value;
+                        if (kss != null)
+                        {
+                            AtomicValue<TableMetadata> tabval;
+                            if (kss.TryGetValue(table, out tabval))
+                                tabval.Value = null;
+                        }
                     }
                 }
             }
