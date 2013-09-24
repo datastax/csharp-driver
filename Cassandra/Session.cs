@@ -93,7 +93,7 @@ namespace Cassandra
                 var triedHosts = new List<IPAddress>();
                 var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
                 int streamId;
-                var con = Connect(null, ci, triedHosts, innerExceptions, out streamId);
+                var con = Connect( ci, triedHosts, innerExceptions, out streamId);
                 con.FreeStreamId(streamId);
             }
 
@@ -161,7 +161,7 @@ namespace Cassandra
             return null;
         }
 
-        internal CassandraConnection Connect(Query query, IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
+        internal CassandraConnection Connect(IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
         {
             CheckDisposed();
 
@@ -728,7 +728,7 @@ namespace Cassandra
                         }
                 }
 
-                Connection = owner.Connect(Query, _hostsIter, TriedHosts, InnerExceptions, out streamId);
+                Connection = owner.Connect(_hostsIter, TriedHosts, InnerExceptions, out streamId);
             }
             abstract public void Begin(Session owner, int steamId);
             abstract public void Process(Session owner, IAsyncResult ar, out object value);
@@ -1063,7 +1063,7 @@ namespace Cassandra
                     List<IPAddress> tr = new List<IPAddress>();
                     Dictionary<IPAddress, List<Exception>> exx = new Dictionary<IPAddress, List<Exception>>();
 
-                    connection = Connect(null, iterLiof, tr, exx, out streamId1);
+                    connection = Connect(iterLiof, tr, exx, out streamId1);
                     while (true)
                     {
                         try

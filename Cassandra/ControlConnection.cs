@@ -113,7 +113,7 @@ namespace Cassandra
                 throw ex;
             }
 
-            _activeConnection.Value = _session.Connect(null, hostsIter, triedHosts, innerExceptions, out _lockingStreamId);
+            _activeConnection.Value = _session.Connect(hostsIter, triedHosts, innerExceptions, out _lockingStreamId);
 
             int streamId = _activeConnection.Value.AllocateStreamId();
 
@@ -181,16 +181,19 @@ namespace Cassandra
                     if (ssc.What == SchemaChangeEventArgs.Reason.Created)
                     {
                         SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Created, string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
                         return;
                     }
                     else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
                     {
                         SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
+                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
                         return;
                     }
                     else if (ssc.What == SchemaChangeEventArgs.Reason.Updated)
                     {
                         SubmitSchemaRefresh(ssc.Keyspace, string.IsNullOrEmpty(ssc.Table) ? null : ssc.Table);
+                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Updated, string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
                         return;
                     }
                 }
@@ -635,12 +638,15 @@ namespace Cassandra
                 AtomicValue<KeyspaceMetadata> value;
                 if (ks.TryGetValue(keyspace, out value))
                 {
-                    var kss = value.Value.Tables.Value;
-                    if (kss != null)
+                    if (value.Value != null)
                     {
-                        AtomicValue<TableMetadata> tabval;
-                        if (kss.TryGetValue(table, out tabval))
-                            tabval.Value = null;
+                        var kss = value.Value.Tables.Value;
+                        if (kss != null)
+                        {
+                            AtomicValue<TableMetadata> tabval;
+                            if (kss.TryGetValue(table, out tabval))
+                                tabval.Value = null;
+                        }
                     }
                 }
             }

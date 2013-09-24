@@ -23,7 +23,7 @@ namespace Cassandra
     internal partial class BEBinaryWriter
     {
         readonly BinaryWriter _base;
-        public BEBinaryWriter() { _base = new BinaryWriter(new MemoryStream()); }
+        public BEBinaryWriter() { _base = new BinaryWriter(new MemoryTributary()); }
 
         public long Position { get { return _base.BaseStream.Position; } }
 
@@ -31,7 +31,7 @@ namespace Cassandra
 
         public byte[] GetBuffer()
         {
-            return (_base.BaseStream as MemoryStream).GetBuffer();
+            return (_base.BaseStream as MemoryTributary).ToArray();            
         }
 
         public void WriteByte(byte value)

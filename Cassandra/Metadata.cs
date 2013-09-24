@@ -27,7 +27,16 @@ namespace Cassandra
         public IPAddress IPAddress;
     }
 
+    public class SchemaChangedEventArgs : EventArgs
+    {
+        public enum Kind { Created, Dropped, Updated }
+        public Kind What;
+        public string Keyspace;
+        public string Table;
+    }
+
     public delegate void HostsEventHandler(object sender, HostsEventArgs e);
+    public delegate void SchemaChangedEventHandler(object sender, SchemaChangedEventArgs e);
 
     /// <summary>
     ///  Keeps metadata on the connected cluster, including known nodes and schema
@@ -50,6 +59,7 @@ namespace Cassandra
         }
 
         public event HostsEventHandler HostsEvent;
+        public event SchemaChangedEventHandler SchemaChangedEvent;
         
         /// <summary>
         ///  Returns the name of currently connected cluster.
@@ -76,6 +86,12 @@ namespace Cassandra
         internal void RemoveHost(IPAddress address)
         {
             _hosts.RemoveIfExists(address);
+        }
+
+        internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
+        {
+            if (SchemaChangedEvent != null)
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs() { Keyspace = keyspace, What = what, Table = table });
         }
 
         internal void SetDownHost(IPAddress address, object sender = null)
