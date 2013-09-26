@@ -203,11 +203,11 @@ namespace Cassandra.Data.Linq
                         throw new InvalidOperationException();
                     var cql = "";
                     if (kv.Value.MutationType == MutationType.Add)
-                        cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename);
+                        cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename,null,null);
                     else if (kv.Value.MutationType == MutationType.Delete)
                         cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                     else if (kv.Value.MutationType == MutationType.None)
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename,
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename,null,
                             kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
                     else
                         continue;
@@ -254,15 +254,15 @@ namespace Cassandra.Data.Linq
 
                 var cql = "";
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename);
+                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename, null,null);
                 else if (kv.Value.MutationType == MutationType.Delete)
                     cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                 else if (kv.Value.MutationType == MutationType.None)
                 {
                     if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, true);
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, null, true);
                     else
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, false);
+                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, null, false);
                 }
                 else
                     continue;

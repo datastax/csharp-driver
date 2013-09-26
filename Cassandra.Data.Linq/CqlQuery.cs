@@ -123,9 +123,9 @@ namespace Cassandra.Data.Linq
             return visitor.GetSelect();
         }
 
-        public CqlQuerySingleElement<TEntity> UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            this.SetConsistencyLevel(consistencyLevel);
+            base.SetConsistencyLevel(consistencyLevel);
             return this;
         }
 
@@ -173,9 +173,9 @@ namespace Cassandra.Data.Linq
             return EndExecute(BeginExecute(null, null));
         }
 
-        public CqlScalar<TEntity> UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            this.SetConsistencyLevel(consistencyLevel);
+            base.SetConsistencyLevel(consistencyLevel);
             return this;
         }
 
@@ -237,9 +237,9 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        public CqlQuery<TEntity> UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlQuery<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            this.SetConsistencyLevel(consistencyLevel);
+            base.SetConsistencyLevel(consistencyLevel);
             return this;
         }
 
@@ -305,6 +305,8 @@ namespace Cassandra.Data.Linq
             EndExecute(BeginExecute(null, null));
         }
 
+        protected int? _ttl = null;
+        protected DateTimeOffset? _timestamp = null;
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
 
@@ -313,12 +315,24 @@ namespace Cassandra.Data.Linq
             QueryTrace = trace;
         }
 
-        public CqlCommand UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlCommand SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            this.SetConsistencyLevel(consistencyLevel);
+            base.SetConsistencyLevel(consistencyLevel);
             return this;
         }
-        
+
+        public CqlCommand SetTTL(int miliseconds)
+        {
+            _ttl = miliseconds;
+            return this;
+        }
+
+        public CqlCommand SetTimestamp(DateTimeOffset timestamp)
+        {
+            _timestamp = timestamp;
+            return this;
+        }
+
         internal CqlCommand(Expression expression, IQueryProvider table)
         {
             this._expression = expression;
@@ -402,7 +416,7 @@ namespace Cassandra.Data.Linq
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetDelete();
+            return visitor.GetDelete(_timestamp);
         }
     }
 
@@ -417,7 +431,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql()
         {
-            return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetTableName());
+            return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetTableName(), _ttl, _timestamp);
         }
     }
 
@@ -429,7 +443,7 @@ namespace Cassandra.Data.Linq
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate();   
+            return visitor.GetUpdate(_ttl, _timestamp);   
         }
     }
 }

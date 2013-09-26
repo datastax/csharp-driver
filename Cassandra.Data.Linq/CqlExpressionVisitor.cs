@@ -93,7 +93,7 @@ namespace Cassandra.Data.Linq
             return sb.ToString();
         }
 
-        public string GetDelete()
+        public string GetDelete(DateTimeOffset? timestamp)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
@@ -106,10 +106,15 @@ namespace Cassandra.Data.Linq
             }
             if (SelectFields.Count > 0)
                 throw new CqlArgumentException("Unable to delete entity partially");
+            if (timestamp != null)
+            {
+                sb.Append(" USING TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+            }
             return sb.ToString();
         }
 
-        public string GetUpdate()
+        public string GetUpdate(int? ttl, DateTimeOffset? timestamp)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
@@ -147,7 +152,22 @@ namespace Cassandra.Data.Linq
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
             }
-
+            if (ttl != null || timestamp!=null)
+            {
+                sb.Append(" USING ");
+            }
+            if (ttl != null)
+            {
+                sb.Append(" TTL ");
+                sb.Append(ttl.Value);
+                if (timestamp != null)
+                    sb.Append(",");
+            }
+            if (timestamp != null)
+            {
+                sb.Append(" TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+            }
             return sb.ToString();
         }
 

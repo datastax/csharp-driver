@@ -31,6 +31,7 @@ namespace Cassandra.Data.Linq
 
         private readonly StringBuilder _batchScript = new StringBuilder();
         private string _batchType = "";
+        protected DateTimeOffset? _timestamp = null;
 
         public void Append(CqlCommand cqlCommand)
         {
@@ -40,9 +41,15 @@ namespace Cassandra.Data.Linq
             _batchScript.AppendLine(";");
         }
 
-        public Batch UseConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new Batch SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            this.SetConsistencyLevel(consistencyLevel);
+            base.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
+        public Batch SetTimestamp(DateTimeOffset timestamp)
+        {
+            _timestamp = timestamp;
             return this;
         }
 
@@ -76,7 +83,9 @@ namespace Cassandra.Data.Linq
 
         private string GetCql()
         {
-            return "BEGIN " + _batchType + "BATCH\r\n" + _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
+            return "BEGIN " + _batchType + "BATCH\r\n" +
+                ((_timestamp == null) ? "" : ("USING TIMESTAMP " + Convert.ToInt64(Math.Floor((_timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)).ToString() + " ")) +
+                _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
         }
 
         public override string ToString()

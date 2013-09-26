@@ -220,7 +220,7 @@ namespace Cassandra.Data.Linq
                 return Convert.ToInt64(Math.Floor((val - UnixStart).TotalMilliseconds)).ToString();
         }
 
-        static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         static readonly Dictionary<Type, string> CQLTypeNames = new Dictionary<Type, string>() {
         { typeof(Int32), "int" }, 
@@ -409,14 +409,13 @@ namespace Cassandra.Data.Linq
             return commands;
         }
 
-
-        public static string GetInsertCQL(object row, string tablename)
+        public static string GetInsertCQL(object row, string tablename, int? ttl, DateTimeOffset? timestamp)
         {
             var rowType = row.GetType();
-            var ret = new StringBuilder();
-            ret.Append("INSERT INTO ");
-            ret.Append(tablename.CqlIdentifier());
-            ret.Append("(");
+            var sb = new StringBuilder();
+            sb.Append("INSERT INTO ");
+            sb.Append(tablename.CqlIdentifier());
+            sb.Append("(");
 
             var props = rowType.GetPropertiesOrFields();
             bool first = true;
@@ -424,24 +423,40 @@ namespace Cassandra.Data.Linq
             {
                 var val = prop.GetValueFromPropertyOrField(row);
                 if (val == null) continue;
-                if (first) first = false; else ret.Append(", ");
+                if (first) first = false; else sb.Append(", ");
                 var memName = CalculateMemberName(prop);
-                ret.Append(memName.CqlIdentifier());
+                sb.Append(memName.CqlIdentifier());
             }
-            ret.Append(") VALUES (");
+            sb.Append(") VALUES (");
             first = true;
             foreach (var prop in props)
             {
                 var val = prop.GetValueFromPropertyOrField(row);
                 if (val == null) continue;
-                if (first) first = false; else ret.Append(", ");
-                ret.Append(val.Encode());
+                if (first) first = false; else sb.Append(", ");
+                sb.Append(val.Encode());
             }
-            ret.Append(")");
-            return ret.ToString();
+            sb.Append(")");
+            if (ttl != null || timestamp != null)
+            {
+                sb.Append(" USING ");
+            }
+            if (ttl != null)
+            {
+                sb.Append(" TTL ");
+                sb.Append(ttl.Value);
+                if (timestamp != null)
+                    sb.Append(",");
+            }
+            if (timestamp != null)
+            {
+                sb.Append(" TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+            }
+            return sb.ToString();
         }
 
-        public static string GetUpdateCQL(object row, object newRow, string tablename, bool all = false)
+        public static string GetUpdateCQL(object row, object newRow, string tablename, int? ttl, bool all = false)
         {
             var rowType = row.GetType();
             var set = new StringBuilder();
@@ -513,6 +528,11 @@ namespace Cassandra.Data.Linq
             ret.Append(set);
             ret.Append(" WHERE ");
             ret.Append(where);
+            if (ttl != null)
+            {
+                ret.Append(" USING TTL ");
+                ret.Append(ttl.Value);
+            }
             return ret.ToString();
         }
 
