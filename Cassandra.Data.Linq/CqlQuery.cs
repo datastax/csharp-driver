@@ -321,9 +321,9 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public CqlCommand SetTTL(int miliseconds)
+        public CqlCommand SetTTL(int seconds)
         {
-            _ttl = miliseconds;
+            _ttl = seconds;
             return this;
         }
 
