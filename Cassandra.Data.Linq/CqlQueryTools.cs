@@ -446,7 +446,7 @@ namespace Cassandra.Data.Linq
                 sb.Append(" TTL ");
                 sb.Append(ttl.Value);
                 if (timestamp != null)
-                    sb.Append(",");
+                    sb.Append(" AND");
             }
             if (timestamp != null)
             {

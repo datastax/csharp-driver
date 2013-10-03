@@ -98,6 +98,11 @@ namespace Cassandra.Data.Linq
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
             sb.Append(TableName.CqlIdentifier());
+            if (timestamp != null)
+            {
+                sb.Append(" USING TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+            }
 
             if (WhereClause.Length > 0)
             {
@@ -105,12 +110,7 @@ namespace Cassandra.Data.Linq
                 sb.Append(WhereClause);
             }
             if (SelectFields.Count > 0)
-                throw new CqlArgumentException("Unable to delete entity partially");
-            if (timestamp != null)
-            {
-                sb.Append(" USING TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
-            }
+                throw new CqlArgumentException("Unable to delete entity partially");            
             return sb.ToString();
         }
 
@@ -119,6 +119,23 @@ namespace Cassandra.Data.Linq
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
             sb.Append(TableName.CqlIdentifier());
+            if (ttl != null || timestamp != null)
+            {
+                sb.Append(" USING ");
+            }
+            if (ttl != null)
+            {
+                sb.Append(" TTL ");
+                sb.Append(ttl.Value);
+                if (timestamp != null)
+                    sb.Append(" AND");
+            }
+            if (timestamp != null)
+            {
+                sb.Append(" TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+            }
+
             sb.Append(" SET ");
 
 			var setStatements = new List<string>();
@@ -151,23 +168,7 @@ namespace Cassandra.Data.Linq
             {
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
-            }
-            if (ttl != null || timestamp!=null)
-            {
-                sb.Append(" USING ");
-            }
-            if (ttl != null)
-            {
-                sb.Append(" TTL ");
-                sb.Append(ttl.Value);
-                if (timestamp != null)
-                    sb.Append(",");
-            }
-            if (timestamp != null)
-            {
-                sb.Append(" TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
-            }
+            }            
             return sb.ToString();
         }
 
