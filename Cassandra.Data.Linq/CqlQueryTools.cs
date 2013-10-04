@@ -443,20 +443,20 @@ namespace Cassandra.Data.Linq
             }
             if (ttl != null)
             {
-                sb.Append(" TTL ");
+                sb.Append("TTL ");
                 sb.Append(ttl.Value);
                 if (timestamp != null)
-                    sb.Append(",");
+                    sb.Append(" AND ");
             }
             if (timestamp != null)
             {
-                sb.Append(" TIMESTAMP ");
+                sb.Append("TIMESTAMP ");
                 sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
             }
             return sb.ToString();
         }
 
-        public static string GetUpdateCQL(object row, object newRow, string tablename, int? ttl, bool all = false)
+        public static string GetUpdateCQL(object row, object newRow, string tablename,  bool all = false)
         {
             var rowType = row.GetType();
             var set = new StringBuilder();
@@ -528,11 +528,7 @@ namespace Cassandra.Data.Linq
             ret.Append(set);
             ret.Append(" WHERE ");
             ret.Append(where);
-            if (ttl != null)
-            {
-                ret.Append(" USING TTL ");
-                ret.Append(ttl.Value);
-            }
+ 
             return ret.ToString();
         }
 

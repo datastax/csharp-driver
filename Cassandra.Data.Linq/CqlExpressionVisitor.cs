@@ -98,6 +98,12 @@ namespace Cassandra.Data.Linq
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
             sb.Append(TableName.CqlIdentifier());
+            if (timestamp != null)
+            {
+                sb.Append(" USING TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append(" ");
+            }
 
             if (WhereClause.Length > 0)
             {
@@ -106,11 +112,6 @@ namespace Cassandra.Data.Linq
             }
             if (SelectFields.Count > 0)
                 throw new CqlArgumentException("Unable to delete entity partially");
-            if (timestamp != null)
-            {
-                sb.Append(" USING TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
-            }
             return sb.ToString();
         }
 
@@ -119,6 +120,23 @@ namespace Cassandra.Data.Linq
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
             sb.Append(TableName.CqlIdentifier());
+            if (ttl != null || timestamp != null)
+            {
+                sb.Append(" USING ");
+            }
+            if (ttl != null)
+            {
+                sb.Append("TTL ");
+                sb.Append(ttl.Value);
+                if (timestamp != null)
+                    sb.Append(" AND ");
+            }
+            if (timestamp != null)
+            {
+                sb.Append("TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append(" ");
+            }
             sb.Append(" SET ");
 
 			var setStatements = new List<string>();
@@ -152,22 +170,7 @@ namespace Cassandra.Data.Linq
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
             }
-            if (ttl != null || timestamp!=null)
-            {
-                sb.Append(" USING ");
-            }
-            if (ttl != null)
-            {
-                sb.Append(" TTL ");
-                sb.Append(ttl.Value);
-                if (timestamp != null)
-                    sb.Append(",");
-            }
-            if (timestamp != null)
-            {
-                sb.Append(" TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
-            }
+            
             return sb.ToString();
         }
 
@@ -472,6 +475,20 @@ namespace Cassandra.Data.Linq
                     }
                 }
             }
+            else if (phasePhase.get() == ParsePhase.SelectBinding)
+            {
+                var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                if (Alter.ContainsKey(currentBindingName.get()))
+                {
+                    Mappings[currentBindingName.get()] = Tuple.Create(currentBindingName.get(), val, Mappings.Count);
+                    SelectFields.Add(currentBindingName.get());
+                }
+                else
+                {
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
+                }
+                return node;
+            }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
         }
 
@@ -567,7 +584,13 @@ namespace Cassandra.Data.Linq
             else if (phasePhase.get() == ParsePhase.SelectBinding)
             {
                 var name = node.Member.Name;
-                if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
+                if (node.Expression == null)
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
+                    return node;
+                }
+                else if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
                 {
                     if (Alter.ContainsKey(currentBindingName.get()))
                     {
