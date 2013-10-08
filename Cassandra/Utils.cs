@@ -163,7 +163,7 @@ namespace Cassandra
         public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes)
         {
             if (replication == null)
-                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "1" } };
+                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "2" } };
             return string.Format(
   @"CREATE KEYSPACE {0} 
   WITH replication = {1} 
