@@ -39,6 +39,8 @@ namespace Cassandra
     
     internal class ResponseFrame
     {
+        public const byte ProtocolResponseVersionByte = 0x81;
+
         public FrameHeader FrameHeader;
         public IProtoBuf RawStream;
     }
@@ -53,6 +55,8 @@ namespace Cassandra
         public const int OpcodeIdIdx = 3;
         public const int LenIdx = 4;
         public const int BodyIdx = 8;
+
+        public const byte ProtocolRequestVersionByte = 0x01;
 
     }
 
