@@ -17,26 +17,21 @@
 
 namespace Cassandra
 {
-    internal class CredentialsRequest : IRequest
+    internal class AuthResponseRequest : IRequest
     {
-        public const byte OpCode = 0x04;
+        public const byte OpCode = 0x0F;
         readonly int _streamId;
-        readonly IDictionary<string, string> _credentials;
-        public CredentialsRequest(int streamId, IDictionary<string, string> credentials)
+        readonly byte[] _token;
+        public AuthResponseRequest(int streamId, byte[] token)
         {
             this._streamId = streamId;
-            this._credentials = credentials;
+            this._token = token;
         }
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, 0x00, (byte)_streamId, OpCode);
-            wb.WriteUInt16((ushort)_credentials.Count);
-            foreach (var kv in _credentials)
-            {
-                wb.WriteString(kv.Key);
-                wb.WriteString(kv.Value);
-            }
+            wb.WriteBytes(_token);
             return wb.GetFrame();
         }
     }

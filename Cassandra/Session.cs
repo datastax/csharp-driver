@@ -37,7 +37,7 @@ namespace Cassandra
         private readonly PoolingOptions _poolingOptions;
         private readonly SocketOptions _socketOptions;
         private readonly ClientOptions _clientOptions;
-        private readonly IAuthInfoProvider _authProvider;
+        private readonly IAuthProvider _authProvider;
         
         /// <summary>
         /// Gets name of currently used keyspace. 
@@ -56,7 +56,7 @@ namespace Cassandra
                          PoolingOptions poolingOptions,
                          SocketOptions socketOptions,
                          ClientOptions clientOptions,
-                         IAuthInfoProvider authProvider,
+                         IAuthProvider authProvider,
                          string keyspace)
         {
             this._cluster = cluster;

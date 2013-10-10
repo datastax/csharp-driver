@@ -38,7 +38,8 @@
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
-            wb.WriteInt16((short) _consistency);
+            wb.WriteInt16((short)_consistency);
+            wb.WriteByte(0x0); //query flags
             return wb.GetFrame();
         }
     }

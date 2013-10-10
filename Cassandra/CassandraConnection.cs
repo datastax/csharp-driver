@@ -62,7 +62,7 @@ namespace Cassandra
 
         Action<ErrorActionParam> _protocolErrorHandlerAction;
 
-        readonly IAuthInfoProvider _authInfoProvider;
+        readonly IAuthProvider _authInfoProvider;
 
         readonly Session _owner;
 
@@ -77,7 +77,7 @@ namespace Cassandra
 
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
-                                     IAuthInfoProvider authInfoProvider)
+                                     IAuthProvider authInfoProvider)
         {
             this.Guid = Guid.NewGuid();
             this._owner = owner;
@@ -265,22 +265,13 @@ namespace Cassandra
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (_authInfoProvider == null)
-                                throw new AuthenticationException("Credentials are required.", _serverAddress);
+                            var authenticator = _authInfoProvider.NewAuthenticator(this._serverAddress);
+                           
+                            var initialResponse = authenticator.InitialResponse();
+                            if (null == initialResponse)
+                                initialResponse = new byte[0];
 
-                            var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
-
-                            Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
-                            {
-                                var response2 = FrameParser.Parse(frame2);
-                                if (response2 is ReadyResponse)
-                                {
-                                    _isStreamOpened.Value = true;
-                                    job();
-                                }
-                                else
-                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
-                            }));
+                            WaitForSaslResponse(jar, initialResponse, authenticator, job);
                         }
                         else
                             _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar});
@@ -294,6 +285,39 @@ namespace Cassandra
                 if (!SetupSocketException(ex))
                     throw;
             }
+        }
+
+        private void WaitForSaslResponse(AsyncResult<IOutput> jar, byte[] response, IAuthenticator authenticator, Action job)
+        {
+            Evaluate(new AuthResponseRequest(jar.StreamId, response), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+            {
+                var response2 = FrameParser.Parse(frame2);
+                if ((response2 is AuthSuccessResponse)
+                    || (response2 is ReadyResponse))
+                {
+                    _isStreamOpened.Value = true;
+                    job();
+                }
+                else if (response2 is AuthChallengeResponse)
+                {
+                    byte[] responseToServer = authenticator.EvaluateChallenge((response2 as AuthChallengeResponse).Token);
+                    if (responseToServer == null)
+                    {
+                        // If we generate a null response, then authentication has completed,return without
+                        // sending a further response back to the server.
+                        _isStreamOpened.Value = true;
+                        job();
+                        return;
+                    }
+                    else
+                    {
+                        // Otherwise, send the challenge response back to the server
+                        WaitForSaslResponse(jar, responseToServer, authenticator, job);
+                    }
+                }
+                else
+                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
+            }));
         }
 
         readonly IProtoBufComporessor _compressor = null;
