@@ -19,12 +19,14 @@
     {
         public byte[] QueryID;
         public RowSetMetadata Metadata;
+        public RowSetMetadata ResultMetadata;
         internal OutputPrepared(BEBinaryReader reader)
         {
             var len = reader.ReadInt16();
             QueryID = new byte[len];
             reader.Read(QueryID, 0, len);
             Metadata = new RowSetMetadata(reader);
+            ResultMetadata = new RowSetMetadata(reader);
         }
 
         public void Dispose()

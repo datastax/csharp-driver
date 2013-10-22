@@ -19,6 +19,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
+using System.Threading;
 
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
 namespace TPLSample.NerdMoviesLinqSample
@@ -68,15 +69,40 @@ namespace TPLSample.NerdMoviesLinqSample
                 context.CreateTablesIfNotExist();
                 Console.WriteLine("============================================================");
 
-                var bs = new BatchStatement().AddQuery(new SimpleStatement(
-                 session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity2", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
-                    ))
-                    .AddQuery(new SimpleStatement(
-                 session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity3", Director = "Joss Whedon2", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
-                    ))
-                    .AddQuery(new SimpleStatement(
-                 session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity4", Director = "Joss Whedon3", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
-                    ));
+                var tpl = session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "?", Director = "?", MainActor = "?", Year = 102 }).ToString();
+                tpl = tpl.Replace(@"'?'", @"?").Replace("102", "?");
+
+                var tpl2 = session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "?", Director = "Kokosz", MainActor = "?", Year = 102 }).ToString();
+                tpl2 = tpl2.Replace(@"'?'", @"?").Replace("102", "?");
+
+                var tpl3 = session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "?", Director = "Kokoszx", MainActor = "?", Year = 102 }).ToString();
+                tpl3 = tpl3.Replace(@"'?'", @"?").Replace("102", "?");
+
+                var prep = session.Prepare(tpl);
+                var bound = prep.Bind("Kaka1", "Loker1", "Piker1", 2023);
+
+                var prep2 = session.Prepare(tpl2);
+                var bound2 = prep2.Bind("Kaka2", "Piker2", 2023);
+
+                var prep3 = session.Prepare(tpl3);
+                var bound3 = prep2.Bind("Kaka3", "Piker3", 2023);
+
+                //                session.Execute(bound);
+
+
+                var bs = new BatchStatement()
+                 //   .AddQuery(new SimpleStatement(
+                 //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity2", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                 //   ))
+                 //   .AddQuery(new SimpleStatement(
+                 //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity3", Director = "Joss Whedon2", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                 //   ))
+                 //   .AddQuery(new SimpleStatement(
+                 //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity4", Director = "Joss Whedon3", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                 //   ))
+                    .AddQuery(bound)
+                    .AddQuery(bound2)
+                    .AddQuery(bound3);
                 session.Execute(bs);
 
 

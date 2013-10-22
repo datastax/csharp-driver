@@ -45,19 +45,20 @@
              var wb = new BEBinaryWriter();
              wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
              wb.WriteShortBytes(_id);
+             wb.WriteInt16((short)_consistency);
+             wb.WriteByte(0x01);//flags Values
              wb.WriteUInt16((ushort)_values.Length);
              for (int i = 0; i < _metadata.Columns.Length; i++)
              {
                  var bytes = _metadata.ConvertFromObject(i, _values[i]);
                  wb.WriteBytes(bytes);
              }
-             wb.WriteInt16((short)_consistency);
              return wb.GetFrame();
          }
 
          public void WriteToBatch(BEBinaryWriter wb)
          {
-             wb.WriteByte(0);//not a prepared query
+             wb.WriteByte(1);//prepared query
              wb.WriteShortBytes(_id);
              wb.WriteUInt16((ushort)_values.Length);
              for (int i = 0; i < _metadata.Columns.Length; i++)

@@ -21,42 +21,55 @@ namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public Action SetupPreparedQueries(AsyncResult<IOutput> jar, List<Tuple<byte[], string>> Ids, int idx, Action dx)
+        private Dictionary<byte[], string> NotContainsInAlreadyPrepared(Dictionary<byte[], string> Ids)
+        {
+            Dictionary<byte[], string> ret = new Dictionary<byte[], string>();
+            foreach (var key in Ids.Keys)
+            {
+                if (!preparedQueries.ContainsKey(key))
+                    ret.Add(key, Ids[key]);
+            }
+            return ret;
+        }
+        public Action SetupPreparedQueries(AsyncResult<IOutput> jar, Dictionary<byte[], string> Ids, Action dx)
         {
             return new Action(() =>
             {
-                if (idx < Ids.Count && !preparedQueries.ContainsKey(Ids[idx].Item1))
+                var ncip = NotContainsInAlreadyPrepared(Ids);
+                if (ncip.Count>0)
                 {
-                    Evaluate(new PrepareRequest(jar.StreamId, Ids[idx].Item2), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                    foreach (var ncipit in ncip)
                     {
-                        var response = FrameParser.Parse(frame2);
-                        if (response is ResultResponse)
+                        Evaluate(new PrepareRequest(jar.StreamId, ncipit.Value), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                         {
-                            preparedQueries.TryAdd(Ids[idx].Item1, Ids[idx].Item2);
-                            if (idx == Ids.Count - 1)
-                                dx();
+                            var response = FrameParser.Parse(frame2);
+                            if (response is ResultResponse)
+                            {
+                                preparedQueries.TryAdd(ncipit.Key, ncipit.Value);
+                                BeginJob(jar, SetupPreparedQueries(jar, Ids, dx));
+                            }
                             else
-                                BeginJob(jar, SetupPreparedQueries(jar, Ids, idx + 1, dx));
-                        }
-                        else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+                                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
-                    }));
+                        }));
+                        break;
+                    }
                 }
                 else
                     dx();
             });
         }
 
-        private List<Tuple<byte[], string>> GetIdsFromListOfQueries(List<Query> queries)
+        private Dictionary<byte[], string> GetIdsFromListOfQueries(List<Query> queries)
         {
-            var ret = new List<Tuple<byte[], string>>();
+            var ret = new Dictionary<byte[], string>();
             foreach (var q in queries)
             {
                 if (q is BoundStatement)
                 {
                     var bs = (q as BoundStatement);
-                    ret.Add(Tuple.Create(bs.PreparedStatement.Id, bs.PreparedStatement.Cql));
+                    if(!ret.ContainsKey(bs.PreparedStatement.Id))
+                        ret.Add(bs.PreparedStatement.Id, bs.PreparedStatement.Cql);
                 }
             }
             return ret;
@@ -88,7 +101,7 @@ namespace Cassandra
             var jar = SetupJob(_streamId, callback, state, owner, "BATCH");
 
 
-            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries), 0, () =>
+            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries),  () =>
                {
                    Evaluate(new BatchRequest(jar.StreamId, BatchRequest.BatchType.Logged, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
                             new Action<ResponseFrame>((frame2) =>

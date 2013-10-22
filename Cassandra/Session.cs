@@ -916,14 +916,14 @@ namespace Cassandra
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
-                var ar = LongActionAc as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
+                var ar = LongActionAc as AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[], string>>>;
                 if (exc != null)
                     ar.Complete(exc);
                 else
                 {
-                    var kv = (KeyValuePair<RowSetMetadata, byte[]>)value;
+                    var kv = (KeyValuePair<RowSetMetadata, Tuple<byte[], string>>)value;
                     ar.SetResult(kv);
-                    owner._preparedQueries.AddOrUpdate(kv.Value, CqlQuery, (k, o) => o);
+                    owner._preparedQueries.AddOrUpdate(kv.Value.Item1, kv.Value.Item2, (k, o) => o);
                     ar.Complete();
                 }
             }
