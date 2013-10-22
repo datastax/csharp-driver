@@ -74,8 +74,10 @@
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="Cluster.cs" />
+    <Compile Include="Commands\CassandraConnection+Batch.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="ConsistencyLevel.cs" />
+    <Compile Include="BatchStatement.cs" />
     <Compile Include="Diagnostics.cs" />
     <Compile Include="Exceptions\InvalidTypeException.cs" />
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
@@ -170,6 +172,7 @@
     <Compile Include="Query.cs" />
     <Compile Include="QueryTrace.cs" />
     <Compile Include="Requests\AuthResponseRequest.cs" />
+    <Compile Include="Requests\BatchRequest.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
     <Compile Include="Responses\AuthChallengeResponse.cs" />
@@ -219,7 +222,6 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Int.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Bigint.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />

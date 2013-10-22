@@ -562,7 +562,7 @@ namespace Cassandra
             _startedActons.TryRemove((ar as AsyncResultNoResult).Id, out oar);
             RowSetMetadata metadata;
             var id = EndPrepareQuery(ar, out metadata);
-            return new PreparedStatement(metadata, id);
+            return new PreparedStatement(metadata, id.Item1, id.Item2);
         }
 
         public PreparedStatement Prepare(string cqlQuery)
@@ -912,7 +912,7 @@ namespace Cassandra
                 byte[] id;
                 RowSetMetadata metadata;
                 owner.ProcessPrepareQuery(Connection.EndPrepareQuery(ar, owner), out metadata, out id);
-                value = new KeyValuePair<RowSetMetadata, byte[]>(metadata, id);
+                value = new KeyValuePair<RowSetMetadata, Tuple<byte[], string>>(metadata, Tuple.Create(id, CqlQuery));
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
@@ -931,7 +931,7 @@ namespace Cassandra
 
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
         {
-            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag);
+            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[],string>>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag);
             var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Default, CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
             ExecConn(token, false);
@@ -939,15 +939,15 @@ namespace Cassandra
             return longActionAc;
         }
 
-        internal byte[] EndPrepareQuery(IAsyncResult ar, out RowSetMetadata metadata)
+        internal Tuple<byte[], string> EndPrepareQuery(IAsyncResult ar, out RowSetMetadata metadata)
         {
             var longActionAc = ar as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
-            var ret = AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>.End(ar, this, "SessionPrepareQuery");
+            var ret = AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[], string>>>.End(ar, this, "SessionPrepareQuery");
             metadata = ret.Key;
             return ret.Value;
         }
 
-        internal byte[] PrepareQuery(string cqlQuery, out RowSetMetadata metadata)
+        internal Tuple<byte[], string> PrepareQuery(string cqlQuery, out RowSetMetadata metadata)
         {
             var ar = BeginPrepareQuery(cqlQuery, null, null, null);
             return EndPrepareQuery(ar, out metadata);
@@ -1030,6 +1030,74 @@ namespace Cassandra
         {
             var ar = BeginExecuteQuery(id,metadata,values, null, null, consistency, query, isTracing);
             return EndExecuteQuery(ar);
+        }
+
+        #endregion
+
+        #region Batch
+
+        class LongBatchToken : LongToken
+        {
+            public List<Query> Queries;
+            public bool IsTracing;
+            public Stopwatch StartedAt;
+
+            override public void Connect(Session owner, bool moveNext, out int streamId)
+            {
+                StartedAt = Stopwatch.StartNew();
+                base.Connect(owner, moveNext, out streamId);
+            }
+
+            override public void Begin(Session owner, int streamId)
+            {
+                Connection.BeginBatch(streamId, Queries, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
+            }
+            override public void Process(Session owner, IAsyncResult ar, out object value)
+            {
+                value = owner.ProcessRowset(Connection.EndBatch(ar, owner));
+            }
+            override public void Complete(Session owner, object value, Exception exc = null)
+            {
+                try
+                {
+                    var ar = LongActionAc as AsyncResult<RowSet>;
+                    if (exc != null)
+                        ar.Complete(exc);
+                    else
+                    {
+                        RowSet rowset = value as RowSet;
+                        if (rowset == null)
+                            rowset = new RowSet(null, owner, false);
+                        rowset.Info.SetTriedHosts(TriedHosts);
+                        rowset.Info.SetAchievedConsistency(Consistency);
+                        ar.SetResult(rowset);
+                        ar.Complete();
+                    }
+                }
+                finally
+                {
+                    var ts = StartedAt.ElapsedTicks;
+                    CassandraCounters.IncrementCqlQueryCount();
+                    CassandraCounters.IncrementCqlQueryBeats((ts * 1000000000));
+                    CassandraCounters.UpdateQueryTimeRollingAvrg((ts * 1000000000) / Stopwatch.Frequency);
+                    CassandraCounters.IncrementCqlQueryBeatsBase();
+                }
+            }
+        }
+
+        internal IAsyncResult BeginBatch(List<Query> queries, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null, object sender = null, object tag = null)
+        {
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
+            var token = new LongBatchToken() { Consistency = consistency, Queries = queries, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+
+            ExecConn(token, false);
+
+            return longActionAc;
+        }
+
+        internal RowSet EndBatch(IAsyncResult ar)
+        {
+            return AsyncResult<RowSet>.End(ar, this, "SessionBatch");
         }
 
         #endregion

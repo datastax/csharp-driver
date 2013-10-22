@@ -31,11 +31,13 @@ namespace Cassandra
 
         internal readonly RowSetMetadata Metadata;
         internal readonly byte[] Id;
+        internal readonly string Cql;
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql)
         {
             this.Metadata = metadata;
             this.Id = id;
+            this.Cql = cql;
         }
 
         /// <summary>

@@ -922,7 +922,7 @@ namespace Cassandra
             switch (type)
             {
                 case "org.apache.cassandra.db.marshal.UTF8Type":
-                    return ColumnTypeCode.Text;
+                    return ColumnTypeCode.Varchar;
                 case "org.apache.cassandra.db.marshal.UUIDType":
                     return ColumnTypeCode.Uuid;
                 case "org.apache.cassandra.db.marshal.Int32Type":

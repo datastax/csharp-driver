@@ -42,7 +42,7 @@ namespace TPLSample.NerdMoviesLinqSample
     {
         public static void Run()
         {
-            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").WithoutRowSetBuffering().Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("192.168.13.1").WithoutRowSetBuffering().Build();
 
             using (var session = cluster.Connect())
             {
@@ -58,6 +58,7 @@ namespace TPLSample.NerdMoviesLinqSample
                 {
                     session.CreateKeyspaceIfNotExists(keyspaceName);
                     session.ChangeKeyspace(keyspaceName);
+                
                 }
 
                 Console.WriteLine("============================================================");
@@ -67,7 +68,19 @@ namespace TPLSample.NerdMoviesLinqSample
                 context.CreateTablesIfNotExist();
                 Console.WriteLine("============================================================");
 
-                context.GetTable<NerdMovie>().AddNew(new NerdMovie(){ Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005});
+                var bs = new BatchStatement().AddQuery(new SimpleStatement(
+                 session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity2", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                    ))
+                    .AddQuery(new SimpleStatement(
+                 session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity3", Director = "Joss Whedon2", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                    ))
+                    .AddQuery(new SimpleStatement(
+                 session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity4", Director = "Joss Whedon3", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                    ));
+                session.Execute(bs);
+
+
+                context.GetTable<NerdMovie>().AddNew(new NerdMovie() { Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 });
                 var taskSaveMovies = Task.Factory.FromAsync(context.BeginSaveChangesBatch, context.EndSaveChangesBatch, TableType.Standard, ConsistencyLevel.Default, null);
 
                 taskSaveMovies.Wait();

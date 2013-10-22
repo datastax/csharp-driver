@@ -15,44 +15,56 @@
 //
 ﻿namespace Cassandra
 {
-    internal class ExecuteRequest : IRequest
-    {
-        public const byte OpCode = 0x0A;
+     internal class ExecuteRequest : IBatchableRequest
+     {
+         public const byte OpCode = 0x0A;
 
-        readonly int _streamId;
-        readonly object[] _values;
-        readonly byte[] _id;
-        readonly RowSetMetadata _metadata;
-        readonly ConsistencyLevel _consistency;
-        private readonly byte _flags = 0x00;
+         readonly int _streamId;
+         readonly object[] _values;
+         readonly byte[] _id;
+         readonly RowSetMetadata _metadata;
+         readonly ConsistencyLevel _consistency;
+         private readonly byte _flags = 0x00;
 
-        public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
-        {
-            if (values.Length != metadata.Columns.Length)
-                throw new System.ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");            
+         public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
+         {
+             if (values.Length != metadata.Columns.Length)
+                 throw new System.ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
 
-            this._streamId = streamId;
-            this._values = values;
-            this._id = id;
-            this._metadata = metadata;
-            this._consistency = consistency;
-            if (tracingEnabled)
-                this._flags = 0x02;
-        }
+             this._streamId = streamId;
+             this._values = values;
+             this._id = id;
+             this._metadata = metadata;
+             this._consistency = consistency;
+             if (tracingEnabled)
+                 this._flags = 0x02;
+         }
 
-        public RequestFrame GetFrame()
-        {
-            var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
-            wb.WriteShortBytes(_id);
-            wb.WriteUInt16((ushort) _values.Length);
-            for (int i = 0; i < _metadata.Columns.Length; i++)
-            {
-                var bytes = _metadata.ConvertFromObject(i, _values[i]);
-                wb.WriteBytes(bytes);
-            }
-            wb.WriteInt16((short)_consistency);
-            return wb.GetFrame();
-        }
-    }
+         public RequestFrame GetFrame()
+         {
+             var wb = new BEBinaryWriter();
+             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
+             wb.WriteShortBytes(_id);
+             wb.WriteUInt16((ushort)_values.Length);
+             for (int i = 0; i < _metadata.Columns.Length; i++)
+             {
+                 var bytes = _metadata.ConvertFromObject(i, _values[i]);
+                 wb.WriteBytes(bytes);
+             }
+             wb.WriteInt16((short)_consistency);
+             return wb.GetFrame();
+         }
+
+         public void WriteToBatch(BEBinaryWriter wb)
+         {
+             wb.WriteByte(0);//not a prepared query
+             wb.WriteShortBytes(_id);
+             wb.WriteUInt16((ushort)_values.Length);
+             for (int i = 0; i < _metadata.Columns.Length; i++)
+             {
+                 var bytes = _metadata.ConvertFromObject(i, _values[i]);
+                 wb.WriteBytes(bytes);
+             }
+         }
+     }
 }

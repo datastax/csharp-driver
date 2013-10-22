@@ -37,7 +37,6 @@ namespace Cassandra
         Double = 0x0007,
         Float = 0x0008,
         Int = 0x0009,
-        Text = 0x000A,
         Timestamp = 0x000B,
         Uuid = 0x000C,
         Varchar = 0x000D,

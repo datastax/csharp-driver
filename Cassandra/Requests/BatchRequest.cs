@@ -13,21 +13,26 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+﻿using System.Collections.Generic;
+namespace Cassandra
 {
-     internal class QueryRequest : IBatchableRequest
+    internal class BatchRequest : IRequest
     {
-        public const byte OpCode = 0x07;
+        public const byte OpCode = 0x0D;
 
-        private readonly int _streamId;
-        private readonly string _cqlQuery;
-        private readonly ConsistencyLevel _consistency;
+        readonly int _streamId;
+        readonly ConsistencyLevel _consistency;
         private readonly byte _flags = 0x00;
+        private readonly ICollection<IBatchableRequest> _requests;
+        private readonly BatchType _type;
 
-        public QueryRequest(int streamId, string cqlQuery, ConsistencyLevel consistency, bool tracingEnabled)
+        public enum BatchType { Logged=0 , Unlogged=1, Counter = 2 }
+
+        public BatchRequest(int streamId, BatchType type, ICollection<IBatchableRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
         {
+            this._type = type;
+            this._requests = requests;
             this._streamId = streamId;
-            this._cqlQuery = cqlQuery;
             this._consistency = consistency;
             if (tracingEnabled)
                 this._flags = 0x02;
@@ -37,17 +42,12 @@
         {
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
-            wb.WriteLongString(_cqlQuery);
+            wb.WriteByte((byte)_flags);
+            wb.WriteInt16((short)_requests.Count);
+            foreach (var br in _requests)
+                br.WriteToBatch(wb);
             wb.WriteInt16((short)_consistency);
-            wb.WriteByte(0x0); //query flags
             return wb.GetFrame();
-        }
-
-        public void WriteToBatch(BEBinaryWriter wb)
-        {
-            wb.WriteByte(0);//not a prepared query
-            wb.WriteLongString(_cqlQuery);
-            wb.WriteInt16(0);//not values
         }
     }
 }

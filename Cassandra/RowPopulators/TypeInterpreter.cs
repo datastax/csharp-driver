@@ -103,7 +103,6 @@ namespace Cassandra
             RegisterTypeInterpreter(ColumnTypeCode.Double);
             RegisterTypeInterpreter(ColumnTypeCode.Float);
             RegisterTypeInterpreter(ColumnTypeCode.Int);
-            RegisterTypeInterpreter(ColumnTypeCode.Text);
             RegisterTypeInterpreter(ColumnTypeCode.Timestamp);
             RegisterTypeInterpreter(ColumnTypeCode.Uuid);
             RegisterTypeInterpreter(ColumnTypeCode.Varchar);

@@ -19,4 +19,8 @@
     {
         RequestFrame GetFrame();
     }
+    internal interface IBatchableRequest :IRequest
+    {
+        void WriteToBatch(BEBinaryWriter writer);
+    }
 }

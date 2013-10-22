@@ -35,7 +35,7 @@ namespace Cassandra
 
         readonly PreparedStatement _statement;
 
-        object[] _values;
+        internal object[] Values;
 
         /// <summary>
         ///  Creates a new <code>BoundStatement</code> from the provided prepared
@@ -71,7 +71,7 @@ namespace Cassandra
         /// <returns>this bound statement. </returns>
         public BoundStatement Bind(params object[] values)
         {
-            this._values = values;
+            this.Values = values;
             return this;
         }
 
@@ -100,7 +100,7 @@ namespace Cassandra
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, _values, callback, state, ConsistencyLevel, this, this, tag, IsTracing);
+            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, Values, callback, state, ConsistencyLevel, this, this, tag, IsTracing);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
