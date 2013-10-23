@@ -75,7 +75,7 @@ namespace Cassandra
             int bsize = 2;
             foreach (var obj in (value as IEnumerable))
             {
-                var buf = TypeInterpreter.InvCqlConvert(obj, list_typecode, list_typeinfo);
+                var buf = TypeInterpreter.InvCqlConvert(obj);
                 bufs.Add(buf);
                 bsize += 2; //size of value
                 bsize += buf.Length;

@@ -101,7 +101,7 @@ namespace Cassandra
 
             foreach (var obj in key_prop.GetValue(value, new object[] { }) as IEnumerable)
             {
-                var buf = TypeInterpreter.InvCqlConvert(obj, key_typecode, key_typeinfo);
+                var buf = TypeInterpreter.InvCqlConvert(obj);
                 kbufs.Add(buf);
                 bsize += 2; //size of key
                 bsize += buf.Length;
@@ -110,7 +110,7 @@ namespace Cassandra
 
             foreach (var obj in value_prop.GetValue(value, new object[] { }) as IEnumerable)
             {
-                var buf = TypeInterpreter.InvCqlConvert(obj, value_typecode, value_typeinfo);
+                var buf = TypeInterpreter.InvCqlConvert(obj);
                 vbufs.Add(buf);
                 bsize += 2; //size of value
                 bsize += buf.Length;

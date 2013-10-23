@@ -196,9 +196,9 @@ namespace Cassandra
             return TypeInterpreter.CqlConvert(buffer, _rawColumns[i].TypeCode, _rawColumns[i].TypeInfo, cSharpType);
         }
 
-        internal byte[] ConvertFromObject(int i, object o)
+        internal byte[] ConvertFromObject(object o)
         {
-            return TypeInterpreter.InvCqlConvert(o, _rawColumns[i].TypeCode, _rawColumns[i].TypeInfo);
+            return TypeInterpreter.InvCqlConvert(o);
         }
 
         internal Row GetRow(OutputRows rawrows)

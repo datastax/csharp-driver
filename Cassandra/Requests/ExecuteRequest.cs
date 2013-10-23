@@ -50,7 +50,7 @@
              wb.WriteUInt16((ushort)_values.Length);
              for (int i = 0; i < _metadata.Columns.Length; i++)
              {
-                 var bytes = _metadata.ConvertFromObject(i, _values[i]);
+                 var bytes = _metadata.ConvertFromObject(_values[i]);
                  wb.WriteBytes(bytes);
              }
              return wb.GetFrame();
@@ -63,7 +63,7 @@
              wb.WriteUInt16((ushort)_values.Length);
              for (int i = 0; i < _metadata.Columns.Length; i++)
              {
-                 var bytes = _metadata.ConvertFromObject(i, _values[i]);
+                 var bytes = _metadata.ConvertFromObject(_values[i]);
                  wb.WriteBytes(bytes);
              }
          }

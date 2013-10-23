@@ -353,7 +353,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), ConsistencyLevel.Default));
+                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), null, ConsistencyLevel.Default));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
@@ -388,7 +388,7 @@ namespace Cassandra
         public void DeleteKeyspace(string keyspace_name)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), ConsistencyLevel.Default));
+                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), null, ConsistencyLevel.Default));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -828,6 +828,7 @@ namespace Cassandra
         class LongQueryToken : LongToken
         {
             public string CqlQuery;
+            public object[] Values;
             public bool IsTracing;
             public Stopwatch StartedAt;
             override public void Connect(Session owner, bool moveNext, out int streamId)
@@ -838,7 +839,7 @@ namespace Cassandra
 
             override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
+                Connection.BeginQuery(streamId, CqlQuery,Values, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -873,10 +874,10 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing=false, Query query = null, object sender = null, object tag = null)
+        internal IAsyncResult BeginQuery(string cqlQuery, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing=false, Query query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Values = values, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
 
@@ -888,9 +889,9 @@ namespace Cassandra
             return AsyncResult<RowSet>.End(ar, this, "SessionQuery");
         }
 
-        internal RowSet Query(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null)
+        internal RowSet Query(string cqlQuery, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null)
         {
-            return EndQuery(BeginQuery(cqlQuery, null, null, consistency,isTracing, query));
+            return EndQuery(BeginQuery(cqlQuery,values, null, null, consistency,isTracing, query));
         }
 
         #endregion
@@ -1147,7 +1148,7 @@ namespace Cassandra
                 }
                 {
 
-                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, ConsistencyLevel.Default, false))
+                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, null, ConsistencyLevel.Default, false))
                     {
                         if (outp is OutputRows)
                         {
@@ -1173,7 +1174,7 @@ namespace Cassandra
                 }
 
                 {
-                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, ConsistencyLevel.Default, false))
+                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, null, ConsistencyLevel.Default, false))
                     {
                         if (outp is OutputRows)
                         {

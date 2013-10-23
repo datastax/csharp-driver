@@ -329,7 +329,7 @@ namespace Cassandra
             var allTokens = new List<HashSet<string>>();
             {
                 int sessionId = _activeConnection.Value.AllocateStreamId();
-                using (var rowset = ProcessRowset(_activeConnection.Value.Query(sessionId, SelectPeers, ConsistencyLevel.Quorum, false)))
+                using (var rowset = ProcessRowset(_activeConnection.Value.Query(sessionId, SelectPeers, null, ConsistencyLevel.Quorum, false)))
                 {
 
                     foreach (var row in rowset.GetRows())
@@ -368,7 +368,7 @@ namespace Cassandra
                 int streamId = _activeConnection.Value.AllocateStreamId();
                 var localhost = _cluster.Metadata.GetHost(_activeConnection.Value.GetHostAdress());
 
-                using (var rowset = ProcessRowset(_activeConnection.Value.Query(streamId, SelectLocal, ConsistencyLevel.Default, false)))
+                using (var rowset = ProcessRowset(_activeConnection.Value.Query(streamId, SelectLocal, null, ConsistencyLevel.Default, false)))
                 {
                     // Update cluster name, DC and rack for the one node we are connected to
                     foreach (var localRow in rowset.GetRows())
@@ -434,7 +434,7 @@ namespace Cassandra
 
                 {
                     int streamId = _activeConnection.Value.AllocateStreamId();
-                    using (var rowset = ProcessRowset(_activeConnection.Value.Query(streamId, Session.SelectSchemaPeers, ConsistencyLevel.Default, false)))
+                    using (var rowset = ProcessRowset(_activeConnection.Value.Query(streamId, Session.SelectSchemaPeers, null, ConsistencyLevel.Default, false)))
                     {
                         foreach (var row in rowset.GetRows())
                         {
@@ -455,7 +455,7 @@ namespace Cassandra
 
                 {
                     int streamId = _activeConnection.Value.AllocateStreamId();
-                    using (var rowset = ProcessRowset(_activeConnection.Value.Query(streamId, Session.SelectSchemaLocal, ConsistencyLevel.Default, false)))
+                    using (var rowset = ProcessRowset(_activeConnection.Value.Query(streamId, Session.SelectSchemaLocal, null, ConsistencyLevel.Default, false)))
                     {
                         // Update cluster name, DC and rack for the one node we are connected to
                         foreach (var localRow in rowset.GetRows())
@@ -542,7 +542,7 @@ namespace Cassandra
             {
                 var newKeyspaces = new ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>();
                 int streamId = _activeConnection.Value.AllocateStreamId();
-                using (var rows = ProcessRowset(_activeConnection.Value.Query(streamId, SelectKeyspaces, ConsistencyLevel.Default, false)))
+                using (var rows = ProcessRowset(_activeConnection.Value.Query(streamId, SelectKeyspaces, null, ConsistencyLevel.Default, false)))
                 {
                     foreach (var row in rows.GetRows())
                     {
@@ -590,7 +590,7 @@ namespace Cassandra
                     int streamId = _activeConnection.Value.AllocateStreamId();
                     using (var rows = ProcessRowset(_activeConnection.Value.Query(streamId, string.Format(
                                     SelectKeyspaces + " WHERE keyspace_name='{0}';",
-                                    keyspace), ConsistencyLevel.Default, false)))
+                                    keyspace), null, ConsistencyLevel.Default, false)))
                     {
                         foreach (var row in rows.GetRows())
                         {
@@ -612,7 +612,7 @@ namespace Cassandra
                     int streamId = _activeConnection.Value.AllocateStreamId();
                     var ktb = new ConcurrentDictionary<string, AtomicValue<TableMetadata>>();
                     using (
-                        var rows = ProcessRowset(_activeConnection.Value.Query(streamId, string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace), ConsistencyLevel.Default, false)))
+                        var rows = ProcessRowset(_activeConnection.Value.Query(streamId, string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace), null, ConsistencyLevel.Default, false)))
                     {
                         foreach (var row in rows.GetRows())
                             ktb.TryAdd(row.GetValue<string>("columnfamily_name"), new AtomicValue<TableMetadata>(null));
@@ -756,7 +756,7 @@ namespace Cassandra
                 int streamId = _activeConnection.Value.AllocateStreamId();
                 using (var rows = ProcessRowset(_activeConnection.Value.Query(streamId,
                         string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                    tableName, keyspaceName), ConsistencyLevel.Default, false)))
+                                    tableName, keyspaceName), null, ConsistencyLevel.Default, false)))
                 {
                     foreach (var row in rows.GetRows())
                     {
@@ -801,7 +801,7 @@ namespace Cassandra
                 using (var rows = ProcessRowset(_activeConnection.Value.Query(streamId,
                     string.Format(
                                 SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                tableName, keyspaceName),ConsistencyLevel.Default,false)))
+                                tableName, keyspaceName), null, ConsistencyLevel.Default, false)))
                 {
                     foreach (var row in rows.GetRows()) // There is only one row!
                     {

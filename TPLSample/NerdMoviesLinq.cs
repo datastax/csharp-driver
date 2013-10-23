@@ -69,8 +69,12 @@ namespace TPLSample.NerdMoviesLinqSample
                 context.CreateTablesIfNotExist();
                 Console.WriteLine("============================================================");
 
+
+
                 var tpl = session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "?", Director = "?", MainActor = "?", Year = 102 }).ToString();
                 tpl = tpl.Replace(@"'?'", @"?").Replace("102", "?");
+
+                var qq = session.Execute(new SimpleStatement(tpl).Bind("KakaX", "PikerY", "PikerZ", 2033));
 
                 var tpl2 = session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "?", Director = "Kokosz", MainActor = "?", Year = 102 }).ToString();
                 tpl2 = tpl2.Replace(@"'?'", @"?").Replace("102", "?");
@@ -86,6 +90,7 @@ namespace TPLSample.NerdMoviesLinqSample
 
                 var prep3 = session.Prepare(tpl3);
                 var bound3 = prep2.Bind("Kaka3", "Piker3", 2023);
+
 
                 //                session.Execute(bound);
 

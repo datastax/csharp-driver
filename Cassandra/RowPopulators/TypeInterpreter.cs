@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 ﻿using System;
+using System.Collections.Generic;
+using System.Net;
 
 namespace Cassandra
 {
@@ -122,6 +124,7 @@ namespace Cassandra
         static readonly CqlConvertDel[] GoMethods = new CqlConvertDel[byte.MaxValue + 1];
         static readonly GetDefaultTypeFromCqlTypeDel[] TypMethods = new GetDefaultTypeFromCqlTypeDel[byte.MaxValue + 1];
         static readonly InvCqlConvertDel[] InvMethods = new InvCqlConvertDel[byte.MaxValue + 1];
+        static readonly Dictionary<Type, byte> MapTypeToCode = new Dictionary<Type, byte>();
 
         internal static void RegisterTypeInterpreter(ColumnTypeCode type_code)
         {
@@ -149,8 +152,76 @@ namespace Cassandra
             return TypMethods[(byte)type_code](type_info);
         }
 
-        public static byte[] InvCqlConvert(object value, ColumnTypeCode type_code, IColumnInfo type_info)
+        public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo type_info)
         {
+            type_info = null;
+            if (type.IsGenericType)
+            {
+                if (type.Name.Equals("Nullable`1"))
+                {
+                    return GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out type_info);
+                }
+                else if (type.GetInterface("ISet`1") != null)
+                {
+                    IColumnInfo key_type_info;
+                    var key_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out key_type_info);
+                    type_info  = new SetColumnInfo(){ KeyTypeCode = key_type_code, KeyTypeInfo = key_type_info};
+                    return ColumnTypeCode.Set;
+                }
+                else if (type.GetInterface("IDictionary`2") != null)
+                {
+                    IColumnInfo key_type_info;
+                    var key_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out key_type_info);
+                    IColumnInfo value_type_info;
+                    var value_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[1], out value_type_info);
+                    type_info = new MapColumnInfo() { KeyTypeCode = key_type_code, KeyTypeInfo = key_type_info, ValueTypeCode = value_type_code, ValueTypeInfo = value_type_info };
+                    return ColumnTypeCode.Map;
+                }
+                else if (type.GetInterface("IEnumerable`1") != null)
+                {
+                    IColumnInfo value_type_info;
+                    var value_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out value_type_info);
+                    type_info = new ListColumnInfo() { ValueTypeCode = value_type_code, ValueTypeInfo = value_type_info };
+                    return ColumnTypeCode.List;
+                }
+            }
+            else
+            {
+                if (type.Equals(typeof(string)))
+                    return ColumnTypeCode.Varchar;
+                else if (type.Equals(typeof(long)))
+                    return ColumnTypeCode.Bigint;
+                else if (type.Equals(typeof(byte[])))
+                    return ColumnTypeCode.Blob;
+                else if (type.Equals(typeof(bool)))
+                    return ColumnTypeCode.Boolean;
+                else if (type.Equals(TypeAdapters.DecimalTypeAdapter.GetDataType()))
+                    return ColumnTypeCode.Decimal;
+                else if (type.Equals(typeof(double)))
+                    return ColumnTypeCode.Double;
+                else if (type.Equals(typeof(float)))
+                    return ColumnTypeCode.Float;
+                else if (type.Equals(typeof(IPEndPoint)))
+                    return ColumnTypeCode.Inet;
+                else if (type.Equals(typeof(int)))
+                    return ColumnTypeCode.Int;
+                else if (type.Equals(typeof(DateTimeOffset)))
+                    return ColumnTypeCode.Timestamp;
+                else if (type.Equals(typeof(DateTime)))
+                    return ColumnTypeCode.Timestamp;
+                else if (type.Equals(typeof(Guid)))
+                    return ColumnTypeCode.Uuid;
+                else if (type.Equals(TypeAdapters.VarIntTypeAdapter.GetDataType()))
+                    return ColumnTypeCode.Varint;
+            }
+
+            throw new InvalidOperationException("Unknown type");
+        }
+
+        public static byte[] InvCqlConvert(object value)
+        {
+            IColumnInfo type_info;
+            var type_code = GetColumnTypeCodeInfo(value.GetType(), out type_info);
             return InvMethods[(byte)type_code](type_info, value);
         }
 

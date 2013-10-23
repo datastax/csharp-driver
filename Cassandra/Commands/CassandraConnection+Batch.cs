@@ -88,7 +88,7 @@ namespace Cassandra
                 else if(q is SimpleStatement)
                 {
                     var ss = (q as SimpleStatement);
-                    ret.Add(new QueryRequest(-1,ss.QueryString,ConsistencyLevel.Any, false));
+                    ret.Add(new QueryRequest(-1, ss.QueryString, new object[] { }, ConsistencyLevel.Any, false));
                 }
             }
             return ret;

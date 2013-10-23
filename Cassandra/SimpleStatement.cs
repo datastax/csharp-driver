@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -26,6 +27,7 @@ namespace Cassandra
     {
 
         private readonly string _query;
+        internal object[] Values;
         private volatile RoutingKey _routingKey;
 
         /// <summary>
@@ -64,20 +66,27 @@ namespace Cassandra
         /// 
         /// <returns>this <code>SimpleStatement</code> object.
         ///  <see>Query#getRoutingKey</returns>
-        public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents) 
+        public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this; 
+            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this;
         }
 
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginQuery(QueryString, callback, state, ConsistencyLevel,IsTracing, this, this, tag);
+            return session.BeginQuery(QueryString, Values, callback, state, ConsistencyLevel, IsTracing, this, this, tag);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             return session.EndQuery(ar);
         }
+
+        public SimpleStatement Bind(params object[] values)
+        {
+            this.Values = values;
+            return this;
+        }
+
     }
 }

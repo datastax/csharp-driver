@@ -21,12 +21,14 @@
 
         private readonly int _streamId;
         private readonly string _cqlQuery;
+        readonly object[] _values;
         private readonly ConsistencyLevel _consistency;
         private readonly byte _flags = 0x00;
 
-        public QueryRequest(int streamId, string cqlQuery, ConsistencyLevel consistency, bool tracingEnabled)
+        public QueryRequest(int streamId, string cqlQuery, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
         {
             this._streamId = streamId;
+            this._values = values;
             this._cqlQuery = cqlQuery;
             this._consistency = consistency;
             if (tracingEnabled)
@@ -39,7 +41,18 @@
             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
             wb.WriteInt16((short)_consistency);
-            wb.WriteByte(0x0); //query flags
+            if (_values == null || _values.Length == 0)
+                wb.WriteByte(0x0); //query flags
+            else
+            {
+                wb.WriteByte(0x01);//flags Values
+                wb.WriteUInt16((ushort)_values.Length);
+                for (int i = 0; i < _values.Length; i++)
+                {
+                    var bytes = TypeInterpreter.InvCqlConvert(_values[i]);
+                    wb.WriteBytes(bytes);
+                } 
+            }
             return wb.GetFrame();
         }
 
@@ -47,7 +60,17 @@
         {
             wb.WriteByte(0);//not a prepared query
             wb.WriteLongString(_cqlQuery);
-            wb.WriteInt16(0);//not values
+            if (_values == null || _values.Length == 0)
+                wb.WriteInt16(0);//not values
+            else
+            {
+                wb.WriteUInt16((ushort)_values.Length);
+                for (int i = 0; i < _values.Length; i++)
+                {
+                    var bytes = TypeInterpreter.InvCqlConvert(_values[i]);
+                    wb.WriteBytes(bytes);
+                }
+            }
         }
     }
 }

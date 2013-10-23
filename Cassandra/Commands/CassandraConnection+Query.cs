@@ -33,7 +33,7 @@ namespace Cassandra
             {
                 if (!currentKs.Value.Equals(selectedKs.Value))
                 {
-                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCQL(selectedKs.Value), ConsistencyLevel.Default, false), jar.StreamId, new Action<ResponseFrame>((frame3) =>
+                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCQL(selectedKs.Value), new object[]{}, ConsistencyLevel.Default, false), jar.StreamId, new Action<ResponseFrame>((frame3) =>
                     {
                         var response = FrameParser.Parse(frame3);
                         if (response is ResultResponse)
@@ -50,12 +50,12 @@ namespace Cassandra
             });
         }
 
-        public IAsyncResult BeginQuery(int _streamId, string cqlQuery, AsyncCallback callback, object state, object owner, ConsistencyLevel consistency, bool tracingEnabled)
+        public IAsyncResult BeginQuery(int _streamId, string cqlQuery, object[] values, AsyncCallback callback, object state, object owner, ConsistencyLevel consistency, bool tracingEnabled)
         {
             var jar = SetupJob(_streamId, callback, state, owner, "QUERY");
             BeginJob(jar, SetupKeyspace(jar, () =>
            {
-               Evaluate(new QueryRequest(jar.StreamId, cqlQuery, consistency, tracingEnabled), jar.StreamId, (frame2) =>
+               Evaluate(new QueryRequest(jar.StreamId, cqlQuery, values, consistency, tracingEnabled), jar.StreamId, (frame2) =>
                {
                    var response = FrameParser.Parse(frame2);
                    if (response is ResultResponse)
@@ -73,9 +73,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "QUERY");
         }
 
-        public IOutput Query(int streamId, string cqlQuery, ConsistencyLevel consistency, bool tracingEnabled)
+        public IOutput Query(int streamId, string cqlQuery, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
         {
-            return EndQuery(BeginQuery(streamId, cqlQuery, null, null, this, consistency, tracingEnabled), this);
+            return EndQuery(BeginQuery(streamId, cqlQuery, values, null, null, this, consistency, tracingEnabled), this);
         }
     }
 }
