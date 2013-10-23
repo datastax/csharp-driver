@@ -201,24 +201,23 @@ namespace Cassandra.Data.Linq
             if (((tableType & TableType.Counter) == TableType.Counter))
             {
                 bool enableTracing = false;
-                var counterBatchScript = new StringBuilder();
+                var counterBatchScript = new BatchStatement();
                 foreach (var table in _tables)
                     if (tableTypes[table.Key] == TableType.Counter)
-                        enableTracing|=_mutationTrackers[table.Key].AppendChangesToBatch(counterBatchScript, table.Key);
+                        enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(counterBatchScript, table.Key);
 
                 foreach (var additional in _additionalCommands)
                     if (tableTypes[additional.GetTable().GetTableName()] == TableType.Counter)
                     {
-                        counterBatchScript.AppendLine(additional.ToString() + ";");
+                        counterBatchScript.AddQuery(additional);
                         enableTracing |= additional.IsTracing;
                     }
                     else if (tableType == TableType.Counter)
                         newAdditionalCommands.Add(additional);
 
-                if (counterBatchScript.Length != 0)
+                if (!counterBatchScript.IsEmpty)
                 {
-                    return BeginExecuteWriteQuery(
-                        "BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH", consistencyLevel, enableTracing,
+                    return _managedSession.BeginExecute(counterBatchScript.SetBatchType(BatchType.Counter).SetConsistencyLevel(consistencyLevel).EnableTracing(enableTracing),
                             new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Counter, NewAdditionalCommands = newAdditionalCommands }, callback, state);
                 }
             }
@@ -227,7 +226,7 @@ namespace Cassandra.Data.Linq
             if (((tableType & TableType.Standard) == TableType.Standard))
             {
                 bool enableTracing = false;
-                var batchScript = new StringBuilder();
+                var batchScript = new BatchStatement();
                 foreach (var table in _tables)
                     if (tableTypes[table.Key] == TableType.Standard)
                         enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(batchScript, table.Key);
@@ -236,14 +235,14 @@ namespace Cassandra.Data.Linq
                     if (tableTypes[additional.GetTable().GetTableName()] == TableType.Standard)
                     {
                         enableTracing |= additional.IsTracing;
-                        batchScript.AppendLine(additional.ToString() + ";");
+                        batchScript.AddQuery(additional);
                     }
                     else if (tableType == TableType.Standard)
                         newAdditionalCommands.Add(additional);
 
-                if (batchScript.Length != 0)
+                if (!batchScript.IsEmpty)
                 {
-                    return BeginExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH",consistencyLevel, enableTracing,
+                    return _managedSession.BeginExecute(batchScript.SetBatchType(BatchType.Logged).SetConsistencyLevel(consistencyLevel).EnableTracing(enableTracing),
                         new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
                 }
             }
@@ -297,64 +296,7 @@ namespace Cassandra.Data.Linq
             }
             else
             {
-                if (((tableType & TableType.Counter) == TableType.Counter))
-                {
-                    bool enableTracing = false;
-                    var counterBatchScript = new StringBuilder();
-                    foreach (var table in _tables)
-                        if (table.Value.GetTableType() == TableType.Counter)
-                            enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(counterBatchScript, table.Key);
-
-                    foreach (var additional in _additionalCommands)
-                        if (additional.GetTable().GetTableType()== TableType.Counter)
-                        {
-                            enableTracing |= additional.IsTracing;
-                            counterBatchScript.AppendLine(additional.ToString() + ";");
-                        }
-                        else if (tableType == TableType.Counter)
-                            newAdditionalCommands.Add(additional);
-
-                    if (counterBatchScript.Length != 0)
-                    {
-                        var res = ExecuteWriteQuery("BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH",consistencyLevel, enableTracing);
-                        foreach (var table in _tables)
-                            if (table.Value.GetTableType() == TableType.Counter)
-                                _mutationTrackers[table.Key].BatchCompleted(res.Info.QueryTrace);
-
-                        foreach (var additional in _additionalCommands)
-                            additional.SetQueryTrace(res.Info.QueryTrace);
-                    }
-                }
-
-
-                if (((tableType & TableType.Standard) == TableType.Standard))
-                {
-                    bool enableTracing = false;
-                    var batchScript = new StringBuilder();
-                    foreach (var table in _tables)
-                        if (table.Value.GetTableType() == TableType.Standard)
-                            enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(batchScript, table.Key);
-
-                    foreach (var additional in _additionalCommands)
-                        if (additional.GetTable().GetTableType() == TableType.Standard)
-                        {
-                            enableTracing |= additional.IsTracing;
-                            batchScript.AppendLine(additional.ToString() + ";");
-                        }
-                        else if (tableType == TableType.Standard)
-                            newAdditionalCommands.Add(additional);
-
-                    if (batchScript.Length != 0)
-                    {
-                        var res = ExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH", consistencyLevel, enableTracing);
-                        foreach (var table in _tables)
-                            if (table.Value.GetTableType() == TableType.Standard)
-                                _mutationTrackers[table.Key].BatchCompleted(res.Info.QueryTrace);
-
-                        foreach (var additional in _additionalCommands)
-                            additional.SetQueryTrace(res.Info.QueryTrace);
-                    }
-                }
+                EndSaveChangesBatch(BeginSaveChangesBatch(tableType, consistencyLevel, null, null));
             }
             _additionalCommands = newAdditionalCommands;
         }

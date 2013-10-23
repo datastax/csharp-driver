@@ -27,6 +27,7 @@ namespace Cassandra
     {
 
         private List<Query> _queries = new List<Query>();
+        private BatchType _batchType = BatchType.Logged;
         private volatile RoutingKey _routingKey;
 
         /// <summary>
@@ -36,6 +37,8 @@ namespace Cassandra
         public BatchStatement()
         {
         }
+
+        public bool IsEmpty { get { return _queries.Count == 0; } }
 
         /// <summary>
         ///  Gets the routing key for the query. <p> Note that unless the routing key has been
@@ -59,9 +62,9 @@ namespace Cassandra
         /// 
         /// <returns>this <code>BatchStatement</code> object.
         ///  <see>Query#getRoutingKey</returns>
-        public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents) 
+        public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this; 
+            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this;
         }
 
         public BatchStatement AddQuery(Query query)
@@ -69,9 +72,14 @@ namespace Cassandra
             this._queries.Add(query); return this;
         }
 
+        public BatchStatement SetBatchType(BatchType batchType)
+        {
+            this._batchType = batchType; return this;
+        }
+
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginBatch(_queries, callback, state, ConsistencyLevel,IsTracing, this, this, tag);
+            return session.BeginBatch(_batchType, _queries, callback, state, ConsistencyLevel, IsTracing, this, this, tag);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)

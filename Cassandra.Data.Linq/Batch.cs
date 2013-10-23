@@ -29,16 +29,15 @@ namespace Cassandra.Data.Linq
             _session = session;
         }
 
-        private readonly StringBuilder _batchScript = new StringBuilder();
-        private string _batchType = "";
+        private readonly BatchStatement _batchScript = new BatchStatement();
+        private BatchType _batchType = BatchType.Logged;
         protected DateTimeOffset? _timestamp = null;
 
         public void Append(CqlCommand cqlCommand)
         {
             if (cqlCommand.GetTable().GetTableType() == TableType.Counter)
-                _batchType = "COUNTER ";
-            _batchScript.Append(cqlCommand.ToString());
-            _batchScript.AppendLine(";");
+                _batchType = BatchType.Counter;
+            _batchScript.AddQuery(cqlCommand);
         }
 
         public new Batch SetConsistencyLevel(ConsistencyLevel consistencyLevel)
@@ -71,26 +70,11 @@ namespace Cassandra.Data.Linq
 
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            if (_batchScript.Length != 0)
-            {
-                var ctx = _session;
-                var cqlQuery = GetCql();
-                return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
-                                    new CqlQueryTag() { Session = ctx }, callback, state);
-            }
-            throw new ArgumentOutOfRangeException();
-        }
-
-        private string GetCql()
-        {
-            return "BEGIN " + _batchType + "BATCH\r\n" +
-                ((_timestamp == null) ? "" : ("USING TIMESTAMP " + Convert.ToInt64(Math.Floor((_timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)).ToString() + " ")) +
-                _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
-        }
-
-        public override string ToString()
-        {
-            return GetCql();
+            if (_batchScript.IsEmpty)
+                throw new ArgumentException("Batch is empty");
+         
+            return _session.BeginExecute(_batchScript.SetBatchType(_batchType).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
+                                    new CqlQueryTag() { Session = _session }, callback, state);
         }
 
         public void EndExecute(IAsyncResult ar)

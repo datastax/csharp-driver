@@ -24,7 +24,7 @@ namespace Cassandra.Data.Linq
     public interface IMutationTracker
     {
         void SaveChangesOneByOne(Context context, string tablename, ConsistencyLevel consistencyLevel);
-        bool AppendChangesToBatch(StringBuilder batchScript, string tablename);
+        bool AppendChangesToBatch(BatchStatement batchScript, string tablename);
         void BatchCompleted(QueryTrace trace);
         List<QueryTrace> RetriveAllQueryTraces();
     }
@@ -241,7 +241,7 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public bool AppendChangesToBatch(StringBuilder batchScript, string tablename)
+        public bool AppendChangesToBatch(BatchStatement batchScript, string tablename)
         {
             bool enableTracing = false;
             foreach (var kv in _table)
@@ -254,7 +254,7 @@ namespace Cassandra.Data.Linq
 
                 var cql = "";
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename, null,null);
+                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename, null, null);
                 else if (kv.Value.MutationType == MutationType.Delete)
                     cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
                 else if (kv.Value.MutationType == MutationType.None)
@@ -267,7 +267,7 @@ namespace Cassandra.Data.Linq
                 else
                     continue;
                 if (cql != null)
-                    batchScript.AppendLine(cql + ";");
+                    batchScript.AddQuery(new SimpleStatement(cql));
             }
             return enableTracing;
         }

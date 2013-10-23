@@ -16,6 +16,7 @@
 ﻿using System.Collections.Generic;
 namespace Cassandra
 {
+    public enum BatchType { Logged = 0, Unlogged = 1, Counter = 2 }
     internal class BatchRequest : IRequest
     {
         public const byte OpCode = 0x0D;
@@ -25,8 +26,6 @@ namespace Cassandra
         private readonly byte _flags = 0x00;
         private readonly ICollection<IBatchableRequest> _requests;
         private readonly BatchType _type;
-
-        public enum BatchType { Logged=0 , Unlogged=1, Counter = 2 }
 
         public BatchRequest(int streamId, BatchType type, ICollection<IBatchableRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
         {
@@ -42,7 +41,7 @@ namespace Cassandra
         {
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
-            wb.WriteByte((byte)_flags);
+            wb.WriteByte((byte)_type);
             wb.WriteInt16((short)_requests.Count);
             foreach (var br in _requests)
                 br.WriteToBatch(wb);

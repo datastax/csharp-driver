@@ -94,7 +94,7 @@ namespace Cassandra
             return ret;
         }
 
-        public IAsyncResult BeginBatch(int _streamId, List<Query> queries,
+        public IAsyncResult BeginBatch(int _streamId, BatchType batchType, List<Query> queries,
                                               AsyncCallback callback, object state, object owner,
                                               ConsistencyLevel consistency, bool isTracing)
         {
@@ -103,7 +103,7 @@ namespace Cassandra
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries),  () =>
                {
-                   Evaluate(new BatchRequest(jar.StreamId, BatchRequest.BatchType.Logged, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
+                   Evaluate(new BatchRequest(jar.StreamId, batchType, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
                             new Action<ResponseFrame>((frame2) =>
                                 {
                                     var response = FrameParser.Parse(frame2);

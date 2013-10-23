@@ -96,18 +96,19 @@ namespace TPLSample.NerdMoviesLinqSample
 
 
                 var bs = new BatchStatement()
-                 //   .AddQuery(new SimpleStatement(
-                 //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity2", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
-                 //   ))
-                 //   .AddQuery(new SimpleStatement(
-                 //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity3", Director = "Joss Whedon2", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
-                 //   ))
-                 //   .AddQuery(new SimpleStatement(
-                 //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity4", Director = "Joss Whedon3", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
-                 //   ))
+                    //   .AddQuery(new SimpleStatement(
+                    //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity2", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                    //   ))
+                    //   .AddQuery(new SimpleStatement(
+                    //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity3", Director = "Joss Whedon2", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                    //   ))
+                    //   .AddQuery(new SimpleStatement(
+                    //session.GetTable<NerdMovie>().Insert(new NerdMovie() { Movie = "Serenity4", Director = "Joss Whedon3", MainActor = "Nathan Fillion", Year = 2005 }).ToString()
+                    //   ))
                     .AddQuery(bound)
                     .AddQuery(bound2)
-                    .AddQuery(bound3);
+                    .AddQuery(bound3)
+                    .SetBatchType(BatchType.Unlogged);
                 session.Execute(bs);
 
 

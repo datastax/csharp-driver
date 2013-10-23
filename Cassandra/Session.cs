@@ -1039,6 +1039,7 @@ namespace Cassandra
 
         class LongBatchToken : LongToken
         {
+            public BatchType BatchType;
             public List<Query> Queries;
             public bool IsTracing;
             public Stopwatch StartedAt;
@@ -1051,7 +1052,7 @@ namespace Cassandra
 
             override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginBatch(streamId, Queries, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
+                Connection.BeginBatch(streamId, BatchType, Queries, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -1086,10 +1087,10 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginBatch(List<Query> queries, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null, object sender = null, object tag = null)
+        internal IAsyncResult BeginBatch(BatchType batchType, List<Query> queries, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
-            var token = new LongBatchToken() { Consistency = consistency, Queries = queries, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            var token = new LongBatchToken() { Consistency = consistency, Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
 
