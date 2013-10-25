@@ -57,12 +57,6 @@ namespace Cassandra.Data.Linq
 
         protected abstract string GetCql(out object[] values);
 
-        public override string ToString()
-        {
-            object[] values;
-            return GetCql(out values);
-        }
-
         public QueryTrace QueryTrace { get; protected set; }
 
         protected struct CqlQueryTag
@@ -122,6 +116,14 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
+        }
+
+        public override string ToString()
+        {
+            var visitor = new CqlExpressionVisitor();
+            visitor.Evaluate(Expression);
+            object[] _;
+            return visitor.GetSelect(out _, false);
         }
 
         public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
@@ -187,6 +189,14 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             return visitor.GetCount(out values);
+        }
+
+        public override string ToString()
+        {
+            var visitor = new CqlExpressionVisitor();
+            visitor.Evaluate(Expression);
+            object[] _;
+            return visitor.GetCount(out _, false);
         }
 
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
@@ -268,6 +278,14 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);    
+        }
+
+        public override string ToString()
+        {
+            var visitor = new CqlExpressionVisitor();
+            visitor.Evaluate(Expression);
+            object[] _;
+            return visitor.GetSelect(out _, false);
         }
 
         public IEnumerable<TEntity> Execute()
@@ -357,12 +375,6 @@ namespace Cassandra.Data.Linq
             get { return _expression; }
         }
 
-        public override string ToString()
-        {
-            object[] values;
-            return GetCql(out values);
-        }
-
         public QueryTrace QueryTrace { get; private set; }
 
         public override RoutingKey RoutingKey
@@ -428,6 +440,14 @@ namespace Cassandra.Data.Linq
             visitor.Evaluate(Expression);
             return visitor.GetDelete(out values, _timestamp);
         }
+
+        public override string ToString()
+        {
+            var visitor = new CqlExpressionVisitor();
+            visitor.Evaluate(Expression);
+            object[] _;
+            return visitor.GetDelete(out _, _timestamp, false);
+        }
     }
 
     public class CqlInsert<TEntity> : CqlCommand
@@ -443,6 +463,12 @@ namespace Cassandra.Data.Linq
         {
             return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out values, _ttl, _timestamp);
         }
+
+        public override string ToString()
+        {
+            object[] _;
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out _, _ttl, _timestamp, false);
+        }
     }
 
     public class CqlUpdate : CqlCommand
@@ -454,6 +480,14 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             return visitor.GetUpdate(out values, _ttl, _timestamp);   
+        }
+
+        public override string ToString()
+        {
+            object[] _;
+            var visitor = new CqlExpressionVisitor();
+            visitor.Evaluate(Expression);
+            return visitor.GetUpdate(out _, _ttl, _timestamp,false);
         }
     }
 }

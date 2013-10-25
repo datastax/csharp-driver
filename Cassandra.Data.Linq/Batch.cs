@@ -52,6 +52,16 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("BEGIN " + (_batchType == BatchType.Counter ? "COUNTER " : "") + "BATCH");
+            foreach (var q in _batchScript.Queries)
+                sb.AppendLine(q.ToString() + ";");
+            sb.Append("APPLY BATCH");
+            return sb.ToString();
+        }
+
         public void Append(IEnumerable<CqlCommand> cqlCommands)
         {
             foreach (var cmd in cqlCommands)

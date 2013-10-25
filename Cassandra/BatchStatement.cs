@@ -40,6 +40,8 @@ namespace Cassandra
 
         public bool IsEmpty { get { return _queries.Count == 0; } }
 
+        public IEnumerable<Query> Queries { get { return _queries; } }
+
         /// <summary>
         ///  Gets the routing key for the query. <p> Note that unless the routing key has been
         ///  explicitly set through <link>#setRoutingKey</link>, this will method will

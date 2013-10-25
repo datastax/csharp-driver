@@ -42,6 +42,59 @@ namespace Cassandra.Data.Linq
         { }
     }
 
+    internal class CqlStringTool
+    {
+        List<object> srcvalues = new List<object>();
+
+        public string FillWithEncoded(string pure)
+        {
+            if (srcvalues.Count == 0)
+                return pure;
+
+            var sb = new StringBuilder();
+            var parts = pure.Split('\0');
+
+            for (int i = 0; i < parts.Length - 1; i += 2)
+            {
+                sb.Append(parts[i]);
+                var idx = int.Parse(parts[i + 1]);
+                sb.Append(CqlQueryTools.Encode(srcvalues[idx]));
+            }
+            sb.Append(parts.Last());
+            return sb.ToString();
+        }
+
+        public string FillWithValues(string pure, out object[] values)
+        {
+            if (srcvalues.Count == 0)
+            {
+                values = null;
+                return pure;
+            }
+
+            var sb = new StringBuilder();
+            var objs = new List<object>();
+            var parts = pure.Split('\0');
+
+            for (int i = 0; i < parts.Length - 1; i += 2)
+            {
+                sb.Append(parts[i]);
+                var idx = int.Parse(parts[i + 1]);
+                objs.Add(srcvalues[idx]);
+                sb.Append(" ? ");
+            }
+            sb.Append(parts.Last());
+            values = objs.ToArray();
+            return sb.ToString();
+        }
+
+        public string AddValue(object val)
+        {
+            srcvalues.Add(val);
+            return "\0" + (srcvalues.Count - 1).ToString() + "\0";
+        }
+    }
+
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
         public StringBuilder WhereClause = new StringBuilder();
@@ -51,7 +104,6 @@ namespace Cassandra.Data.Linq
         public Dictionary<string, Tuple<string, object, int>> Mappings = new Dictionary<string, Tuple<string, object, int>>();
         public HashSet<string> SelectFields = new HashSet<string>();
         public List<string> OrderBy = new List<string>();
-        public List<object> _vallist = new List<object>();
 
         public int Limit = 0;
         public bool AllowFiltering = false;
@@ -60,8 +112,9 @@ namespace Cassandra.Data.Linq
         VisitingParam<string> currentBindingName = new VisitingParam<string>(null);
         VisitingParam<string> binaryExpressionTag = new VisitingParam<string>(null);
 
+        CqlStringTool cqlTool = new CqlStringTool();
 
-        public string GetSelect(out object[] values)
+        public string GetSelect(out object[] values, bool withValues = true)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT ");
@@ -91,34 +144,18 @@ namespace Cassandra.Data.Linq
             if (AllowFiltering)
                 sb.Append(" ALLOW FILTERING");
 
-            return FillWithValues(sb.ToString(), _vallist, out values);
-        }
-
-        internal static string FillWithValues(string pure, List<object> srcvalues, out object[] values)
-        {
-            if (srcvalues.Count == 0)
+            if (withValues)
+                return cqlTool.FillWithValues(sb.ToString(), out values);
+            else
             {
                 values = null;
-                return pure;
+                return cqlTool.FillWithEncoded(sb.ToString());
             }
-
-            var sb = new StringBuilder();
-            var objs = new List<object>();
-            var parts = pure.Split('\0');
-
-            for (int i = 0; i < parts.Length - 1; i += 2)
-            {
-                sb.Append(parts[i]);
-                var idx = int.Parse(parts[i + 1]);
-                objs.Add(srcvalues[idx]);
-                sb.Append(" ? ");
-            }
-            sb.Append(parts.Last());
-            values = objs.ToArray();
-            return sb.ToString();
         }
 
-        public string GetDelete(out object[] values, DateTimeOffset? timestamp)
+
+
+        public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool withValues = true)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
@@ -138,10 +175,16 @@ namespace Cassandra.Data.Linq
             if (SelectFields.Count > 0)
                 throw new CqlArgumentException("Unable to delete entity partially");
 
-            return FillWithValues(sb.ToString(), _vallist, out values);
+            if (withValues)
+                return cqlTool.FillWithValues(sb.ToString(), out values);
+            else
+            {
+                values = null;
+                return cqlTool.FillWithEncoded(sb.ToString());
+            }
         }
 
-        public string GetUpdate(out object[] values, int? ttl, DateTimeOffset? timestamp)
+        public string GetUpdate(out object[] values, int? ttl, DateTimeOffset? timestamp,bool withValues = true)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
@@ -184,7 +227,7 @@ namespace Cassandra.Data.Linq
 
                 if (!Alter.ContainsKey(mapping.Key))
                     throw new CqlArgumentException("Unknown column: " + mapping.Key);
-				setStatements.Add(Alter[mapping.Key].CqlIdentifier() + " = " + AddValue(val));
+                setStatements.Add(Alter[mapping.Key].CqlIdentifier() + " = " + cqlTool.AddValue(val));
             }
 
             if (setStatements.Count == 0)
@@ -197,16 +240,16 @@ namespace Cassandra.Data.Linq
                 sb.Append(WhereClause);
             }
 
-            return FillWithValues(sb.ToString(), _vallist, out values);
+            if (withValues)
+                return cqlTool.FillWithValues(sb.ToString(), out values);
+            else
+            {
+                values = null;
+                return cqlTool.FillWithEncoded(sb.ToString());
+            }
         }
 
-        string AddValue(object val)
-        {
-            _vallist.Add(val);
-            return "\0" + (_vallist.Count - 1).ToString() + "\0";
-        }
-
-        public string GetCount(out object[] values)
+        public string GetCount(out object[] values, bool withValues = true)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT count(*) FROM ");
@@ -224,7 +267,13 @@ namespace Cassandra.Data.Linq
                 sb.Append(Limit);
             }
 
-            return FillWithValues(sb.ToString(), _vallist, out values);
+            if (withValues)
+                return cqlTool.FillWithValues(sb.ToString(), out values);
+            else
+            {
+                values = null;
+                return cqlTool.FillWithEncoded(sb.ToString());
+            }
         }
 
         public void Evaluate(Expression expression)
@@ -361,7 +410,7 @@ namespace Cassandra.Data.Linq
                             first = true;
                         else
                             WhereClause.Append(", ");
-                        WhereClause.Append(AddValue(obj));
+                        WhereClause.Append(cqlTool.AddValue(obj));
                     }
                     if (!first)
                         throw new CqlArgumentException("Collection " + inp.ToString() + " is empty.");
@@ -398,7 +447,7 @@ namespace Cassandra.Data.Linq
                 else
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    WhereClause.Append(AddValue(val));
+                    WhereClause.Append(cqlTool.AddValue(val));
                     return node;
                 }
 
@@ -443,7 +492,7 @@ namespace Cassandra.Data.Linq
                 else
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    WhereClause.Append(AddValue(val));
+                    WhereClause.Append(cqlTool.AddValue(val));
                 }
                 return node;
             }
@@ -542,7 +591,7 @@ namespace Cassandra.Data.Linq
             }
             else if (phasePhase.get() == ParsePhase.Condition)
             {
-                WhereClause.Append(AddValue(node.Value));
+                WhereClause.Append(cqlTool.AddValue(node.Value));
                 return node;
             }
             else if (phasePhase.get() == ParsePhase.SelectBinding)
@@ -578,7 +627,7 @@ namespace Cassandra.Data.Linq
                 if (node.Expression == null)
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    WhereClause.Append(AddValue(val));
+                    WhereClause.Append(cqlTool.AddValue(val));
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.Parameter)
@@ -592,24 +641,24 @@ namespace Cassandra.Data.Linq
                     if (val is CqlToken)
                     {
                         WhereClause.Append("token(");
-                        WhereClause.Append(AddValue((val as CqlToken).Values.First()));
+                        WhereClause.Append(cqlTool.AddValue((val as CqlToken).Values.First()));
                         foreach (var e in (val as CqlToken).Values.Skip(1))
                         {
                             WhereClause.Append(", ");
-                            WhereClause.Append(AddValue(e));
+                            WhereClause.Append(cqlTool.AddValue(e));
                         }
                         WhereClause.Append(")");
                     }
                     else
                     {
-                        WhereClause.Append(AddValue(val));
+                        WhereClause.Append(cqlTool.AddValue(val));
                     }
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.MemberAccess)
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    WhereClause.Append(AddValue(val));
+                    WhereClause.Append(cqlTool.AddValue(val));
                     return node;
                 }
             }
