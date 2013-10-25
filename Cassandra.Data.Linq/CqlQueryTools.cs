@@ -131,7 +131,7 @@ namespace Cassandra.Data.Linq
         }
 
 
-        public static string Encode(this object obj)
+        public static string EncodeREMOVE(this object obj)
         {
             if (obj is string) return Encode(obj as string);
             else if (obj is Boolean) return Encode((Boolean)obj);
@@ -150,7 +150,7 @@ namespace Cassandra.Data.Linq
                     {
                         if (sb.ToString() != "")
                             sb.Append(", ");
-                        sb.Append(el.Encode());
+                        sb.Append(el.EncodeREMOVE());
                     }
                     return "{" + sb.ToString() + "}";
                 }
@@ -162,7 +162,7 @@ namespace Cassandra.Data.Linq
                     {
                         if (sb.ToString() != "")
                             sb.Append(", ");
-                        sb.Append(enn.Key.Encode() + ":" + enn.Value.Encode());
+                        sb.Append(enn.Key.EncodeREMOVE() + ":" + enn.Value.EncodeREMOVE());
                     }
                     return "{" + sb.ToString() + "}";
                 }
@@ -173,7 +173,7 @@ namespace Cassandra.Data.Linq
                     {
                         if (sb.ToString() != "")
                             sb.Append(", ");
-                        sb.Append(el.Encode());
+                        sb.Append(el.EncodeREMOVE());
                     }
                     return "[" + sb.ToString() + "]";
                 }
@@ -409,8 +409,9 @@ namespace Cassandra.Data.Linq
             return commands;
         }
 
-        public static string GetInsertCQL(object row, string tablename, int? ttl, DateTimeOffset? timestamp)
+        public static string GetInsertCQLAndValues(object row, string tablename, out object[] values, int? ttl, DateTimeOffset? timestamp)
         {
+            var vallist = new List<object>();
             var rowType = row.GetType();
             var sb = new StringBuilder();
             sb.Append("INSERT INTO ");
@@ -434,7 +435,8 @@ namespace Cassandra.Data.Linq
                 var val = prop.GetValueFromPropertyOrField(row);
                 if (val == null) continue;
                 if (first) first = false; else sb.Append(", ");
-                sb.Append(val.Encode());
+                sb.Append("?");
+                vallist.Add(val);
             }
             sb.Append(")");
             if (ttl != null || timestamp != null)
@@ -453,11 +455,13 @@ namespace Cassandra.Data.Linq
                 sb.Append("TIMESTAMP ");
                 sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
             }
+            values = vallist.ToArray();
             return sb.ToString();
         }
 
-        public static string GetUpdateCQL(object row, object newRow, string tablename,  bool all = false)
+        public static string GetUpdateCQLAndValues(object row, object newRow, string tablename, out object[] values, bool all = false)
         {
+            var vallist = new List<object>();
             var rowType = row.GetType();
             var set = new StringBuilder();
             var where = new StringBuilder();
@@ -499,8 +503,8 @@ namespace Cassandra.Data.Linq
                                         changeDetected = true;
                                     if (firstSet) firstSet = false; else set.Append(", ");
                                     set.Append(memName.CqlIdentifier());
-                                    set.Append(" = ");
-                                    set.Append(Encode(newVal));
+                                    set.Append(" = \0" + vallist.Count + "\0 ");
+                                    vallist.Add(newVal);
                                 }
                             }
                             continue;
@@ -513,10 +517,12 @@ namespace Cassandra.Data.Linq
                 {
                     if (firstWhere) firstWhere = false; else where.Append(" AND ");
                     where.Append(memName.CqlIdentifier());
-                    where.Append(" = ");
-                    where.Append(Encode(pv));
+                    where.Append(" = \0" + vallist.Count + "\0 ");
+                    vallist.Add(pv);
                 }
             }
+
+            values = null;
 
             if (!changeDetected)
                 return null;
@@ -529,11 +535,12 @@ namespace Cassandra.Data.Linq
             ret.Append(" WHERE ");
             ret.Append(where);
  
-            return ret.ToString();
+            return CqlExpressionVisitor.FillWithValues( ret.ToString(), vallist, out values);
         }
 
-        public static string GetDeleteCQL(object row, string tablename)
+        public static string GetDeleteCQLAndValues(object row, string tablename,out object[] values)
         {
+            var vallist = new List<object>();
             var rowType = row.GetType();
 
             var ret = new StringBuilder();
@@ -560,10 +567,11 @@ namespace Cassandra.Data.Linq
                     if (first) first = false; else ret.Append(" AND ");
                     var memName = CalculateMemberName(prop);
                     ret.Append(memName.CqlIdentifier());
-                    ret.Append(" = ");
-                    ret.Append(Encode(pv));
+                    ret.Append(" = ? ");
+                    vallist.Add(pv);
                 }
             }
+            values = vallist.ToArray();
             return ret.ToString();
         }
 

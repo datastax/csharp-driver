@@ -83,12 +83,12 @@ namespace Cassandra
                 if (q is BoundStatement)
                 {
                     var bs = (q as BoundStatement);
-                    ret.Add( new ExecuteRequest(-1,bs.PreparedStatement.Id, bs.PreparedStatement.Metadata, bs.Values,ConsistencyLevel.Any, false ));
+                    ret.Add(new ExecuteRequest(-1, bs.PreparedStatement.Id, bs.PreparedStatement.Metadata, bs.Values, ConsistencyLevel.Any, false));
                 }
-                else if(q is SimpleStatement)
+                else if (q is SimpleStatement)
                 {
                     var ss = (q as SimpleStatement);
-                    ret.Add(new QueryRequest(-1, ss.QueryString, new object[] { }, ConsistencyLevel.Any, false));
+                    ret.Add(new QueryRequest(-1, ss.QueryString, ss.Values, ConsistencyLevel.Any, false));
                 }
             }
             return ret;

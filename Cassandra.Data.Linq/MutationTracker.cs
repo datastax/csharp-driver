@@ -202,12 +202,13 @@ namespace Cassandra.Data.Linq
                     if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                         throw new InvalidOperationException();
                     var cql = "";
+                    object[] values;
                     if (kv.Value.MutationType == MutationType.Add)
-                        cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename,null,null);
+                        cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null,null);
                     else if (kv.Value.MutationType == MutationType.Delete)
-                        cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
+                        cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename,out values);
                     else if (kv.Value.MutationType == MutationType.None)
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename,
+                        cql = CqlQueryTools.GetUpdateCQLAndValues(kv.Key, kv.Value.Entity, tablename, out values,
                             kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
                     else
                         continue;
@@ -215,7 +216,7 @@ namespace Cassandra.Data.Linq
                     QueryTrace trace = null;
                     if (cql != null) // null if nothing to update
                     {
-                        var res = context.ExecuteWriteQuery(cql, consistencyLevel, kv.Value.QueryTracingEnabled);
+                        var res = context.ExecuteWriteQuery(cql, values, consistencyLevel, kv.Value.QueryTracingEnabled);
                         if (kv.Value.QueryTracingEnabled)
                             trace = res.Info.QueryTrace;
                     }
@@ -253,21 +254,22 @@ namespace Cassandra.Data.Linq
                     enableTracing = true;
 
                 var cql = "";
+                object[] values;
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQL(kv.Value.Entity, tablename, null, null);
+                    cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null);
                 else if (kv.Value.MutationType == MutationType.Delete)
-                    cql = CqlQueryTools.GetDeleteCQL(kv.Value.Entity, tablename);
+                    cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename, out values);
                 else if (kv.Value.MutationType == MutationType.None)
                 {
                     if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, true);
+                        cql = CqlQueryTools.GetUpdateCQLAndValues(kv.Key, kv.Value.Entity, tablename, out values, true);
                     else
-                        cql = CqlQueryTools.GetUpdateCQL(kv.Key, kv.Value.Entity, tablename, false);
+                        cql = CqlQueryTools.GetUpdateCQLAndValues(kv.Key, kv.Value.Entity, tablename, out values, false);
                 }
                 else
                     continue;
                 if (cql != null)
-                    batchScript.AddQuery(new SimpleStatement(cql));
+                    batchScript.AddQuery(new SimpleStatement(cql).BindObjects(values));
             }
             return enableTracing;
         }

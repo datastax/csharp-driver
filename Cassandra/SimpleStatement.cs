@@ -82,6 +82,12 @@ namespace Cassandra
             return session.EndQuery(ar);
         }
 
+        public SimpleStatement BindObjects(object[] values)
+        {
+            this.Values = values;
+            return this;
+        }
+
         public SimpleStatement Bind(params object[] values)
         {
             this.Values = values;
