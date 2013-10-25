@@ -453,21 +453,29 @@ namespace Cassandra.Data.Linq
     public class CqlInsert<TEntity> : CqlCommand
     {
         private readonly TEntity _entity;
+        private bool _ifNotExists = false;
 
-        internal CqlInsert(TEntity entity, IQueryProvider table) : base(null,table)
+        internal CqlInsert(TEntity entity, IQueryProvider table)
+            : base(null, table)
         {
             this._entity = entity;
         }
 
+        public CqlInsert<TEntity> IfNotExists()
+        {
+            _ifNotExists = true;
+            return this;
+        }
+
         protected override string GetCql(out object[] values)
         {
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out values, _ttl, _timestamp);
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out values, _ttl, _timestamp, _ifNotExists);
         }
 
         public override string ToString()
         {
             object[] _;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out _, _ttl, _timestamp, false);
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out _, _ttl, _timestamp, _ifNotExists, false);
         }
     }
 

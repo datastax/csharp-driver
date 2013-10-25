@@ -204,7 +204,7 @@ namespace Cassandra.Data.Linq
                     var cql = "";
                     object[] values;
                     if (kv.Value.MutationType == MutationType.Add)
-                        cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null,null);
+                        cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null,null,false);
                     else if (kv.Value.MutationType == MutationType.Delete)
                         cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename,out values);
                     else if (kv.Value.MutationType == MutationType.None)
@@ -256,7 +256,7 @@ namespace Cassandra.Data.Linq
                 var cql = "";
                 object[] values;
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null);
+                    cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null,false);
                 else if (kv.Value.MutationType == MutationType.Delete)
                     cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename, out values);
                 else if (kv.Value.MutationType == MutationType.None)

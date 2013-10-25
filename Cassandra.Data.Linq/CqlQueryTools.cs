@@ -409,7 +409,7 @@ namespace Cassandra.Data.Linq
             return commands;
         }
 
-        public static string GetInsertCQLAndValues(object row, string tablename, out object[] values, int? ttl, DateTimeOffset? timestamp,bool withValues = true)
+        public static string GetInsertCQLAndValues(object row, string tablename, out object[] values, int? ttl, DateTimeOffset? timestamp,bool ifNotExists,bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
             var rowType = row.GetType();
@@ -438,6 +438,10 @@ namespace Cassandra.Data.Linq
                 sb.Append(cqlTool.AddValue(val));
             }
             sb.Append(")");
+            if (ifNotExists)
+            {
+                sb.Append(" IF NOT EXISTS ");
+            }
             if (ttl != null || timestamp != null)
             {
                 sb.Append(" USING ");
