@@ -15,7 +15,7 @@
 //
 ﻿namespace Cassandra
 {
-     internal class QueryRequest : IBatchableRequest
+     internal class QueryRequest : IQueryRequest
     {
         public const byte OpCode = 0x07;
 

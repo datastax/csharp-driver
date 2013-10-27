@@ -19,7 +19,7 @@
     {
         RequestFrame GetFrame();
     }
-    internal interface IBatchableRequest :IRequest
+    internal interface IQueryRequest :IRequest
     {
         void WriteToBatch(BEBinaryWriter writer);
     }

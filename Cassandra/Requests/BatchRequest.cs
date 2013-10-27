@@ -24,10 +24,10 @@ namespace Cassandra
         readonly int _streamId;
         readonly ConsistencyLevel _consistency;
         private readonly byte _flags = 0x00;
-        private readonly ICollection<IBatchableRequest> _requests;
+        private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
 
-        public BatchRequest(int streamId, BatchType type, ICollection<IBatchableRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
+        public BatchRequest(int streamId, BatchType type, ICollection<IQueryRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
         {
             this._type = type;
             this._requests = requests;

@@ -29,9 +29,7 @@ namespace Cassandra
         /// </summary>
         public abstract string QueryString { get; }
 
-        public override string ToString()
-        {
-            return QueryString;
-        }
+        public abstract object[] QueryValues { get; }
+
     }
 }

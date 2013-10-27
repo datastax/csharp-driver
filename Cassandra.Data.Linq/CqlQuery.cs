@@ -323,12 +323,32 @@ namespace Cassandra.Data.Linq
         }
     }
 
-    public abstract class CqlCommand : Query
+    public abstract class CqlCommand : SimpleStatement
     {
         protected abstract string GetCql(out object[] values);
         public void Execute()
         {
             EndExecute(BeginExecute(null, null));
+        }
+
+        public override string QueryString
+        {
+            get
+            {
+                if (base.QueryString == null)
+                    InitializeStatement();
+                return base.QueryString;
+            }
+        }
+
+        public override object[] QueryValues
+        {
+            get
+            {
+                if (base.QueryString == null)
+                    InitializeStatement();
+                return base.QueryValues;
+            }
         }
 
         protected int? _ttl = null;
@@ -363,6 +383,15 @@ namespace Cassandra.Data.Linq
         {
             this._expression = expression;
             this._table = table;
+
+        }
+
+        protected void InitializeStatement()
+        {
+            object[] values;
+            var query = GetCql(out values);
+            SetQueryString(query);
+            BindObjects(values);
         }
 
         public ITable GetTable()
@@ -377,19 +406,14 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        public override RoutingKey RoutingKey
-        {
-            get { return null; }
-        }
-
-        protected override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
+        protected  override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
             if (!ReferenceEquals(GetTable().GetSession(), session))
                 throw new ArgumentOutOfRangeException("session");
-            return BeginExecute(callback, state);
+            return InternalBeginExecute(callback, state);
         }
 
-        protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
+        protected  override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             if (!ReferenceEquals(GetTable().GetSession(), session))
                 throw new ArgumentOutOfRangeException("session");
@@ -400,28 +424,26 @@ namespace Cassandra.Data.Linq
         {
             public Session Session;
         }
-        
-        protected IAsyncResult InternalBeginExecute(string cqlQuery, object[] values, AsyncCallback callback, object state)
+
+        protected IAsyncResult InternalBeginExecute(AsyncCallback callback, object state)
         {
+            InitializeStatement();
             var session = GetTable().GetSession();
-            return session.BeginExecute(new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
-                                new CqlQueryTag() {Session = session }, callback, state);
+            return base.BeginSessionExecute(session, new CqlQueryTag() { Session = session }, callback, state);
         }
-        
+
         protected RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag)Session.GetTag(ar);
             var ctx = tag.Session;
-            var outp = ctx.EndExecute(ar);
+            var outp = base.EndSessionExecute(ctx, ar);
             QueryTrace = outp.Info.QueryTrace;
             return outp;
         }
 
         public virtual IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            object[] values;
-            var cql = GetCql(out values);
-            return InternalBeginExecute(cql, values, callback, state);
+            return InternalBeginExecute(callback, state);
         }
 
         public virtual void EndExecute(IAsyncResult ar)
@@ -432,7 +454,10 @@ namespace Cassandra.Data.Linq
 
     public class CqlDelete : CqlCommand
     {
-        internal CqlDelete(Expression expression, IQueryProvider table) : base(expression, table) { }
+        internal CqlDelete(Expression expression, IQueryProvider table)
+            : base(expression, table)
+        {
+        }
 
         protected override string GetCql(out object[] values)
         {
@@ -481,7 +506,10 @@ namespace Cassandra.Data.Linq
 
     public class CqlUpdate : CqlCommand
     {
-        internal CqlUpdate(Expression expression, IQueryProvider table) : base(expression, table) {}
+        internal CqlUpdate(Expression expression, IQueryProvider table)
+            : base(expression, table)
+        {
+        }
 
         protected override string GetCql(out object[] values)
         {

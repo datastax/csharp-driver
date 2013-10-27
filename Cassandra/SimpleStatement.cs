@@ -26,9 +26,10 @@ namespace Cassandra
     public class SimpleStatement : Statement
     {
 
-        private readonly string _query;
-        internal object[] Values;
+        private string _query;
         private volatile RoutingKey _routingKey;
+
+        public SimpleStatement() { }
 
         /// <summary>
         ///  Creates a new <code>SimpleStatement</code> with the provided query string.
@@ -74,7 +75,7 @@ namespace Cassandra
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginQuery(QueryString, Values, callback, state, ConsistencyLevel, IsTracing, this, this, tag);
+            return session.BeginQuery(QueryString, _values, callback, state, ConsistencyLevel, IsTracing, this, this, tag);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
@@ -84,15 +85,32 @@ namespace Cassandra
 
         public SimpleStatement BindObjects(object[] values)
         {
-            this.Values = values;
+            this._values = values;
             return this;
         }
 
         public SimpleStatement Bind(params object[] values)
         {
-            this.Values = values;
+            this._values = values;
             return this;
         }
 
+        public SimpleStatement SetQueryString(string queryString)
+        {
+            this._query = queryString;
+            return this;
+        }
+
+        private object[] _values;
+
+        public override object[] QueryValues
+        {
+            get { return _values; }
+        }
+
+        internal override IQueryRequest CreateBatchRequest()
+        {
+            return new QueryRequest(-1, QueryString, QueryValues, ConsistencyLevel, IsTracing);
+        }
     }
 }

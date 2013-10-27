@@ -75,22 +75,11 @@ namespace Cassandra
             return ret;
         }
 
-        private List<IBatchableRequest> GetRequestsFromListOfQueries(List<Query> queries)
+        private List<IQueryRequest> GetRequestsFromListOfQueries(List<Query> queries)
         {
-            var ret = new List<IBatchableRequest>();
+            var ret = new List<IQueryRequest>();
             foreach (var q in queries)
-            {
-                if (q is BoundStatement)
-                {
-                    var bs = (q as BoundStatement);
-                    ret.Add(new ExecuteRequest(-1, bs.PreparedStatement.Id, bs.PreparedStatement.Metadata, bs.Values, ConsistencyLevel.Any, false));
-                }
-                else if (q is SimpleStatement)
-                {
-                    var ss = (q as SimpleStatement);
-                    ret.Add(new QueryRequest(-1, ss.QueryString, ss.Values, ConsistencyLevel.Any, false));
-                }
-            }
+                ret.Add(q.CreateBatchRequest());
             return ret;
         }
 

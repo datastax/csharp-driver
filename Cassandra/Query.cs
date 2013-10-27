@@ -118,6 +118,11 @@ namespace Cassandra
             return this;
         }
 
+        internal virtual IQueryRequest CreateBatchRequest()
+        {
+            throw new InvalidOperationException("Cannot insert this query into the batch");
+        }
+
         protected internal abstract IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state);
 
         protected internal abstract RowSet EndSessionExecute(Session session, IAsyncResult ar);
