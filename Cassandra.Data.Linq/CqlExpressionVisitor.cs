@@ -314,14 +314,17 @@ namespace Cassandra.Data.Linq
         {
             if (phasePhase.get() == ParsePhase.SelectBinding)
             {
-                for (int i = 0; i < node.Members.Count; i++)
+                if (node.Members != null)
                 {
-                    var binding = node.Arguments[i];
-                    if(binding.NodeType == ExpressionType.Parameter)
-                        throw new CqlLinqNotSupportedException(binding, phasePhase.get());
+                    for (int i = 0; i < node.Members.Count; i++)
+                    {
+                        var binding = node.Arguments[i];
+                        if (binding.NodeType == ExpressionType.Parameter)
+                            throw new CqlLinqNotSupportedException(binding, phasePhase.get());
 
-                    using (currentBindingName.set(node.Members[i].Name))
-                        this.Visit(binding);
+                        using (currentBindingName.set(node.Members[i].Name))
+                            this.Visit(binding);
+                    }
                 }
                 return node;
             }
