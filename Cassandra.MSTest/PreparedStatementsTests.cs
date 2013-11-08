@@ -25,7 +25,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cassandra.MSTest
 {
     public partial class PreparedStatementsTests
-    {        
+    {
+        [TestMethod]
+        [WorksForMe]
+        public void PreparedSelectSkipMetadata()
+        {
+            preparedSelectTest();
+        }
+
         [TestMethod]
         [WorksForMe]
         public void testMassivePrepared()
@@ -40,7 +47,7 @@ namespace Cassandra.MSTest
             insertingSingleValuePrepared(typeof(System.Decimal));
         }
 
-        [TestMethod] 
+        [TestMethod]
 		[WorksForMe]
         public void testPreparedVarInt()
         {
@@ -103,7 +110,7 @@ namespace Cassandra.MSTest
             insertingSingleValuePrepared(typeof(System.Byte));
         }
         
-        [TestMethod]   
+        [TestMethod]
 		[WorksForMe]
         public void testPreparedUUID()
         {

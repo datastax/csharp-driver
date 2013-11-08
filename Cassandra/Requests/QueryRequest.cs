@@ -21,38 +21,28 @@
 
         private readonly int _streamId;
         private readonly string _cqlQuery;
-        readonly object[] _values;
-        private readonly ConsistencyLevel _consistency;
-        private readonly byte _flags = 0x00;
+        private readonly QueryProtocolOptions _queryProtocolOptions;
+        private readonly ConsistencyLevel? _consistency;
+        private readonly byte _headerFlags = 0x00;
 
-        public QueryRequest(int streamId, string cqlQuery, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
+        public QueryRequest(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency = null)
         {
             this._streamId = streamId;
-            this._values = values;
             this._cqlQuery = cqlQuery;
             this._consistency = consistency;
+            this._queryProtocolOptions = queryPrtclOptions;
             if (tracingEnabled)
-                this._flags = 0x02;
+                this._headerFlags = 0x02;
         }
 
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _headerFlags, (byte)_streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
-            wb.WriteInt16((short)_consistency);
-            if (_values == null || _values.Length == 0)
-                wb.WriteByte(0x0); //query flags
-            else
-            {
-                wb.WriteByte(0x01);//flags Values
-                wb.WriteUInt16((ushort)_values.Length);
-                for (int i = 0; i < _values.Length; i++)
-                {
-                    var bytes = TypeInterpreter.InvCqlConvert(_values[i]);
-                    wb.WriteBytes(bytes);
-                } 
-            }
+
+            _queryProtocolOptions.Write(wb, _consistency);
+
             return wb.GetFrame();
         }
 
@@ -60,14 +50,14 @@
         {
             wb.WriteByte(0);//not a prepared query
             wb.WriteLongString(_cqlQuery);
-            if (_values == null || _values.Length == 0)
+            if (_queryProtocolOptions.Values == null || _queryProtocolOptions.Values.Length == 0)
                 wb.WriteInt16(0);//not values
             else
             {
-                wb.WriteUInt16((ushort)_values.Length);
-                for (int i = 0; i < _values.Length; i++)
+                wb.WriteUInt16((ushort)_queryProtocolOptions.Values.Length);
+                for (int i = 0; i < _queryProtocolOptions.Values.Length; i++)
                 {
-                    var bytes = TypeInterpreter.InvCqlConvert(_values[i]);
+                    var bytes = TypeInterpreter.InvCqlConvert(_queryProtocolOptions.Values[i]);
                     wb.WriteBytes(bytes);
                 }
             }

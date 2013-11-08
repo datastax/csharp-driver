@@ -45,6 +45,9 @@
     </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="LZ4, Version=1.0.3.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
+      <HintPath>..\packages\lz4net.1.0.3.93\lib\net40-client\LZ4.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
@@ -84,6 +87,7 @@
     <Compile Include="Host.cs" />
     <Compile Include="IAuthenticator.cs" />
     <Compile Include="IAuthProvider.cs" />
+    <Compile Include="LZ4ProtoBufCompressor.cs" />
     <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
@@ -170,6 +174,7 @@
     <Compile Include="ProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Query.cs" />
+    <Compile Include="QueryOptions.cs" />
     <Compile Include="QueryTrace.cs" />
     <Compile Include="Requests\AuthResponseRequest.cs" />
     <Compile Include="Requests\BatchRequest.cs" />
@@ -234,6 +239,7 @@
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="README.rst" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

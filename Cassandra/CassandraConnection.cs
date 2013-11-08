@@ -83,7 +83,10 @@ namespace Cassandra
             this._owner = owner;
             _bufferingMode = null;           
             switch (protocolOptions.Compression)
-            {
+            {                    
+                case CompressionType.LZ4:
+                    _bufferingMode = new FrameBuffering();
+                    break;
                 case CompressionType.Snappy:
                     _bufferingMode = new FrameBuffering();
                     break;
@@ -100,6 +103,13 @@ namespace Cassandra
                 _startupOptions.Add("COMPRESSION", "snappy");
                 _compressor = new SnappyProtoBufCompressor();
             }
+            else
+                if (protocolOptions.Compression == CompressionType.LZ4)
+                {
+                    _startupOptions.Add("COMPRESSION", "lz4");
+                    _compressor = new LZ4ProtoBufCompressor();
+                }
+
             this._serverAddress = serverAddress;
             this._port = protocolOptions.Port;
             this._queryAbortTimeout = clientOptions.QueryAbortTimeout;

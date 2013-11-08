@@ -88,6 +88,12 @@ namespace Cassandra.Data.Linq
             throw new ArgumentException("invalid identifier");
         }
 
+
+        public static string QuoteIdentifier(this string id)
+        {
+            return "\"" + id.Replace("\"", "\"\"") + "\"";
+        }
+        
         /// <summary>
         /// Hex string lookup table.
         /// </summary>
@@ -290,9 +296,9 @@ namespace Cassandra.Data.Linq
             int countersCount = 0;
             bool countersSpotted = false;
             sb.Append("CREATE TABLE ");
-            sb.Append(table.GetTableName().CqlIdentifier());
+            sb.Append(table.GetTableName().QuoteIdentifier());
             sb.Append("(");
-            string crtIndex = "CREATE INDEX ON " + table.GetTableName().CqlIdentifier() + "(";
+            string crtIndex = "CREATE INDEX ON " + table.GetTableName().QuoteIdentifier() + "(";
             string crtIndexAll = string.Empty;
              
             var clusteringKeys = new SortedDictionary<int, ClusteringKeyAttribute>();
@@ -311,7 +317,7 @@ namespace Cassandra.Data.Linq
 
                 var memName = CalculateMemberName(prop);
 
-                sb.Append(memName.CqlIdentifier());
+                sb.Append(memName.QuoteIdentifier());
                 sb.Append(" ");
 
                 if (prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute != null)
@@ -353,7 +359,7 @@ namespace Cassandra.Data.Linq
                         var si = prop.GetCustomAttributes(typeof(SecondaryIndexAttribute), true).FirstOrDefault() as SecondaryIndexAttribute;
                         if (si != null)
                         {
-                            commands.Add(crtIndex + memName.CqlIdentifier() + ");");
+                            commands.Add(crtIndex + memName.QuoteIdentifier() + ");");
                         }
                     }
                 }
@@ -361,7 +367,7 @@ namespace Cassandra.Data.Linq
 
             foreach (var clustKey in clusteringKeys)
                 if (clustKey.Value.ClusteringOrder != null)
-                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string)clustKey.Value.Name.CqlIdentifier(), clustKey.Value.ClusteringOrder));
+                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string)clustKey.Value.Name.QuoteIdentifier(), clustKey.Value.ClusteringOrder));
                 else
                     break;
 
@@ -379,14 +385,14 @@ namespace Cassandra.Data.Linq
                     sb.Append(", ");
                 else
                     fisrtParKey = false;
-                sb.Append(kv.Value.CqlIdentifier());
+                sb.Append(kv.Value.QuoteIdentifier());
             }
             if (partitionKeys.Count > 1)
                 sb.Append(")");
             foreach (var kv in clusteringKeys)
             {
                 sb.Append(", ");
-                sb.Append(kv.Value.Name.CqlIdentifier());
+                sb.Append(kv.Value.Name.QuoteIdentifier());
             }
             sb.Append("))");
 
@@ -415,7 +421,7 @@ namespace Cassandra.Data.Linq
             var rowType = row.GetType();
             var sb = new StringBuilder();
             sb.Append("INSERT INTO ");
-            sb.Append(tablename.CqlIdentifier());
+            sb.Append(tablename.QuoteIdentifier());
             sb.Append("(");
 
             var props = rowType.GetPropertiesOrFields();
@@ -426,7 +432,7 @@ namespace Cassandra.Data.Linq
                 if (val == null) continue;
                 if (first) first = false; else sb.Append(", ");
                 var memName = CalculateMemberName(prop);
-                sb.Append(memName.CqlIdentifier());
+                sb.Append(memName.QuoteIdentifier());
             }
             sb.Append(") VALUES (");
             first = true;
@@ -495,7 +501,7 @@ namespace Cassandra.Data.Linq
                             {
                                 changeDetected = true;
                                 if (firstSet) firstSet = false; else set.Append(", ");
-                                set.Append(memName.CqlIdentifier() + " = " + memName.CqlIdentifier());
+                                set.Append(memName.QuoteIdentifier() + " = " + memName.QuoteIdentifier());
                                 set.Append((diff >= 0) ? "+" + diff.ToString() : diff.ToString());
                             }
                             continue;
@@ -511,7 +517,7 @@ namespace Cassandra.Data.Linq
                                     if (areDifferent)
                                         changeDetected = true;
                                     if (firstSet) firstSet = false; else set.Append(", ");
-                                    set.Append(memName.CqlIdentifier());
+                                    set.Append(memName.QuoteIdentifier());
                                     set.Append(" = " + cqlTool.AddValue(newVal) + " ");
                                 }
                             }
@@ -524,7 +530,7 @@ namespace Cassandra.Data.Linq
                 if (pv != null)
                 {
                     if (firstWhere) firstWhere = false; else where.Append(" AND ");
-                    where.Append(memName.CqlIdentifier());
+                    where.Append(memName.QuoteIdentifier());
                     where.Append(" = " + cqlTool.AddValue(pv) + " ");
                 }
             }
@@ -536,7 +542,7 @@ namespace Cassandra.Data.Linq
 
             var sb = new StringBuilder();
             sb.Append("UPDATE ");
-            sb.Append(tablename.CqlIdentifier());
+            sb.Append(tablename.QuoteIdentifier());
             sb.Append(" SET ");
             sb.Append(set);
             sb.Append(" WHERE ");
@@ -558,7 +564,7 @@ namespace Cassandra.Data.Linq
 
             var sb = new StringBuilder();
             sb.Append("DELETE FROM ");
-            sb.Append(tablename.CqlIdentifier());
+            sb.Append(tablename.QuoteIdentifier());
             sb.Append(" WHERE ");
 
             var props = rowType.GetPropertiesOrFields();
@@ -579,7 +585,7 @@ namespace Cassandra.Data.Linq
                 {
                     if (first) first = false; else sb.Append(" AND ");
                     var memName = CalculateMemberName(prop);
-                    sb.Append(memName.CqlIdentifier());
+                    sb.Append(memName.QuoteIdentifier());
                     sb.Append(" =  " + cqlTool.AddValue(pv) + " ");
                 }
             }

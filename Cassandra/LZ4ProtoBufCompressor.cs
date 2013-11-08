@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,22 +13,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+using System;
 namespace Cassandra
 {
-    /// <summary>
-    ///  A non-prepared CQL statement. <p> This class represents a query string along
-    ///  with query options. This class can be extended but
-    ///  <link>SimpleStatement</link> is provided to build a <code>* Statement</code>
-    ///  directly from its query string.</p>
-    /// </summary>
-    public abstract class Statement : Query
+    internal class LZ4ProtoBufCompressor : IProtoBufComporessor
     {
-
-        /// <summary>
-        ///  Gets the query string for this statement.
-        /// </summary>
-        public abstract string QueryString { get; }
-
-        protected Statement(QueryProtocolOptions queryProtocolOptions) : base(queryProtocolOptions) { }
+        public byte[] Decompress(byte[] buffer)
+        {
+            byte[] outpLength = new byte[4];
+            Buffer.BlockCopy(buffer, 0, outpLength, 0, 4);
+            Array.Reverse(outpLength);
+            return LZ4.LZ4Codec.Decode(buffer, 4, buffer.Length - 4, BitConverter.ToInt32(outpLength, 0));   
+        }
     }
 }

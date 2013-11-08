@@ -31,6 +31,7 @@ namespace Cassandra
         private readonly PoolingOptions _poolingOptions;
         private readonly SocketOptions _socketOptions;
         private readonly ClientOptions _clientOptions;
+        private readonly QueryOptions _queryOptions;
 
         private readonly IAuthProvider _authProvider;
 
@@ -40,7 +41,8 @@ namespace Cassandra
                  new PoolingOptions(),
                  new SocketOptions(),
                  new ClientOptions(),
-                 null)
+                 null,
+                 new QueryOptions())
         {
         }
 
@@ -49,7 +51,8 @@ namespace Cassandra
                              PoolingOptions poolingOptions,
                              SocketOptions socketOptions,
                              ClientOptions clientOptions,
-                             IAuthProvider authProvider)
+                             IAuthProvider authProvider,
+                             QueryOptions queryOptions)
         {
             this._policies = policies;
             this._protocolOptions = protocolOptions;
@@ -57,6 +60,7 @@ namespace Cassandra
             this._socketOptions = socketOptions;
             this._clientOptions = clientOptions;
             this._authProvider = authProvider;
+            this._queryOptions = queryOptions;
         }
 
         /// <summary>
@@ -101,6 +105,14 @@ namespace Cassandra
         public ClientOptions ClientOptions
         {
             get { return _clientOptions; }
+        }
+
+        /// <summary>
+        ///  The query configuration.
+        /// </summary>
+        public QueryOptions QueryOptions
+        {
+            get { return _queryOptions; }
         }
 
         /// <summary>

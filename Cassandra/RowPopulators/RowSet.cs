@@ -52,17 +52,21 @@ namespace Cassandra
     }
 
     public partial class RowSet : IDisposable
-    {
+    {        
         readonly OutputRows _rawrows=null;
         readonly bool _ownRows;
         readonly ExecutionInfo _info = new ExecutionInfo();
-
         public ExecutionInfo Info { get { return _info; } }
 
-        internal RowSet(OutputRows rawrows, Session session, bool ownRows = true)
+
+        internal RowSet(OutputRows rawrows, Session session, bool ownRows = true, RowSetMetadata resultMetadata = null)
         {
             this._rawrows = rawrows;
             this._ownRows = ownRows;
+
+            if (resultMetadata != null)
+                rawrows._metadata = resultMetadata;
+
             if (rawrows != null && rawrows.TraceID != null)
                 _info.SetQueryTrace(new QueryTrace(rawrows.TraceID.Value, session));
         }
@@ -88,21 +92,25 @@ namespace Cassandra
             get { return _rawrows == null ? new CqlColumn[] {} : _rawrows.Metadata.Columns; }
         }
 
-        internal int RowsCount
-        {
-            get { return _rawrows == null ? 0 : _rawrows.Rows; }
-        }
-        
         BoolSwitch _alreadyIterated = new BoolSwitch();
 
         public IEnumerable<Row> GetRows()
         {
             if (!_alreadyIterated.TryTake())
                 throw new InvalidOperationException("RowSet already iterated");
-            
             if (_rawrows != null)
+            {
                 for (int i = 0; i < _rawrows.Rows; i++)
                     yield return _rawrows.Metadata.GetRow(_rawrows);
+            }
+        }
+
+        public byte[] PagingState
+        {
+            get
+            {
+                return _rawrows != null ? _rawrows.Metadata.paging_state : null;
+            }
         }
 
         BoolSwitch _alreadyDisposed = new BoolSwitch();
@@ -116,6 +124,8 @@ namespace Cassandra
                 _rawrows.Dispose();
 
         }
+
+        public bool IsExhausted { get { return _rawrows != null ? _rawrows.Metadata.paging_state == null : true; } }
 
         ~RowSet()
         {

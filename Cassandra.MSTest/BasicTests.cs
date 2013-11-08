@@ -31,6 +31,20 @@ namespace Cassandra.MSTest
     {
         [TestMethod]
         [WorksForMe]
+        public void QueryBinding()
+        {
+            QueryBindingTest();
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void QueryFetching()
+        {
+            QueryFetchingTest();
+        }
+
+        [TestMethod]
+        [WorksForMe]
         public void BigInsert()
         {
             BigInsertTest(3000);

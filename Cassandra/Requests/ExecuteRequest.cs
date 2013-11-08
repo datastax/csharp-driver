@@ -14,28 +14,28 @@
 //   limitations under the License.
 //
 ﻿namespace Cassandra
-{
+ {
      internal class ExecuteRequest : IQueryRequest
      {
          public const byte OpCode = 0x0A;
 
          readonly int _streamId;
-         readonly object[] _values;
          readonly byte[] _id;
          readonly RowSetMetadata _metadata;
-         readonly ConsistencyLevel _consistency;
+         readonly ConsistencyLevel? _consistency;
+         readonly QueryProtocolOptions _queryProtocolOptions;
          private readonly byte _flags = 0x00;
 
-         public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency, bool tracingEnabled)
+         public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency = null)
          {
-             if (values.Length != metadata.Columns.Length)
+             if (queryProtocolOptions.Values.Length != metadata.Columns.Length)
                  throw new System.ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
 
+             this._consistency = consistency;
              this._streamId = streamId;
-             this._values = values;
              this._id = id;
              this._metadata = metadata;
-             this._consistency = consistency;
+             this._queryProtocolOptions = queryProtocolOptions;
              if (tracingEnabled)
                  this._flags = 0x02;
          }
@@ -45,14 +45,8 @@
              var wb = new BEBinaryWriter();
              wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
              wb.WriteShortBytes(_id);
-             wb.WriteInt16((short)_consistency);
-             wb.WriteByte(0x01);//flags Values
-             wb.WriteUInt16((ushort)_values.Length);
-             for (int i = 0; i < _metadata.Columns.Length; i++)
-             {
-                 var bytes = _metadata.ConvertFromObject(_values[i]);
-                 wb.WriteBytes(bytes);
-             }
+             _queryProtocolOptions.Write(wb, _consistency);
+
              return wb.GetFrame();
          }
 
@@ -60,12 +54,12 @@
          {
              wb.WriteByte(1);//prepared query
              wb.WriteShortBytes(_id);
-             wb.WriteUInt16((ushort)_values.Length);
+             wb.WriteUInt16((ushort)_queryProtocolOptions.Values.Length);
              for (int i = 0; i < _metadata.Columns.Length; i++)
              {
-                 var bytes = _metadata.ConvertFromObject(_values[i]);
+                 var bytes = _metadata.ConvertFromObject(_queryProtocolOptions.Values[i]);
                  wb.WriteBytes(bytes);
              }
          }
      }
-}
+ }

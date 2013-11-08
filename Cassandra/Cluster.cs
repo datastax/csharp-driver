@@ -270,6 +270,7 @@ namespace Cassandra
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
         private SSLOptions _sslOptions = null;
+        private QueryOptions _queryOptions = new QueryOptions();
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private IReconnectionPolicy _reconnectionPolicy;
@@ -303,6 +304,20 @@ namespace Cassandra
             return this;
         }
 
+
+        /// <summary>
+        /// Sets the QueryOptions to use for the newly created Cluster.
+        /// 
+        /// If no query options are set through this method, default query
+        /// options will be used.
+        /// </summary>
+        /// <param name="options">the QueryOptions to use.</param>
+        /// <returns>this Builder.</returns>
+        public Builder WithQueryOptions(QueryOptions options)
+        {
+            this._queryOptions = options;
+            return this;
+        }
 
         /// <summary>
         ///  Sets the compression to use for the transport.
@@ -462,7 +477,8 @@ namespace Cassandra
                                      _poolingOptions,
                                      _socketOptions,
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
-                                     _authProvider
+                                     _authProvider,
+                                     _queryOptions
                 );
         }
 

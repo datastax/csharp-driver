@@ -139,7 +139,7 @@ namespace Cassandra
         {
             var sb = new StringBuilder();
 
-            sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.CqlIdentifier(Name)).Append(" WITH ");
+            sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
             sb.Append("REPLICATION = { 'class' : '").Append(Replication["class"]).Append("'");
             foreach (var rep in Replication)
             {

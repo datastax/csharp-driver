@@ -287,7 +287,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         public void downgradingConsistencyRetryPolicy()
         {
             var builder = Cluster.Builder().WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -299,7 +299,7 @@ namespace Cassandra.MSTest
         /// </summary>
 
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         public void downgradingConsistencyLoggingPolicy()
         {
             var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));

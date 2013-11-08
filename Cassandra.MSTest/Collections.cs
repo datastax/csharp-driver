@@ -120,7 +120,7 @@ namespace Cassandra.MSTest
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            using (var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.Default))
+            using (var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()))
             {
                 int ind = 0;
                 foreach (var row in rs.GetRows())
@@ -131,7 +131,7 @@ namespace Cassandra.MSTest
                     }
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -199,7 +199,7 @@ namespace Cassandra.MSTest
             longQ.AppendLine("APPLY BATCH;");
             QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -267,7 +267,7 @@ namespace Cassandra.MSTest
             Guid tweet_id = Guid.NewGuid();
             var prepInsert = QueryTools.PrepareQuery(Session, string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES (?, ?);", tableName));
             Session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
     }

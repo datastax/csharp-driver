@@ -557,7 +557,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
         //             isok,
         //             body)
         //    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-        //                   , ConsistencyLevel.Default, (_) =>
+        //                   , QueryOptions.DefaultConsistencyLevel, (_) =>
         //                   {
         //                       ar[tmpi] = true;
         //                       Thread.MemoryBarrier();

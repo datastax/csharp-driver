@@ -35,14 +35,6 @@ namespace Cassandra
 
         readonly PreparedStatement _statement;
 
-        private object[] _values;
-
-        public object[] QueryValues
-        {
-            get { return _values; }
-        }
-
-
         /// <summary>
         ///  Creates a new <code>BoundStatement</code> from the provided prepared
         ///  statement.
@@ -61,25 +53,7 @@ namespace Cassandra
             get { return _statement; }
         }
 
-        /// <summary>
-        ///  Bound values to the variables of this statement. This method provides a
-        ///  convenience to bound all the variables of the <code>BoundStatement</code> in
-        ///  one call.
-        /// </summary>
-        /// <param name="values"> the values to bind to the variables of the newly
-        ///  created BoundStatement. The first element of <code>values</code> will 
-        ///  be bound to the first bind variable,
-        ///  etc.. It is legal to provide less values than the statement has bound
-        ///  variables. In that case, the remaining variable need to be bound before
-        ///  execution. If more values than variables are provided however, an
-        ///  IllegalArgumentException wil be raised. </param>
-        /// 
-        /// <returns>this bound statement. </returns>
-        public BoundStatement Bind(params object[] values)
-        {
-            this._values = values;
-            return this;
-        }
+        
 
         /// <summary>
         ///  Gets the routing key for this bound query. <p> This method will return a
@@ -106,7 +80,7 @@ namespace Cassandra
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, _values, callback, state, ConsistencyLevel, this, this, tag, IsTracing);
+            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, QueryProtocolOptions.CreateFromQuery(this), callback, state, ConsistencyLevel, this, this, tag, IsTracing);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
@@ -116,7 +90,7 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, QueryValues, ConsistencyLevel, IsTracing);
+            return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, QueryProtocolOptions.CreateFromQuery(this));
         }
     }
 }

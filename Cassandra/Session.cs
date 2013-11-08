@@ -353,7 +353,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), null, ConsistencyLevel.Default));
+                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), QueryProtocolOptions.DEFAULT , _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
@@ -388,7 +388,7 @@ namespace Cassandra
         public void DeleteKeyspace(string keyspace_name)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), null, ConsistencyLevel.Default));
+                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -539,11 +539,20 @@ namespace Cassandra
             return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), null, callback, state);
         }
 
-        public RowSet Execute(string cqlQuery, ConsistencyLevel consistency = ConsistencyLevel.Default)
+        public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
-            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency));
+            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
+        public RowSet Execute(string cqlQuery, int pageSize)
+        {
+            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
+        }
+        
+        public RowSet Execute(string cqlQuery)
+        {
+            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
+        }
 
         #endregion
 
@@ -562,7 +571,7 @@ namespace Cassandra
             _startedActons.TryRemove((ar as AsyncResultNoResult).Id, out oar);
             RowSetMetadata metadata;
             var id = EndPrepareQuery(ar, out metadata);
-            return new PreparedStatement(metadata, id.Item1, id.Item2);
+            return new PreparedStatement(metadata, id.Item1, id.Item2, id.Item3);
         }
 
         public PreparedStatement Prepare(string cqlQuery)
@@ -629,7 +638,7 @@ namespace Cassandra
             }
         }
 
-        private void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId)
+        private void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId, out RowSetMetadata resultMetadata)
         {
             using (outp)
             {
@@ -643,6 +652,7 @@ namespace Cassandra
                 {
                     queryId = (outp as OutputPrepared).QueryID;
                     metadata = (outp as OutputPrepared).Metadata;
+                    resultMetadata = (outp as OutputPrepared).ResultMetadata;
                     _logger.Info("Prepared Query has been successfully processed.");
                     return; //ok
                 }
@@ -655,7 +665,7 @@ namespace Cassandra
             }
         }
 
-        private RowSet ProcessRowset(IOutput outp)
+        private RowSet ProcessRowset(IOutput outp, RowSetMetadata resultMetadata = null)
         {
             bool ok = false;
             try
@@ -678,7 +688,7 @@ namespace Cassandra
                 else if (outp is OutputRows)
                 {
                     ok = true;
-                    return new RowSet(outp as OutputRows, this, true);
+                    return new RowSet(outp as OutputRows, this, true, resultMetadata);
                 }
                 else
                 {
@@ -698,7 +708,7 @@ namespace Cassandra
         {
             private readonly Logger _logger = new Logger(typeof(LongToken));
             public CassandraConnection Connection;
-            public ConsistencyLevel Consistency;
+            public ConsistencyLevel? Consistency=null;
             public Query Query;
             private IEnumerator<Host> _hostsIter = null;
             public IAsyncResult LongActionAc;
@@ -828,9 +838,9 @@ namespace Cassandra
         class LongQueryToken : LongToken
         {
             public string CqlQuery;
-            public object[] Values;
             public bool IsTracing;
             public Stopwatch StartedAt;
+            public QueryProtocolOptions QueryPrtclOptions;
             override public void Connect(Session owner, bool moveNext, out int streamId)
             {
                 StartedAt = Stopwatch.StartNew();
@@ -839,148 +849,11 @@ namespace Cassandra
 
             override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginQuery(streamId, CqlQuery,Values, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
+                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner,  IsTracing, QueryProtocolOptions.CreateFromQuery(this.Query),Consistency);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
                 value = owner.ProcessRowset(Connection.EndQuery(ar, owner));
-            }
-            override public void Complete(Session owner, object value, Exception exc = null)
-            {
-                try
-                {                    
-                    var ar = LongActionAc as AsyncResult<RowSet>;
-                    if (exc != null)
-                        ar.Complete(exc);
-                    else
-                    {
-	                    RowSet rowset = value as RowSet;
-						if(rowset==null)
-							rowset = new RowSet(null,owner,false);
-                        rowset.Info.SetTriedHosts(TriedHosts);
-                        rowset.Info.SetAchievedConsistency(Consistency);
-                        ar.SetResult(rowset);
-                        ar.Complete();
-					}
-                }
-                finally
-                {                    
-                    var ts = StartedAt.ElapsedTicks;
-                    CassandraCounters.IncrementCqlQueryCount();
-                    CassandraCounters.IncrementCqlQueryBeats((ts * 1000000000));                    
-                    CassandraCounters.UpdateQueryTimeRollingAvrg((ts * 1000000000) / Stopwatch.Frequency);
-                    CassandraCounters.IncrementCqlQueryBeatsBase();                    
-                }
-            }
-        }
-
-        internal IAsyncResult BeginQuery(string cqlQuery, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing=false, Query query = null, object sender = null, object tag = null)
-        {
-            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var token = new LongQueryToken() { Consistency = consistency, CqlQuery = cqlQuery, Values = values, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
-
-            ExecConn(token, false);
-
-            return longActionAc;
-        }
-
-        internal RowSet EndQuery(IAsyncResult ar)
-        {
-            return AsyncResult<RowSet>.End(ar, this, "SessionQuery");
-        }
-
-        internal RowSet Query(string cqlQuery, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null)
-        {
-            return EndQuery(BeginQuery(cqlQuery,values, null, null, consistency,isTracing, query));
-        }
-
-        #endregion
-
-        #region Prepare
-
-        readonly ConcurrentDictionary<byte[], string> _preparedQueries = new ConcurrentDictionary<byte[], string>();
-
-
-        class LongPrepareQueryToken : LongToken
-        {
-            public string CqlQuery;
-            override public void Begin(Session owner, int streamId)
-            {
-                Connection.BeginPrepareQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner);
-            }
-            override public void Process(Session owner, IAsyncResult ar, out object value)
-            {
-                byte[] id;
-                RowSetMetadata metadata;
-                owner.ProcessPrepareQuery(Connection.EndPrepareQuery(ar, owner), out metadata, out id);
-                value = new KeyValuePair<RowSetMetadata, Tuple<byte[], string>>(metadata, Tuple.Create(id, CqlQuery));
-            }
-            override public void Complete(Session owner, object value, Exception exc = null)
-            {
-                var ar = LongActionAc as AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[], string>>>;
-                if (exc != null)
-                    ar.Complete(exc);
-                else
-                {
-                    var kv = (KeyValuePair<RowSetMetadata, Tuple<byte[], string>>)value;
-                    ar.SetResult(kv);
-                    owner._preparedQueries.AddOrUpdate(kv.Value.Item1, kv.Value.Item2, (k, o) => o);
-                    ar.Complete();
-                }
-            }
-        }
-
-        internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
-        {
-            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[],string>>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag);
-            var token = new LongPrepareQueryToken() { Consistency = ConsistencyLevel.Default, CqlQuery = cqlQuery, LongActionAc = longActionAc };
-
-            ExecConn(token, false);
-
-            return longActionAc;
-        }
-
-        internal Tuple<byte[], string> EndPrepareQuery(IAsyncResult ar, out RowSetMetadata metadata)
-        {
-            var longActionAc = ar as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
-            var ret = AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[], string>>>.End(ar, this, "SessionPrepareQuery");
-            metadata = ret.Key;
-            return ret.Value;
-        }
-
-        internal Tuple<byte[], string> PrepareQuery(string cqlQuery, out RowSetMetadata metadata)
-        {
-            var ar = BeginPrepareQuery(cqlQuery, null, null, null);
-            return EndPrepareQuery(ar, out metadata);
-        }
-
-
-        #endregion
-
-        #region ExecuteQuery
-
-        class LongExecuteQueryToken : LongToken
-        {
-            public byte[] Id;
-            public string cql;
-            public RowSetMetadata Metadata;
-            public object[] Values;
-            public bool IsTracinig;
-            public Stopwatch StartedAt;
-
-            override public void Connect(Session owner, bool moveNext, out int streamId)
-            {
-                StartedAt = Stopwatch.StartNew();
-                base.Connect(owner, moveNext, out streamId);
-            }
-            
-            override public void Begin(Session owner,int streamId)
-            {
-                Connection.BeginExecuteQuery(streamId, Id, cql, Metadata, Values, owner.ClbNoQuery, this, owner, Consistency, IsTracinig);
-            }
-            override public void Process(Session owner, IAsyncResult ar, out object value)
-            {
-                value = owner.ProcessRowset(Connection.EndExecuteQuery(ar, owner));
             }
             override public void Complete(Session owner, object value, Exception exc = null)
             {
@@ -995,7 +868,7 @@ namespace Cassandra
                         if (rowset == null)
                             rowset = new RowSet(null, owner, false);
                         rowset.Info.SetTriedHosts(TriedHosts);
-                        rowset.Info.SetAchievedConsistency(Consistency);
+                        rowset.Info.SetAchievedConsistency(Consistency ?? QueryPrtclOptions.Consistency);
                         ar.SetResult(rowset);
                         ar.Complete();
                     }
@@ -1011,10 +884,149 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, object[] values, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, object sender = null, object tag = null, bool isTracing=false)
+        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Query query = null, object sender = null, object tag = null)
+        {
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
+            var token = new LongQueryToken() { Consistency = consistency ?? this._cluster.Configuration.QueryOptions.GetConsistencyLevel(), CqlQuery = cqlQuery, Query = query, QueryPrtclOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
+
+            ExecConn(token, false);
+
+            return longActionAc;
+        }
+
+        internal RowSet EndQuery(IAsyncResult ar)
+        {
+            return AsyncResult<RowSet>.End(ar, this, "SessionQuery");
+        }
+
+        internal RowSet Query(string cqlQuery, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, bool isTracing = false, Query query = null)
+        {
+            return EndQuery(BeginQuery(cqlQuery, null, null, queryProtocolOptions, consistency,isTracing, query));
+        }
+
+        #endregion
+
+        #region Prepare
+
+        readonly ConcurrentDictionary<byte[], string> _preparedQueries = new ConcurrentDictionary<byte[], string>();
+
+
+        class LongPrepareQueryToken : LongToken
+        {
+            public string CqlQuery;            
+            override public void Begin(Session owner, int streamId)
+            {
+                Connection.BeginPrepareQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner);
+            }
+            override public void Process(Session owner, IAsyncResult ar, out object value)
+            {
+                byte[] id;
+                RowSetMetadata metadata;
+                RowSetMetadata resultMetadata;
+                owner.ProcessPrepareQuery(Connection.EndPrepareQuery(ar, owner), out metadata, out id, out resultMetadata);
+                value = new KeyValuePair<RowSetMetadata, Tuple<byte[], string, RowSetMetadata>>(metadata, Tuple.Create(id, CqlQuery, resultMetadata ));
+            }
+            override public void Complete(Session owner, object value, Exception exc = null)
+            {
+                var ar = LongActionAc as AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[], string, RowSetMetadata>>>;
+                if (exc != null)
+                    ar.Complete(exc);
+                else
+                {
+                    var kv = (KeyValuePair<RowSetMetadata, Tuple<byte[], string, RowSetMetadata>>)value;
+                    ar.SetResult(kv);
+                    owner._preparedQueries.AddOrUpdate(kv.Value.Item1, kv.Value.Item2, (k, o) => o);
+                    ar.Complete();
+                }
+            }
+        }
+
+        internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
+        {
+            var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[],string, RowSetMetadata>>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag);
+            var token = new LongPrepareQueryToken() { Consistency = _cluster.Configuration.QueryOptions.GetConsistencyLevel(), CqlQuery = cqlQuery, LongActionAc = longActionAc };
+
+            ExecConn(token, false);
+
+            return longActionAc;
+        }
+
+        internal Tuple<byte[], string, RowSetMetadata> EndPrepareQuery(IAsyncResult ar, out RowSetMetadata metadata)
+        {
+            var longActionAc = ar as AsyncResult<KeyValuePair<RowSetMetadata, byte[]>>;
+            var ret = AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[], string, RowSetMetadata>>>.End(ar, this, "SessionPrepareQuery");
+            metadata = ret.Key;
+            return ret.Value;
+        }
+
+        internal Tuple<byte[], string, RowSetMetadata> PrepareQuery(string cqlQuery, out RowSetMetadata metadata)
+        {
+            var ar = BeginPrepareQuery(cqlQuery, null, null, null);
+            return EndPrepareQuery(ar, out metadata);
+        }
+
+
+        #endregion
+
+        #region ExecuteQuery
+
+        class LongExecuteQueryToken : LongToken
+        {
+            public byte[] Id;
+            public string cql;
+            public RowSetMetadata Metadata;
+            public RowSetMetadata ResultMetadata;
+            public QueryProtocolOptions QueryProtocolOptions;
+            public bool IsTracinig;
+            public Stopwatch StartedAt;
+
+            override public void Connect(Session owner, bool moveNext, out int streamId)
+            {
+                StartedAt = Stopwatch.StartNew();
+                base.Connect(owner, moveNext, out streamId);
+            }
+            
+            override public void Begin(Session owner,int streamId)
+            {
+                Connection.BeginExecuteQuery(streamId, Id, cql, Metadata, owner.ClbNoQuery, this, owner, IsTracinig, QueryProtocolOptions.CreateFromQuery(this.Query), Consistency);
+            }
+            override public void Process(Session owner, IAsyncResult ar, out object value)
+            {
+                value = owner.ProcessRowset(Connection.EndExecuteQuery(ar, owner), ResultMetadata);
+            }
+            override public void Complete(Session owner, object value, Exception exc = null)
+            {
+                try
+                {
+                    var ar = LongActionAc as AsyncResult<RowSet>;
+                    if (exc != null)
+                        ar.Complete(exc);
+                    else
+                    {
+                        RowSet rowset = value as RowSet;
+                        if (rowset == null)
+                            rowset = new RowSet(null, owner, false);
+                        rowset.Info.SetTriedHosts(TriedHosts);
+                        rowset.Info.SetAchievedConsistency(Consistency ?? QueryProtocolOptions.Consistency);
+                        ar.SetResult(rowset);
+                        ar.Complete();
+                    }
+                }
+                finally
+                {
+                    var ts = StartedAt.ElapsedTicks;
+                    CassandraCounters.IncrementCqlQueryCount();
+                    CassandraCounters.IncrementCqlQueryBeats((ts * 1000000000));
+                    CassandraCounters.UpdateQueryTimeRollingAvrg((ts * 1000000000) / Stopwatch.Frequency);
+                    CassandraCounters.IncrementCqlQueryBeatsBase();
+                }
+            }
+        }
+
+        internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Query query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var token = new LongExecuteQueryToken() { Consistency = consistency, Id = id, cql= _preparedQueries[id], Metadata = metadata, Values = values, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing};
+            var token = new LongExecuteQueryToken() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Id = id, cql = _preparedQueries[id], Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
 
             ExecConn(token, false);
 
@@ -1027,9 +1039,9 @@ namespace Cassandra
             return AsyncResult<RowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal RowSet ExecuteQuery(byte[] id, RowSetMetadata metadata, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, Query query = null, bool isTracing=false)
+        internal RowSet ExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, Query query = null, bool isTracing=false)
         {
-            var ar = BeginExecuteQuery(id,metadata,values, null, null, consistency, query, isTracing);
+            var ar = BeginExecuteQuery(id,metadata, queryProtocolOptions, null, null, consistency, query, isTracing);
             return EndExecuteQuery(ar);
         }
 
@@ -1052,7 +1064,7 @@ namespace Cassandra
 
             override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginBatch(streamId, BatchType, Queries, owner.ClbNoQuery, this, owner, Consistency, IsTracing);
+                Connection.BeginBatch(streamId, BatchType, Queries, owner.ClbNoQuery, this, owner, Consistency??owner._cluster.Configuration.QueryOptions.GetConsistencyLevel(), IsTracing);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -1071,7 +1083,7 @@ namespace Cassandra
                         if (rowset == null)
                             rowset = new RowSet(null, owner, false);
                         rowset.Info.SetTriedHosts(TriedHosts);
-                        rowset.Info.SetAchievedConsistency(Consistency);
+                        rowset.Info.SetAchievedConsistency(Consistency ?? owner._cluster.Configuration.QueryOptions.GetConsistencyLevel());
                         ar.SetResult(rowset);
                         ar.Complete();
                     }
@@ -1087,10 +1099,10 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginBatch(BatchType batchType, List<Query> queries, AsyncCallback callback, object state, ConsistencyLevel consistency = ConsistencyLevel.Default, bool isTracing = false, Query query = null, object sender = null, object tag = null)
+        internal IAsyncResult BeginBatch(BatchType batchType, List<Query> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Query query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
-            var token = new LongBatchToken() { Consistency = consistency, Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            var token = new LongBatchToken() { Consistency = consistency ?? this._cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
 
@@ -1149,7 +1161,7 @@ namespace Cassandra
                 }
                 {
 
-                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, null, ConsistencyLevel.Default, false))
+                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, false, QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
                     {
                         if (outp is OutputRows)
                         {
@@ -1175,7 +1187,7 @@ namespace Cassandra
                 }
 
                 {
-                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, null, ConsistencyLevel.Default, false))
+                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, false, QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
                     {
                         if (outp is OutputRows)
                         {

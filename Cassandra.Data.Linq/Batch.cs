@@ -42,7 +42,7 @@ namespace Cassandra.Data.Linq
 
         public bool IsEmpty { get { return _batchScript.IsEmpty; } }
 
-        public new Batch SetConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new Batch SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
             return this;

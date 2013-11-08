@@ -21,7 +21,9 @@ namespace Cassandra
 {
     internal class OutputRows : IOutput, IWaitableForDispose
     {
-        public readonly RowSetMetadata Metadata;
+        public RowSetMetadata Metadata {get{return _metadata;}}
+        internal RowSetMetadata _metadata;
+
         public readonly int Rows;
         internal readonly bool _buffered;
         
@@ -32,7 +34,7 @@ namespace Cassandra
         {
             this._buffered = buffered;
             this._reader = reader;
-            Metadata = new RowSetMetadata(reader);
+            _metadata = new RowSetMetadata(reader);
             Rows = reader.ReadInt32();
             if(!buffered)
                 _disposedEvent = new ManualResetEventSlim(buffered);

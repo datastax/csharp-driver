@@ -11,7 +11,7 @@ using System.Globalization;
 namespace Cassandra.MSTest
 {
     [TestClass]
-    class Stress1Tests
+    public class Stress1Tests
     {
         Session Session;
 //        private HistogramMetric _readHistogram = metrics.Metrics.Histogram(typeof(DatastaxDriverTest), "Reads");
@@ -262,9 +262,9 @@ namespace Cassandra.MSTest
            // Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg +"ms");
         }
 
-        [TestMethod]
-        [WorksForMe]
-        [Priority]
+        //[TestMethod]
+        //[WorksForMe]
+        //[Priority]
         public void test1()
         {
             parallelInsertTestGeneric(10, 100);

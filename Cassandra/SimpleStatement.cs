@@ -29,15 +29,25 @@ namespace Cassandra
         private string _query;
         private volatile RoutingKey _routingKey;
 
-        public SimpleStatement() { }
+        public SimpleStatement() : base(QueryProtocolOptions.DEFAULT) { }
 
         /// <summary>
         ///  Creates a new <code>SimpleStatement</code> with the provided query string.
         /// </summary>
         /// <param name="query"> the query string.</param>
         public SimpleStatement(string query)
+            : base(QueryProtocolOptions.DEFAULT)
         {
             this._query = query;
+        }
+
+        internal SimpleStatement(string query, QueryProtocolOptions queryProtocolOptions)
+            : base(queryProtocolOptions)
+        {
+            this._query = query;
+            this.SetConsistencyLevel(queryProtocolOptions.Consistency);
+            this.SetSerialConsistencyLevel(queryProtocolOptions.SerialConsistency);
+            this.SetPageSize(queryProtocolOptions.PageSize);
         }
 
         /// <summary>
@@ -75,24 +85,12 @@ namespace Cassandra
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginQuery(QueryString, _values, callback, state, ConsistencyLevel, IsTracing, this, this, tag);
+            return session.BeginQuery(QueryString, callback, state, QueryProtocolOptions.CreateFromQuery(this), ConsistencyLevel ?? session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), IsTracing, this, this, tag);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             return session.EndQuery(ar);
-        }
-
-        public SimpleStatement BindObjects(object[] values)
-        {
-            this._values = values;
-            return this;
-        }
-
-        public SimpleStatement Bind(params object[] values)
-        {
-            this._values = values;
-            return this;
         }
 
         public SimpleStatement SetQueryString(string queryString)
@@ -101,16 +99,21 @@ namespace Cassandra
             return this;
         }
 
-        private object[] _values;
-
-        public override object[] QueryValues
+        public SimpleStatement Bind(params object[] values)
         {
-            get { return _values; }
+            this.SetValues(values);
+            return this;
+        }
+
+        public SimpleStatement BindObjects(object[] values)
+        {
+            this.SetValues(values);
+            return this;
         }
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            return new QueryRequest(-1, QueryString, QueryValues, ConsistencyLevel, IsTracing);
+            return new QueryRequest(-1, QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this));
         }
     }
 }

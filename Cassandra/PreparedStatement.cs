@@ -30,15 +30,17 @@ namespace Cassandra
         private volatile RoutingKey _routingKey;
 
         internal readonly RowSetMetadata Metadata;
+        internal readonly RowSetMetadata ResultMetadata;
         internal readonly byte[] Id;
         internal readonly string Cql;
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, RowSetMetadata resultMetadata )
         {
             this.Metadata = metadata;
             this.Id = id;
             this.Cql = cql;
-        }
+            this.ResultMetadata = resultMetadata;
+        }        
 
         /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
@@ -96,7 +98,10 @@ namespace Cassandra
         public BoundStatement Bind(params object[] values)
         {
             var bs = new BoundStatement(this);
-            return bs.Bind(values);
+            bs.SetValues(values);
+            bs.SetSkipMetadata(ResultMetadata != null ? true : false);
+            
+            return bs;
         }
     }
 }

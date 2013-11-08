@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 using System.Threading;
+using System.Collections.Generic;
+using System.IO;
 
 namespace Cassandra
 {
@@ -23,7 +25,8 @@ namespace Cassandra
     public enum CompressionType
     {
         NoCompression,
-        Snappy
+        Snappy,
+        LZ4
     }
 
     /// <summary>
@@ -122,6 +125,111 @@ namespace Cassandra
             return this;
         }
 
+    }
+
+    public class QueryProtocolOptions
+    {
+        public enum QueryFlags
+        {
+            Values = 0x00,
+            SkipMetadata = 0x01,
+            PageSize = 0x02,
+            WithPagingState = 0x03,
+            WithSerialConsistency = 0x04
+        }
+
+        public readonly List<QueryFlags> Flags = null;
+        public ConsistencyLevel Consistency;
+        public readonly object[] Values;
+        public readonly bool SkipMetadata;
+        public readonly int PageSize;
+        public readonly byte[] PagingState;
+        public readonly ConsistencyLevel SerialConsistency;
+
+        public static QueryProtocolOptions DEFAULT = new QueryProtocolOptions(ConsistencyLevel.One,
+                                                                        null,
+                                                                        false,
+                                                                        QueryOptions.DefaultPageSize,
+                                                                        null,
+                                                                        ConsistencyLevel.Serial);
+
+        static internal QueryProtocolOptions CreateFromQuery(Query query)
+        {
+            if (query == null)
+                return QueryProtocolOptions.DEFAULT;
+            else
+                return new QueryProtocolOptions(query.ConsistencyLevel.Value, query.QueryValues, query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel);
+        }
+
+        internal QueryProtocolOptions(ConsistencyLevel consistency,
+                                    object[] values,
+                                    bool skipMetadata,
+                                    int pageSize,
+                                    byte[] pagingState,
+                                    ConsistencyLevel serialConsistency)
+        {
+
+            this.Consistency = consistency;
+            this.Values = values;
+            this.SkipMetadata = skipMetadata;
+            if (pageSize <= 0)
+                this.PageSize = QueryOptions.DefaultPageSize;
+            else
+                if (pageSize == int.MaxValue)
+                    this.PageSize = -1;
+                else
+                    this.PageSize = pageSize;
+            this.PagingState = pagingState;
+            this.SerialConsistency = serialConsistency;
+
+            Flags = new List<QueryFlags>();
+            AddFlags();
+        }
+
+        private void AddFlags()
+        {
+            if (Values != null && Values.Length > 0)
+                Flags.Add(QueryFlags.Values);
+            if (SkipMetadata)
+                Flags.Add(QueryFlags.SkipMetadata);
+            if (PageSize != int.MaxValue && PageSize >= 0)
+                Flags.Add(QueryFlags.PageSize);
+            if (PagingState != null)
+                Flags.Add(QueryFlags.WithPagingState);
+            if (SerialConsistency != ConsistencyLevel.Serial)
+                Flags.Add(QueryFlags.WithSerialConsistency);
+        }
+
+        public int SerializeFlags()
+        {
+            int i = 0;
+            foreach (QueryFlags flag in Flags)
+                i |= 1 << (int)flag;
+            return i;
+        }
+
+        internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency)
+        {
+            wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
+            wb.WriteByte((byte)SerializeFlags());
+
+            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.Values))
+            {
+                wb.WriteUInt16((ushort)Values.Length);
+                for (int i = 0; i < Values.Length; i++)
+                {
+                    var bytes = TypeInterpreter.InvCqlConvert(Values[i]);
+                    wb.WriteBytes(bytes);
+                }
+            }
+
+            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.PageSize))
+                wb.WriteInt32(PageSize);
+            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.WithPagingState))
+                wb.WriteBytes(PagingState);
+            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+                wb.WriteUInt16((ushort)SerialConsistency);
+        }
     }
 }
 

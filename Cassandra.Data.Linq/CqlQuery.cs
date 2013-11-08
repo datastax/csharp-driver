@@ -70,7 +70,7 @@ namespace Cassandra.Data.Linq
         {
             var session = GetTable().GetSession();
 
-            return session.BeginExecute(new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
+            return session.BeginExecute(new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel??session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
                                 new CqlQueryTag() { Mappings = mappingNames, Alter = alter, Session = session }, callback, state);
         }
 
@@ -126,7 +126,7 @@ namespace Cassandra.Data.Linq
             return visitor.GetSelect(out _, false);
         }
 
-        public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
             return this;
@@ -178,7 +178,7 @@ namespace Cassandra.Data.Linq
             return EndExecute(BeginExecute(null, null));
         }
 
-        public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
             return this;
@@ -252,7 +252,7 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        public new CqlQuery<TEntity> SetConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlQuery<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
             return this;
@@ -361,7 +361,7 @@ namespace Cassandra.Data.Linq
             QueryTrace = trace;
         }
 
-        public new CqlCommand SetConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public new CqlCommand SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
             return this;

@@ -11,7 +11,7 @@ using System.Globalization;
 namespace Cassandra.MSTest
 {
     [TestClass]
-    class Stress2Tests
+    public class Stress2Tests
     {
         Session Session;
         //        private HistogramMetric _readHistogram = metrics.Metrics.Histogram(typeof(DatastaxDriverTest), "Reads");

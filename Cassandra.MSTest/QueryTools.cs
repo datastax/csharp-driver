@@ -35,7 +35,7 @@ namespace Cassandra.MSTest
             return col.ToString();
         }
 
-        internal static void ExecuteSyncQuery(Session session, string query, List<object[]> expectedValues = null, ConsistencyLevel consistency = ConsistencyLevel.Default, string messageInstead = null)
+        internal static void ExecuteSyncQuery(Session session, string query, ConsistencyLevel consistency, List<object[]> expectedValues = null, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -79,13 +79,13 @@ namespace Cassandra.MSTest
             }
         }
 
-        internal static IPAddress ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel consistency = ConsistencyLevel.Default)
+        internal static IPAddress ExecuteSyncNonQuery(Session session, string query, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-            var ret = session.Execute(query, consistency);
+            var ret = session.Execute(query, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             Console.WriteLine("CQL> (OK).");
             return ret.Info.QueriedHost;
         }
@@ -102,15 +102,26 @@ namespace Cassandra.MSTest
             return ret;
         }
 
-        internal static IPAddress ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, ConsistencyLevel consistency = ConsistencyLevel.Default, string messageInstead = null)
+        internal static IPAddress ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Executing Prepared Query:\t");
-            var ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(consistency));
+            var ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             Console.WriteLine("CQL> (OK).");
             return ret.Info.QueriedHost;
+        }
+
+        internal static RowSet ExecutePreparedSelectQuery(Session session, PreparedStatement prepared, object[] values, string messageInstead = null)
+        {
+            if (messageInstead != null)
+                Console.WriteLine("CQL<\t" + messageInstead);
+            else
+                Console.WriteLine("CQL< Executing Prepared Query:\t");
+            var ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+            Console.WriteLine("CQL> (OK).");
+            return ret;
         }
 
         internal static string convertTypeNameToCassandraEquivalent(Type t)

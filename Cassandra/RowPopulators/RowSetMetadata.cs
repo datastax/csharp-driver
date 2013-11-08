@@ -22,7 +22,9 @@ namespace Cassandra
     [Flags]
     internal enum FlagBits
     {
-        GlobalTablesSpec = 0x0001
+        GlobalTablesSpec = 0x0000,
+        Has_more_pages = 0x0001,
+        No_metadata = 0x0002
     }
 
     public enum ColumnTypeCode
@@ -92,60 +94,75 @@ namespace Cassandra
         private readonly Dictionary<string, int> _columnIdxes;
 
         private readonly ColumnDesc[] _rawColumns;
+        internal byte[] paging_state = null;
+        internal bool no_metadata = false;
 
         internal RowSetMetadata(BEBinaryReader reader)
         {
             var coldat = new List<ColumnDesc>();
-            var flags = (FlagBits)reader.ReadInt32();
+            var flags = (int)reader.ReadInt32();
             var numberOfcolumns = reader.ReadInt32();
+            
             this._rawColumns = new ColumnDesc[numberOfcolumns];
             string gKsname = null;
             string gTablename = null;
 
-            if ((flags & FlagBits.GlobalTablesSpec) == FlagBits.GlobalTablesSpec)
-            {
-                gKsname = reader.ReadString();
-                gTablename = reader.ReadString();
-            }
-            for (int i = 0; i < numberOfcolumns; i++)
-            {
-                var col = new ColumnDesc();
-                if ((flags & FlagBits.GlobalTablesSpec) != FlagBits.GlobalTablesSpec)
-                {
-                    col.Keyspace = reader.ReadString();
-                    col.Table = reader.ReadString();
-                }
-                else
-                {
-                    col.Keyspace = gKsname;
-                    col.Table = gTablename;
-                }
-                col.Name = reader.ReadString();
-                col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
-                col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
-                coldat.Add(col);
-            }
-            _rawColumns = coldat.ToArray();
 
-            _columns = new CqlColumn[_rawColumns.Length];
-            _columnIdxes = new Dictionary<string, int>();
-            for (int i = 0; i < _rawColumns.Length; i++)
+            if ((flags & (1 << (int)FlagBits.Has_more_pages)) != 0)
+                paging_state = reader.ReadBytes();
+            else
+                paging_state = null;
+
+            if ((flags & (1 << (int)FlagBits.No_metadata)) == 0)
             {
-                _columns[i] = new CqlColumn()
+                if ((flags & (1 << (int)FlagBits.GlobalTablesSpec)) != 0)
+                {
+                    gKsname = reader.ReadString();
+                    gTablename = reader.ReadString();
+                }
+
+                for (int i = 0; i < numberOfcolumns; i++)
+                {
+                    var col = new ColumnDesc();
+                    if ((flags & (1 << (int)FlagBits.GlobalTablesSpec)) == 0)
                     {
-                        Name = _rawColumns[i].Name,
-                        Keyspace = _rawColumns[i].Keyspace,
-                        Table = _rawColumns[i].Table,
-                        Type = TypeInterpreter.GetDefaultTypeFromCqlType(
-                            _rawColumns[i].TypeCode,
-                            _rawColumns[i].TypeInfo),
-                        TypeCode = _rawColumns[i].TypeCode,
-                        TypeInfo = _rawColumns[i].TypeInfo
-                    };
-                //TODO: what with full long column names?
-                if (!_columnIdxes.ContainsKey(_rawColumns[i].Name))
-                    _columnIdxes.Add(_rawColumns[i].Name, i);
+                        col.Keyspace = reader.ReadString();
+                        col.Table = reader.ReadString();
+                    }
+                    else
+                    {
+                        col.Keyspace = gKsname;
+                        col.Table = gTablename;
+                    }
+                    col.Name = reader.ReadString();
+                    col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
+                    col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
+                    coldat.Add(col);
+                }
+                _rawColumns = coldat.ToArray();
+
+                _columns = new CqlColumn[_rawColumns.Length];
+                _columnIdxes = new Dictionary<string, int>();
+                for (int i = 0; i < _rawColumns.Length; i++)
+                {
+                    _columns[i] = new CqlColumn()
+                        {
+                            Name = _rawColumns[i].Name,
+                            Keyspace = _rawColumns[i].Keyspace,
+                            Table = _rawColumns[i].Table,
+                            Type = TypeInterpreter.GetDefaultTypeFromCqlType(
+                                _rawColumns[i].TypeCode,
+                                _rawColumns[i].TypeInfo),
+                            TypeCode = _rawColumns[i].TypeCode,
+                            TypeInfo = _rawColumns[i].TypeInfo
+                        };
+                    //TODO: what with full long column names?
+                    if (!_columnIdxes.ContainsKey(_rawColumns[i].Name))
+                        _columnIdxes.Add(_rawColumns[i].Name, i);
+                }
             }
+            else
+                no_metadata = true;
         }
 
         private IColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)

@@ -150,7 +150,7 @@ namespace Cassandra
             {
                 if (!IdentifierRx.IsMatch(id))
                 {
-                    return "\"" + id.Replace("\"", "\"\"") + "\"";
+                    return QuoteIdentifier(id);
                 }
                 else
                 {
@@ -158,6 +158,11 @@ namespace Cassandra
                 }
             }
             throw new ArgumentException("invalid identifier");
+        }
+
+        public static string QuoteIdentifier(string id)
+        {
+            return "\"" + id.Replace("\"", "\"\"") + "\"";
         }
 
         public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes)
@@ -168,21 +173,21 @@ namespace Cassandra
   @"CREATE KEYSPACE {0} 
   WITH replication = {1} 
    AND durable_writes = {2}"
-  , Cassandra.CqlQueryTools.CqlIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
+  , Cassandra.CqlQueryTools.QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
         }
 
         public static string GetUseKeyspaceCQL(string keyspace)
         {
             return string.Format(
   @"USE {0}"
-              , CqlQueryTools.CqlIdentifier(keyspace));
+              , CqlQueryTools.QuoteIdentifier(keyspace));
         }
 
         public static string GetDropKeyspaceCQL(string keyspace)
         {
             return string.Format(
   @"DROP KEYSPACE {0}"
-              , CqlQueryTools.CqlIdentifier(keyspace));
+              , CqlQueryTools.QuoteIdentifier(keyspace));
         }
 
         private static readonly string[] HexStringTable = new string[]

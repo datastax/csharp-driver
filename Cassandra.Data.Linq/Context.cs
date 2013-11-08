@@ -260,10 +260,23 @@ namespace Cassandra.Data.Linq
                     _mutationTrackers[table.Key].BatchCompleted(res.Info.QueryTrace);
             _additionalCommands = tag.NewAdditionalCommands;
         }
-
-        public void SaveChanges(SaveChangesMode mode = SaveChangesMode.Batch, TableType tableType = TableType.All, ConsistencyLevel consistencyLevel = ConsistencyLevel.Default)
+        public void SaveChanges(ConsistencyLevel consistencyLevel ,SaveChangesMode mode = SaveChangesMode.Batch, TableType tableType = TableType.All)
         {
+            saveChanges(consistencyLevel, mode, tableType);
+        }
 
+        /// <summary>
+        /// With default consistency level.
+        /// </summary>
+        /// <param name="mode"></param>
+        /// <param name="tableType"></param>
+        public void SaveChanges(SaveChangesMode mode = SaveChangesMode.Batch, TableType tableType = TableType.All)
+        {
+            saveChanges(_managedSession.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), mode, tableType);
+        }
+
+        private void saveChanges(ConsistencyLevel consistencyLevel, SaveChangesMode mode, TableType tableType)
+        {
             var newAdditionalCommands = new List<CqlCommand>();
 
             if (mode == SaveChangesMode.OneByOne)

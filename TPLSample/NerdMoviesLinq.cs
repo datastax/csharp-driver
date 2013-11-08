@@ -42,7 +42,7 @@ namespace TPLSample.NerdMoviesLinqSample
     public class NerdMoviesLinqSample
     {
         public static void Run()
-        {
+        {            
             Cluster cluster = Cluster.Builder().AddContactPoint("192.168.13.1").WithoutRowSetBuffering().Build();
 
             using (var session = cluster.Connect())
@@ -70,7 +70,7 @@ namespace TPLSample.NerdMoviesLinqSample
                 Console.WriteLine("============================================================");
 
                 context.GetTable<NerdMovie>().AddNew(new NerdMovie() { Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 });
-                var taskSaveMovies = Task.Factory.FromAsync(context.BeginSaveChangesBatch, context.EndSaveChangesBatch, TableType.Standard, ConsistencyLevel.Default, null);
+                var taskSaveMovies = Task.Factory.FromAsync(context.BeginSaveChangesBatch, context.EndSaveChangesBatch, TableType.Standard, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), null);
 
                 taskSaveMovies.Wait();
 

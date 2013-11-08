@@ -79,7 +79,42 @@ namespace Cassandra.MSTest
             var prep = QueryTools.PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName, toInsert[0][0].ToString()));
             QueryTools.ExecutePreparedQuery(this.Session, prep, new object[1] { toInsert[0][1] });
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert);
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
+        }
+
+        public void preparedSelectTest()
+        {
+            string tableName = "table" + Guid.NewGuid().ToString("N");
+
+            try
+            {
+                Session.WaitForSchemaAgreement(
+                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+         tweet_id int PRIMARY KEY,
+         numb double,
+         label text
+         );", tableName))
+                );
+            }
+            catch (AlreadyExistsException)
+            {
+            }
+
+            for (int i = 0; i < 10; i++)
+                Session.Execute(string.Format("INSERT INTO {0}(tweet_id, numb, label) VALUES({1},{2},'{3}')", tableName, i, i * .1d, "row" + i.ToString()));
+
+            var prep_select = QueryTools.PrepareQuery(Session, string.Format("SELECT * FROM {0} WHERE tweet_id = ?;", tableName));
+            
+            int rowID = 5;
+            var result = QueryTools.ExecutePreparedSelectQuery(this.Session, prep_select, new object[1] { rowID });
+            using (result)
+            {
+                foreach (var row in result.GetRows())
+                    Assert.True((string)row.GetValue(typeof(int), "label") == "row" + rowID.ToString());
+            }
+            Assert.True(result.Columns != null);
+            Assert.True(result.Columns.Length == 3);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -120,7 +155,7 @@ namespace Cassandra.MSTest
                 QueryTools.ExecutePreparedQuery(this.Session, prep, new object[] { (double)Randomm.RandomVal(typeof(double)), (int)Randomm.RandomVal(typeof(int)) });
             });
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
     }
 }

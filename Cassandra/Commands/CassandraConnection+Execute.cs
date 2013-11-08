@@ -47,15 +47,15 @@ namespace Cassandra
             });
         }
 
-        public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata, object[] values,
+        public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata,
                                               AsyncCallback callback, object state, object owner,
-                                              ConsistencyLevel consistency, bool isTracing)
+                                              bool isTracing, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency=null)
         {
             var jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, Id, cql, () =>
                {
-                   Evaluate(new ExecuteRequest(jar.StreamId, Id, Metadata, values, consistency, isTracing), jar.StreamId,
+                   Evaluate(new ExecuteRequest(jar.StreamId, Id, Metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
                             new Action<ResponseFrame>((frame2) =>
                                 {
                                     var response = FrameParser.Parse(frame2);
@@ -79,10 +79,10 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteQuery(int streamId, byte[] Id, string cql, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
-                                    bool isTracing)
+        public IOutput ExecuteQuery(int streamId, byte[] Id, string cql, RowSetMetadata Metadata,
+                                    bool isTracing, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency)
         {
-            return EndExecuteQuery(BeginExecuteQuery(streamId, Id, cql, Metadata, values, null, null, this, consistency, isTracing),
+            return EndExecuteQuery(BeginExecuteQuery(streamId, Id, cql, Metadata, null, null, this, isTracing, queryPrtclOptions, consistency),
                                    this);
         }
     }
