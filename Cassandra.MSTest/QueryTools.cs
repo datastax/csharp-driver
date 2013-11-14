@@ -79,13 +79,13 @@ namespace Cassandra.MSTest
             }
         }
 
-        internal static IPAddress ExecuteSyncNonQuery(Session session, string query, string messageInstead = null)
+        internal static IPAddress ExecuteSyncNonQuery(Session session, string query, string messageInstead = null, ConsistencyLevel? consistency = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-            var ret = session.Execute(query, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            var ret = session.Execute(query, consistency ?? session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             Console.WriteLine("CQL> (OK).");
             return ret.Info.QueriedHost;
         }

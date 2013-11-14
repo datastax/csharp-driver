@@ -79,8 +79,8 @@ namespace Cassandra
         }
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
-        {
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, QueryProtocolOptions.CreateFromQuery(this), callback, state, ConsistencyLevel, this, this, tag, IsTracing);
+        {            
+            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, QueryProtocolOptions.CreateFromQuery(this, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), callback, state, null, this, this, tag, IsTracing);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
@@ -90,7 +90,7 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, QueryProtocolOptions.CreateFromQuery(this));
+            return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any)); // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
         }
     }
 }

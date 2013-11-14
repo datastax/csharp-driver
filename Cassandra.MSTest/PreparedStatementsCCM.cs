@@ -85,10 +85,10 @@ namespace Cassandra.MSTest
                 Assert.Equal(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
             }
             CCMBridge.ReusableCCMCluster.CCMBridge.Stop();            
-            TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 20);
+            TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
 
             CCMBridge.ReusableCCMCluster.CCMBridge.Start();
-            TestUtils.waitFor(Options.Default.IP_PREFIX + "1", Session.Cluster, 20);
+            TestUtils.waitFor(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
 
             try
             {

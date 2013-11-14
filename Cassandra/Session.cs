@@ -849,7 +849,7 @@ namespace Cassandra
 
             override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner,  IsTracing, QueryProtocolOptions.CreateFromQuery(this.Query),Consistency);
+                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner,  IsTracing, QueryProtocolOptions.CreateFromQuery(this.Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),Consistency);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -883,11 +883,11 @@ namespace Cassandra
                 }
             }
         }
-
+        
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Query query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var token = new LongQueryToken() { Consistency = consistency ?? this._cluster.Configuration.QueryOptions.GetConsistencyLevel(), CqlQuery = cqlQuery, Query = query, QueryPrtclOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
+            var token = new LongQueryToken() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryPrtclOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
 
@@ -988,7 +988,7 @@ namespace Cassandra
             
             override public void Begin(Session owner,int streamId)
             {
-                Connection.BeginExecuteQuery(streamId, Id, cql, Metadata, owner.ClbNoQuery, this, owner, IsTracinig, QueryProtocolOptions.CreateFromQuery(this.Query), Consistency);
+                Connection.BeginExecuteQuery(streamId, Id, cql, Metadata, owner.ClbNoQuery, this, owner, IsTracinig, QueryProtocolOptions.CreateFromQuery(this.Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), Consistency);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -1026,7 +1026,7 @@ namespace Cassandra
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Query query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var token = new LongExecuteQueryToken() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Id = id, cql = _preparedQueries[id], Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
+            var token = new LongExecuteQueryToken() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, cql = _preparedQueries[id], Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
 
             ExecConn(token, false);
 

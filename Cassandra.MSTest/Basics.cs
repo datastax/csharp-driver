@@ -275,22 +275,15 @@ PRIMARY KEY(tweet_id)
             List<object[]> toReturn = new List<object[]>(2) { row1, row2 };
             List<object[]> toInsert = new List<object[]>(2) { row1, row2 };
 
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[0][0], toInsert[0][1], toInsert[0][2]));
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[1][0], toInsert[1][1], toInsert[1][2]));
-
-            int RowsNb = 0;
-
-            for (int i = 0; i < RowsNb; i++)
-            {
-                toInsert.Add(new object[3] { Guid.NewGuid(), i.ToString(), "Miałczyński" });
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[i][0], toInsert[i][1], toInsert[i][2]));
-            }
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[0][0], toInsert[0][1], toInsert[0][2]), null, ConsistencyLevel.Quorum);
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[1][0], toInsert[1][1], toInsert[1][2]), null, ConsistencyLevel.Quorum);
 
             Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName))
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName), null, ConsistencyLevel.Quorum)
             );
+            
 			Thread.Sleep(2000);
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), toReturn);
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), ConsistencyLevel.Quorum, toReturn);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 

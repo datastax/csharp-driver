@@ -131,14 +131,14 @@ namespace Cassandra
     {
         public enum QueryFlags
         {
-            Values = 0x00,
-            SkipMetadata = 0x01,
-            PageSize = 0x02,
-            WithPagingState = 0x03,
-            WithSerialConsistency = 0x04
+            Values = 0x01,
+            SkipMetadata = 0x02,
+            PageSize = 0x04,
+            WithPagingState = 0x08,
+            WithSerialConsistency = 0x10
         }
 
-        public readonly List<QueryFlags> Flags = null;
+        public QueryFlags Flags;
         public ConsistencyLevel Consistency;
         public readonly object[] Values;
         public readonly bool SkipMetadata;
@@ -153,12 +153,12 @@ namespace Cassandra
                                                                         null,
                                                                         ConsistencyLevel.Serial);
 
-        static internal QueryProtocolOptions CreateFromQuery(Query query)
+        static internal QueryProtocolOptions CreateFromQuery(Query query, ConsistencyLevel defaultCL)
         {
             if (query == null)
                 return QueryProtocolOptions.DEFAULT;
             else
-                return new QueryProtocolOptions(query.ConsistencyLevel.Value, query.QueryValues, query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel);
+                return new QueryProtocolOptions( query.ConsistencyLevel.HasValue ? query.ConsistencyLevel.Value : defaultCL, query.QueryValues, query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel);
         }
 
         internal QueryProtocolOptions(ConsistencyLevel consistency,
@@ -181,39 +181,29 @@ namespace Cassandra
                     this.PageSize = pageSize;
             this.PagingState = pagingState;
             this.SerialConsistency = serialConsistency;
-
-            Flags = new List<QueryFlags>();
             AddFlags();
         }
 
         private void AddFlags()
         {
             if (Values != null && Values.Length > 0)
-                Flags.Add(QueryFlags.Values);
+                Flags |= QueryFlags.Values;
             if (SkipMetadata)
-                Flags.Add(QueryFlags.SkipMetadata);
+                Flags |= QueryFlags.SkipMetadata;
             if (PageSize != int.MaxValue && PageSize >= 0)
-                Flags.Add(QueryFlags.PageSize);
+                Flags |= QueryFlags.PageSize;
             if (PagingState != null)
-                Flags.Add(QueryFlags.WithPagingState);
+                Flags |= QueryFlags.WithPagingState;
             if (SerialConsistency != ConsistencyLevel.Serial)
-                Flags.Add(QueryFlags.WithSerialConsistency);
-        }
-
-        public int SerializeFlags()
-        {
-            int i = 0;
-            foreach (QueryFlags flag in Flags)
-                i |= 1 << (int)flag;
-            return i;
+                Flags |= QueryFlags.WithSerialConsistency;
         }
 
         internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency)
         {
             wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
-            wb.WriteByte((byte)SerializeFlags());
+            wb.WriteByte((byte)Flags);
 
-            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.Values))
+            if ((Flags & QueryFlags.Values) == QueryFlags.Values)
             {
                 wb.WriteUInt16((ushort)Values.Length);
                 for (int i = 0; i < Values.Length; i++)
@@ -223,11 +213,11 @@ namespace Cassandra
                 }
             }
 
-            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.PageSize))
+            if ((Flags & QueryFlags.PageSize) == QueryFlags.PageSize)
                 wb.WriteInt32(PageSize);
-            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.WithPagingState))
+            if ((Flags & QueryFlags.WithPagingState) == QueryFlags.WithPagingState)
                 wb.WriteBytes(PagingState);
-            if (Flags.Contains(Cassandra.QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
                 wb.WriteUInt16((ushort)SerialConsistency);
         }
     }

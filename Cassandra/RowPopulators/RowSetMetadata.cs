@@ -22,9 +22,9 @@ namespace Cassandra
     [Flags]
     internal enum FlagBits
     {
-        GlobalTablesSpec = 0x0000,
-        Has_more_pages = 0x0001,
-        No_metadata = 0x0002
+        GlobalTablesSpec = 0x0001,
+        Has_more_pages = 0x0002,
+        No_metadata = 0x0004
     }
 
     public enum ColumnTypeCode
@@ -100,22 +100,21 @@ namespace Cassandra
         internal RowSetMetadata(BEBinaryReader reader)
         {
             var coldat = new List<ColumnDesc>();
-            var flags = (int)reader.ReadInt32();
+            var flags = (FlagBits)reader.ReadInt32();
             var numberOfcolumns = reader.ReadInt32();
             
             this._rawColumns = new ColumnDesc[numberOfcolumns];
             string gKsname = null;
             string gTablename = null;
 
-
-            if ((flags & (1 << (int)FlagBits.Has_more_pages)) != 0)
+            if ((flags & FlagBits.Has_more_pages) == FlagBits.Has_more_pages)
                 paging_state = reader.ReadBytes();
             else
                 paging_state = null;
 
-            if ((flags & (1 << (int)FlagBits.No_metadata)) == 0)
+            if ((flags & FlagBits.No_metadata) != FlagBits.No_metadata)
             {
-                if ((flags & (1 << (int)FlagBits.GlobalTablesSpec)) != 0)
+                if ((flags & FlagBits.GlobalTablesSpec) == FlagBits.GlobalTablesSpec)
                 {
                     gKsname = reader.ReadString();
                     gTablename = reader.ReadString();
@@ -124,7 +123,7 @@ namespace Cassandra
                 for (int i = 0; i < numberOfcolumns; i++)
                 {
                     var col = new ColumnDesc();
-                    if ((flags & (1 << (int)FlagBits.GlobalTablesSpec)) == 0)
+                    if ((flags & FlagBits.GlobalTablesSpec) != FlagBits.GlobalTablesSpec)
                     {
                         col.Keyspace = reader.ReadString();
                         col.Table = reader.ReadString();
