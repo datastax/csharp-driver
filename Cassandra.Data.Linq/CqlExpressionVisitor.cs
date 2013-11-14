@@ -98,7 +98,7 @@ namespace Cassandra.Data.Linq
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
         public StringBuilder WhereClause = new StringBuilder();
-        public string TableName;
+        public string QuotedTableName;
 
         public Dictionary<string, string> Alter = new Dictionary<string, string>();
         public Dictionary<string, Tuple<string, object, int>> Mappings = new Dictionary<string, Tuple<string, object, int>>();
@@ -121,7 +121,7 @@ namespace Cassandra.Data.Linq
             sb.Append(SelectFields.Count == 0 ? "*" : string.Join(", ", from f in SelectFields select Alter[f].QuoteIdentifier()));
 
             sb.Append(" FROM ");
-            sb.Append(TableName.QuoteIdentifier());
+            sb.Append(QuotedTableName);
 
             if (WhereClause.Length > 0)
             {
@@ -159,7 +159,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
-            sb.Append(TableName.QuoteIdentifier());
+            sb.Append(QuotedTableName);
             if (timestamp != null)
             {
                 sb.Append(" USING TIMESTAMP ");
@@ -188,7 +188,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
-            sb.Append(TableName.QuoteIdentifier());
+            sb.Append(QuotedTableName);
             if (ttl != null || timestamp != null)
             {
                 sb.Append(" USING ");
@@ -253,7 +253,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT count(*) FROM ");
-            sb.Append(TableName.QuoteIdentifier());
+            sb.Append(QuotedTableName);
 
             if (WhereClause.Length > 0)
             {
@@ -581,7 +581,7 @@ namespace Cassandra.Data.Linq
             if (node.Value is ITable)
             {
                 var table = (node.Value as ITable);
-                TableName = table.GetTableName();
+                QuotedTableName = table.GetQuotedTableName();
                 AllowFiltering = table.GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute), false).Any();
                 
                 var props = table.GetEntityType().GetPropertiesOrFields();

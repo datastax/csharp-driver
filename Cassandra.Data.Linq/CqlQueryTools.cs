@@ -296,9 +296,9 @@ namespace Cassandra.Data.Linq
             int countersCount = 0;
             bool countersSpotted = false;
             sb.Append("CREATE TABLE ");
-            sb.Append(table.GetTableName().QuoteIdentifier());
+            sb.Append(table.GetQuotedTableName());
             sb.Append("(");
-            string crtIndex = "CREATE INDEX ON " + table.GetTableName().QuoteIdentifier() + "(";
+            string crtIndex = "CREATE INDEX ON " + table.GetQuotedTableName() + "(";
             string crtIndexAll = string.Empty;
              
             var clusteringKeys = new SortedDictionary<int, ClusteringKeyAttribute>();
@@ -415,13 +415,13 @@ namespace Cassandra.Data.Linq
             return commands;
         }
 
-        public static string GetInsertCQLAndValues(object row, string tablename, out object[] values, int? ttl, DateTimeOffset? timestamp,bool ifNotExists,bool withValues = true)
+        public static string GetInsertCQLAndValues(object row, string quotedtablename, out object[] values, int? ttl, DateTimeOffset? timestamp,bool ifNotExists,bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
             var rowType = row.GetType();
             var sb = new StringBuilder();
             sb.Append("INSERT INTO ");
-            sb.Append(tablename.QuoteIdentifier());
+            sb.Append(quotedtablename);
             sb.Append("(");
 
             var props = rowType.GetPropertiesOrFields();
@@ -474,7 +474,7 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public static string GetUpdateCQLAndValues(object row, object newRow, string tablename, out object[] values, bool all = false, bool withValues = true)
+        public static string GetUpdateCQLAndValues(object row, object newRow, string quotedtablename, out object[] values, bool all = false, bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
             var rowType = row.GetType();
@@ -542,7 +542,7 @@ namespace Cassandra.Data.Linq
 
             var sb = new StringBuilder();
             sb.Append("UPDATE ");
-            sb.Append(tablename.QuoteIdentifier());
+            sb.Append(quotedtablename);
             sb.Append(" SET ");
             sb.Append(set);
             sb.Append(" WHERE ");
@@ -557,14 +557,14 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public static string GetDeleteCQLAndValues(object row, string tablename, out object[] values, bool withValues = true)
+        public static string GetDeleteCQLAndValues(object row, string quotedtablename, out object[] values, bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
             var rowType = row.GetType();
 
             var sb = new StringBuilder();
             sb.Append("DELETE FROM ");
-            sb.Append(tablename.QuoteIdentifier());
+            sb.Append(quotedtablename);
             sb.Append(" WHERE ");
 
             var props = rowType.GetPropertiesOrFields();

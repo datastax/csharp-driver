@@ -494,13 +494,13 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out values, _ttl, _timestamp, _ifNotExists);
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out values, _ttl, _timestamp, _ifNotExists);
         }
 
         public override string ToString()
         {
             object[] _;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetTableName(), out _, _ttl, _timestamp, _ifNotExists, false);
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out _, _ttl, _timestamp, _ifNotExists, false);
         }
     }
 
