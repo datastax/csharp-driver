@@ -145,7 +145,8 @@ namespace Cassandra.MSTest
 
         public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
         {
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(1, builder);
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(1, builder);            
             createSchema(c.Session, 1);
 
             try

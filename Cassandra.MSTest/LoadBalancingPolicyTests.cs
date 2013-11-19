@@ -206,8 +206,8 @@ namespace Cassandra.MSTest
             }
         }
 
-        [TestMethod]
-        [NeedSomeFix]
+        [TestMethod]        
+        [WorksForMe]
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
@@ -310,8 +310,8 @@ namespace Cassandra.MSTest
             tokenAwareTest(false);
         }
 
-        [TestMethod]
-        [NeedSomeFix]
+        [TestMethod]        
+        [WorksForMe]
         public void tokenAwarePreparedTestCCM()
         {
             tokenAwareTest(true);
@@ -387,8 +387,8 @@ namespace Cassandra.MSTest
             }
         }
 
-        [TestMethod]
-        [NeedSomeFix]
+        [TestMethod]        
+        [WorksForMe]
         public void tokenAwareWithRF2TestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -423,10 +423,10 @@ namespace Cassandra.MSTest
                 TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 6);
+                // Still only one node since RF=2
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
             }
             catch (Exception e)
