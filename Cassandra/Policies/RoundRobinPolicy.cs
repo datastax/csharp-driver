@@ -74,20 +74,23 @@ namespace Cassandra
         {
             List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
 
+            int startidx = Interlocked.Increment(ref _index);
+            
+            // Overflow protection; not theoretically thread safe but should be good enough
+            if (startidx > int.MaxValue - 10000)
+                Thread.VolatileWrite(ref _index, 0);
+
             for (int i = 0; i < copyOfHosts.Count; i++)
             {
-                int startidx = Interlocked.Increment(ref _index);
-
-                // Overflow protection; not theoretically thread safe but should be good enough
-                if (startidx > int.MaxValue - 10000)
-                    Thread.VolatileWrite(ref _index, 0);
-
                 startidx %= copyOfHosts.Count;
 
                 var h = copyOfHosts[startidx];
 
+                startidx++;
+
                 if (h.IsConsiderablyUp)
                     yield return h;
+
             }
         }
     }
