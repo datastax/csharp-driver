@@ -39,7 +39,7 @@ namespace Playground
             Console.WriteLine("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             
-            Cluster cluster = Cluster.Builder().AddContactPoint("192.168.13.1").Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
             
             using(var session = cluster.Connect())
             {

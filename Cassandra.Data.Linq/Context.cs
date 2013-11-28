@@ -124,7 +124,7 @@ namespace Cassandra.Data.Linq
                 return new ContextTable<TEntity>((Table<TEntity>)_tables[tn], this);
             else
             {
-                var table = new Table<TEntity>(_managedSession, tn,keyspaceName);
+                var table = new Table<TEntity>(_managedSession, tableName, keyspaceName);
                 _tables.Add(tn, table);
                 _mutationTrackers.Add(tn, new MutationTracker<TEntity>());
                 return new ContextTable<TEntity>(table, this);

@@ -26,14 +26,27 @@ namespace Cassandra.Data.Linq
 {
     internal static class ReflExt
     {
-        public static IEnumerable<MemberInfo> GetPropertiesOrFields(this Type tpy)
+        [ThreadStatic]
+        static Dictionary<Type,List<MemberInfo>> ReflexionCachePF=null;
+
+        public static List<MemberInfo> GetPropertiesOrFields(this Type tpy)
         {
+            if (ReflexionCachePF == null)
+                ReflexionCachePF = new Dictionary<Type, List<MemberInfo>>();
+
+            List<MemberInfo> val;
+            if (ReflexionCachePF.TryGetValue(tpy, out val))
+                return val;
+
+            List<MemberInfo> ret = new List<MemberInfo>();
             var props = tpy.GetMembers();
             foreach (var prop in props)
             {
                 if (prop is PropertyInfo || prop is FieldInfo)
-                    yield return prop;
+                    ret.Add(prop);
             }
+            ReflexionCachePF.Add(tpy, ret);
+            return ret;
         }
 
         public static object GetValueFromPropertyOrField(this MemberInfo prop, object x)

@@ -151,9 +151,9 @@ namespace Cassandra.Data.Linq
         public string GetQuotedTableName()
         {
             if (_keyspaceName != null)
-                return _keyspaceName.QuoteIdentifier() + "." + _tableName.QuoteIdentifier();
+                return _keyspaceName.QuoteIdentifier() + "." + CalculateName(_tableName).QuoteIdentifier();
             else
-                return _tableName.QuoteIdentifier();
+                return CalculateName(_tableName).QuoteIdentifier();
         }
 
         public void Create()
