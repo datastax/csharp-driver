@@ -89,7 +89,7 @@ namespace Cassandra.Data.Linq
     {
         void Create();
         Type GetEntityType();
-        string GetTableName();
+        string GetQuotedTableName();
         Session GetSession();
         TableType GetTableType();
     }
@@ -111,6 +111,7 @@ namespace Cassandra.Data.Linq
     {
         readonly Session _session;
         readonly string _tableName;
+        readonly string _keyspaceName;
 
         internal static string CalculateName(string tableName)
         {
@@ -128,14 +129,16 @@ namespace Cassandra.Data.Linq
             return tableName ?? typeof(TEntity).Name;
         }
 
-        internal Table(Session session, string tableName)
+        internal Table(Session session, string tableName,string keyspaceName)
         {
             this._session = session;
             this._tableName = tableName;
+            this._keyspaceName = keyspaceName;
         }
 
         internal Table(Table<TEntity> cp)
         {
+            this._keyspaceName = cp._keyspaceName;
             this._tableName = cp._tableName;
             this._session = cp._session;
         }
@@ -145,9 +148,12 @@ namespace Cassandra.Data.Linq
             return typeof(TEntity);
         }
 
-        public string GetTableName()
+        public string GetQuotedTableName()
         {
-            return _tableName;
+            if (_keyspaceName != null)
+                return _keyspaceName.QuoteIdentifier() + "." + CalculateName(_tableName).QuoteIdentifier();
+            else
+                return CalculateName(_tableName).QuoteIdentifier();
         }
 
         public void Create()

@@ -431,7 +431,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql()
         {
-            return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetTableName(), _ttl, _timestamp);
+            return CqlQueryTools.GetInsertCQL(_entity, (GetTable()).GetQuotedTableName(), _ttl, _timestamp);
         }
     }
 

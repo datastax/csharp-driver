@@ -28,7 +28,7 @@ namespace TPLSample.KeyspacesSample
         public static void Run()
         {
             // this sample requires buffering
-            Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
 
             using (var session = cluster.Connect())
             {
