@@ -62,63 +62,63 @@ namespace Cassandra.Data.Linq.MSTest
 
             Assert.Equal(
                 (from ent in table select ent).ToString(),
-                @"SELECT * FROM x_t ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table select ent.f1).ToString(),
-                @"SELECT x_f1 FROM x_t ALLOW FILTERING");
+                @"SELECT ""x_f1"" FROM ""x_t"" ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" select ent.f1).ToString(),
-                @"SELECT x_f1 FROM x_t WHERE x_pk = 'koko' ALLOW FILTERING");
+                @"SELECT ""x_f1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" select new { ent.f1, ent.ck2 }).ToString(),
-                @"SELECT x_f1, x_ck2 FROM x_t WHERE x_pk = 'koko' ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2 }).ToString(),
-                @"SELECT x_f1, x_ck2 FROM x_t WHERE x_pk = 'koko' AND x_ck2 = 10 ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2 }).Take(10).ToString(),
-                @"SELECT x_f1, x_ck2 FROM x_t WHERE x_pk = 'koko' AND x_ck2 = 10 LIMIT 10 ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 LIMIT 10 ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2 }).OrderBy(c => c.ck2).ToString(),
-                @"SELECT x_f1, x_ck2 FROM x_t WHERE x_pk = 'koko' AND x_ck2 = 10 ORDER BY x_ck2 ASC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ASC ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2, ent.ck1 }).OrderBy(c => c.ck2).OrderByDescending(c => c.ck1).ToString(),
-                @"SELECT x_f1, x_ck2, x_ck1 FROM x_t WHERE x_pk = 'koko' AND x_ck2 = 10 ORDER BY x_ck2 ASC, x_ck1 DESC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ASC, ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2, ent.ck1 }).OrderBy(c => c.ck2).OrderByDescending(c => c.ck1).ToString(),
-                @"SELECT x_f1, x_ck2, x_ck1 FROM x_t WHERE x_pk = 'koko' AND x_ck2 = 10 ORDER BY x_ck2 ASC, x_ck1 DESC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ASC, ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where CqlToken.Create(ent.pk, ent.ck2, ent.ck2) > CqlToken.Create("x", 2) select new { ent.f1, ent.ck2, ent.ck1 }).OrderBy(c => c.ck2).OrderByDescending(c => c.ck1).ToString(),
-                @"SELECT x_f1, x_ck2, x_ck1 FROM x_t WHERE token(x_pk, x_ck2, x_ck2) > token('x', 2) ORDER BY x_ck2 ASC, x_ck1 DESC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE token(""x_pk"", ""x_ck2"", ""x_ck2"") > token('x', 2) ORDER BY ""x_ck2"" ASC, ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table where ent.ck2 > ent.ck1 select ent).ToString(),
-                @"SELECT * FROM x_t WHERE x_ck2 > x_ck1 ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" > ""x_ck1"" ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table select ent).Count().ToString(),
-                @"SELECT count(*) FROM x_t");
+                @"SELECT count(*) FROM ""x_t""");
 
             Assert.Equal(
                 (from ent in table select ent).FirstOrDefault().ToString(),
-                @"SELECT * FROM x_t LIMIT 1 ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" LIMIT 1 ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table select ent).First().ToString(),
-                @"SELECT * FROM x_t LIMIT 1 ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" LIMIT 1 ALLOW FILTERING");
 
             Assert.Equal(
                 (from ent in table select ent).Where(e => e.pk.CompareTo("a") > 0).First().ToString(),
-                @"SELECT * FROM x_t WHERE x_pk > 'a' LIMIT 1 ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" WHERE ""x_pk"" > 'a' LIMIT 1 ALLOW FILTERING");
 
             try
             {
@@ -130,7 +130,7 @@ namespace Cassandra.Data.Linq.MSTest
 
             Assert.Equal(
                 (from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).ToString(),
-                @"SELECT * FROM x_t WHERE x_ck2 IN (10, 30, 40) ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40) ALLOW FILTERING");
 
             try
             {
@@ -142,11 +142,11 @@ namespace Cassandra.Data.Linq.MSTest
 
             Assert.Equal(
                (from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete().ToString(),
-               @"DELETE FROM x_t WHERE x_ck2 IN (10, 30, 40)");
+               @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40)");
 
             Assert.Equal(
                (table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).ToString(),
-               @"INSERT INTO x_t(x_pk, x_ck1, x_ck2, x_f1) VALUES ('x', 1, 2, 3)");
+               @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3)");
 
             try
             {
@@ -163,9 +163,9 @@ namespace Cassandra.Data.Linq.MSTest
                 batch.Append((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete());
                 Assert.Equal(batch.ToString().Replace("\r",""),
                     @"BEGIN BATCH
-INSERT INTO x_t(x_pk, x_ck1, x_ck2, x_f1) VALUES ('x', 1, 2, 3);
-UPDATE x_t SET x_f1 = 1223 WHERE x_ck2 IN (10, 30, 40);
-DELETE FROM x_t WHERE x_ck2 IN (10, 30, 40);
+INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
+UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40);
+DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40);
 APPLY BATCH".Replace("\r", ""));
             }
 
@@ -176,9 +176,9 @@ APPLY BATCH".Replace("\r", ""));
                 batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
                 Assert.Equal(batch.ToString().Replace("\r", ""),
                     @"BEGIN BATCH
-INSERT INTO x_t(x_pk, x_ck1, x_ck2, x_f1) VALUES ('x', 1, 2, 3);
-UPDATE x_t SET x_f1 = 1223 WHERE x_ck2 IN (10, 30, 40);
-DELETE FROM x_t WHERE x_ck2 IN (10, 30, 40);
+INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
+UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40);
+DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40);
 APPLY BATCH".Replace("\r", ""));
             }
         }

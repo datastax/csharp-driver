@@ -214,6 +214,7 @@ namespace Cassandra.MSTest
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
+                        Console.WriteLine(string.Format("Query {0} executed by {1} with consistency {2}", i.ToString(), ccord.ToString(), cac.ToString()));                        
                     }
                     addCoordinator(ccord, cac);
                 }

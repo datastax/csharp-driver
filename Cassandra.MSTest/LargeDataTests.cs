@@ -193,7 +193,7 @@ namespace Cassandra.MSTest
             StringBuilder valus = new StringBuilder(" VALUES(" + key.ToString());
             for (int i = 0; i < 330; ++i)
             {
-                insrt.Append("," + createColumnName(i));
+                insrt.Append(",\"" + createColumnName(i)+"\"");
                 valus.Append("," + i.ToString());
             }
             insrt.Append(") " + valus.ToString() + ")");
@@ -344,7 +344,7 @@ namespace Cassandra.MSTest
             tableDeclaration.Append("k INT PRIMARY KEY");
             for (int i = 0; i < 330; ++i)
             {
-                tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
+                tableDeclaration.Append(String.Format(", \"{0}\" INT", createColumnName(i)));
             }
             tableDeclaration.Append(")");
             return tableDeclaration.ToString();
@@ -381,7 +381,7 @@ namespace Cassandra.MSTest
             tableDeclaration.Append("k INT PRIMARY KEY");
             for (int i = 0; i < 330; ++i)
             {
-                tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
+                tableDeclaration.Append(String.Format(", \"{0}\" INT", createColumnName(i)));
             }
             tableDeclaration.Append(")");
             session.WaitForSchemaAgreement(
