@@ -193,7 +193,7 @@ namespace Cassandra.MSTest
                         resetCoordinators();
 
                         // Ensure the time when the query completes successfully is what was expected
-                        Assert.True(retryTime - 3 < elapsedSeconds && elapsedSeconds < retryTime + 3, String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
+                        Assert.True(retryTime - 6 < elapsedSeconds && elapsedSeconds < retryTime + 6, String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
                     }
                     catch (NoHostAvailableException e)
                     {

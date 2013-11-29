@@ -206,7 +206,7 @@ namespace Cassandra.MSTest
 
         public void insertRange(PreparedStatement prepStatement, int startIndex, int endIndex)
         {
-//            Console.WriteLine("Inserting values from " + startIndex + " to " + endIndex);
+            Console.WriteLine("Inserting values from " + startIndex + " to " + endIndex);
             Stopwatch t = Stopwatch.StartNew();
             int pendingJobs = 0;
             for (int idx = startIndex; idx < endIndex; idx++)
@@ -259,12 +259,11 @@ namespace Cassandra.MSTest
             //                _writeHistogram.Update(elapsedMs);
             Interlocked.Add(ref totalElapsedTime, elapsedMs);
             var avg = elapsedMs / (endIndex - startIndex);
-           // Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg +"ms");
+           Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg +"ms");
         }
 
-        //[TestMethod]
-        //[WorksForMe]
-        //[Priority]
+        [TestMethod]
+        [WorksForMe]
         public void test1()
         {
             parallelInsertTestGeneric(10, 100);

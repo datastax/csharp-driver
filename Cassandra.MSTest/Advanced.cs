@@ -101,7 +101,7 @@ namespace Cassandra.MSTest
                 {
                 }
 
-                int RowsNo = 1000;
+                int RowsNo = 10000;
                 IAsyncResult[] ar = new IAsyncResult[RowsNo];
                 List<Thread> threads = new List<Thread>();
                 object monit = new object();
@@ -130,7 +130,7 @@ namespace Cassandra.MSTest
          isok,
          body)
 VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                           , ConsistencyLevel.Quorum, null, null);
+                           , ConsistencyLevel.One, null, null);
                             Thread.MemoryBarrier();
                         }
                         catch
@@ -241,7 +241,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 {
                 }
 
-                int RowsNo = 1000;
+                int RowsNo = 10000;
                 bool[] ar = new bool[RowsNo];
                 List<Thread> threads = new List<Thread>();
                 object monit = new object();
@@ -258,9 +258,9 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                     Console.Write("#");
                     Session.SimulateSingleConnectionDown();
 
-                    for (int i = 0; i < 100; i++)
+                    for (int i = 0; i < 1000; i++)
                     {
-                        Thread.Sleep(1);
+                        Thread.Sleep(i*10);
                         Console.Write("#");
                         Session.SimulateSingleConnectionDown();
                     }
@@ -289,7 +289,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
          author,
          isok,
          body)
-VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true"), ConsistencyLevel.Quorum
+VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true"), ConsistencyLevel.One
                            );
                             ar[i] = true;
                             Thread.MemoryBarrier();
@@ -401,7 +401,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             {
             }
 
-            int RowsNo = 1000;
+            int RowsNo = 10000;
 
             bool[] ar = new bool[RowsNo];
 
@@ -417,7 +417,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
              isok,
              body)
     VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                           , ConsistencyLevel.Quorum, (_) =>
+                           , ConsistencyLevel.One, (_) =>
                            {
                                ar[tmpi] = true;
                                Thread.MemoryBarrier();
@@ -483,7 +483,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             {
             }
 
-            int RowsNo = 1000;
+            int RowsNo = 10000;
 
             bool[] ar = new bool[RowsNo];
 
@@ -524,96 +524,99 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             CCMBridge.ReusableCCMCluster.Shutdown(); // it makes shutdown
         }
 
-        //        public void MassiveAsyncErrorInjectionTest()
-        //        {
-        //            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-        //            try
-        //            {
-        //                Session.WaitForSchemaAgreement(
-        //                    Session.Execute(string.Format(@"CREATE TABLE {0}(
-        //         tweet_id uuid,
-        //         author text,
-        //         body text,
-        //         isok boolean,
-        //         PRIMARY KEY(tweet_id))", tableName)));
-        //            }
-        //            catch (AlreadyExistsException)
-        //            {
-        //            }
+        public void MassiveAsyncErrorInjectionTest()
+        {
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            try
+            {
+                Session.WaitForSchemaAgreement(
+                    Session.Execute(string.Format(@"CREATE TABLE {0}(
+                 tweet_id uuid,
+                 author text,
+                 body text,
+                 isok boolean,
+                 PRIMARY KEY(tweet_id))", tableName)));
+            }
+            catch (AlreadyExistsException)
+            {
+            }
 
-        //            int RowsNo = 100000;
+            int RowsNo = 10000;
 
-        //            bool[] ar = new bool[RowsNo];
+            bool[] ar = new bool[RowsNo];
 
-        //            var thr = new Thread(() =>
-        //            {
-        //                for (int i = 0; i < RowsNo; i++)
-        //                {
-        //                    Console.Write("+");
-        //                    int tmpi = i;
-        //                    Session.BeginExecute(string.Format(@"INSERT INTO {0} (
-        //             tweet_id,
-        //             author,
-        //             isok,
-        //             body)
-        //    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-        //                   , ConsistencyLevel.Default, (_) =>
-        //                   {
-        //                       ar[tmpi] = true;
-        //                       Thread.MemoryBarrier();
-        //                   }, null);
-        //                }
-        //            });
+            var thr = new Thread(() =>
+            {
+                for (int i = 0; i < RowsNo; i++)
+                {
+                    Console.Write("+");
+                    int tmpi = i;
+                    Session.BeginExecute(string.Format(@"INSERT INTO {0} (
+                     tweet_id,
+                     author,
+                     isok,
+                     body)
+            VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
+                   , ConsistencyLevel.One, (_) =>
+                   {
+                       ar[tmpi] = true;
+                       Thread.MemoryBarrier();
+                   }, null);
+                }
+            });
 
-        //            thr.Start();
+            thr.Start();
 
-        //            Thread errorInjector = new Thread(() =>
-        //            {
-        //                lock (monit)
-        //                {
-        //                    readyCnt++;
-        //                    Monitor.Wait(monit);
-        //                }
-        //                Thread.Sleep(5);
-        //                Console.Write("#");
-        //                Session.SimulateSingleConnectionDown();
+            object monit = new object();
+            int readyCnt = 0;
 
-        //                for (int i = 0; i < 100; i++)
-        //                {
-        //                    Thread.Sleep(1);
-        //                    Console.Write("#");
-        //                    Session.SimulateSingleConnectionDown();
-        //                }
-        //            });
-        //            HashSet<int> done = new HashSet<int>();
-        //            while (done.Count < RowsNo)
-        //            {
-        //                for (int i = 0; i < RowsNo; i++)
-        //                {
-        //                    Thread.MemoryBarrier();
-        //                    if (!done.Contains(i) && ar[i])
-        //                    {
-        //                        done.Add(i);
-        //                        Console.Write("-");
-        //                    }
-        //                }
-        //            }
+            Thread errorInjector = new Thread(() =>
+            {
 
-        //            thr.Join();
+                Thread.Sleep(500);
+                Console.Write("#");
+                Session.SimulateSingleConnectionDown();
 
-        //            Console.WriteLine();
-        //            Console.WriteLine("Inserted... now we are checking the count");
+                for (int i = 0; i < 100; i++)
+                {
+                    Thread.Sleep(i * 10);
+                    Console.Write("#");
+                    Session.SimulateSingleConnectionDown();
+                }
+            });
 
-        //            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100)))
-        //            {
-        //                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
-        //            }
+            errorInjector.Start();
 
-        //            try
-        //            {
-        //                Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
-        //            }
-        //            catch { }
-        //        }
+            HashSet<int> done = new HashSet<int>();
+            while (done.Count < RowsNo)
+            {
+                for (int i = 0; i < RowsNo; i++)
+                {
+                    Thread.MemoryBarrier();
+                    if (!done.Contains(i) && ar[i])
+                    {
+                        done.Add(i);
+                        Console.Write("-");
+                    }
+                }
+            }
+
+            errorInjector.Join();
+            thr.Join();
+
+            Console.WriteLine();
+            Console.WriteLine("Inserted... now we are checking the count");
+
+            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+            {
+                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+            }
+
+            try
+            {
+                Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
+            }
+            catch { }
+        }
     }
 }

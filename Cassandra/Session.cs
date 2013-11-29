@@ -1145,13 +1145,13 @@ namespace Cassandra
                 if (_connectionPool.TryGetValue(endpoint, out pool))
                 {
                     var items = new List<Guid>(pool.Keys);
-                    if (items.Count < hostidx)
-                    {
-                        var conidx = StaticRandom.Instance.Next(items.Count);
-                        CassandraConnection con;
-                        if (pool.TryGetValue(items[conidx], out con))
-                            con.KillSocket();
-                    }
+                    if (items.Count == 0)
+                        return;
+                    var conidx = StaticRandom.Instance.Next(items.Count);
+                    var k = items[conidx];
+                    CassandraConnection con;
+                    if (pool.TryGetValue(k, out con))
+                        con.KillSocket();
                 }
             }
         }

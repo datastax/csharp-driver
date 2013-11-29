@@ -189,8 +189,8 @@ namespace Cassandra.MSTest
 //            Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg + "ms");
         }
 
-    //    [TestMethod]
-    //    [WorksForMe]
+        [TestMethod]
+        [WorksForMe]
         public void test1()
         {
             parallelInsertTestGeneric(10, 1);
