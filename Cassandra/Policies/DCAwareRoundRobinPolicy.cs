@@ -15,6 +15,7 @@
 //
 using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
 
 namespace Cassandra
 {
@@ -131,7 +132,6 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
 
             int startidx = Interlocked.Increment(ref _index);
             
@@ -140,9 +140,11 @@ namespace Cassandra
                 Thread.VolatileWrite(ref _index, 0);
 
 
+            var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+
             var localHosts = new List<Host>();
 
-            for (int i = 0; i < copyOfHosts.Count; i++)
+            for (int i = 0; i < copyOfHosts.Length; i++)
             {
                 var h = copyOfHosts[i];
                 if (h.IsConsiderablyUp)
@@ -164,7 +166,7 @@ namespace Cassandra
             
             var remoteHosts = new List<Host>();
             var ixes = new Dictionary<string, int>();
-            for (int i = 0; i < copyOfHosts.Count; i++)
+            for (int i = 0; i < copyOfHosts.Length; i++)
             {
                 var h = copyOfHosts[i];
                 if (h.IsConsiderablyUp)
