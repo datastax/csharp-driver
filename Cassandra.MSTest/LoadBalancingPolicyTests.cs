@@ -206,7 +206,7 @@ namespace Cassandra.MSTest
             }
         }
 
-        [TestMethod]        
+        [TestMethod]
         [WorksForMe]
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
@@ -247,10 +247,10 @@ namespace Cassandra.MSTest
                 query(c, 12);
 
                 assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
                 assertQueried(Options.Default.IP_PREFIX + "3", 0);
                 assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 12);
+                assertQueried(Options.Default.IP_PREFIX + "5", 6);
 
                 resetCoordinators();
                 c.CCMBridge.DecommissionNode(5);
@@ -310,7 +310,7 @@ namespace Cassandra.MSTest
             tokenAwareTest(false);
         }
 
-        [TestMethod]        
+        [TestMethod]
         [WorksForMe]
         public void tokenAwarePreparedTestCCM()
         {
@@ -387,7 +387,7 @@ namespace Cassandra.MSTest
             }
         }
 
-        [TestMethod]        
+        [TestMethod]
         [WorksForMe]
         public void tokenAwareWithRF2TestCCM()
         {
@@ -423,10 +423,10 @@ namespace Cassandra.MSTest
                 TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
 
                 query(c, 12);
-                // Still only one node since RF=2
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+
+                assertQueried(Options.Default.IP_PREFIX + "1", 6);
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
 
             }
             catch (Exception e)

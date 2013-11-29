@@ -19,7 +19,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
-using System.Threading;
 
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
 namespace TPLSample.NerdMoviesLinqSample
@@ -42,7 +41,7 @@ namespace TPLSample.NerdMoviesLinqSample
     public class NerdMoviesLinqSample
     {
         public static void Run()
-        {            
+        {
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().Build();
 
             using (var session = cluster.Connect())
@@ -59,7 +58,6 @@ namespace TPLSample.NerdMoviesLinqSample
                 {
                     session.CreateKeyspaceIfNotExists(keyspaceName);
                     session.ChangeKeyspace(keyspaceName);
-                
                 }
 
                 Console.WriteLine("============================================================");

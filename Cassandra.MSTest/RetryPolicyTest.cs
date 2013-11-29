@@ -298,7 +298,7 @@ namespace Cassandra.MSTest
         ///  Tests DowngradingConsistencyRetryPolicy with LoggingRetryPolicy
         /// </summary>
 
-        [TestMethod]        
+        [TestMethod]
         [WorksForMe]
         public void downgradingConsistencyLoggingPolicy()
         {
