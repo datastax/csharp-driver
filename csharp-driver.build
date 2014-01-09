@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+    <project name="CSharp Driver" default="build" basedir=".">
+        <description>The C# Driver build file</description>
+        <property name="config" value="debug" />
+        <property name="build.dir.base" value="bin"/>
+        <property name="src.dir" value="." />
+        <property name="outdir" value="${build.dir.base}\${config}" />
+
+        <target name="init">
+            <mkdir dir="${outdir}" />
+        </target>
+        <target name="clean" description="remove all generated files">
+            <delete file="bin\${config}\*.*" failonerror="false" />
+        </target>
+        <target name="build" description="Build the drivers and tests" depends="init">
+            <solution configuration="${config}" solutionfile="Cassandra.MyTest.sln" outputdir="${outdir}" />
+        </target>
+    </project>
