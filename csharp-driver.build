@@ -6,6 +6,8 @@
         <property name="src.dir" value="." />
         <property name="outdir" value="${build.dir.base}\${config}" />
 
+	<tstamp property="build.date" pattern="yyyyMMddHHmm" verbose="true" />
+
         <target name="init">
             <mkdir dir="${outdir}" />
         </target>
@@ -14,5 +16,12 @@
         </target>
         <target name="build" description="Build the drivers and tests" depends="init">
             <solution configuration="${config}" solutionfile="Cassandra.MyTest.sln" outputdir="${outdir}" />
+        </target>
+	<target name="archive" description="zip up build artifacts" depends="build">
+             <zip zipfile="csharp_driver_${build.date}.zip">
+                 <fileset basedir="${outdir}" prefix="bin">
+                     <include name="**/*" />
+                 </fileset>
+             </zip>
         </target>
     </project>
