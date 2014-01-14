@@ -104,7 +104,7 @@ namespace Cassandra.MSTest
                 Session.WaitForSchemaAgreement(
                      Session.Execute(
                         string.Format(@"CREATE KEYSPACE {0} 
-                        WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
+                        WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
                             , keyspaceName)));
             }
             catch (AlreadyExistsException) { }
@@ -263,6 +263,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
+        [Stress]
         [WorksForMe]
         public void test1()
         {
