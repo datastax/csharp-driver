@@ -124,13 +124,12 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            var scs = new Session(this, _configuration.Policies,
-                                  _configuration.ProtocolOptions,
-                                  _configuration.PoolingOptions,
-                                  _configuration.SocketOptions,
-                                  _configuration.ClientOptions,
-                                  _configuration.AuthInfoProvider, keyspace);
-            scs.Init();
+            Session scs = new Session(this, _configuration.Policies,
+                                      _configuration.ProtocolOptions,
+                                      _configuration.PoolingOptions,
+                                      _configuration.SocketOptions,
+                                      _configuration.ClientOptions,
+                                      _configuration.AuthInfoProvider, keyspace, true);
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
 

@@ -50,6 +50,8 @@ namespace Cassandra
         readonly ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>> _connectionPool = new ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>>();
         readonly ConcurrentDictionary<IPAddress, AtomicValue<int>> _allocatedConnections = new ConcurrentDictionary<IPAddress, AtomicValue<int>>();
 
+        readonly Timer _trashcanCleaner = null;
+
         internal Session(Cluster cluster,
                          Policies policies,
                          ProtocolOptions protocolOptions,
@@ -57,47 +59,50 @@ namespace Cassandra
                          SocketOptions socketOptions,
                          ClientOptions clientOptions,
                          IAuthInfoProvider authProvider,
-                         string keyspace)
+                         string keyspace, bool init)
         {
-            this._cluster = cluster;
-
-            this._protocolOptions = protocolOptions;
-            this._poolingOptions = poolingOptions;
-            this._socketOptions = socketOptions;
-            this._clientOptions = clientOptions;
-            this._authProvider = authProvider;
-
-            this._policies = policies ?? Policies.DefaultPolicies;
-
-            this._policies.LoadBalancingPolicy.Initialize(_cluster);
-
-            _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
-
-            Guid = Guid.NewGuid();
-        }
-
-        Timer _trashcanCleaner;
-
-        internal void Init(bool allock=true)
-        {
-            if (allock)
+            try
             {
-                var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
-                if (!ci.MoveNext())
+                this._cluster = cluster;
+
+                this._protocolOptions = protocolOptions;
+                this._poolingOptions = poolingOptions;
+                this._socketOptions = socketOptions;
+                this._clientOptions = clientOptions;
+                this._authProvider = authProvider;
+
+                this._policies = policies ?? Policies.DefaultPolicies;
+
+                this._policies.LoadBalancingPolicy.Initialize(_cluster);
+
+                _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
+
+                Guid = Guid.NewGuid();
+
+                _trashcanCleaner = new Timer(TranscanCleanup, null, Timeout.Infinite, Timeout.Infinite);
+
+                if (init)
                 {
-                    var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
-                    _logger.Error(ex.Message);
-                    throw ex;
+                    var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                    if (!ci.MoveNext())
+                    {
+                        var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
+                        _logger.Error(ex.Message);
+                        throw ex;
+                    }
+
+                    var triedHosts = new List<IPAddress>();
+                    var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
+                    int streamId;
+                    var con = Connect(ci, triedHosts, innerExceptions, out streamId);
+                    con.FreeStreamId(streamId);
                 }
-
-                var triedHosts = new List<IPAddress>();
-                var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
-                int streamId;
-                var con = Connect( ci, triedHosts, innerExceptions, out streamId);
-                con.FreeStreamId(streamId);
             }
-
-            _trashcanCleaner = new Timer(TranscanCleanup, null, Timeout.Infinite, Timeout.Infinite);
+            catch
+            {
+                InternalDispose();
+                throw;
+            }
         }
 
         readonly ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>> _trashcan = new ConcurrentDictionary<IPAddress, ConcurrentDictionary<Guid, CassandraConnection>>();

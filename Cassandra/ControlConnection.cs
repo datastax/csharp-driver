@@ -28,7 +28,7 @@ namespace Cassandra
         private readonly Session _session;
         private readonly Cluster _cluster;
 
-        internal ControlConnection(Cluster cluster, 
+        internal ControlConnection(Cluster cluster,
                                    IEnumerable<IPAddress> clusterEndpoints,
                                    Policies policies,
                                    ProtocolOptions protocolOptions,
@@ -42,7 +42,7 @@ namespace Cassandra
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
             _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, "");
+                                   clientOptions, authProvider, "", false);
         }
 
         void Metadata_HostsEvent(object sender, HostsEventArgs e)
@@ -70,7 +70,6 @@ namespace Cassandra
         {
             _cluster.Metadata.HostsEvent += new HostsEventHandler(Metadata_HostsEvent);
 
-            _session.Init(false);
             SetupControlConnection();
         }
 
