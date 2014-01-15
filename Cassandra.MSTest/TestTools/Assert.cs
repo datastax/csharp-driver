@@ -25,6 +25,7 @@ namespace Cassandra.MSTest
 
     public class WorksForMeAttribute : Attribute { }
     public class NeedSomeFixAttribute : Attribute { }
+    public class StressAttribute : Attribute { }
 
     public class AssertException : Exception
     {
