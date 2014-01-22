@@ -66,7 +66,7 @@ namespace Cassandra
 
         readonly Session _owner;
 
-        private readonly SocketOptions _socketOptions;
+        private readonly SocketOptions _socketOptions;        
 
         void HostIsDown()
         {
