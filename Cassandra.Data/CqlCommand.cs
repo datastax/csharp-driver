@@ -127,7 +127,7 @@ namespace Cassandra.Data
             if (cm.StartsWith("CREATE ")
                 || cm.StartsWith("DROP ")
                 || cm.StartsWith("ALTER "))
-                CqlConnection.ManagedConnection.Cluster.WaitForSchemaAgreement(CqlConnection.ManagedConnection.Execute(commandText));
+                CqlConnection.ManagedConnection.WaitForSchemaAgreement(CqlConnection.ManagedConnection.Execute(commandText));
             else
                 CqlConnection.ManagedConnection.Execute(commandText);
             return -1;

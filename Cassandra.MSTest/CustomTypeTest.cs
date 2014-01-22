@@ -97,7 +97,7 @@ namespace Cassandra.MSTest
             + "    PRIMARY KEY (k, c)"
             + ") WITH COMPACT STORAGE";
 
-            Session.Cluster.WaitForSchemaAgreement(Session.Execute(tabledef));
+            Session.WaitForSchemaAgreement(Session.Execute(tabledef));
 
             Session.Execute("INSERT INTO test(k, c, v) VALUES (0, 's@foo:i@32', 1)");
             Session.Execute("INSERT INTO test(k, c, v) VALUES (0, 'i@42', 2)");

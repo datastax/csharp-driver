@@ -19,11 +19,12 @@ namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginPrepareQuery(int stramId, string cqlQuery, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "PREPARE", SetupKeyspace((streamId) =>
+            var jar = SetupJob(stramId, callback, state, owner, "PREPARE");
+            BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new PrepareRequest(streamId, cqlQuery), streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new PrepareRequest(jar.StreamId, cqlQuery), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
@@ -31,13 +32,14 @@ namespace Cassandra
                         var outp = (response as ResultResponse).Output ;
                         if (outp is OutputPrepared)
                             preparedQueries[(outp as OutputPrepared).QueryID] = cqlQuery;
-                        JobFinished(streamId, outp);
+                        JobFinished(jar, outp);
                     }
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                 }));
             }));
+            return jar;
         }
 
         public IOutput EndPrepareQuery(IAsyncResult result, object owner)
@@ -45,9 +47,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "PREPARE");
         }
 
-        public IOutput PrepareQuery(string cqlQuery)
+        public IOutput PrepareQuery(int streamId, string cqlQuery)
         {
-            return EndPrepareQuery(BeginPrepareQuery(cqlQuery, null, null, this), this);
+            return EndPrepareQuery(BeginPrepareQuery(streamId, cqlQuery, null, null, this), this);
         }
     }
 }

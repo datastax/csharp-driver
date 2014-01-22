@@ -52,8 +52,7 @@ namespace Cassandra
 
                 try
                 {
-                    lock(_stream)
-                        _stream.Write(buffer, offset, count);
+                    _stream.Write(buffer, offset, count);
                 }
                 catch (IOException ex)
                 {
@@ -67,8 +66,7 @@ namespace Cassandra
         public void WriteByte(byte b)
         {
             if (_ioError) throw new CassandraConnectionIOException();
-            lock (_stream)
-                _stream.WriteByte(b);
+            _stream.WriteByte(b);
         }
 
         public void Read(byte[] buffer, int offset, int count)
@@ -82,11 +80,7 @@ namespace Cassandra
             {
                 try
                 {
-                    int redl;
-                    lock (_stream)
-                    {
-                        redl = _stream.Read(buffer, curOffset, count - curOffset - offset);
-                    }
+                    int redl = _stream.Read(buffer, curOffset, count - curOffset - offset);
                     if (redl == 0)
                     {
                         throw new CassandraConnectionIOException();
@@ -121,11 +115,7 @@ namespace Cassandra
                 try
                 {
 
-                    int redl;
-                    lock (_stream)
-                    {
-                        redl = _stream.Read(_trashBuf, curOffset, count - curOffset);
-                    }
+                    int redl= _stream.Read(_trashBuf, curOffset, count - curOffset);
                     if (redl == 0)
                     {
                         throw new CassandraConnectionIOException();

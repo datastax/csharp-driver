@@ -45,7 +45,7 @@ namespace Cassandra.Data.Linq
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
         public StringBuilder WhereClause = new StringBuilder();
-        public string TableName;
+        public string QuotedTableName;
 
         public Dictionary<string, string> Alter = new Dictionary<string, string>();
         public Dictionary<string, Tuple<string, object, int>> Mappings = new Dictionary<string, Tuple<string, object, int>>();
@@ -64,12 +64,12 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT ");
-            sb.Append(SelectFields.Count == 0?"*":string.Join(", ", from f in SelectFields select Alter[f].CqlIdentifier()));
+            sb.Append(SelectFields.Count == 0 ? "*" : string.Join(", ", from f in SelectFields select Alter[f].QuoteIdentifier()));
 
             sb.Append(" FROM ");
-            sb.Append(TableName.CqlIdentifier());
+            sb.Append(QuotedTableName);
 
-            if (WhereClause.Length>0)
+            if (WhereClause.Length > 0)
             {
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
@@ -93,11 +93,17 @@ namespace Cassandra.Data.Linq
             return sb.ToString();
         }
 
-        public string GetDelete()
+        public string GetDelete(DateTimeOffset? timestamp)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
-            sb.Append(TableName.CqlIdentifier());
+            sb.Append(QuotedTableName);
+            if (timestamp != null)
+            {
+                sb.Append(" USING TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append(" ");
+            }
 
             if (WhereClause.Length > 0)
             {
@@ -109,11 +115,28 @@ namespace Cassandra.Data.Linq
             return sb.ToString();
         }
 
-        public string GetUpdate()
+        public string GetUpdate(int? ttl, DateTimeOffset? timestamp)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("UPDATE ");
-            sb.Append(TableName.CqlIdentifier());
+            sb.Append(QuotedTableName);
+            if (ttl != null || timestamp != null)
+            {
+                sb.Append(" USING ");
+            }
+            if (ttl != null)
+            {
+                sb.Append("TTL ");
+                sb.Append(ttl.Value);
+                if (timestamp != null)
+                    sb.Append(" AND ");
+            }
+            if (timestamp != null)
+            {
+                sb.Append("TIMESTAMP ");
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append(" ");
+            }
             sb.Append(" SET ");
 
 			var setStatements = new List<string>();
@@ -135,7 +158,7 @@ namespace Cassandra.Data.Linq
 
                 if (!Alter.ContainsKey(mapping.Key))
                     throw new CqlArgumentException("Unknown column: " + mapping.Key);
-				setStatements.Add(Alter[mapping.Key].CqlIdentifier() + " = " + val.Encode());
+				setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + val.Encode());
 			}
 
             if (setStatements.Count == 0)
@@ -147,7 +170,7 @@ namespace Cassandra.Data.Linq
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
             }
-
+            
             return sb.ToString();
         }
 
@@ -155,7 +178,7 @@ namespace Cassandra.Data.Linq
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("SELECT count(*) FROM ");
-            sb.Append(TableName.CqlIdentifier());
+            sb.Append(QuotedTableName);
 
             if (WhereClause.Length > 0)
             {
@@ -210,14 +233,17 @@ namespace Cassandra.Data.Linq
         {
             if (phasePhase.get() == ParsePhase.SelectBinding)
             {
-                for (int i = 0; i < node.Members.Count; i++)
+                if (node.Members != null)
                 {
-                    var binding = node.Arguments[i];
-                    if(binding.NodeType == ExpressionType.Parameter)
-                        throw new CqlLinqNotSupportedException(binding, phasePhase.get());
+                    for (int i = 0; i < node.Members.Count; i++)
+                    {
+                        var binding = node.Arguments[i];
+                        if (binding.NodeType == ExpressionType.Parameter)
+                            throw new CqlLinqNotSupportedException(binding, phasePhase.get());
 
-                    using (currentBindingName.set(node.Members[i].Name))
-                        this.Visit(binding);
+                        using (currentBindingName.set(node.Members[i].Name))
+                            this.Visit(binding);
+                    }
                 }
                 return node;
             }
@@ -452,6 +478,20 @@ namespace Cassandra.Data.Linq
                     }
                 }
             }
+            else if (phasePhase.get() == ParsePhase.SelectBinding)
+            {
+                var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                if (Alter.ContainsKey(currentBindingName.get()))
+                {
+                    Mappings[currentBindingName.get()] = Tuple.Create(currentBindingName.get(), val, Mappings.Count);
+                    SelectFields.Add(currentBindingName.get());
+                }
+                else
+                {
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
+                }
+                return node;
+            }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
         }
 
@@ -460,7 +500,7 @@ namespace Cassandra.Data.Linq
             if (node.Value is ITable)
             {
                 var table = (node.Value as ITable);
-                TableName = table.GetTableName();
+                QuotedTableName = table.GetQuotedTableName();
                 AllowFiltering = table.GetEntityType().GetCustomAttributes(typeof(AllowFilteringAttribute), false).Any();
                 
                 var props = table.GetEntityType().GetPropertiesOrFields();
@@ -496,7 +536,7 @@ namespace Cassandra.Data.Linq
             }
             else if (phasePhase.get() == ParsePhase.OrderBy || phasePhase.get() == ParsePhase.OrderByDescending)
             {
-                OrderBy.Add(Alter[(string)node.Value].CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                OrderBy.Add(Alter[(string)node.Value].QuoteIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
@@ -506,9 +546,15 @@ namespace Cassandra.Data.Linq
         {
             if (phasePhase.get() == ParsePhase.Condition)
             {
-                if (node.Expression.NodeType == ExpressionType.Parameter)
+                if (node.Expression == null)
                 {
-                    WhereClause.Append(Alter[node.Member.Name].CqlIdentifier());
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    WhereClause.Append(val.Encode());
+                    return node;
+                }
+                else if (node.Expression.NodeType == ExpressionType.Parameter)
+                {
+                    WhereClause.Append(Alter[node.Member.Name].QuoteIdentifier());
                     return node;
                 }
                 else if (node.Expression.NodeType == ExpressionType.Constant)
@@ -541,7 +587,13 @@ namespace Cassandra.Data.Linq
             else if (phasePhase.get() == ParsePhase.SelectBinding)
             {
                 var name = node.Member.Name;
-                if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
+                if (node.Expression == null)
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    Mappings[currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
+                    return node;
+                }
+                else if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
                 {
                     if (Alter.ContainsKey(currentBindingName.get()))
                     {
@@ -566,7 +618,7 @@ namespace Cassandra.Data.Linq
             else if (phasePhase.get() == ParsePhase.OrderBy || phasePhase.get() == ParsePhase.OrderByDescending)
             {
                 var name = node.Member.Name;
-                OrderBy.Add(Alter[(string)name].CqlIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                OrderBy.Add(Alter[(string)name].QuoteIdentifier() + (phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
 
                 if ((node.Expression is ConstantExpression))
                 {

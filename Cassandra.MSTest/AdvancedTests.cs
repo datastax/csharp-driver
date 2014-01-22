@@ -25,7 +25,8 @@ namespace Cassandra.MSTest
     public partial class AdvancedTests
     {
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
+        [Stress]
         public void ParallelInsert()
         {
             parallelInsertTest();
@@ -33,6 +34,7 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [WorksForMe]
+        [Stress]
         public void ErrorInjectionParallelInsert()
         {
             ErrorInjectionInParallelInsertTest();
@@ -40,9 +42,18 @@ namespace Cassandra.MSTest
 
         [TestMethod]
         [WorksForMe]
+        [Stress]
         public void MassiveAsync()
         {
             MassiveAsyncTest();
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        [Stress]
+        public void ErrorInjectionMassiveAsync()
+        {
+            MassiveAsyncErrorInjectionTest();
         }
 
         [TestMethod]

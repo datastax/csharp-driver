@@ -16,6 +16,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
@@ -48,15 +49,15 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
-        public ReadOnlyDictionary<string, int> Replication { get; private set; }
+        public IDictionary<string, int> Replication { get; private set; }
 
-        internal readonly AtomicValue<ReadOnlyDictionary<string, AtomicValue<TableMetadata>>> Tables =
-            new AtomicValue<ReadOnlyDictionary<string, AtomicValue<TableMetadata>>>(null);
+        internal readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>> Tables =
+            new AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>>(null);
 
         internal readonly ControlConnection _cc;
 
         internal KeyspaceMetadata(ControlConnection cc, string name, bool durableWrites, string strategyClass,
-                                  ReadOnlyDictionary<string, int> replicationOptions)
+                                  IDictionary<string, int> replicationOptions)
         {
             _cc = cc;
             Name = name;
@@ -138,7 +139,7 @@ namespace Cassandra
         {
             var sb = new StringBuilder();
 
-            sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.CqlIdentifier(Name)).Append(" WITH ");
+            sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
             sb.Append("REPLICATION = { 'class' : '").Append(Replication["class"]).Append("'");
             foreach (var rep in Replication)
             {

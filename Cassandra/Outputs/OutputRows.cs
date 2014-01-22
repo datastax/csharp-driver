@@ -34,7 +34,8 @@ namespace Cassandra
             this._reader = reader;
             Metadata = new RowSetMetadata(reader);
             Rows = reader.ReadInt32();
-            _disposedEvent = new ManualResetEvent(buffered);
+            if(!buffered)
+                _disposedEvent = new ManualResetEventSlim(buffered);
             _traceID = traceID;
         }
 
@@ -46,7 +47,7 @@ namespace Cassandra
         }
 
         int _curentIter = 0;
-        readonly ManualResetEvent _disposedEvent = null;
+        readonly ManualResetEventSlim _disposedEvent = null;
 
         public IEnumerable<int> GetRawColumnLengths()
         {
@@ -69,8 +70,11 @@ namespace Cassandra
         }
         public void WaitForDispose()
         {
-            _disposedEvent.WaitOne(Timeout.Infinite);
-            _disposedEvent.Close();
+            if (!_buffered)
+            {
+                _disposedEvent.Wait(Timeout.Infinite);
+                _disposedEvent.Dispose();
+            }
         }
     }
 }

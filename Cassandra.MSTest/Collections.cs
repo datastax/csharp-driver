@@ -80,7 +80,7 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
@@ -166,7 +166,7 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
@@ -253,7 +253,7 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>

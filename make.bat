@@ -2,7 +2,7 @@ git pull
 call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat"
 msbuild Cassandra.MyTest.sln /t:Clean /p:Configuration=Release
 msbuild Cassandra.MyTest.sln /p:Configuration=Release
-mkdir -p "Nuget\lib"
+mkdir "Nuget\lib"
 cp Cassandra/bin/Release/Cassandra.dll Nuget/lib/Cassandra.dll
 cp Cassandra.Data/bin/Release/Cassandra.Data.dll Nuget/lib/Cassandra.Data.dll
 cp Cassandra.Data.Linq/bin/Release/Cassandra.Data.Linq.dll Nuget/lib/Cassandra.Data.Linq.dll

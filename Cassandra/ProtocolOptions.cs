@@ -37,6 +37,7 @@ namespace Cassandra
         public const int DefaultPort = 9042;
 
         private readonly int _port;
+        private readonly SSLOptions _sslOptions;
         private CompressionType _compression = CompressionType.NoCompression;
  
         /// <summary>
@@ -58,16 +59,40 @@ namespace Cassandra
         {
             this._port = port;
         }
+               
+
+        /// <summary>       
+        /// Creates a new ProtocolOptions instance using the provided port and SSL context.        
+        /// </summary>
+        /// <param name="port">the port to use for the binary protocol.</param>
+        /// <param name="sslOptions">sslOptions the SSL options to use. Use null if SSL is not to be used.</param>
+        
+        public ProtocolOptions(int port, SSLOptions sslOptions)
+        {
+            this._port = port;
+            this._sslOptions = sslOptions;
+        }
 
         /// <summary>
         ///  The port used to connect to the Cassandra hosts.
         /// </summary>
         /// 
         /// <returns>the port used to connect to the Cassandra hosts.</returns>
-
+        
         public int Port
         {
             get { return _port; }
+        }
+
+        /// <summary>
+        /// Specified SSL options used to connect to the Cassandra hosts.
+        /// </summary>
+        /// 
+        /// <returns>SSL options used to connect to the Cassandra hosts.</returns>
+        
+        public SSLOptions SslOptions
+        {
+            get { return _sslOptions; }
         }
 
         /// <summary>

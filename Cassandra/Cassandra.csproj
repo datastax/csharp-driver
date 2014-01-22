@@ -18,20 +18,24 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;ERRORINJECTION;NET_40_OR_GREATER</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;ERRORINJECTION</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>
+    </NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;ERRORINJECTION;NET_40_OR_GREATER</DefineConstants>
+    <DefineConstants>TRACE;ERRORINJECTION</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\Cassandra.XML</DocumentationFile>
+    <NoWarn>
+    </NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>
@@ -86,6 +90,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Kerberos\WindowsAPI.cs" />
+    <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
@@ -95,7 +100,6 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="ClientOptions.cs" />
-    <Compile Include="DictSet.cs" />
     <Compile Include="Exceptions\AlreadyExistsException.cs" />
     <Compile Include="Exceptions\AuthenticationException.cs">
       <SubType>Code</SubType>
@@ -231,6 +235,7 @@
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
     <Compile Include="SocketOptions.cs" />
+    <Compile Include="SSLOptions.cs" />
     <Compile Include="Statement.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TokenFactory.cs" />

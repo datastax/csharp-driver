@@ -20,20 +20,22 @@ namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteQueryCredentials(IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "CREDENTIALS", new Action<int>((streamId) =>
+            var jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
+            BeginJob(jar, new Action(() =>
             {
-                Evaluate(new CredentialsRequest(streamId, credentials), streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
-                        JobFinished(streamId, new OutputVoid(null));
+                        JobFinished(jar, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                 }));
             }));
+            return jar;
         }
 
         public IOutput EndExecuteQueryCredentials(IAsyncResult result, object owner)
@@ -41,9 +43,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "CREDENTIALS");
         }
 
-        public IOutput ExecuteCredentials(IDictionary<string, string> credentials)
+        public IOutput ExecuteCredentials(int streamId, IDictionary<string, string> credentials)
         {
-            return EndExecuteQueryCredentials(BeginExecuteQueryCredentials(credentials, null, null, this), this);
+            return EndExecuteQueryCredentials(BeginExecuteQueryCredentials(streamId, credentials, null, null, this), this);
         }
     }
 }

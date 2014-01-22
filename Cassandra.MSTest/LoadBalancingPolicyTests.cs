@@ -247,10 +247,10 @@ namespace Cassandra.MSTest
                 query(c, 12);
 
                 assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 6);
                 assertQueried(Options.Default.IP_PREFIX + "3", 0);
                 assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 12);
+                assertQueried(Options.Default.IP_PREFIX + "5", 6);
 
                 resetCoordinators();
                 c.CCMBridge.DecommissionNode(5);

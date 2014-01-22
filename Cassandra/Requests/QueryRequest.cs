@@ -36,7 +36,7 @@
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(0x01, _flags, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
             wb.WriteInt16((short) _consistency);
             return wb.GetFrame();

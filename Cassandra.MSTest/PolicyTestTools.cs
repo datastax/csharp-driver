@@ -51,19 +51,19 @@ namespace Cassandra.MSTest
 
         public static void createSchema(Session session, int replicationFactor)
         {
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor)));
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)));
         }
 
         public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
         {
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF))));
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)));
         }
 
@@ -214,6 +214,7 @@ namespace Cassandra.MSTest
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
+                        Console.WriteLine(string.Format("Query {0} executed by {1} with consistency {2}", i.ToString(), ccord.ToString(), cac.ToString()));                        
                     }
                     addCoordinator(ccord, cac);
                 }

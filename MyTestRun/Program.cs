@@ -32,10 +32,8 @@ namespace MyTest
         static string[] TestPacks = new string[] 
         {
             "Cassandra.MyTest",
-#if NET_40_OR_GREATER
             "Cassandra.Data.MyTest",
             "Cassandra.Data.Linq.MyTest",
-#endif
         };
 
 
@@ -187,21 +185,18 @@ namespace MyTest
                         {
                             if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)
                             {
-                                if (!string.IsNullOrEmpty(MyTestOptions.Default.TestGroup))
-                                {
-                                    var catAttrs = mth.GetCustomAttributes(typeof(MyTest.TestCategoryAttribute), true);
-                                    if (catAttrs.Length == 0)
-                                        continue;
-
-                                    if (!(catAttrs[0] as TestCategoryAttribute).CategoryName.ToLower().Equals(MyTestOptions.Default.TestGroup.ToLower()))
-                                        continue;
-                                }
+                                if (mth.GetCustomAttributes(typeof(MyTest.StressAttribute), true).Length > 0)
+                                    if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
+                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
+                                        continue; 
                                 if (mth.GetCustomAttributes(typeof(MyTest.NeedSomeFixAttribute), true).Length > 0)
                                     if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
+                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
                                         && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
                                         continue;
                                 if (mth.GetCustomAttributes(typeof(MyTest.WorksForMeAttribute), true).Length > 0)
                                     if (((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
+                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
                                         && (MyTestOptions.Default.TestRunMode !=MyTestOptions.TestRunModeEnum.ShouldBeOk))
                                         || (MyTestOptions.Default.TestRunMode == MyTestOptions.TestRunModeEnum.Fixing))
                                         continue;

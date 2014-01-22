@@ -60,9 +60,8 @@ namespace Cassandra.MSTest
                                                     ConsistencyLevel.Two,
                                                     ConsistencyLevel.Three,
                                                     ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.All,
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum};
+                                                    ConsistencyLevel.All
+                };
 
                 // Test successful writes
                 foreach (var cl in acceptedList)
@@ -190,9 +189,7 @@ namespace Cassandra.MSTest
                                                     ConsistencyLevel.Two,
                                                     ConsistencyLevel.Quorum,
                                                     ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All,
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum};
+                                                    ConsistencyLevel.All};
 
                 // Test successful writes
                 foreach (var cl in acceptedList)
@@ -319,9 +316,7 @@ namespace Cassandra.MSTest
 
                 List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
                                                     ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All,
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum};
+                                                    ConsistencyLevel.All};
 
                 // Test successful writes
                 foreach (var cl in acceptedList)
@@ -447,9 +442,7 @@ namespace Cassandra.MSTest
                                                     ConsistencyLevel.Two,
                                                     ConsistencyLevel.Three,
                                                     ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.All,
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum};
+                                                    ConsistencyLevel.All};
 
                 // Test successful writes
                 foreach (var cl in acceptedList)
@@ -577,9 +570,7 @@ namespace Cassandra.MSTest
                                                     ConsistencyLevel.All
                                                     };
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum};
+                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){};
 
                 // Test successful writes
                 foreach (var cl in acceptedList)
@@ -715,9 +706,7 @@ namespace Cassandra.MSTest
                                                     ConsistencyLevel.All
                                                     };
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum};
+                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){};
 
                 // Test successful writes
                 foreach (var cl in acceptedList)

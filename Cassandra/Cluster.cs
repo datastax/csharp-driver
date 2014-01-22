@@ -19,6 +19,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Threading;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
@@ -49,6 +50,7 @@ namespace Cassandra
             this._metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
             var controlpolicies = new Cassandra.Policies(
+                //new ControlConnectionLoadBalancingPolicy(_configuration.Policies.LoadBalancingPolicy),
                 _configuration.Policies.LoadBalancingPolicy,
                 new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
                 Cassandra.Policies.DefaultRetryPolicy);
@@ -56,15 +58,19 @@ namespace Cassandra
             foreach (var ep in _contactPoints)
                 Metadata.AddHost(ep);
 
-            var poolingOptions = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
+            var poolingOptions = new PoolingOptions()
+                .SetCoreConnectionsPerHost(HostDistance.Local, 0)
+                .SetMaxConnectionsPerHost(HostDistance.Local, 1)
+                .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
+                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127)
+                ;
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
-                                                        new ProtocolOptions(_configuration.ProtocolOptions.Port),
+                                                        new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
                                                        poolingOptions, _configuration.SocketOptions,
                                                        new ClientOptions(
                                                            true,
-                                                           _configuration.ClientOptions.QueryAbortTimeout, null,
-                                                           _configuration.ClientOptions.AsyncCallAbortTimeout),
+                                                           _configuration.ClientOptions.QueryAbortTimeout, null),
                                                        _configuration.AuthInfoProvider);
 
             _metadata.SetupControllConnection(controlConnection);
@@ -118,21 +124,17 @@ namespace Cassandra
         ///  <code>keyspaceName</code>. </returns>
         public Session Connect(string keyspace)
         {
-            var scs = new Session(this, _configuration.Policies,
-                                  _configuration.ProtocolOptions,
-                                  _configuration.PoolingOptions, _configuration.SocketOptions,
-                                  _configuration.ClientOptions,
-                                  _configuration.AuthInfoProvider, keyspace);
-            scs.Init();
-            lock (_connectedSessions)
-                _connectedSessions.Add(scs);
+            Session scs = new Session(this, _configuration.Policies,
+                                      _configuration.ProtocolOptions,
+                                      _configuration.PoolingOptions,
+                                      _configuration.SocketOptions,
+                                      _configuration.ClientOptions,
+                                      _configuration.AuthInfoProvider, keyspace, true);
+            _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
-
-            _metadata.RefreshSchema();
 
             return scs;
         }
-
 
         /// <summary>
         /// Creates new session on this cluster, and sets it to default keyspace. 
@@ -167,7 +169,7 @@ namespace Cassandra
             get { return _configuration; }
         }
 
-        private List<Session> _connectedSessions = new List<Session>();
+        private ConcurrentDictionary<Guid,Session> _connectedSessions = new ConcurrentDictionary<Guid,Session>();
 
         private Metadata _metadata = null;
         /// <summary>
@@ -187,27 +189,24 @@ namespace Cassandra
         /// </summary>
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            List<Session> conccpy;
-            lock (_connectedSessions)
+            foreach(var kv in _connectedSessions)
             {
-                conccpy = new List<Session>(_connectedSessions);
-                _connectedSessions = new List<Session>();
+                Session ses;
+                if (_connectedSessions.TryRemove(kv.Key, out ses))
+                {
+                    ses.WaitForAllPendingActions(timeoutMs);
+                    ses.InternalDispose();
+                }
             }
-
-            foreach (var ses in conccpy)
-            {
-                ses.WaitForAllPendingActions(timeoutMs);
-                ses.InternalDispose();
-            }
-            _metadata.Dispose();
+            _metadata.ShutDown(timeoutMs);
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
 
         internal void SessionDisposed(Session s)
         {
-            lock (_connectedSessions)
-                _connectedSessions.Remove(s);
+            Session ses;
+            _connectedSessions.TryRemove(s.Guid, out ses);
         }
 
         public void Dispose()
@@ -223,16 +222,6 @@ namespace Cassandra
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
             return _metadata.RefreshSchema(keyspace, table);
-        }
-
-        public void WaitForSchemaAgreement(IPAddress queriedHost=null)
-        {
-            _metadata.WaitForSchemaAgreement(queriedHost);
-        }
-
-        public void WaitForSchemaAgreement(RowSet rs)
-        {
-            _metadata.WaitForSchemaAgreement(rs.Info.QueriedHost);
         }
 
     }
@@ -275,10 +264,11 @@ namespace Cassandra
 
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
         private int _port = ProtocolOptions.DefaultPort;
-        private IAuthProvider _authProvider = NoneAuthProvider.Instance;
+        private IAuthProvider _authProvider = null;
         private CompressionType _compression = CompressionType.NoCompression;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
+        private SSLOptions _sslOptions = null;
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private IReconnectionPolicy _reconnectionPolicy;
@@ -288,7 +278,6 @@ namespace Cassandra
         private string _defaultKeyspace = null;
 
         private int _queryAbortTimeout = Timeout.Infinite;
-        private int _asyncCallAbortTimeout = Timeout.Infinite;
 
         public ICollection<IPAddress> ContactPoints
         {
@@ -468,10 +457,10 @@ namespace Cassandra
                 );
 
             return new Configuration(policies,
-                                     new ProtocolOptions(_port).SetCompression(_compression),
+                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression),
                                      _poolingOptions,
                                      _socketOptions,
-                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace, _asyncCallAbortTimeout),
+                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
                                      _authProvider
                 );
         }
@@ -537,21 +526,6 @@ namespace Cassandra
             return this;
         }
 
-
-        /// <summary>
-        ///  Sets the asynchronous call timeout within created cluster.
-        ///  
-        ///  Default asynchronous call timeout value is set to <code>Infinity</code>
-        /// </summary>
-        /// <param name="asyncCallAbortTimeout">Timeout specified in milliseconds.</param>
-        /// <returns>this builder</returns>
-        public Builder WithAsyncCallTimeout(int asyncCallAbortTimeout)
-        {
-            this._asyncCallAbortTimeout = asyncCallAbortTimeout;
-            return this;
-        }
-
-
         /// <summary>
         ///  Sets default keyspace name for the created cluster.
         /// </summary>
@@ -562,7 +536,41 @@ namespace Cassandra
             this._defaultKeyspace = defaultKeyspace;
             return this;
         }
-        
+
+        /// <summary>
+        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options. 
+        /// </summary>
+        /// <remarks>
+        /// If SSL is enabled, the driver will not connect to any
+        /// Cassandra nodes that doesn't have SSL enabled and it is strongly
+        /// advised to enable SSL on every Cassandra node if you plan on using
+        /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
+        /// </remarks>
+        /// <param name="sslOptions">SSL options to use.</param>
+        /// <returns>this builder</returns>        
+        public Builder WithSSL()
+        {
+            this._sslOptions = new SSLOptions();
+            return this;
+        }
+
+        /// <summary>
+        ///  Enables the use of SSL for the created Cluster using the provided options. 
+        /// </summary>
+        /// <remarks>
+        /// If SSL is enabled, the driver will not connect to any
+        /// Cassandra nodes that doesn't have SSL enabled and it is strongly
+        /// advised to enable SSL on every Cassandra node if you plan on using
+        /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
+        /// </remarks>
+        /// <param name="sslOptions">SSL options to use.</param>
+        /// <returns>this builder</returns>        
+        public Builder WithSSL(SSLOptions sslOptions)
+        {
+            this._sslOptions = sslOptions;
+            return this;
+        }
+
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and
         ///  policies. This is a shorthand for <code>Cluster.buildFrom(this)</code>.

@@ -15,58 +15,63 @@
 //
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        Dictionary<byte[], string> preparedQueries = new Dictionary<byte[], string>();
+        ConcurrentDictionary<byte[], string> preparedQueries = new ConcurrentDictionary<byte[], string>();
 
-        public Action<int> SetupPreparedQuery(byte[] Id, string cql, Action<int> dx)
+        public Action SetupPreparedQuery(AsyncResult<IOutput> jar, byte[] Id, string cql, Action dx)
         {
-            return new Action<int>((streamId) =>
+            return new Action(() =>
             {
                 if (!preparedQueries.ContainsKey(Id))
                 {
-                    Evaluate(new PrepareRequest(streamId, cql), streamId, new Action<ResponseFrame>((frame2) =>
+                    Evaluate(new PrepareRequest(jar.StreamId, cql), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                     {
                         var response = FrameParser.Parse(frame2);
                         if (response is ResultResponse)
                         {
-                            preparedQueries[Id] = cql;
-                            dx(streamId);
+                            preparedQueries.TryAdd(Id, cql);
+                            dx();
                         }
                         else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                     }));
                 }
                 else
-                    dx(streamId);
+                    dx();
             });
         }
 
-        public IAsyncResult BeginExecuteQuery(byte[] Id, string cql, RowSetMetadata Metadata, object[] values,
+        public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata, object[] values,
                                               AsyncCallback callback, object state, object owner,
                                               ConsistencyLevel consistency, bool isTracing)
         {
-            return BeginJob(callback, state, owner, "EXECUTE", SetupKeyspace(SetupPreparedQuery(Id, cql, (streamId) =>
-                {
-                    Evaluate(new ExecuteRequest(streamId, Id, Metadata, values, consistency, isTracing), streamId,
-                             new Action<ResponseFrame>((frame2) =>
-                                 {
-                                     var response = FrameParser.Parse(frame2);
-                                     if (response is ResultResponse)
-                                         JobFinished(streamId, (response as ResultResponse).Output);
-                                     else
-                                         _protocolErrorHandlerAction(new ErrorActionParam()
-                                             {
-                                                 AbstractResponse = response,
-                                                 StreamId = streamId
-                                             });
+            var jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
 
-                                 }));
-                })));
+            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, Id, cql, () =>
+               {
+                   Evaluate(new ExecuteRequest(jar.StreamId, Id, Metadata, values, consistency, isTracing), jar.StreamId,
+                            new Action<ResponseFrame>((frame2) =>
+                                {
+                                    var response = FrameParser.Parse(frame2);
+                                    if (response is ResultResponse)
+                                        JobFinished(jar, (response as ResultResponse).Output);
+                                    else
+                                        _protocolErrorHandlerAction(new ErrorActionParam()
+                                            {
+                                                AbstractResponse = response,
+                                                Jar = jar
+                                            });
+
+                                }));
+               })));
+
+            return jar;
         }
 
         public IOutput EndExecuteQuery(IAsyncResult result, object owner)
@@ -74,10 +79,10 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteQuery(byte[] Id, string cql, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
+        public IOutput ExecuteQuery(int streamId, byte[] Id, string cql, RowSetMetadata Metadata, object[] values, ConsistencyLevel consistency,
                                     bool isTracing)
         {
-            return EndExecuteQuery(BeginExecuteQuery(Id, cql, Metadata, values, null, null, this, consistency, isTracing),
+            return EndExecuteQuery(BeginExecuteQuery(streamId, Id, cql, Metadata, values, null, null, this, consistency, isTracing),
                                    this);
         }
     }

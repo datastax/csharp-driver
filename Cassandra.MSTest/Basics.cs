@@ -60,7 +60,7 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          label text,
          number {1}
@@ -116,7 +116,7 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          incdec counter
          );", tableName)));
@@ -142,7 +142,7 @@ namespace Cassandra.MSTest
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          value {1}
@@ -181,7 +181,7 @@ namespace Cassandra.MSTest
         public void TimestampTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          ts timestamp
@@ -202,7 +202,7 @@ namespace Cassandra.MSTest
 
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          {1},
 PRIMARY KEY(tweet_id)
@@ -230,7 +230,7 @@ PRIMARY KEY(tweet_id)
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[i][0], toInsert[i][1], toInsert[i][2]));
             }
 
-            Session.Cluster.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName))
             );
 			Thread.Sleep(2000);
@@ -244,7 +244,7 @@ PRIMARY KEY(tweet_id)
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid,
          author text,

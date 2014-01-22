@@ -15,6 +15,7 @@
 //
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 #if MYTEST
 using MyTest;
@@ -22,9 +23,6 @@ using MyTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 
-#if NET_40_OR_GREATER
-using System.Numerics;
-#endif  
 
 namespace Cassandra.MSTest
 {
@@ -73,14 +71,12 @@ namespace Cassandra.MSTest
             insertingSingleValue(typeof(Decimal));
         }
 
-#if NET_40_OR_GREATER
         [TestMethod]
         [WorksForMe]
         public void testVarInt()
         {
             insertingSingleValue(typeof(BigInteger));
         }
-#endif
 
         [TestMethod]
         [WorksForMe]

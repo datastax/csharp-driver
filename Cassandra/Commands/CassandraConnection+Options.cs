@@ -19,20 +19,24 @@ namespace Cassandra
 {
     internal partial class CassandraConnection : IDisposable
     {
-        public IAsyncResult BeginExecuteQueryOptions(AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginExecuteQueryOptions(int _streamId, AsyncCallback callback, object state, object owner)
         {
-            return BeginJob(callback, state, owner, "OPTIONS", new Action<int>((streamId) =>
+            var jar = SetupJob(_streamId, callback, state, owner, "OPTIONS");
+
+            BeginJob(jar, new Action(() =>
             {
-                Evaluate(new OptionsRequest(streamId), streamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new OptionsRequest(jar.StreamId), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                 {
                     var response = FrameParser.Parse(frame2);
                     if (response is SupportedResponse)
-                        JobFinished( streamId, (response as SupportedResponse).Output);
+                        JobFinished(jar, (response as SupportedResponse).Output);
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, StreamId = streamId });
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
 
                 }));
             }), true);
+
+            return jar;
         }
 
         public IOutput EndExecuteQueryOptions(IAsyncResult result, object owner)
@@ -40,9 +44,9 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "OPTIONS");
         }
 
-        public IOutput ExecuteOptions()
+        public IOutput ExecuteOptions(int streamId)
         {
-            return EndExecuteQueryOptions(BeginExecuteQueryOptions(null, null, this), this);
+            return EndExecuteQueryOptions(BeginExecuteQueryOptions(streamId, null, null, this), this);
         }
     }
 }

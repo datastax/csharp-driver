@@ -16,6 +16,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Collections.Concurrent;
 
 namespace Cassandra
 {
@@ -157,70 +158,57 @@ namespace Cassandra
             this.rp = rp;
         }
 
-        class IPAddressComparer : IComparer<IPAddress>
+        //class IPAddressComparer : IComparer<IPAddress>
+        //{
+        //    public int Compare(IPAddress x, IPAddress y)
+        //    {
+        //        return x.ToString().CompareTo(y.ToString());
+        //    }
+        //}
+
+        private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
+
+        public bool TryGet(IPAddress endpoint, out Host host)
         {
-            public int Compare(IPAddress x, IPAddress y)
-            {
-                return x.ToString().CompareTo(y.ToString());
-            }
+            return _hosts.TryGetValue(endpoint, out host);
         }
 
-        private readonly SortedDictionary<IPAddress, Host> _hosts = new SortedDictionary<IPAddress, Host>(new IPAddressComparer());
-       
-
-        public Host this[IPAddress endpoint]
+        public ICollection<Host> ToCollection()
         {
-            get
-            {
-                lock (_hosts)
-                {
-                    if (_hosts.ContainsKey(endpoint))
-                        return _hosts[endpoint];
-                    else
-                        return null;
-                }
-            }
-        }
-
-        public ICollection<Host> All()
-        {
-            lock (_hosts)
-                return new List<Host>(_hosts.Values);
+            return new List<Host>(_hosts.Values);
         }
 
         public bool AddIfNotExistsOrBringUpIfDown(IPAddress ep)
         {
-            lock (_hosts)
-            {
-                if (!_hosts.ContainsKey(ep))
-                {
-                    _hosts.Add(ep, new Host(ep, rp));
+            if (!_hosts.ContainsKey(ep))
+                if (_hosts.TryAdd(ep, new Host(ep, rp)))
                     return true;
-                }
-                else
-                    return _hosts[ep].BringUpIfDown();
-            }
+
+            Host host;
+            if (_hosts.TryGetValue(ep, out host))
+                return host.BringUpIfDown();
+            else
+                return false;
         }
 
         public bool SetDownIfExists(IPAddress ep)
         {
-            lock (_hosts)
-                if (_hosts.ContainsKey(ep))
-                    return _hosts[ep].SetDown();
-            return false;
+            Host host;
+            if (_hosts.TryGetValue(ep, out host))
+                return host.SetDown();
+            else
+                return false;
         }
 
         public void RemoveIfExists(IPAddress ep)
         {
-            lock (_hosts)
-                if (_hosts.ContainsKey(ep))
-                    _hosts.Remove(ep);
+            Host host;
+            _hosts.TryRemove(ep, out host);
         }
 
-        public IEnumerable<IPAddress> AllEndPoints()
+        public IEnumerable<IPAddress> AllEndPointsToCollection()
         {
-            lock (_hosts)
-                return new List<IPAddress>(_hosts.Keys);
+            return new List<IPAddress>(_hosts.Keys);
         }
     }
 }

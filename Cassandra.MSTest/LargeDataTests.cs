@@ -193,7 +193,7 @@ namespace Cassandra.MSTest
             StringBuilder valus = new StringBuilder(" VALUES(" + key.ToString());
             for (int i = 0; i < 330; ++i)
             {
-                insrt.Append("," + createColumnName(i));
+                insrt.Append(",\"" + createColumnName(i)+"\"");
                 valus.Append("," + i.ToString());
             }
             insrt.Append(") " + valus.ToString() + ")");
@@ -225,16 +225,16 @@ namespace Cassandra.MSTest
         {
             try
             {
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute("DROP TABLE " + tableName));
             }
             catch (InvalidConfigurationInQueryException ex) { }
 
             if (tableName == "wide_table")                            
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(GetTableDeclaration()));            
             else                           
-                session.Cluster.WaitForSchemaAgreement(
+                session.WaitForSchemaAgreement(
                     session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, cqlType)));
             
             try
@@ -344,7 +344,7 @@ namespace Cassandra.MSTest
             tableDeclaration.Append("k INT PRIMARY KEY");
             for (int i = 0; i < 330; ++i)
             {
-                tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
+                tableDeclaration.Append(String.Format(", \"{0}\" INT", createColumnName(i)));
             }
             tableDeclaration.Append(")");
             return tableDeclaration.ToString();
@@ -366,13 +366,13 @@ namespace Cassandra.MSTest
 
             session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
             session.ChangeKeyspace("large_data");
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows")));
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows")));
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows")));
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text")));
 
             // Create the extra wide table definition
@@ -381,10 +381,10 @@ namespace Cassandra.MSTest
             tableDeclaration.Append("k INT PRIMARY KEY");
             for (int i = 0; i < 330; ++i)
             {
-                tableDeclaration.Append(String.Format(", {0} INT", createColumnName(i)));
+                tableDeclaration.Append(String.Format(", \"{0}\" INT", createColumnName(i)));
             }
             tableDeclaration.Append(")");
-            session.Cluster.WaitForSchemaAgreement(
+            session.WaitForSchemaAgreement(
                 session.Execute(tableDeclaration.ToString())
             );
 

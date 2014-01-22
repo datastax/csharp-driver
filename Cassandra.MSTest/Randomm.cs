@@ -16,9 +16,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-#if NET_40_OR_GREATER
 using System.Numerics;
-#endif
 using Cassandra;
 using System.IO;
 
@@ -77,12 +75,11 @@ namespace Cassandra.MSTest
                                scale);
         }
 
-#if NET_40_OR_GREATER
         public BigInteger NextBigInteger()  	
         {	  	
             return new BigInteger(Int64.MaxValue) * 10;	  	
         }
-#endif
+
         public string NextString()
         {
             return NextChar();

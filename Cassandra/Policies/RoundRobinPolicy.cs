@@ -15,6 +15,7 @@
 //
 ﻿using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
 
 
 namespace Cassandra
@@ -72,7 +73,6 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            List<Host> copyOfHosts = new List<Host>(_cluster.Metadata.AllHosts());
 
             int startidx = Interlocked.Increment(ref _index);
             
@@ -80,9 +80,11 @@ namespace Cassandra
             if (startidx > int.MaxValue - 10000)
                 Thread.VolatileWrite(ref _index, 0);
 
-            for (int i = 0; i < copyOfHosts.Count; i++)
+            var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+
+            for (int i = 0; i < copyOfHosts.Length; i++)
             {
-                startidx %= copyOfHosts.Count;
+                startidx %= copyOfHosts.Length;
 
                 var h = copyOfHosts[startidx];
 
@@ -90,7 +92,6 @@ namespace Cassandra
 
                 if (h.IsConsiderablyUp)
                     yield return h;
-
             }
         }
     }

@@ -43,7 +43,7 @@
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(0x01, _flags, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
             wb.WriteShortBytes(_id);
             wb.WriteUInt16((ushort) _values.Length);
             for (int i = 0; i < _metadata.Columns.Length; i++)

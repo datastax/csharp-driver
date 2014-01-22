@@ -515,7 +515,7 @@ namespace Cassandra.MSTest
                     {
                         query(c, 12);
                     }
-                    catch (AsyncCallException)
+                    catch (ThreadInterruptedException)
                     {
                         Console.Write("Thread broke");
                         Console.Write("[");
@@ -531,6 +531,8 @@ namespace Cassandra.MSTest
                 t1.Join(10000);
                 if (t1.IsAlive)
                     t1.Interrupt();
+
+                t1.Join();
 
                 // A weak test to ensure that the nodes were contacted
                 assertQueried(Options.Default.IP_PREFIX + "1", 0);
@@ -553,7 +555,7 @@ namespace Cassandra.MSTest
                     {
                         query(c, 12);
                     }
-                    catch (AsyncCallException)
+                    catch (ThreadInterruptedException)
                     {
                         Console.Write("Main Thread broke");
                         Console.Write("[");
@@ -592,11 +594,11 @@ namespace Cassandra.MSTest
                         init(c, 12);
                         Assert.Fail();
                     }
-                    catch (AsyncCallException e)
+                    catch (ThreadInterruptedException)
                     {
                         Console.WriteLine("2 Thread async call broke");
                     }
-                    catch (NoHostAvailableException e) 
+                    catch (NoHostAvailableException) 
                     {
                         Console.WriteLine("2 Thread no host");
                     }
@@ -606,6 +608,8 @@ namespace Cassandra.MSTest
                 t2.Join(10000);
                 if (t2.IsAlive)
                     t2.Interrupt();
+
+                t2.Join();
 
                 // TODO: Missing test to see if nodes were written to
 

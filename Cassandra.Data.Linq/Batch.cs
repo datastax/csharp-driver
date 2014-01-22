@@ -31,6 +31,7 @@ namespace Cassandra.Data.Linq
 
         private readonly StringBuilder _batchScript = new StringBuilder();
         private string _batchType = "";
+        protected DateTimeOffset? _timestamp = null;
 
         public void Append(CqlCommand cqlCommand)
         {
@@ -38,6 +39,20 @@ namespace Cassandra.Data.Linq
                 _batchType = "COUNTER ";
             _batchScript.Append(cqlCommand.ToString());
             _batchScript.AppendLine(";");
+        }
+
+        public bool IsEmpty { get { return _batchScript.Length == 0; } }
+
+        public new Batch SetConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            base.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
+        public Batch SetTimestamp(DateTimeOffset timestamp)
+        {
+            _timestamp = timestamp;
+            return this;
         }
 
         public void Append(IEnumerable<CqlCommand> cqlCommands)
@@ -70,7 +85,9 @@ namespace Cassandra.Data.Linq
 
         private string GetCql()
         {
-            return "BEGIN " + _batchType + "BATCH\r\n" + _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
+            return "BEGIN " + _batchType + "BATCH\r\n" +
+                ((_timestamp == null) ? "" : ("USING TIMESTAMP " + Convert.ToInt64(Math.Floor((_timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)).ToString() + " ")) +
+                _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
         }
 
         public override string ToString()

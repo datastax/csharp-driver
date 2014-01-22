@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -26,7 +27,16 @@ namespace Cassandra
         public IPAddress IPAddress;
     }
 
+    public class SchemaChangedEventArgs : EventArgs
+    {
+        public enum Kind { Created, Dropped, Updated }
+        public Kind What;
+        public string Keyspace;
+        public string Table;
+    }
+
     public delegate void HostsEventHandler(object sender, HostsEventArgs e);
+    public delegate void SchemaChangedEventHandler(object sender, SchemaChangedEventArgs e);
 
     /// <summary>
     ///  Keeps metadata on the connected cluster, including known nodes and schema
@@ -49,6 +59,7 @@ namespace Cassandra
         }
 
         public event HostsEventHandler HostsEvent;
+        public event SchemaChangedEventHandler SchemaChangedEvent;
         
         /// <summary>
         ///  Returns the name of currently connected cluster.
@@ -60,18 +71,27 @@ namespace Cassandra
 
         public Host GetHost(IPAddress address)
         {
-            return _hosts[address];
+            Host host;
+            if (_hosts.TryGet(address, out host))
+                return host;
+            return null;
         }
 
         internal Host AddHost(IPAddress address)
         {
             _hosts.AddIfNotExistsOrBringUpIfDown(address);
-            return _hosts[address];
+            return GetHost(address);
         }
 
         internal void RemoveHost(IPAddress address)
         {
             _hosts.RemoveIfExists(address);
+        }
+
+        internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
+        {
+            if (SchemaChangedEvent != null)
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs() { Keyspace = keyspace, What = what, Table = table });
         }
 
         internal void SetDownHost(IPAddress address, object sender = null)
@@ -95,16 +115,16 @@ namespace Cassandra
         /// <returns>collection of all known hosts of this cluster.</returns>
         public ICollection<Host> AllHosts()
         {
-            return _hosts.All();
+            return _hosts.ToCollection();
         }
 
 
         public IEnumerable<IPAddress> AllReplicas()
         {
-            return _hosts.AllEndPoints();
+            return _hosts.AllEndPointsToCollection();
         }
 
-        internal void RebuildTokenMap(string partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
+        internal void RebuildTokenMap(string partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
         {
             this._tokenMap = TokenMap.Build(partitioner, allTokens);
         }
@@ -174,8 +194,7 @@ namespace Cassandra
 
         public void Dispose()
         {
-            if (_controlConnection != null)
-                _controlConnection.Dispose();
+            ShutDown();
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)
@@ -186,21 +205,21 @@ namespace Cassandra
             return true;
         }
 
-        public void WaitForSchemaAgreement(IPAddress queriedHost = null)
+        public void ShutDown(int timeoutMs = Timeout.Infinite)
         {
-            _controlConnection.WaitForSchemaAgreement(queriedHost);
+            if (_controlConnection != null)
+                _controlConnection.Shutdown(timeoutMs);
         }
-
     }
 
     internal class TokenMap
     {
 
-        private readonly Dictionary<IToken, DictSet<IPAddress>> _tokenToCassandraClusterHosts;
+        private readonly Dictionary<IToken, HashSet<IPAddress>> _tokenToCassandraClusterHosts;
         private readonly IToken[] _ring;
         internal readonly TokenFactory Factory;
 
-        private TokenMap(TokenFactory factory, Dictionary<IToken, DictSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
+        private TokenMap(TokenFactory factory, Dictionary<IToken, HashSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
         {
             this.Factory = factory;
             this._tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
@@ -208,15 +227,15 @@ namespace Cassandra
             Array.Sort(this._ring);
         }
 
-        public static TokenMap Build(String partitioner, Dictionary<IPAddress, DictSet<string>> allTokens)
+        public static TokenMap Build(String partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
         {
 
             TokenFactory factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
                 return null;
 
-            Dictionary<IToken, DictSet<IPAddress>> tokenToCassandraClusterHosts = new Dictionary<IToken, DictSet<IPAddress>>();
-            DictSet<IToken> allSorted = new DictSet<IToken>();
+            Dictionary<IToken, HashSet<IPAddress>> tokenToCassandraClusterHosts = new Dictionary<IToken, HashSet<IPAddress>>();
+            HashSet<IToken> allSorted = new HashSet<IToken>();
 
             foreach (var entry in allTokens)
             {
@@ -228,7 +247,7 @@ namespace Cassandra
                         IToken t = factory.Parse(tokenStr);
                         allSorted.Add(t);
                         if (!tokenToCassandraClusterHosts.ContainsKey(t))
-                            tokenToCassandraClusterHosts.Add(t, new DictSet<IPAddress>());
+                            tokenToCassandraClusterHosts.Add(t, new HashSet<IPAddress>());
                         tokenToCassandraClusterHosts[t].Add(cassandraClusterHost);
                     }
                     catch (ArgumentException)
@@ -240,7 +259,7 @@ namespace Cassandra
             return new TokenMap(factory, tokenToCassandraClusterHosts, new List<IToken>(allSorted));
         }
 
-        public DictSet<IPAddress> GetReplicas(IToken token)
+        public HashSet<IPAddress> GetReplicas(IToken token)
         {
 
             // Find the primary replica

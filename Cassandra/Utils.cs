@@ -26,12 +26,12 @@ using System.Diagnostics;
 
 namespace Cassandra
 {
-    internal class AtomicValue<T>
+    internal class AtomicValue<T> 
     {
-        T _val;
+        public T RawValue;
         public AtomicValue(T val)
         {
-            this._val = val;
+            this.RawValue = val;
             Thread.MemoryBarrier();
         }
         public T Value
@@ -39,17 +39,18 @@ namespace Cassandra
             get
             {
                     Thread.MemoryBarrier();
-                    var r = this._val;
+                    var r = this.RawValue;
                     Thread.MemoryBarrier();
                     return r;
             }
             set
             {
                     Thread.MemoryBarrier();
-                    this._val = value;
+                    this.RawValue = value;
                     Thread.MemoryBarrier();
             }
         }
+
     }
 
     internal class AtomicArray<T>
@@ -75,6 +76,13 @@ namespace Cassandra
                     _arr[idx] = value;
                     Thread.MemoryBarrier();
             }
+        }
+
+        public void BlockCopyFrom(T[] src, int srcoffset, int destoffset, int count)
+        {
+            Thread.MemoryBarrier();
+            Buffer.BlockCopy(src, srcoffset, _arr, destoffset, count); 
+            Thread.MemoryBarrier();
         }
     }
 
@@ -110,12 +118,18 @@ namespace Cassandra
         }
     }
 
-    internal class WeakReference<T> : WeakReference
+    internal class BoolSwitch
     {
-        public WeakReference(T val): base(val){}
-        public T Value { get { return (T)this.Target; } set { this.Target = value; } }
+        int val = 0;
+        public bool TryTake()
+        {
+            return Interlocked.Increment(ref val) == 1;
+        }
+        public bool IsTaken()
+        {
+            return val > 0;
+        }
     }
-
 
     internal static class StaticRandom
     {
@@ -136,7 +150,7 @@ namespace Cassandra
             {
                 if (!IdentifierRx.IsMatch(id))
                 {
-                    return "\"" + id.Replace("\"", "\"\"") + "\"";
+                    return QuoteIdentifier(id);
                 }
                 else
                 {
@@ -144,6 +158,11 @@ namespace Cassandra
                 }
             }
             throw new ArgumentException("invalid identifier");
+        }
+
+        public static string QuoteIdentifier(string id)
+        {
+            return "\"" + id.Replace("\"", "\"\"") + "\"";
         }
 
         public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes)
@@ -154,21 +173,21 @@ namespace Cassandra
   @"CREATE KEYSPACE {0} 
   WITH replication = {1} 
    AND durable_writes = {2}"
-  , Cassandra.CqlQueryTools.CqlIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
+  , Cassandra.CqlQueryTools.QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
         }
 
         public static string GetUseKeyspaceCQL(string keyspace)
         {
             return string.Format(
   @"USE {0}"
-              , CqlQueryTools.CqlIdentifier(keyspace));
+              , CqlQueryTools.QuoteIdentifier(keyspace));
         }
 
         public static string GetDropKeyspaceCQL(string keyspace)
         {
             return string.Format(
   @"DROP KEYSPACE {0}"
-              , CqlQueryTools.CqlIdentifier(keyspace));
+              , CqlQueryTools.QuoteIdentifier(keyspace));
         }
 
         private static readonly string[] HexStringTable = new string[]
@@ -297,154 +316,7 @@ namespace Cassandra
 
     }
 
-    public class ReadOnlyDictionary<TKey, TValue> : IDictionary<TKey, TValue>
-    {
-        //based on http://www.blackwasp.co.uk/ReadOnlyDictionary.aspx
-
-        readonly IDictionary<TKey, TValue> _dictionary;
-
-        public ReadOnlyDictionary()
-        {
-            _dictionary = new Dictionary<TKey, TValue>();
-        }
-
-        public ReadOnlyDictionary(ReadOnlyDictionary<TKey, TValue> rodic)
-        {
-            _dictionary = rodic._dictionary;
-        }
-
-        public ReadOnlyDictionary(IDictionary<TKey, TValue> dictionary)
-        {
-            _dictionary = dictionary;
-        }
-
-        #region IDictionary<TKey,TValue> Members
-
-        void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
-        {
-            throw ReadOnlyException();
-        }
-
-        public bool ContainsKey(TKey key)
-        {
-            return _dictionary.ContainsKey(key);
-        }
-
-        public ICollection<TKey> Keys
-        {
-            get { return _dictionary.Keys; }
-        }
-
-        bool IDictionary<TKey, TValue>.Remove(TKey key)
-        {
-            throw ReadOnlyException();
-        }
-
-        public bool TryGetValue(TKey key, out TValue value)
-        {
-            return _dictionary.TryGetValue(key, out value);
-        }
-
-        public ICollection<TValue> Values
-        {
-            get { return _dictionary.Values; }
-        }
-
-        public TValue this[TKey key]
-        {
-            get
-            {
-                Thread.MemoryBarrier();
-                return _dictionary[key];
-            }
-        }
-
-        TValue IDictionary<TKey, TValue>.this[TKey key]
-        {
-            get
-            {
-                return this[key];
-            }
-            set
-            {
-                throw ReadOnlyException();
-            }
-        }
-
-        #endregion
-
-        #region ICollection<KeyValuePair<TKey,TValue>> Members
-
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
-        {
-            throw ReadOnlyException();
-        }
-
-        void ICollection<KeyValuePair<TKey, TValue>>.Clear()
-        {
-            throw ReadOnlyException();
-        }
-
-        public bool Contains(KeyValuePair<TKey, TValue> item)
-        {
-            return _dictionary.Contains(item);
-        }
-
-        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
-        {
-            _dictionary.CopyTo(array, arrayIndex);
-        }
-
-        public int Count
-        {
-            get { return _dictionary.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
-
-        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
-        {
-            throw ReadOnlyException();
-        }
-
-        #endregion
-
-        #region IEnumerable<KeyValuePair<TKey,TValue>> Members
-
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-        {
-            return _dictionary.GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable Members
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        #endregion
-
-        private static Exception ReadOnlyException()
-        {
-            return new NotSupportedException("This dictionary is read-only");
-        }
-
-        internal void InternalSetup(TKey key, TValue value)
-        {
-            Thread.MemoryBarrier();
-            if (!_dictionary.ContainsKey(key))
-                _dictionary.Add(key, value);
-            else
-                _dictionary[key] = value;
-            Thread.MemoryBarrier();
-        }
-    }
+    
 
     public class Logger
     {                        

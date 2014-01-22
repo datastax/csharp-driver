@@ -16,10 +16,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-#if NET_40_OR_GREATER
 using System.Numerics;
 using System.IO;
-#endif
 
 namespace Cassandra
 {
@@ -33,11 +31,7 @@ namespace Cassandra
     public static class TypeAdapters
     {
         public static ITypeAdapter DecimalTypeAdapter = new DecimalTypeAdapter();
-#if NET_40_OR_GREATER
         public static ITypeAdapter VarIntTypeAdapter = new BigIntegerTypeAdapter();
-#else
-        public static ITypeAdapter VarIntTypeAdapter = new NullTypeAdapter();
-#endif
         public static ITypeAdapter CustomTypeAdapter = new DynamicCompositeTypeAdapter();
     }
 
@@ -152,7 +146,6 @@ namespace Cassandra
         }
     }
 
-#if NET_40_OR_GREATER
     public class BigIntegerTypeAdapter : ITypeAdapter
     {
         public Type GetDataType()
@@ -171,7 +164,6 @@ namespace Cassandra
             return ((BigInteger)value).ToByteArray();
         }
     }
-#endif
 
     public class DynamicCompositeTypeAdapter : ITypeAdapter
     {

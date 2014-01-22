@@ -68,7 +68,7 @@ namespace Cassandra.MSTest
 
             try
             {
-                Session.Cluster.WaitForSchemaAgreement(
+                Session.WaitForSchemaAgreement(
                     Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)")
                 );
             }

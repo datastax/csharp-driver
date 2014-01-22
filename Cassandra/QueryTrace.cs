@@ -202,7 +202,7 @@ namespace Cassandra
                 }
 
                 _events = new List<Event>();
-                
+
                 using (var evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId)))
                 {
                     foreach (var evRow in evRows.GetRows())
@@ -210,7 +210,7 @@ namespace Cassandra
                         _events.Add(new Event(evRow.GetValue<string>("activity"),
                                              new DateTimeOffset(Utils.GetTimestampFromGuid(evRow.GetValue<Guid>("event_id")) + (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
                                              evRow.GetValue<IPEndPoint>("source").Address,
-                                             evRow.GetValue<int>("source_elapsed"),
+                                             evRow.IsNull("source_elapsed") ? 0 : evRow.GetValue<int>("source_elapsed"),
                                                 evRow.GetValue<string>("thread")));
                     }
                 }

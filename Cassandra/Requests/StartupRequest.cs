@@ -32,7 +32,7 @@ namespace Cassandra
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(0x01, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, 0x00, (byte)_streamId, OpCode);
             wb.WriteUInt16((ushort)_options.Count);
             foreach(var kv in _options)
             {

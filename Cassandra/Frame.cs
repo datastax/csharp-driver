@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+﻿using System.IO;
+namespace Cassandra
 {
 
     internal class FrameHeader
@@ -38,13 +39,15 @@
     
     internal class ResponseFrame
     {
+        public const byte ProtocolResponseVersionByte = 0x81;
+
         public FrameHeader FrameHeader;
         public IProtoBuf RawStream;
     }
 
     internal struct RequestFrame
     {
-        public byte[] Buffer;
+        public MemoryTributary Buffer;
 
         public const int VersionIdx = 0;
         public const int FlagsIdx = 1;
@@ -52,6 +55,8 @@
         public const int OpcodeIdIdx = 3;
         public const int LenIdx = 4;
         public const int BodyIdx = 8;
+
+        public const byte ProtocolRequestVersionByte = 0x01;
 
     }
 

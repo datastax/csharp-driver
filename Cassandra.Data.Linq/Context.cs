@@ -109,29 +109,37 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public ContextTable<TEntity> AddTable<TEntity>(string tableName = null) where TEntity : class
+        internal static string QuotedGlobalTableName(string calcedTableName, string keyspaceName)
         {
-            var tn = Table<TEntity>.CalculateName(tableName);
+            if (keyspaceName != null)
+                return keyspaceName.QuoteIdentifier() + "." + calcedTableName.QuoteIdentifier();
+            else
+                return calcedTableName.QuoteIdentifier();
+        }
+
+        public ContextTable<TEntity> AddTable<TEntity>(string tableName = null,string keyspaceName = null) where TEntity : class
+        {
+            var tn = QuotedGlobalTableName(Table<TEntity>.CalculateName(tableName),keyspaceName);
             if (_tables.ContainsKey(tn))
                 return new ContextTable<TEntity>((Table<TEntity>)_tables[tn], this);
             else
             {
-                var table = new Table<TEntity>(_managedSession, tn);
+                var table = new Table<TEntity>(_managedSession, tableName, keyspaceName);
                 _tables.Add(tn, table);
                 _mutationTrackers.Add(tn, new MutationTracker<TEntity>());
                 return new ContextTable<TEntity>(table, this);
             }
         }
 
-        public bool HasTable<TEntity>(string tableName = null) where TEntity : class
+        public bool HasTable<TEntity>(string tableName = null, string keyspaceName = null) where TEntity : class
         {
-            var tn = Table<TEntity>.CalculateName(tableName);
+            var tn = QuotedGlobalTableName(Table<TEntity>.CalculateName(tableName), keyspaceName);
             return _tables.ContainsKey(tn);
         }
 
-        public ContextTable<TEntity> GetTable<TEntity>(string tableName = null) where TEntity : class
+        public ContextTable<TEntity> GetTable<TEntity>(string tableName = null, string keyspaceName = null) where TEntity : class
         {
-            var tn = Table<TEntity>.CalculateName(tableName);
+            var tn = QuotedGlobalTableName(Table<TEntity>.CalculateName(tableName), keyspaceName);
             return new ContextTable<TEntity>((Table<TEntity>)_tables[tn], this);
         }
 
@@ -207,7 +215,7 @@ namespace Cassandra.Data.Linq
                         enableTracing|=_mutationTrackers[table.Key].AppendChangesToBatch(counterBatchScript, table.Key);
 
                 foreach (var additional in _additionalCommands)
-                    if (tableTypes[additional.GetTable().GetTableName()] == TableType.Counter)
+                    if (tableTypes[additional.GetTable().GetQuotedTableName()] == TableType.Counter)
                     {
                         counterBatchScript.AppendLine(additional.ToString() + ";");
                         enableTracing |= additional.IsTracing;
@@ -233,7 +241,7 @@ namespace Cassandra.Data.Linq
                         enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(batchScript, table.Key);
 
                 foreach (var additional in _additionalCommands)
-                    if (tableTypes[additional.GetTable().GetTableName()] == TableType.Standard)
+                    if (tableTypes[additional.GetTable().GetQuotedTableName()] == TableType.Standard)
                     {
                         enableTracing |= additional.IsTracing;
                         batchScript.AppendLine(additional.ToString() + ";");
@@ -368,37 +376,37 @@ namespace Cassandra.Data.Linq
 
         public void EnableQueryTracing<TEntity>(Table<TEntity> table, TEntity entity, bool enable = true)
         {
-            (_mutationTrackers[table.GetTableName()] as MutationTracker<TEntity>).EnableQueryTracing(entity, enable);
+            (_mutationTrackers[table.GetQuotedTableName()] as MutationTracker<TEntity>).EnableQueryTracing(entity, enable);
         }
 
         public List<QueryTrace> RetriveAllQueryTraces(ITable table)
         {
-            return _mutationTrackers[table.GetTableName()].RetriveAllQueryTraces();
+            return _mutationTrackers[table.GetQuotedTableName()].RetriveAllQueryTraces();
         }
 
         public QueryTrace RetriveQueryTrace<TEntity>(Table<TEntity> table, TEntity entity)
         {
-            return (_mutationTrackers[table.GetTableName()] as MutationTracker<TEntity>).RetriveQueryTrace(entity);
+            return (_mutationTrackers[table.GetQuotedTableName()] as MutationTracker<TEntity>).RetriveQueryTrace(entity);
         }
 
         public void Attach<TEntity>(Table<TEntity> table, TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
         {
-            (_mutationTrackers[table.GetTableName()] as MutationTracker<TEntity>).Attach(entity, updmod, trmod);
+            (_mutationTrackers[table.GetQuotedTableName()] as MutationTracker<TEntity>).Attach(entity, updmod, trmod);
         }
 
         public void Detach<TEntity>(Table<TEntity> table, TEntity entity)
         {
-            (_mutationTrackers[table.GetTableName()] as MutationTracker<TEntity>).Detach(entity);
+            (_mutationTrackers[table.GetQuotedTableName()] as MutationTracker<TEntity>).Detach(entity);
         }
 
         public void Delete<TEntity>(Table<TEntity> table, TEntity entity)
         {
-            (_mutationTrackers[table.GetTableName()] as MutationTracker<TEntity>).Delete(entity);
+            (_mutationTrackers[table.GetQuotedTableName()] as MutationTracker<TEntity>).Delete(entity);
         }
 
         public void AddNew<TEntity>(Table<TEntity> table, TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
         {
-            (_mutationTrackers[table.GetTableName()] as MutationTracker<TEntity>).AddNew(entity, trmod);
+            (_mutationTrackers[table.GetQuotedTableName()] as MutationTracker<TEntity>).AddNew(entity, trmod);
         }
     }
 }

@@ -28,7 +28,7 @@
         public RequestFrame GetFrame()
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(0x01, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, 0x00, (byte)_streamId, OpCode);
             return wb.GetFrame();
         }
     }
