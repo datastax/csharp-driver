@@ -215,16 +215,15 @@ namespace Cassandra
     internal class TokenMap
     {
 
-        private readonly Dictionary<IToken, HashSet<IPAddress>> _tokenToCassandraClusterHosts;
+        private readonly Dictionary<IToken, List<IPAddress>> _tokenToCassandraClusterHosts;
         private readonly IToken[] _ring;
         internal readonly TokenFactory Factory;
 
-        private TokenMap(TokenFactory factory, Dictionary<IToken, HashSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
+        private TokenMap(TokenFactory factory, Dictionary<IToken, List<IPAddress>> tokenToCassandraClusterHosts, IToken[] ring)
         {
             this.Factory = factory;
             this._tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
-            this._ring = ring.ToArray();
-            Array.Sort(this._ring);
+            this._ring = ring;
         }
 
         public static TokenMap Build(String partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
@@ -256,10 +255,28 @@ namespace Cassandra
                     }
                 }
             }
-            return new TokenMap(factory, tokenToCassandraClusterHosts, new List<IToken>(allSorted));
+
+            var ring = new List<IToken>(allSorted).ToArray();
+            Array.Sort(ring);
+
+            // Extend the tokenToCassandraClusterHosts to include subsequent tokens.
+            // So that if the host for some token is not local we can find the next
+            // local host in the list.
+
+            Dictionary<IToken, List<IPAddress>> extended = new Dictionary<IToken, List<IPAddress>>();
+            for (int idx = 0; idx < ring.Length; ++idx)
+            {
+                IToken token = ring[idx];
+                extended.Add(token, new List<IPAddress>(tokenToCassandraClusterHosts[token]));
+                for (int offs = 1; offs < 10; ++offs)
+                {
+                    extended[token].AddRange(tokenToCassandraClusterHosts[ring[(idx + offs) % ring.Length]]);
+                }
+            }
+            return new TokenMap(factory, extended, ring);
         }
 
-        public HashSet<IPAddress> GetReplicas(IToken token)
+        public List<IPAddress> GetReplicas(IToken token)
         {
 
             // Find the primary replica
