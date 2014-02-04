@@ -102,6 +102,33 @@ namespace Cassandra.MSTest
                 throw new ApplicationException("", e);// RuntimeException(e);
             }
         }
+
+        /// <summary>
+        ///     Verifies that exactly n queries were received by the specified set of hosts.  Request distribution within 
+        ///     the set is not tested.
+        /// </summary>
+        public static void assertQueriedSet(String[] hosts, int n)
+        {
+            try
+            {
+                int queriedInSet = 0;
+                foreach (var host in hosts)
+                {
+                    queriedInSet += coordinators.ContainsKey(IPAddress.Parse(host)) ? (int)coordinators[IPAddress.Parse(host)] : 0;
+                }
+
+                if (DEBUG)
+                    Debug.WriteLine(String.Format("Expected: {0}\tReceived: {1}", n, queriedInSet));
+                else
+                    Assert.Equal(queriedInSet, n, String.Format("For [{0}]", String.Join(", ", hosts)));
+
+            }
+            catch (Exception e)
+            {
+                throw new ApplicationException("", e);// RuntimeException(e);
+            }
+        }
+
         protected void assertQueriedAtLeast(String host, int n)
         {
             try
