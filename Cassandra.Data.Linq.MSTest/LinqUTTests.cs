@@ -161,7 +161,7 @@ namespace Cassandra.Data.Linq.MSTest
                 batch.Append(table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
                 batch.Append((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).Update());
                 batch.Append((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete());
-                Assert.Equal(batch.ToString().Replace("\r",""),
+                Assert.Equal(batch.ToString().Replace("\r", ""),
                     @"BEGIN BATCH
 INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
 UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40);
@@ -181,6 +181,20 @@ UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40);
 DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40);
 APPLY BATCH".Replace("\r", ""));
             }
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void TestCqlFromLinqPaxosSupport()
+        {
+            var table = SessionExtensions.GetTable<TestTable>(null);
+
+            Assert.Equal(
+               (table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
+               @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3) IF NOT EXISTS");
+
+            Assert.Equal((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a)=>a.f1==123).ToString(),
+                    @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40) IF ""x_f1"" = 123");
         }
     }
 }

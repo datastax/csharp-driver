@@ -158,21 +158,16 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
-            var cqls = CqlQueryTools.GetCreateCQL(this);
+            var cqls = CqlQueryTools.GetCreateCQL(this, false);
             foreach (var cql in cqls)
                 _session.WaitForSchemaAgreement(_session.Execute(cql));
         }
 
         public void CreateIfNotExists()
         {
-            try
-            {
-                Create();
-            }
-            catch (AlreadyExistsException)
-            {
-                //do nothing
-            }
+            var cqls = CqlQueryTools.GetCreateCQL(this, true);
+            foreach (var cql in cqls)
+                _session.WaitForSchemaAgreement(_session.Execute(cql));
         }
 
         public IQueryable<TElement> CreateQuery<TElement>(System.Linq.Expressions.Expression expression)

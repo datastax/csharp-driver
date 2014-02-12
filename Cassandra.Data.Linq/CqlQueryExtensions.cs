@@ -139,7 +139,14 @@ namespace Cassandra.Data.Linq
         {
             return new CqlUpdate(source.Expression, source.Provider);
         }
-        
+
+        public static CqlUpdate UpdateIf<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
+        {
+            return new CqlUpdate(Expression.Call(
+                null, CqlMthHelps.UpdateIfMi,
+                 new Expression[] { source.Expression, predicate }), source.Provider);
+        }
+
         /// <summary>
         /// Returns a CqlQuery which after execution will return IEnumerable&lt;TSource&gt;
         /// with specified number of contiguous elements from the start of a sequence.

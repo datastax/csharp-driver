@@ -165,15 +165,15 @@ namespace Cassandra
             return "\"" + id.Replace("\"", "\"\"") + "\"";
         }
 
-        public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes)
+        public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes, bool ifNotExists)
         {
             if (replication == null)
                 replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "1" } };
             return string.Format(
-  @"CREATE KEYSPACE {0} 
+  @"CREATE KEYSPACE {3}{0} 
   WITH replication = {1} 
    AND durable_writes = {2}"
-  , Cassandra.CqlQueryTools.QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false");
+  , Cassandra.CqlQueryTools.QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false", ifNotExists ? "IF NOT EXISTS " : "");
         }
 
         public static string GetUseKeyspaceCQL(string keyspace)
@@ -183,11 +183,11 @@ namespace Cassandra
               , CqlQueryTools.QuoteIdentifier(keyspace));
         }
 
-        public static string GetDropKeyspaceCQL(string keyspace)
+        public static string GetDropKeyspaceCQL(string keyspace,bool ifExists)
         {
             return string.Format(
-  @"DROP KEYSPACE {0}"
-              , CqlQueryTools.QuoteIdentifier(keyspace));
+  @"DROP KEYSPACE {1}{0}"
+  , CqlQueryTools.QuoteIdentifier(keyspace),ifExists?"IF EXISTS ":"");
         }
 
         private static readonly string[] HexStringTable = new string[]

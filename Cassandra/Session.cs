@@ -353,7 +353,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes), QueryProtocolOptions.DEFAULT , _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes, false), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
@@ -370,14 +370,9 @@ namespace Cassandra
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            try
-            {                
-                CreateKeyspace(keyspace_name, replication, durable_writes);
-            }
-            catch (AlreadyExistsException)
-            {
-                _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspace_name));                
-            }
+            WaitForSchemaAgreement(
+                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+            _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
         /// <summary>
@@ -388,7 +383,7 @@ namespace Cassandra
         public void DeleteKeyspace(string keyspace_name)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name, false), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -399,14 +394,9 @@ namespace Cassandra
         /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspaceIfExists(string keyspace_name)
         {
-            try
-            {
-                DeleteKeyspace(keyspace_name);
-            }
-            catch (InvalidConfigurationInQueryException)
-            {
-                _logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspace_name));
-            }
+            WaitForSchemaAgreement(
+                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+            _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
         /// <summary>

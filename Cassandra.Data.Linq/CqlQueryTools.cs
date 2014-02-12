@@ -302,16 +302,18 @@ namespace Cassandra.Data.Linq
             return memName;
         }
 
-        public static List<string> GetCreateCQL(ITable table)
+        public static List<string> GetCreateCQL(ITable table, bool ifNotExists)
         {
             var commands = new List<string>();
             var sb = new StringBuilder();
             int countersCount = 0;
             bool countersSpotted = false;
             sb.Append("CREATE TABLE ");
+            if (ifNotExists)
+                sb.Append("IF NOT EXISTS ");
             sb.Append(table.GetQuotedTableName());
             sb.Append("(");
-            string crtIndex = "CREATE INDEX ON " + table.GetQuotedTableName() + "(";
+            string crtIndex = "CREATE INDEX " + (ifNotExists ? "IF NOT EXISTS " : "") + "ON " + table.GetQuotedTableName() + "(";
             string crtIndexAll = string.Empty;
              
             var clusteringKeys = new SortedDictionary<int, ClusteringKeyAttribute>();
@@ -459,22 +461,22 @@ namespace Cassandra.Data.Linq
             sb.Append(")");
             if (ifNotExists)
             {
-                sb.Append(" IF NOT EXISTS ");
+                sb.Append(" IF NOT EXISTS");
             }
             if (ttl != null || timestamp != null)
             {
-                sb.Append(" USING ");
+                sb.Append(" USING");
             }
             if (ttl != null)
             {
-                sb.Append("TTL ");
+                sb.Append(" TTL ");
                 sb.Append(ttl.Value);
                 if (timestamp != null)
-                    sb.Append(" AND ");
+                    sb.Append(" AND");
             }
             if (timestamp != null)
             {
-                sb.Append("TIMESTAMP ");
+                sb.Append(" TIMESTAMP ");
                 sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
             }
 
@@ -721,6 +723,7 @@ namespace Cassandra.Data.Linq
         static CqlMthHelps _instance = new CqlMthHelps();
         internal static MethodInfo SelectMi = typeof(CqlMthHelps).GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo UpdateIfMi = typeof(CqlMthHelps).GetMethod("UpdateIf", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo FirstMi = typeof(CqlMthHelps).GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo First_ForCQLTableMi = typeof(CqlMthHelps).GetMethod("First", new Type[] { typeof(ITable), typeof(int), typeof(object) });        
         internal static MethodInfo FirstOrDefaultMi = typeof(CqlMthHelps).GetMethod("FirstOrDefault", BindingFlags.NonPublic | BindingFlags.Static);
@@ -732,7 +735,8 @@ namespace Cassandra.Data.Linq
         internal static MethodInfo ThenByMi = typeof(CqlMthHelps).GetMethod("ThenBy", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo ThenByDescendingMi = typeof(CqlMthHelps).GetMethod("ThenByDescending", BindingFlags.NonPublic | BindingFlags.Static);
         internal static object Select(object a, object b) { return null; }
-        internal static object Where(object a, object b) { return null; }        
+        internal static object Where(object a, object b) { return null; }
+        internal static object UpdateIf(object a, object b) { return null; }
         internal static object First(object a, int b) { return null; }
         internal static object FirstOrDefault(object a, int b) { return null; }
         internal static object Take(object a, int b) { return null; }

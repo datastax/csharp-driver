@@ -51,7 +51,7 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
