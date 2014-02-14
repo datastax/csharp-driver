@@ -25,8 +25,6 @@ namespace Cassandra
         internal AbstractResponse(ResponseFrame frame)
         {
             BEBinaryReader = new BEBinaryReader(frame);
-            if (frame.FrameHeader.Version != ResponseFrame.ProtocolResponseVersionByte)
-                throw new ProtocolErrorException("Invalid protocol version");
 
             if ((frame.FrameHeader.Flags & 0x02) == 0x02)
             {

@@ -52,6 +52,9 @@ namespace Cassandra
         readonly AtomicArray<AsyncResult<IOutput>> _frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
         readonly AtomicArray<Timer> _frameReadTimers = new AtomicArray<Timer>(sbyte.MaxValue + 1);
 
+        volatile byte _binaryProtocolRequestVersionByte = RequestFrame.ProtocolV2RequestVersionByte;
+        volatile byte _binaryProtocolResponseVersionByte = ResponseFrame.ProtocolV2ResponseVersionByte;
+
         Action<ResponseFrame> _defaultFatalErrorAction;
 
         struct ErrorActionParam
@@ -77,8 +80,14 @@ namespace Cassandra
 
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
-                                     IAuthProvider authInfoProvider)
+                                     IAuthProvider authInfoProvider, int protocolVersion)
         {
+            if (protocolVersion == 1)
+            {
+                _binaryProtocolRequestVersionByte = RequestFrame.ProtocolV1RequestVersionByte;
+                _binaryProtocolResponseVersionByte = ResponseFrame.ProtocolV1ResponseVersionByte;
+            }
+
             this.Guid = Guid.NewGuid();
             this._owner = owner;
             _bufferingMode = null;           
@@ -401,6 +410,9 @@ namespace Cassandra
                         {
                             foreach (var frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _socketStream, _compressor))
                             {
+                                if (frame.FrameHeader.Version != _binaryProtocolResponseVersionByte)
+                                    throw new CassandraConnectionBadProtocolVersionException();
+
                                 Action<ResponseFrame> act = null;
                                 if (frame.FrameHeader.StreamId == 0xFF)
                                     act = _frameEventCallback.Value;
@@ -536,7 +548,7 @@ namespace Cassandra
         {
             try
             {
-                var frame = req.GetFrame();
+                var frame = req.GetFrame(_binaryProtocolRequestVersionByte);
                 lock (_socketStream)
                 {
                     _frameReadCallback[streamId] = nextAction;

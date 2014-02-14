@@ -27,10 +27,10 @@ namespace Cassandra
             this._streamId = streamId;
             this._token = token;
         }
-        public RequestFrame GetFrame()
+        public RequestFrame GetFrame(byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
             wb.WriteBytes(_token);
             return wb.GetFrame();
         }

@@ -35,14 +35,15 @@ namespace Cassandra
                                    PoolingOptions poolingOptions,
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
-                                   IAuthProvider authProvider)
+                                   IAuthProvider authProvider,
+                                   int binaryProtocolVersion)
         {
             this._cluster = cluster;
             this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
             _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, "");
+                                   clientOptions, authProvider, "", binaryProtocolVersion);
         }
 
         void Metadata_HostsEvent(object sender, HostsEventArgs e)
@@ -73,6 +74,8 @@ namespace Cassandra
             _session.Init(false);
             SetupControlConnection();
         }
+
+        internal int BinaryProtocolVersion { get { return _session.BinaryProtocolVersion; } }
 
         BoolSwitch shotDown = new BoolSwitch();
 

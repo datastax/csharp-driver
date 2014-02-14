@@ -45,7 +45,7 @@
                     Output = new OutputSetKeyspace(BEBinaryReader.ReadString());
                     break;
                 case ResultResponseKind.Prepared:
-                    Output = new OutputPrepared(BEBinaryReader);
+                    Output = new OutputPrepared(BEBinaryReader, frame.FrameHeader.Version==ResponseFrame.ProtocolV2ResponseVersionByte);
                     break;
                 case ResultResponseKind.SchemaChange:
                     Output = new OutputSchemaChange(BEBinaryReader, TraceID);

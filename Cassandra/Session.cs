@@ -44,6 +44,7 @@ namespace Cassandra
         /// </summary>
         public string Keyspace { get { return _keyspace; } }
         private string _keyspace;
+        private int _binaryProtocolVersion;
 
         public Cluster Cluster { get { return _cluster; } }
 
@@ -57,8 +58,10 @@ namespace Cassandra
                          SocketOptions socketOptions,
                          ClientOptions clientOptions,
                          IAuthProvider authProvider,
-                         string keyspace)
+                         string keyspace,
+                         int binaryProtocolVersion)
         {
+            this._binaryProtocolVersion = binaryProtocolVersion;
             this._cluster = cluster;
 
             this._protocolOptions = protocolOptions;
@@ -75,6 +78,8 @@ namespace Cassandra
 
             Guid = Guid.NewGuid();
         }
+
+        public int BinaryProtocolVersion { get { return _binaryProtocolVersion; } }
 
         Timer _trashcanCleaner;
 
@@ -303,11 +308,25 @@ namespace Cassandra
                     }
                 }
 
-                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider);
+            RETRY:
+                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider, _binaryProtocolVersion);
 
                 var streamId = nconn.AllocateStreamId();
 
-                var options = ProcessExecuteOptions(nconn.ExecuteOptions(streamId));
+                try
+                {
+                    var options = ProcessExecuteOptions(nconn.ExecuteOptions(streamId));
+                }
+                catch (CassandraConnectionBadProtocolVersionException)
+                {
+                    if (_binaryProtocolVersion == 1)
+                        throw;
+                    else
+                    {
+                        _binaryProtocolVersion = 1;
+                        goto RETRY;
+                    }
+                }
 
                 if (!string.IsNullOrEmpty(_keyspace))
                     nconn.SetKeyspace(_keyspace);
@@ -370,9 +389,23 @@ namespace Cassandra
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
-            _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
+            if (_binaryProtocolVersion > 1)
+            {
+                WaitForSchemaAgreement(
+                    Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
+            }
+            else
+            {
+                try
+                {
+                    CreateKeyspace(keyspace_name, replication, durable_writes);
+                }
+                catch (AlreadyExistsException)
+                {
+                    _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspace_name));
+                }
+            }
         }
 
         /// <summary>
@@ -394,9 +427,23 @@ namespace Cassandra
         /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspaceIfExists(string keyspace_name)
         {
-            WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
-            _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
+            if (_binaryProtocolVersion > 1)
+            {
+                WaitForSchemaAgreement(
+                    Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
+            }
+            else
+            {
+                try
+                {
+                    DeleteKeyspace(keyspace_name);
+                }
+                catch (InvalidConfigurationInQueryException)
+                {
+                    _logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspace_name));
+                }
+            }
         }
 
         /// <summary>

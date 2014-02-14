@@ -39,6 +39,9 @@
     <Compile Include="..\Cassandra\BEBinaryWriter.cs">
       <Link>BEBinaryWriter.cs</Link>
     </Compile>
+    <Compile Include="..\Cassandra\MemoryTributary.cs">
+      <Link>MemoryTributary.cs</Link>
+    </Compile>
     <Compile Include="ConsistencyTests.cs" />
     <Compile Include="StressTest2.cs" />
     <Compile Include="CustomTypeTest.cs" />

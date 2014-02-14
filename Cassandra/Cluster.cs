@@ -42,6 +42,7 @@ namespace Cassandra
         private readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Configuration _configuration;
+        private int _binaryProtocolVersion;
 
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
@@ -67,13 +68,16 @@ namespace Cassandra
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
                                                         new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
-                                                       poolingOptions, _configuration.SocketOptions,
-                                                       new ClientOptions(
-                                                           true,
-                                                           _configuration.ClientOptions.QueryAbortTimeout, null),
-                                                       _configuration.AuthInfoProvider);
+                                                        poolingOptions, _configuration.SocketOptions,
+                                                        new ClientOptions(
+                                                            true,
+                                                            _configuration.ClientOptions.QueryAbortTimeout, null),
+                                                        _configuration.AuthInfoProvider,
+                                                        2//lets start from protocol version 2
+                                                        );
 
             _metadata.SetupControllConnection(controlConnection);
+            _binaryProtocolVersion = controlConnection.BinaryProtocolVersion;
         }
 
         /// <summary>
@@ -129,7 +133,7 @@ namespace Cassandra
                                   _configuration.PoolingOptions,
                                   _configuration.SocketOptions,
                                   _configuration.ClientOptions,
-                                  _configuration.AuthInfoProvider, keyspace);
+                                  _configuration.AuthInfoProvider, keyspace,_binaryProtocolVersion);
             scs.Init();
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");

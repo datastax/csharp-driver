@@ -134,10 +134,11 @@ namespace Cassandra.Data.Linq
 
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
+            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values);
+            var cql = visitor.GetSelect(out values, withValues);
             return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
         }
 
@@ -201,11 +202,13 @@ namespace Cassandra.Data.Linq
 
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
+            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
+
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
 
             object[] values;
-            var cql = visitor.GetCount(out values);
+            var cql = visitor.GetCount(out values, withValues);
             return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
         }
 
@@ -295,10 +298,12 @@ namespace Cassandra.Data.Linq
 
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
+            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
+
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values);
+            var cql = visitor.GetSelect(out values, withValues);
 
             return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
         }
@@ -461,9 +466,10 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
+            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetDelete(out values, _timestamp);
+            return visitor.GetDelete(out values, _timestamp, withValues);
         }
 
         public override string ToString()
@@ -494,7 +500,8 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out values, _ttl, _timestamp, _ifNotExists);
+            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out values, _ttl, _timestamp, _ifNotExists, withValues);
         }
 
         public override string ToString()
@@ -513,9 +520,10 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
+            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out values, _ttl, _timestamp);   
+            return visitor.GetUpdate(out values, _ttl, _timestamp,withValues);   
         }
 
         public override string ToString()

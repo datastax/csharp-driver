@@ -38,6 +38,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Batch.cs" />
+    <Compile Include="BatchV1.cs" />
+    <Compile Include="BatchV2.cs" />
     <Compile Include="Context.cs">
       <SubType>Code</SubType>
     </Compile>

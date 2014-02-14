@@ -1,3 +1,4 @@
+using System;
 //
 //      Copyright (C) 2012 DataStax Inc.
 //
@@ -37,10 +38,12 @@ namespace Cassandra
                 this._flags = 0x02;
         }
 
-        public RequestFrame GetFrame()
+        public RequestFrame GetFrame(byte protocolVersionByte)
         {
+            if (protocolVersionByte != RequestFrame.ProtocolV2RequestVersionByte)
+                throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, _flags, (byte)_streamId, OpCode);
             wb.WriteByte((byte)_type);
             wb.WriteInt16((short)_requests.Count);
             foreach (var br in _requests)

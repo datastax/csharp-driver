@@ -26,10 +26,10 @@
             this._streamId = streamId;
             this._cqlQuery = cqlQuery;
         }
-        public RequestFrame GetFrame()
+        public RequestFrame GetFrame(byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
             return wb.GetFrame();
         }

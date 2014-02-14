@@ -1,3 +1,4 @@
+using System;
 //
 //      Copyright (C) 2012 DataStax Inc.
 //
@@ -17,30 +18,29 @@
 
 namespace Cassandra
 {
-    internal class RegisterForEventRequest : IRequest
+    internal class CredentialsRequest : IRequest
     {
-        public const byte OpCode = 0x0B;
-
+        public const byte OpCode = 0x04;
         readonly int _streamId;
-        readonly List<string> _eventTypes;
-
-        public RegisterForEventRequest(int streamId, CassandraEventType eventTypes)
+        readonly IDictionary<string, string> _credentials;
+        public CredentialsRequest(int streamId, IDictionary<string, string> credentials)
         {
             this._streamId = streamId;
-            this._eventTypes = new List<string>();
-            if ((eventTypes & CassandraEventType.StatusChange) == CassandraEventType.StatusChange)
-                this._eventTypes.Add("STATUS_CHANGE");
-            if ((eventTypes & CassandraEventType.TopologyChange) == CassandraEventType.TopologyChange)
-                this._eventTypes.Add("TOPOLOGY_CHANGE");
-            if ((eventTypes & CassandraEventType.SchemaChange) == CassandraEventType.SchemaChange)
-                this._eventTypes.Add("SCHEMA_CHANGE");
+            this._credentials = credentials;
         }
-
         public RequestFrame GetFrame(byte protocolVersionByte)
         {
+            if (protocolVersionByte != RequestFrame.ProtocolV1RequestVersionByte)
+                throw new NotSupportedException("Credentials request is supported in C* <= 1.2.x"); 
+            
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
-            wb.WriteStringList(_eventTypes);
+            wb.WriteUInt16((ushort)_credentials.Count);
+            foreach (var kv in _credentials)
+            {
+                wb.WriteString(kv.Key);
+                wb.WriteString(kv.Value);
+            }
             return wb.GetFrame();
         }
     }

@@ -40,10 +40,10 @@
                  this._flags = 0x02;
          }
 
-         public RequestFrame GetFrame()
+         public RequestFrame GetFrame(byte protocolVersionByte)
          {
              var wb = new BEBinaryWriter();
-             wb.WriteFrameHeader(RequestFrame.ProtocolRequestVersionByte, _flags, (byte)_streamId, OpCode);
+             wb.WriteFrameHeader(protocolVersionByte, _flags, (byte)_streamId, OpCode);
              wb.WriteShortBytes(_id);
              _queryProtocolOptions.Write(wb, _consistency);
 

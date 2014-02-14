@@ -17,7 +17,7 @@
 {
     internal interface IRequest
     {
-        RequestFrame GetFrame();
+        RequestFrame GetFrame(byte protocolVersionByte);
     }
     internal interface IQueryRequest :IRequest
     {

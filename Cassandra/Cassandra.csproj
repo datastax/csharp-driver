@@ -94,6 +94,7 @@
     <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
     <Compile Include="Commands\CassandraConnection+Execute.cs" />
     <Compile Include="Commands\CassandraConnection+Options.cs" />
+    <Compile Include="Commands\CassandraConnection+Credentials.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="ClientOptions.cs" />
@@ -193,6 +194,7 @@
     <Compile Include="Responses\ResultResponse.cs" />
     <Compile Include="Responses\SupportedResponse.cs" />
     <Compile Include="Responses\ErrorResponse.cs" />
+    <Compile Include="Requests\CredentialsRequest.cs" />
     <Compile Include="Requests\ExecuteRequest.cs" />
     <Compile Include="Frame.cs" />
     <Compile Include="FrameParser.cs" />
@@ -227,6 +229,7 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Int.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Bigint.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
+    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />

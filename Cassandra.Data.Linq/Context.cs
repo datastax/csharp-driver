@@ -66,8 +66,16 @@ namespace Cassandra.Data.Linq
         }
     }
 
+
     public class Context
     {
+        private struct CqlSaveTag
+        {
+            public Dictionary<string, TableType> TableTypes;
+            public TableType TableType;
+            public List<CqlCommand> NewAdditionalCommands;
+        }
+
         private Session _managedSession = null;
 
         private string _keyspaceName;
@@ -173,14 +181,94 @@ namespace Cassandra.Data.Linq
             return _managedSession.EndExecute(ar);
         }
 
-        private struct CqlSaveTag
+        public IAsyncResult BeginSaveChangesBatch(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
-            public Dictionary<string, TableType> TableTypes;
-            public TableType TableType;
-            public List<CqlCommand> NewAdditionalCommands;
+            if(_managedSession.BinaryProtocolVersion>1)
+                return BeginSaveChangesBatchV2(tableType, consistencyLevel, callback, state);
+            else
+                return BeginSaveChangesBatchV1(tableType, consistencyLevel, callback, state);
         }
 
-        public IAsyncResult BeginSaveChangesBatch(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
+        public IAsyncResult BeginSaveChangesBatchV1(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
+        {
+            if (tableType == TableType.All)
+                throw new ArgumentOutOfRangeException("tableType");
+
+            var tableTypes = new Dictionary<string, TableType>();
+
+            foreach (var table in _tables)
+            {
+                bool isCounter = false;
+                var props = table.Value.GetEntityType().GetPropertiesOrFields();
+                foreach (var prop in props)
+                {
+                    Type tpy = prop.GetTypeFromPropertyOrField();
+                    if (
+                        prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as
+                        CounterAttribute != null)
+                    {
+                        isCounter = true;
+                        break;
+                    }
+                }
+                tableTypes.Add(table.Key, isCounter ? TableType.Counter : TableType.Standard);
+            }
+
+            var newAdditionalCommands = new List<CqlCommand>();
+            if (((tableType & TableType.Counter) == TableType.Counter))
+            {
+                bool enableTracing = false;
+                var counterBatchScript = new StringBuilder();
+                foreach (var table in _tables)
+                    if (tableTypes[table.Key] == TableType.Counter)
+                        enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(counterBatchScript, table.Key);
+
+                foreach (var additional in _additionalCommands)
+                    if (tableTypes[additional.GetTable().GetQuotedTableName()] == TableType.Counter)
+                    {
+                        counterBatchScript.AppendLine(additional.ToString() + ";");
+                        enableTracing |= additional.IsTracing;
+                    }
+                    else if (tableType == TableType.Counter)
+                        newAdditionalCommands.Add(additional);
+
+                if (counterBatchScript.Length != 0)
+                {
+                    return BeginExecuteWriteQuery(
+                        "BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH", null, consistencyLevel, enableTracing,
+                            new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Counter, NewAdditionalCommands = newAdditionalCommands }, callback, state);
+                }
+            }
+
+
+            if (((tableType & TableType.Standard) == TableType.Standard))
+            {
+                bool enableTracing = false;
+                var batchScript = new StringBuilder();
+                foreach (var table in _tables)
+                    if (tableTypes[table.Key] == TableType.Standard)
+                        enableTracing |= _mutationTrackers[table.Key].AppendChangesToBatch(batchScript, table.Key);
+
+                foreach (var additional in _additionalCommands)
+                    if (tableTypes[additional.GetTable().GetQuotedTableName()] == TableType.Standard)
+                    {
+                        enableTracing |= additional.IsTracing;
+                        batchScript.AppendLine(additional.ToString() + ";");
+                    }
+                    else if (tableType == TableType.Standard)
+                        newAdditionalCommands.Add(additional);
+
+                if (batchScript.Length != 0)
+                {
+                    return BeginExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH", null, consistencyLevel, enableTracing,
+                        new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
+                }
+            }
+
+            return null;
+        }
+
+        public IAsyncResult BeginSaveChangesBatchV2(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             if (tableType == TableType.All)
                 throw new ArgumentOutOfRangeException("tableType");
@@ -333,7 +421,7 @@ namespace Cassandra.Data.Linq
             _additionalCommands = newAdditionalCommands;
         }
 
-        private List<CqlCommand> _additionalCommands = new List<CqlCommand>();
+        internal List<CqlCommand> _additionalCommands = new List<CqlCommand>();
 
         public void AppendCommand(CqlCommand cqlCommand)
         {

@@ -25,6 +25,7 @@ namespace Cassandra.Data.Linq
     {
         void SaveChangesOneByOne(Context context, string tablename, ConsistencyLevel consistencyLevel);
         bool AppendChangesToBatch(BatchStatement batchScript, string tablename);
+        bool AppendChangesToBatch(StringBuilder batchScript, string tablename);
         void BatchCompleted(QueryTrace trace);
         List<QueryTrace> RetriveAllQueryTraces();
     }
@@ -270,6 +271,38 @@ namespace Cassandra.Data.Linq
                     continue;
                 if (cql != null)
                     batchScript.AddQuery(new SimpleStatement(cql).BindObjects(values));
+            }
+            return enableTracing;
+        }
+
+        public bool AppendChangesToBatch(StringBuilder batchScript, string tablename)
+        {
+            bool enableTracing = false;
+            foreach (var kv in _table)
+            {
+                if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
+                    throw new InvalidOperationException();
+
+                if (kv.Value.QueryTracingEnabled)
+                    enableTracing = true;
+
+                object[] values;
+                var cql = "";
+                if (kv.Value.MutationType == MutationType.Add)
+                    cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null, false, false);
+                else if (kv.Value.MutationType == MutationType.Delete)
+                    cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename, out values, false);
+                else if (kv.Value.MutationType == MutationType.None)
+                {
+                    if (kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone)
+                        cql = CqlQueryTools.GetUpdateCQLAndValues(kv.Key, kv.Value.Entity, tablename, out values, true, false);
+                    else
+                        cql = CqlQueryTools.GetUpdateCQLAndValues(kv.Key, kv.Value.Entity, tablename, out values, false, false);
+                }
+                else
+                    continue;
+                if (cql != null)
+                    batchScript.AppendLine(cql + ";");
             }
             return enableTracing;
         }

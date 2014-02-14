@@ -14,31 +14,26 @@
 //   limitations under the License.
 //
 ﻿using System;
-using System.IO;
+using System.Text;
 
 namespace Cassandra
 {
-    internal class CassandraConnectionBadProtocolVersionException : IOException
+    internal partial class TypeInterpreter
     {
-        public CassandraConnectionBadProtocolVersionException(Exception innerException = null)
-            : base("cassandra connection bad protocol version", innerException)
+        public static object ConvertFromText(IColumnInfo type_info, byte[] value, Type cSharpType)
         {
+            return Encoding.UTF8.GetString((byte[])value);
         }
-    }
 
-    internal class CassandraConnectionIOException : IOException
-    {
-        public CassandraConnectionIOException(Exception innerException = null)
-            : base("cassandra connection io exception", innerException)
+        public static Type GetDefaultTypeFromText(IColumnInfo type_info)
         {
+            return typeof(string);
         }
-    }
 
-    internal class CassandraConnectionTimeoutException : TimeoutException
-    {
-        public CassandraConnectionTimeoutException()
-            : base("cassandra connection timeout exception")
+        public static byte[] InvConvertFromText(IColumnInfo type_info, object value)
         {
+            CheckArgument<string>(value);
+            return Encoding.UTF8.GetBytes((string)value);
         }
     }
 }
