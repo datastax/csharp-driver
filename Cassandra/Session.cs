@@ -847,7 +847,7 @@ namespace Cassandra
                                     token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
 
                                 token.InnerExceptions[token.Connection.GetHostAdress()].Add(exc);
-                                ExecConn(token, false);
+                                ExecConn(token, exc is UnavailableException);
                                 return;
                             default:
                                 token.Complete(this, null);
