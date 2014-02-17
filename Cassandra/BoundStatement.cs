@@ -80,7 +80,7 @@ namespace Cassandra
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {            
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, QueryProtocolOptions.CreateFromQuery(this, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), callback, state, null, this, this, tag, IsTracing);
+            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, QueryProtocolOptions.CreateFromQuery(this, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), callback, state, this.ConsistencyLevel, this, this, tag, IsTracing);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)

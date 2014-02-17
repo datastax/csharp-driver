@@ -584,6 +584,12 @@ namespace Cassandra.Data.Linq
                         return node;
                     }
                 }
+                else
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    currentConditionBuilder.get().Append(cqlTool.AddValue(val));
+                    return node;
+                }
             }
             else if (phasePhase.get() == ParsePhase.SelectBinding)
             {

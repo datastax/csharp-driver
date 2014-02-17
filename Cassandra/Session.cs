@@ -840,7 +840,7 @@ namespace Cassandra
                             case RetryDecision.RetryDecisionType.Retry:
                                 if (token.LongActionAc.IsCompleted)
                                     return;
-                                token.Consistency = decision.RetryConsistencyLevel.HasValue ? decision.RetryConsistencyLevel.Value : token.Consistency;
+                                token.Consistency = (decision.RetryConsistencyLevel.HasValue && (decision.RetryConsistencyLevel.Value<ConsistencyLevel.Serial)) ? decision.RetryConsistencyLevel.Value : token.Consistency;
                                 token.QueryRetries++;
 
                                 if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))

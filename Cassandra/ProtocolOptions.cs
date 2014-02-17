@@ -16,6 +16,7 @@
 using System.Threading;
 using System.Collections.Generic;
 using System.IO;
+using System;
 
 namespace Cassandra
 {
@@ -200,6 +201,9 @@ namespace Cassandra
 
         internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency)
         {
+            if ((ushort)(extConsistency ?? Consistency) >= (ushort)ConsistencyLevel.Serial)
+                throw new InvalidOperationException("Serial consistency specified as a non-serial one.");
+
             wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
             wb.WriteByte((byte)Flags);
 
@@ -218,7 +222,11 @@ namespace Cassandra
             if ((Flags & QueryFlags.WithPagingState) == QueryFlags.WithPagingState)
                 wb.WriteBytes(PagingState);
             if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
+            {
+                if ((ushort)(extConsistency ?? Consistency) < (ushort)ConsistencyLevel.Serial)
+                    throw new InvalidOperationException("Non-serial consistency specified as a serial one.");
                 wb.WriteUInt16((ushort)SerialConsistency);
+            }
         }
     }
 }
