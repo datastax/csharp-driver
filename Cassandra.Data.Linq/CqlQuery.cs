@@ -74,8 +74,9 @@ namespace Cassandra.Data.Linq
         protected IAsyncResult InternalBeginExecute(string cqlQuery, Dictionary<string, Tuple<string, object,int>> mappingNames, Dictionary<string, string> alter, AsyncCallback callback, object state)
         {
             var session = GetTable().GetSession();
-
-            return session.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
+            var stmt = new SimpleStatement(cqlQuery);
+            this.CopyQueryPropertiesTo(stmt);
+            return session.BeginExecute(stmt,
                                 new CqlQueryTag() { Mappings = mappingNames, Alter = alter, Session = session }, callback, state);
         }
 
