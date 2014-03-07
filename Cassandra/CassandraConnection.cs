@@ -352,6 +352,15 @@ namespace Cassandra
 
                     try
                     {
+                        // when already disposed, _socketStream.EndRead() throws exception
+                        // when accessing disposed instance _socket internally.
+                        // so need to check disposed first
+                        if (_alreadyDisposed.IsTaken())
+                        {
+                            ForceComplete();
+                            return;
+                        }
+
                         int bytesReadCount = _socketStream.EndRead(ar);
                         if (bytesReadCount == 0)
                         {
