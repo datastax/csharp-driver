@@ -50,7 +50,9 @@ namespace Cassandra.Data.Linq
             if (_batchScript.IsEmpty)
                 throw new ArgumentException("Batch is empty");
 
-            return _session.BeginExecute(_batchScript.SetBatchType(_batchType).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
+            _batchScript.SetBatchType(_batchType);
+            this.CopyQueryPropertiesTo(_batchScript);
+            return _session.BeginExecute(_batchScript,
                                     new CqlQueryTag() { Session = _session }, callback, state);
         }
 

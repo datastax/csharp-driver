@@ -21,7 +21,6 @@ using System.Collections;
 
 namespace Cassandra.Data.Linq
 {
-
     public abstract class CqlQueryBase<TEntity>  : Query
     {
         private Expression _expression;
@@ -69,8 +68,9 @@ namespace Cassandra.Data.Linq
         protected IAsyncResult InternalBeginExecute(string cqlQuery, object[] values, Dictionary<string, Tuple<string, object,int>> mappingNames, Dictionary<string, string> alter, AsyncCallback callback, object state)
         {
             var session = GetTable().GetSession();
-
-            return session.BeginExecute(new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel??session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
+            var stmt = new SimpleStatement(cqlQuery).BindObjects(values);
+            this.CopyQueryPropertiesTo(stmt);
+            return session.BeginExecute(stmt,
                                 new CqlQueryTag() { Mappings = mappingNames, Alter = alter, Session = session }, callback, state);
         }
 
@@ -129,6 +129,12 @@ namespace Cassandra.Data.Linq
         public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
+        public new CqlQuerySingleElement<TEntity> SetSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            base.SetSerialConsistencyLevel(consistencyLevel);
             return this;
         }
 
@@ -261,6 +267,12 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        public new CqlQuery<TEntity> SetSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            base.SetSerialConsistencyLevel(consistencyLevel);
+            return this;
+        }
+        
         public IEnumerator<TEntity> GetEnumerator()
         {
             throw new InvalidOperationException("Did you forget to Execute()?");
@@ -369,6 +381,12 @@ namespace Cassandra.Data.Linq
         public new CqlCommand SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
+        public new CqlCommand SetSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            base.SetSerialConsistencyLevel(consistencyLevel);
             return this;
         }
 

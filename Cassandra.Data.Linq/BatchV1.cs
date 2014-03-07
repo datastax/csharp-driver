@@ -42,7 +42,9 @@ namespace Cassandra.Data.Linq
             {
                 var ctx = _session;
                 var cqlQuery = GetCql();
-                return ctx.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(IsTracing).SetConsistencyLevel(ConsistencyLevel),
+                var stmt = new SimpleStatement(cqlQuery);
+                this.CopyQueryPropertiesTo(stmt);
+                return ctx.BeginExecute(stmt,
                                     new CqlQueryTag() { Session = ctx }, callback, state);
             }
             throw new ArgumentOutOfRangeException();

@@ -152,7 +152,7 @@ namespace Cassandra
                                                                         false,
                                                                         QueryOptions.DefaultPageSize,
                                                                         null,
-                                                                        ConsistencyLevel.Serial);
+                                                                        ConsistencyLevel.Any);
 
         static internal QueryProtocolOptions CreateFromQuery(Query query, ConsistencyLevel defaultCL)
         {
@@ -195,7 +195,7 @@ namespace Cassandra
                 Flags |= QueryFlags.PageSize;
             if (PagingState != null)
                 Flags |= QueryFlags.WithPagingState;
-            if (SerialConsistency != ConsistencyLevel.Serial)
+            if (SerialConsistency != ConsistencyLevel.Any)
                 Flags |= QueryFlags.WithSerialConsistency;
         }
 
@@ -223,7 +223,7 @@ namespace Cassandra
                 wb.WriteBytes(PagingState);
             if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
             {
-                if ((ushort)(extConsistency ?? Consistency) < (ushort)ConsistencyLevel.Serial)
+                if ((ushort)(SerialConsistency) < (ushort)ConsistencyLevel.Serial)
                     throw new InvalidOperationException("Non-serial consistency specified as a serial one.");
                 wb.WriteUInt16((ushort)SerialConsistency);
             }
