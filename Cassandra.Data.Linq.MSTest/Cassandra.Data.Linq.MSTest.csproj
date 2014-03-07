@@ -49,6 +49,7 @@
     <Compile Include="ComplexTests.cs" />
     <Compile Include="FoundBug2Tests.cs" />
     <Compile Include="FoundBug3Tests.cs" />
+    <Compile Include="FoundBug4Tests.cs" />
     <Compile Include="FoundBugTests.cs" />
     <Compile Include="LinqSessionTests.cs" />
     <Compile Include="LinqUTTests.cs" />
