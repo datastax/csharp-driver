@@ -73,22 +73,19 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-
-            int startidx = Interlocked.Increment(ref _index);
-            
-            // Overflow protection; not theoretically thread safe but should be good enough
-            if (startidx > int.MaxValue - 10000)
-                Thread.VolatileWrite(ref _index, 0);
-
             var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
 
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
-                startidx %= copyOfHosts.Length;
+                int idxSeed = Interlocked.Increment(ref _index);
 
-                var h = copyOfHosts[startidx];
+                // Overflow protection; not theoretically thread safe but should be good enough
+                if (idxSeed > int.MaxValue - 10000)
+                {
+                    Thread.VolatileWrite(ref _index, 0);
+                }
 
-                startidx++;
+                var h = copyOfHosts[idxSeed % copyOfHosts.Length];
 
                 if (h.IsConsiderablyUp)
                     yield return h;
