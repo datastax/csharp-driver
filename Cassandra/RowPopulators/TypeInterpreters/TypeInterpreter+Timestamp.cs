@@ -35,10 +35,18 @@ namespace Cassandra
         public static byte[] InvConvertFromTimestamp(IColumnInfo type_info, object value)
         {
             CheckArgument<DateTimeOffset, DateTime>(value);
-            if(value is DateTimeOffset)
-                return DateTimeOffsetToBytes((DateTimeOffset)value);
+            if (value is DateTimeOffset)
+                return DateTimeOffsetToBytes((DateTimeOffset) value);
             else
-                return DateTimeOffsetToBytes(new DateTimeOffset((DateTime)value));
+            {
+                var dt = (DateTime)value;
+                // need to treat "Unspecified" as UTC (+0) not the default behavior of DateTimeOffset which treats as Local Timezone
+                // because we are about to do math against EPOCH which must align with UTC. 
+                // If we don't, then the value saved will be shifted by the local timezone when retrieved back out as DateTime.
+                return DateTimeOffsetToBytes(dt.Kind == DateTimeKind.Unspecified 
+                    ? new DateTimeOffset(dt,TimeSpan.Zero) 
+                    : new DateTimeOffset(dt));
+            }
         }
     }
 }
