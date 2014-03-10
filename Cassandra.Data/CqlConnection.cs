@@ -121,7 +121,9 @@ namespace Cassandra.Data
             {
                 if (!_clusters.ContainsKey(_connectionStringBuilder.ClusterName))
                 {
-                    _managedCluster = _connectionStringBuilder.MakeClusterBuilder().Build();
+                    var builder = _connectionStringBuilder.MakeClusterBuilder();
+                    OnBuildingCluster(builder);
+                    _managedCluster = builder.Build();
                     _clusters.Add(_connectionStringBuilder.ClusterName, _managedCluster);
                 }
                 else
@@ -134,6 +136,19 @@ namespace Cassandra.Data
                 ManagedConnection = _managedCluster.Connect(_connectionStringBuilder.DefaultKeyspace);
 
             _connectionState = System.Data.ConnectionState.Open;
+        }
+
+        /// <summary>
+        /// To be overriden in child classes to change the default <see cref="Builder"/> settings
+        /// for building a <see cref="Cluster"/>.
+        /// 
+        /// For example, some clients might want to specify the <see cref="DCAwareRoundRobinPolicy"/>
+        /// when building the <see cref="Cluster"/> so that the clients could talk to only the hosts
+        /// in specified datacenter for better performance.
+        /// </summary>
+        /// <param name="builder">The <see cref="Builder"/> for building a <see cref="Cluster"/>.</param>
+        protected virtual void OnBuildingCluster(Builder builder)
+        {
         }
 
         public override string ServerVersion
