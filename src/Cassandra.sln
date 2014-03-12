@@ -13,15 +13,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data", "Cassandra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data.Linq", "Cassandra.Data.Linq\Cassandra.Data.Linq.csproj", "{7FD62B8B-365D-48D6-8C21-2EF215294F64}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinqSamples", "LinqSamples\LinqSamples.csproj", "{A05921D4-E1BE-4F2B-BC51-04AE1748E8C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Samples.Linq", "Cassandra.Samples.Linq\Cassandra.Samples.Linq.csproj", "{A05921D4-E1BE-4F2B-BC51-04AE1748E8C0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.IntegrationTests.Runner", "Cassandra.IntegrationTests.Runner\Cassandra.IntegrationTests.Runner.csproj", "{BE029DEE-B993-404B-8AB0-09EF84355C7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Playground\Playground.csproj", "{F51B8A01-65A5-437D-BCE1-DE829C89E92A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Samples.Playground", "Cassandra.Samples.Playground\Cassandra.Samples.Playground.csproj", "{F51B8A01-65A5-437D-BCE1-DE829C89E92A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TPLSample", "TPLSample\TPLSample.csproj", "{69462DEF-5085-4675-A61D-B329882F949E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Samples.Tpl", "Cassandra.Samples.Tpl\Cassandra.Samples.Tpl.csproj", "{69462DEF-5085-4675-A61D-B329882F949E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDecimalSamples", "BigDecimalSamples\BigDecimalSamples.csproj", "{D12DD3CA-4392-4047-B693-BA71203671D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Samples.BigDecimal", "Cassandra.Samples.BigDecimal\Cassandra.Samples.BigDecimal.csproj", "{D12DD3CA-4392-4047-B693-BA71203671D4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.IntegrationTests", "Cassandra.IntegrationTests\Cassandra.IntegrationTests.csproj", "{D584651E-23C0-4714-9B92-6113C44BA6B8}"
 EndProject
