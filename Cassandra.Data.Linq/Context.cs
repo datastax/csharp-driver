@@ -30,6 +30,11 @@ namespace Cassandra.Data.Linq
             _context = context;
         }
 
+        public void Insert(TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
+        {
+            AddNew(entity, trmod);
+        }
+        
         public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
         {
             _context.Attach(this, entity, updmod, trmod);
@@ -90,6 +95,8 @@ namespace Cassandra.Data.Linq
 
         private void Initialize(Session cqlConnection)
         {
+            if (cqlConnection == null)
+                return;
             this._managedSession = cqlConnection;
             this._keyspaceName = cqlConnection.Keyspace;
         }
@@ -183,14 +190,23 @@ namespace Cassandra.Data.Linq
 
         public IAsyncResult BeginSaveChangesBatch(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
-            if(_managedSession.BinaryProtocolVersion>1)
+            string cql;
+            if (_managedSession.BinaryProtocolVersion > 1)
                 return BeginSaveChangesBatchV2(tableType, consistencyLevel, callback, state);
             else
-                return BeginSaveChangesBatchV1(tableType, consistencyLevel, callback, state);
+                return BeginSaveChangesBatchV1(tableType, consistencyLevel, callback, state, out cql);
         }
 
-        public IAsyncResult BeginSaveChangesBatchV1(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
+        public override string ToString()
         {
+            string cql;
+            BeginSaveChangesBatchV1(TableType.Standard, ConsistencyLevel.Any, null, null, out cql);
+            return cql;
+        }
+        
+        IAsyncResult BeginSaveChangesBatchV1(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state,out string cql)
+        {
+            cql = null;
             if (tableType == TableType.All)
                 throw new ArgumentOutOfRangeException("tableType");
 
@@ -234,8 +250,9 @@ namespace Cassandra.Data.Linq
 
                 if (counterBatchScript.Length != 0)
                 {
+                    cql = "BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH";
                     return BeginExecuteWriteQuery(
-                        "BEGIN COUNTER BATCH\r\n" + counterBatchScript.ToString() + "\r\nAPPLY BATCH", null, consistencyLevel, enableTracing,
+                        cql, null, consistencyLevel, enableTracing,
                             new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Counter, NewAdditionalCommands = newAdditionalCommands }, callback, state);
                 }
             }
@@ -260,15 +277,17 @@ namespace Cassandra.Data.Linq
 
                 if (batchScript.Length != 0)
                 {
-                    return BeginExecuteWriteQuery("BEGIN BATCH\r\n" + batchScript.ToString() + "\r\nAPPLY BATCH", null, consistencyLevel, enableTracing,
-                        new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
+                    cql ="BEGIN BATCH\r\n" + batchScript.ToString() + "APPLY BATCH";
+                    if(callback!=null)
+                        return BeginExecuteWriteQuery(cql, null, consistencyLevel, enableTracing,
+                            new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
                 }
             }
 
             return null;
         }
 
-        public IAsyncResult BeginSaveChangesBatchV2(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
+        IAsyncResult BeginSaveChangesBatchV2(TableType tableType, ConsistencyLevel consistencyLevel, AsyncCallback callback, object state)
         {
             if (tableType == TableType.All)
                 throw new ArgumentOutOfRangeException("tableType");

@@ -44,7 +44,7 @@ namespace Cassandra.Data.Linq.MSTest
 
             [ClusteringKey(1)]
             [Column("x_ck1")]
-            public int ck1 { get; set; }
+            public int? ck1 { get; set; }
 
             [ClusteringKey(2)]
             [Column("x_ck2")]
@@ -55,7 +55,7 @@ namespace Cassandra.Data.Linq.MSTest
         }
 
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         public void TestCqlFromLinq()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -184,7 +184,7 @@ APPLY BATCH".Replace("\r", ""));
         }
 
         [TestMethod]
-        [WorksForMe]
+        [NeedSomeFix]
         public void TestCqlFromLinqPaxosSupport()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -193,8 +193,28 @@ APPLY BATCH".Replace("\r", ""));
                (table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
                @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3) IF NOT EXISTS");
 
-            Assert.Equal((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a)=>a.f1==123).ToString(),
+            Assert.Equal((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a) => a.f1 == 123).ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40) IF ""x_f1"" = 123");
+        }
+
+        [TestMethod]
+        [NeedSomeFix]
+        public void TestCqlNullValuesLinqSupport()
+        {
+            var table = SessionExtensions.GetTable<TestTable>(null);
+
+            Assert.Equal(
+               (table.Insert(new TestTable() { ck1 = null, ck2 = 2, f1 = 3, pk = "x" })).ToString(),
+               @"INSERT INTO ""x_t""(""x_pk"", ""x_ck2"", ""x_f1"") VALUES ('x', 2, 3)");
+
+            Assert.Equal((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223 }).Update().ToString(),
+                    @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck1"" IN (10, 30, 40)");
+
+            Assert.Equal((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new TestTable() { f1 = 1223, ck1=null }).Update().ToString(),
+                    @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40)");
+
+            Assert.Equal((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString(),
+                    @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40) IF ""x_f1"" = 123");
         }
     }
 }

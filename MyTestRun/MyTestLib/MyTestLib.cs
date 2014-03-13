@@ -28,16 +28,6 @@ namespace MyTest
     public class TestMethodAttribute : Attribute
     {
     }
-
-    [AttributeUsage(AttributeTargets.Method)]
-    public class TestCategoryAttribute : Attribute
-    {
-        public string CategoryName { get; private set; }
-        public TestCategoryAttribute(string categoryName)
-        {
-            CategoryName = categoryName;
-        }
-    }
     
     [AttributeUsage(AttributeTargets.Method)]
     public class WorksForMeAttribute : Attribute
@@ -50,7 +40,7 @@ namespace MyTest
     }
 
     [AttributeUsage(AttributeTargets.Method)]
-    public class IntegrationAttribute : Attribute
+    public class StressAttribute : Attribute
     {
     }
 

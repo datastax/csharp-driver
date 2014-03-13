@@ -30,7 +30,7 @@ namespace Cassandra.Data.Linq
 
         public static Batch CreateBatch(this Session @this)
         {
-            if (@this.BinaryProtocolVersion > 1)
+            if (@this==null || @this.BinaryProtocolVersion > 1)
                 return new BatchV2(@this);
             else
                 return new BatchV1(@this);

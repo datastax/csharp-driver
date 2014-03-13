@@ -541,6 +541,13 @@ namespace Cassandra.Data.Linq
                                     set.Append(" = " + cqlTool.AddValue(newVal) + " ");
                                 }
                             }
+                            else
+                            {
+                                changeDetected = true;
+                                if (firstSet) firstSet = false; else set.Append(", ");
+                                set.Append(memName.QuoteIdentifier());
+                                set.Append(" = NULL ");
+                            }
                             continue;
                         }
                     }

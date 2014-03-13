@@ -220,21 +220,26 @@ namespace Cassandra.Data.Linq
 			foreach (var mapping in Mappings)
 			{
 				var o = mapping.Value.Item2;
-				var val = (object)null;
-                var propsOrField = o.GetType().GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Value.Item1);
+                if (o != null)
+                {
+                    var val = (object)null;
+                    var propsOrField = o.GetType().GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Value.Item1);
 
-				if (o.GetType().IsPrimitive || propsOrField == null)
-				{
-					val = o;
-				}
-				else
-				{
-					val = propsOrField.GetValueFromPropertyOrField(o);
-				}
+                    if (o.GetType().IsPrimitive || propsOrField == null)
+                        val = o;
+                    else
+                        val = propsOrField.GetValueFromPropertyOrField(o);
 
-                if (!Alter.ContainsKey(mapping.Key))
-                    throw new CqlArgumentException("Unknown column: " + mapping.Key);
-                setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + cqlTool.AddValue(val));
+                    if (!Alter.ContainsKey(mapping.Key))
+                        throw new CqlArgumentException("Unknown column: " + mapping.Key);
+                    setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + cqlTool.AddValue(val));
+                }
+                else
+                {
+                    if (!Alter.ContainsKey(mapping.Key))
+                        throw new CqlArgumentException("Unknown column: " + mapping.Key);
+                    setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = NULL");
+                }
             }
 
             if (setStatements.Count == 0)
@@ -498,6 +503,12 @@ namespace Cassandra.Data.Linq
 			{ExpressionType.LessThanOrEqual,"<="}
         };
 
+        static readonly HashSet<ExpressionType> CQLUnsupTags = new HashSet<ExpressionType>()
+        {
+            {ExpressionType.Or},
+            {ExpressionType.OrElse},
+        };
+
         static readonly Dictionary<ExpressionType, ExpressionType> CQLInvTags = new Dictionary<ExpressionType, ExpressionType>()
         {
 			{ExpressionType.Equal,ExpressionType.Equal},
@@ -508,6 +519,13 @@ namespace Cassandra.Data.Linq
 			{ExpressionType.LessThanOrEqual,ExpressionType.GreaterThanOrEqual}
         };
         
+        private static Expression DropNullableConversion(Expression node)
+        {
+            if (node is UnaryExpression && node.NodeType == ExpressionType.Convert && node.Type.IsGenericType && node.Type.Name.CompareTo("Nullable`1") == 0)
+                return (node as UnaryExpression).Operand;
+            return node;
+        }
+
         protected override Expression VisitUnary(UnaryExpression node)
         {
             if (phasePhase.get() == ParsePhase.Condition)
@@ -515,7 +533,7 @@ namespace Cassandra.Data.Linq
                 if (CQLTags.ContainsKey(node.NodeType))
                 {
                     currentConditionBuilder.get().Append(CQLTags[node.NodeType] + " (");
-                    this.Visit(node.Operand);
+                    this.Visit(DropNullableConversion(node.Operand));
                     currentConditionBuilder.get().Append(")");
                 }
                 else
@@ -578,13 +596,13 @@ namespace Cassandra.Data.Linq
                     }
                     else
                     {
-                        this.Visit(node.Left);
+                        this.Visit(DropNullableConversion(node.Left));
                         currentConditionBuilder.get().Append(" " + CQLTags[node.NodeType] + " ");
-                        this.Visit(node.Right);
+                        this.Visit(DropNullableConversion(node.Right));
                         return node;
                     }
                 }
-                else
+                else if (!CQLUnsupTags.Contains(node.NodeType))
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
                     currentConditionBuilder.get().Append(cqlTool.AddValue(val));
