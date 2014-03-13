@@ -8,8 +8,8 @@
     <ProjectGuid>{BE029DEE-B993-404B-8AB0-09EF84355C7E}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MyTestRun</RootNamespace>
-    <AssemblyName>MyTestRun</AssemblyName>
+    <RootNamespace>Cassandra.IntegrationTests.Runner</RootNamespace>
+    <AssemblyName>Cassandra.IntegrationTests.Runner</AssemblyName>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

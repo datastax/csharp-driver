@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,18 +13,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Reflection;
-using TestRunner.Properties;
-using System.IO;
-using System.Threading;
-using System.Globalization;
-using CommandLine.Text;
-using CommandLine;
 
-namespace MyTest
+using System;
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Threading;
+using Cassandra.IntegrationTests.Runner.Properties;
+
+namespace Cassandra.IntegrationTests.Runner
 {
 
     class Program
@@ -111,7 +108,7 @@ namespace MyTest
             }
             catch (Exception ex)
             {
-                if (ex.InnerException is MyTest.AssertException)
+                if (ex.InnerException is AssertException)
                 {
                     Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.Red;
@@ -121,7 +118,7 @@ namespace MyTest
                     s = ex.InnerException.Message;
                     Console.WriteLine(s);
                     output.WriteLine(s);
-                    s = (ex.InnerException as MyTest.AssertException).UserMessage;
+                    s = (ex.InnerException as AssertException).UserMessage;
                     Console.WriteLine(s);
                     Console.WriteLine(new string(' ', 79));
                     output.WriteLine(s);
@@ -183,24 +180,24 @@ namespace MyTest
                         object testObj = null;
                         foreach (var mth in type.GetMethods())
                         {
-                            if (mth.GetCustomAttributes(typeof(MyTest.TestMethodAttribute), true).Length > 0)
+                            if (mth.GetCustomAttributes(typeof(TestMethodAttribute), true).Length > 0)
                             {
-                                if (mth.GetCustomAttributes(typeof(MyTest.StressAttribute), true).Length > 0)
+                                if (mth.GetCustomAttributes(typeof(StressAttribute), true).Length > 0)
                                     if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
                                         && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
                                         continue; 
-                                if (mth.GetCustomAttributes(typeof(MyTest.NeedSomeFixAttribute), true).Length > 0)
+                                if (mth.GetCustomAttributes(typeof(NeedSomeFixAttribute), true).Length > 0)
                                     if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
                                         && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
                                         && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
                                         continue;
-                                if (mth.GetCustomAttributes(typeof(MyTest.WorksForMeAttribute), true).Length > 0)
+                                if (mth.GetCustomAttributes(typeof(WorksForMeAttribute), true).Length > 0)
                                     if (((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
                                         && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
                                         && (MyTestOptions.Default.TestRunMode !=MyTestOptions.TestRunModeEnum.ShouldBeOk))
                                         || (MyTestOptions.Default.TestRunMode == MyTestOptions.TestRunModeEnum.Fixing))
                                         continue;
-                                if ((mth.GetCustomAttributes(typeof(MyTest.PriorityAttribute), true).Length == 0) == priorityTestsRun)
+                                if ((mth.GetCustomAttributes(typeof(PriorityAttribute), true).Length == 0) == priorityTestsRun)
                                     continue;
                                 Test(ref testObj, type, mth, output, ref Passed, ref Failed);
                             }

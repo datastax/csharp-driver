@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,24 +13,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Globalization;
 using System.Diagnostics;
-using Cassandra;
+using System.Globalization;
+using System.Linq;
+using System.Threading;
 using Cassandra.Data.Linq;
 #if MYTEST
-using MyTest;
-using System.Threading.Tasks;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Cassandra.MSTest;
 #endif
+using Cassandra.IntegrationTests.Linq.Structures;
 
-namespace Cassandra.Data.Linq.MSTest
+namespace Cassandra.IntegrationTests.Linq
 {
     [TestClass]
     public class ComplexTests

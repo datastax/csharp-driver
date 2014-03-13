@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using MyTest;
-using System.Threading.Tasks;
 using System.Diagnostics;
-using System.Threading;
 using System.Globalization;
+using System.Linq;
+using System.Threading;
 
-namespace Cassandra.MSTest
+namespace Cassandra.IntegrationTests.Core
 {
     [TestClass]
     public class Stress1Tests

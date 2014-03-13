@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +13,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using Cassandra.Data.Linq;
 
-namespace Cassandra.Data.Linq.MSTest
+using Cassandra.Data.Linq;
+
+namespace Cassandra.IntegrationTests.Linq.Structures
 {
     public class Statistics
     {        

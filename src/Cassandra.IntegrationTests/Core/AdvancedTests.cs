@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +13,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
 #if MYTEST
-using MyTest;
+
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 
-namespace Cassandra.MSTest
+namespace Cassandra.IntegrationTests.Core
 {
     public partial class AdvancedTests
     {

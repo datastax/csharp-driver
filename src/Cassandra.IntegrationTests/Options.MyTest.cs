@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace Cassandra
+namespace Cassandra.IntegrationTests
 {
     public class Options
     {
@@ -36,16 +32,16 @@ namespace Cassandra
 
         private Options()
         {
-            IP_PREFIX = MyTest.MyTestOptions.Default.IpPrefix;
-            SSH_HOST = MyTest.MyTestOptions.Default.SSHHost;
-            SSH_PORT = MyTest.MyTestOptions.Default.SSHPort;
-            SSH_USERNAME = MyTest.MyTestOptions.Default.SSHUser;
-            SSH_PASSWORD = MyTest.MyTestOptions.Default.SSHPassword;
-            CASSANDRA_VERSION = "-v " + MyTest.MyTestOptions.Default.CassandraVersion;
+            IP_PREFIX = MyTestOptions.Default.IpPrefix;
+            SSH_HOST = MyTestOptions.Default.SSHHost;
+            SSH_PORT = MyTestOptions.Default.SSHPort;
+            SSH_USERNAME = MyTestOptions.Default.SSHUser;
+            SSH_PASSWORD = MyTestOptions.Default.SSHPassword;
+            CASSANDRA_VERSION = "-v " + MyTestOptions.Default.CassandraVersion;
 
-            USE_COMPRESSION = MyTest.MyTestOptions.Default.UseCompression;
-            USE_NOBUFFERING = MyTest.MyTestOptions.Default.NoUseBuffering;
-            USE_LOGGER = MyTest.MyTestOptions.Default.UseLogger;
+            USE_COMPRESSION = MyTestOptions.Default.UseCompression;
+            USE_NOBUFFERING = MyTestOptions.Default.NoUseBuffering;
+            USE_LOGGER = MyTestOptions.Default.UseLogger;
         }
 
         public bool USE_COMPRESSION;

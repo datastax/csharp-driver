@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +13,18 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 #if MYTEST
-using MyTest;
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading;
-using System.Globalization;
 
-namespace Cassandra.MSTest
+namespace Cassandra.IntegrationTests.Core
 {    
     public partial class CollectionsTests
     {
