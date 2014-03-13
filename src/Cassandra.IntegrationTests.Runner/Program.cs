@@ -23,17 +23,11 @@ using Cassandra.IntegrationTests.Runner.Properties;
 
 namespace Cassandra.IntegrationTests.Runner
 {
-
     class Program
     {
-        static string[] TestPacks = new string[] 
-        {
-            "Cassandra.MyTest",
-            "Cassandra.Data.MyTest",
-            "Cassandra.Data.Linq.MyTest",
-        };
-
-
+        // The assembly that contains the integration tests
+        private static readonly Assembly IntegrationTestsAssembly = typeof (MyTestOptions).Assembly;
+        
         static MethodInfo FindMethodWithAttribute(Type tpy, Type attr)
         {
             foreach (var m in tpy.GetMethods())
@@ -162,48 +156,47 @@ namespace Cassandra.IntegrationTests.Runner
             var tstDir = Settings.Default.TestFolder.Replace("$TEST_ROOT", Directory.GetCurrentDirectory());
             Directory.CreateDirectory(tstDir);
 
-            var output = new StreamWriter(tstDir + "/" + DateTime.Now.ToShortDateString().Replace("/", "_") + "+" + DateTime.Now.ToShortTimeString().Replace(":", "_") + ".log");
+            var output =
+                new StreamWriter(tstDir + "/" + DateTime.Now.ToShortDateString().Replace("/", "_") + "+" +
+                                 DateTime.Now.ToShortTimeString().Replace(":", "_") + ".log");
 
             int Passed = 0;
             int Failed = 0;
 
             bool priorityTestsRun = true;
-        second_round: // Iterate again over the test packs, and run tests without priority attribute 
-            foreach (var asmn in TestPacks)
-            {
-                var asm = Assembly.Load(asmn);
 
-                foreach (var type in asm.GetTypes())
+            second_round: // Iterate again over the test packs, and run tests without priority attribute 
+            foreach (var type in IntegrationTestsAssembly.GetTypes())
+            {
+                if (type.Name.EndsWith("Tests") && type.IsPublic)
                 {
-                    if (type.Name.EndsWith("Tests") && type.IsPublic)
+                    object testObj = null;
+                    foreach (var mth in type.GetMethods())
                     {
-                        object testObj = null;
-                        foreach (var mth in type.GetMethods())
+                        if (mth.GetCustomAttributes(typeof (TestMethodAttribute), true).Length > 0)
                         {
-                            if (mth.GetCustomAttributes(typeof(TestMethodAttribute), true).Length > 0)
-                            {
-                                if (mth.GetCustomAttributes(typeof(StressAttribute), true).Length > 0)
-                                    if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
-                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
-                                        continue; 
-                                if (mth.GetCustomAttributes(typeof(NeedSomeFixAttribute), true).Length > 0)
-                                    if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
-                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
-                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
-                                        continue;
-                                if (mth.GetCustomAttributes(typeof(WorksForMeAttribute), true).Length > 0)
-                                    if (((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
-                                        && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
-                                        && (MyTestOptions.Default.TestRunMode !=MyTestOptions.TestRunModeEnum.ShouldBeOk))
-                                        || (MyTestOptions.Default.TestRunMode == MyTestOptions.TestRunModeEnum.Fixing))
-                                        continue;
-                                if ((mth.GetCustomAttributes(typeof(PriorityAttribute), true).Length == 0) == priorityTestsRun)
+                            if (mth.GetCustomAttributes(typeof (StressAttribute), true).Length > 0)
+                                if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
+                                    && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
                                     continue;
-                                Test(ref testObj, type, mth, output, ref Passed, ref Failed);
-                            }
+                            if (mth.GetCustomAttributes(typeof (NeedSomeFixAttribute), true).Length > 0)
+                                if ((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.Fixing)
+                                    && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
+                                    && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest))
+                                    continue;
+                            if (mth.GetCustomAttributes(typeof (WorksForMeAttribute), true).Length > 0)
+                                if (((MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.FullTest)
+                                     && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.NoStress)
+                                     && (MyTestOptions.Default.TestRunMode != MyTestOptions.TestRunModeEnum.ShouldBeOk))
+                                    || (MyTestOptions.Default.TestRunMode == MyTestOptions.TestRunModeEnum.Fixing))
+                                    continue;
+                            if ((mth.GetCustomAttributes(typeof (PriorityAttribute), true).Length == 0) ==
+                                priorityTestsRun)
+                                continue;
+                            Test(ref testObj, type, mth, output, ref Passed, ref Failed);
                         }
-                        Test(ref testObj, type, null, output, ref Passed, ref Failed);
                     }
+                    Test(ref testObj, type, null, output, ref Passed, ref Failed);
                 }
             }
 
@@ -219,7 +212,9 @@ namespace Cassandra.IntegrationTests.Runner
             else
                 Console.BackgroundColor = ConsoleColor.Green;
 
-            var st = Failed > 0 ? string.Format("[{0} (of {1}) Failures]", Failed, Failed + Passed) : string.Format("[All {0} Passed :)]", Passed);
+            var st = Failed > 0
+                ? string.Format("[{0} (of {1}) Failures]", Failed, Failed + Passed)
+                : string.Format("[All {0} Passed :)]", Passed);
             st += " Press Any Key To Close The Program";
             Console.WriteLine(new string(' ', 79));
             Console.WriteLine(st + new string(' ', 79 - st.Length));
