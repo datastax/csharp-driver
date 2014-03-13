@@ -21,11 +21,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 using Cassandra.IntegrationTests.Linq.Structures;
 
 namespace Cassandra.IntegrationTests.Linq

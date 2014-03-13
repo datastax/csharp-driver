@@ -15,19 +15,12 @@
 //
 
 using System;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestClass]
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
-
         [TestMethod]
 		[WorksForMe]
         public void roundRobinTestCCM()

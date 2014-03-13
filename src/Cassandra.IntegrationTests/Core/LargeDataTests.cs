@@ -19,12 +19,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 
 namespace Cassandra.IntegrationTests.Core
 {

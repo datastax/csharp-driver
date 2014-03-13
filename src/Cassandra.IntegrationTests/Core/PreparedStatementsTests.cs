@@ -17,11 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core

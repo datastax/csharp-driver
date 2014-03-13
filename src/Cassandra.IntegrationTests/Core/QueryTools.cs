@@ -14,10 +14,6 @@
 //   limitations under the License.
 //
 
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;

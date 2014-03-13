@@ -15,11 +15,6 @@
 //
 
 using System.Linq;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 using Cassandra.Data.Linq;
 
 namespace Cassandra.IntegrationTests.Linq

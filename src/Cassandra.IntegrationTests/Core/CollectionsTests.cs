@@ -15,11 +15,6 @@
 //
 
 using System;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -30,10 +25,6 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class CollectionsTests
     {
-        public CollectionsTests()
-        {
-        }
-
         Session Session;
 
         [TestInitialize]

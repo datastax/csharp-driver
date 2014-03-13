@@ -18,10 +18,6 @@ using System;
 using System.Globalization;
 using System.Text;
 using System.Threading;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using Cassandra.Data;
 
 namespace Cassandra.IntegrationTests.Data
@@ -29,10 +25,6 @@ namespace Cassandra.IntegrationTests.Data
     [TestClass]
     public class BasicTests
     {
-        public BasicTests()
-        {
-        }
-
         CqlConnection connection = null;
         Session session = null;
 

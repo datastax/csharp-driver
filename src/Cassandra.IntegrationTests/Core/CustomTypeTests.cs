@@ -14,24 +14,13 @@
 //   limitations under the License.
 //
 
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using System;
 
 namespace Cassandra.IntegrationTests.Core
 {
-
     [TestClass]
     public class CustomTypeTests
     {
-
-
-        public CustomTypeTests()
-        {
-        }
-
         Session Session;
 
         [TestInitialize]

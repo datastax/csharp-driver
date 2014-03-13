@@ -18,25 +18,15 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestClass]
     public class BasicTests
     {
-        public BasicTests()
-        {
-        }
-
         Session Session;
 
         [TestInitialize]

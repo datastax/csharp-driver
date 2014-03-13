@@ -20,12 +20,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 
 namespace Cassandra.IntegrationTests.Core
 {

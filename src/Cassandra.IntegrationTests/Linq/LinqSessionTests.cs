@@ -20,11 +20,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 using Cassandra.Data.Linq;
 
 namespace Cassandra.IntegrationTests.Linq

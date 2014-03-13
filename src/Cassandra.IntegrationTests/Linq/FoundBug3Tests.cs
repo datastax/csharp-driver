@@ -18,33 +18,10 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 using Cassandra.Data.Linq;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    //public class LineItem
-    //{
-    //    public int Quantity { get; set; }
-    //    public string ProductNumber { get; set; }
-    //    public string ProductDescription { get; set; }
-    //    public double UnitPrice { get; set; }
-    //}
-
-    //public class Address
-    //{
-    //    public string Line1 { get; set; }
-    //    public string Line2 { get; set; }
-    //    public string City { get; set; }
-    //    public string State { get; set; }
-    //    public string PostalCode { get; set; }
-    //}
-
-
     [TestClass]
     public class FoundBug3Tests
     {

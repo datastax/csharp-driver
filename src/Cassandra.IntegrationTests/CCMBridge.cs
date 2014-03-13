@@ -23,14 +23,8 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests
 {
-
     public class CCMBridge : IDisposable
     {
-        static CCMBridge()
-        {
-
-        }
-
         private readonly DirectoryInfo _ccmDir;
         private Renci.SshNet.SshClient _ssh_client;
         private Renci.SshNet.ShellStream _ssh_shellStream;
@@ -76,11 +70,6 @@ namespace Cassandra.IntegrationTests
 
         public static CCMBridge Create(string name, int nbNodes, bool useAlreadyExisting= false)
         {
-#if !MYTEST
-            if (!useAlreadyExisting && (nbNodes > 4))
-                throw new InvalidOperationException();
-#endif
-
             CCMBridge bridge = new CCMBridge();
             bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b {3}", name, nbNodes, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
@@ -88,11 +77,6 @@ namespace Cassandra.IntegrationTests
 
         public static CCMBridge Create(string name, int nbNodesDC1, int nbNodesDC2, bool useAlreadyExisting =false)
         {
-#if !MYTEST
-            if (!useAlreadyExisting && (nbNodesDC1 + nbNodesDC2 > 4))
-                throw new InvalidOperationException();
-#endif
-
             CCMBridge bridge = new CCMBridge();
             bridge.ExecuteCCM(string.Format("Create {0} -n {1}:{2} -s -i {3} -b {4}", name, nbNodesDC1, nbNodesDC2, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
@@ -146,11 +130,6 @@ namespace Cassandra.IntegrationTests
 
         public void BootstrapNode(int n, string dc)
         {
-#if !MYTEST
-            if (n > 4)
-                throw new InvalidOperationException();
-#endif
-
             if (dc == null)
                 ExecuteCCM(string.Format("add node{0} -i {1}{2} -j {3} -b", n, Options.Default.IP_PREFIX, n, 7000 + 100 * n));
             else
@@ -470,10 +449,6 @@ namespace Cassandra.IntegrationTests
 
             public static CCMCluster Create(int nbNodes, Builder builder)
             {
-#if !MYTEST
-                if (nbNodes > 4)
-                    throw new InvalidOperationException();
-#endif
                 if (nbNodes == 0)
                     throw new ArgumentException();
 
@@ -482,10 +457,6 @@ namespace Cassandra.IntegrationTests
 
             public static CCMCluster Create(int nbNodesDC1, int nbNodesDC2, Builder builder)
             {
-#if !MYTEST
-                if (nbNodesDC1 + nbNodesDC2 > 4)
-                    throw new InvalidOperationException();
-#endif
                 if (nbNodesDC1 == 0)
                     throw new ArgumentException();
 

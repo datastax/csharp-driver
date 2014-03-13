@@ -16,11 +16,6 @@
 
 using System;
 using System.Threading;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
 using Cassandra.IntegrationTests.Core.Policies;
 
 namespace Cassandra.IntegrationTests.Core

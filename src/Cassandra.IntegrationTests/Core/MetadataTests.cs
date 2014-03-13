@@ -20,12 +20,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
-#if MYTEST
-
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
-
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -37,11 +31,6 @@ namespace Cassandra.IntegrationTests.Core
         Cluster Cluster;
         Session Session;
         CCMBridge.CCMCluster CCMCluster;
-
-
-        public MetadataTests()
-        {
-        }
 
         [TestInitialize]
         public void SetFixture()
