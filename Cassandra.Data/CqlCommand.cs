@@ -15,7 +15,8 @@
 //
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+﻿using System.Linq;
+﻿using System.Text;
 using System.Data;
 using System.Data.Common;
 using Cassandra;
@@ -135,7 +136,19 @@ namespace Cassandra.Data
 
         public override object ExecuteScalar()
         {
-            return CqlConnection.ManagedConnection.Execute(commandText);
+            var rowSet = CqlConnection.ManagedConnection.Execute(commandText);
+
+            // return the first field value of the first row if exists
+            if (rowSet == null)
+            {
+                return null;
+            }
+            var row = rowSet.GetRows().FirstOrDefault();
+            if (row == null || !row.Any())
+            {
+                return null;
+            }
+            return row[0];
         }
 
         public override void Prepare()
