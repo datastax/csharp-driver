@@ -63,6 +63,7 @@ namespace Cassandra
         Action<ErrorActionParam> _protocolErrorHandlerAction;
 
         readonly IAuthInfoProvider _authInfoProvider;
+        readonly IAuthProvider _authProvider;
 
         readonly Session _owner;
 
@@ -77,6 +78,7 @@ namespace Cassandra
 
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
+                                     IAuthProvider authProvider,
                                      IAuthInfoProvider authInfoProvider)
         {
             this.Guid = Guid.NewGuid();
@@ -94,6 +96,7 @@ namespace Cassandra
                     throw new ArgumentException();
             }
 
+            this._authProvider = authProvider;
             this._authInfoProvider = authInfoProvider;
             if (protocolOptions.Compression == CompressionType.Snappy)
             {
@@ -265,22 +268,33 @@ namespace Cassandra
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (_authInfoProvider == null)
-                                throw new AuthenticationException("Credentials are required.", _serverAddress);
-
-                            var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
-
-                            Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                            if (_authProvider == NoneAuthProvider.Instance) //Apache C*
                             {
-                                var response2 = FrameParser.Parse(frame2);
-                                if (response2 is ReadyResponse)
+
+                                var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
+
+                                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
                                 {
-                                    _isStreamOpened.Value = true;
-                                    job();
-                                }
-                                else
-                                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
-                            }));
+                                    var response2 = FrameParser.Parse(frame2);
+                                    if (response2 is ReadyResponse)
+                                    {
+                                        _isStreamOpened.Value = true;
+                                        job();
+                                    }
+                                    else
+                                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
+                                }));
+                            }
+                            else //DSE
+                            {
+                                var authenticator = _authProvider.NewAuthenticator(this._serverAddress);
+
+                                var initialToken = authenticator.InitialResponse();
+                                if (null == initialToken)
+                                    initialToken = new byte[0];
+
+                                WaitForSaslResponse(jar, initialToken, response, authenticator, job);
+                            }
                         }
                         else
                             _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar});
@@ -294,6 +308,39 @@ namespace Cassandra
                 if (!SetupSocketException(ex))
                     throw;
             }
+        }
+
+        private void WaitForSaslResponse(AsyncResult<IOutput> jar, byte[] token, AbstractResponse response, IAuthenticator authenticator, Action job)
+        {
+            Evaluate(new AuthResponseRequest(jar.StreamId, token), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+            {
+                var response2 = FrameParser.Parse(frame2);
+                if ((response2 is AuthSuccessResponse)
+                    || (response2 is ReadyResponse))
+                {
+                    _isStreamOpened.Value = true;
+                    job();
+                }
+                else if (response2 is AuthChallengeResponse)
+                {
+                    byte[] tokenToServer = authenticator.EvaluateChallenge((response2 as AuthChallengeResponse).Token);
+                    if (tokenToServer == null)
+                    {
+                        // If we generate a null response, then authentication has completed,return without
+                        // sending a further response back to the server.
+                        _isStreamOpened.Value = true;
+                        job();
+                        return;
+                    }
+                    else
+                    {
+                        // Otherwise, send the challenge response back to the server
+                        WaitForSaslResponse(jar, tokenToServer, response, authenticator, job);
+                    }
+                }
+                else
+                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+            }));
         }
 
         readonly IProtoBufComporessor _compressor = null;

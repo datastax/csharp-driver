@@ -70,6 +70,7 @@
       <Link>Snappy\SnappyInternalUtils.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
+    <Compile Include="IAuthenticator.cs" />
     <Compile Include="BEBinaryWriterFrame.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
@@ -81,6 +82,7 @@
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
+    <Compile Include="IAuthProvider.cs" />
     <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="Commands\CassandraConnection+Prepare.cs" />
@@ -168,6 +170,7 @@
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Query.cs" />
     <Compile Include="QueryTrace.cs" />
+    <Compile Include="Requests\AuthResponseRequest.cs" />
     <Compile Include="Requests\OptionsRequest.cs" />
     <Compile Include="Requests\RegisterForEventRequest.cs" />
     <Compile Include="Responses\AuthenticateResponse.cs" />
@@ -176,6 +179,8 @@
     <Compile Include="CassandraConnection.cs" />
     <Compile Include="Commands\CassandraConnection+Query.cs" />
     <Compile Include="Requests\PrepareRequest.cs" />
+    <Compile Include="Responses\AuthChallengeResponse.cs" />
+    <Compile Include="Responses\AuthSuccessResponse.cs" />
     <Compile Include="Responses\EventResponse.cs" />
     <Compile Include="Requests\QueryRequest.cs" />
     <Compile Include="Responses\ResultResponse.cs" />

@@ -35,14 +35,15 @@ namespace Cassandra
                                    PoolingOptions poolingOptions,
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
-                                   IAuthInfoProvider authProvider)
+                                   IAuthProvider authProvider,
+                                   IAuthInfoProvider authInfoProvider)
         {
             this._cluster = cluster;
             this._reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
             _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, "", false);
+                                   clientOptions, authProvider, authInfoProvider, "", false);
         }
 
         void Metadata_HostsEvent(object sender, HostsEventArgs e)

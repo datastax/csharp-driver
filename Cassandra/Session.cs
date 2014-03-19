@@ -37,7 +37,8 @@ namespace Cassandra
         private readonly PoolingOptions _poolingOptions;
         private readonly SocketOptions _socketOptions;
         private readonly ClientOptions _clientOptions;
-        private readonly IAuthInfoProvider _authProvider;
+        private readonly IAuthProvider _authProvider;
+        private readonly IAuthInfoProvider _authInfoProvider;
         
         /// <summary>
         /// Gets name of currently used keyspace. 
@@ -58,7 +59,8 @@ namespace Cassandra
                          PoolingOptions poolingOptions,
                          SocketOptions socketOptions,
                          ClientOptions clientOptions,
-                         IAuthInfoProvider authProvider,
+                         IAuthProvider authProvider,
+                         IAuthInfoProvider authInfoProvider,
                          string keyspace, bool init)
         {
             try
@@ -70,6 +72,7 @@ namespace Cassandra
                 this._socketOptions = socketOptions;
                 this._clientOptions = clientOptions;
                 this._authProvider = authProvider;
+                this._authInfoProvider = authInfoProvider;
 
                 this._policies = policies ?? Policies.DefaultPolicies;
 
@@ -308,7 +311,7 @@ namespace Cassandra
                     }
                 }
 
-                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider);
+                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider, _authInfoProvider);
 
                 var streamId = nconn.AllocateStreamId();
 

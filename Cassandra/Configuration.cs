@@ -32,7 +32,8 @@ namespace Cassandra
         private readonly SocketOptions _socketOptions;
         private readonly ClientOptions _clientOptions;
 
-        private readonly IAuthInfoProvider _authProvider;
+        private readonly IAuthProvider _authProvider;
+        private readonly IAuthInfoProvider _authInfoProvider;
 
         internal Configuration() :
             this(new Policies(),
@@ -40,6 +41,7 @@ namespace Cassandra
                  new PoolingOptions(),
                  new SocketOptions(),
                  new ClientOptions(),
+            NoneAuthProvider.Instance,
                  null)
         {
         }
@@ -49,7 +51,8 @@ namespace Cassandra
                              PoolingOptions poolingOptions,
                              SocketOptions socketOptions,
                              ClientOptions clientOptions,
-                             IAuthInfoProvider authProvider)
+                             IAuthProvider authProvider,
+                             IAuthInfoProvider authInfoProvider)
         {
             this._policies = policies;
             this._protocolOptions = protocolOptions;
@@ -57,6 +60,7 @@ namespace Cassandra
             this._socketOptions = socketOptions;
             this._clientOptions = clientOptions;
             this._authProvider = authProvider;
+            this._authInfoProvider = authInfoProvider;
         }
 
         /// <summary>
@@ -108,10 +112,20 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the authentication provider in use.</returns>
-        internal IAuthInfoProvider AuthInfoProvider
+        internal IAuthProvider AuthProvider
         // Not exposed yet on purpose
         {
             get { return _authProvider; }
+        }
+        /// <summary>
+        ///  The authentication provider used to connect to the Cassandra cluster.
+        /// </summary>
+        /// 
+        /// <returns>the authentication provider in use.</returns>
+        internal IAuthInfoProvider AuthInfoProvider
+        // Not exposed yet on purpose
+        {
+            get { return _authInfoProvider; }
         }
 
     }
