@@ -64,7 +64,7 @@ namespace Cassandra.Data.Linq.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void TestCqlFromContext()
         {
             var context = new Context(null);

@@ -228,7 +228,7 @@ namespace Cassandra.MSTest
                 session.WaitForSchemaAgreement(
                     session.Execute("DROP TABLE " + tableName));
             }
-            catch (InvalidConfigurationInQueryException ex) { }
+            catch (InvalidQueryException ex) { }
 
             if (tableName == "wide_table")                            
                 session.WaitForSchemaAgreement(
@@ -289,7 +289,7 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void wideBatchRows()
         {
             SetupDefaultCluster();
@@ -303,7 +303,7 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void wideByteRows()
         {
             SetupDefaultCluster();
@@ -317,7 +317,7 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void largeText()
         {
             SetupDefaultCluster();
@@ -330,7 +330,7 @@ namespace Cassandra.MSTest
         /// <throws name="Exception"></throws>
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void wideTable()
         {
             SetupDefaultCluster();

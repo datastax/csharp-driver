@@ -442,7 +442,7 @@ namespace Cassandra
                 {
                     DeleteKeyspace(keyspace_name);
                 }
-                catch (InvalidConfigurationInQueryException)
+                catch (InvalidQueryException)
                 {
                     _logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspace_name));
                 }

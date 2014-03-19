@@ -55,7 +55,7 @@ namespace Cassandra.Data.Linq.MSTest
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void TestCqlFromLinq()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -184,7 +184,7 @@ APPLY BATCH".Replace("\r", ""));
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void TestCqlFromLinqPaxosSupport()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -198,7 +198,7 @@ APPLY BATCH".Replace("\r", ""));
         }
 
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void TestCqlNullValuesLinqSupport()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
