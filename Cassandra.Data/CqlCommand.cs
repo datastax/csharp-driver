@@ -15,7 +15,8 @@
 //
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+﻿using System.Linq;
+﻿using System.Text;
 using System.Data;
 using System.Data.Common;
 using Cassandra;
@@ -28,6 +29,7 @@ namespace Cassandra.Data
         internal CqlConnection CqlConnection;
         internal CqlBatchTransaction CqlTransaction;
         private string commandText;
+        private ConsistencyLevel consistencyLevel = ConsistencyLevel.One;
 
         public override void Cancel()
         {
@@ -43,6 +45,15 @@ namespace Cassandra.Data
             {
                 commandText = value;
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the ConsistencyLevel when executing the current <see cref="CqlCommand"/>.
+        /// </summary>
+        public ConsistencyLevel ConsistencyLevel
+        {
+            get { return consistencyLevel; }
+            set { consistencyLevel = value; }
         }
 
         public override int CommandTimeout
@@ -117,7 +128,7 @@ namespace Cassandra.Data
 
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
-            var outp = CqlConnection.ManagedConnection.Execute(commandText);
+            var outp = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
             return new CqlReader(outp);
         }
 
@@ -127,15 +138,27 @@ namespace Cassandra.Data
             if (cm.StartsWith("CREATE ")
                 || cm.StartsWith("DROP ")
                 || cm.StartsWith("ALTER "))
-                CqlConnection.ManagedConnection.WaitForSchemaAgreement(CqlConnection.ManagedConnection.Execute(commandText));
+                CqlConnection.ManagedConnection.WaitForSchemaAgreement(CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel));
             else
-                CqlConnection.ManagedConnection.Execute(commandText);
+                CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
             return -1;
         }
 
         public override object ExecuteScalar()
         {
-            return CqlConnection.ManagedConnection.Execute(commandText);
+            var rowSet = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
+
+            // return the first field value of the first row if exists
+            if (rowSet == null)
+            {
+                return null;
+            }
+            var row = rowSet.GetRows().FirstOrDefault();
+            if (row == null || !row.Any())
+            {
+                return null;
+            }
+            return row[0];
         }
 
         public override void Prepare()
