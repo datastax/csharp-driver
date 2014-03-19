@@ -8,7 +8,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{25634bea-e0e7-4910-8527-1b1a29461a2d}</ProjectGuid>
-    <SHFBSchemaVersion>1.9.5.0</SHFBSchemaVersion>
+    <SHFBSchemaVersion>1.9.9.0</SHFBSchemaVersion>
     <!-- AssemblyName, Name, and RootNamespace are not used by SHFB but Visual
          Studio adds them anyway -->
     <AssemblyName>Documentation</AssemblyName>
@@ -26,6 +26,8 @@
       <DocumentationSource sourceFile="..\Cassandra.Data\bin\Release\Cassandra.Data.xml" />
       <DocumentationSource sourceFile="..\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.dll" />
       <DocumentationSource sourceFile="..\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.xml" />
+      <DocumentationSource sourceFile="..\Cassandra.DSE\bin\Release\Cassandra.DSE.dll" />
+      <DocumentationSource sourceFile="..\Cassandra.DSE\bin\Release\Cassandra.DSE.xml" />
     </DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
@@ -48,34 +50,41 @@
     <HelpTitle>A C# client driver for Apache Cassandra</HelpTitle>
     <ContentPlacement>AboveNamespaces</ContentPlacement>
     <NamespaceSummaries>
-      <NamespaceSummaryItem name="(global)" isDocumented="False" xmlns="">A C# client driver for Apache Cassandra. This driver works exclusively with
+      <NamespaceSummaryItem name="(global)" isDocumented="False">A C# client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra" isDocumented="True" xmlns="">The core module of the Datastax C# Driver for Apache Cassandra (C*). This
+      <NamespaceSummaryItem name="Cassandra" isDocumented="True">The core module of the Datastax C# Driver for Apache Cassandra (C*). This
 module offers a simple (as in, not abstracted) but complete API to work with
 CQL3. The main goal of this module is to handle all the functionality related
 to managing connections to a Cassandra cluster (but leaving higher level
 abstraction like object mapping to separate modules).</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Data" isDocumented="True" xmlns="">The core module of the Datastax C# Ado.Net Driver for Apache Cassandra (C*). This
+      <NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The core module of the Datastax C# Ado.Net Driver for Apache Cassandra (C*). This
 module offers a Ado.Net to work with CQL3.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True" xmlns="">The core module of the Datastax C# Linq Driver for Apache Cassandra (C*). This
+      <NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The core module of the Datastax C# Linq Driver for Apache Cassandra (C*). This
 module offers a Linq driver and simple ORM mapper to work with
-CQL3.</NamespaceSummaryItem></NamespaceSummaries>
+CQL3.</NamespaceSummaryItem>
+    </NamespaceSummaries>
     <ProjectSummary>A C# client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 %28CQL3%29 and Cassandra&amp;#39%3bs binary protocol.</ProjectSummary>
     <ApiFilter>
-      <Filter entryType="Namespace" fullName="Cassandra" isExposed="True" xmlns="">
-  <Filter entryType="Class" fullName="Cassandra.Cluster" filterName="Cluster" isExposed="True">
-    <Filter entryType="Method" fullName="Cassandra.Cluster.WaitForSchemaAgreement" filterName="WaitForSchemaAgreement" isExposed="False" />
-  </Filter>
-  <Filter entryType="Class" fullName="Cassandra.DynamicCompositeTypeAdapter" filterName="DynamicCompositeTypeAdapter" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.Session" filterName="Session" isExposed="True">
-    <Filter entryType="Method" fullName="Cassandra.Session.GetTag" filterName="GetTag" isExposed="False" />
-    <Filter entryType="Method" fullName="Cassandra.Session.SimulateAllConnectionsDown" filterName="SimulateAllConnectionsDown" isExposed="False" />
-    <Filter entryType="Method" fullName="Cassandra.Session.SimulateSingleConnectionDown" filterName="SimulateSingleConnectionDown" isExposed="False" />
-  </Filter>
-</Filter>
+      <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
+        <Filter entryType="Class" fullName="Cassandra.Cluster" filterName="Cluster" isExposed="True">
+          <Filter entryType="Method" fullName="Cassandra.Cluster.WaitForSchemaAgreement" filterName="WaitForSchemaAgreement" isExposed="False" />
+        </Filter>
+        <Filter entryType="Class" fullName="Cassandra.DynamicCompositeTypeAdapter" filterName="DynamicCompositeTypeAdapter" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.Session" filterName="Session" isExposed="True">
+          <Filter entryType="Method" fullName="Cassandra.Session.GetTag" filterName="GetTag" isExposed="False" />
+          <Filter entryType="Method" fullName="Cassandra.Session.SimulateAllConnectionsDown" filterName="SimulateAllConnectionsDown" isExposed="False" />
+          <Filter entryType="Method" fullName="Cassandra.Session.SimulateSingleConnectionDown" filterName="SimulateSingleConnectionDown" isExposed="False" />
+        </Filter>
+      </Filter>
     </ApiFilter>
     <VisibleItems>InheritedMembers, InheritedFrameworkMembers, Protected, SealedProtected</VisibleItems>
+    <HelpAttributes />
+    <BuildLogFile />
+    <HtmlHelp1xCompilerPath />
+    <HtmlHelp2xCompilerPath />
+    <WorkingPath />
+    <ComponentPath />
   </PropertyGroup>
   <!-- There are no properties for these groups.  AnyCPU needs to appear in
        order for Visual Studio to perform the build.  The others are optional
