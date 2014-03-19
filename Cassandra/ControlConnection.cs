@@ -36,6 +36,7 @@ namespace Cassandra
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
                                    IAuthProvider authProvider,
+                                   IAuthInfoProvider authInfoProvider,
                                    int binaryProtocolVersion)
         {
             this._cluster = cluster;
@@ -43,7 +44,7 @@ namespace Cassandra
             this._reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
             _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, "", binaryProtocolVersion);
+                                   clientOptions, authProvider, authInfoProvider, "", binaryProtocolVersion);
         }
 
         void Metadata_HostsEvent(object sender, HostsEventArgs e)

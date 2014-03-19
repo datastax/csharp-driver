@@ -34,6 +34,7 @@ namespace Cassandra
         private readonly QueryOptions _queryOptions;
 
         private readonly IAuthProvider _authProvider;
+        private readonly IAuthInfoProvider _authInfoProvider;
 
         internal Configuration() :
             this(new Policies(),
@@ -41,6 +42,7 @@ namespace Cassandra
                  new PoolingOptions(),
                  new SocketOptions(),
                  new ClientOptions(),
+                 NoneAuthProvider.Instance,
                  null,
                  new QueryOptions())
         {
@@ -52,6 +54,7 @@ namespace Cassandra
                              SocketOptions socketOptions,
                              ClientOptions clientOptions,
                              IAuthProvider authProvider,
+                             IAuthInfoProvider authInfoProvider,
                              QueryOptions queryOptions)
         {
             this._policies = policies;
@@ -60,6 +63,7 @@ namespace Cassandra
             this._socketOptions = socketOptions;
             this._clientOptions = clientOptions;
             this._authProvider = authProvider;
+            this._authInfoProvider = authInfoProvider;
             this._queryOptions = queryOptions;
         }
 
@@ -120,12 +124,22 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the authentication provider in use.</returns>
-        internal IAuthProvider AuthInfoProvider
+        internal IAuthProvider AuthProvider
         // Not exposed yet on purpose
         {
             get { return _authProvider; }
         }
 
+        /// <summary>
+        ///  The authentication provider used to connect to the Cassandra cluster.
+        /// </summary>
+        /// 
+        /// <returns>the authentication provider in use.</returns>
+        internal IAuthInfoProvider AuthInfoProvider
+        // Not exposed yet on purpose
+        {
+            get { return _authInfoProvider; }
+        }
     }
 }
 

@@ -86,6 +86,7 @@
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IAuthenticator.cs" />
+    <Compile Include="IAuthInfoProvider.cs" />
     <Compile Include="IAuthProvider.cs" />
     <Compile Include="LZ4ProtoBufCompressor.cs" />
     <Compile Include="MemoryTributary.cs" />
@@ -231,6 +232,7 @@
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
     <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
     <Compile Include="Session.cs" />
+    <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SimpleStatement.cs" />
     <Compile Include="SnappyProtoBufCompressor.cs" />
     <Compile Include="SocketOptions.cs" />

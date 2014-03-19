@@ -38,6 +38,7 @@ namespace Cassandra
         private readonly SocketOptions _socketOptions;
         private readonly ClientOptions _clientOptions;
         private readonly IAuthProvider _authProvider;
+        private readonly IAuthInfoProvider _authInfoProvider;
         
         /// <summary>
         /// Gets name of currently used keyspace. 
@@ -58,6 +59,7 @@ namespace Cassandra
                          SocketOptions socketOptions,
                          ClientOptions clientOptions,
                          IAuthProvider authProvider,
+                         IAuthInfoProvider authInfoProvider,
                          string keyspace,
                          int binaryProtocolVersion)
         {
@@ -69,6 +71,7 @@ namespace Cassandra
             this._socketOptions = socketOptions;
             this._clientOptions = clientOptions;
             this._authProvider = authProvider;
+            this._authInfoProvider = authInfoProvider;
 
             this._policies = policies ?? Policies.DefaultPolicies;
 
@@ -309,7 +312,7 @@ namespace Cassandra
                 }
 
             RETRY:
-                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider, _binaryProtocolVersion);
+                nconn = new CassandraConnection(this, endPoint, _protocolOptions, _socketOptions, _clientOptions, _authProvider, _authInfoProvider,_binaryProtocolVersion);
 
                 var streamId = nconn.AllocateStreamId();
 

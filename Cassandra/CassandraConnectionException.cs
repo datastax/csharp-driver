@@ -20,6 +20,11 @@ namespace Cassandra
 {
     internal class CassandraConnectionBadProtocolVersionException : IOException
     {
+        public CassandraConnectionBadProtocolVersionException(string reason, Exception innerException = null)
+            : base("cassandra connection bad protocol version [" + reason + "]", innerException)
+        {
+        }
+
         public CassandraConnectionBadProtocolVersionException(Exception innerException = null)
             : base("cassandra connection bad protocol version", innerException)
         {

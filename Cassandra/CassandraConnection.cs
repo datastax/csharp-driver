@@ -65,7 +65,8 @@ namespace Cassandra
 
         Action<ErrorActionParam> _protocolErrorHandlerAction;
 
-        readonly IAuthProvider _authInfoProvider;
+        readonly IAuthProvider _authProvider;
+        readonly IAuthInfoProvider _authInfoProvider;
 
         readonly Session _owner;
 
@@ -80,7 +81,7 @@ namespace Cassandra
 
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
-                                     IAuthProvider authInfoProvider, int protocolVersion)
+                                     IAuthProvider authProvider, IAuthInfoProvider authInfoProvider, int protocolVersion)
         {
             if (protocolVersion == 1)
             {
@@ -106,6 +107,7 @@ namespace Cassandra
                     throw new ArgumentException();
             }
 
+            this._authProvider = authProvider;
             this._authInfoProvider = authInfoProvider;
             if (protocolOptions.Compression == CompressionType.Snappy)
             {
@@ -284,13 +286,34 @@ namespace Cassandra
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            var authenticator = _authInfoProvider.NewAuthenticator(this._serverAddress);
-                           
-                            var initialResponse = authenticator.InitialResponse();
-                            if (null == initialResponse)
-                                initialResponse = new byte[0];
+                            if (_binaryProtocolRequestVersionByte == RequestFrame.ProtocolV1RequestVersionByte && _authProvider != NoneAuthProvider.Instance)
+                                //this should be true only if we have v1 protocol and it is not DSE 
+                            {
+                                var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
 
-                            WaitForSaslResponse(jar, initialResponse, authenticator, job);
+                                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                                {
+                                    var response2 = FrameParser.Parse(frame2);
+                                    if (response2 is ReadyResponse)
+                                    {
+                                        _isStreamOpened.Value = true;
+                                        job();
+                                    }
+                                    else
+                                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
+                                }));
+                            }
+                            else
+                                //either DSE or protocol V2 (or both)
+                            {
+                                var authenticator = _authProvider.NewAuthenticator(this._serverAddress);
+
+                                var initialResponse = authenticator.InitialResponse();
+                                if (null == initialResponse)
+                                    initialResponse = new byte[0];
+
+                                WaitForSaslResponse(jar, initialResponse, authenticator, job);
+                            }
                         }
                         else
                             _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar});

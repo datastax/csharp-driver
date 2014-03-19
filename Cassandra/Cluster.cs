@@ -72,6 +72,7 @@ namespace Cassandra
                                                         new ClientOptions(
                                                             true,
                                                             _configuration.ClientOptions.QueryAbortTimeout, null),
+                                                        _configuration.AuthProvider,
                                                         _configuration.AuthInfoProvider,
                                                         2//lets start from protocol version 2
                                                         );
@@ -134,7 +135,10 @@ namespace Cassandra
                                   _configuration.PoolingOptions,
                                   _configuration.SocketOptions,
                                   _configuration.ClientOptions,
-                                  _configuration.AuthInfoProvider, keyspace,_binaryProtocolVersion);
+                                  _configuration.AuthProvider,
+                                  _configuration.AuthInfoProvider,
+                                  keyspace,
+                                  _binaryProtocolVersion);
             scs.Init();
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
@@ -264,6 +268,7 @@ namespace Cassandra
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
         private int _port = ProtocolOptions.DefaultPort;
         private IAuthProvider _authProvider = NoneAuthProvider.Instance;
+        private IAuthInfoProvider _authInfoProvider = null;
         private CompressionType _compression = CompressionType.NoCompression;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
@@ -476,6 +481,7 @@ namespace Cassandra
                                      _socketOptions,
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
                                      _authProvider,
+                                     _authInfoProvider,
                                      _queryOptions
                 );
         }
@@ -494,10 +500,12 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
+            this._authInfoProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password", password);
             this._authProvider = new PlainTextAuthProvider(username, password);
             return this;
         }
 
+        
         /// <summary>
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
