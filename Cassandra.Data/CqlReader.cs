@@ -160,7 +160,6 @@ namespace Cassandra.Data
 
         public override int GetValues(object[] values)
         {
-            values = new object[enumerRows.Current.Length];
             for (int i = 0; i < enumerRows.Current.Length; i++)
                 values[i] = enumerRows.Current[i];
             return enumerRows.Current.Length;
