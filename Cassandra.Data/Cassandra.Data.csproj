@@ -59,6 +59,8 @@
     <Compile Include="CqlConnection.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="CqlParameter.cs" />
+    <Compile Include="CqlParameterCollection.cs" />
     <Compile Include="CqlProviderFactory.cs" />
     <Compile Include="CqlReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

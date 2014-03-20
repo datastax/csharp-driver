@@ -47,6 +47,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Basics.cs" />
+    <Compile Include="CqlCommandTest.cs" />
+    <Compile Include="CqlParameterCollectionTest.cs" />
+    <Compile Include="CqlParameterTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BasicTests.cs" />
   </ItemGroup>
