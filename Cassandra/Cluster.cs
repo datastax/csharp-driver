@@ -266,7 +266,7 @@ namespace Cassandra
 
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
         private int _port = ProtocolOptions.DefaultPort;
-        private IAuthProvider _authProvider = null;
+        private IAuthProvider _authProvider = NoneAuthProvider.Instance;
         private IAuthInfoProvider _authInfoProvider = null;
         private CompressionType _compression = CompressionType.NoCompression;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
