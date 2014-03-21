@@ -152,7 +152,8 @@ namespace Cassandra.Data.Linq
 
         public static string Encode(this object obj)
         {
-            if (obj is string) return Encode(obj as string);
+            if (obj == null) return "null";
+            else if (obj is string) return Encode(obj as string);
             else if (obj is Boolean) return Encode((Boolean)obj);
             else if (obj is byte[]) return Encode((byte[])obj);
             else if (obj is Double) return Encode((Double)obj);
