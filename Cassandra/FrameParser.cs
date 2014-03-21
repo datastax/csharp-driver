@@ -31,6 +31,8 @@ namespace Cassandra
             Register(typeof(ReadyResponse));
             Register(typeof(ResultResponse));
             Register(typeof(SupportedResponse));
+            Register(typeof(AuthSuccessResponse));
+            Register(typeof(AuthChallengeResponse));
         }
 
         static void Register(Type response)
