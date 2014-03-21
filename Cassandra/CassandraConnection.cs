@@ -62,8 +62,8 @@ namespace Cassandra
 
         Action<ErrorActionParam> _protocolErrorHandlerAction;
 
-        readonly IAuthInfoProvider _authInfoProvider;
         readonly IAuthProvider _authProvider;
+        readonly IAuthInfoProvider _authInfoProvider;
 
         readonly Session _owner;
 
@@ -289,11 +289,11 @@ namespace Cassandra
                             {
                                 var authenticator = _authProvider.NewAuthenticator(this._serverAddress);
 
-                                var initialToken = authenticator.InitialResponse();
-                                if (null == initialToken)
-                                    initialToken = new byte[0];
+                                var initialResponse = authenticator.InitialResponse();
+                                if (null == initialResponse)
+                                    initialResponse = new byte[0];
 
-                                WaitForSaslResponse(jar, initialToken, response, authenticator, job);
+                                WaitForSaslResponse(jar, initialResponse, authenticator, job);
                             }
                         }
                         else
@@ -310,9 +310,9 @@ namespace Cassandra
             }
         }
 
-        private void WaitForSaslResponse(AsyncResult<IOutput> jar, byte[] token, AbstractResponse response, IAuthenticator authenticator, Action job)
+        private void WaitForSaslResponse(AsyncResult<IOutput> jar, byte[] response, IAuthenticator authenticator, Action job)
         {
-            Evaluate(new AuthResponseRequest(jar.StreamId, token), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+            Evaluate(new AuthResponseRequest(jar.StreamId, response), jar.StreamId, new Action<ResponseFrame>((frame2) =>
             {
                 var response2 = FrameParser.Parse(frame2);
                 if ((response2 is AuthSuccessResponse)
@@ -323,8 +323,8 @@ namespace Cassandra
                 }
                 else if (response2 is AuthChallengeResponse)
                 {
-                    byte[] tokenToServer = authenticator.EvaluateChallenge((response2 as AuthChallengeResponse).Token);
-                    if (tokenToServer == null)
+                    byte[] responseToServer = authenticator.EvaluateChallenge((response2 as AuthChallengeResponse).Token);
+                    if (responseToServer == null)
                     {
                         // If we generate a null response, then authentication has completed,return without
                         // sending a further response back to the server.
@@ -335,11 +335,11 @@ namespace Cassandra
                     else
                     {
                         // Otherwise, send the challenge response back to the server
-                        WaitForSaslResponse(jar, tokenToServer, response, authenticator, job);
+                        WaitForSaslResponse(jar, responseToServer, authenticator, job);
                     }
                 }
                 else
-                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
             }));
         }
 
