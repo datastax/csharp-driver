@@ -286,7 +286,7 @@ namespace Cassandra
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (_binaryProtocolRequestVersionByte == RequestFrame.ProtocolV1RequestVersionByte && _authProvider != NoneAuthProvider.Instance)
+                            if (_binaryProtocolRequestVersionByte == RequestFrame.ProtocolV1RequestVersionByte && _authProvider == NoneAuthProvider.Instance)
                                 //this should be true only if we have v1 protocol and it is not DSE 
                             {
                                 var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
