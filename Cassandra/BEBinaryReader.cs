@@ -102,6 +102,7 @@ namespace Cassandra
         public byte[] ReadBytes()
         {
             var length = ReadInt32();
+			if(length<0) return null;
             var buf = new byte[length];
             Read(buf, 0, length);
             return buf;
