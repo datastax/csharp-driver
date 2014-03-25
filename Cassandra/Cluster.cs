@@ -475,10 +475,8 @@ namespace Cassandra
         ///  <code>AllowAllAuthenticator</code> is used instead, using this 
         ///  method has no effect.</p>
         /// </summary>
-        /// <param name="username"> the username to use to login to Cassandra hosts.
-        /// <param name="password"> the password corresponding to <code>username</code>.
-        ///  </param>
-        /// 
+        /// <param name="username"> the username to use to login to Cassandra hosts.</param>
+        /// <param name="password"> the password corresponding to <code>username</code>.</param>
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
@@ -490,12 +488,9 @@ namespace Cassandra
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
         ///  call both this method and {@code withCredentials}' on the same
-        ///  <code>Builder</code> instance as one will supercede the other
+        ///  <code>Builder</code> instance as one will supercede the other</p>
         /// </summary>
-        /// <param name="authProvider"> the </param>
-        /// <param name="<link>AuthProvider"></link> to use to login to Cassandra hosts.
-        ///  </param>
-        /// 
+        /// <param name="authProvider"> the <link>AuthProvider"></link> to use to login to Cassandra hosts.</param>
         /// <returns>this Builder</returns>
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {

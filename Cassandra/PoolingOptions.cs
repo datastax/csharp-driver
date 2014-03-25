@@ -71,7 +71,7 @@ namespace Cassandra
         ///  <code>distance</code> handles less than this number of simultaneous requests
         ///  and there is more than <link>#GetCoreConnectionsPerHost</link> connections
         ///  open to this host, the connection is closed. <p> The default value for this
-        ///  option is 25 for <code>Local</code> and <code>Remote</code> hosts.</p>
+        ///  option is 25 for <code>Local</code> and <code>Remote</code> hosts.</p></p>
         /// </summary>
         /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
         ///  </param>
@@ -124,7 +124,7 @@ namespace Cassandra
         ///  <link>#getMaxConnectionPerHost</link> connections open to this host, a new
         ///  connection is open. <p> Note that a given connection cannot handle more than
         ///  128 simultaneous requests (protocol limitation). <p> The default value for
-        ///  this option is 100 for <code>Local</code> and <code>Remote</code> hosts.</p>
+        ///  this option is 100 for <code>Local</code> and <code>Remote</code> hosts.</p></p></p>
         /// </summary>
         /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
         ///  </param>
