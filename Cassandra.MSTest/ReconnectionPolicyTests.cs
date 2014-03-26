@@ -37,8 +37,7 @@ namespace Cassandra.MSTest
  */
         
         [TestMethod]
-        [NeedSomeFix]
-        [Priority]
+        [WorksForMe]
         public void exponentialReconnectionPolicyTest()
         {
             var builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000));
@@ -106,7 +105,7 @@ namespace Cassandra.MSTest
          * Test the ConstantReconnectionPolicy.
          */
         [TestMethod]
-        [NeedSomeFix]
+        [WorksForMe]
         public void constantReconnectionPolicyTest()
         {
             Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25 * 1000));

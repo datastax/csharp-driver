@@ -32,6 +32,37 @@ namespace Cassandra.MSTest
     {
         [TestMethod]
         [WorksForMe]
+        public void Jira_CSHARP_80_82()
+        {
+            try
+            {
+                using (Cluster cluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
+                {
+
+                    Session session = null;
+                    try
+                    {
+                        using (session = cluster.Connect())
+                        {
+                        }
+                    }
+                    catch (NoHostAvailableException)
+                    {
+                    }
+                    catch
+                    {
+                        Assert.Fail("NoHost expected");
+                    }
+                }
+            }
+            catch (NullReferenceException)
+            {
+                Assert.Fail("Null pointer!");
+            }
+        }
+
+        [TestMethod]
+        [WorksForMe]
         public void Jira_CSHARP_40()
         //During reconnect the tablespace name becomes invalid
         {

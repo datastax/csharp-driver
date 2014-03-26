@@ -39,7 +39,7 @@ namespace TPLSample.FutureSample
         public static void Run()
         {
 
-            Cluster cluster = Cluster.Builder().AddContactPoint("192.168.13.1").WithoutRowSetBuffering().Build();
+            Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().Build();
 
             using (var session = cluster.Connect("system"))
             {
