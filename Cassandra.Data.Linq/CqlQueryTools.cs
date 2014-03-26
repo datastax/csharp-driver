@@ -711,7 +711,7 @@ namespace Cassandra.Data.Linq
         internal static MethodInfo ThenByMi = typeof(CqlMthHelps).GetMethod("ThenBy", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo ThenByDescendingMi = typeof(CqlMthHelps).GetMethod("ThenByDescending", BindingFlags.NonPublic | BindingFlags.Static);
         internal static object Select(object a, object b) { return null; }
-        internal static object Where(object a, object b) { return null; }        
+        internal static object Where(object a, object b) { return null; }
         internal static object First(object a, int b) { return null; }
         internal static object FirstOrDefault(object a, int b) { return null; }
         internal static object Take(object a, int b) { return null; }

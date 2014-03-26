@@ -391,6 +391,12 @@ namespace Cassandra.Data.Linq
 			{ExpressionType.LessThanOrEqual,"<="}
         };
 
+        static readonly HashSet<ExpressionType> CQLUnsupTags = new HashSet<ExpressionType>()
+        {
+            {ExpressionType.Or},
+            {ExpressionType.OrElse},
+        };
+
         static readonly Dictionary<ExpressionType, ExpressionType> CQLInvTags = new Dictionary<ExpressionType, ExpressionType>()
         {
 			{ExpressionType.Equal,ExpressionType.Equal},
@@ -476,6 +482,12 @@ namespace Cassandra.Data.Linq
                         this.Visit(node.Right);
                         return node;
                     }
+                }
+                else if (!CQLUnsupTags.Contains(node.NodeType))
+                {
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    currentConditionBuilder.get().Append(cqlTool.AddValue(val));
+                    return node;
                 }
             }
             else if (phasePhase.get() == ParsePhase.SelectBinding)

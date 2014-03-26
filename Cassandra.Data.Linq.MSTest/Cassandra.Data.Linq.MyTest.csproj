@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ComplexTests.cs" />
+    <Compile Include="ContextUTTests.cs" />
     <Compile Include="FoundBug2Tests.cs" />
     <Compile Include="FoundBug3Tests.cs" />
     <Compile Include="FoundBugTests.cs" />

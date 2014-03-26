@@ -35,8 +35,8 @@ namespace Cassandra
         public static byte[] InvConvertFromTimestamp(IColumnInfo type_info, object value)
         {
             CheckArgument<DateTimeOffset, DateTime>(value);
-            if (value is DateTimeOffset)
-                return DateTimeOffsetToBytes((DateTimeOffset) value);
+            if(value is DateTimeOffset)
+                return DateTimeOffsetToBytes((DateTimeOffset)value);
             else
             {
                 var dt = (DateTime)value;
