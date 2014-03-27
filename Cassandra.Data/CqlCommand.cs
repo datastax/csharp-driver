@@ -241,7 +241,7 @@ namespace Cassandra.Data
                 // order by the occurence of parameter names in cql
                 // so that we could support cases that parameters of the same name occur multiple times in cql
                 var cqlQuery = RegexParseParameterName.Replace(CommandText, "?");
-                _preparedStatement = CqlConnection.ManagedConnection.Prepare(cqlQuery);
+                _preparedStatement = CqlConnection.CreatePreparedStatement(cqlQuery);
             }
         }
 
