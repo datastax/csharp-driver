@@ -14,37 +14,39 @@
 //   limitations under the License.
 //
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Data;
+﻿using System.Collections.Concurrent;
+﻿using System.Data;
 using System.Data.Common;
-using Cassandra;
 
 namespace Cassandra.Data
 {
+    /// <summary>
+    /// Represents a CQL connection.
+    /// </summary>
     public class CqlConnection : DbConnection, ICloneable
     {
-        CassandraConnectionStringBuilder _connectionStringBuilder = null;
-        static Dictionary<string, Cluster> _clusters = new Dictionary<string, Cluster>();
-        Cluster _managedCluster = null;
-        ConnectionState _connectionState = ConnectionState.Closed;
-        CqlBatchTransaction _currentTransaction = null;
+        private CassandraConnectionStringBuilder _connectionStringBuilder;
+        private readonly static ConcurrentDictionary<string, Cluster> _clusters = new ConcurrentDictionary<string, Cluster>();
+        private Cluster _managedCluster;
+        private ConnectionState _connectionState = ConnectionState.Closed;
+        private CqlBatchTransaction _currentTransaction;
+        internal protected Session ManagedConnection;
 
-        internal Session ManagedConnection = null;
-
+        /// <summary>
+        /// Initializes a <see cref="CqlConnection"/>.
+        /// </summary>
         public CqlConnection()
         {
             _connectionStringBuilder = new CassandraConnectionStringBuilder();
         }
 
+        /// <summary>
+        /// Initializes a <see cref="CqlConnection"/>.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
         public CqlConnection(string connectionString)
         {
             _connectionStringBuilder = new CassandraConnectionStringBuilder(connectionString);
-        }
-
-        private Dictionary<string, string> getCredentials(string auth)
-        {
-            return null;
         }
 
         internal void ClearDbTransaction()
@@ -69,7 +71,7 @@ namespace Cassandra.Data
 
         protected override void Dispose(bool disposing)
         {
-            if (_connectionState == ConnectionState.Open) 
+            if (_connectionState == ConnectionState.Open)
                 Close();
             base.Dispose(disposing);
         }
@@ -78,7 +80,11 @@ namespace Cassandra.Data
         {
             _connectionState = System.Data.ConnectionState.Closed;
             if (ManagedConnection != null)
+            {
                 ManagedConnection.Dispose();
+                ManagedConnection = null;
+            }
+            _managedCluster = null;
         }
 
         public override string ConnectionString
@@ -116,25 +122,8 @@ namespace Cassandra.Data
         public override void Open()
         {
             _connectionState = System.Data.ConnectionState.Connecting;
-
-            lock (_clusters)
-            {
-                if (!_clusters.ContainsKey(_connectionStringBuilder.ClusterName))
-                {
-                    var builder = _connectionStringBuilder.MakeClusterBuilder();
-                    OnBuildingCluster(builder);
-                    _managedCluster = builder.Build();
-                    _clusters.Add(_connectionStringBuilder.ClusterName, _managedCluster);
-                }
-                else
-                    _managedCluster = _clusters[_connectionStringBuilder.ClusterName];
-            }
-
-            if (string.IsNullOrEmpty(_connectionStringBuilder.DefaultKeyspace))
-                ManagedConnection = _managedCluster.Connect("");
-            else
-                ManagedConnection = _managedCluster.Connect(_connectionStringBuilder.DefaultKeyspace);
-
+            _managedCluster = CreateCluster(_connectionStringBuilder);
+            ManagedConnection = CreatedSession(_connectionStringBuilder.DefaultKeyspace);
             _connectionState = System.Data.ConnectionState.Open;
         }
 
@@ -149,6 +138,62 @@ namespace Cassandra.Data
         /// <param name="builder">The <see cref="Builder"/> for building a <see cref="Cluster"/>.</param>
         protected virtual void OnBuildingCluster(Builder builder)
         {
+        }
+
+        /// <summary>
+        /// Creates a <see cref="Cluster"/>. By default <see cref="Cluster"/>s are created and cached
+        /// by cluster name specified in connection string.
+        /// 
+        /// To be overridden in child classes to change the default creation and caching behavior.
+        /// </summary>
+        /// <param name="connectionStringBuilder">The <see cref="CassandraConnectionStringBuilder"/>.</param>
+        /// <returns></returns>
+        protected virtual Cluster CreateCluster(CassandraConnectionStringBuilder connectionStringBuilder)
+        {
+            Cluster cluster;
+            if (!_clusters.TryGetValue(_connectionStringBuilder.ClusterName, out cluster))
+            {
+                var builder = _connectionStringBuilder.MakeClusterBuilder();
+                OnBuildingCluster(builder);
+                cluster = builder.Build();
+                _clusters.TryAdd(_connectionStringBuilder.ClusterName, cluster);
+            }
+
+            return cluster;
+        }
+
+        /// <summary>
+        /// Creates a <see cref="Session"/>.
+        /// 
+        /// To be overridden in child classes if want to cache the <see cref="Session"/> created.
+        /// </summary>
+        /// <param name="keyspace">The keyspace.</param>
+        /// <returns>Returns the created <see cref="Session"/>.</returns>
+        protected virtual Session CreatedSession(string keyspace)
+        {
+            if (_managedCluster == null)
+            {
+                return null;
+            }
+
+            return _managedCluster.Connect(keyspace ?? string.Empty);
+        }
+
+        /// <summary>
+        /// To be called by CqlCommand to creates a <see cref="PreparedStatement"/>
+        /// from <see cref="ManagedConnection"/>.
+        /// 
+        /// To be overriden in child classes if want to cache the <see cref="PreparedStatement"/> created.
+        /// </summary>
+        /// <param name="cqlQuery">The CQL query string.</param>
+        /// <returns>Returns the created <see cref="PreparedStatement"/>.</returns>
+        internal protected virtual PreparedStatement CreatePreparedStatement(string cqlQuery)
+        {
+            if (ManagedConnection == null)
+            {
+                return null;
+            }
+            return ManagedConnection.Prepare(cqlQuery);
         }
 
         public override string ServerVersion
