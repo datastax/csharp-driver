@@ -34,6 +34,8 @@
   <ItemGroup>
     <Compile Include="Author.cs" />
     <Compile Include="CassandraLog.cs" />
+    <Compile Include="CassandraLogContext.cs" />
+    <Compile Include="CassandraLogWriter.cs" />
     <Compile Include="FollowedTweet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

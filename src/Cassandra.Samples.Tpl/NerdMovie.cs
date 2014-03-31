@@ -13,27 +13,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
 using Cassandra.Data.Linq;
- using System.Text.RegularExpressions;
 
-namespace Playground
+//based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
+namespace TPLSample.NerdMoviesLinqSample
 {
-    public class CassandraLog
-    {
-        [PartitionKey]        
-        public string category;
-        
-        [ClusteringKey(0)]
-        public DateTimeOffset date;
 
+    [AllowFiltering]
+    public class NerdMovie
+    {
         [ClusteringKey(1)]
-        public string message;
-        
-        public void display()        
-        {
-            Console.WriteLine(category + "\n " + date.ToString("MM/dd/yyyy H:mm:ss.fff zzz") + "\n " + message
-                + Environment.NewLine);
-        }
+        public string Director;
+
+        public string MainActor;
+
+        [PartitionKey]
+        public string Movie;
+
+        public int Year;
     }
 }

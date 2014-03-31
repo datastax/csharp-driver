@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,17 +23,6 @@ using Cassandra.Data.Linq;
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
 namespace TPLSample.FutureSample
 {
-    public class schema_keyspaces
-    {
-        public bool durable_writes { get; set; }
-
-        public string keyspace_name { get; set; }
-
-        public string strategy_class { get; set; }
-
-        public string strategy_options { get; set; }
-    }
-
     public static class FutureSample
     {
         public static void Run()

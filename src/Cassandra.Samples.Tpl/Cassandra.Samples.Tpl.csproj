@@ -40,11 +40,14 @@
     <Compile Include="LinqKeyspacesSample.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="NerdMoviesLinq.cs">
+    <Compile Include="NerdMovie.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="NerdMoviesLinqSample.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SchemaColumns.cs" />
+    <Compile Include="schema_keyspaces.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
