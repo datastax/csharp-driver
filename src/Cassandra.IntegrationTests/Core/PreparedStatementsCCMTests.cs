@@ -74,31 +74,31 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Session.WaitForSchemaAgreement(
                     Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)")
-                    );
+                );
             }
             catch (AlreadyExistsException)
             {
             }
-            Session.Execute("INSERT INTO " + modifiedKs +"test (k, i) VALUES ('123', 17)");
-            Session.Execute("INSERT INTO " + modifiedKs +"test (k, i) VALUES ('124', 18)");
+            Session.Execute("INSERT INTO " + modifiedKs + "test (k, i) VALUES ('123', 17)");
+            Session.Execute("INSERT INTO " + modifiedKs + "test (k, i) VALUES ('124', 18)");
 
             PreparedStatement ps = Session.Prepare("SELECT * FROM " + modifiedKs + "test WHERE k = ?");
 
             using (var rs = Session.Execute(ps.Bind("123")))
             {
-                Assert.Equal(Enumerable.First<Row>(rs.GetRows()).GetValue<int>("i"), 17); // ERROR
+                Assert.Equal(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
             }
-            CCMBridge.ReusableCCMCluster.CCMBridge.Stop();            
-            TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 20);
+            CCMBridge.ReusableCCMCluster.CCMBridge.Stop();
+            TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
 
             CCMBridge.ReusableCCMCluster.CCMBridge.Start();
-            TestUtils.waitFor(Options.Default.IP_PREFIX + "1", Session.Cluster, 20);
+            TestUtils.waitFor(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
 
             try
             {
                 using (var rowset = Session.Execute(ps.Bind("124")))
                 {
-                    Assert.Equal(Enumerable.First<Row>(rowset.GetRows()).GetValue<int>("i"), 18);
+                    Assert.Equal(rowset.GetRows().First().GetValue<int>("i"), 18);
                 }
             }
             catch (NoHostAvailableException e)

@@ -13,23 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Globalization;
-using System.Diagnostics;
 
-#if MYTEST
-using MyTest;
 using System.IO;
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Cassandra.MSTest;
-#endif
+using System.Linq;
+using Cassandra.Data.Linq;
 
-namespace Cassandra.Data.Linq.MSTest
+namespace Cassandra.IntegrationTests.Linq
 {
     [TestClass]
     public class ContextUTTests

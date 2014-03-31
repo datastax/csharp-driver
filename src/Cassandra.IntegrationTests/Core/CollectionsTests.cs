@@ -108,7 +108,7 @@ namespace Cassandra.IntegrationTests.Core
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            using (var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.Default))
+            using (var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()))
             {
                 int ind = 0;
                 foreach (var row in rs.GetRows())
@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -155,11 +155,11 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
          );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName))
-                    );
+                );
             }
             catch (AlreadyExistsException)
             {
@@ -187,7 +187,7 @@ namespace Cassandra.IntegrationTests.Core
             longQ.AppendLine("APPLY BATCH;");
             QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -201,9 +201,9 @@ namespace Cassandra.IntegrationTests.Core
 
             int Cnt = 10;
 
-            if(CassandraCollectionType=="list" || CassandraCollectionType=="set")
+            if (CassandraCollectionType == "list" || CassandraCollectionType == "set")
             {
-                var openType = CassandraCollectionType=="list"? typeof(List<>) : typeof(HashSet<>);
+                var openType = CassandraCollectionType == "list" ? typeof(List<>) : typeof(HashSet<>);
                 var listType = openType.MakeGenericType(TypeOfDataToBeInputed);
                 valueCollection = Activator.CreateInstance(listType);
                 var addM = listType.GetMethod("Add");
@@ -213,18 +213,18 @@ namespace Cassandra.IntegrationTests.Core
                     addM.Invoke(valueCollection, new object[] { randomValue });
                 }
             }
-            else if (CassandraCollectionType=="map")
+            else if (CassandraCollectionType == "map")
             {
                 cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
                 var openType = typeof(SortedDictionary<,>);
-                var dicType = openType.MakeGenericType(TypeOfKeyForMap,TypeOfDataToBeInputed);
+                var dicType = openType.MakeGenericType(TypeOfKeyForMap, TypeOfDataToBeInputed);
                 valueCollection = Activator.CreateInstance(dicType);
                 var addM = dicType.GetMethod("Add");
                 for (int i = 0; i < Cnt; i++)
                 {
-                    RETRY:
+                RETRY:
                     try
                     {
                         var randomKey = Randomm.RandomVal(TypeOfKeyForMap);
@@ -242,11 +242,11 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
          );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName))
-                    );
+                );
             }
             catch (AlreadyExistsException)
             {
@@ -255,7 +255,7 @@ namespace Cassandra.IntegrationTests.Core
             Guid tweet_id = Guid.NewGuid();
             var prepInsert = QueryTools.PrepareQuery(Session, string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES (?, ?);", tableName));
             Session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 

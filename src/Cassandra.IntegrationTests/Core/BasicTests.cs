@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder().WithCompression(CompressionType.LZ4));
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
         }
 
@@ -43,6 +43,62 @@ namespace Cassandra.IntegrationTests.Core
         {
             CCMBridge.ReusableCCMCluster.Drop();
         }
+
+        private void QueryBindingTest()
+        {
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            try
+            {
+                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid PRIMARY KEY,
+         label text,
+         number int,        
+         );", tableName)));
+            }
+            catch (AlreadyExistsException)
+            {
+            }
+            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(tweet_id,label,number) VALUES(?,?,?)", tableName));
+            Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
+        }
+
+        private void QueryFetchingTest(int rowsCount = 5000)
+        {
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            try
+            {
+                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+         tweet_id uuid PRIMARY KEY,
+         label text,        
+         );", tableName)));
+            }
+            catch (AlreadyExistsException)
+            {
+            }
+            for (int i = 0; i < rowsCount; i++)
+                Session.Execute(string.Format("INSERT INTO {2}(tweet_id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
+
+            var rs = Session.Execute("SELECT * FROM " + tableName);
+            var rs_without_paging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
+            int rs1 = 0;
+            int rs2 = 0;
+
+            using (rs)
+            {
+                foreach (var row in rs.GetRows())
+                    rs1++;
+            }
+
+            using (rs_without_paging)
+            {
+                foreach (var row in rs_without_paging.GetRows())
+                    rs2++;
+            }
+
+            Assert.True(rs1 == rs2 && rs1 == rowsCount);
+        }
+
+
 
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
@@ -96,7 +152,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert_and_Check);
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert_and_Check);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -122,7 +178,7 @@ namespace Cassandra.IntegrationTests.Core
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"UPDATE {0} SET incdec = incdec {2}  WHERE tweet_id = {1};", tableName, tweet_id, (i % 2 == 0 ? "-" : "+") + i));
             });
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), new List<object[]> { new object[2] { tweet_id, (Int64)50 } });
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), new List<object[]> { new object[2] { tweet_id, (Int64)50 } });
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -160,7 +216,7 @@ namespace Cassandra.IntegrationTests.Core
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0].ToString(), !isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new Type[] { typeof(string) }).Invoke(toInsert[0][1], new object[] { "r" })), null);
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), toInsert);
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), toInsert);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -181,7 +237,7 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 220898707200000), null);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid().ToString(), 0), null);
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -193,11 +249,11 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          {1},
 PRIMARY KEY(tweet_id)
          );", tableName, columns))
-                    );
+                );
             }
             catch (AlreadyExistsException)
             {
@@ -209,22 +265,15 @@ PRIMARY KEY(tweet_id)
             List<object[]> toReturn = new List<object[]>(2) { row1, row2 };
             List<object[]> toInsert = new List<object[]>(2) { row1, row2 };
 
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[0][0], toInsert[0][1], toInsert[0][2]));
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[1][0], toInsert[1][1], toInsert[1][2]));
-
-            int RowsNb = 0;
-
-            for (int i = 0; i < RowsNb; i++)
-            {
-                toInsert.Add(new object[3] { Guid.NewGuid(), i.ToString(), "Miałczyński" });
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[i][0], toInsert[i][1], toInsert[i][2]));
-            }
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[0][0], toInsert[0][1], toInsert[0][2]), null, ConsistencyLevel.Quorum);
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName, toInsert[1][0], toInsert[1][1], toInsert[1][2]), null, ConsistencyLevel.Quorum);
 
             Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName))
-                );
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName), null, ConsistencyLevel.Quorum)
+            );
+
             Thread.Sleep(2000);
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), toReturn);
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), ConsistencyLevel.Quorum, toReturn);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
@@ -243,7 +292,7 @@ PRIMARY KEY(tweet_id)
 		 fval float,
 		 dval double,
          PRIMARY KEY(tweet_id))", tableName))
-                    );
+                );
             }
             catch (AlreadyExistsException)
             {
@@ -265,7 +314,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid().ToStri
             }
             longQ.AppendLine("APPLY BATCH;");
             QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
-            QueryTools.ExecuteSyncQuery(Session, string.Format(@"SELECT * from {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format(@"SELECT * from {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"DROP TABLE {0};", tableName));
         }
 
