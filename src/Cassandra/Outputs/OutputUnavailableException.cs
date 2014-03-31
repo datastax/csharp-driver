@@ -1,0 +1,17 @@
+namespace Cassandra
+{
+    internal class OutputUnavailableException : OutputError
+    {
+        readonly UnavailableInfo _info = new UnavailableInfo();
+        internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
+        {
+            _info.ConsistencyLevel = (ConsistencyLevel)cb.ReadInt16();
+            _info.Required = cb.ReadInt32();
+            _info.Alive = cb.ReadInt32();
+        }
+        public override DriverException CreateException()
+        {
+            return new UnavailableException(_info.ConsistencyLevel, _info.Required, _info.Alive);
+        }
+    }
+}

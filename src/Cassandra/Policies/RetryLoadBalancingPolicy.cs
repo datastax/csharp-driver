@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.Collections.Generic;
 using System.Threading;
 
 namespace Cassandra
 {
-    public class RetryLoadBalancingPolicyEventArgs : EventArgs
-    {
-        public long DelayMs { get; private set; }
-        public bool Cancel = false;
-        public RetryLoadBalancingPolicyEventArgs(long delayMs)
-        {
-            this.DelayMs = delayMs;
-        }
-    }
     public class RetryLoadBalancingPolicy : ILoadBalancingPolicy
     {
 

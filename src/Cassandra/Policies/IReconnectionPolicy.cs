@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+ namespace Cassandra
 {
     /// <summary>
     ///  Policy that decides how often the reconnection to a dead node is attempted.
@@ -35,23 +35,5 @@
         /// </summary>
         IReconnectionSchedule NewSchedule();
 
-    }
-
-    /// <summary>
-    ///  Schedules reconnection attempts to a node.
-    /// </summary>
-    public interface IReconnectionSchedule
-    {
-
-        /// <summary>
-        ///  When to attempt the next reconnection. This method will be called once when
-        ///  the host is detected down to schedule the first reconnection attempt, and
-        ///  then once after each failed reconnection attempt to schedule the next one.
-        ///  Hence each call to this method are free to return a different value.
-        /// </summary>
-        /// 
-        /// <returns>a time in milliseconds to wait before attempting the next
-        ///  reconnection.</returns>
-        long NextDelayMs();
     }
 }

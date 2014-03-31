@@ -20,24 +20,6 @@ using System.Threading;
 
 namespace Cassandra
 {
-    public class HostsEventArgs : EventArgs
-    {
-        public enum Kind { Up, Down }
-        public Kind What;
-        public IPAddress IPAddress;
-    }
-
-    public class SchemaChangedEventArgs : EventArgs
-    {
-        public enum Kind { Created, Dropped, Updated }
-        public Kind What;
-        public string Keyspace;
-        public string Table;
-    }
-
-    public delegate void HostsEventHandler(object sender, HostsEventArgs e);
-    public delegate void SchemaChangedEventHandler(object sender, SchemaChangedEventArgs e);
-
     /// <summary>
     ///  Keeps metadata on the connected cluster, including known nodes and schema
     ///  definitions.
@@ -209,69 +191,6 @@ namespace Cassandra
         {
             if (_controlConnection != null)
                 _controlConnection.Shutdown(timeoutMs);
-        }
-    }
-
-    internal class TokenMap
-    {
-
-        private readonly Dictionary<IToken, HashSet<IPAddress>> _tokenToCassandraClusterHosts;
-        private readonly IToken[] _ring;
-        internal readonly TokenFactory Factory;
-
-        private TokenMap(TokenFactory factory, Dictionary<IToken, HashSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
-        {
-            this.Factory = factory;
-            this._tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
-            this._ring = ring.ToArray();
-            Array.Sort(this._ring);
-        }
-
-        public static TokenMap Build(String partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
-        {
-
-            TokenFactory factory = TokenFactory.GetFactory(partitioner);
-            if (factory == null)
-                return null;
-
-            Dictionary<IToken, HashSet<IPAddress>> tokenToCassandraClusterHosts = new Dictionary<IToken, HashSet<IPAddress>>();
-            HashSet<IToken> allSorted = new HashSet<IToken>();
-
-            foreach (var entry in allTokens)
-            {
-                var cassandraClusterHost = entry.Key;
-                foreach (string tokenStr in entry.Value)
-                {
-                    try
-                    {
-                        IToken t = factory.Parse(tokenStr);
-                        allSorted.Add(t);
-                        if (!tokenToCassandraClusterHosts.ContainsKey(t))
-                            tokenToCassandraClusterHosts.Add(t, new HashSet<IPAddress>());
-                        tokenToCassandraClusterHosts[t].Add(cassandraClusterHost);
-                    }
-                    catch (ArgumentException)
-                    {
-                        // If we failed parsing that token, skip it
-                    }
-                }
-            }
-            return new TokenMap(factory, tokenToCassandraClusterHosts, new List<IToken>(allSorted));
-        }
-
-        public HashSet<IPAddress> GetReplicas(IToken token)
-        {
-
-            // Find the primary replica
-            int i = Array.BinarySearch(_ring,token);
-            if (i < 0)
-            {
-                i = (i + 1) * (-1);
-                if (i >= _ring.Length)
-                    i = 0;
-            }
-
-            return _tokenToCassandraClusterHosts[_ring[i]];
         }
     }
 }

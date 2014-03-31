@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.IO;
 
 namespace Cassandra
@@ -27,22 +27,6 @@ namespace Cassandra
 
         public CassandraConnectionBadProtocolVersionException(Exception innerException = null)
             : base("cassandra connection bad protocol version", innerException)
-        {
-        }
-    }
-
-    internal class CassandraConnectionIOException : IOException
-    {
-        public CassandraConnectionIOException(Exception innerException = null)
-            : base("cassandra connection io exception", innerException)
-        {
-        }
-    }
-
-    internal class CassandraConnectionTimeoutException : TimeoutException
-    {
-        public CassandraConnectionTimeoutException()
-            : base("cassandra connection timeout exception")
         {
         }
     }

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,37 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Collections.Concurrent;
-using System.Threading;
+ using System;
+ using System.Net;
+ using System.Threading;
 
 namespace Cassandra
 {
-    /// <summary>
-    ///  The distance to a Cassandra node as assigned by a
-    ///  <link>com.datastax.driver.core.policies.LoadBalancingPolicy</link> (through
-    ///  its <code>* distance</code> method). The distance assigned to an host
-    ///  influence how many connections the driver maintains towards this host. If for
-    ///  a given host the assigned <code>HostDistance</code> is <code>Local</code> or
-    ///  <code>Remote</code>, some connections will be maintained by the driver to
-    ///  this host. More active connections will be kept to <code>Local</code> host
-    ///  than to a <code>Remote</code> one (and thus well behaving
-    ///  <code>LoadBalancingPolicy</code> should assign a <code>Remote</code> distance
-    ///  only to hosts that are the less often queried). <p> However, if an host is
-    ///  assigned the distance <code>Ignored</code>, no connection to that host will
-    ///  maintained active. In other words, <code>Ignored</code> should be assigned to
-    ///  hosts that should not be used by this driver (because they are in a remote
-    ///  datacenter for instance).
-    /// </summary>
-    public enum HostDistance
-    {
-        Local,
-        Remote,
-        Ignored
-    }
-
     /// <summary>
     ///  A Cassandra node. This class keeps the informations the driver maintain on a
     ///  given Cassandra node.
@@ -151,68 +126,5 @@ namespace Cassandra
             }
         }
 
-    }
-
-    internal class Hosts
-    {
-        IReconnectionPolicy rp;
-
-        public Hosts(IReconnectionPolicy rp)
-        {
-            this.rp = rp;
-        }
-
-        //class IPAddressComparer : IComparer<IPAddress>
-        //{
-        //    public int Compare(IPAddress x, IPAddress y)
-        //    {
-        //        return x.ToString().CompareTo(y.ToString());
-        //    }
-        //}
-
-        private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
-
-        public bool TryGet(IPAddress endpoint, out Host host)
-        {
-            return _hosts.TryGetValue(endpoint, out host);
-        }
-
-        public ICollection<Host> ToCollection()
-        {
-            return new List<Host>(_hosts.Values);
-        }
-
-        public bool AddIfNotExistsOrBringUpIfDown(IPAddress ep)
-        {
-            if (!_hosts.ContainsKey(ep))
-                if (_hosts.TryAdd(ep, new Host(ep, rp)))
-                    return true;
-
-            Host host;
-            if (_hosts.TryGetValue(ep, out host))
-                return host.BringUpIfDown();
-            else
-                return false;
-        }
-
-        public bool SetDownIfExists(IPAddress ep)
-        {
-            Host host;
-            if (_hosts.TryGetValue(ep, out host))
-                return host.SetDown();
-            else
-                return false;
-        }
-
-        public void RemoveIfExists(IPAddress ep)
-        {
-            Host host;
-            _hosts.TryRemove(ep, out host);
-        }
-
-        public IEnumerable<IPAddress> AllEndPointsToCollection()
-        {
-            return new List<IPAddress>(_hosts.Keys);
-        }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 //
 //      Copyright (C) 2012 DataStax Inc.
 //
@@ -14,10 +14,9 @@ using System;
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+ using System.Collections.Generic;
 namespace Cassandra
 {
-    public enum BatchType { Logged = 0, Unlogged = 1, Counter = 2 }
     internal class BatchRequest : IRequest
     {
         public const byte OpCode = 0x0D;

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.IO;
+
 namespace Cassandra
 {
 
@@ -36,31 +36,4 @@ namespace Cassandra
             return frame;
         }
     }
-    
-    internal class ResponseFrame
-    {
-        public const byte ProtocolV1ResponseVersionByte = 0x81;
-        public const byte ProtocolV2ResponseVersionByte = 0x82;
-
-        public FrameHeader FrameHeader;
-        public IProtoBuf RawStream;
-    }
-
-    internal struct RequestFrame
-    {
-        public MemoryTributary Buffer;
-
-        public const int VersionIdx = 0;
-        public const int FlagsIdx = 1;
-        public const int StreamIdIdx = 2;
-        public const int OpcodeIdIdx = 3;
-        public const int LenIdx = 4;
-        public const int BodyIdx = 8;
-
-        public const byte ProtocolV1RequestVersionByte = 0x01;
-        public const byte ProtocolV2RequestVersionByte = 0x02;
-
-    }
-
-
 }
