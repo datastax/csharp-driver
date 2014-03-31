@@ -14,21 +14,23 @@
 //   limitations under the License.
 //
 
+#if MYTEST
+
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Cassandra.MSTest;
+#endif
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-#if MYTEST
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
 using Cassandra.Data.Linq;
 
 namespace Cassandra.IntegrationTests.Linq
 {
     [TestClass]
-    public partial class BasicLinqTests
+    public class BasicLinqTests
     {
         public class TweetsContext : Context
         {
@@ -117,9 +119,9 @@ namespace Cassandra.IntegrationTests.Linq
 
             var cnt = table.Count().Execute();
 
-            Assert.Equal(RowsNo, cnt);
+            Assert.Equal<long>(RowsNo, cnt);
 
-            var q = (from e in table select e.data).FirstOrDefault().Execute();
+            var q = CqlQueryExtensions.FirstOrDefault<byte[]>((from e in table select e.data)).Execute();
             for (int i = 0; i < 256; i++)
                 Assert.Equal(q[i], (byte)i);
 
@@ -130,7 +132,7 @@ namespace Cassandra.IntegrationTests.Linq
             ents.SaveChanges(SaveChangesMode.Batch);
 
             var cnt2 = table.Count().Execute();
-            Assert.Equal(0, cnt2);
+            Assert.Equal<long>(0, cnt2);
         }
 
 
@@ -152,7 +154,7 @@ namespace Cassandra.IntegrationTests.Linq
             int PerPage = 1234;
 
             var firstPage = (from ent in table select ent).Take(PerPage).Execute();
-            var continuation = CqlToken.Create(firstPage.Last().tweet_id);
+            var continuation = CqlToken.Create<Guid>(firstPage.Last().tweet_id);
 
             int pages = 1;
             int lastcnt = 0;
@@ -164,7 +166,7 @@ namespace Cassandra.IntegrationTests.Linq
                     lastcnt = nextPage.Count;
                     break;
                 }
-                continuation = CqlToken.Create(nextPage.Last().tweet_id);
+                continuation = CqlToken.Create<Guid>(nextPage.Last().tweet_id);
                 pages++;
             }
 
@@ -244,6 +246,32 @@ namespace Cassandra.IntegrationTests.Linq
             var smth = table.Where(x => x.isok == isok).Execute().ToList();
         }
 
+        [TestMethod]
+        [WorksForMe]
+        public void Test()
+        {
+            Test1();
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void TestPagination()
+        {
+            testPagination();
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void TestBuffering()
+        {
+            testBuffering();
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void TestBug16_JIRA()
+        {
+            Bug16_JIRA();
+        }
     }
 }
-

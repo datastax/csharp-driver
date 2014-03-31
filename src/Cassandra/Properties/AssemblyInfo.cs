@@ -34,3 +34,6 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("2.0.1.0")]
 [assembly: AssemblyFileVersion("2.0.1.0")]
+
+// Make internals visible to the Tests project(s)
+[assembly: InternalsVisibleTo("Cassandra.IntegrationTests")]

@@ -15,25 +15,11 @@
 //
 
 using System;
-using Cassandra.Data.Linq;
 
-namespace Cassandra.IntegrationTests.Linq.Structures
+namespace Cassandra.IntegrationTests
 {
-    public class CassandraLog
+    [AttributeUsage(AttributeTargets.Class)]
+    public class TestClass : Attribute
     {
-        [PartitionKey]        
-        public string category;
-        
-        [ClusteringKey(0)]
-        public DateTimeOffset date;
-
-        [ClusteringKey(1)]
-        public string message;
-        
-        public void display()        
-        {
-            Console.WriteLine(category + "\n " + date.ToString("MM/dd/yyyy H:mm:ss.fff zzz") + "\n " + message
-                + Environment.NewLine);
-        }
     }
 }
