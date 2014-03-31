@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,100 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.Linq;
 using System.Collections.Generic;
 
 namespace Cassandra.Data.Linq
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
-    public class AllowFilteringAttribute : Attribute
-    {
-    }
-    
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
-    public class CompactStorageAttribute : Attribute
-    {
-    }
-    
-    [AttributeUsageAttribute(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
-    public sealed class TableAttribute : Attribute
-    {
-        public TableAttribute() {}
-        public TableAttribute(string Name) { this.Name = Name; }
-        public string Name = null;
-    }
-    
-    [AttributeUsageAttribute(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
-    public sealed class ColumnAttribute : Attribute
-    {
-        public ColumnAttribute() {}
-        public ColumnAttribute(string Name) { this.Name = Name; }
-        public string Name = null;
-    }
-
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
-    public class PartitionKeyAttribute : Attribute
-    {
-        public PartitionKeyAttribute(int index = 0) { this.Index = index; }
-        public int Index = -1;
-    }
-
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
-    public class ClusteringKeyAttribute : Attribute
-    {
-        public ClusteringKeyAttribute(int index) { this.Index = index; }
-        /// <summary>
-        /// Sets the clustering key and optionally a clustering order for it.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <param name="order">Use "DESC" for descending order and "ASC" for ascending order.</param>
-        public ClusteringKeyAttribute(int index, string order) 
-        { 
-            this.Index = index;
-            
-            if (order == "DESC" || order == "ASC")
-                this.ClusteringOrder = order;
-            else
-                throw new ArgumentException("Possible arguments are: \"DESC\" - for descending order and \"ASC\" - for ascending order.");
-        }
-        public int Index = -1;
-        public string ClusteringOrder = null;
-        public string Name;
-    }
-
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
-    public class SecondaryIndexAttribute : Attribute
-    {
-    }
-
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
-    public class CounterAttribute : Attribute
-    {
-    }
-
-    public interface ITable
-    {
-        void Create();
-        Type GetEntityType();
-        string GetQuotedTableName();
-        Session GetSession();
-        TableType GetTableType();
-    }
-
-    public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
-    public enum SaveChangesMode { Batch, OneByOne }
-
-    [Flags]
-    public enum TableType
-    {
-        Standard = 0x1,
-        Counter = 0x2,
-        All = Standard | Counter
-    }
-
-    public enum EntityTrackingMode { KeepAttachedAfterSave, DetachAfterSave }
-
     public class Table<TEntity> : CqlQuery<TEntity>, ITable, IQueryProvider
     {
         readonly Session _session;
@@ -236,82 +148,6 @@ namespace Cassandra.Data.Linq
                     _tableType = TableType.Standard;
             }
             return _tableType;
-        }
-    }
-
-    public class CqlToken
-    {
-        internal CqlToken(object[] v) { Values = v; }
-
-        public static CqlToken Create<T>(T v) { return new CqlToken(new object[] { v }); }
-        public static CqlToken Create<T1, T2>(T1 v1, T2 v2) { return new CqlToken(new object[] { v1, v2 }); }
-        public static CqlToken Create<T1, T2, T3>(T1 v1, T2 v2, T3 v3) { return new CqlToken(new object[] { v1, v2, v3 }); }
-        public static CqlToken Create<T1, T2, T3, T4>(T1 v1, T2 v2, T3 v3, T4 v4) { return new CqlToken(new object[] { v1, v2, v3, v4 }); }
-        public static CqlToken Create<T1, T2, T3, T4, T5>(T1 v1, T2 v2, T3 v3, T4 v4, T5 v5) { return new CqlToken(new object[] { v1, v2, v3, v4, v5 }); }
-        public static CqlToken Create<T1, T2, T3, T4, T5, T6>(T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6) { return new CqlToken(new object[] { v1, v2, v3, v4, v5, v6 }); }
-
-        public readonly object[] Values;
-
-        public override int GetHashCode()
-        {
-            throw new InvalidOperationException();
-        }
-        
-        public static bool operator ==(CqlToken a, object b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator !=(CqlToken a, object b)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public static bool operator <=(CqlToken a, object b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator >=(CqlToken a, object b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator <(CqlToken a, object b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator >(CqlToken a, object b)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public static bool operator !=(CqlToken a, CqlToken b)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public override bool Equals(object obj)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public static bool operator ==(CqlToken a, CqlToken b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator <=(CqlToken a, CqlToken b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator >=(CqlToken a, CqlToken b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator <(CqlToken a, CqlToken b)
-        {
-            throw new InvalidOperationException();
-        }
-        public static bool operator >(CqlToken a, CqlToken b)
-        {
-            throw new InvalidOperationException();
         }
     }
 }

@@ -37,22 +37,52 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AllowFilteringAttribute.cs" />
     <Compile Include="Batch.cs" />
     <Compile Include="BatchV1.cs" />
     <Compile Include="BatchV2.cs" />
+    <Compile Include="ClusteringKeyAttribute.cs" />
+    <Compile Include="ColumnAttribute.cs" />
+    <Compile Include="CompactStorageAttribute.cs" />
     <Compile Include="Context.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ContextTable.cs" />
+    <Compile Include="CounterAttribute.cs" />
+    <Compile Include="CqlArgumentException.cs" />
+    <Compile Include="CqlCommand.cs" />
+    <Compile Include="CqlDelete.cs" />
+    <Compile Include="CqlEqualityComparer.cs" />
     <Compile Include="CqlExpressionVisitor.cs" />
+    <Compile Include="CqlInsert.cs" />
+    <Compile Include="CqlLinqNotSupportedException.cs" />
+    <Compile Include="CqlMthHelps.cs" />
     <Compile Include="CqlQuery.cs" />
+    <Compile Include="CqlQueryBase.cs" />
     <Compile Include="CqlQueryExtensions.cs" />
+    <Compile Include="CqlQuerySingleElement.cs" />
     <Compile Include="CqlQueryTools.cs" />
+    <Compile Include="CqlScalar.cs" />
+    <Compile Include="CqlStringTool.cs" />
+    <Compile Include="CqlToken.cs" />
+    <Compile Include="CqlUpdate.cs" />
+    <Compile Include="EntityTrackingMode.cs" />
+    <Compile Include="EntityUpdateMode.cs" />
+    <Compile Include="IMutationTracker.cs" />
+    <Compile Include="ITable.cs" />
     <Compile Include="MutationTracker.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ParsePhase.cs" />
+    <Compile Include="PartitionKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReflExt.cs" />
+    <Compile Include="SaveChangesMode.cs" />
+    <Compile Include="SecondaryIndexAttribute.cs" />
     <Compile Include="SessionExtensions.cs" />
     <Compile Include="Table.cs" />
+    <Compile Include="TableAttribute.cs" />
+    <Compile Include="TableType.cs" />
     <Compile Include="VisitingParam.cs" />
   </ItemGroup>
   <ItemGroup>

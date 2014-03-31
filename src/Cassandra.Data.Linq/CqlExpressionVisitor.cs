@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,79 +22,6 @@ using System.Collections;
 
 namespace Cassandra.Data.Linq
 {
-    internal enum ParsePhase { None, Select, What, Condition, SelectBinding, Take, OrderBy, OrderByDescending };
-
-    public class CqlLinqNotSupportedException : NotSupportedException
-    {
-        public Expression Expression { get; private set; }
-        internal CqlLinqNotSupportedException(Expression expression, ParsePhase parsePhase)
-            : base(string.Format("The expression {0} = [{1}] is not supported in {2} parse phase.",
-                        expression.NodeType.ToString(), expression.ToString(), parsePhase.ToString()))
-        {
-            Expression = expression;
-        }
-    }
-
-    public class CqlArgumentException : ArgumentException
-    {
-        internal CqlArgumentException(string message)
-            : base(message)
-        { }
-    }
-
-    internal class CqlStringTool
-    {
-        List<object> srcvalues = new List<object>();
-
-        public string FillWithEncoded(string pure)
-        {
-            if (srcvalues.Count == 0)
-                return pure;
-
-            var sb = new StringBuilder();
-            var parts = pure.Split('\0');
-
-            for (int i = 0; i < parts.Length - 1; i += 2)
-            {
-                sb.Append(parts[i]);
-                var idx = int.Parse(parts[i + 1]);
-                sb.Append(CqlQueryTools.Encode(srcvalues[idx]));
-            }
-            sb.Append(parts.Last());
-            return sb.ToString();
-        }
-
-        public string FillWithValues(string pure, out object[] values)
-        {
-            if (srcvalues.Count == 0)
-            {
-                values = null;
-                return pure;
-            }
-
-            var sb = new StringBuilder();
-            var objs = new List<object>();
-            var parts = pure.Split('\0');
-
-            for (int i = 0; i < parts.Length - 1; i += 2)
-            {
-                sb.Append(parts[i]);
-                var idx = int.Parse(parts[i + 1]);
-                objs.Add(srcvalues[idx]);
-                sb.Append(" ? ");
-            }
-            sb.Append(parts.Last());
-            values = objs.ToArray();
-            return sb.ToString();
-        }
-
-        public string AddValue(object val)
-        {
-            srcvalues.Add(val);
-            return "\0" + (srcvalues.Count - 1).ToString() + "\0";
-        }
-    }
-
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
         public StringBuilder WhereClause = new StringBuilder();

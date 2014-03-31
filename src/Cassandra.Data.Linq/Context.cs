@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,57 +21,6 @@ using System.Threading;
 
 namespace Cassandra.Data.Linq
 {
-    public class ContextTable<TEntity> : Table<TEntity>
-    {
-        private Context _context;
-
-        internal ContextTable(Table<TEntity> table, Context context) : base(table)
-        {
-            _context = context;
-        }
-
-        public void Insert(TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
-        {
-            AddNew(entity, trmod);
-        }
-        
-        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
-        {
-            _context.Attach(this, entity, updmod, trmod);
-        }
-
-        public void Detach(TEntity entity)
-        {
-            _context.Detach(this, entity);
-        }
-
-        public void Delete(TEntity entity)
-        {
-            _context.Delete(this, entity);
-        }
-
-        public void AddNew(TEntity entity, EntityTrackingMode trmod = EntityTrackingMode.DetachAfterSave)
-        {
-            _context.AddNew(this, entity, trmod);
-        }
-
-        public void EnableQueryTracing(TEntity entity, bool enable = true)
-        {
-            _context.EnableQueryTracing(this, entity, enable);
-        }
-
-        public List<QueryTrace> RetriveAllQueryTraces()
-        {
-            return _context.RetriveAllQueryTraces(this);
-        }
-
-        public QueryTrace RetriveQueryTrace( TEntity entity)
-        {
-            return _context.RetriveQueryTrace(this, entity);
-        }
-    }
-
-
     public class Context
     {
         private struct CqlSaveTag
