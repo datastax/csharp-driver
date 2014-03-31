@@ -56,7 +56,7 @@ namespace BigDecimalSamples
                 {
                     session.ChangeKeyspace(keyspaceName);
                 }
-                catch (InvalidException)
+                catch (InvalidQueryException)
                 {
                     session.CreateKeyspaceIfNotExists(keyspaceName);
                     session.ChangeKeyspace(keyspaceName);
