@@ -19,7 +19,8 @@ using System.Collections.Generic;
 ﻿using System.Text;
 using System.Data;
 using System.Data.Common;
-using Cassandra;
+﻿using Cassandra;
+﻿using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Cassandra.Data
@@ -28,8 +29,11 @@ namespace Cassandra.Data
     {
         internal CqlConnection CqlConnection;
         internal CqlBatchTransaction CqlTransaction;
-        private string commandText;
-        private ConsistencyLevel consistencyLevel = ConsistencyLevel.One;
+        private string _commandText;
+        private ConsistencyLevel _consistencyLevel = ConsistencyLevel.One;
+        private static readonly Regex RegexParseParameterName = new Regex(@"\B:[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled | RegexOptions.Multiline);
+        private PreparedStatement _preparedStatement;
+        private readonly CqlParameterCollection _parameters = new CqlParameterCollection();
 
         public override void Cancel()
         {
@@ -39,11 +43,12 @@ namespace Cassandra.Data
         {
             get
             {
-                return commandText;
+                return _commandText;
             }
             set
             {
-                commandText = value;
+                _preparedStatement = null;
+                _commandText = value;
             }
         }
 
@@ -52,8 +57,23 @@ namespace Cassandra.Data
         /// </summary>
         public ConsistencyLevel ConsistencyLevel
         {
-            get { return consistencyLevel; }
-            set { consistencyLevel = value; }
+            get { return _consistencyLevel; }
+            set { _consistencyLevel = value; }
+        }
+
+        /// <summary>
+        /// Gets whether this command has been prepared.
+        /// </summary>
+        public bool IsPrepared {
+            get { return Parameters.Count == 0 || _preparedStatement != null; }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="CqlParameter"/>s.
+        /// </summary>
+        public new CqlParameterCollection Parameters
+        {
+            get { return _parameters; }
         }
 
         public override int CommandTimeout
@@ -80,7 +100,7 @@ namespace Cassandra.Data
 
         protected override DbParameter CreateDbParameter()
         {
-            throw new NotSupportedException();
+            return new CqlParameter();
         }
 
         protected override DbConnection DbConnection
@@ -100,7 +120,7 @@ namespace Cassandra.Data
 
         protected override DbParameterCollection DbParameterCollection
         {
-            get { throw new NotSupportedException(); }
+            get { return _parameters; }
         }
 
         protected override DbTransaction DbTransaction
@@ -111,7 +131,7 @@ namespace Cassandra.Data
             }
             set
             {
-                CqlTransaction = (DbTransaction as CqlBatchTransaction);
+                CqlTransaction = (value as CqlBatchTransaction);
             }
         }
 
@@ -128,25 +148,70 @@ namespace Cassandra.Data
 
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
-            var outp = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
-            return new CqlReader(outp);
+            Prepare();
+
+            RowSet rowSet;
+            if (_preparedStatement == null)
+            {
+                rowSet = CqlConnection.ManagedConnection.Execute(_commandText, ConsistencyLevel);
+            }
+            else //if _preparedStatement != null
+            {
+                
+                var query = _preparedStatement.Bind(GetParameterValues());
+                query.SetConsistencyLevel(ConsistencyLevel);
+                rowSet = CqlConnection.ManagedConnection.Execute(query);
+            }
+            
+            return new CqlReader(rowSet);
         }
 
         public override int ExecuteNonQuery()
         {
-            var cm = commandText.ToUpper().TrimStart();
-            if (cm.StartsWith("CREATE ")
-                || cm.StartsWith("DROP ")
-                || cm.StartsWith("ALTER "))
-                CqlConnection.ManagedConnection.WaitForSchemaAgreement(CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel));
-            else
-                CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
+            Prepare();
+
+            var cm = _commandText.ToUpper().TrimStart();
+            var managedConnection = CqlConnection.ManagedConnection;
+
+            if (_preparedStatement == null)
+            {
+                if (cm.StartsWith("CREATE ")
+                    || cm.StartsWith("DROP ")
+                    || cm.StartsWith("ALTER "))
+                    managedConnection.WaitForSchemaAgreement(managedConnection.Execute(_commandText, ConsistencyLevel));
+                else
+                    managedConnection.Execute(_commandText, ConsistencyLevel);
+            }
+            else //if _preparedStatement != null
+            {
+                var query = _preparedStatement.Bind(GetParameterValues());
+                query.SetConsistencyLevel(ConsistencyLevel);
+                if (cm.StartsWith("CREATE ")
+                    || cm.StartsWith("DROP ")
+                    || cm.StartsWith("ALTER "))
+                    managedConnection.WaitForSchemaAgreement(managedConnection.Execute(query));
+                else
+                    managedConnection.Execute(query);
+            }
+
             return -1;
         }
 
         public override object ExecuteScalar()
         {
-            var rowSet = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
+            Prepare();
+
+            RowSet rowSet;
+            if (_preparedStatement == null)
+            {
+                rowSet = CqlConnection.ManagedConnection.Execute(_commandText, ConsistencyLevel);
+            }
+            else //if _preparedStatement != null
+            {
+                var query = _preparedStatement.Bind(GetParameterValues());
+                query.SetConsistencyLevel(ConsistencyLevel);
+                rowSet = CqlConnection.ManagedConnection.Execute(query);
+            }
 
             // return the first field value of the first row if exists
             if (rowSet == null)
@@ -163,7 +228,47 @@ namespace Cassandra.Data
 
         public override void Prepare()
         {
-            throw new NotSupportedException();
+            if (CqlConnection == null)
+            {
+                throw new InvalidOperationException("No connection bound to this command!");
+            }
+
+            if (!IsPrepared && Parameters.Count > 0)
+            {
+                // replace all named parameter names to ? before preparing the statement 
+                // when binding the parameter values got from GetParameterValues() for executing
+                // GetParameterValues() returns the array of parameter values
+                // order by the occurence of parameter names in cql
+                // so that we could support cases that parameters of the same name occur multiple times in cql
+                var cqlQuery = RegexParseParameterName.Replace(CommandText, "?");
+                _preparedStatement = CqlConnection.CreatePreparedStatement(cqlQuery);
+            }
+        }
+
+        private object[] GetParameterValues()
+        {
+            if (Parameters.Count == 0)
+            {
+                return null;
+            }
+
+            // returns the parameter values as an array order by the occurence of parameter names in CommandText
+            var matches = RegexParseParameterName.Matches(CommandText);
+            var values = new List<object>();
+            foreach (Match match in matches)
+            {
+                object value = null;
+                foreach (IDataParameter p in Parameters)
+                {
+                    if (string.Compare(match.Value, p.ParameterName, StringComparison.OrdinalIgnoreCase) == 0)
+                    {
+                        value = p.Value;
+                        break;
+                    }
+                }
+                values.Add(value);
+            }
+            return values.ToArray();
         }
 
         public override UpdateRowSource UpdatedRowSource
