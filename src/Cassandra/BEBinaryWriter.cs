@@ -20,7 +20,7 @@ using System.Diagnostics;
 
 namespace Cassandra
 {
-    internal partial class BEBinaryWriter
+    internal class BEBinaryWriter
     {
         readonly BinaryWriter _base;
         public BEBinaryWriter() { _base = new BinaryWriter(new MemoryTributary()); }
@@ -101,6 +101,35 @@ namespace Cassandra
         {
             WriteInt16((short)buffer.Length);
             _base.Write(buffer);
+        }
+
+        private int _frameSizePos = -1;
+
+        public void WriteFrameSize()
+        {
+            _frameSizePos = (int)_base.Seek(0, SeekOrigin.Current);            
+            
+            _base.BaseStream.Seek(4, SeekOrigin.Current); //Reserving space for "length of the frame body" value
+            _base.BaseStream.SetLength(_base.BaseStream.Length + 4);
+        }
+
+        public void WriteFrameHeader(byte version, byte flags, byte streamId, byte opCode)
+        {
+            WriteByte(version);
+            WriteByte(flags);
+            WriteByte(streamId);
+            WriteByte(opCode);
+            WriteFrameSize();
+        }
+
+
+        public RequestFrame GetFrame()
+        {
+            var len = (int)_base.Seek(0, SeekOrigin.Current);
+            Debug.Assert(_frameSizePos != -1);
+            _base.Seek(_frameSizePos, SeekOrigin.Begin);
+            WriteInt32(len - 8);
+            return new RequestFrame() { Buffer = (MemoryTributary)_base.BaseStream };            
         }
     }
 }

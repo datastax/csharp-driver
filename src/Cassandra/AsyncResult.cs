@@ -22,7 +22,7 @@ using System.Collections.Concurrent;
 
 namespace Cassandra
 {
-    internal partial class AsyncResultNoResult : IAsyncResult
+    internal class AsyncResultNoResult : IAsyncResult
     {
         static long CurId;
 
@@ -244,7 +244,7 @@ namespace Cassandra
         #endregion
     }
 
-    internal partial class AsyncResult<TResult> : AsyncResultNoResult
+    internal class AsyncResult<TResult> : AsyncResultNoResult
     {
         // Field set when operation completes
         private TResult _result = default(TResult);

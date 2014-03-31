@@ -55,11 +55,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsyncResult.cs" />
-    <Compile Include="BEBinaryWriterFrame.cs" />
     <Compile Include="BoundStatement.cs" />
     <Compile Include="CassandraConnectionException.cs" />
     <Compile Include="Cluster.cs" />
-    <Compile Include="Commands\CassandraConnection+Batch.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="ConsistencyLevel.cs" />
     <Compile Include="BatchStatement.cs" />
@@ -73,11 +71,7 @@
     <Compile Include="LZ4ProtoBufCompressor.cs" />
     <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
-    <Compile Include="Commands\CassandraConnection+Prepare.cs" />
-    <Compile Include="Commands\CassandraConnection+Register+CassandraEvent.cs" />
-    <Compile Include="Commands\CassandraConnection+Execute.cs" />
-    <Compile Include="Commands\CassandraConnection+Options.cs" />
-    <Compile Include="Commands\CassandraConnection+Credentials.cs" />
+    <Compile Include="CassandraConnection+Register+CassandraEvent.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="ControlConnection.cs" />
     <Compile Include="ClientOptions.cs" />
@@ -170,7 +164,6 @@
     <Compile Include="BEBinaryReader.cs" />
     <Compile Include="BEBinaryWriter.cs" />
     <Compile Include="CassandraConnection.cs" />
-    <Compile Include="Commands\CassandraConnection+Query.cs" />
     <Compile Include="Requests\PrepareRequest.cs" />
     <Compile Include="Responses\AuthSuccessResponse.cs" />
     <Compile Include="Responses\EventResponse.cs" />
@@ -189,31 +182,10 @@
     <Compile Include="Requests\StartupRequest.cs" />
     <Compile Include="Outputs\OutputRows.cs" />
     <Compile Include="RoutingKey.cs" />
-    <Compile Include="RowPopulators\RowSet+Print.cs" />
     <Compile Include="RowPopulators\RowSet.cs" />
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
     <Compile Include="RowPopulators\TypeInterpreter.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Counter.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Custom.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Set.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Map.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+List.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Inet.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Timeuuid.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Varint.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Float.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Double.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Decimal.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Timestamp.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Boolean.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Blob.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Uuid.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Varchar.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Int.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Bigint.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Ascii.cs" />
-    <Compile Include="RowPopulators\TypeInterpreters\TypeInterpreter+Text.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SimpleStatement.cs" />
@@ -235,6 +207,7 @@
     <None Include="packages.config" />
     <None Include="README.rst" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

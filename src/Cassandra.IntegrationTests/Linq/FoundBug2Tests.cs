@@ -23,7 +23,7 @@ using Cassandra.Data.Linq;
 namespace Cassandra.IntegrationTests.Linq
 {
     [TestClass]
-    public partial class FoundBug2Tests
+    public class FoundBug2Tests
     {
         public class TweetsContext : Context
         {

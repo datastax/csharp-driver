@@ -27,7 +27,7 @@ namespace Cassandra
 {
     internal enum BufferingMode { NoBuffering, FrameBuffering }
 
-    internal partial class CassandraConnection
+    internal class CassandraConnection : IDisposable
     {
 #if ERRORINJECTION
         public void KillSocket()
@@ -89,7 +89,7 @@ namespace Cassandra
                 _binaryProtocolResponseVersionByte = ResponseFrame.ProtocolV1ResponseVersionByte;
             }
 
-            this.Guid = Guid.NewGuid();
+            this.Guid = System.Guid.NewGuid();
             this._owner = owner;
             _bufferingMode = null;           
             switch (protocolOptions.Compression)
@@ -131,24 +131,24 @@ namespace Cassandra
                 _freeStreamIDs.Push(i);
 
             _protocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
-               {
-                   if (param.AbstractResponse is ErrorResponse)
-                       JobFinished(
-                           param.Jar,
-                           (param.AbstractResponse as ErrorResponse).Output);
-               });
+            {
+                if (param.AbstractResponse is ErrorResponse)
+                    JobFinished(
+                        param.Jar,
+                        (param.AbstractResponse as ErrorResponse).Output);
+            });
 
             _frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
 
             _buffer = new byte[][] { 
-                    new byte[_bufferingMode.PreferedBufferSize()], 
-                    new byte[_bufferingMode.PreferedBufferSize()] };
+                new byte[_bufferingMode.PreferedBufferSize()], 
+                new byte[_bufferingMode.PreferedBufferSize()] };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             if (_socketOptions.KeepAlive != null)
-                newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,
-                                        _socketOptions.KeepAlive.Value);
+                newSock.SetSocketOption((SocketOptionLevel) SocketOptionLevel.Socket, (SocketOptionName) SocketOptionName.KeepAlive,
+                                        (bool) _socketOptions.KeepAlive.Value);
             
             newSock.SendTimeout = _socketOptions.ConnectTimeoutMillis;
 
@@ -176,12 +176,12 @@ namespace Cassandra
                 string targetHost;                
                 try
                 {
-                    targetHost = Dns.GetHostEntry(_serverAddress).HostName;
+                    targetHost = Dns.GetHostEntry((IPAddress) _serverAddress).HostName;
                 }
                 catch (SocketException ex)
                 {
                     targetHost = serverAddress.ToString();
-                    _logger.Error(string.Format("SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.", _serverAddress.ToString()), ex);
+                    _logger.Error(String.Format((string) "SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.", (object) _serverAddress.ToString()), ex);
                 }
 
                 _socketStream = new SslStream(new NetworkStream(_socket), false, new RemoteCertificateValidationCallback(protocolOptions.SslOptions.RemoteCertValidationCallback), null);
@@ -510,11 +510,11 @@ namespace Cassandra
         internal static bool IsStreamRelatedException(Exception ex)
         {
             return ex is SocketException
-            || ex is CassandraConnectionIOException
-            || ex is IOException
-            || ex is ObjectDisposedException
-            || ex is StreamAllocationException
-            || ex is CassandraConnectionTimeoutException;
+                   || ex is CassandraConnectionIOException
+                   || ex is IOException
+                   || ex is ObjectDisposedException
+                   || ex is StreamAllocationException
+                   || ex is CassandraConnectionTimeoutException;
         }
 
         private void ForceComplete(Exception ex=null)
@@ -604,6 +604,358 @@ namespace Cassandra
         internal IPAddress GetHostAdress()
         {
             return _serverAddress;
+        }
+
+        public event CassandraEventHandler CassandraEvent;
+
+        private void EventOccured(ResponseFrame frame)
+        {
+            var response = FrameParser.Parse(frame);
+            if (response is EventResponse)
+            {
+                if (CassandraEvent != null)
+                    CassandraEvent.Invoke(this, (response as EventResponse).CassandraEventArgs);
+                return;
+            }
+            throw new DriverInternalError("Unexpected response frame");
+        }
+
+        public IAsyncResult BeginRegisterForCassandraEvent(int _streamId, CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
+        {
+            var jar = SetupJob(_streamId, callback, state, owner, "REGISTER");
+            BeginJob(jar, new Action(() =>
+            {
+                Evaluate(new RegisterForEventRequest(jar.StreamId, eventTypes), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                {
+                    var response = FrameParser.Parse(frame2);
+                    if (response is ReadyResponse)
+                        JobFinished(jar, new OutputVoid(null));
+                    else
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                }));
+            }));
+            return jar;
+        }
+
+        public IOutput EndRegisterForCassandraEvent(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "REGISTER");
+        }
+
+        public IOutput RegisterForCassandraEvent(int streamId, CassandraEventType eventTypes)
+        {
+            return EndRegisterForCassandraEvent(BeginRegisterForCassandraEvent(streamId, eventTypes, null, null, this), this);
+        }
+
+        private Dictionary<byte[], string> NotContainsInAlreadyPrepared(Dictionary<byte[], string> Ids)
+        {
+            Dictionary<byte[], string> ret = new Dictionary<byte[], string>();
+            foreach (var key in Ids.Keys)
+            {
+                if (!preparedQueries.ContainsKey(key))
+                    ret.Add(key, Ids[key]);
+            }
+            return ret;
+        }
+        public Action SetupPreparedQueries(AsyncResult<IOutput> jar, Dictionary<byte[], string> Ids, Action dx)
+        {
+            return new Action(() =>
+            {
+                var ncip = NotContainsInAlreadyPrepared(Ids);
+                if (ncip.Count>0)
+                {
+                    foreach (var ncipit in ncip)
+                    {
+                        Evaluate(new PrepareRequest(jar.StreamId, ncipit.Value), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                        {
+                            var response = FrameParser.Parse(frame2);
+                            if (response is ResultResponse)
+                            {
+                                preparedQueries.TryAdd(ncipit.Key, ncipit.Value);
+                                BeginJob(jar, SetupPreparedQueries(jar, Ids, dx));
+                            }
+                            else
+                                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                        }));
+                        break;
+                    }
+                }
+                else
+                    dx();
+            });
+        }
+
+        private Dictionary<byte[], string> GetIdsFromListOfQueries(List<Query> queries)
+        {
+            var ret = new Dictionary<byte[], string>();
+            foreach (var q in queries)
+            {
+                if (q is BoundStatement)
+                {
+                    var bs = (q as BoundStatement);
+                    if(!ret.ContainsKey(bs.PreparedStatement.Id))
+                        ret.Add(bs.PreparedStatement.Id, bs.PreparedStatement.Cql);
+                }
+            }
+            return ret;
+        }
+
+        private List<IQueryRequest> GetRequestsFromListOfQueries(List<Query> queries)
+        {
+            var ret = new List<IQueryRequest>();
+            foreach (var q in queries)
+                ret.Add(q.CreateBatchRequest());
+            return ret;
+        }
+
+        public IAsyncResult BeginBatch(int _streamId, BatchType batchType, List<Query> queries,
+                                       AsyncCallback callback, object state, object owner,
+                                       ConsistencyLevel consistency, bool isTracing)
+        {
+            var jar = SetupJob(_streamId, callback, state, owner, "BATCH");
+
+
+            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries),  () =>
+            {
+                Evaluate(new BatchRequest(jar.StreamId, batchType, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
+                         new Action<ResponseFrame>((frame2) =>
+                         {
+                             var response = FrameParser.Parse(frame2);
+                             if (response is ResultResponse)
+                                 JobFinished(jar, (response as ResultResponse).Output);
+                             else
+                                 _protocolErrorHandlerAction(new ErrorActionParam()
+                                 {
+                                     AbstractResponse = response,
+                                     Jar = jar
+                                 });
+
+                         }));
+            })));
+
+            return jar;
+        }
+
+        public IOutput EndBatch(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "BATCH");
+        }
+
+        ConcurrentDictionary<byte[], string> preparedQueries = new ConcurrentDictionary<byte[], string>();
+
+        public Action SetupPreparedQuery(AsyncResult<IOutput> jar, byte[] Id, string cql, Action dx)
+        {
+            return new Action(() =>
+            {
+                if (!preparedQueries.ContainsKey(Id))
+                {
+                    Evaluate(new PrepareRequest(jar.StreamId, cql), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                    {
+                        var response = FrameParser.Parse(frame2);
+                        if (response is ResultResponse)
+                        {
+                            preparedQueries.TryAdd(Id, cql);
+                            dx();
+                        }
+                        else
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                    }));
+                }
+                else
+                    dx();
+            });
+        }
+
+        public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata,
+                                              AsyncCallback callback, object state, object owner,
+                                              bool isTracing, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency=null)
+        {
+            var jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
+
+            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, Id, cql, () =>
+            {
+                Evaluate(new ExecuteRequest(jar.StreamId, Id, Metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
+                         new Action<ResponseFrame>((frame2) =>
+                         {
+                             var response = FrameParser.Parse(frame2);
+                             if (response is ResultResponse)
+                                 JobFinished(jar, (response as ResultResponse).Output);
+                             else
+                                 _protocolErrorHandlerAction(new ErrorActionParam()
+                                 {
+                                     AbstractResponse = response,
+                                     Jar = jar
+                                 });
+
+                         }));
+            })));
+
+            return jar;
+        }
+
+        public IOutput EndExecuteQuery(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "EXECUTE");
+        }
+
+        public IOutput ExecuteQuery(int streamId, byte[] Id, string cql, RowSetMetadata Metadata,
+                                    bool isTracing, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency)
+        {
+            return EndExecuteQuery(BeginExecuteQuery(streamId, Id, cql, Metadata, null, null, this, isTracing, queryPrtclOptions, consistency),
+                                   this);
+        }
+
+        public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
+        {
+            var jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
+            BeginJob(jar, new Action(() =>
+            {
+                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                {
+                    var response = FrameParser.Parse(frame2);
+                    if (response is ReadyResponse)
+                        JobFinished(jar, new OutputVoid(null));
+                    else
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                }));
+            }));
+            return jar;
+        }
+
+        public IOutput EndExecuteQueryCredentials(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "CREDENTIALS");
+        }
+
+        public IOutput ExecuteCredentials(int streamId, IDictionary<string, string> credentials)
+        {
+            return EndExecuteQueryCredentials(BeginExecuteQueryCredentials(streamId, credentials, null, null, this), this);
+        }
+
+        AtomicValue<string> currentKs = new AtomicValue<string>("");
+        AtomicValue<string> selectedKs = new AtomicValue<string>("");
+
+        public void SetKeyspace(string ks)
+        {
+            selectedKs.Value = ks;
+        }
+
+        public Action SetupKeyspace(AsyncResult<IOutput> jar, Action dx)
+        {
+            return new Action(() =>
+            {
+                if (!currentKs.Value.Equals(selectedKs.Value))
+                {
+                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCQL(selectedKs.Value), false, QueryProtocolOptions.DEFAULT), jar.StreamId, new Action<ResponseFrame>((frame3) =>
+                    {
+                        var response = FrameParser.Parse(frame3);
+                        if (response is ResultResponse)
+                        {
+                            currentKs.Value = selectedKs.Value;
+                            dx();
+                        }
+                        else
+                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+                    }));
+                }
+                else
+                    dx();
+            });
+        }
+
+        public IAsyncResult BeginQuery(int _streamId, string cqlQuery, AsyncCallback callback, object state, object owner, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency = null)
+        {
+            var jar = SetupJob(_streamId, callback, state, owner, "QUERY");
+            BeginJob(jar, SetupKeyspace(jar, () =>
+            {
+                Evaluate(new QueryRequest(jar.StreamId, cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, (frame2) =>
+                {
+                    var response = FrameParser.Parse(frame2);
+                    if (response is ResultResponse)
+                        JobFinished(jar, (response as ResultResponse).Output);
+                    else
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                });
+            }));
+            return jar;
+        }
+
+        public IOutput EndQuery(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "QUERY");
+        }
+
+        public IOutput Query(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency=null)
+        {
+            return EndQuery(BeginQuery(streamId, cqlQuery, null, null, this, tracingEnabled, queryPrtclOptions, consistency), this);
+        }
+
+        public IAsyncResult BeginPrepareQuery(int stramId, string cqlQuery, AsyncCallback callback, object state, object owner)
+        {
+            var jar = SetupJob(stramId, callback, state, owner, "PREPARE");
+            BeginJob(jar, SetupKeyspace(jar, () =>
+            {
+                Evaluate(new PrepareRequest(jar.StreamId, cqlQuery), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                {
+                    var response = FrameParser.Parse(frame2);
+                    if (response is ResultResponse)
+                    {
+                        var outp = (response as ResultResponse).Output ;
+                        if (outp is OutputPrepared)
+                            preparedQueries[(outp as OutputPrepared).QueryID] = cqlQuery;
+                        JobFinished(jar, outp);
+                    }
+                    else
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                }));
+            }));
+            return jar;
+        }
+
+        public IOutput EndPrepareQuery(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "PREPARE");
+        }
+
+        public IOutput PrepareQuery(int streamId, string cqlQuery)
+        {
+            return EndPrepareQuery(BeginPrepareQuery(streamId, cqlQuery, null, null, this), this);
+        }
+
+        public IAsyncResult BeginExecuteQueryOptions(int _streamId, AsyncCallback callback, object state, object owner)
+        {
+            var jar = SetupJob(_streamId, callback, state, owner, "OPTIONS");
+
+            BeginJob(jar, new Action(() =>
+            {
+                Evaluate(new OptionsRequest(jar.StreamId), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                {
+                    var response = FrameParser.Parse(frame2);
+                    if (response is SupportedResponse)
+                        JobFinished(jar, (response as SupportedResponse).Output);
+                    else
+                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
+
+                }));
+            }), true);
+
+            return jar;
+        }
+
+        public IOutput EndExecuteQueryOptions(IAsyncResult result, object owner)
+        {
+            return AsyncResult<IOutput>.End(result, owner, "OPTIONS");
+        }
+
+        public IOutput ExecuteOptions(int streamId)
+        {
+            return EndExecuteQueryOptions(BeginExecuteQueryOptions(streamId, null, null, this), this);
         }
     }
 }
