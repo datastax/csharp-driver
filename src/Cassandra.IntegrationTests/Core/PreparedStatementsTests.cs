@@ -24,6 +24,8 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class PreparedStatementsTests
     {
+        private Session Session;
+
         [TestMethod]
         [WorksForMe]
         public void PreparedSelectSkipMetadata()
@@ -42,80 +44,78 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testPreparedDecimal()
         {
-            insertingSingleValuePrepared(typeof(System.Decimal));
+            insertingSingleValuePrepared(typeof (Decimal));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedVarInt()
         {
-            insertingSingleValuePrepared(typeof(BigInteger));            
+            insertingSingleValuePrepared(typeof (BigInteger));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedBigInt()
         {
-            insertingSingleValuePrepared(typeof(System.Int64));
+            insertingSingleValuePrepared(typeof (Int64));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedDouble()
         {
-            insertingSingleValuePrepared(typeof(System.Double));
+            insertingSingleValuePrepared(typeof (Double));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedFloat()
         {
-            insertingSingleValuePrepared(typeof(System.Single));
+            insertingSingleValuePrepared(typeof (Single));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedInt()
         {
-            insertingSingleValuePrepared(typeof(System.Int32));
+            insertingSingleValuePrepared(typeof (Int32));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedVarchar()
         {
-            insertingSingleValuePrepared(typeof(System.String));
+            insertingSingleValuePrepared(typeof (String));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedTimestamp()
         {
-            insertingSingleValuePrepared(typeof(System.DateTimeOffset));
+            insertingSingleValuePrepared(typeof (DateTimeOffset));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedBoolean()
         {
-            insertingSingleValuePrepared(typeof(System.Boolean));
+            insertingSingleValuePrepared(typeof (Boolean));
         }
 
         [TestMethod]
         [WorksForMe]
         public void testPreparedBlob()
         {
-            insertingSingleValuePrepared(typeof(System.Byte));
+            insertingSingleValuePrepared(typeof (Byte));
         }
-        
+
         [TestMethod]
         [WorksForMe]
         public void testPreparedUUID()
         {
-            insertingSingleValuePrepared(typeof(System.Guid));
+            insertingSingleValuePrepared(typeof (Guid));
         }
-
-        Session Session;
 
         [TestInitialize]
         public void SetFixture()
@@ -131,10 +131,6 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        public PreparedStatementsTests()
-        {
-        }
-
         public void insertingSingleValuePrepared(Type tp)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
@@ -145,19 +141,21 @@ namespace Cassandra.IntegrationTests.Core
          tweet_id uuid PRIMARY KEY,
          value {1}
          );", tableName, cassandraDataTypeName))
-            );
+                );
 
-            List<object[]> toInsert = new List<object[]>(1);
-            var val = Randomm.RandomVal(tp);
-            if (tp == typeof(string))
+            var toInsert = new List<object[]>(1);
+            object val = Randomm.RandomVal(tp);
+            if (tp == typeof (string))
                 val = "'" + val.ToString().Replace("'", "''") + "'";
 
-            var row1 = new object[2] { Guid.NewGuid(), val };
+            var row1 = new object[2] {Guid.NewGuid(), val};
 
             toInsert.Add(row1);
 
-            var prep = QueryTools.PrepareQuery(this.Session, string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName, toInsert[0][0].ToString()));
-            QueryTools.ExecutePreparedQuery(this.Session, prep, new object[1] { toInsert[0][1] });
+            PreparedStatement prep = QueryTools.PrepareQuery(Session,
+                                                             string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName,
+                                                                           toInsert[0][0]));
+            QueryTools.ExecutePreparedQuery(Session, prep, new object[1] {toInsert[0][1]});
 
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
@@ -175,23 +173,23 @@ namespace Cassandra.IntegrationTests.Core
          numb double,
          label text
          );", tableName))
-                );
+                    );
             }
             catch (AlreadyExistsException)
             {
             }
 
             for (int i = 0; i < 10; i++)
-                Session.Execute(string.Format("INSERT INTO {0}(tweet_id, numb, label) VALUES({1},{2},'{3}')", tableName, i, i * .1d, "row" + i.ToString()));
+                Session.Execute(string.Format("INSERT INTO {0}(tweet_id, numb, label) VALUES({1},{2},'{3}')", tableName, i, i*.1d, "row" + i));
 
-            var prep_select = QueryTools.PrepareQuery(Session, string.Format("SELECT * FROM {0} WHERE tweet_id = ?;", tableName));
+            PreparedStatement prep_select = QueryTools.PrepareQuery(Session, string.Format("SELECT * FROM {0} WHERE tweet_id = ?;", tableName));
 
             int rowID = 5;
-            var result = QueryTools.ExecutePreparedSelectQuery(this.Session, prep_select, new object[1] { rowID });
+            RowSet result = QueryTools.ExecutePreparedSelectQuery(Session, prep_select, new object[1] {rowID});
             using (result)
             {
-                foreach (var row in result.GetRows())
-                    Assert.True((string)row.GetValue(typeof(int), "label") == "row" + rowID.ToString());
+                foreach (Row row in result.GetRows())
+                    Assert.True((string) row.GetValue(typeof (int), "label") == "row" + rowID);
             }
             Assert.True(result.Columns != null);
             Assert.True(result.Columns.Length == 3);
@@ -210,32 +208,36 @@ namespace Cassandra.IntegrationTests.Core
          numb1 double,
          numb2 int
          );", tableName))
-                );
+                    );
             }
             catch (AlreadyExistsException)
             {
             }
             int numberOfPrepares = 100;
 
-            List<object[]> values = new List<object[]>(numberOfPrepares);
-            List<PreparedStatement> prepares = new List<PreparedStatement>();
+            var values = new List<object[]>(numberOfPrepares);
+            var prepares = new List<PreparedStatement>();
 
             Parallel.For(0, numberOfPrepares, i =>
             {
-
-                var prep = QueryTools.PrepareQuery(Session, string.Format("INSERT INTO {0}(tweet_id, numb1, numb2) VALUES ({1}, ?, ?);", tableName, Guid.NewGuid()));
+                PreparedStatement prep = QueryTools.PrepareQuery(Session,
+                                                                 string.Format("INSERT INTO {0}(tweet_id, numb1, numb2) VALUES ({1}, ?, ?);",
+                                                                               tableName, Guid.NewGuid()));
 
                 lock (prepares)
                     prepares.Add(prep);
-
             });
 
-            Parallel.ForEach(prepares, prep =>
-            {
-                QueryTools.ExecutePreparedQuery(this.Session, prep, new object[] { (double)Randomm.RandomVal(typeof(double)), (int)Randomm.RandomVal(typeof(int)) });
-            });
+            Parallel.ForEach(prepares,
+                             prep =>
+                             {
+                                 QueryTools.ExecutePreparedQuery(Session, prep,
+                                                                 new object[]
+                                                                 {(double) Randomm.RandomVal(typeof (double)), (int) Randomm.RandomVal(typeof (int))});
+                             });
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
     }
 }

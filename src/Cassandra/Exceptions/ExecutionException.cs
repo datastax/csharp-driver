@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +13,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
 using System.Net;
 
 namespace Cassandra
 {
-
     public class ExecutionException : DriverException
     {
         public Dictionary<IPAddress, Exception> InnerInnerExceptions { get; private set; }
+
         public ExecutionException(string message, Exception innerException = null, Dictionary<IPAddress, Exception> innerInnerExceptions = null)
             : base(message, innerException)
         {

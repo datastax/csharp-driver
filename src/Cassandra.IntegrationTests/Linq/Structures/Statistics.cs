@@ -19,14 +19,10 @@ using Cassandra.Data.Linq;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     public class Statistics
-    {        
-        [PartitionKey]
-        public string author_id;
+    {
+        [PartitionKey] public string author_id;
 
-        [Counter]
-        public long tweets_count;
-        
-        [Counter]
-        public long followers_count;
-    }    
+        [Counter] public long followers_count;
+        [Counter] public long tweets_count;
+    }
 }

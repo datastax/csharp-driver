@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 
 namespace Cassandra
 {
@@ -25,23 +26,103 @@ namespace Cassandra
     public abstract class Query
     {
         private ConsistencyLevel? _consistency;
-        private ConsistencyLevel _serialConsistency;
-        private bool _traceQuery;
         private int _pageSize;
         private byte[] _pagingState;
         private IRetryPolicy _retryPolicy;
-        private object[] _values;
+        private ConsistencyLevel _serialConsistency;
         private bool _skipMetadata;
+        private bool _traceQuery;
+        private object[] _values;
 
         public virtual object[] QueryValues
         {
             get { return _values; }
         }
 
-        public bool SkipMetadata { get { return this._skipMetadata; } }
+        public bool SkipMetadata
+        {
+            get { return _skipMetadata; }
+        }
+
+        /// <summary>
+        /// Gets the consistency level for this query.
+        /// </summary>
+        public ConsistencyLevel? ConsistencyLevel
+        {
+            get { return _consistency; }
+        }
+
+        /// <summary>
+        /// Gets the serial consistency level for this query.
+        /// </summary>        
+        public ConsistencyLevel SerialConsistencyLevel
+        {
+            get { return _serialConsistency; }
+        }
+
+        /// <summary>
+        /// Gets query's page size.
+        /// </summary>
+        public int PageSize
+        {
+            get { return _pageSize; }
+        }
+
+        /// <summary>
+        ///  Gets whether tracing is enabled for this query or not.
+        /// </summary>
+        public bool IsTracing
+        {
+            get { return _traceQuery; }
+        }
+
+        /// <summary>
+        ///  Gets the retry policy sets for this query, if any.
+        /// </summary>
+        public IRetryPolicy RetryPolicy
+        {
+            get { return _retryPolicy; }
+        }
+
+        public byte[] PagingState
+        {
+            get { return _pagingState; }
+        }
+
+        /// <summary>
+        ///  The routing key (in binary raw form) to use for token aware routing of this
+        ///  query. <p> The routing key is optional in the sense that implementers are
+        ///  free to return <code>null</code>. The routing key is an hint used for token
+        ///  aware routing (see
+        ///  <link>TokenAwarePolicy</link>), and if
+        ///  provided should correspond to the binary value for the query partition key.
+        ///  However, not providing a routing key never causes a query to fail and if the
+        ///  load balancing policy used is not token aware, then the routing key can be
+        ///  safely ignored.</p>
+        /// </summary>
+        /// 
+        /// <returns>the routing key for this query or <code>null</code>.</returns>
+        public abstract RoutingKey RoutingKey { get; }
+
+
+        // We don't want to expose the constructor, because the code rely on this being only subclassed by Statement and BoundStatement
+        protected Query()
+        {
+            //this._consistency = QueryOptions.DefaultConsistencyLevel;
+        }
+
+        protected Query(QueryProtocolOptions queryProtocolOptions)
+        {
+            _pagingState = queryProtocolOptions.PagingState;
+            _values = queryProtocolOptions.Values;
+            _consistency = queryProtocolOptions.Consistency;
+            _pageSize = queryProtocolOptions.PageSize;
+            _serialConsistency = queryProtocolOptions.SerialConsistency;
+        }
+
         internal Query SetSkipMetadata(bool val)
         {
-            this._skipMetadata = val;
+            _skipMetadata = val;
             return this;
         }
 
@@ -61,58 +142,15 @@ namespace Cassandra
         /// <returns>this bound statement. </returns>
         internal Query SetValues(object[] values)
         {
-            this._values = values;
+            _values = values;
             return this;
-        }
-
-        /// <summary>
-        /// Gets the consistency level for this query.
-        /// </summary>
-        public ConsistencyLevel? ConsistencyLevel { get { return _consistency; } }
-     
-        /// <summary>
-        /// Gets the serial consistency level for this query.
-        /// </summary>        
-        public ConsistencyLevel SerialConsistencyLevel { get { return _serialConsistency; } }
-        
-        /// <summary>
-        /// Gets query's page size.
-        /// </summary>
-        public int PageSize { get { return _pageSize; } }
-
-        /// <summary>
-        ///  Gets whether tracing is enabled for this query or not.
-        /// </summary>
-        public bool IsTracing { get { return _traceQuery; } }
-
-        /// <summary>
-        ///  Gets the retry policy sets for this query, if any.
-        /// </summary>
-        public IRetryPolicy RetryPolicy { get { return _retryPolicy; } }
-
-
-        // We don't want to expose the constructor, because the code rely on this being only subclassed by Statement and BoundStatement
-        protected Query()
-        {
-            //this._consistency = QueryOptions.DefaultConsistencyLevel;
-        }
-
-        protected Query(QueryProtocolOptions queryProtocolOptions)
-        {
-            this._pagingState = queryProtocolOptions.PagingState;
-            this._values = queryProtocolOptions.Values;
-            this._consistency = queryProtocolOptions.Consistency;
-            this._pageSize = queryProtocolOptions.PageSize;
-            this._serialConsistency = queryProtocolOptions.SerialConsistency;
         }
 
         public Query SetPagingState(byte[] pagingState)
         {
-            this._pagingState = pagingState;
+            _pagingState = pagingState;
             return this;
         }
-
-        public byte[] PagingState { get { return this._pagingState; } }
 
         /// <summary>
         ///  Sets the consistency level for the query. <p> The default consistency level,
@@ -123,10 +161,10 @@ namespace Cassandra
         /// <returns>this <code>Query</code> object.</returns>
         public Query SetConsistencyLevel(ConsistencyLevel? consistency)
         {
-            this._consistency = consistency;
+            _consistency = consistency;
             return this;
         }
-        
+
         /// <summary>
         /// Sets the serial consistency level for the query.
         ///    The serial consistency level is only used by conditional updates (so INSERT, UPDATE
@@ -148,7 +186,7 @@ namespace Cassandra
             if (serialConsistency != Cassandra.ConsistencyLevel.Serial && serialConsistency != Cassandra.ConsistencyLevel.LocalSerial)
                 throw new ArgumentException("The serial consistency can only be set to ConsistencyLevel.LocalSerial or ConsistencyLevel.Serial.");
 
-            this._serialConsistency = serialConsistency;
+            _serialConsistency = serialConsistency;
             return this;
         }
 
@@ -158,9 +196,9 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>this <code>Query</code> object.</returns>
-        public Query EnableTracing(bool enable=true)
+        public Query EnableTracing(bool enable = true)
         {
-            this._traceQuery = enable;
+            _traceQuery = enable;
             return this;
         }
 
@@ -171,24 +209,9 @@ namespace Cassandra
         /// <returns>this <code>Query</code> object.</returns>
         public Query DisableTracing()
         {
-            this._traceQuery = false;
+            _traceQuery = false;
             return this;
         }
-
-        /// <summary>
-        ///  The routing key (in binary raw form) to use for token aware routing of this
-        ///  query. <p> The routing key is optional in the sense that implementers are
-        ///  free to return <code>null</code>. The routing key is an hint used for token
-        ///  aware routing (see
-        ///  <link>TokenAwarePolicy</link>), and if
-        ///  provided should correspond to the binary value for the query partition key.
-        ///  However, not providing a routing key never causes a query to fail and if the
-        ///  load balancing policy used is not token aware, then the routing key can be
-        ///  safely ignored.</p>
-        /// </summary>
-        /// 
-        /// <returns>the routing key for this query or <code>null</code>.</returns>
-        public abstract RoutingKey RoutingKey { get; }
 
 
         /// <summary>
@@ -203,7 +226,7 @@ namespace Cassandra
         /// <returns>this <code>Query</code> object.</returns>
         public Query SetRetryPolicy(IRetryPolicy policy)
         {
-            this._retryPolicy = policy;
+            _retryPolicy = policy;
             return this;
         }
 
@@ -211,6 +234,7 @@ namespace Cassandra
         {
             throw new InvalidOperationException("Cannot insert this query into the batch");
         }
+
         /// <summary>
         /// Sets the page size for this query.
         /// The page size controls how much resulting rows will be retrieved
@@ -234,14 +258,13 @@ namespace Cassandra
         /// To disable paging of the result set, use int.MaxValue</param>
         /// <returns>this <code>Query</code> object.</returns>
         public Query SetPageSize(int pageSize)
-        {            
-            this._pageSize = pageSize;
+        {
+            _pageSize = pageSize;
             return this;
         }
 
         protected internal abstract IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state);
 
         protected internal abstract RowSet EndSessionExecute(Session session, IAsyncResult ar);
-
     }
 }

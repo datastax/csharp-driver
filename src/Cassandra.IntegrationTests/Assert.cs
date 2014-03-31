@@ -14,9 +14,9 @@ namespace Cassandra.IntegrationTests
         {
             if (!condition)
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
-#endif				
+#endif
                 throw new AssertException("false");
             }
         }
@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests
         {
             if (!condition)
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException("false", userMessage);
@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests
         {
             if (condition)
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException("true");
@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests
         {
             if (condition)
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException("true", userMessage);
@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests
         {
             if (!((expected == null && actual == null) || (expected != null && expected.Equals(actual))))
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual));
@@ -69,7 +69,7 @@ namespace Cassandra.IntegrationTests
         {
             if (!((expected == null && actual == null) || (expected != null && expected.Equals(actual))))
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException(string.Format("'{0}'!='{1}'", expected, actual), userMessage);
@@ -83,28 +83,28 @@ namespace Cassandra.IntegrationTests
 
             if (a1 == null || a2 == null)
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException("At least one array is null.");
             }
-                
+
 
             if (a1.Length != a2.Length)
             {
-#if DEBUG				
+#if DEBUG
                 Debugger.Break();
 #endif
                 throw new AssertException(string.Format("Arrays length is not equal: '{0}'!='{1}'", a1.Length, a2.Length));
             }
-            
+
 
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
             for (int i = 0; i < a1.Length; i++)
             {
                 if (!comparer.Equals(a1[i], a2[i]))
                 {
-#if DEBUG				
+#if DEBUG
                     Debugger.Break();
 #endif
                     throw new AssertException(string.Format("Arrays values are not equal: '{0}'!='{1}' at {2} position.", a1[i], a2[i], i));
@@ -112,6 +112,5 @@ namespace Cassandra.IntegrationTests
             }
             return true;
         }
-
     }
 }

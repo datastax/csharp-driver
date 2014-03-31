@@ -13,13 +13,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Text;
- using System.Net.Sockets;
-using System.Net;
 
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Text;
 
 namespace Cassandra
 {
@@ -28,20 +26,20 @@ namespace Cassandra
         public static long GetTimestampFromGuid(Guid guid)
         {
             byte[] bytes = guid.ToByteArray();
-            bytes[7] &= (byte)0x0f;
+            bytes[7] &= 0x0f;
             return BitConverter.ToInt64(bytes, 0);
         }
 
         public static string ConvertToCqlMap(IDictionary<string, string> source)
         {
-            StringBuilder sb = new StringBuilder("{");
+            var sb = new StringBuilder("{");
             if (source.Count > 0)
             {
                 int counter = 0;
-                foreach (var elem in source)
+                foreach (KeyValuePair<string, string> elem in source)
                 {
                     counter++;
-                    sb.Append("'" + elem.Key + "'" + " : " + "'"+elem.Value+"'"  + ((source.Count != counter) ? ", " : "}"));
+                    sb.Append("'" + elem.Key + "'" + " : " + "'" + elem.Value + "'" + ((source.Count != counter) ? ", " : "}"));
                     //sb.Append("'" + elem.Key + "'" + " : " + (elem.Key == "class" ? "'" + elem.Value + "'" : elem.Value) + ((source.Count != counter) ? ", " : "}"));
                 }
             }
@@ -52,29 +50,29 @@ namespace Cassandra
 
         public static IDictionary<string, string> ConvertStringToMap(string source)
         {
-            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
+            string[] elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
             var map = new SortedDictionary<string, string>();
 
             if (source != "{}")
-                foreach (var elem in elements)
+                foreach (string elem in elements)
                     map.Add(elem.Split(':')[0].Replace("\"", ""), elem.Split(':')[1].Replace("\"", ""));
-                
+
             return map;
         }
-        
+
         public static IDictionary<string, int> ConvertStringToMapInt(string source)
         {
-            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":",":").Split(',');
-            var map = new SortedDictionary<string,int>();
+            string[] elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
+            var map = new SortedDictionary<string, int>();
 
-            if(source != "{}")
-                foreach (var elem in elements)
+            if (source != "{}")
+                foreach (string elem in elements)
                 {
                     int value;
                     if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out value))
                         map.Add(elem.Split(':')[0].Replace("\"", ""), value);
                     else
-                        throw new FormatException("Value of keyspace strategy option is in invalid format!");                        
+                        throw new FormatException("Value of keyspace strategy option is in invalid format!");
                 }
 
             return map;
@@ -85,13 +83,10 @@ namespace Cassandra
             IPAddress addr;
             if (IPAddress.TryParse(address, out addr))
             {
-                return new List<IPAddress>() { addr };
+                return new List<IPAddress> {addr};
             }
-            else
-            {
-                var hst = Dns.GetHostEntry(address);
-                return hst.AddressList;
-            }
+            IPHostEntry hst = Dns.GetHostEntry(address);
+            return hst.AddressList;
         }
 
         public static bool CompareIDictionary<TKey, TValue>(IDictionary<TKey, TValue> dict1, IDictionary<TKey, TValue> dict2)
@@ -100,7 +95,7 @@ namespace Cassandra
             if ((dict1 == null) || (dict2 == null)) return false;
             if (dict1.Count != dict2.Count) return false;
 
-            var comp = EqualityComparer<TValue>.Default;
+            EqualityComparer<TValue> comp = EqualityComparer<TValue>.Default;
 
             foreach (KeyValuePair<TKey, TValue> kvp in dict1)
             {
@@ -112,6 +107,5 @@ namespace Cassandra
             }
             return true;
         }
-
     }
 }

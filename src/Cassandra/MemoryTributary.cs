@@ -3,10 +3,8 @@
 //The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 //THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //Downloaded from http://memorytributary.codeplex.com/
-﻿using System;
+
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices;
 
 namespace System.IO
 {
@@ -14,7 +12,7 @@ namespace System.IO
     /// MemoryTributary is a re-implementation of MemoryStream that uses a dynamic list of byte arrays as a backing store, instead of a single byte array, the allocation
     /// of which will fail for relatively small streams as it requires contiguous memory.
     /// </summary>
-    internal class MemoryTributary : Stream       /* http://msdn.microsoft.com/en-us/library/system.io.stream.aspx */
+    internal class MemoryTributary : Stream /* http://msdn.microsoft.com/en-us/library/system.io.stream.aspx */
     {
         #region Constructors
 
@@ -25,7 +23,7 @@ namespace System.IO
 
         public MemoryTributary(byte[] source)
         {
-            this.Write(source, 0, source.Length);
+            Write(source, 0, source.Length);
             Position = 0;
         }
 
@@ -33,7 +31,7 @@ namespace System.IO
         {
             SetLength(length);
             Position = length;
-            byte[] d = block;   //access block to prompt the allocation of memory
+            byte[] d = block; //access block to prompt the allocation of memory
             Position = 0;
         }
 
@@ -92,22 +90,24 @@ namespace System.IO
             {
                 while (blocks.Count <= blockId)
                     blocks.Add(new byte[blockSize]);
-                return blocks[(int)blockId];
+                return blocks[(int) blockId];
             }
         }
+
         /// <summary>
         /// The id of the block currently addressed by Position
         /// </summary>
         protected long blockId
         {
-            get { return Position / blockSize; }
+            get { return Position/blockSize; }
         }
+
         /// <summary>
         /// The offset of the byte currently addressed by Position, into the block that contains it
         /// </summary>
         protected long blockOffset
         {
-            get { return Position % blockSize; }
+            get { return Position%blockSize; }
         }
 
         #endregion
@@ -120,7 +120,7 @@ namespace System.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            long lcount = (long)count;
+            long lcount = count;
 
             if (lcount < 0)
             {
@@ -145,17 +145,15 @@ namespace System.IO
             do
             {
                 copysize = Math.Min(lcount, (blockSize - blockOffset));
-                Buffer.BlockCopy(block, (int)blockOffset, buffer, offset, (int)copysize);
+                Buffer.BlockCopy(block, (int) blockOffset, buffer, offset, (int) copysize);
                 lcount -= copysize;
-                offset += (int)copysize;
+                offset += (int) copysize;
 
-                read += (int)copysize;
+                read += (int) copysize;
                 Position += copysize;
-
             } while (lcount > 0);
 
             return read;
-
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -181,14 +179,16 @@ namespace System.IO
         }
 
 #if DEBUG
-        private readonly int maxFrameLength = 256 * 1024 * 1024; //Max length of frame described in C* CQL BINARY PROTOCOL v2 is 256MB
-        private int currentFrameLength = 0;
+        private readonly int maxFrameLength = 256*1024*1024; //Max length of frame described in C* CQL BINARY PROTOCOL v2 is 256MB
+        private int currentFrameLength;
+
         private void validateFrameSize()
         {
             if (currentFrameLength > maxFrameLength)
-                throw new ArgumentOutOfRangeException("Binary protocol doesn't support frames bigger than 256MB", (Exception)null);
+                throw new ArgumentOutOfRangeException("Binary protocol doesn't support frames bigger than 256MB", (Exception) null);
         }
 #endif
+
         public override void Write(byte[] buffer, int offset, int count)
         {
 #if DEBUG
@@ -201,16 +201,15 @@ namespace System.IO
             {
                 do
                 {
-                    copysize = Math.Min(count, (int)(blockSize - blockOffset));
+                    copysize = Math.Min(count, (int) (blockSize - blockOffset));
 
                     EnsureCapacity(Position + copysize);
 
-                    Buffer.BlockCopy(buffer, (int)offset, block, (int)blockOffset, copysize);
+                    Buffer.BlockCopy(buffer, offset, block, (int) blockOffset, copysize);
                     count -= copysize;
                     offset += copysize;
 
                     Position += copysize;
-
                 } while (count > 0);
             }
             catch (Exception e)
@@ -253,6 +252,7 @@ namespace System.IO
         #region IDispose
 
         /* http://msdn.microsoft.com/en-us/library/fs2xkftw.aspx */
+
         protected override void Dispose(bool disposing)
         {
             /* We do not currently use unmanaged resources */
@@ -272,8 +272,8 @@ namespace System.IO
         {
             long firstposition = Position;
             Position = 0;
-            byte[] destination = new byte[Length];
-            Read(destination, 0, (int)Length);
+            var destination = new byte[Length];
+            Read(destination, 0, (int) Length);
             Position = firstposition;
             return destination;
         }
@@ -285,14 +285,13 @@ namespace System.IO
         /// <param name="length">The number of bytes to copy</param>
         public void ReadFrom(Stream source, long length)
         {
-            byte[] buffer = new byte[4096];
+            var buffer = new byte[4096];
             int read;
             do
             {
-                read = source.Read(buffer, 0, (int)Math.Min(4096, length));
+                read = source.Read(buffer, 0, (int) Math.Min(4096, length));
                 length -= read;
-                this.Write(buffer, 0, read);
-
+                Write(buffer, 0, read);
             } while (length > 0);
         }
 
@@ -301,10 +300,10 @@ namespace System.IO
         /// </summary>
         /// <param name="destination">The stream to write the content of this stream to</param>
         public void WriteTo(Stream destination)
-        {            
+        {
             long initialpos = Position;
             Position = 0;
-            this.CopyTo(destination);
+            CopyTo(destination);
             Position = initialpos;
         }
 

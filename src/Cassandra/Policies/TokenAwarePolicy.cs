@@ -13,7 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System.Collections.Generic;
+using System.Net;
 
 namespace Cassandra
 {
@@ -37,9 +39,8 @@ namespace Cassandra
     /// </summary>
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
-
-        private Cluster _cluster;
         private readonly ILoadBalancingPolicy _childPolicy;
+        private Cluster _cluster;
 
         /// <summary>
         ///  Creates a new <code>TokenAware</code> policy that wraps the provided child
@@ -49,12 +50,12 @@ namespace Cassandra
         ///  awareness.</param>
         public TokenAwarePolicy(ILoadBalancingPolicy childPolicy)
         {
-            this._childPolicy = childPolicy;
+            _childPolicy = childPolicy;
         }
 
         public void Initialize(Cluster cluster)
         {
-            this._cluster = cluster;
+            _cluster = cluster;
             _childPolicy.Initialize(cluster);
         }
 
@@ -83,33 +84,33 @@ namespace Cassandra
         /// <returns>the new query plan.</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            var routingKey = query == null ? null : query.RoutingKey;
+            RoutingKey routingKey = query == null ? null : query.RoutingKey;
             if (routingKey == null)
             {
-                foreach (var iter in _childPolicy.NewQueryPlan(null))
+                foreach (Host iter in _childPolicy.NewQueryPlan(null))
                     yield return iter;
                 yield break;
             }
 
-            var replicas = _cluster.Metadata.GetReplicas(routingKey.RawRoutingKey);
+            ICollection<IPAddress> replicas = _cluster.Metadata.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
-                foreach (var iter in _childPolicy.NewQueryPlan(query))
+                foreach (Host iter in _childPolicy.NewQueryPlan(query))
                     yield return iter;
                 yield break;
             }
 
-            var iterator = replicas.GetEnumerator();
+            IEnumerator<IPAddress> iterator = replicas.GetEnumerator();
             while (iterator.MoveNext())
             {
-                var host = _cluster.Metadata.GetHost(iterator.Current);
+                Host host = _cluster.Metadata.GetHost(iterator.Current);
                 if (host != null && host.IsConsiderablyUp && _childPolicy.Distance(host) == HostDistance.Local)
                     yield return host;
             }
 
-            var childIterator = _childPolicy.NewQueryPlan(query);
+            IEnumerable<Host> childIterator = _childPolicy.NewQueryPlan(query);
             var remoteChildren = new HashSet<Host>();
-            foreach (var host in childIterator)
+            foreach (Host host in childIterator)
             {
                 if (!replicas.Contains(host.Address))
                 {
@@ -120,11 +121,10 @@ namespace Cassandra
                 }
             }
 
-            foreach (var host in remoteChildren)
+            foreach (Host host in remoteChildren)
             {
                 yield return host;
             }
-
         }
     }
 }

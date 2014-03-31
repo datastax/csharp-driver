@@ -14,10 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-
 namespace Cassandra
 {
     public static class TypeAdapters

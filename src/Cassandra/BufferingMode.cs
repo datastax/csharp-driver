@@ -1,4 +1,8 @@
 namespace Cassandra
 {
-    internal enum BufferingMode { NoBuffering, FrameBuffering }
+    internal enum BufferingMode
+    {
+        NoBuffering,
+        FrameBuffering
+    }
 }

@@ -12,10 +12,10 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
+            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out values, _ttl, _timestamp,withValues);   
+            return visitor.GetUpdate(out values, _ttl, _timestamp, withValues);
         }
 
         public override string ToString()
@@ -23,7 +23,7 @@ namespace Cassandra.Data.Linq
             object[] _;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out _, _ttl, _timestamp,false);
+            return visitor.GetUpdate(out _, _ttl, _timestamp, false);
         }
     }
 }

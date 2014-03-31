@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
     internal class ResultResponse : AbstractResponse
     {
@@ -45,7 +46,7 @@
                     Output = new OutputSetKeyspace(BEBinaryReader.ReadString());
                     break;
                 case ResultResponseKind.Prepared:
-                    Output = new OutputPrepared(BEBinaryReader, frame.FrameHeader.Version==ResponseFrame.ProtocolV2ResponseVersionByte);
+                    Output = new OutputPrepared(BEBinaryReader, frame.FrameHeader.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
                     break;
                 case ResultResponseKind.SchemaChange:
                     Output = new OutputSchemaChange(BEBinaryReader, TraceID);

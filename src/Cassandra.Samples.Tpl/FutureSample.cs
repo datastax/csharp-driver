@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,29 +22,29 @@ using Cassandra;
 using Cassandra.Data.Linq;
 
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
+
 namespace TPLSample.FutureSample
 {
     public static class FutureSample
     {
         public static void Run()
         {
-
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().Build();
 
-            using (var session = cluster.Connect("system"))
+            using (Session session = cluster.Connect("system"))
             {
-                
-                var cqlKeyspaces = session.GetTable<schema_keyspaces>();
+                Table<schema_keyspaces> cqlKeyspaces = session.GetTable<schema_keyspaces>();
                 var allResults = new List<Task<List<schema_keyspaces>>>();
 
                 for (int i = 0; i < 100; ++i)
                 {
-                    var futRes = Task<IEnumerable<schema_keyspaces>>.Factory.FromAsync(cqlKeyspaces.BeginExecute, cqlKeyspaces.EndExecute, null)
-                        .ContinueWith(a => a.Result.ToList());
+                    Task<List<schema_keyspaces>> futRes = Task<IEnumerable<schema_keyspaces>>.Factory.FromAsync(cqlKeyspaces.BeginExecute,
+                                                                                                                cqlKeyspaces.EndExecute, null)
+                                                                                             .ContinueWith(a => a.Result.ToList());
                     allResults.Add(futRes);
                 }
 
-                foreach (var result in allResults)
+                foreach (Task<List<schema_keyspaces>> result in allResults)
                 {
                     DisplayKeyspace(result);
                 }
@@ -56,7 +57,7 @@ namespace TPLSample.FutureSample
         {
             try
             {
-                foreach (var resKeyspace in result.Result)
+                foreach (schema_keyspaces resKeyspace in result.Result)
                 {
                     Console.WriteLine("DurableWrites={0} KeyspaceName={1} strategy_Class={2} strategy_options={3}",
                                       resKeyspace.durable_writes, resKeyspace.keyspace_name, resKeyspace.strategy_class, resKeyspace.strategy_options);

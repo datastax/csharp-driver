@@ -13,14 +13,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
+
 namespace TPLSample.LinqKeyspacesSample
 {
     public static class LinqKeyspacesSample
@@ -29,16 +30,17 @@ namespace TPLSample.LinqKeyspacesSample
         {
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().WithoutRowSetBuffering().Build();
 
-            using (var session = cluster.Connect("system"))
+            using (Session session = cluster.Connect("system"))
             {
                 var context = new Context(session);
                 context.AddTable<SchemaColumns>("schema_columns");
 
-                var cqlKeyspaces = from t in context.GetTable<SchemaColumns>("schema_columns") 
-                                   where t.keyspace_name == "system" select t;
+                CqlQuery<SchemaColumns> cqlKeyspaces = from t in context.GetTable<SchemaColumns>("schema_columns")
+                                                       where t.keyspace_name == "system"
+                                                       select t;
 
-                var req = Task<IEnumerable<SchemaColumns>>.Factory.FromAsync(cqlKeyspaces.BeginExecute,
-                                                                   cqlKeyspaces.EndExecute, null).Result;
+                IEnumerable<SchemaColumns> req = Task<IEnumerable<SchemaColumns>>.Factory.FromAsync(cqlKeyspaces.BeginExecute,
+                                                                                                    cqlKeyspaces.EndExecute, null).Result;
 
                 DisplayResult(req);
             }
@@ -48,7 +50,7 @@ namespace TPLSample.LinqKeyspacesSample
 
         private static void DisplayResult(IEnumerable<SchemaColumns> req)
         {
-            foreach (var schemaColumns in req)
+            foreach (SchemaColumns schemaColumns in req)
             {
                 Console.WriteLine("KeyspaceName={0} ColumnFamilyName={1} ColumnName={2}",
                                   schemaColumns.keyspace_name, schemaColumns.columnfamily_name, schemaColumns.column_name);

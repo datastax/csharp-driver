@@ -13,13 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Net;
 using System.Threading;
-using System.Diagnostics;
-using System.Collections.Concurrent;
 
 namespace Cassandra
 {
@@ -39,27 +38,47 @@ namespace Cassandra
     /// </summary>
     public class Cluster : IDisposable
     {
-        private readonly Logger _logger = new Logger(typeof(Cluster));
-        private readonly IEnumerable<IPAddress> _contactPoints;
+        private readonly int _binaryProtocolVersion;
         private readonly Configuration _configuration;
-        private int _binaryProtocolVersion;
+        private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
+        private readonly IEnumerable<IPAddress> _contactPoints;
+        private readonly Logger _logger = new Logger(typeof (Cluster));
+        private readonly Metadata _metadata;
+
+        /// <summary>
+        ///  Gets the cluster configuration.
+        /// </summary>
+        public Configuration Configuration
+        {
+            get { return _configuration; }
+        }
+
+        /// <summary>
+        ///  Gets read-only metadata on the connected cluster. <p> This includes the
+        ///  know nodes (with their status as seen by the driver) as well as the schema
+        ///  definitions.</p>
+        /// </summary>
+        public Metadata Metadata
+        {
+            get { return _metadata; }
+        }
 
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
-            this._contactPoints = contactPoints;
-            this._configuration = configuration;
-            this._metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
+            _contactPoints = contactPoints;
+            _configuration = configuration;
+            _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
-            var controlpolicies = new Cassandra.Policies(
+            var controlpolicies = new Policies(
                 //new ControlConnectionLoadBalancingPolicy(_configuration.Policies.LoadBalancingPolicy),
                 _configuration.Policies.LoadBalancingPolicy,
-                new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000),
-                Cassandra.Policies.DefaultRetryPolicy);
+                new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
+                Policies.DefaultRetryPolicy);
 
-            foreach (var ep in _contactPoints)
+            foreach (IPAddress ep in _contactPoints)
                 Metadata.AddHost(ep);
 
-            var poolingOptions = new PoolingOptions()
+            PoolingOptions poolingOptions = new PoolingOptions()
                 .SetCoreConnectionsPerHost(HostDistance.Local, 0)
                 .SetMaxConnectionsPerHost(HostDistance.Local, 1)
                 .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
@@ -67,19 +86,25 @@ namespace Cassandra
                 ;
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
-                                                        new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
-                                                        poolingOptions, _configuration.SocketOptions,
-                                                        new ClientOptions(
-                                                            true,
-                                                            _configuration.ClientOptions.QueryAbortTimeout, null),
-                                                        _configuration.AuthProvider,
-                                                        _configuration.AuthInfoProvider,
-                                                        2//lets start from protocol version 2
-                                                        );
+                                                          new ProtocolOptions(_configuration.ProtocolOptions.Port,
+                                                                              configuration.ProtocolOptions.SslOptions),
+                                                          poolingOptions, _configuration.SocketOptions,
+                                                          new ClientOptions(
+                                                              true,
+                                                              _configuration.ClientOptions.QueryAbortTimeout, null),
+                                                          _configuration.AuthProvider,
+                                                          _configuration.AuthInfoProvider,
+                                                          2 //lets start from protocol version 2
+                );
 
             _metadata.SetupControllConnection(controlConnection);
             _binaryProtocolVersion = controlConnection.BinaryProtocolVersion;
-            _logger.Info("Binary protocol version: [" + _binaryProtocolVersion.ToString()+"]");
+            _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
+        }
+
+        public void Dispose()
+        {
+            Shutdown();
         }
 
         /// <summary>
@@ -158,31 +183,10 @@ namespace Cassandra
         /// <returns>a new session on this cluster set to default keyspace.</returns>
         public Session ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            var session = Connect("");
+            Session session = Connect("");
             session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durable_writes);
             session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             return session;
-        }
-
-        /// <summary>
-        ///  Gets the cluster configuration.
-        /// </summary>
-        public Configuration Configuration
-        {
-            get { return _configuration; }
-        }
-
-        private ConcurrentDictionary<Guid,Session> _connectedSessions = new ConcurrentDictionary<Guid,Session>();
-
-        private Metadata _metadata = null;
-        /// <summary>
-        ///  Gets read-only metadata on the connected cluster. <p> This includes the
-        ///  know nodes (with their status as seen by the driver) as well as the schema
-        ///  definitions.</p>
-        /// </summary>
-        public Metadata Metadata
-        {
-            get { return _metadata; }
         }
 
         /// <summary>
@@ -192,7 +196,7 @@ namespace Cassandra
         /// </summary>
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            foreach(var kv in _connectedSessions)
+            foreach (KeyValuePair<Guid, Session> kv in _connectedSessions)
             {
                 Session ses;
                 if (_connectedSessions.TryRemove(kv.Key, out ses))
@@ -212,11 +216,6 @@ namespace Cassandra
             _connectedSessions.TryRemove(s.Guid, out ses);
         }
 
-        public void Dispose()
-        {
-            Shutdown();
-        }
-
         ~Cluster()
         {
             Shutdown();
@@ -226,6 +225,5 @@ namespace Cassandra
         {
             return _metadata.RefreshSchema(keyspace, table);
         }
-
     }
 }

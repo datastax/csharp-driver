@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-using System.Net;
 
 namespace Cassandra
 {
@@ -27,7 +26,6 @@ namespace Cassandra
     /// </summary>
     public interface IAuthenticator
     {
-
         /// <summary>
         ///  Obtain an initial response token for initializing the SASL handshake
         /// </summary>

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,29 +13,35 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 
 namespace Cassandra
 {
     internal class OutputSchemaChange : IOutput, IWaitableForDispose
     {
+        private readonly Guid? _traceID;
         public string Change;
         public string Keyspace;
         public string Table;
-        private Guid? _traceID;
-        public Guid? TraceID { get { return _traceID; } }
+
+        public Guid? TraceID
+        {
+            get { return _traceID; }
+        }
 
         internal OutputSchemaChange(BEBinaryReader reader, Guid? traceID)
         {
             _traceID = traceID;
-            this.Change = reader.ReadString();
-            this.Keyspace= reader.ReadString();
-            this.Table = reader.ReadString();
+            Change = reader.ReadString();
+            Keyspace = reader.ReadString();
+            Table = reader.ReadString();
         }
 
         public void Dispose()
         {
         }
+
         public void WaitForDispose()
         {
         }

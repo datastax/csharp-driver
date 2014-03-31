@@ -6,8 +6,7 @@ namespace Cassandra.Data.Linq
 {
     internal static class ReflExt
     {
-        [ThreadStatic]
-        static Dictionary<Type,List<MemberInfo>> ReflexionCachePF=null;
+        [ThreadStatic] private static Dictionary<Type, List<MemberInfo>> ReflexionCachePF;
 
         public static List<MemberInfo> GetPropertiesOrFields(this Type tpy)
         {
@@ -18,9 +17,9 @@ namespace Cassandra.Data.Linq
             if (ReflexionCachePF.TryGetValue(tpy, out val))
                 return val;
 
-            List<MemberInfo> ret = new List<MemberInfo>();
-            var props = tpy.GetMembers();
-            foreach (var prop in props)
+            var ret = new List<MemberInfo>();
+            MemberInfo[] props = tpy.GetMembers();
+            foreach (MemberInfo prop in props)
             {
                 if (prop is PropertyInfo || prop is FieldInfo)
                     ret.Add(prop);
@@ -33,20 +32,18 @@ namespace Cassandra.Data.Linq
         {
             if (prop is PropertyInfo)
                 return (prop as PropertyInfo).GetValue(x, null);
-            else if (prop is FieldInfo)
+            if (prop is FieldInfo)
                 return (prop as FieldInfo).GetValue(x);
-            else
-                throw new InvalidOperationException();
+            throw new InvalidOperationException();
         }
 
         public static Type GetTypeFromPropertyOrField(this MemberInfo prop)
         {
             if (prop is PropertyInfo)
                 return (prop as PropertyInfo).PropertyType;
-            else if (prop is FieldInfo)
+            if (prop is FieldInfo)
                 return (prop as FieldInfo).FieldType;
-            else
-                throw new InvalidOperationException();
+            throw new InvalidOperationException();
         }
 
         public static void SetValueFromPropertyOrField(this MemberInfo prop, object x, object v)
@@ -58,6 +55,5 @@ namespace Cassandra.Data.Linq
             else
                 throw new InvalidOperationException();
         }
-    
     }
 }

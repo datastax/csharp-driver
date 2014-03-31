@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using Cassandra.Data.Linq;
+
+using Cassandra.Data.Linq;
 
 namespace Playground
 {
     public class Statistics
-    {        
-        [PartitionKey]
-        public string author_id;
+    {
+        [PartitionKey] public string author_id;
 
-        [Counter]
-        public long tweets_count;
-        
-        [Counter]
-        public long followers_count;
-    }    
+        [Counter] public long followers_count;
+        [Counter] public long tweets_count;
+    }
 }

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 
 namespace Cassandra
 {
@@ -24,22 +25,22 @@ namespace Cassandra
         public String ParamName { get; private set; }
 
         public InvalidTypeException(String msg)
-            :base(msg)
-        {            
+            : base(msg)
+        {
         }
 
         public InvalidTypeException(String msg, Exception cause)
-            :base(msg, cause)
-        {            
+            : base(msg, cause)
+        {
         }
 
         public InvalidTypeException(String paramName, object receivedType, object[] expectedType)
             : base(String.Format("Received object of type: {0}, expected: {1} {2}. Parameter name that caused exception: {3}",
-            receivedType,  expectedType[0], expectedType.Length > 1 ? "or" + expectedType[1] : "", paramName))
+                                 receivedType, expectedType[0], expectedType.Length > 1 ? "or" + expectedType[1] : "", paramName))
         {
-            this.ReceivedType = receivedType;
-            this.ExpectedType = expectedType;
-            this.ParamName = paramName; 
-        }                        
+            ReceivedType = receivedType;
+            ExpectedType = expectedType;
+            ParamName = paramName;
+        }
     }
 }

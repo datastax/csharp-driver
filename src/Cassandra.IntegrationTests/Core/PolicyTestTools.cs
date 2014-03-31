@@ -54,22 +54,23 @@ namespace Cassandra.IntegrationTests.Core
         public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
         {
             session.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy", string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF))));
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy",
+                                              string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF))));
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.WaitForSchemaAgreement(
                 session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)));
         }
 
         ///  Coordinator management/count
-
         public static void addCoordinator(IPAddress coordinator, ConsistencyLevel cl)
         {
             if (!coordinators.ContainsKey(coordinator))
                 coordinators.Add(coordinator, 0);
-            var n = coordinators[coordinator];
+            int n = coordinators[coordinator];
             coordinators[coordinator] = n + 1;
             achievedConsistencies.Add(cl);
         }
+
         public static void resetCoordinators()
         {
             coordinators = new Dictionary<IPAddress, int>();
@@ -78,13 +79,11 @@ namespace Cassandra.IntegrationTests.Core
 
 
         ///  Helper test methodspt
-
-
         public static void assertQueried(String host, int n)
         {
             try
             {
-                int? queried = coordinators.ContainsKey(IPAddress.Parse(host)) ? (int?)coordinators[IPAddress.Parse(host)] : null;
+                int? queried = coordinators.ContainsKey(IPAddress.Parse(host)) ? (int?) coordinators[IPAddress.Parse(host)] : null;
                 if (DEBUG)
                     Debug.WriteLine(String.Format("Expected: {0}\tReceived: {1}", n, queried));
                 else
@@ -92,9 +91,10 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (Exception e)
             {
-                throw new ApplicationException("", e);// RuntimeException(e);
+                throw new ApplicationException("", e); // RuntimeException(e);
             }
         }
+
         protected void assertQueriedAtLeast(String host, int n)
         {
             try
@@ -113,14 +113,13 @@ namespace Cassandra.IntegrationTests.Core
 
         protected void assertAchievedConsistencyLevel(ConsistencyLevel cl)
         {
-            foreach (var c in achievedConsistencies)
+            foreach (ConsistencyLevel c in achievedConsistencies)
                 Assert.Equal(cl, c);
         }
 
         /// <summary>
         ///  Init methods that handle writes using batch and consistency options.
         /// </summary>
-
         protected void init(CCMBridge.CCMCluster c, int n)
         {
             init(c, n, false, ConsistencyLevel.One);
@@ -135,24 +134,27 @@ namespace Cassandra.IntegrationTests.Core
         {
             init(c, n, false, cl);
         }
+
         protected void init(CCMBridge.CCMCluster c, int n, bool batch, ConsistencyLevel cl)
         {
             // We don't use insert for our test because the resultSet don't ship the queriedHost
             // Also note that we don't use tracing because this would trigger requests that screw up the test'
             for (int i = 0; i < n; ++i)
                 if (batch)
-                // BUG: WriteType == SIMPLE                    
+                    // BUG: WriteType == SIMPLE                    
                 {
-                    StringBuilder bth = new StringBuilder();
+                    var bth = new StringBuilder();
                     bth.AppendLine("BEGIN BATCH");
                     bth.AppendLine(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE));
                     bth.AppendLine("APPLY BATCH");
 
-                    var qh = c.Session.Execute(new SimpleStatement(bth.ToString()).SetConsistencyLevel(cl));
+                    RowSet qh = c.Session.Execute(new SimpleStatement(bth.ToString()).SetConsistencyLevel(cl));
                 }
                 else
                 {
-                    var qh = c.Session.Execute(new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
+                    RowSet qh =
+                        c.Session.Execute(
+                            new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
                 }
 
             prepared = c.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);
@@ -187,7 +189,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     IPAddress ccord;
                     ConsistencyLevel cac;
-                    using (var rs = c.Session.Execute(bs))
+                    using (RowSet rs = c.Session.Execute(bs))
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
@@ -197,17 +199,22 @@ namespace Cassandra.IntegrationTests.Core
             }
             else
             {
-                RoutingKey routingKey = new RoutingKey();
-                routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
+                var routingKey = new RoutingKey();
+                routingKey.RawRoutingKey = Enumerable.Repeat((byte) 0x00, 4).ToArray();
                 for (int i = 0; i < n; ++i)
                 {
                     IPAddress ccord;
                     ConsistencyLevel cac;
-                    using (var rs = c.Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey).SetConsistencyLevel(cl)))
+                    using (
+                        RowSet rs =
+                            c.Session.Execute(
+                                new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey)
+                                                                                                          .SetConsistencyLevel(cl)))
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
-                        Console.WriteLine(string.Format("Query {0} executed by {1} with consistency {2}", i.ToString(), ccord.ToString(), cac.ToString()));                        
+                        Console.WriteLine(string.Format("Query {0} executed by {1} with consistency {2}", i.ToString(), ccord.ToString(),
+                                                        cac.ToString()));
                     }
                     addCoordinator(ccord, cac);
                 }

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,24 +13,53 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Data;
 using System.Data.Common;
-using Cassandra;
 
 namespace Cassandra.Data
 {
     public class CqlConnection : DbConnection, ICloneable
     {
-        CassandraConnectionStringBuilder _connectionStringBuilder = null;
-        static Dictionary<string, Cluster> _clusters = new Dictionary<string, Cluster>();
-        Cluster _managedCluster = null;
-        ConnectionState _connectionState = ConnectionState.Closed;
-        CqlBatchTransaction _currentTransaction = null;
-
+        private static readonly Dictionary<string, Cluster> _clusters = new Dictionary<string, Cluster>();
         internal Session ManagedConnection = null;
+        private ConnectionState _connectionState = ConnectionState.Closed;
+        private CassandraConnectionStringBuilder _connectionStringBuilder;
+        private CqlBatchTransaction _currentTransaction;
+        private Cluster _managedCluster;
+
+        public override string ConnectionString
+        {
+            get { return _connectionStringBuilder == null ? null : _connectionStringBuilder.ConnectionString; }
+            set { _connectionStringBuilder = new CassandraConnectionStringBuilder(value); }
+        }
+
+        public override string DataSource
+        {
+            get { return _connectionStringBuilder.ClusterName; }
+        }
+
+        public override string Database
+        {
+            get { return ManagedConnection == null ? null : ManagedConnection.Keyspace; }
+        }
+
+        protected override DbProviderFactory DbProviderFactory
+        {
+            get { return CqlProviderFactory.Instance; }
+        }
+
+        public override string ServerVersion
+        {
+            get { return "2.0"; }
+        }
+
+        public override ConnectionState State
+        {
+            get { return _connectionState; }
+        }
 
         public CqlConnection()
         {
@@ -40,6 +69,14 @@ namespace Cassandra.Data
         public CqlConnection(string connectionString)
         {
             _connectionStringBuilder = new CassandraConnectionStringBuilder(connectionString);
+        }
+
+        public object Clone()
+        {
+            var conn = new CqlConnection(_connectionStringBuilder.ConnectionString);
+            if (State != ConnectionState.Closed && State != ConnectionState.Broken)
+                conn.Open();
+            return conn;
         }
 
         private Dictionary<string, string> getCredentials(string auth)
@@ -69,59 +106,35 @@ namespace Cassandra.Data
 
         protected override void Dispose(bool disposing)
         {
-            if (_connectionState == ConnectionState.Open) 
+            if (_connectionState == ConnectionState.Open)
                 Close();
             base.Dispose(disposing);
         }
 
         public override void Close()
         {
-            _connectionState = System.Data.ConnectionState.Closed;
+            _connectionState = ConnectionState.Closed;
             if (ManagedConnection != null)
                 ManagedConnection.Dispose();
         }
 
-        public override string ConnectionString
-        {
-            get
-            {
-                return _connectionStringBuilder == null ? null : _connectionStringBuilder.ConnectionString;
-            }
-            set
-            {
-                _connectionStringBuilder = new CassandraConnectionStringBuilder(value);
-            }
-        }
-
         protected override DbCommand CreateDbCommand()
         {
-            var cmd = new CqlCommand() { CqlConnection = this };
+            var cmd = new CqlCommand {CqlConnection = this};
             if (_currentTransaction != null)
                 _currentTransaction.Append(cmd);
             return cmd;
         }
 
-        public override string DataSource
-        {
-            get { return _connectionStringBuilder.ClusterName; }
-        }
-
-        public override string Database
-        {
-            get { return ManagedConnection == null ? null : ManagedConnection.Keyspace; }
-        }
-
-        protected override DbProviderFactory DbProviderFactory { get { return CqlProviderFactory.Instance; } }
-
         public override void Open()
         {
-            _connectionState = System.Data.ConnectionState.Connecting;
+            _connectionState = ConnectionState.Connecting;
 
             lock (_clusters)
             {
                 if (!_clusters.ContainsKey(_connectionStringBuilder.ClusterName))
                 {
-                    var builder = _connectionStringBuilder.MakeClusterBuilder();
+                    Builder builder = _connectionStringBuilder.MakeClusterBuilder();
                     OnBuildingCluster(builder);
                     _managedCluster = builder.Build();
                     _clusters.Add(_connectionStringBuilder.ClusterName, _managedCluster);
@@ -135,7 +148,7 @@ namespace Cassandra.Data
             else
                 ManagedConnection = _managedCluster.Connect(_connectionStringBuilder.DefaultKeyspace);
 
-            _connectionState = System.Data.ConnectionState.Open;
+            _connectionState = ConnectionState.Open;
         }
 
         /// <summary>
@@ -149,24 +162,6 @@ namespace Cassandra.Data
         /// <param name="builder">The <see cref="Builder"/> for building a <see cref="Cluster"/>.</param>
         protected virtual void OnBuildingCluster(Builder builder)
         {
-        }
-
-        public override string ServerVersion
-        {
-            get { return "2.0"; }
-        }
-
-        public override ConnectionState State
-        {
-            get { return _connectionState; }
-        }
-
-        public object Clone()
-        {
-            var conn = new CqlConnection(_connectionStringBuilder.ConnectionString);
-            if (State != System.Data.ConnectionState.Closed && State != System.Data.ConnectionState.Broken)
-                conn.Open();
-            return conn;
         }
     }
 }

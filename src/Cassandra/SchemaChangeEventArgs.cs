@@ -1,6 +1,6 @@
 namespace Cassandra
 {
-    public class SchemaChangeEventArgs:CassandraEventArgs
+    public class SchemaChangeEventArgs : CassandraEventArgs
     {
         public enum Reason
         {
@@ -8,8 +8,9 @@ namespace Cassandra
             Updated,
             Dropped
         };
-        public Reason What;
+
         public string Keyspace;
         public string Table;
+        public Reason What;
     }
 }

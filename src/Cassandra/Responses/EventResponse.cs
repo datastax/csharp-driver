@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,20 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
     internal class EventResponse : AbstractResponse
     {
-        private readonly Logger _logger = new Logger(typeof(EventResponse));
         public const byte OpCode = 0x0C;
+        private readonly Logger _logger = new Logger(typeof (EventResponse));
 
         public CassandraEventArgs CassandraEventArgs;
 
         internal EventResponse(ResponseFrame frame)
             : base(frame)
         {
-            var eventTypeString = BEBinaryReader.ReadString();
+            string eventTypeString = BEBinaryReader.ReadString();
             if (eventTypeString == "TOPOLOGY_CHANGE")
             {
                 var ce = new TopologyChangeEventArgs();
@@ -36,7 +37,7 @@
                 CassandraEventArgs = ce;
                 return;
             }
-            else if (eventTypeString == "STATUS_CHANGE")
+            if (eventTypeString == "STATUS_CHANGE")
             {
                 var ce = new StatusChangeEventArgs();
                 ce.What = BEBinaryReader.ReadString() == "UP"
@@ -46,10 +47,10 @@
                 CassandraEventArgs = ce;
                 return;
             }
-            else if (eventTypeString == "SCHEMA_CHANGE")
+            if (eventTypeString == "SCHEMA_CHANGE")
             {
                 var ce = new SchemaChangeEventArgs();
-                var m = BEBinaryReader.ReadString();
+                string m = BEBinaryReader.ReadString();
                 ce.What = m == "CREATED"
                               ? SchemaChangeEventArgs.Reason.Created
                               : (m == "UPDATED"

@@ -13,24 +13,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 
 namespace Cassandra
 {
     // We really only use the generic for type safety and it's not an interface because we don't want to expose
     // Note: we may want to expose this later if people use custom partitioner and want to be able to extend that. This is way premature however.
-    abstract class TokenFactory
+    internal abstract class TokenFactory
     {
         public static TokenFactory GetFactory(string partitionerName)
         {
             if (partitionerName.EndsWith("Murmur3Partitioner"))
                 return M3PToken.Factory;
-            else if (partitionerName.EndsWith("RandomPartitioner"))
+            if (partitionerName.EndsWith("RandomPartitioner"))
                 return RPToken.Factory;
-            else if (partitionerName.EndsWith("OrderedPartitioner"))
+            if (partitionerName.EndsWith("OrderedPartitioner"))
                 return OPPToken.Factory;
-            else
-                return null;
+            return null;
         }
 
         public abstract IToken Parse(String tokenStr);

@@ -1,35 +1,36 @@
+using System.Text;
+
 namespace Cassandra
 {
-    class OPPToken : IToken
+    internal class OPPToken : IToken
     {
-        private readonly byte[] _value;
-
-        class OPPTokenFactory : TokenFactory
-        {
-            public override IToken Parse(string tokenStr)
-            {
-                return new OPPToken(System.Text.Encoding.UTF8.GetBytes(tokenStr));
-            }
-
-            public override IToken Hash(byte[] partitionKey)
-            {
-                return new OPPToken(partitionKey);
-            }
-        }
-
         public static readonly TokenFactory Factory = new OPPTokenFactory();
+        private readonly byte[] _value;
 
 
         private OPPToken(byte[] value)
         {
-            this._value = value;
+            _value = value;
+        }
+
+        public int CompareTo(object obj)
+        {
+            var other = obj as OPPToken;
+            for (int i = 0; i < _value.Length && i < other._value.Length; i++)
+            {
+                int a = (_value[i] & 0xff);
+                int b = (other._value[i] & 0xff);
+                if (a != b)
+                    return a - b;
+            }
+            return 0;
         }
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(this, obj))
                 return true;
-            if (obj == null || (this.GetType() != obj.GetType()))
+            if (obj == null || (GetType() != obj.GetType()))
                 return false;
 
             var other = obj as OPPToken;
@@ -48,17 +49,17 @@ namespace Cassandra
             return _value.GetHashCode();
         }
 
-        public int CompareTo(object obj)
+        private class OPPTokenFactory : TokenFactory
         {
-            var other = obj as OPPToken;
-            for (int i = 0; i < _value.Length && i < other._value.Length; i++)
+            public override IToken Parse(string tokenStr)
             {
-                int a = (_value[i] & 0xff);
-                int b = (other._value[i] & 0xff);
-                if (a != b)
-                    return a - b;
+                return new OPPToken(Encoding.UTF8.GetBytes(tokenStr));
             }
-            return 0;
+
+            public override IToken Hash(byte[] partitionKey)
+            {
+                return new OPPToken(partitionKey);
+            }
         }
     }
 }

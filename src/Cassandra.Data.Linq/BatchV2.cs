@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,18 +13,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+
+using System;
 using System.Text;
 
 namespace Cassandra.Data.Linq
 {
     internal class BatchV2 : Batch
     {
-        internal BatchV2(Session session) : base(session) {}
-
         private readonly BatchStatement _batchScript = new BatchStatement();
+
+        public override bool IsEmpty
+        {
+            get { return _batchScript.IsEmpty; }
+        }
+
+        internal BatchV2(Session session) : base(session)
+        {
+        }
 
         public override void Append(CqlCommand cqlCommand)
         {
@@ -33,14 +39,12 @@ namespace Cassandra.Data.Linq
             _batchScript.AddQuery(cqlCommand);
         }
 
-        public override bool IsEmpty { get { return _batchScript.IsEmpty; } }
-
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.AppendLine("BEGIN " + (_batchType == BatchType.Counter ? "COUNTER " : "") + "BATCH");
-            foreach (var q in _batchScript.Queries)
-                sb.AppendLine(q.ToString() + ";");
+            foreach (Query q in _batchScript.Queries)
+                sb.AppendLine(q + ";");
             sb.Append("APPLY BATCH");
             return sb.ToString();
         }
@@ -53,8 +57,7 @@ namespace Cassandra.Data.Linq
             _batchScript.SetBatchType(_batchType);
             this.CopyQueryPropertiesTo(_batchScript);
             return _session.BeginExecute(_batchScript,
-                                    new CqlQueryTag() { Session = _session }, callback, state);
+                                         new CqlQueryTag {Session = _session}, callback, state);
         }
-
     }
 }

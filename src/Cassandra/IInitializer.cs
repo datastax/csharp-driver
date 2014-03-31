@@ -13,7 +13,6 @@ namespace Cassandra
     /// </summary>
     public interface IInitializer
     {
-
         /// <summary>
         ///  Gets the initial Cassandra hosts to connect to.See
         ///  <link>Builder.AddContactPoint</link> for more details on contact

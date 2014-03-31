@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +13,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
+
 namespace Cassandra
 {
     /// <summary>
     ///  Exception thrown if a query trace cannot be retrieved.
     /// </summary>
-
     public class TraceRetrievalException : DriverException
     {
         public TraceRetrievalException(string message)
-            :base(message)
-        {            
+            : base(message)
+        {
         }
 
         public TraceRetrievalException(string message, Exception cause)
-            :base(message, cause)        
-        {            
+            : base(message, cause)
+        {
         }
     }
 }

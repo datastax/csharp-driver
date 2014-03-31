@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,24 +13,25 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
 
 namespace Cassandra
 {
     internal class AuthResponseRequest : IRequest
     {
         public const byte OpCode = 0x0F;
-        readonly int _streamId;
-        readonly byte[] _token;
+        private readonly int _streamId;
+        private readonly byte[] _token;
+
         public AuthResponseRequest(int streamId, byte[] token)
         {
-            this._streamId = streamId;
-            this._token = token;
+            _streamId = streamId;
+            _token = token;
         }
+
         public RequestFrame GetFrame(byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
             wb.WriteBytes(_token);
             return wb.GetFrame();
         }

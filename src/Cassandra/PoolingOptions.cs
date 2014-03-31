@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 
 namespace Cassandra
@@ -39,7 +40,6 @@ namespace Cassandra
     /// </summary>
     public class PoolingOptions
     {
-
         // Note: we could use an enumMap or similar, but synchronization would
         // be more costly so let's stick to volatile in for now.
         private const int DefaultMinRequests = 25;
@@ -51,19 +51,15 @@ namespace Cassandra
         private const int DefaultMaxPoolLocal = 8;
         private const int DefaultMaxPoolRemote = 2;
 
-        private int _minSimultaneousRequestsForLocal = DefaultMinRequests;
-        private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
-
-        private int _maxSimultaneousRequestsForLocal = DefaultMaxRequests;
-        private int _maxSimultaneousRequestsForRemote = DefaultMaxRequests;
-
         private int _coreConnectionsForLocal = DefaultCorePoolLocal;
         private int _coreConnectionsForRemote = DefaultCorePoolRemote;
 
         private int _maxConnectionsForLocal = DefaultMaxPoolLocal;
         private int _maxConnectionsForRemote = DefaultMaxPoolRemote;
-
-        public PoolingOptions() { }
+        private int _maxSimultaneousRequestsForLocal = DefaultMaxRequests;
+        private int _maxSimultaneousRequestsForRemote = DefaultMaxRequests;
+        private int _minSimultaneousRequestsForLocal = DefaultMinRequests;
+        private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
 
         /// <summary>
         ///  Number of simultaneous requests on a connection below which connections in

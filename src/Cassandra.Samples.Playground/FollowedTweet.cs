@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,31 +13,26 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using Cassandra.Data.Linq;
 
 namespace Playground
 {
     public class FollowedTweet
     {
-        [PartitionKey]
-        public string user_id;
-
-        [ClusteringKey(0)]
-        public Guid tweet_id;
-                
-        [SecondaryIndex]
-        public DateTimeOffset date;
-
         public string author_id;
 
         public string body;
+        [SecondaryIndex] public DateTimeOffset date;
+        [ClusteringKey(0)] public Guid tweet_id;
+        [PartitionKey] public string user_id;
 
         public void display()
         {
-            Console.WriteLine("Author: " + this.author_id);
-            Console.WriteLine("Date: " + this.date.ToString());
-            Console.WriteLine("Tweet content: " + this.body + Environment.NewLine);
+            Console.WriteLine("Author: " + author_id);
+            Console.WriteLine("Date: " + date);
+            Console.WriteLine("Tweet content: " + body + Environment.NewLine);
         }
     }
 }

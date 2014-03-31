@@ -8,7 +8,7 @@ namespace Cassandra
         UnavailableException = 0x1000,
         Overloaded = 0x1001,
         IsBootstrapping = 0x1002,
-        TruncateError = 0x1003,        
+        TruncateError = 0x1003,
         WriteTimeout = 0x1100,
         ReadTimeout = 0x1200,
         SyntaxError = 0x2000,

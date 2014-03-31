@@ -4,21 +4,8 @@ namespace Cassandra
 {
     internal class Guarded<T>
     {
-        T _val;
+        private T _val;
 
-        void AssureLocked()
-        {
-            if (Monitor.TryEnter(this))
-                Monitor.Exit(this);
-            else
-                throw new System.Threading.SynchronizationLockException();
-        }
-        
-        public Guarded(T val)
-        {
-            this._val = val;
-            Thread.MemoryBarrier();
-        }
         public T Value
         {
             get
@@ -31,6 +18,20 @@ namespace Cassandra
                 AssureLocked();
                 _val = value;
             }
+        }
+
+        public Guarded(T val)
+        {
+            _val = val;
+            Thread.MemoryBarrier();
+        }
+
+        private void AssureLocked()
+        {
+            if (Monitor.TryEnter(this))
+                Monitor.Exit(this);
+            else
+                throw new SynchronizationLockException();
         }
     }
 }

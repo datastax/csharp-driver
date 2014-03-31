@@ -26,12 +26,12 @@ namespace Cassandra.IntegrationTests.Core
         /*
  * Test the ExponentialReconnectionPolicy.
  */
-        
+
         [TestMethod]
         [WorksForMe]
         public void exponentialReconnectionPolicyTest()
         {
-            var builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000));
+            Builder builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2*1000, 5*60*1000));
 
             // Ensure that ExponentialReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ExponentialReconnectionPolicy))
@@ -40,9 +40,9 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // Test basic getters
-            ExponentialReconnectionPolicy reconnectionPolicy = (ExponentialReconnectionPolicy)builder.GetConfiguration().Policies.ReconnectionPolicy;
-            Assert.True(reconnectionPolicy.BaseDelayMs == 2 * 1000);
-            Assert.True(reconnectionPolicy.MaxDelayMs == 5 * 60 * 1000);
+            var reconnectionPolicy = (ExponentialReconnectionPolicy) builder.GetConfiguration().Policies.ReconnectionPolicy;
+            Assert.True(reconnectionPolicy.BaseDelayMs == 2*1000);
+            Assert.True(reconnectionPolicy.MaxDelayMs == 5*60*1000);
 
             // Test erroneous instantiations
             try
@@ -50,32 +50,40 @@ namespace Cassandra.IntegrationTests.Core
                 new ExponentialReconnectionPolicy(-1, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException e) { }
+            catch (ArgumentException e)
+            {
+            }
 
             try
             {
                 new ExponentialReconnectionPolicy(1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException e) { }
+            catch (ArgumentException e)
+            {
+            }
 
             try
             {
                 new ExponentialReconnectionPolicy(-1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException e) { }
+            catch (ArgumentException e)
+            {
+            }
 
             try
             {
                 new ExponentialReconnectionPolicy(2, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException e) { }
+            catch (ArgumentException e)
+            {
+            }
 
             // Test nextDelays()
 
-            var schedule = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000).NewSchedule();
+            IReconnectionSchedule schedule = new ExponentialReconnectionPolicy(2*1000, 5*60*1000).NewSchedule();
             Assert.True(schedule.NextDelayMs() == 2000);
             Assert.True(schedule.NextDelayMs() == 4000);
             Assert.True(schedule.NextDelayMs() == 8000);
@@ -86,20 +94,21 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(schedule.NextDelayMs() == reconnectionPolicy.MaxDelayMs);
 
             // Run integration test
-            long restartTime = 2 + 4 + 8 + 2;   // 16: 3 full cycles + 2 seconds
-            long retryTime = 30;                // 4th cycle start time
-            long breakTime = 62;                // time until next reconnection attempt
+            long restartTime = 2 + 4 + 8 + 2; // 16: 3 full cycles + 2 seconds
+            long retryTime = 30; // 4th cycle start time
+            long breakTime = 62; // time until next reconnection attempt
             reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
         /*
          * Test the ConstantReconnectionPolicy.
          */
+
         [TestMethod]
         [WorksForMe]
         public void constantReconnectionPolicyTest()
         {
-            Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25 * 1000));
+            Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25*1000));
 
             // Ensure that ConstantReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ConstantReconnectionPolicy))
@@ -108,8 +117,8 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // Test basic getters
-            ConstantReconnectionPolicy reconnectionPolicy = (ConstantReconnectionPolicy)builder.GetConfiguration().Policies.ReconnectionPolicy;
-            Assert.True(reconnectionPolicy.ConstantDelayMs == 25 * 1000);
+            var reconnectionPolicy = (ConstantReconnectionPolicy) builder.GetConfiguration().Policies.ReconnectionPolicy;
+            Assert.True(reconnectionPolicy.ConstantDelayMs == 25*1000);
 
             // Test erroneous instantiations
             try
@@ -117,10 +126,12 @@ namespace Cassandra.IntegrationTests.Core
                 new ConstantReconnectionPolicy(-1);
                 Assert.Fail();
             }
-            catch (ArgumentException e) { }
+            catch (ArgumentException e)
+            {
+            }
 
             // Test nextDelays()
-            var schedule = new ConstantReconnectionPolicy(10 * 1000).NewSchedule();
+            IReconnectionSchedule schedule = new ConstantReconnectionPolicy(10*1000).NewSchedule();
             Assert.True(schedule.NextDelayMs() == 10000);
             Assert.True(schedule.NextDelayMs() == 10000);
             Assert.True(schedule.NextDelayMs() == 10000);
@@ -128,9 +139,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(schedule.NextDelayMs() == 10000);
 
             // Run integration test
-            int restartTime = 32;   
-            int retryTime = 50;        
-            int breakTime = 10;        // time until next reconnection attempt
+            int restartTime = 32;
+            int retryTime = 50;
+            int breakTime = 10; // time until next reconnection attempt
             reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
@@ -153,21 +164,23 @@ namespace Cassandra.IntegrationTests.Core
                 // Start timing and ensure that the node is down
 
                 //long startTime = 0;
-                Stopwatch startTime = Stopwatch.StartNew();    // = 0;
+                Stopwatch startTime = Stopwatch.StartNew(); // = 0;
                 try
                 {
                     //startTime = System.nanoTime() / 1000000000;                
                     query(c, 12);
                     Assert.Fail("Test race condition where node has not shut off quickly enough.");
                 }
-                catch (NoHostAvailableException e) { }
+                catch (NoHostAvailableException e)
+                {
+                }
 
                 long elapsedSeconds;
                 bool restarted = false;
                 while (true)
                 {
                     //thisTime = System.nanoTime() / 1000000000;
-                    elapsedSeconds = startTime.ElapsedMilliseconds / 1000;
+                    elapsedSeconds = startTime.ElapsedMilliseconds/1000;
 
                     // Restart node at restartTime
                     if (!restarted && elapsedSeconds > restartTime)
@@ -178,13 +191,14 @@ namespace Cassandra.IntegrationTests.Core
 
                     // Continue testing queries each second
                     try
-                    {                        
+                    {
                         query(c, 12);
                         assertQueried(Options.Default.IP_PREFIX + "1", 12);
                         resetCoordinators();
 
                         // Ensure the time when the query completes successfully is what was expected
-                        Assert.True(retryTime - 6 < elapsedSeconds && elapsedSeconds < retryTime + 6, String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
+                        Assert.True(retryTime - 6 < elapsedSeconds && elapsedSeconds < retryTime + 6,
+                                    String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
                     }
                     catch (NoHostAvailableException e)
                     {
@@ -192,7 +206,7 @@ namespace Cassandra.IntegrationTests.Core
                         continue;
                     }
 
-                    Thread.Sleep((int)(breakTime * 1000));
+                    Thread.Sleep((int) (breakTime*1000));
 
                     // The same query once more, just to be sure
                     query(c, 12);
@@ -212,13 +226,15 @@ namespace Cassandra.IntegrationTests.Core
                         query(c, 12);
                         Assert.Fail("Test race condition where node has not shut off quickly enough.");
                     }
-                    catch (NoHostAvailableException) { }
+                    catch (NoHostAvailableException)
+                    {
+                    }
 
                     restarted = false;
                     while (true)
                     {
                         //elapsedSeconds = System.nanoTime() / 1000000000;
-                        elapsedSeconds = startTime.ElapsedMilliseconds / 1000;
+                        elapsedSeconds = startTime.ElapsedMilliseconds/1000;
 
                         // Restart node at restartTime
                         if (!restarted && elapsedSeconds > restartTime)
@@ -235,7 +251,8 @@ namespace Cassandra.IntegrationTests.Core
                             resetCoordinators();
 
                             // Ensure the time when the query completes successfully is what was expected
-                            Assert.True(retryTime - 3 < elapsedSeconds && elapsedSeconds < retryTime + 3, String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
+                            Assert.True(retryTime - 3 < elapsedSeconds && elapsedSeconds < retryTime + 3,
+                                        String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
                         }
                         catch (NoHostAvailableException)
                         {
@@ -246,7 +263,6 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     break;
                 }
-
             }
             catch (Exception e)
             {

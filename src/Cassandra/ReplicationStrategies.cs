@@ -15,7 +15,7 @@ namespace Cassandra
         /// <returns>a dictionary of replication property sub-options.</returns>         
         public static Dictionary<string, string> CreateSimpleStrategyReplicationProperty(int replication_factor)
         {
-            return new Dictionary<string, string> { { "class", SimpleStrategy }, { "replication_factor", replication_factor.ToString() } };
+            return new Dictionary<string, string> {{"class", SimpleStrategy}, {"replication_factor", replication_factor.ToString()}};
         }
 
 
@@ -25,11 +25,12 @@ namespace Cassandra
         /// <param name="datacenters_replication_factors">Dictionary in which key is the name of a data-center,
         /// value is a replication factor for that data-center.</param>
         /// <returns>a dictionary of replication property sub-options.</returns>         
-        public static Dictionary<string, string> CreateNetworkTopologyStrategyReplicationProperty(Dictionary<string, int> datacenters_replication_factors)
+        public static Dictionary<string, string> CreateNetworkTopologyStrategyReplicationProperty(
+            Dictionary<string, int> datacenters_replication_factors)
         {
-            Dictionary<string, string> result = new Dictionary<string, string> { { "class", NetworkTopologyStrategy } };
+            var result = new Dictionary<string, string> {{"class", NetworkTopologyStrategy}};
             if (datacenters_replication_factors.Count > 0)
-                foreach (var datacenter in datacenters_replication_factors)
+                foreach (KeyValuePair<string, int> datacenter in datacenters_replication_factors)
                     result.Add(datacenter.Key, datacenter.Value.ToString());
             return result;
         }
@@ -45,9 +46,9 @@ namespace Cassandra
         /// <returns>a dictionary of replication property sub-options.</returns>         
         public static Dictionary<string, string> CreateReplicationProperty(string strategy_class, Dictionary<string, string> sub_options)
         {
-            Dictionary<string, string> result = new Dictionary<string, string> { { "class", strategy_class } };
+            var result = new Dictionary<string, string> {{"class", strategy_class}};
             if (sub_options.Count > 0)
-                foreach (var elem in sub_options)
+                foreach (KeyValuePair<string, string> elem in sub_options)
                     result.Add(elem.Key, elem.Value);
             return result;
         }

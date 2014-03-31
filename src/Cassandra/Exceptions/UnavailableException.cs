@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -37,11 +38,13 @@ namespace Cassandra
         public int AliveReplicas { get; private set; }
 
         public UnavailableException(ConsistencyLevel consistency, int required, int alive) :
-            base(string.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", consistency, required, alive))
+            base(
+            string.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", consistency, required, alive)
+            )
         {
-            this.Consistency = consistency;
-            this.RequiredReplicas = required;
-            this.AliveReplicas = alive;
+            Consistency = consistency;
+            RequiredReplicas = required;
+            AliveReplicas = alive;
         }
     }
 }

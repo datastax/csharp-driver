@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -23,10 +24,11 @@ namespace Cassandra
     /// </summary>
     public class FallthroughRetryPolicy : IRetryPolicy
     {
-
         public static readonly FallthroughRetryPolicy Instance = new FallthroughRetryPolicy();
 
-        private FallthroughRetryPolicy() { }
+        private FallthroughRetryPolicy()
+        {
+        }
 
 
         /// <summary>
@@ -45,7 +47,8 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns><code>RetryDecision.rethrow()</code>.</returns>
-        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+                                           int nbRetry)
         {
             return RetryDecision.Rethrow();
         }
@@ -90,5 +93,4 @@ namespace Cassandra
             return RetryDecision.Rethrow();
         }
     }
-
 }

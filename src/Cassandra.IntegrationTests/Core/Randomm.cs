@@ -21,93 +21,99 @@ namespace Cassandra.IntegrationTests.Core
 {
     internal class Randomm : Random
     {
-        [ThreadStatic]
-        static Randomm _rnd = null;
+        [ThreadStatic] private static Randomm _rnd;
+
         public static Randomm Instance
         {
             get { return _rnd ?? (_rnd = new Randomm(5)); }
         }
 
-        private Randomm(int seed) : base(seed) { }
+        private Randomm(int seed) : base(seed)
+        {
+        }
 
         internal static object RandomVal(Type tp)
         {
             if (tp != null)
-                return Instance.GetType().GetMethod("Next" + tp.Name).Invoke(Instance, new object[] { });
-            else
-                return "";
+                return Instance.GetType().GetMethod("Next" + tp.Name).Invoke(Instance, new object[] {});
+            return "";
         }
 
         public float NextSingle()
         {
-            double numb = this.NextDouble();
+            double numb = NextDouble();
             numb -= 0.5;
             numb *= 2;
-            return float.MaxValue * (float)numb;
+            return float.MaxValue*(float) numb;
         }
+
         public UInt16 NextUInt16()
         {
-            return (ushort)this.Next(0, 65535); 
+            return (ushort) Next(0, 65535);
         }
+
         public int NextInt32()
         {
-            return this.Next();
+            return Next();
         }
+
         public Int64 NextInt64()
         {
-            var buffer = new byte[sizeof(Int64)];
-            this.NextBytes(buffer);
+            var buffer = new byte[sizeof (Int64)];
+            NextBytes(buffer);
             return BitConverter.ToInt64(buffer, 0);
         }
 
         public decimal NextDecimal()
         {
-            byte scale = (byte)this.Next(29);
-            bool sign = this.Next(2) == 1;
+            var scale = (byte) Next(29);
+            bool sign = Next(2) == 1;
 
-            return new decimal(this.NextInt32(),
-                               this.NextInt32(),
-                               this.NextInt32(),
+            return new decimal(NextInt32(),
+                               NextInt32(),
+                               NextInt32(),
                                sign,
                                scale);
         }
 
-        public BigInteger NextBigInteger()  	
-        {	  	
-            return new BigInteger(Int64.MaxValue) * 10;	  	
+        public BigInteger NextBigInteger()
+        {
+            return new BigInteger(Int64.MaxValue)*10;
         }
 
         public string NextString()
         {
             return NextChar();
         }
+
         public string NextChar()
-        {            
+        {
             string asciiString = string.Empty;
             for (int i = 0; i < 128; i++)
                 if (i == 34 || i == 39)
                     continue;
-                else 
-                    asciiString += (char)i;
+                else
+                    asciiString += (char) i;
 
             return asciiString;
         }
+
         public DateTimeOffset NextDateTimeOffset()
         {
-            var now = DateTimeOffset.Now.UtcDateTime;
+            DateTime now = DateTimeOffset.Now.UtcDateTime;
             return new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Millisecond, TimeSpan.Zero);
         }
-        
+
         public byte[] NextByte()
-        {            
-            byte[] btarr = new byte[this.NextUInt16()];            
-            this.NextBytes(btarr);
+        {
+            var btarr = new byte[NextUInt16()];
+            NextBytes(btarr);
             return btarr;
         }
 
         public bool NextBoolean()
         {
-            return this.NextUInt16() > 127 ? true : false;
+            return NextUInt16() > 127 ? true : false;
         }
 
         public Guid NextGuid()

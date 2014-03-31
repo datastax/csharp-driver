@@ -5,8 +5,13 @@ namespace Cassandra
 {
     public class HostsEventArgs : EventArgs
     {
-        public enum Kind { Up, Down }
-        public Kind What;
+        public enum Kind
+        {
+            Up,
+            Down
+        }
+
         public IPAddress IPAddress;
+        public Kind What;
     }
 }

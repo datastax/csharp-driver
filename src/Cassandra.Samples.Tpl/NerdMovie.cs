@@ -17,19 +17,17 @@
 using Cassandra.Data.Linq;
 
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
+
 namespace TPLSample.NerdMoviesLinqSample
 {
-
     [AllowFiltering]
     public class NerdMovie
     {
-        [ClusteringKey(1)]
-        public string Director;
+        [ClusteringKey(1)] public string Director;
 
         public string MainActor;
 
-        [PartitionKey]
-        public string Movie;
+        [PartitionKey] public string Movie;
 
         public int Year;
     }

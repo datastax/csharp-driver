@@ -21,15 +21,16 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests
 {
-
     /// <summary>
     ///  A number of static fields/methods handy for tests.
     /// </summary>
     public static class TestUtils
     {
+        private static readonly Logger logger = new Logger(typeof (TestUtils));
 
-        private static readonly Logger logger = new Logger(typeof(TestUtils));
-        public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
+        public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT =
+            "CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
+
         public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
 
         public static readonly string SIMPLE_KEYSPACE = "ks";
@@ -66,7 +67,7 @@ namespace Cassandra.IntegrationTests
             // FIXME: Once stop() works, remove this line
             try
             {
-                Thread.Sleep(waitTime * 1000);
+                Thread.Sleep(waitTime*1000);
             }
             catch (InvalidQueryException e)
             {
@@ -113,8 +114,13 @@ namespace Cassandra.IntegrationTests
                 }
                 if (waitForDead && !found)
                     return;
-                try { Thread.Sleep(1000); }
-                catch (Exception e) { }
+                try
+                {
+                    Thread.Sleep(1000);
+                }
+                catch (Exception e)
+                {
+                }
             }
 
             foreach (Host host in metadata.AllHosts())
@@ -125,24 +131,17 @@ namespace Cassandra.IntegrationTests
                     {
                         return;
                     }
-                    else
-                    {
-                        // logging it because this give use the timestamp of when this happens
-                        logger.Info(node + " is not " + (waitForDead ? "DOWN" : "UP") + " after " + maxTry + "s");
-                        throw new InvalidOperationException(node + " is not " + (waitForDead ? "DOWN" : "UP") + " after " + maxTry + "s");
-                    }
+                    // logging it because this give use the timestamp of when this happens
+                    logger.Info(node + " is not " + (waitForDead ? "DOWN" : "UP") + " after " + maxTry + "s");
+                    throw new InvalidOperationException(node + " is not " + (waitForDead ? "DOWN" : "UP") + " after " + maxTry + "s");
                 }
             }
 
             if (waitForOut)
             {
-                return;
             }
-            else
-            {
-                logger.Info(node + " is not part of the cluster after " + maxTry + "s");
-                throw new InvalidOperationException(node + " is not part of the cluster after " + maxTry + "s");
-            }
+            logger.Info(node + " is not part of the cluster after " + maxTry + "s");
+            throw new InvalidOperationException(node + " is not part of the cluster after " + maxTry + "s");
         }
 
         private static bool testHost(Host host, bool testForDown)
@@ -150,4 +149,4 @@ namespace Cassandra.IntegrationTests
             return testForDown ? !host.IsUp : host.IsConsiderablyUp;
         }
     }
-}	// end namespace
+} // end namespace

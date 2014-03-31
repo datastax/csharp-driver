@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
 
@@ -21,19 +22,17 @@ namespace Playground
 {
     public class Author
     {
-        [PartitionKey]
-        public string author_id;
-        
+        [PartitionKey] public string author_id;
+
         public List<string> followers;
 
         public void displayFollowers()
         {
             if (followers != null)
-                foreach (var follower in this.followers)
+                foreach (string follower in followers)
                     Console.Write(follower + "  ");
             else
                 Console.WriteLine("Nobody!");
         }
     }
-
 }

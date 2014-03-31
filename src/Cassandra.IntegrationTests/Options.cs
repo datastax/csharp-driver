@@ -18,17 +18,19 @@ namespace Cassandra.IntegrationTests
 {
     public class Options
     {
-
         public static Options Default = new Options();
 
+        public readonly string CASSANDRA_VERSION;
         public readonly string IP_PREFIX;
 
-        public readonly string CASSANDRA_VERSION;
-
         public string SSH_HOST;
+        public string SSH_PASSWORD;
         public int SSH_PORT;
         public string SSH_USERNAME;
-        public string SSH_PASSWORD;
+
+        public bool USE_COMPRESSION;
+        public bool USE_LOGGER;
+        public bool USE_NOBUFFERING;
 
         private Options()
         {
@@ -43,10 +45,5 @@ namespace Cassandra.IntegrationTests
             USE_NOBUFFERING = MyTestOptions.Default.NoUseBuffering;
             USE_LOGGER = MyTestOptions.Default.UseLogger;
         }
-
-        public bool USE_COMPRESSION;
-        public bool USE_NOBUFFERING;
-        public bool USE_LOGGER;
-
     }
 }

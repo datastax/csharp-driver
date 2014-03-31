@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 
 namespace Cassandra
 {
@@ -25,8 +26,26 @@ namespace Cassandra
     public class ExponentialReconnectionPolicy : IReconnectionPolicy
     {
         private readonly long _baseDelayMs;
-        private readonly long _maxDelayMs;
         private readonly long _maxAttempts;
+        private readonly long _maxDelayMs;
+
+        /// <summary>
+        ///  Gets the base delay in milliseconds for this policy (e.g. the delay before the
+        ///  first reconnection attempt).
+        /// </summary>
+        public long BaseDelayMs
+        {
+            get { return _baseDelayMs; }
+        }
+
+        /// <summary>
+        ///  Gets the maximum delay in milliseconds between reconnection attempts for this
+        ///  policy.
+        /// </summary>
+        public long MaxDelayMs
+        {
+            get { return _maxDelayMs; }
+        }
 
         /// <summary>
         ///  Creates a reconnection policy waiting exponentially longer for each new
@@ -43,50 +62,16 @@ namespace Cassandra
             if (baseDelayMs == 0)
                 throw new ArgumentOutOfRangeException("baseDelayMs must be strictly positive");
             if (maxDelayMs < baseDelayMs)
-                throw new ArgumentOutOfRangeException(string.Format("maxDelayMs (got {0}) cannot be smaller than baseDelayMs (got {1})", maxDelayMs, baseDelayMs));
+                throw new ArgumentOutOfRangeException(string.Format("maxDelayMs (got {0}) cannot be smaller than baseDelayMs (got {1})", maxDelayMs,
+                                                                    baseDelayMs));
 
-            this._baseDelayMs = baseDelayMs;
-            this._maxDelayMs = maxDelayMs;
+            _baseDelayMs = baseDelayMs;
+            _maxDelayMs = maxDelayMs;
 
             // Maximum number of attempts after which we overflow (which is kind of theoretical anyway, you'll'
             // die of old age before reaching that but hey ...)
             int ceil = (baseDelayMs & (baseDelayMs - 1)) == 0 ? 0 : 1;
-            this._maxAttempts = 64 - LeadingZeros(long.MaxValue / baseDelayMs) - ceil;
-        }
-
-        static int LeadingZeros(long value)
-        {
-            int leadingZeros = 0;
-            while (value != 0)
-            {
-                value = value >> 1;
-                leadingZeros++;
-            }
-            return (64 - leadingZeros);
-        }
-
-        /// <summary>
-        ///  Gets the base delay in milliseconds for this policy (e.g. the delay before the
-        ///  first reconnection attempt).
-        /// </summary>
-        public long BaseDelayMs
-        {
-            get
-            {
-                return _baseDelayMs;
-            }
-        }
-
-        /// <summary>
-        ///  Gets the maximum delay in milliseconds between reconnection attempts for this
-        ///  policy.
-        /// </summary>
-        public long MaxDelayMs
-        {
-            get
-            {
-                return _maxDelayMs;
-            }
+            _maxAttempts = 64 - LeadingZeros(long.MaxValue/baseDelayMs) - ceil;
         }
 
         /// <summary>
@@ -101,22 +86,35 @@ namespace Cassandra
         {
             return new ExponentialSchedule(this);
         }
+
+        private static int LeadingZeros(long value)
+        {
+            int leadingZeros = 0;
+            while (value != 0)
+            {
+                value = value >> 1;
+                leadingZeros++;
+            }
+            return (64 - leadingZeros);
+        }
+
         private class ExponentialSchedule : IReconnectionSchedule
         {
-            readonly ExponentialReconnectionPolicy _policy;
-            public ExponentialSchedule(ExponentialReconnectionPolicy policy)
-            {
-                this._policy = policy;
-            }
+            private readonly ExponentialReconnectionPolicy _policy;
 
             private int _attempts;
+
+            public ExponentialSchedule(ExponentialReconnectionPolicy policy)
+            {
+                _policy = policy;
+            }
 
             public long NextDelayMs()
             {
                 if (_attempts >= _policy._maxAttempts)
                     return _policy._maxDelayMs;
 
-                return Math.Min(_policy._baseDelayMs * (1L << _attempts++), _policy._maxDelayMs);
+                return Math.Min(_policy._baseDelayMs*(1L << _attempts++), _policy._maxDelayMs);
             }
         }
     }

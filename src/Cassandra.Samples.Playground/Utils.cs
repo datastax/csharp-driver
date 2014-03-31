@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using Cassandra.Data.Linq;
 
 namespace Playground
@@ -21,13 +22,13 @@ namespace Playground
     public static class Utils
     {
         public static void DisplayTable(this Table<Statistics> table)
-        {            
+        {
             Console.WriteLine("┌──────────┬────────────────┬─────────────┐");
-            Console.WriteLine(String.Format("│{0,10}│{1,16}│{2,13}│", "Author ID", "Followers count", "Tweets count"));
+            Console.WriteLine("│{0,10}│{1,16}│{2,13}│", "Author ID", "Followers count", "Tweets count");
             Console.WriteLine("├──────────┼────────────────┼─────────────┤");
-            
-            foreach (var stat in (from st in table select st).Execute())
-                Console.WriteLine(String.Format("│{0,10}│{1,16}│{2,13}│", stat.author_id, stat.followers_count, stat.tweets_count));
+
+            foreach (Statistics stat in (from st in table select st).Execute())
+                Console.WriteLine("│{0,10}│{1,16}│{2,13}│", stat.author_id, stat.followers_count, stat.tweets_count);
 
             Console.WriteLine("└──────────┴────────────────┴─────────────┘");
         }

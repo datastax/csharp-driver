@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- namespace Cassandra
+
+namespace Cassandra
 {
     /// <summary>
     ///  A retry decision to adopt on a Cassandra exception (read/write timeout or
@@ -30,27 +31,38 @@
         /// <summary>
         ///  The type of retry decisions.
         /// </summary>
-        public enum RetryDecisionType { Retry, Rethrow, Ignore };
-
-        private readonly RetryDecisionType _type;
-        private readonly ConsistencyLevel? _retryCl;
-
-        private RetryDecision(RetryDecisionType type, ConsistencyLevel? retryCL)
+        public enum RetryDecisionType
         {
-            this._type = type;
-            this._retryCl = retryCL;
-        }
+            Retry,
+            Rethrow,
+            Ignore
+        };
+
+        private readonly ConsistencyLevel? _retryCl;
+        private readonly RetryDecisionType _type;
 
         /// <summary>
         ///  Gets the type of this retry decision.
         /// </summary>
-        public RetryDecisionType DecisionType { get { return _type; } }
+        public RetryDecisionType DecisionType
+        {
+            get { return _type; }
+        }
 
         /// <summary>
         ///  Gets the consistency level for a retry decision or <code>null</code> if
         ///  this retry decision is an <code>Ignore</code> or a
         ///  <code>Rethrow</code>.</summary>
-        public ConsistencyLevel? RetryConsistencyLevel { get { return _retryCl; } }
+        public ConsistencyLevel? RetryConsistencyLevel
+        {
+            get { return _retryCl; }
+        }
+
+        private RetryDecision(RetryDecisionType type, ConsistencyLevel? retryCL)
+        {
+            _type = type;
+            _retryCl = retryCL;
+        }
 
         /// <summary>
         ///  Creates a Rethrow retry decision.
@@ -59,7 +71,7 @@
         /// <returns>a Rethrow retry decision.</returns>
         public static RetryDecision Rethrow()
         {
-            return new RetryDecision(RetryDecisionType.Rethrow, QueryOptions.DefaultConsistencyLevel); 
+            return new RetryDecision(RetryDecisionType.Rethrow, QueryOptions.DefaultConsistencyLevel);
         }
 
         /// <summary>

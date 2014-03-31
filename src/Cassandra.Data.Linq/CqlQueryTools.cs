@@ -13,20 +13,61 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Globalization;
-using System.Reflection;
-using System.Collections;
 
 namespace Cassandra.Data.Linq
 {
     internal static class CqlQueryTools
     {
-        static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
+        private static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Hex string lookup table.
+        /// </summary>
+        private static readonly string[] HexStringTable = new string[]
+        {
+            "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B", "0C", "0D", "0E", "0F",
+            "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1A", "1B", "1C", "1D", "1E", "1F",
+            "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "2A", "2B", "2C", "2D", "2E", "2F",
+            "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3A", "3B", "3C", "3D", "3E", "3F",
+            "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "4A", "4B", "4C", "4D", "4E", "4F",
+            "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "5A", "5B", "5C", "5D", "5E", "5F",
+            "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6A", "6B", "6C", "6D", "6E", "6F",
+            "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7A", "7B", "7C", "7D", "7E", "7F",
+            "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "8A", "8B", "8C", "8D", "8E", "8F",
+            "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9A", "9B", "9C", "9D", "9E", "9F",
+            "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "AA", "AB", "AC", "AD", "AE", "AF",
+            "B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "BA", "BB", "BC", "BD", "BE", "BF",
+            "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "CA", "CB", "CC", "CD", "CE", "CF",
+            "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "DA", "DB", "DC", "DD", "DE", "DF",
+            "E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "EA", "EB", "EC", "ED", "EE", "EF",
+            "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FA", "FB", "FC", "FD", "FE", "FF"
+        };
+
+        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
+        private static readonly Dictionary<Type, string> CQLTypeNames = new Dictionary<Type, string>()
+        {
+            {typeof (Int32), "int"},
+            {typeof (Int64), "bigint"},
+            {typeof (string), "text"},
+            {typeof (byte[]), "blob"},
+            {typeof (Boolean), "boolean"},
+            {typeof (Decimal), "decimal"},
+            {typeof (Double), "double"},
+            {typeof (Single), "float"},
+            {typeof (Guid), "uuid"},
+            {typeof (DateTimeOffset), "timestamp"},
+            {typeof (DateTime), "timestamp"},
+        };
 
         public static string CqlIdentifier(this string id)
         {
@@ -49,29 +90,7 @@ namespace Cassandra.Data.Linq
         {
             return "\"" + id.Replace("\"", "\"\"") + "\"";
         }
-        
-        /// <summary>
-        /// Hex string lookup table.
-        /// </summary>
-        private static readonly string[] HexStringTable = new string[]
-{
-    "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B", "0C", "0D", "0E", "0F",
-    "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1A", "1B", "1C", "1D", "1E", "1F",
-    "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "2A", "2B", "2C", "2D", "2E", "2F",
-    "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3A", "3B", "3C", "3D", "3E", "3F",
-    "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "4A", "4B", "4C", "4D", "4E", "4F",
-    "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "5A", "5B", "5C", "5D", "5E", "5F",
-    "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6A", "6B", "6C", "6D", "6E", "6F",
-    "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7A", "7B", "7C", "7D", "7E", "7F",
-    "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "8A", "8B", "8C", "8D", "8E", "8F",
-    "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9A", "9B", "9C", "9D", "9E", "9F",
-    "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "AA", "AB", "AC", "AD", "AE", "AF",
-    "B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "BA", "BB", "BC", "BD", "BE", "BF",
-    "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "CA", "CB", "CC", "CD", "CE", "CF",
-    "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "DA", "DB", "DC", "DD", "DE", "DF",
-    "E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "EA", "EB", "EC", "ED", "EE", "EF",
-    "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FA", "FB", "FC", "FD", "FE", "FF"
-};
+
         /// <summary>
         /// Returns a hex string representation of an array of bytes.
         /// http://blogs.msdn.com/b/blambert/archive/2009/02/22/blambert-codesnip-fast-byte-array-to-hex-string-conversion.aspx
@@ -96,24 +115,25 @@ namespace Cassandra.Data.Linq
         public static string Encode(this object obj)
         {
             if (obj is string) return Encode(obj as string);
-            else if (obj is Boolean) return Encode((Boolean)obj);
-            else if (obj is byte[]) return Encode((byte[])obj);
-            else if (obj is Double) return Encode((Double)obj);
-            else if (obj is Single) return Encode((Single)obj);
-            else if (obj is Decimal) return Encode((Decimal)obj);
-            else if (obj is DateTimeOffset) return Encode((DateTimeOffset)obj);
-            // need to treat "Unspecified" as UTC (+0) not the default behavior of DateTimeOffset which treats as Local Timezone
-            // because we are about to do math against EPOCH which must align with UTC. 
-            // If we don't, then the value saved will be shifted by the local timezone when retrieved back out as DateTime.
-            else if (obj is DateTime) return Encode(((DateTime)obj).Kind == DateTimeKind.Unspecified 
-                    ? new DateTimeOffset((DateTime)obj,TimeSpan.Zero) 
-                    : new DateTimeOffset((DateTime)obj));
+            else if (obj is Boolean) return Encode((Boolean) obj);
+            else if (obj is byte[]) return Encode((byte[]) obj);
+            else if (obj is Double) return Encode((Double) obj);
+            else if (obj is Single) return Encode((Single) obj);
+            else if (obj is Decimal) return Encode((Decimal) obj);
+            else if (obj is DateTimeOffset) return Encode((DateTimeOffset) obj);
+                // need to treat "Unspecified" as UTC (+0) not the default behavior of DateTimeOffset which treats as Local Timezone
+                // because we are about to do math against EPOCH which must align with UTC. 
+                // If we don't, then the value saved will be shifted by the local timezone when retrieved back out as DateTime.
+            else if (obj is DateTime)
+                return Encode(((DateTime) obj).Kind == DateTimeKind.Unspecified
+                                  ? new DateTimeOffset((DateTime) obj, TimeSpan.Zero)
+                                  : new DateTimeOffset((DateTime) obj));
             else if (obj.GetType().IsGenericType)
             {
                 if (obj.GetType().GetInterface("ISet`1") != null)
                 {
                     var sb = new StringBuilder();
-                    foreach (var el in (IEnumerable)obj)
+                    foreach (object el in (IEnumerable) obj)
                     {
                         if (sb.ToString() != "")
                             sb.Append(", ");
@@ -124,7 +144,7 @@ namespace Cassandra.Data.Linq
                 else if (obj.GetType().GetInterface("IDictionary`2") != null)
                 {
                     var sb = new StringBuilder();
-                    IDictionaryEnumerator enn = ((IDictionary)obj).GetEnumerator();
+                    IDictionaryEnumerator enn = ((IDictionary) obj).GetEnumerator();
                     while (enn.MoveNext())
                     {
                         if (sb.ToString() != "")
@@ -136,7 +156,7 @@ namespace Cassandra.Data.Linq
                 else if (obj.GetType().GetInterface("IEnumerable`1") != null)
                 {
                     var sb = new StringBuilder();
-                    foreach (var el in (IEnumerable)obj)
+                    foreach (object el in (IEnumerable) obj)
                     {
                         if (sb.ToString() != "")
                             sb.Append(", ");
@@ -181,29 +201,14 @@ namespace Cassandra.Data.Linq
 
         public static string Encode(DateTimeOffset val)
         {
-            if (val == DateTimeOffset.MinValue) return
-                0.ToString();
+            if (val == DateTimeOffset.MinValue)
+                return
+                    0.ToString();
             else
                 return Convert.ToInt64(Math.Floor((val - UnixStart).TotalMilliseconds)).ToString();
         }
 
-        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-
-        static readonly Dictionary<Type, string> CQLTypeNames = new Dictionary<Type, string>() {
-        { typeof(Int32), "int" }, 
-        { typeof(Int64), "bigint" }, 
-        { typeof(string), "text" }, 
-        { typeof(byte[]), "blob" },
-        { typeof(Boolean), "boolean" },
-        { typeof(Decimal), "decimal" },
-        { typeof(Double), "double" },
-        { typeof(Single), "float" },
-        { typeof(Guid), "uuid" },
-        { typeof(DateTimeOffset), "timestamp" },
-        { typeof(DateTime), "timestamp" },
-        };
-
-        static string GetCqlTypeFromType(Type tpy)
+        private static string GetCqlTypeFromType(Type tpy)
         {
             if (CQLTypeNames.ContainsKey(tpy))
                 return CQLTypeNames[tpy];
@@ -221,20 +226,20 @@ namespace Cassandra.Data.Linq
                     }
                     else if (tpy.GetInterface("IDictionary`2") != null)
                     {
-                        return "map<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ", " + GetCqlTypeFromType(tpy.GetGenericArguments()[1]) + ">";
+                        return "map<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ", " + GetCqlTypeFromType(tpy.GetGenericArguments()[1]) +
+                               ">";
                     }
                     else if (tpy.GetInterface("IEnumerable`1") != null)
                     {
                         return "list<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
                     }
                 }
-                else
-                    if (tpy.Name == "BigDecimal")
-                        return "decimal";
+                else if (tpy.Name == "BigDecimal")
+                    return "decimal";
             }
 
-            StringBuilder supportedTypes = new StringBuilder();
-            foreach (var tn in CQLTypeNames.Keys)
+            var supportedTypes = new StringBuilder();
+            foreach (Type tn in CQLTypeNames.Keys)
                 supportedTypes.Append(tn.FullName + ", ");
             supportedTypes.Append(", their nullable counterparts, and implementations of IEnumerable<T>, IDictionary<K,V>");
 
@@ -243,8 +248,8 @@ namespace Cassandra.Data.Linq
 
         internal static string CalculateMemberName(MemberInfo prop)
         {
-            var memName = prop.Name;
-            var propNameAttr = prop.GetCustomAttributes(typeof(ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
+            string memName = prop.Name;
+            var propNameAttr = prop.GetCustomAttributes(typeof (ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
             if (propNameAttr != null && !string.IsNullOrEmpty(propNameAttr.Name))
                 memName = propNameAttr.Name;
             return memName;
@@ -263,33 +268,34 @@ namespace Cassandra.Data.Linq
             sb.Append("(");
             string crtIndex = "CREATE INDEX " + (ifNotExists ? "IF NOT EXISTS " : "") + "ON " + table.GetQuotedTableName() + "(";
             string crtIndexAll = string.Empty;
-             
+
             var clusteringKeys = new SortedDictionary<int, ClusteringKeyAttribute>();
             var partitionKeys = new SortedDictionary<int, string>();
-            var directives = new List<string>(); 
+            var directives = new List<string>();
 
-            var props = table.GetEntityType().GetPropertiesOrFields();
+            List<MemberInfo> props = table.GetEntityType().GetPropertiesOrFields();
             int curLevel = 0;
 
-            if (table.GetEntityType().GetCustomAttributes(typeof(CompactStorageAttribute), false).Any())
+            if (table.GetEntityType().GetCustomAttributes(typeof (CompactStorageAttribute), false).Any())
                 directives.Add("COMPACT STORAGE");
 
-            foreach (var prop in props)
+            foreach (MemberInfo prop in props)
             {
                 Type tpy = prop.GetTypeFromPropertyOrField();
 
-                var memName = CalculateMemberName(prop);
+                string memName = CalculateMemberName(prop);
 
                 sb.Append(memName.QuoteIdentifier());
                 sb.Append(" ");
 
-                if (prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute != null)
+                if (prop.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() as CounterAttribute != null)
                 {
                     countersCount++;
                     countersSpotted = true;
-                    if (prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute != null || prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
+                    if (prop.GetCustomAttributes(typeof (ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute != null ||
+                        prop.GetCustomAttributes(typeof (PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute != null)
                         throw new InvalidQueryException("Counter can not be a part of PRIMARY KEY !");
-                    if (tpy != typeof(Int64))
+                    if (tpy != typeof (Int64))
                         throw new InvalidQueryException("Counters can be only of Int64(long) type !");
                     else
                         sb.Append("counter");
@@ -298,28 +304,28 @@ namespace Cassandra.Data.Linq
                     sb.Append(GetCqlTypeFromType(tpy));
 
                 sb.Append(", ");
-                var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
+                var pk = prop.GetCustomAttributes(typeof (PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
                 {
-                    var idx = pk.Index;
+                    int idx = pk.Index;
                     if (idx == -1)
                         idx = curLevel++;
                     partitionKeys.Add(idx, memName);
                 }
                 else
                 {
-                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof (ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk != null)
                     {
-                        var idx = rk.Index;
+                        int idx = rk.Index;
                         if (idx == -1)
                             idx = curLevel++;
                         rk.Name = memName;
-                        clusteringKeys.Add(idx, rk);                                        
+                        clusteringKeys.Add(idx, rk);
                     }
                     else
                     {
-                        var si = prop.GetCustomAttributes(typeof(SecondaryIndexAttribute), true).FirstOrDefault() as SecondaryIndexAttribute;
+                        var si = prop.GetCustomAttributes(typeof (SecondaryIndexAttribute), true).FirstOrDefault() as SecondaryIndexAttribute;
                         if (si != null)
                         {
                             commands.Add(crtIndex + memName.QuoteIdentifier() + ");");
@@ -328,13 +334,14 @@ namespace Cassandra.Data.Linq
                 }
             }
 
-            foreach (var clustKey in clusteringKeys)
+            foreach (KeyValuePair<int, ClusteringKeyAttribute> clustKey in clusteringKeys)
                 if (clustKey.Value.ClusteringOrder != null)
-                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string)clustKey.Value.Name.QuoteIdentifier(), clustKey.Value.ClusteringOrder));
+                    directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string) clustKey.Value.Name.QuoteIdentifier(),
+                                                 clustKey.Value.ClusteringOrder));
                 else
                     break;
 
-            if (countersSpotted)// validating if table consists only of counters
+            if (countersSpotted) // validating if table consists only of counters
                 if (countersCount + clusteringKeys.Count + 1 != props.Count())
                     throw new InvalidQueryException("Counter table can consist only of counters.");
 
@@ -342,7 +349,7 @@ namespace Cassandra.Data.Linq
             if (partitionKeys.Count > 1)
                 sb.Append("(");
             bool fisrtParKey = true;
-            foreach (var kv in partitionKeys)
+            foreach (KeyValuePair<int, string> kv in partitionKeys)
             {
                 if (!fisrtParKey)
                     sb.Append(", ");
@@ -352,7 +359,7 @@ namespace Cassandra.Data.Linq
             }
             if (partitionKeys.Count > 1)
                 sb.Append(")");
-            foreach (var kv in clusteringKeys)
+            foreach (KeyValuePair<int, ClusteringKeyAttribute> kv in clusteringKeys)
             {
                 sb.Append(", ");
                 sb.Append(kv.Value.Name.QuoteIdentifier());
@@ -363,7 +370,7 @@ namespace Cassandra.Data.Linq
             {
                 sb.Append(" WITH ");
                 bool first = true;
-                foreach (var par in directives)
+                foreach (string par in directives)
                 {
                     sb.Append((first ? "" : " AND ") + par);
                     first = false;
@@ -378,32 +385,35 @@ namespace Cassandra.Data.Linq
             return commands;
         }
 
-        public static string GetInsertCQLAndValues(object row, string quotedtablename, out object[] values, int? ttl, DateTimeOffset? timestamp,bool ifNotExists,bool withValues = true)
+        public static string GetInsertCQLAndValues(object row, string quotedtablename, out object[] values, int? ttl, DateTimeOffset? timestamp,
+                                                   bool ifNotExists, bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
-            var rowType = row.GetType();
+            Type rowType = row.GetType();
             var sb = new StringBuilder();
             sb.Append("INSERT INTO ");
             sb.Append(quotedtablename);
             sb.Append("(");
 
-            var props = rowType.GetPropertiesOrFields();
+            List<MemberInfo> props = rowType.GetPropertiesOrFields();
             bool first = true;
-            foreach (var prop in props)
+            foreach (MemberInfo prop in props)
             {
-                var val = prop.GetValueFromPropertyOrField(row);
+                object val = prop.GetValueFromPropertyOrField(row);
                 if (val == null) continue;
-                if (first) first = false; else sb.Append(", ");
-                var memName = CalculateMemberName(prop);
+                if (first) first = false;
+                else sb.Append(", ");
+                string memName = CalculateMemberName(prop);
                 sb.Append(memName.QuoteIdentifier());
             }
             sb.Append(") VALUES (");
             first = true;
-            foreach (var prop in props)
+            foreach (MemberInfo prop in props)
             {
-                var val = prop.GetValueFromPropertyOrField(row);
+                object val = prop.GetValueFromPropertyOrField(row);
                 if (val == null) continue;
-                if (first) first = false; else sb.Append(", ");
+                if (first) first = false;
+                else sb.Append(", ");
                 sb.Append(cqlTool.AddValue(val));
             }
             sb.Append(")");
@@ -425,7 +435,7 @@ namespace Cassandra.Data.Linq
             if (timestamp != null)
             {
                 sb.Append(" TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - UnixStart).TotalMilliseconds)));
             }
 
             if (withValues)
@@ -437,33 +447,35 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public static string GetUpdateCQLAndValues(object row, object newRow, string quotedtablename, out object[] values, bool all = false, bool withValues = true)
+        public static string GetUpdateCQLAndValues(object row, object newRow, string quotedtablename, out object[] values, bool all = false,
+                                                   bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
-            var rowType = row.GetType();
+            Type rowType = row.GetType();
             var set = new StringBuilder();
             var where = new StringBuilder();
-            var props = rowType.GetPropertiesOrFields();
+            List<MemberInfo> props = rowType.GetPropertiesOrFields();
             bool firstSet = true;
             bool firstWhere = true;
             bool changeDetected = false;
-            foreach (var prop in props)
+            foreach (MemberInfo prop in props)
             {
-                var memName = CalculateMemberName(prop);
-                var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
+                string memName = CalculateMemberName(prop);
+                var pk = prop.GetCustomAttributes(typeof (PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk == null)
                 {
-                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof (ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk == null)
                     {
-                        var counter = prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute;
+                        var counter = prop.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() as CounterAttribute;
                         if (counter != null)
                         {
-                            var diff = (Int64)prop.GetValueFromPropertyOrField(newRow) - (Int64)prop.GetValueFromPropertyOrField(row);
-                            if (diff != 0 || (Int64)prop.GetValueFromPropertyOrField(newRow) == 0)
+                            long diff = (Int64) prop.GetValueFromPropertyOrField(newRow) - (Int64) prop.GetValueFromPropertyOrField(row);
+                            if (diff != 0 || (Int64) prop.GetValueFromPropertyOrField(newRow) == 0)
                             {
                                 changeDetected = true;
-                                if (firstSet) firstSet = false; else set.Append(", ");
+                                if (firstSet) firstSet = false;
+                                else set.Append(", ");
                                 set.Append(memName.QuoteIdentifier() + " = " + memName.QuoteIdentifier());
                                 set.Append((diff >= 0) ? "+" + diff.ToString() : diff.ToString());
                             }
@@ -471,7 +483,7 @@ namespace Cassandra.Data.Linq
                         }
                         else
                         {
-                            var newVal = prop.GetValueFromPropertyOrField(newRow);
+                            object newVal = prop.GetValueFromPropertyOrField(newRow);
                             if (newVal != null)
                             {
                                 bool areDifferent = !newVal.Equals(prop.GetValueFromPropertyOrField(row));
@@ -479,7 +491,8 @@ namespace Cassandra.Data.Linq
                                 {
                                     if (areDifferent)
                                         changeDetected = true;
-                                    if (firstSet) firstSet = false; else set.Append(", ");
+                                    if (firstSet) firstSet = false;
+                                    else set.Append(", ");
                                     set.Append(memName.QuoteIdentifier());
                                     set.Append(" = " + cqlTool.AddValue(newVal) + " ");
                                 }
@@ -487,7 +500,8 @@ namespace Cassandra.Data.Linq
                             else
                             {
                                 changeDetected = true;
-                                if (firstSet) firstSet = false; else set.Append(", ");
+                                if (firstSet) firstSet = false;
+                                else set.Append(", ");
                                 set.Append(memName.QuoteIdentifier());
                                 set.Append(" = NULL ");
                             }
@@ -496,10 +510,11 @@ namespace Cassandra.Data.Linq
                     }
                 }
 
-                var pv = prop.GetValueFromPropertyOrField(row);
+                object pv = prop.GetValueFromPropertyOrField(row);
                 if (pv != null)
                 {
-                    if (firstWhere) firstWhere = false; else where.Append(" AND ");
+                    if (firstWhere) firstWhere = false;
+                    else where.Append(" AND ");
                     where.Append(memName.QuoteIdentifier());
                     where.Append(" = " + cqlTool.AddValue(pv) + " ");
                 }
@@ -530,31 +545,32 @@ namespace Cassandra.Data.Linq
         public static string GetDeleteCQLAndValues(object row, string quotedtablename, out object[] values, bool withValues = true)
         {
             var cqlTool = new CqlStringTool();
-            var rowType = row.GetType();
+            Type rowType = row.GetType();
 
             var sb = new StringBuilder();
             sb.Append("DELETE FROM ");
             sb.Append(quotedtablename);
             sb.Append(" WHERE ");
 
-            var props = rowType.GetPropertiesOrFields();
+            List<MemberInfo> props = rowType.GetPropertiesOrFields();
             bool first = true;
-            foreach (var prop in props)
+            foreach (MemberInfo prop in props)
             {
-                var pk = prop.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
+                var pk = prop.GetCustomAttributes(typeof (PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk == null)
                 {
-                    var rk = prop.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
+                    var rk = prop.GetCustomAttributes(typeof (ClusteringKeyAttribute), true).FirstOrDefault() as ClusteringKeyAttribute;
                     if (rk == null)
                     {
                         continue;
                     }
                 }
-                var pv = prop.GetValueFromPropertyOrField(row);
+                object pv = prop.GetValueFromPropertyOrField(row);
                 if (pv != null)
                 {
-                    if (first) first = false; else sb.Append(" AND ");
-                    var memName = CalculateMemberName(prop);
+                    if (first) first = false;
+                    else sb.Append(" AND ");
+                    string memName = CalculateMemberName(prop);
                     sb.Append(memName.QuoteIdentifier());
                     sb.Append(" =  " + cqlTool.AddValue(pv) + " ");
                 }
@@ -569,15 +585,16 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public static T GetRowFromCqlRow<T>(Row cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object, int>> mappings, Dictionary<string, string> alter)
+        public static T GetRowFromCqlRow<T>(Row cqlRow, Dictionary<string, int> colToIdx, Dictionary<string, Tuple<string, object, int>> mappings,
+                                            Dictionary<string, string> alter)
         {
-            var ncstr = typeof(T).GetConstructor(new Type[] { });
+            ConstructorInfo ncstr = typeof (T).GetConstructor(new Type[] {});
             if (ncstr != null)
             {
-                var row = (T)ncstr.Invoke(new object[] { });
+                var row = (T) ncstr.Invoke(new object[] {});
 
-                var props = typeof(T).GetMembers();
-                foreach (var prop in props)
+                MemberInfo[] props = typeof (T).GetMembers();
+                foreach (MemberInfo prop in props)
                 {
                     if (prop is FieldInfo || prop is PropertyInfo)
                     {
@@ -598,7 +615,7 @@ namespace Cassandra.Data.Linq
                             idx = colToIdx[alter[mappings[propName].Item1]];
                         else
                             continue;
-                        var val = cqlRow.GetValue(prop.GetTypeFromPropertyOrField(), idx);
+                        object val = cqlRow.GetValue(prop.GetTypeFromPropertyOrField(), idx);
                         if (val == null)
                             prop.SetValueFromPropertyOrField(row, val);
                         else
@@ -609,21 +626,20 @@ namespace Cassandra.Data.Linq
                             {
                                 if (tpy.GetInterface("IDictionary`2") != null)
                                 {
-                                    var openType = typeof(IDictionary<,>);
-                                    var dictType = openType.MakeGenericType(tpy.GetGenericArguments()[0], tpy.GetGenericArguments()[1]);
-                                    var dt = tpy.GetConstructor(new Type[] { dictType });
-                                    prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] { val }));
+                                    Type openType = typeof (IDictionary<,>);
+                                    Type dictType = openType.MakeGenericType(tpy.GetGenericArguments()[0], tpy.GetGenericArguments()[1]);
+                                    ConstructorInfo dt = tpy.GetConstructor(new Type[] {dictType});
+                                    prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] {val}));
+                                }
+                                else if (tpy.GetInterface("IEnumerable`1") != null)
+                                {
+                                    Type openType = typeof (IEnumerable<>);
+                                    Type listType = openType.MakeGenericType(tpy.GetGenericArguments().First());
+                                    ConstructorInfo dt = tpy.GetConstructor(new Type[] {listType});
+                                    prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] {val}));
                                 }
                                 else
-                                    if (tpy.GetInterface("IEnumerable`1") != null)
-                                    {
-                                        var openType = typeof(IEnumerable<>);
-                                        var listType = openType.MakeGenericType(tpy.GetGenericArguments().First());
-                                        var dt = tpy.GetConstructor(new Type[] { listType });
-                                        prop.SetValueFromPropertyOrField(row, dt.Invoke(new object[] { val }));
-                                    }
-                                    else
-                                        throw new InvalidOperationException();
+                                    throw new InvalidOperationException();
                             }
                             else
                                 prop.SetValueFromPropertyOrField(row, val);
@@ -634,23 +650,25 @@ namespace Cassandra.Data.Linq
             }
             else
             {
-                if (cqlRow.Length == 1 && (typeof(T).IsPrimitive || typeof(T) == typeof(Decimal) || typeof(T) == typeof(string) || typeof(T) == typeof(byte[]) || typeof(T) == typeof(Guid)))
+                if (cqlRow.Length == 1 &&
+                    (typeof (T).IsPrimitive || typeof (T) == typeof (Decimal) || typeof (T) == typeof (string) || typeof (T) == typeof (byte[]) ||
+                     typeof (T) == typeof (Guid)))
                 {
-                    return (T)cqlRow[0];
+                    return (T) cqlRow[0];
                 }
                 else
                 {
-                    var ocstr = typeof(T).GetConstructor(new Type[] { typeof(T) });
+                    ConstructorInfo ocstr = typeof (T).GetConstructor(new Type[] {typeof (T)});
                     if (ocstr != null && cqlRow.Length == 1)
                     {
-                        return (T)Activator.CreateInstance(typeof(T), cqlRow[0]);
+                        return (T) Activator.CreateInstance(typeof (T), cqlRow[0]);
                     }
                     else
                     {
                         var objs = new object[mappings.Count];
-                        var props = typeof(T).GetMembers();
+                        MemberInfo[] props = typeof (T).GetMembers();
                         int idx = 0;
-                        foreach (var prop in props)
+                        foreach (MemberInfo prop in props)
                         {
                             if (prop is PropertyInfo || prop is FieldInfo)
                             {
@@ -660,13 +678,13 @@ namespace Cassandra.Data.Linq
                                 }
                                 else
                                 {
-                                    var val = cqlRow.GetValue(prop.GetTypeFromPropertyOrField(), idx);
+                                    object val = cqlRow.GetValue(prop.GetTypeFromPropertyOrField(), idx);
                                     objs[mappings[prop.Name].Item3] = val;
                                     idx++;
                                 }
                             }
                         }
-                        return (T)Activator.CreateInstance(typeof(T), objs);
+                        return (T) Activator.CreateInstance(typeof (T), objs);
                     }
                 }
             }

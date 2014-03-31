@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,15 +13,20 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
-using System.Collections.Concurrent;
 
 namespace Cassandra
 {
     public class KeyspaceMetadata
     {
+        internal readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>> Tables =
+            new AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>>(null);
+
+        internal readonly ControlConnection _cc;
+
         /// <summary>
         ///  Gets the name of this keyspace.
         /// </summary>
@@ -50,11 +55,6 @@ namespace Cassandra
         /// 
         /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
         public IDictionary<string, int> Replication { get; private set; }
-
-        internal readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>> Tables =
-            new AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>>(null);
-
-        internal readonly ControlConnection _cc;
 
         internal KeyspaceMetadata(ControlConnection cc, string name, bool durableWrites, string strategyClass,
                                   IDictionary<string, int> replicationOptions)
@@ -88,7 +88,7 @@ namespace Cassandra
         ///  keyspace.</returns>
         public IEnumerable<TableMetadata> GetTablesMetadata()
         {
-            foreach (var tableName in _cc.GetTables(Name))
+            foreach (string tableName in _cc.GetTables(Name))
                 yield return _cc.GetTable(Name, tableName);
         }
 
@@ -101,7 +101,7 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return _cc.GetTables(this.Name);
+            return _cc.GetTables(Name);
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace Cassandra
 
             sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
             sb.Append("REPLICATION = { 'class' : '").Append(Replication["class"]).Append("'");
-            foreach (var rep in Replication)
+            foreach (KeyValuePair<string, int> rep in Replication)
             {
                 if (rep.Key == "class")
                     continue;
@@ -152,6 +152,4 @@ namespace Cassandra
             return sb.ToString();
         }
     }
-
-    
 }

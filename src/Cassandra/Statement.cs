@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -23,12 +24,13 @@ namespace Cassandra
     /// </summary>
     public abstract class Statement : Query
     {
-
         /// <summary>
         ///  Gets the query string for this statement.
         /// </summary>
         public abstract string QueryString { get; }
 
-        protected Statement(QueryProtocolOptions queryProtocolOptions) : base(queryProtocolOptions) { }
+        protected Statement(QueryProtocolOptions queryProtocolOptions) : base(queryProtocolOptions)
+        {
+        }
     }
 }

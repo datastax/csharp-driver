@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +13,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+
+using System.Collections.Generic;
 using System.IO;
 
 namespace Cassandra
 {
     internal class FrameBuffering : NoBuffering
     {
-        int _bodyLen = int.MaxValue;
+        private int _bodyLen = int.MaxValue;
 
         public override IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IProtoBufComporessor compressor)
         {
@@ -28,30 +29,44 @@ namespace Cassandra
 
             while (AreMore())
             {
-
                 byte b = GetByte();
 
                 switch (ByteIdx)
                 {
-                    case 0: TmpFrameHeader.Version = b; break;
-                    case 1: TmpFrameHeader.Flags = b; break;
-                    case 2: TmpFrameHeader.StreamId = b; break;
-                    case 3: TmpFrameHeader.Opcode = b; break;
+                    case 0:
+                        TmpFrameHeader.Version = b;
+                        break;
+                    case 1:
+                        TmpFrameHeader.Flags = b;
+                        break;
+                    case 2:
+                        TmpFrameHeader.StreamId = b;
+                        break;
+                    case 3:
+                        TmpFrameHeader.Opcode = b;
+                        break;
                     case 4:
-                        {
-                            TmpFrameHeader.Len[0] = b;
-                        } break;
-                    case 5: TmpFrameHeader.Len[1] = b; break;
-                    case 6: TmpFrameHeader.Len[2] = b; break;
-                    case 7: TmpFrameHeader.Len[3] = b;
+                    {
+                        TmpFrameHeader.Len[0] = b;
+                    }
+                        break;
+                    case 5:
+                        TmpFrameHeader.Len[1] = b;
+                        break;
+                    case 6:
+                        TmpFrameHeader.Len[2] = b;
+                        break;
+                    case 7:
+                        TmpFrameHeader.Len[3] = b;
                         _bodyLen = TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
-                        TmpFrame = TmpFrameHeader.MakeFrame(new BufferedProtoBuf(_bodyLen, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
+                        TmpFrame =
+                            TmpFrameHeader.MakeFrame(new BufferedProtoBuf(_bodyLen, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
                         yield return TmpFrame;
                         break;
                     default:
-                        {
-                            TmpFrame.RawStream.WriteByte(b);
-                        }
+                    {
+                        TmpFrame.RawStream.WriteByte(b);
+                    }
                         break;
                 }
                 ByteIdx++;
@@ -64,7 +79,7 @@ namespace Cassandra
             }
         }
 
-        override public void Close()
+        public override void Close()
         {
             if (TmpFrame != null)
                 TmpFrame.RawStream.Write(null, 0, 0);
@@ -72,7 +87,7 @@ namespace Cassandra
 
         public override int PreferedBufferSize()
         {
-            return 128 * 1024;
+            return 128*1024;
         }
 
         public override bool AllowSyncCompletion()

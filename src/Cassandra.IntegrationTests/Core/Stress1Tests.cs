@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
@@ -9,7 +11,8 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class Stress1Tests
     {
-        Session Session;
+        private static long totalElapsedTime;
+        private Session Session;
 //        private HistogramMetric _readHistogram = metrics.Metrics.Histogram(typeof(DatastaxDriverTest), "Reads");
 //        private HistogramMetric _writeHistogram = metrics.Metrics.Histogram(typeof(DatastaxDriverTest), "Writes");
 
@@ -21,8 +24,6 @@ namespace Cassandra.IntegrationTests.Core
             Diagnostics.CassandraPerformanceCountersEnabled = true;
             Diagnostics.CassandraStackTraceIncluded = true;
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-
         }
 
         [TestCleanup]
@@ -30,43 +31,22 @@ namespace Cassandra.IntegrationTests.Core
         {
         }
 
-        public class MyRetryRetryPolicy : IRetryPolicy
+        public Builder initialize(string datacenter, long constDelayMS, int queryTimeout,
+                                  int coreConnectionPerHost, int maxConnectionPerHost, int cpCon)
         {
-            public static readonly MyRetryRetryPolicy Instance = new MyRetryRetryPolicy();
-
-            private MyRetryRetryPolicy() { }
-
-            public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+            var lbp = new RetryLoadBalancingPolicy(new DCAwareRoundRobinPolicy(datacenter),
+                                                   new ExponentialReconnectionPolicy(constDelayMS, constDelayMS*100));
+            lbp.ReconnectionEvent += (s, ea) =>
             {
-                Console.WriteLine("Read Timeout");
-                return null;
-            }
-
-            public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
-            {
-                Console.WriteLine("Write Timeout");
-                return null;
-            }
-
-            public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
-            {
-                Console.WriteLine("Unavailable");
-                return null;
-            }
-        }
-
-        public Builder initialize(string datacenter, long constDelayMS, int queryTimeout, 
-            int coreConnectionPerHost, int maxConnectionPerHost,int cpCon)
-        {
-
-            var lbp = new RetryLoadBalancingPolicy(new DCAwareRoundRobinPolicy(datacenter), new ExponentialReconnectionPolicy(constDelayMS, constDelayMS * 100));
-            lbp.ReconnectionEvent += new EventHandler<RetryLoadBalancingPolicyEventArgs>((s, ea) => { Console.Write("~(" + ea.DelayMs + ")"); Thread.Sleep((int)ea.DelayMs); });
+                Console.Write("~(" + ea.DelayMs + ")");
+                Thread.Sleep((int) ea.DelayMs);
+            };
             Builder cassandraBuilder = Cluster.Builder()
-                .WithLoadBalancingPolicy(lbp)// new DCAwareRoundRobinPolicy(datacenter))
-                    .WithReconnectionPolicy(new ConstantReconnectionPolicy(constDelayMS))
-                    .WithRetryPolicy(MyRetryRetryPolicy.Instance)
-                    .WithQueryTimeout(queryTimeout)
-                    .WithCompression(CompressionType.NoCompression);
+                                              .WithLoadBalancingPolicy(lbp) // new DCAwareRoundRobinPolicy(datacenter))
+                                              .WithReconnectionPolicy(new ConstantReconnectionPolicy(constDelayMS))
+                                              .WithRetryPolicy(MyRetryRetryPolicy.Instance)
+                                              .WithQueryTimeout(queryTimeout)
+                                              .WithCompression(CompressionType.NoCompression);
 
             cassandraBuilder.PoolingOptions.SetCoreConnectionsPerHost(HostDistance.Local, coreConnectionPerHost);
             cassandraBuilder.PoolingOptions.SetMaxConnectionsPerHost(HostDistance.Local, maxConnectionPerHost);
@@ -87,9 +67,11 @@ namespace Cassandra.IntegrationTests.Core
             int coreConnectionPerHost = 2;
             int maxConnectionPerHost = 8;
 
-            CCMBridge.CCMCluster  ccmCluster = CCMBridge.CCMCluster.Create(3, initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost, cpCon));
+            CCMBridge.CCMCluster ccmCluster = CCMBridge.CCMCluster.Create(3,
+                                                                          initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost,
+                                                                                     maxConnectionPerHost, cpCon));
 
-            CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost,cpCon));
+            CCMBridge.ReusableCCMCluster.Build(initialize(datacenter, constDelayMS, queryTimeout, coreConnectionPerHost, maxConnectionPerHost, cpCon));
             Session = ccmCluster.Session;
 
             Console.WriteLine("Start parallel insert test (" + nThreads + " , " + cpCon + ")");
@@ -98,18 +80,20 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 Session.WaitForSchemaAgreement(
-                     Session.Execute(
+                    Session.Execute(
                         string.Format(@"CREATE KEYSPACE {0} 
                         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                            , keyspaceName)));
+                                      , keyspaceName)));
             }
-            catch (AlreadyExistsException) { }
+            catch (AlreadyExistsException)
+            {
+            }
             Session.ChangeKeyspace(keyspaceName);
             string tableName = "testtable";
             try
             {
                 Session.WaitForSchemaAgreement(
-                        Session.Execute(string.Format(@"CREATE TABLE {0}(
+                    Session.Execute(string.Format(@"CREATE TABLE {0}(
                          tweet_id int,
                          author text,
                          body text,
@@ -117,7 +101,8 @@ namespace Cassandra.IntegrationTests.Core
                          PRIMARY KEY(tweet_id))", tableName)));
             }
             catch (AlreadyExistsException)
-            { }
+            {
+            }
 //            Console.WriteLine("Prepare statement");
             PreparedStatement insertPrep = Session.Prepare("INSERT INTO " + tableName + @" (
                 tweet_id,
@@ -125,20 +110,20 @@ namespace Cassandra.IntegrationTests.Core
                 isok,
                 body)
                 VALUES (?,?,?,?);");
-        //    Console.WriteLine("Insert Values");
+            //    Console.WriteLine("Insert Values");
 
             int RowsNo = 100000;
-            int stepSize = RowsNo / nThreads;
+            int stepSize = RowsNo/nThreads;
 
-            Thread[] tasks = new Thread[nThreads];
-            object monit = new object();
+            var tasks = new Thread[nThreads];
+            var monit = new object();
             int readyCnt = 0;
 
 
             for (int i = 0; i < nThreads; i++)
             {
-                var startIndex = i * stepSize;
-                var endIndex = (i + 1) * stepSize;
+                int startIndex = i*stepSize;
+                int endIndex = (i + 1)*stepSize;
                 tasks[i] = new Thread(() =>
                 {
                     lock (monit)
@@ -172,16 +157,18 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
 
-            foreach (var task in tasks)
+            foreach (Thread task in tasks)
                 task.Join();
 
-            Console.WriteLine("Avg query response time " + ((double)totalElapsedTime) / (double)RowsNo + "ms");
-            Console.WriteLine("Avg single insert time " + ((double)t.ElapsedMilliseconds) / (double)RowsNo + "ms");
+            Console.WriteLine("Avg query response time " + totalElapsedTime/(double) RowsNo + "ms");
+            Console.WriteLine("Avg single insert time " + t.ElapsedMilliseconds/(double) RowsNo + "ms");
 
             RETRY:
             try
             {
-                using (var res = Session.Execute(string.Format(@"SELECT COUNT(*) FROM {0} LIMIT {1}", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                using (
+                    RowSet res = Session.Execute(string.Format(@"SELECT COUNT(*) FROM {0} LIMIT {1}", tableName, RowsNo + 100),
+                                                 ConsistencyLevel.Quorum))
                 {
                     var cnt = res.GetRows().FirstOrDefault().GetValue<long>(0);
                     Assert.Equal(RowsNo, cnt);
@@ -194,11 +181,9 @@ namespace Cassandra.IntegrationTests.Core
 
             Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-            CCMBridge.ReusableCCMCluster.Drop();            
+            CCMBridge.ReusableCCMCluster.Drop();
             ccmCluster.Discard();
         }
-
-        static long totalElapsedTime = 0;
 
         public void insertRange(PreparedStatement prepStatement, int startIndex, int endIndex)
         {
@@ -210,13 +195,14 @@ namespace Cassandra.IntegrationTests.Core
                 Interlocked.Increment(ref pendingJobs);
 
                 Session.BeginExecute(
-                        prepStatement
-                        .Bind(new object[] { 
+                    prepStatement
+                        .Bind(new object[]
+                        {
                             idx,
-                            "author"+idx,
-                            idx % 2 == 0 ? false : true,
-                            "body"+idx
-                        }).SetConsistencyLevel(ConsistencyLevel.One), (ar) =>
+                            "author" + idx,
+                            idx%2 == 0 ? false : true,
+                            "body" + idx
+                        }).SetConsistencyLevel(ConsistencyLevel.One), ar =>
                         {
                             try
                             {
@@ -224,23 +210,22 @@ namespace Cassandra.IntegrationTests.Core
                             }
                             catch (NoHostAvailableException ex)
                             {
-                                foreach( var node in ex.Errors)
+                                foreach (KeyValuePair<IPAddress, List<Exception>> node in ex.Errors)
                                 {
                                     Console.WriteLine("Error on " + node.Key.ToString());
-                                    var expts = node.Value;
-                                    foreach(var excpt in expts)
+                                    List<Exception> expts = node.Value;
+                                    foreach (Exception excpt in expts)
                                         Console.WriteLine("      Error while inserting " + excpt.StackTrace + "\n!!!MESSAGE!!!\n" + excpt.Message);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine("Error while inserting " + ex.StackTrace + "\n!!!MESSAGE!!!\n" + ex.Message );
+                                Console.WriteLine("Error while inserting " + ex.StackTrace + "\n!!!MESSAGE!!!\n" + ex.Message);
                             }
                             finally
                             {
                                 Interlocked.Decrement(ref pendingJobs);
                             }
-
                         }, null);
             }
 
@@ -251,11 +236,11 @@ namespace Cassandra.IntegrationTests.Core
                     break;
                 Thread.Sleep(10);
             }
-            var elapsedMs = t.ElapsedMilliseconds;
+            long elapsedMs = t.ElapsedMilliseconds;
             //                _writeHistogram.Update(elapsedMs);
             Interlocked.Add(ref totalElapsedTime, elapsedMs);
-            var avg = elapsedMs / (endIndex - startIndex);
-           Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg +"ms");
+            long avg = elapsedMs/(endIndex - startIndex);
+            Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg + "ms");
         }
 
         [TestMethod]
@@ -276,6 +261,34 @@ namespace Cassandra.IntegrationTests.Core
             parallelInsertTestGeneric(150, 50);
             parallelInsertTestGeneric(300, 50);
             parallelInsertTestGeneric(500, 50);
+        }
+
+        public class MyRetryRetryPolicy : IRetryPolicy
+        {
+            public static readonly MyRetryRetryPolicy Instance = new MyRetryRetryPolicy();
+
+            private MyRetryRetryPolicy()
+            {
+            }
+
+            public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+                                               int nbRetry)
+            {
+                Console.WriteLine("Read Timeout");
+                return null;
+            }
+
+            public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            {
+                Console.WriteLine("Write Timeout");
+                return null;
+            }
+
+            public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            {
+                Console.WriteLine("Unavailable");
+                return null;
+            }
         }
     }
 }

@@ -25,6 +25,8 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class AdvancedTests
     {
+        private Session Session;
+
         [TestMethod]
         [WorksForMe]
         [Stress]
@@ -64,12 +66,6 @@ namespace Cassandra.IntegrationTests.Core
             ShutdownAsyncTest();
         }
 
-        public AdvancedTests()
-        {
-        }
-
-        Session Session;
-
         [TestInitialize]
         public void SetFixture()
         {
@@ -77,18 +73,18 @@ namespace Cassandra.IntegrationTests.Core
 
             CCMBridge.ReusableCCMCluster.Setup(2);
 
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
 
             builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
 
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
-            rp.ReconnectionEvent += new EventHandler<RetryLoadBalancingPolicyEventArgs>((s, ev) =>
+            rp.ReconnectionEvent += (s, ev) =>
             {
                 Console.Write("o");
-                System.Threading.Thread.Sleep((int)ev.DelayMs);
-            });
+                Thread.Sleep((int) ev.DelayMs);
+            };
             builder.WithLoadBalancingPolicy(rp);
-            builder.WithQueryTimeout(60 * 1000);
+            builder.WithQueryTimeout(60*1000);
 
             CCMBridge.ReusableCCMCluster.Build(builder);
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
@@ -109,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
                 Session.Execute(
                     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                        , keyspaceName)));
+                                  , keyspaceName)));
 
             Session.ChangeKeyspace(keyspaceName);
 
@@ -133,17 +129,16 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 int RowsNo = 10000;
-                IAsyncResult[] ar = new IAsyncResult[RowsNo];
-                List<Thread> threads = new List<Thread>();
-                object monit = new object();
+                var ar = new IAsyncResult[RowsNo];
+                var threads = new List<Thread>();
+                var monit = new object();
                 int readyCnt = 0;
                 Console.WriteLine();
                 Console.WriteLine("Preparing...");
 
                 for (int idx = 0; idx < RowsNo; idx++)
                 {
-
-                    var i = idx;
+                    int i = idx;
                     threads.Add(new Thread(() =>
                     {
                         try
@@ -160,15 +155,14 @@ namespace Cassandra.IntegrationTests.Core
          author,
          isok,
          body)
-VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                                , ConsistencyLevel.One, null, null);
+VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
+                                                         , ConsistencyLevel.One, null, null);
                             Thread.MemoryBarrier();
                         }
                         catch
                         {
                             Console.Write("@");
                         }
-
                     }));
                 }
 
@@ -198,7 +192,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Console.WriteLine();
                 Console.WriteLine("Start!");
 
-                HashSet<int> done = new HashSet<int>();
+                var done = new HashSet<int>();
                 while (done.Count < RowsNo)
                 {
                     for (int i = 0; i < RowsNo; i++)
@@ -226,9 +220,9 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Console.WriteLine();
                 Console.WriteLine("Inserted... now we are checking the count");
 
-                using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
                 {
-                    Assert.Equal(RowsNo, Enumerable.ToList<Row>(ret.GetRows()).Count);
+                    Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
                 }
 
                 Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
@@ -239,7 +233,6 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 }
             }
             Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-
         }
 
 
@@ -250,7 +243,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Session.Execute(
                     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                        , keyspaceName)));
+                                  , keyspaceName)));
             Session.ChangeKeyspace(keyspaceName);
 
             for (int KK = 0; KK < 1; KK++)
@@ -273,12 +266,12 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 }
 
                 int RowsNo = 10000;
-                bool[] ar = new bool[RowsNo];
-                List<Thread> threads = new List<Thread>();
-                object monit = new object();
+                var ar = new bool[RowsNo];
+                var threads = new List<Thread>();
+                var monit = new object();
                 int readyCnt = 0;
 
-                Thread errorInjector = new Thread(() =>
+                var errorInjector = new Thread(() =>
                 {
                     lock (monit)
                     {
@@ -302,8 +295,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
 
                 for (int idx = 0; idx < RowsNo; idx++)
                 {
-
-                    var i = idx;
+                    int i = idx;
                     threads.Add(new Thread(() =>
                     {
                         try
@@ -320,7 +312,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
          author,
          isok,
          body)
-VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true"), ConsistencyLevel.One
+VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true"), ConsistencyLevel.One
                                 );
                             ar[i] = true;
                             Thread.MemoryBarrier();
@@ -332,7 +324,6 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                             ar[i] = true;
                             Thread.MemoryBarrier();
                         }
-
                     }));
                 }
 
@@ -363,7 +354,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Console.WriteLine();
                 Console.WriteLine("Start!");
 
-                HashSet<int> done = new HashSet<int>();
+                var done = new HashSet<int>();
                 while (done.Count < RowsNo)
                 {
                     for (int i = 0; i < RowsNo; i++)
@@ -387,16 +378,18 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Console.WriteLine();
                 Console.WriteLine("Inserted... now we are checking the count");
 
-                using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
                 {
-                    Assert.Equal(RowsNo, Enumerable.ToList<Row>(ret.GetRows()).Count);
+                    Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
                 }
 
                 try
                 {
                     Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
                 }
-                catch { }
+                catch
+                {
+                }
             }
 
 
@@ -404,7 +397,9 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             {
                 Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         public void MassiveAsyncTest()
@@ -414,7 +409,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Session.Execute(
                     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                        , keyspaceName)));
+                                  , keyspaceName)));
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -434,7 +429,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
 
             int RowsNo = 10000;
 
-            bool[] ar = new bool[RowsNo];
+            var ar = new bool[RowsNo];
 
             var thr = new Thread(() =>
             {
@@ -447,18 +442,18 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
              author,
              isok,
              body)
-    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                        , ConsistencyLevel.One, (_) =>
-                        {
-                            ar[tmpi] = true;
-                            Thread.MemoryBarrier();
-                        }, null);
+    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
+                                         , ConsistencyLevel.One, _ =>
+                                         {
+                                             ar[tmpi] = true;
+                                             Thread.MemoryBarrier();
+                                         }, null);
                 }
             });
 
             thr.Start();
 
-            HashSet<int> done = new HashSet<int>();
+            var done = new HashSet<int>();
             while (done.Count < RowsNo)
             {
                 for (int i = 0; i < RowsNo; i++)
@@ -477,16 +472,18 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+            using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
             {
-                Assert.Equal(RowsNo, Enumerable.ToList<Row>(ret.GetRows()).Count);
+                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
             }
 
             try
             {
                 Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         public void ShutdownAsyncTest()
@@ -496,7 +493,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                 Session.Execute(
                     string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                        , keyspaceName)));
+                                  , keyspaceName)));
             Session.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -516,7 +513,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
 
             int RowsNo = 10000;
 
-            bool[] ar = new bool[RowsNo];
+            var ar = new bool[RowsNo];
 
             for (int i = 0; i < RowsNo; i++)
             {
@@ -528,23 +525,23 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
              author,
              isok,
              body)
-    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                        , ConsistencyLevel.Quorum, (arx) =>
-                        {
-                            try
-                            {
-                                Session.EndExecute(arx);
-                            }
-                            catch (ObjectDisposedException)
-                            {
-                                Console.Write("*");
-                            }
-                            finally
-                            {
-                                ar[tmpi] = true;
-                                Thread.MemoryBarrier();
-                            }
-                        }, null);
+    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
+                                         , ConsistencyLevel.Quorum, arx =>
+                                         {
+                                             try
+                                             {
+                                                 Session.EndExecute(arx);
+                                             }
+                                             catch (ObjectDisposedException)
+                                             {
+                                                 Console.Write("*");
+                                             }
+                                             finally
+                                             {
+                                                 ar[tmpi] = true;
+                                                 Thread.MemoryBarrier();
+                                             }
+                                         }, null);
                 }
                 catch (ObjectDisposedException e)
                 {
@@ -574,7 +571,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
 
             int RowsNo = 10000;
 
-            bool[] ar = new bool[RowsNo];
+            var ar = new bool[RowsNo];
 
             var thr = new Thread(() =>
             {
@@ -587,30 +584,29 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
                      author,
                      isok,
                      body)
-            VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true")
-                        , ConsistencyLevel.One, (_) =>
-                        {
-                            ar[tmpi] = true;
-                            Thread.MemoryBarrier();
-                        }, null);
+            VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
+                                         , ConsistencyLevel.One, _ =>
+                                         {
+                                             ar[tmpi] = true;
+                                             Thread.MemoryBarrier();
+                                         }, null);
                 }
             });
 
             thr.Start();
 
-            object monit = new object();
+            var monit = new object();
             int readyCnt = 0;
 
-            Thread errorInjector = new Thread(() =>
+            var errorInjector = new Thread(() =>
             {
-
                 Thread.Sleep(500);
                 Console.Write("#");
                 Session.SimulateSingleConnectionDown();
 
                 for (int i = 0; i < 100; i++)
                 {
-                    Thread.Sleep(i * 10);
+                    Thread.Sleep(i*10);
                     Console.Write("#");
                     Session.SimulateSingleConnectionDown();
                 }
@@ -618,7 +614,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
 
             errorInjector.Start();
 
-            HashSet<int> done = new HashSet<int>();
+            var done = new HashSet<int>();
             while (done.Count < RowsNo)
             {
                 for (int i = 0; i < RowsNo; i++)
@@ -638,16 +634,18 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i,
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+            using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
             {
-                Assert.Equal(RowsNo, Enumerable.ToList<Row>(ret.GetRows()).Count);
+                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
             }
 
             try
             {
                 Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             }
-            catch { }
+            catch
+            {
+            }
         }
     }
 }

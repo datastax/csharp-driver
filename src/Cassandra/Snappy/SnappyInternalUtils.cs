@@ -20,20 +20,20 @@
 // ported to C# from https://github.com/dain/snappy/blob/master/src/main/java/org/iq80/snappy/SnappyInternalUtils.java
 
 using System;
+
 namespace Snappy
 {
-
-    class SnappyInternalUtils
+    internal class SnappyInternalUtils
     {
+        private static readonly IMemory _memory = new SlowMemory();
+
+        private static readonly bool _hasUnsage = _memory.FastAccessSupported();
+
         private SnappyInternalUtils()
         {
         }
 
-        private static IMemory _memory = new SlowMemory();
-
-        static readonly bool _hasUnsage = _memory.FastAccessSupported();
-
-        static bool Equals(byte[] left, int leftIndex, byte[] right, int rightIndex, int length)
+        private static bool Equals(byte[] left, int leftIndex, byte[] right, int rightIndex, int length)
         {
             CheckPositionIndexes(leftIndex, leftIndex + length, left.Length);
             CheckPositionIndexes(rightIndex, rightIndex + length, right.Length);
@@ -97,7 +97,7 @@ namespace Snappy
             }
         }
 
-        static void CheckPositionIndexes(int start, int end, int size)
+        private static void CheckPositionIndexes(int start, int end, int size)
         {
             // Carefully optimized for execution by hotspot (explanatory comment above)
             if (start < 0 || end < start || end > size)
@@ -120,20 +120,18 @@ namespace Snappy
             return string.Format("end index ({0}) must not be less than start index ({1})", end, start);
         }
 
-        static string BadPositionIndex(int index, int size, string desc)
+        private static string BadPositionIndex(int index, int size, string desc)
         {
             if (index < 0)
             {
                 return string.Format("{0} ({1}) must not be negative", desc, index);
             }
-            else if (size < 0)
+            if (size < 0)
             {
                 throw new ArgumentException("negative size: " + size);
             }
-            else
-            { // index > size
-                return string.Format("{0} ({1}) must not be greater than size (%s)", desc, index, size);
-            }
+            // index > size
+            return string.Format("{0} ({1}) must not be greater than size (%s)", desc, index, size);
         }
     }
 }

@@ -13,20 +13,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System.Collections.Generic;
-using System;
+
+using System.Collections.Generic;
 
 namespace Cassandra
 {
     public class TableMetadata
     {
-
         public string Name { get; private set; }
 
 
         public TableColumn[] TableColumns { get; private set; }
 
-        public TableOptions Options{ get; private set; }
+        public TableOptions Options { get; private set; }
 
         internal TableMetadata(string name, TableColumn[] tableColumns, TableOptions options)
         {
@@ -37,10 +36,10 @@ namespace Cassandra
 
         internal TableMetadata(BEBinaryReader reader)
         {
-            List<TableColumn> coldat = new List<TableColumn>();
-            var flags = (FlagBits)reader.ReadInt32();
-            var numberOfcolumns = reader.ReadInt32();
-            this.TableColumns = new TableColumn[numberOfcolumns];
+            var coldat = new List<TableColumn>();
+            var flags = (FlagBits) reader.ReadInt32();
+            int numberOfcolumns = reader.ReadInt32();
+            TableColumns = new TableColumn[numberOfcolumns];
             string gKsname = null;
             string gTablename = null;
 
@@ -63,7 +62,7 @@ namespace Cassandra
                     col.Table = gTablename;
                 }
                 col.Name = reader.ReadString();
-                col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
+                col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
                 col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
                 coldat.Add(col);
             }
@@ -77,20 +76,20 @@ namespace Cassandra
             switch (code)
             {
                 case ColumnTypeCode.Custom:
-                    return new CustomColumnInfo() { CustomTypeName = reader.ReadString() };
+                    return new CustomColumnInfo {CustomTypeName = reader.ReadString()};
                 case ColumnTypeCode.List:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    return new ListColumnInfo()
+                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    return new ListColumnInfo
                     {
                         ValueTypeCode = innercode,
                         ValueTypeInfo = GetColumnInfo(reader, innercode)
                     };
                 case ColumnTypeCode.Map:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    var kci = GetColumnInfo(reader, innercode);
-                    vinnercode = (ColumnTypeCode)reader.ReadUInt16();
-                    var vci = GetColumnInfo(reader, vinnercode);
-                    return new MapColumnInfo()
+                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    IColumnInfo kci = GetColumnInfo(reader, innercode);
+                    vinnercode = (ColumnTypeCode) reader.ReadUInt16();
+                    IColumnInfo vci = GetColumnInfo(reader, vinnercode);
+                    return new MapColumnInfo
                     {
                         KeyTypeCode = innercode,
                         KeyTypeInfo = kci,
@@ -98,8 +97,8 @@ namespace Cassandra
                         ValueTypeInfo = vci
                     };
                 case ColumnTypeCode.Set:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    return new SetColumnInfo()
+                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    return new SetColumnInfo
                     {
                         KeyTypeCode = innercode,
                         KeyTypeInfo = GetColumnInfo(reader, innercode)

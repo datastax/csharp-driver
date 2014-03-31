@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -21,61 +22,68 @@ namespace Cassandra
 {
     internal class OutputRows : IOutput, IWaitableForDispose
     {
-        public RowSetMetadata Metadata {get{return _metadata;}}
-        internal RowSetMetadata _metadata;
-
         public readonly int Rows;
         internal readonly bool _buffered;
-        
+        private readonly ManualResetEventSlim _disposedEvent;
+
         private readonly BEBinaryReader _reader;
         private readonly Guid? _traceID;
 
+        private int _curentIter;
+        internal RowSetMetadata _metadata;
+
+        public RowSetMetadata Metadata
+        {
+            get { return _metadata; }
+        }
+
+        public Guid? TraceID
+        {
+            get { return _traceID; }
+        }
+
         internal OutputRows(BEBinaryReader reader, bool buffered, Guid? traceID)
         {
-            this._buffered = buffered;
-            this._reader = reader;
+            _buffered = buffered;
+            _reader = reader;
             _metadata = new RowSetMetadata(reader);
             Rows = reader.ReadInt32();
-            if(!buffered)
+            if (!buffered)
                 _disposedEvent = new ManualResetEventSlim(buffered);
             _traceID = traceID;
-        }
-
-        public Guid? TraceID { get { return _traceID; } }
-
-        public void ReadRawColumnValue(byte[] buffer, int offset, int rawLength)
-        {
-            _reader.Read(buffer, offset, rawLength);
-        }
-
-        int _curentIter = 0;
-        readonly ManualResetEventSlim _disposedEvent = null;
-
-        public IEnumerable<int> GetRawColumnLengths()
-        {
-            for (; _curentIter < Rows * Metadata.Columns.Length; )
-            {
-                int len = _reader.ReadInt32();
-                _curentIter++;
-                yield return len;
-            }
         }
 
         public void Dispose()
         {
             if (!_buffered)
             {
-                foreach (var rawLength in GetRawColumnLengths())
+                foreach (int rawLength in GetRawColumnLengths())
                     _reader.Skip(rawLength);
                 _disposedEvent.Set();
             }
         }
+
         public void WaitForDispose()
         {
             if (!_buffered)
             {
                 _disposedEvent.Wait(Timeout.Infinite);
                 _disposedEvent.Dispose();
+            }
+        }
+
+        public void ReadRawColumnValue(byte[] buffer, int offset, int rawLength)
+        {
+            _reader.Read(buffer, offset, rawLength);
+        }
+
+        public IEnumerable<int> GetRawColumnLengths()
+        {
+            for (; _curentIter < Rows*Metadata.Columns.Length;)
+            {
+                int len = _reader.ReadInt32();
+                _curentIter++;
+                yield return len;
             }
         }
     }

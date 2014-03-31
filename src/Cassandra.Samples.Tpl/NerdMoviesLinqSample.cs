@@ -13,7 +13,7 @@ namespace TPLSample.NerdMoviesLinqSample
         {
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().Build();
 
-            using (var session = cluster.Connect())
+            using (Session session = cluster.Connect())
             {
                 const string keyspaceName = "Excelsior";
                 Console.WriteLine("============================================================");
@@ -36,33 +36,34 @@ namespace TPLSample.NerdMoviesLinqSample
                 context.CreateTablesIfNotExist();
                 Console.WriteLine("============================================================");
 
-                context.GetTable<NerdMovie>().AddNew(new NerdMovie() { Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005 });
-                var taskSaveMovies = Task.Factory.FromAsync(context.BeginSaveChangesBatch, context.EndSaveChangesBatch, TableType.Standard, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), null);
+                context.GetTable<NerdMovie>()
+                       .AddNew(new NerdMovie {Movie = "Serenity", Director = "Joss Whedon", MainActor = "Nathan Fillion", Year = 2005});
+                Task taskSaveMovies = Task.Factory.FromAsync(context.BeginSaveChangesBatch, context.EndSaveChangesBatch, TableType.Standard,
+                                                             session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), null);
 
                 taskSaveMovies.Wait();
 
-                var selectNerdMovies = context.GetTable<NerdMovie>(); //select everything from table
+                ContextTable<NerdMovie> selectNerdMovies = context.GetTable<NerdMovie>(); //select everything from table
 
 
-                var taskSelectStartMovies =
+                Task taskSelectStartMovies =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectNerdMovies.BeginExecute,
                                                                    selectNerdMovies.EndExecute, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
 
-
                 taskSelectStartMovies.Wait();
 
-                var selectAllFromWhere = from m in context.GetTable<NerdMovie>() where m.Director == "Joss Whedon" select m;
+                CqlQuery<NerdMovie> selectAllFromWhere = from m in context.GetTable<NerdMovie>() where m.Director == "Joss Whedon" select m;
 
-                var taskselectAllFromWhere =
+                Task taskselectAllFromWhere =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
                                                                    selectAllFromWhere.EndExecute, null)
                                                 .ContinueWith(res => DisplayMovies(res.Result));
 
                 taskselectAllFromWhere.Wait();
 
-                var taskselectAllFromWhereWithFuture =
+                Task<List<NerdMovie>> taskselectAllFromWhereWithFuture =
                     Task<IEnumerable<NerdMovie>>.Factory.FromAsync(selectAllFromWhere.BeginExecute,
                                                                    selectAllFromWhere.EndExecute, null)
                                                 .ContinueWith(a => a.Result.ToList());
@@ -77,7 +78,7 @@ namespace TPLSample.NerdMoviesLinqSample
 
         private static void DisplayMovies(IEnumerable<NerdMovie> result)
         {
-            foreach (var resMovie in result)
+            foreach (NerdMovie resMovie in result)
             {
                 Console.WriteLine("Movie={0} Director={1} MainActor={2}, Year={3}",
                                   resMovie.Movie, resMovie.Director, resMovie.MainActor, resMovie.Year);
@@ -85,6 +86,5 @@ namespace TPLSample.NerdMoviesLinqSample
             Console.WriteLine();
             Console.WriteLine();
         }
-
     }
 }

@@ -8,7 +8,9 @@ namespace Cassandra.Data.Linq
     public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity>
     {
         internal CqlQuerySingleElement(Expression expression, IQueryProvider table)
-            : base(expression, table) { }
+            : base(expression, table)
+        {
+        }
 
 
         protected override string GetCql(out object[] values)
@@ -44,27 +46,27 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values, withValues);
+            string cql = visitor.GetSelect(out values, withValues);
             return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
         }
 
         public TEntity EndExecute(IAsyncResult ar)
         {
-            using (var outp = InternalEndExecute(ar))
+            using (RowSet outp = InternalEndExecute(ar))
             {
-                var row = outp.GetRows().FirstOrDefault();
+                Row row = outp.GetRows().FirstOrDefault();
                 if (row == null)
-                    if (((MethodCallExpression)Expression).Method.Name == "First")
+                    if (((MethodCallExpression) Expression).Method.Name == "First")
                         throw new InvalidOperationException("Sequence contains no elements.");
-                    else if (((MethodCallExpression)Expression).Method.Name == "FirstOrDefault")
+                    else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
                         return default(TEntity);
 
-                var cols = outp.Columns;
+                CqlColumn[] cols = outp.Columns;
                 var colToIdx = new Dictionary<string, int>();
                 for (int idx = 0; idx < cols.Length; idx++)
                     colToIdx.Add(cols[idx].Name, idx);
 
-                var tag = (CqlQueryTag)Session.GetTag(ar);
+                var tag = (CqlQueryTag) Session.GetTag(ar);
                 return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
             }
         }

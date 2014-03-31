@@ -13,15 +13,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra.IntegrationTests.Core.Policies
 {
     public class AlwaysRetryRetryPolicy : IRetryPolicy
     {
         public static readonly AlwaysRetryRetryPolicy Instance = new AlwaysRetryRetryPolicy();
 
-        private AlwaysRetryRetryPolicy() { }
+        private AlwaysRetryRetryPolicy()
+        {
+        }
 
-        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+                                           int nbRetry)
         {
             return RetryDecision.Retry(ConsistencyLevel.One);
         }

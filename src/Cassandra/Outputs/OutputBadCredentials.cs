@@ -4,7 +4,7 @@ namespace Cassandra
     {
         public override DriverException CreateException()
         {
-            return new AuthenticationException(Message);  
+            return new AuthenticationException(Message);
         }
     }
 }

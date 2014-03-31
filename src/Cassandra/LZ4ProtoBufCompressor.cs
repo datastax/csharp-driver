@@ -13,17 +13,20 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
+using LZ4;
+
 namespace Cassandra
 {
     internal class LZ4ProtoBufCompressor : IProtoBufComporessor
     {
         public byte[] Decompress(byte[] buffer)
         {
-            byte[] outpLength = new byte[4];
+            var outpLength = new byte[4];
             Buffer.BlockCopy(buffer, 0, outpLength, 0, 4);
             Array.Reverse(outpLength);
-            return LZ4.LZ4Codec.Decode(buffer, 4, buffer.Length - 4, BitConverter.ToInt32(outpLength, 0));   
+            return LZ4Codec.Decode(buffer, 4, buffer.Length - 4, BitConverter.ToInt32(outpLength, 0));
         }
     }
 }

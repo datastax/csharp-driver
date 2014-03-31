@@ -13,9 +13,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System.Collections.Generic;
-using System.Threading;
 using System.Linq;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -33,11 +34,10 @@ namespace Cassandra
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
-
         private readonly string _localDc;
         private readonly int _usedHostsPerRemoteDc;
-        Cluster _cluster;
-        int _index;
+        private Cluster _cluster;
+        private int _index;
 
         /// <summary>
         ///  Creates a new datacenter aware round robin policy given the name of the local
@@ -71,21 +71,15 @@ namespace Cassandra
         /// connections to them will be maintained).</param>
         public DCAwareRoundRobinPolicy(string localDc, int usedHostsPerRemoteDc)
         {
-            this._localDc = localDc;
-            this._usedHostsPerRemoteDc = usedHostsPerRemoteDc;
+            _localDc = localDc;
+            _usedHostsPerRemoteDc = usedHostsPerRemoteDc;
         }
 
 
         public void Initialize(Cluster cluster)
         {
-            this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
-        }
-
-        private string DC(Host host)
-        {
-            string dc = host.Datacenter;
-            return dc ?? _localDc;
+            _cluster = cluster;
+            _index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
         }
 
         /// <summary>
@@ -105,16 +99,15 @@ namespace Cassandra
                 return HostDistance.Local;
 
             int ix = 0;
-            foreach (var h in _cluster.Metadata.AllHosts())
+            foreach (Host h in _cluster.Metadata.AllHosts())
             {
                 if (h.Address.Equals(host.Address))
                 {
                     if (ix < _usedHostsPerRemoteDc)
                         return HostDistance.Remote;
-                    else
-                        return HostDistance.Ignored;
+                    return HostDistance.Ignored;
                 }
-                else if (dc.Equals(DC(h)))
+                if (dc.Equals(DC(h)))
                     ix++;
             }
             return HostDistance.Ignored;
@@ -132,21 +125,20 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-
             int startidx = Interlocked.Increment(ref _index);
-            
+
             // Overflow protection; not theoretically thread safe but should be good enough
             if (startidx > int.MaxValue - 10000)
                 Thread.VolatileWrite(ref _index, 0);
 
 
-            var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            Host[] copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
 
             var localHosts = new List<Host>();
 
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
-                var h = copyOfHosts[i];
+                Host h = copyOfHosts[i];
                 if (h.IsConsiderablyUp)
                     if (_localDc.Equals(DC(h)))
                         localHosts.Add(h);
@@ -157,18 +149,18 @@ namespace Cassandra
             {
                 startidx %= localHosts.Count;
 
-                var h = localHosts[startidx];
+                Host h = localHosts[startidx];
 
                 startidx++;
                 yield return h;
             }
 
-            
+
             var remoteHosts = new List<Host>();
             var ixes = new Dictionary<string, int>();
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
-                var h = copyOfHosts[i];
+                Host h = copyOfHosts[i];
                 if (h.IsConsiderablyUp)
                     if (!_localDc.Equals(DC(h)))
                         if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
@@ -186,11 +178,17 @@ namespace Cassandra
             {
                 startidx %= remoteHosts.Count;
 
-                var h = remoteHosts[startidx];
+                Host h = remoteHosts[startidx];
 
                 startidx++;
                 yield return h;
             }
+        }
+
+        private string DC(Host host)
+        {
+            string dc = host.Datacenter;
+            return dc ?? _localDc;
         }
     }
 }

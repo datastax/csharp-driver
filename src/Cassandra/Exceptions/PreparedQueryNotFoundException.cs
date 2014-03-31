@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +13,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
     public class PreparedQueryNotFoundException : QueryValidationException
     {
         public byte[] UnknownID { get; private set; }
-        public PreparedQueryNotFoundException(string message, byte[] unknownID) :
-            base(message) { this.UnknownID = unknownID; }
-    }
 
+        public PreparedQueryNotFoundException(string message, byte[] unknownID) :
+            base(message)
+        {
+            UnknownID = unknownID;
+        }
+    }
 }

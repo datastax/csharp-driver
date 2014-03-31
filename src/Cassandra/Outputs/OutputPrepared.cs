@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +13,18 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
     internal class OutputPrepared : IOutput, IWaitableForDispose
     {
-        public byte[] QueryID;
         public RowSetMetadata Metadata;
+        public byte[] QueryID;
         public RowSetMetadata ResultMetadata;
+
         internal OutputPrepared(BEBinaryReader reader, bool readResultsMetadata)
         {
-            var len = reader.ReadInt16();
+            short len = reader.ReadInt16();
             QueryID = new byte[len];
             reader.Read(QueryID, 0, len);
             Metadata = new RowSetMetadata(reader);
@@ -33,6 +35,7 @@
         public void Dispose()
         {
         }
+
         public void WaitForDispose()
         {
         }

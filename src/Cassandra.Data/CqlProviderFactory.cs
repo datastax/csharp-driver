@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +13,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+
+using System;
 using System.Data.Common;
-using System.Configuration;
+using System.Security;
+using System.Security.Permissions;
 
 namespace Cassandra.Data
 {
@@ -25,21 +25,14 @@ namespace Cassandra.Data
     {
         public static readonly CqlProviderFactory Instance = new CqlProviderFactory();
 
-        public CqlProviderFactory()
+        public override bool CanCreateDataSourceEnumerator
         {
+            get { return false; }
         }
 
         public virtual CqlProviderFactory GetInstance()
         {
             return Instance;
-        }
-
-        public override bool CanCreateDataSourceEnumerator
-        {
-            get
-            {
-                return false;
-            }
         }
 
         public override DbCommand CreateCommand()
@@ -77,7 +70,7 @@ namespace Cassandra.Data
             throw new NotSupportedException();
         }
 
-        public override System.Security.CodeAccessPermission CreatePermission(System.Security.Permissions.PermissionState state)
+        public override CodeAccessPermission CreatePermission(PermissionState state)
         {
             throw new NotSupportedException();
         }

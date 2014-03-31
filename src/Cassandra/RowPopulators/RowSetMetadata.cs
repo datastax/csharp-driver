@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
 
 namespace Cassandra
 {
-
     [Flags]
     internal enum FlagBits
     {
@@ -83,28 +83,33 @@ namespace Cassandra
     public class ColumnDesc
     {
         public string Keyspace;
-        public string Table;
         public string Name;
-        public IColumnInfo TypeInfo;
+        public string Table;
         public ColumnTypeCode TypeCode;
+        public IColumnInfo TypeInfo;
     }
 
     public class RowSetMetadata
     {
-        private readonly CqlColumn[] _columns;
         private readonly Dictionary<string, int> _columnIdxes;
+        private readonly CqlColumn[] _columns;
 
         private readonly ColumnDesc[] _rawColumns;
-        internal byte[] paging_state = null;
         internal bool no_metadata = false;
+        internal byte[] paging_state = null;
+
+        public CqlColumn[] Columns
+        {
+            get { return _columns; }
+        }
 
         internal RowSetMetadata(BEBinaryReader reader)
         {
             var coldat = new List<ColumnDesc>();
-            var flags = (FlagBits)reader.ReadInt32();
-            var numberOfcolumns = reader.ReadInt32();
-            
-            this._rawColumns = new ColumnDesc[numberOfcolumns];
+            var flags = (FlagBits) reader.ReadInt32();
+            int numberOfcolumns = reader.ReadInt32();
+
+            _rawColumns = new ColumnDesc[numberOfcolumns];
             string gKsname = null;
             string gTablename = null;
 
@@ -135,7 +140,7 @@ namespace Cassandra
                         col.Table = gTablename;
                     }
                     col.Name = reader.ReadString();
-                    col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
+                    col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
                     col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
                     coldat.Add(col);
                 }
@@ -145,17 +150,17 @@ namespace Cassandra
                 _columnIdxes = new Dictionary<string, int>();
                 for (int i = 0; i < _rawColumns.Length; i++)
                 {
-                    _columns[i] = new CqlColumn()
-                        {
-                            Name = _rawColumns[i].Name,
-                            Keyspace = _rawColumns[i].Keyspace,
-                            Table = _rawColumns[i].Table,
-                            Type = TypeInterpreter.GetDefaultTypeFromCqlType(
-                                _rawColumns[i].TypeCode,
-                                _rawColumns[i].TypeInfo),
-                            TypeCode = _rawColumns[i].TypeCode,
-                            TypeInfo = _rawColumns[i].TypeInfo
-                        };
+                    _columns[i] = new CqlColumn
+                    {
+                        Name = _rawColumns[i].Name,
+                        Keyspace = _rawColumns[i].Keyspace,
+                        Table = _rawColumns[i].Table,
+                        Type = TypeInterpreter.GetDefaultTypeFromCqlType(
+                            _rawColumns[i].TypeCode,
+                            _rawColumns[i].TypeInfo),
+                        TypeCode = _rawColumns[i].TypeCode,
+                        TypeInfo = _rawColumns[i].TypeInfo
+                    };
                     //TODO: what with full long column names?
                     if (!_columnIdxes.ContainsKey(_rawColumns[i].Name))
                         _columnIdxes.Add(_rawColumns[i].Name, i);
@@ -171,41 +176,36 @@ namespace Cassandra
             switch (code)
             {
                 case ColumnTypeCode.Custom:
-                    return new CustomColumnInfo() { CustomTypeName = reader.ReadString() };
+                    return new CustomColumnInfo {CustomTypeName = reader.ReadString()};
                 case ColumnTypeCode.List:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    return new ListColumnInfo()
-                        {
-                            ValueTypeCode = innercode,
-                            ValueTypeInfo = GetColumnInfo(reader, innercode)
-                        };
+                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    return new ListColumnInfo
+                    {
+                        ValueTypeCode = innercode,
+                        ValueTypeInfo = GetColumnInfo(reader, innercode)
+                    };
                 case ColumnTypeCode.Map:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    var kci = GetColumnInfo(reader, innercode);
-                    var vinnercode = (ColumnTypeCode)reader.ReadUInt16();
-                    var vci = GetColumnInfo(reader, vinnercode);
-                    return new MapColumnInfo()
-                        {
-                            KeyTypeCode = innercode,
-                            KeyTypeInfo = kci,
-                            ValueTypeCode = vinnercode,
-                            ValueTypeInfo = vci
-                        };
+                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    IColumnInfo kci = GetColumnInfo(reader, innercode);
+                    var vinnercode = (ColumnTypeCode) reader.ReadUInt16();
+                    IColumnInfo vci = GetColumnInfo(reader, vinnercode);
+                    return new MapColumnInfo
+                    {
+                        KeyTypeCode = innercode,
+                        KeyTypeInfo = kci,
+                        ValueTypeCode = vinnercode,
+                        ValueTypeInfo = vci
+                    };
                 case ColumnTypeCode.Set:
-                    innercode = (ColumnTypeCode)reader.ReadUInt16();
-                    return new SetColumnInfo()
-                        {
-                            KeyTypeCode = innercode,
-                            KeyTypeInfo = GetColumnInfo(reader, innercode)
-                        };
+                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    return new SetColumnInfo
+                    {
+                        KeyTypeCode = innercode,
+                        KeyTypeInfo = GetColumnInfo(reader, innercode)
+                    };
                 default:
                     return null;
             }
-        }
-
-        public CqlColumn[] Columns
-        {
-            get { return _columns; }
         }
 
         internal object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)

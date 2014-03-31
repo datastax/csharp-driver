@@ -13,34 +13,31 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 
 namespace Cassandra
 {
-
     /// <summary>
     ///  A simple <code>Statement</code> implementation built directly from a query
     ///  string.
     /// </summary>
     public class BatchStatement : Query
     {
-
-        private List<Query> _queries = new List<Query>();
+        private readonly List<Query> _queries = new List<Query>();
         private BatchType _batchType = BatchType.Logged;
         private volatile RoutingKey _routingKey;
 
-        /// <summary>
-        ///  Creates a new <code>BatchStatement</code> with the provided query string.
-        /// </summary>
-        /// <param name="query"> the query string.</param>
-        public BatchStatement()
+        public bool IsEmpty
         {
+            get { return _queries.Count == 0; }
         }
 
-        public bool IsEmpty { get { return _queries.Count == 0; } }
-
-        public IEnumerable<Query> Queries { get { return _queries; } }
+        public IEnumerable<Query> Queries
+        {
+            get { return _queries; }
+        }
 
         /// <summary>
         ///  Gets the routing key for the query. <p> Note that unless the routing key has been
@@ -48,7 +45,10 @@ namespace Cassandra
         ///  return <code>null</code> (to avoid having to parse the query string to
         ///  retrieve the partition key).</p>
         /// </summary>
-        public override RoutingKey RoutingKey { get { return _routingKey; } }
+        public override RoutingKey RoutingKey
+        {
+            get { return _routingKey; }
+        }
 
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually
@@ -66,17 +66,20 @@ namespace Cassandra
         ///  <see>Query#getRoutingKey</returns>
         public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this;
+            _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
         }
 
         public BatchStatement AddQuery(Query query)
         {
-            this._queries.Add(query); return this;
+            _queries.Add(query);
+            return this;
         }
 
         public BatchStatement SetBatchType(BatchType batchType)
         {
-            this._batchType = batchType; return this;
+            _batchType = batchType;
+            return this;
         }
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)

@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 
 namespace Cassandra
@@ -32,18 +33,7 @@ namespace Cassandra
     /// </summary>
     public class BoundStatement : Query
     {
-
-        readonly PreparedStatement _statement;
-
-        /// <summary>
-        ///  Creates a new <code>BoundStatement</code> from the provided prepared
-        ///  statement.
-        /// </summary>
-        /// <param name="statement"> the prepared statement from which to create a <code>BoundStatement</code>.</param>
-        public BoundStatement(PreparedStatement statement)
-        {
-            this._statement = statement;
-        }
+        private readonly PreparedStatement _statement;
 
         /// <summary>
         ///  Gets the prepared statement on which this BoundStatement is based.
@@ -53,7 +43,6 @@ namespace Cassandra
             get { return _statement; }
         }
 
-        
 
         /// <summary>
         ///  Gets the routing key for this bound query. <p> This method will return a
@@ -78,9 +67,22 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        ///  Creates a new <code>BoundStatement</code> from the provided prepared
+        ///  statement.
+        /// </summary>
+        /// <param name="statement"> the prepared statement from which to create a <code>BoundStatement</code>.</param>
+        public BoundStatement(PreparedStatement statement)
+        {
+            _statement = statement;
+        }
+
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
-        {            
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata, QueryProtocolOptions.CreateFromQuery(this, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), callback, state, this.ConsistencyLevel, this, this, tag, IsTracing);
+        {
+            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata,
+                                             QueryProtocolOptions.CreateFromQuery(this,
+                                                                                  session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
+                                             callback, state, ConsistencyLevel, this, this, tag, IsTracing);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
@@ -90,7 +92,9 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any)); // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
+            return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing,
+                                      QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
+                // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
         }
     }
 }

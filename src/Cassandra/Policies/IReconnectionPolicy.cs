@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- namespace Cassandra
+
+namespace Cassandra
 {
     /// <summary>
     ///  Policy that decides how often the reconnection to a dead node is attempted.
@@ -34,6 +35,5 @@
         ///  Creates a new schedule for reconnection attempts.
         /// </summary>
         IReconnectionSchedule NewSchedule();
-
     }
 }

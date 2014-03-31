@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +13,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
     internal class OutputSetKeyspace : IOutput, IWaitableForDispose
     {
         public string Value;
-        internal OutputSetKeyspace(string val) { Value = val; }
+
+        internal OutputSetKeyspace(string val)
+        {
+            Value = val;
+        }
 
         public void Dispose()
         {
         }
+
         public void WaitForDispose()
         {
         }

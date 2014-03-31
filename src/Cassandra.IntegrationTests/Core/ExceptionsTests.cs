@@ -30,10 +30,10 @@ namespace Cassandra.IntegrationTests.Core
         ///  Catch and test all the exception methods.
         /// </summary>
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void alreadyExistsExceptionCCM()
         {
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(1, builder);
             try
             {
@@ -41,7 +41,8 @@ namespace Cassandra.IntegrationTests.Core
                 String keyspace = "TestKeyspace";
                 String table = "TestTable";
 
-                String[] cqlCommands = new String[]{
+                String[] cqlCommands =
+                {
                     String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1),
                     "USE " + keyspace,
                     String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)
@@ -100,9 +101,8 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests DriverInternalError. Tests basic message, rethrow, and copy abilities.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void driverInternalError()
         {
             String errorMessage = "Test Message";
@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 try
                 {
-                    throw new DriverInternalError("",e1);
+                    throw new DriverInternalError("", e1);
                 }
                 catch (DriverInternalError e2)
                 {
@@ -132,7 +132,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void invalidConfigurationInQueryExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests InvalidConfigurationInQueryException. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void InvalidConfigurationInQueryExceptionCCM()
         {
             string errorMessage = "Test Message";
@@ -196,13 +196,12 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests the NoHostAvailableException. by attempting to build a cluster using
         ///  the IP address "255.255.255.255" and test all available exception methods.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void noHostAvailableExceptionCCM()
         {
             String ipAddress = "255.255.255.255";
-            Dictionary<IPAddress, Exception> errorsHashMap = new Dictionary<IPAddress, Exception>();
+            var errorsHashMap = new Dictionary<IPAddress, Exception>();
             errorsHashMap.Add(IPAddress.Parse(ipAddress), null);
 
             try
@@ -225,12 +224,11 @@ namespace Cassandra.IntegrationTests.Core
         ///  single key at CL.ALL. Then forcibly kill single node and attempt a read of
         ///  the key at CL.ALL. Catch and test all available exception methods.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void readTimeoutExceptionCCM()
         {
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
@@ -243,18 +241,22 @@ namespace Cassandra.IntegrationTests.Core
                 String key = "1";
 
                 session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))                );
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor)));
                 session.Execute("USE " + keyspace);
                 session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))                );
+                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)));
 
-                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
+                session.Execute(
+                    new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
+                        ConsistencyLevel.All));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
+                       .Dispose();
 
                 bridge.ForceStop(2);
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
+                           .Dispose();
                 }
                 catch (ReadTimeoutException e)
                 {
@@ -282,7 +284,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests SyntaxError. Tests basic message and copy abilities.
         /// </summary>
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void syntaxErrorCCM()
         {
             String errorMessage = "Test Message";
@@ -304,7 +306,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests TraceRetrievalException. Tests basic message.
         /// </summary>
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void traceRetrievalExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -322,9 +324,8 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests TruncateException. Tests basic message and copy abilities.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void truncateExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -345,9 +346,8 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests UnauthorizedException. Tests basic message and copy abilities.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void unauthorizedExceptionCCM()
         {
             String errorMessage = "Test Message";
@@ -371,12 +371,11 @@ namespace Cassandra.IntegrationTests.Core
         ///  new state, and attempt to read and write the same key at CL.ALL. Catch and
         ///  test all available exception methods.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void unavailableExceptionCCM()
         {
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
@@ -390,14 +389,17 @@ namespace Cassandra.IntegrationTests.Core
 
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
-                );
+                    );
                 session.Execute("USE " + keyspace);
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
-                );
+                    );
 
-                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
+                session.Execute(
+                    new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
+                        ConsistencyLevel.All));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
+                       .Dispose();
 
                 bridge.Stop(2);
                 // Ensure that gossip has reported the node as down.
@@ -405,7 +407,8 @@ namespace Cassandra.IntegrationTests.Core
 
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
+                           .Dispose();
                 }
                 catch (UnavailableException e)
                 {
@@ -416,11 +419,14 @@ namespace Cassandra.IntegrationTests.Core
 
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
+                    session.Execute(
+                        new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
+                            ConsistencyLevel.All));
                 }
                 catch (UnavailableException e)
                 {
-                    String expectedError = String.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", ConsistencyLevel.All, 3, 2);
+                    String expectedError = String.Format(
+                        "Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", ConsistencyLevel.All, 3, 2);
                     Assert.Equal(e.Message, expectedError);
                     Assert.Equal(e.Consistency, ConsistencyLevel.All);
                     Assert.Equal(e.RequiredReplicas, replicationFactor);
@@ -442,12 +448,11 @@ namespace Cassandra.IntegrationTests.Core
         ///  single key at CL.ALL. Then forcibly kill single node and attempt to write the
         ///  same key at CL.ALL. Catch and test all available exception methods.
         /// </summary>
-
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void writeTimeoutExceptionCCM()
         {
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
@@ -461,19 +466,24 @@ namespace Cassandra.IntegrationTests.Core
 
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
-                );
+                    );
                 session.Execute("USE " + keyspace);
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
-                                );
+                    );
 
-                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)).Dispose();
+                session.Execute(
+                    new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
+                        ConsistencyLevel.All));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
+                       .Dispose();
 
                 bridge.ForceStop(2);
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
+                    session.Execute(
+                        new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
+                            ConsistencyLevel.All));
                 }
                 catch (WriteTimeoutException e)
                 {
@@ -497,7 +507,7 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void rowsetIteratedTwice()
         {
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(1, builder);
             try
             {
@@ -510,23 +520,23 @@ namespace Cassandra.IntegrationTests.Core
 
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1))
-                );
+                    );
                 session.Execute("USE " + keyspace);
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
-                                );
+                    );
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)));
-                var rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
-                var cnt = rowset.Count();
+                IEnumerable<Row> rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
+                int cnt = rowset.Count();
                 try
                 {
-                    foreach (var r in rowset)
+                    foreach (Row r in rowset)
                         Console.Write(r.GetValue<string>("k"));
                     Assert.Fail();
                 }
                 catch (InvalidOperationException)
-                { 
+                {
                 }
             }
             catch (Exception e)
@@ -537,6 +547,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 cluster.Discard();
             }
-        }    
+        }
     }
 }

@@ -13,7 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System.Net;
+
 namespace Cassandra
 {
     /// <summary>
@@ -34,7 +36,7 @@ namespace Cassandra
         public AuthenticationException(string message, IPAddress host)
             : base(string.Format("Authentication error on host {0}: {1}", host, message))
         {
-            this.Host = host;
+            Host = host;
         }
     }
 }

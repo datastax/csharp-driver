@@ -13,24 +13,50 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
+using System.Collections;
 using System.Collections.Generic;
-﻿using System.IO;
+using System.IO;
 
 namespace Cassandra
 {
     public class RowSet : IDisposable
     {
-        readonly OutputRows _rawrows=null;
-        readonly bool _ownRows;
-        readonly ExecutionInfo _info = new ExecutionInfo();
-        public ExecutionInfo Info { get { return _info; } }
+        public delegate string CellEncoder(object val);
+
+        private readonly BoolSwitch _alreadyDisposed = new BoolSwitch();
+        private readonly BoolSwitch _alreadyIterated = new BoolSwitch();
+
+        private readonly ExecutionInfo _info = new ExecutionInfo();
+        private readonly bool _ownRows;
+        private readonly OutputRows _rawrows;
+
+        public ExecutionInfo Info
+        {
+            get { return _info; }
+        }
+
+        public CqlColumn[] Columns
+        {
+            get { return _rawrows == null ? new CqlColumn[] {} : _rawrows.Metadata.Columns; }
+        }
+
+        public byte[] PagingState
+        {
+            get { return _rawrows != null ? _rawrows.Metadata.paging_state : null; }
+        }
+
+        public bool IsExhausted
+        {
+            get { return _rawrows != null ? _rawrows.Metadata.paging_state == null : true; }
+        }
 
 
         internal RowSet(OutputRows rawrows, Session session, bool ownRows = true, RowSetMetadata resultMetadata = null)
         {
-            this._rawrows = rawrows;
-            this._ownRows = ownRows;
+            _rawrows = rawrows;
+            _ownRows = ownRows;
 
             if (resultMetadata != null)
                 rawrows._metadata = resultMetadata;
@@ -55,12 +81,14 @@ namespace Cassandra
                 _info.SetQueryTrace(new QueryTrace(output.TraceID.Value, session));
         }
 
-        public CqlColumn[] Columns
+        public void Dispose()
         {
-            get { return _rawrows == null ? new CqlColumn[] {} : _rawrows.Metadata.Columns; }
-        }
+            if (!_alreadyDisposed.TryTake())
+                return;
 
-        BoolSwitch _alreadyIterated = new BoolSwitch();
+            if (_ownRows)
+                _rawrows.Dispose();
+        }
 
         public IEnumerable<Row> GetRows()
         {
@@ -73,36 +101,11 @@ namespace Cassandra
             }
         }
 
-        public byte[] PagingState
-        {
-            get
-            {
-                return _rawrows != null ? _rawrows.Metadata.paging_state : null;
-            }
-        }
-
-        BoolSwitch _alreadyDisposed = new BoolSwitch();
-
-        public void Dispose()
-        {
-            if (!_alreadyDisposed.TryTake())
-                return;
-
-            if (_ownRows)
-                _rawrows.Dispose();
-
-        }
-
-        public bool IsExhausted { get { return _rawrows != null ? _rawrows.Metadata.paging_state == null : true; } }
-
         ~RowSet()
         {
             Dispose();
         }
 
-        public delegate string CellEncoder(object val);                
-
-        
 
         public void PrintTo(TextWriter stream,
                             string delim = "\t|",
@@ -111,13 +114,13 @@ namespace Cassandra
                             bool printFooter = true,
                             string separ = "-------------------------------------------------------------------------------",
                             string lasLFrm = "Returned {0} rows.",
-                            CellEncoder cellEncoder = null             
+                            CellEncoder cellEncoder = null
             )
         {
             if (printHeader)
             {
                 bool first = true;
-                foreach (var column in Columns)
+                foreach (CqlColumn column in Columns)
                 {
                     if (first) first = false;
                     else
@@ -130,7 +133,7 @@ namespace Cassandra
                 stream.Write(rowDelim);
             }
             int i = 0;
-            foreach (var row in GetRows())
+            foreach (Row row in GetRows())
             {
                 bool first = true;
                 for (int j = 0; j < Columns.Length; j++)
@@ -139,19 +142,19 @@ namespace Cassandra
                     else
                         stream.Write(delim);
 
-                    if (row[j] is System.Array || (row[j].GetType().IsGenericType && row[j] is System.Collections.IEnumerable))
+                    if (row[j] is Array || (row[j].GetType().IsGenericType && row[j] is IEnumerable))
                         cellEncoder = delegate(object collection)
-                        {                            
+                        {
                             string result = "<Collection>";
-                            if(collection.GetType() == typeof(byte[]))
-                                result+=CqlQueryTools.ToHex((byte[])collection);
+                            if (collection.GetType() == typeof (byte[]))
+                                result += CqlQueryTools.ToHex((byte[]) collection);
                             else
-                                foreach (var val in (collection as System.Collections.IEnumerable))
-                                    result += val.ToString() + ",";
+                                foreach (object val in (collection as IEnumerable))
+                                    result += val + ",";
                             return result.Substring(0, result.Length - 1) + "</Collection>";
                         };
-                    
-                    stream.Write((object) (cellEncoder == null ? row[j] : cellEncoder(row[j])));
+
+                    stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
                 }
                 stream.Write(rowDelim);
                 i++;
@@ -160,9 +163,9 @@ namespace Cassandra
             {
                 stream.Write(separ);
                 stream.Write(rowDelim);
-                stream.Write(string.Format(lasLFrm, i));
+                stream.Write(lasLFrm, i);
                 stream.Write(rowDelim);
-            }            
+            }
         }
     }
 }

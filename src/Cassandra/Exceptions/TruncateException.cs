@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -20,6 +21,8 @@ namespace Cassandra
     /// </summary>
     public class TruncateException : QueryExecutionException
     {
-        public TruncateException(string message) : base(message) { }
+        public TruncateException(string message) : base(message)
+        {
+        }
     }
 }

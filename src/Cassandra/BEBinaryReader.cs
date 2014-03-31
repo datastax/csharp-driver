@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,53 +13,58 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+
+using System.Collections.Generic;
 using System.Net;
+using System.Text;
 
 namespace Cassandra
 {
     internal class BEBinaryReader
     {
-        readonly IProtoBuf _stream;
-        readonly byte[] _buffer = new byte[4];
-        readonly byte[] _longBuffer = new byte[16];
+        private readonly byte[] _buffer = new byte[4];
+        private readonly byte[] _longBuffer = new byte[16];
+        private readonly IProtoBuf _stream;
 
-        public BEBinaryReader(ResponseFrame input) { _stream = input.RawStream; }
+        public BEBinaryReader(ResponseFrame input)
+        {
+            _stream = input.RawStream;
+        }
 
         public byte ReadByte()
         {
             _stream.Read(_buffer, 0, 1);
-            return (byte)_buffer[0];
+            return _buffer[0];
         }
 
         public ushort ReadUInt16()
         {
             _stream.Read(_buffer, 0, 2);
-            return (ushort)((_buffer[0] << 8) | (_buffer[1] & 0xff));
+            return (ushort) ((_buffer[0] << 8) | (_buffer[1] & 0xff));
         }
 
         public short ReadInt16()
         {
             _stream.Read(_buffer, 0, 2);
-            return (short)((_buffer[0] << 8) | (_buffer[1] & 0xff)); 
+            return (short) ((_buffer[0] << 8) | (_buffer[1] & 0xff));
         }
 
 
         public int ReadInt32()
         {
             _stream.Read(_buffer, 0, 4);
-            return (int)((_buffer[0] << 24) | (_buffer[1] << 16 & 0xffffff) | (_buffer[2] << 8 & 0xffff) | (_buffer[3] & 0xff));
+            return (_buffer[0] << 24) | (_buffer[1] << 16 & 0xffffff) | (_buffer[2] << 8 & 0xffff) | (_buffer[3] & 0xff);
         }
 
         public string ReadString()
         {
-            var length = ReadUInt16();
+            ushort length = ReadUInt16();
             return ReadPureString(length);
         }
 
         public IPEndPoint ReadInet()
         {
-            var length = ReadByte();
+            byte length = ReadByte();
             IPAddress ip;
             if (length == 4)
             {
@@ -67,7 +72,7 @@ namespace Cassandra
                 ip = new IPAddress(_buffer);
                 return new IPEndPoint(ip, ReadInt32());
             }
-            else if (length == 16)
+            if (length == 16)
             {
                 _stream.Read(_longBuffer, 0, length);
                 ip = new IPAddress(_longBuffer);
@@ -83,16 +88,16 @@ namespace Cassandra
             return ReadPureString(length);
         }
 
-        string ReadPureString(int length)
+        private string ReadPureString(int length)
         {
             var bytes = new byte[length];
             _stream.Read(bytes, 0, length);
-            return System.Text.Encoding.UTF8.GetString(bytes);
+            return Encoding.UTF8.GetString(bytes);
         }
 
         public List<string> ReadStringList()
         {
-            var length = ReadUInt16();
+            ushort length = ReadUInt16();
             var l = new List<string>();
             for (int i = 0; i < length; i++)
                 l.Add(ReadString());
@@ -101,8 +106,8 @@ namespace Cassandra
 
         public byte[] ReadBytes()
         {
-            var length = ReadInt32();
-			if(length<0) return null;
+            int length = ReadInt32();
+            if (length < 0) return null;
             var buf = new byte[length];
             Read(buf, 0, length);
             return buf;

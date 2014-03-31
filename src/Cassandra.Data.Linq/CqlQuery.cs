@@ -13,11 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Collections;
 
 namespace Cassandra.Data.Linq
 {
@@ -25,11 +26,26 @@ namespace Cassandra.Data.Linq
     {
         internal CqlQuery()
         {
-            InternalInitialize(Expression.Constant(this), (Table<TEntity>)this);
+            InternalInitialize(Expression.Constant(this), (Table<TEntity>) this);
         }
 
-        internal CqlQuery(Expression expression, IQueryProvider table) : base(expression,table)
+        internal CqlQuery(Expression expression, IQueryProvider table) : base(expression, table)
         {
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public IQueryProvider Provider
+        {
+            get { return GetTable() as IQueryProvider; }
+        }
+
+        public IEnumerator<TEntity> GetEnumerator()
+        {
+            throw new InvalidOperationException("Did you forget to Execute()?");
         }
 
         public new CqlQuery<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
@@ -43,27 +59,12 @@ namespace Cassandra.Data.Linq
             base.SetSerialConsistencyLevel(consistencyLevel);
             return this;
         }
-        
-        public IEnumerator<TEntity> GetEnumerator()
-        {
-            throw new InvalidOperationException("Did you forget to Execute()?");
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public IQueryProvider Provider
-        {
-            get { return GetTable() as IQueryProvider; }
-        }
 
         protected override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetSelect(out values);    
+            return visitor.GetSelect(out values);
         }
 
         public override string ToString()
@@ -86,24 +87,24 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values, withValues);
+            string cql = visitor.GetSelect(out values, withValues);
 
             return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
         }
 
         public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
         {
-            using (var outp = InternalEndExecute(ar))
+            using (RowSet outp = InternalEndExecute(ar))
             {
                 QueryTrace = outp.Info.QueryTrace;
 
-                var cols = outp.Columns;
+                CqlColumn[] cols = outp.Columns;
                 var colToIdx = new Dictionary<string, int>();
                 for (int idx = 0; idx < cols.Length; idx++)
                     colToIdx.Add(cols[idx].Name, idx);
-                var rows = outp.GetRows();
-                var tag = (CqlQueryTag)Session.GetTag(ar);
-                foreach (var row in rows)
+                IEnumerable<Row> rows = outp.GetRows();
+                var tag = (CqlQueryTag) Session.GetTag(ar);
+                foreach (Row row in rows)
                 {
                     yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
                 }

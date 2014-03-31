@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +13,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+using Snappy;
+
+namespace Cassandra
 {
     internal class SnappyProtoBufCompressor : IProtoBufComporessor
     {
         public byte[] Decompress(byte[] buffer)
         {
-            return Snappy.SnappyDecompressor.Uncompress(buffer,0,buffer.Length);
+            return SnappyDecompressor.Uncompress(buffer, 0, buffer.Length);
         }
     }
 }

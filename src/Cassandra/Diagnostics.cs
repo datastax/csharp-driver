@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+
 using System.Diagnostics;
 
 namespace Cassandra
@@ -31,7 +29,8 @@ namespace Cassandra
         /// <para><value>TraceLevel.Info</value> - Output informational messages, warnings, and error-handling messages.</para>
         /// <para><value>TraceLevel.Verbose</value> - Output all debugging and tracing messages.</para>                
         /// </summary>
-        public static readonly TraceSwitch CassandraTraceSwitch = new TraceSwitch("TraceSwitch", "This switch lets user to choose which kind of messages should be included in log.");
+        public static readonly TraceSwitch CassandraTraceSwitch = new TraceSwitch("TraceSwitch",
+                                                                                  "This switch lets user to choose which kind of messages should be included in log.");
 
         /// <summary>
         /// Defines if exception StackTrace information should be printed by trace logger.

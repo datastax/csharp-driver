@@ -13,21 +13,105 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
-using System.Linq;
+
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Cassandra.Data.Linq
 {
     public class Table<TEntity> : CqlQuery<TEntity>, ITable, IQueryProvider
     {
-        readonly Session _session;
-        readonly string _tableName;
-        readonly string _keyspaceName;
+        private static TableType _tableType = TableType.All;
+        private readonly string _keyspaceName;
+        private readonly Session _session;
+        private readonly string _tableName;
+
+        internal Table(Session session, string tableName, string keyspaceName)
+        {
+            _session = session;
+            _tableName = tableName;
+            _keyspaceName = keyspaceName;
+        }
+
+        internal Table(Table<TEntity> cp)
+        {
+            _keyspaceName = cp._keyspaceName;
+            _tableName = cp._tableName;
+            _session = cp._session;
+        }
+
+        public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
+        {
+            return new CqlQuery<TElement>(expression, this);
+        }
+
+        public IQueryable CreateQuery(Expression expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TResult Execute<TResult>(Expression expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object Execute(Expression expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Type GetEntityType()
+        {
+            return typeof (TEntity);
+        }
+
+        public string GetQuotedTableName()
+        {
+            if (_keyspaceName != null)
+                return _keyspaceName.QuoteIdentifier() + "." + CalculateName(_tableName).QuoteIdentifier();
+            return CalculateName(_tableName).QuoteIdentifier();
+        }
+
+        public void Create()
+        {
+            List<string> cqls = CqlQueryTools.GetCreateCQL(this, false);
+            foreach (string cql in cqls)
+                _session.WaitForSchemaAgreement(_session.Execute(cql));
+        }
+
+        public Session GetSession()
+        {
+            return _session;
+        }
+
+        public TableType GetTableType()
+        {
+            if (_tableType == TableType.All)
+            {
+                List<MemberInfo> props = GetEntityType().GetPropertiesOrFields();
+                foreach (MemberInfo prop in props)
+                {
+                    Type tpy = prop.GetTypeFromPropertyOrField();
+                    if (
+                        prop.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() as
+                        CounterAttribute != null)
+                    {
+                        _tableType = TableType.Counter;
+                        break;
+                    }
+                }
+                if (_tableType == TableType.All)
+                    _tableType = TableType.Standard;
+            }
+            return _tableType;
+        }
 
         internal static string CalculateName(string tableName)
         {
-            var tableAttr = typeof(TEntity).GetCustomAttributes(typeof(TableAttribute), false).FirstOrDefault() as TableAttribute;
+            var tableAttr = typeof (TEntity).GetCustomAttributes(typeof (TableAttribute), false).FirstOrDefault() as TableAttribute;
             if (tableAttr != null)
             {
                 if (!string.IsNullOrEmpty(tableAttr.Name))
@@ -38,49 +122,15 @@ namespace Cassandra.Data.Linq
                         tableName = tableAttr.Name;
                 }
             }
-            return tableName ?? typeof(TEntity).Name;
-        }
-
-        internal Table(Session session, string tableName,string keyspaceName)
-        {
-            this._session = session;
-            this._tableName = tableName;
-            this._keyspaceName = keyspaceName;
-        }
-
-        internal Table(Table<TEntity> cp)
-        {
-            this._keyspaceName = cp._keyspaceName;
-            this._tableName = cp._tableName;
-            this._session = cp._session;
-        }
-
-        public Type GetEntityType()
-        {
-            return typeof(TEntity);
-        }
-
-        public string GetQuotedTableName()
-        {
-            if (_keyspaceName != null)
-                return _keyspaceName.QuoteIdentifier() + "." + CalculateName(_tableName).QuoteIdentifier();
-            else
-                return CalculateName(_tableName).QuoteIdentifier();
-        }
-
-        public void Create()
-        {
-            var cqls = CqlQueryTools.GetCreateCQL(this, false);
-            foreach (var cql in cqls)
-                _session.WaitForSchemaAgreement(_session.Execute(cql));
+            return tableName ?? typeof (TEntity).Name;
         }
 
         public void CreateIfNotExists()
         {
             if (_session.BinaryProtocolVersion > 1)
             {
-                var cqls = CqlQueryTools.GetCreateCQL(this, true);
-                foreach (var cql in cqls)
+                List<string> cqls = CqlQueryTools.GetCreateCQL(this, true);
+                foreach (string cql in cqls)
                     _session.WaitForSchemaAgreement(_session.Execute(cql));
             }
             else
@@ -96,58 +146,9 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public IQueryable<TElement> CreateQuery<TElement>(System.Linq.Expressions.Expression expression)
-        {
-            return new CqlQuery<TElement>(expression, this);
-        }
-
-        public IQueryable CreateQuery(System.Linq.Expressions.Expression expression)
-        {
-            throw new NotImplementedException();
-        }
-
-        public TResult Execute<TResult>(System.Linq.Expressions.Expression expression)
-        {
-            throw new NotImplementedException();
-        }
-
-        public object Execute(System.Linq.Expressions.Expression expression)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Session GetSession()
-        {
-            return _session;
-        }
-
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
-            return new CqlInsert<TEntity>(entity,this);
-        }
-
-        static private TableType _tableType = TableType.All;
-
-        public TableType GetTableType()
-        {
-            if (_tableType == TableType.All)
-            {
-                var props = GetEntityType().GetPropertiesOrFields();
-                foreach (var prop in props)
-                {
-                    Type tpy = prop.GetTypeFromPropertyOrField();
-                    if (
-                        prop.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as
-                        CounterAttribute != null)
-                    {
-                        _tableType = TableType.Counter;
-                        break;
-                    }
-                }
-                if (_tableType == TableType.All)
-                    _tableType = TableType.Standard;
-            }
-            return _tableType;
+            return new CqlInsert<TEntity>(entity, this);
         }
     }
 }

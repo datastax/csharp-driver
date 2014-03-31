@@ -4,11 +4,12 @@ namespace Cassandra
 {
     public class RetryLoadBalancingPolicyEventArgs : EventArgs
     {
-        public long DelayMs { get; private set; }
         public bool Cancel = false;
+        public long DelayMs { get; private set; }
+
         public RetryLoadBalancingPolicyEventArgs(long delayMs)
         {
-            this.DelayMs = delayMs;
+            DelayMs = delayMs;
         }
     }
 }

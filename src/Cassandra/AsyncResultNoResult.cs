@@ -6,37 +6,24 @@ namespace Cassandra
 {
     internal class AsyncResultNoResult : IAsyncResult
     {
-        static long CurId;
-
-        public long Id;
-        
-        // Fields set at construction which never change while 
-        // operation is pending
-        private readonly AsyncCallback _asyncCallback;
-        private readonly object _asyncState;
-
         // Fields set at construction which do change after 
         // operation completes
         private const int StatePending = 0;
         private const int StateCompletedSynchronously = 1;
         private const int StateCompletedAsynchronously = 2;
-        private int _completedState = StatePending;
+        private static long CurId;
+        private readonly AsyncCallback _asyncCallback;
+        private readonly object _asyncState;
 
         // Field that may or may not get set depending on usage
-        private ManualResetEventSlim _asyncWaitHandle = new ManualResetEventSlim(false);
+        private readonly ManualResetEventSlim _asyncWaitHandle = new ManualResetEventSlim(false);
 
         // Fields set when operation completes
-        private Exception _exception;
 
         /// <summary>
         /// The object which started the operation.
         /// </summary>
         private readonly object _owner;
-
-        /// <summary>
-        /// Used to verify the BeginXXX and EndXXX calls match.
-        /// </summary>
-        private string _operationId;
 
         /// <summary>
         /// The object which is a source of the operation.
@@ -47,6 +34,15 @@ namespace Cassandra
         /// The tag object 
         /// </summary>
         private readonly object _tag;
+
+        public long Id;
+        private int _completedState = StatePending;
+        private Exception _exception;
+
+        /// <summary>
+        /// Used to verify the BeginXXX and EndXXX calls match.
+        /// </summary>
+        private string _operationId;
 
         internal AsyncResultNoResult(
             AsyncCallback asyncCallback,
@@ -68,56 +64,56 @@ namespace Cassandra
 
         internal bool Complete()
         {
-            return this.Complete(null, false /*completedSynchronously*/);
+            return Complete(null, false /*completedSynchronously*/);
         }
 
         internal bool Complete(bool completedSynchronously)
         {
-            return this.Complete(null, completedSynchronously);
+            return Complete(null, completedSynchronously);
         }
 
         internal bool Complete(Exception exception)
         {
-            return this.Complete(exception, false /*completedSynchronously*/);
+            return Complete(exception, false /*completedSynchronously*/);
         }
 
         internal bool Complete(Exception exception, bool completedSynchronously)
         {
             // The _completedState field MUST be set prior calling the callback
             if (Interlocked.Exchange(ref _completedState,
-                                     completedSynchronously ? StateCompletedSynchronously :
-                                         StateCompletedAsynchronously) == StatePending)
+                                     completedSynchronously
+                                         ? StateCompletedSynchronously
+                                         : StateCompletedAsynchronously) == StatePending)
             {
                 // Passing null for exception means no error occurred. 
                 // This is the common case
                 _exception = exception;
 
                 // Do any processing before completion.
-                this.Completing(exception, completedSynchronously);
+                Completing(exception, completedSynchronously);
 
                 _asyncWaitHandle.Set();
 
-                this.MakeCallback(_asyncCallback, this);
+                MakeCallback(_asyncCallback, this);
 
                 // Do any final processing after completion
-                this.Completed(exception, completedSynchronously);
+                Completed(exception, completedSynchronously);
 
                 return true;
             }
-            else
-                return false;
+            return false;
         }
 
         private void CheckUsage(object owner, string operationId)
         {
-            if (!object.ReferenceEquals(owner, _owner))
+            if (!ReferenceEquals(owner, _owner))
             {
                 throw new InvalidOperationException(
                     "End was called on a different object than Begin.");
             }
 
             // Reuse the operation ID to detect multiple calls to end.
-            if (object.ReferenceEquals(null, _operationId))
+            if (ReferenceEquals(null, _operationId))
             {
                 throw new InvalidOperationException(
                     "End was called multiple times for this operation.");
@@ -154,7 +150,7 @@ namespace Cassandra
             {
                 asyncResult.AsyncWaitHandle.WaitOne(Timeout.Infinite);
             }
-            catch(ThreadInterruptedException tiex)
+            catch (ThreadInterruptedException tiex)
             {
                 if (!asyncResult.IsCompleted)
                     asyncResult.Complete(tiex);
@@ -163,8 +159,8 @@ namespace Cassandra
             // Operation is done: if an exception occurred, throw it
             if (asyncResult._exception != null)
             {
-                var mth = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
-                if(mth!=null)
+                MethodInfo mth = typeof (Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (mth != null)
                     mth.Invoke(asyncResult._exception, null);
                 throw asyncResult._exception;
             }
@@ -172,10 +168,25 @@ namespace Cassandra
 
         #region Implementation of IAsyncResult
 
-        public object AsyncState { get { return _asyncState; } }
-        public object AsyncOwner { get { return _owner; } }
-        public object AsyncSender { get { return _sender; } }
-        public object Tag { get { return _tag; } }
+        public object AsyncOwner
+        {
+            get { return _owner; }
+        }
+
+        public object AsyncSender
+        {
+            get { return _sender; }
+        }
+
+        public object Tag
+        {
+            get { return _tag; }
+        }
+
+        public object AsyncState
+        {
+            get { return _asyncState; }
+        }
 
         public bool CompletedSynchronously
         {
@@ -188,10 +199,7 @@ namespace Cassandra
 
         public WaitHandle AsyncWaitHandle
         {
-            get
-            {
-                return _asyncWaitHandle.WaitHandle;
-            }
+            get { return _asyncWaitHandle.WaitHandle; }
         }
 
         public bool IsCompleted
@@ -202,6 +210,7 @@ namespace Cassandra
                        StatePending;
             }
         }
+
         #endregion
 
         #region Extensibility
@@ -223,6 +232,7 @@ namespace Cassandra
             Exception exception, bool completedSynchronously)
         {
         }
+
         #endregion
     }
 }

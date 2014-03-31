@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System.Threading;
 
 namespace Cassandra
@@ -22,21 +23,9 @@ namespace Cassandra
     /// </summary>
     public class ClientOptions
     {
-        private readonly bool _withoutRowSetBuffering = false;
+        private readonly string _defaultKeyspace;
         private readonly int _queryAbortTimeout = Timeout.Infinite;
-        private readonly string _defaultKeyspace = null;
-
-        public ClientOptions()
-            : this(false, Timeout.Infinite,null)
-        {
-        }
-
-        public ClientOptions( bool withoutRowSetBuffering, int queryAbortTimeout, string defaultKeyspace)
-        {
-            this._withoutRowSetBuffering = withoutRowSetBuffering;
-            this._queryAbortTimeout = queryAbortTimeout;
-            this._defaultKeyspace = defaultKeyspace;
-        }
+        private readonly bool _withoutRowSetBuffering;
 
         public bool WithoutRowSetBuffering
         {
@@ -51,6 +40,18 @@ namespace Cassandra
         public string DefaultKeyspace
         {
             get { return _defaultKeyspace; }
+        }
+
+        public ClientOptions()
+            : this(false, Timeout.Infinite, null)
+        {
+        }
+
+        public ClientOptions(bool withoutRowSetBuffering, int queryAbortTimeout, string defaultKeyspace)
+        {
+            _withoutRowSetBuffering = withoutRowSetBuffering;
+            _queryAbortTimeout = queryAbortTimeout;
+            _defaultKeyspace = defaultKeyspace;
         }
     }
 }

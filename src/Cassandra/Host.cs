@@ -13,9 +13,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
- using System.Net;
- using System.Threading;
+
+using System;
+using System.Net;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -26,13 +27,13 @@ namespace Cassandra
     public class Host
     {
         private readonly IPAddress _address;
+        private readonly IReconnectionPolicy _reconnectionPolicy;
 
         private string _datacenter;
-        private string _rack;
 
         private volatile bool _isUpNow = true;
         private DateTimeOffset _nextUpTime;
-        readonly IReconnectionPolicy _reconnectionPolicy;
+        private string _rack;
         private IReconnectionSchedule _reconnectionSchedule;
 
         public bool IsUp
@@ -42,10 +43,44 @@ namespace Cassandra
 
         public bool IsConsiderablyUp
         {
-            get
-            {
-                return _isUpNow || (_nextUpTime <= DateTimeOffset.Now);
-            }
+            get { return _isUpNow || (_nextUpTime <= DateTimeOffset.Now); }
+        }
+
+        /// <summary>
+        ///  Gets the node address.
+        /// </summary>
+        public IPAddress Address
+        {
+            get { return _address; }
+        }
+
+        /// <summary>
+        ///  Gets the name of the datacenter this host is part of. The returned
+        ///  datacenter name is the one as known by Cassandra. Also note that it is
+        ///  possible for this information to not be available. In that case this method
+        ///  returns <code>null</code> and caller should always expect that possibility.
+        /// </summary>
+        public string Datacenter
+        {
+            get { return _datacenter; }
+        }
+
+        /// <summary>
+        ///  Gets the name of the rack this host is part of. The returned rack name is
+        ///  the one as known by Cassandra. Also note that it is possible for this
+        ///  information to not be available. In that case this method returns
+        ///  <code>null</code> and caller should always expect that possibility.
+        /// </summary>
+        public string Rack
+        {
+            get { return _rack; }
+        }
+
+        public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
+        {
+            _address = address;
+            _reconnectionPolicy = reconnectionPolicy;
+            _reconnectionSchedule = reconnectionPolicy.NewSchedule();
         }
 
         public bool SetDown()
@@ -74,57 +109,10 @@ namespace Cassandra
             return false;
         }
 
-        public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
-        {
-            this._address = address;
-            this._reconnectionPolicy = reconnectionPolicy;
-            this._reconnectionSchedule = reconnectionPolicy.NewSchedule();
-        }
-
         public void SetLocationInfo(string datacenter, string rack)
         {
-            this._datacenter = datacenter;
-            this._rack = rack;
+            _datacenter = datacenter;
+            _rack = rack;
         }
-
-        /// <summary>
-        ///  Gets the node address.
-        /// </summary>
-        public IPAddress Address
-        {
-            get
-            {
-                return _address;
-            }
-        }
-
-        /// <summary>
-        ///  Gets the name of the datacenter this host is part of. The returned
-        ///  datacenter name is the one as known by Cassandra. Also note that it is
-        ///  possible for this information to not be available. In that case this method
-        ///  returns <code>null</code> and caller should always expect that possibility.
-        /// </summary>
-        public string Datacenter
-        {
-            get
-            {
-                return _datacenter;
-            }
-        }
-
-        /// <summary>
-        ///  Gets the name of the rack this host is part of. The returned rack name is
-        ///  the one as known by Cassandra. Also note that it is possible for this
-        ///  information to not be available. In that case this method returns
-        ///  <code>null</code> and caller should always expect that possibility.
-        /// </summary>
-        public string Rack
-        {
-            get
-            {
-                return _rack;
-            }
-        }
-
     }
 }

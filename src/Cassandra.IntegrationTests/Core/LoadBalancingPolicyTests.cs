@@ -22,10 +22,10 @@ namespace Cassandra.IntegrationTests.Core
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void roundRobinTestCCM()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
             createSchema(c.Session);
             try
@@ -54,7 +54,6 @@ namespace Cassandra.IntegrationTests.Core
 
                 assertQueried(Options.Default.IP_PREFIX + "2", 6);
                 assertQueried(Options.Default.IP_PREFIX + "3", 6);
-
             }
             catch (Exception e)
             {
@@ -72,13 +71,11 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void roundRobinWith2DCsTestCCM()
         {
-
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
             createSchema(c.Session);
             try
             {
-
                 init(c, 12);
                 query(c, 12);
 
@@ -114,16 +111,14 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void DCAwareRoundRobinTestCCM()
         {
-
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
             createMultiDCSchema(c.Session);
             try
             {
-
                 init(c, 12);
                 query(c, 12);
 
@@ -131,7 +126,6 @@ namespace Cassandra.IntegrationTests.Core
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 assertQueried(Options.Default.IP_PREFIX + "3", 6);
                 assertQueried(Options.Default.IP_PREFIX + "4", 6);
-
             }
             catch (Exception e)
             {
@@ -146,10 +140,10 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void forceStopCCM()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             builder.WithQueryTimeout(10000);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(4, builder);
             createSchema(c.Session);
@@ -173,13 +167,12 @@ namespace Cassandra.IntegrationTests.Core
                 try
                 {
                     query(c, 12);
-                    Assert.Fail();                    
+                    Assert.Fail();
                 }
                 catch (NoHostAvailableException e)
                 {
                     // No more nodes so ...
                 }
-
             }
             catch (Exception e)
             {
@@ -197,20 +190,19 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
             createMultiDCSchema(c.Session);
             try
             {
-
                 init(c, 12);
                 query(c, 12);
 
                 assertQueried(Options.Default.IP_PREFIX + "1", 0);
-            assertQueried(Options.Default.IP_PREFIX + "2", 0);
-            assertQueried(Options.Default.IP_PREFIX + "3", 6);
-            assertQueried(Options.Default.IP_PREFIX + "4", 6);
-            assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "4", 6);
+                assertQueried(Options.Default.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
                 c.CCMBridge.BootstrapNode(5, "dc3");
@@ -219,11 +211,11 @@ namespace Cassandra.IntegrationTests.Core
 
                 query(c, 12);
 
-            assertQueried(Options.Default.IP_PREFIX + "1", 0);
-            assertQueried(Options.Default.IP_PREFIX + "2", 0);
-            assertQueried(Options.Default.IP_PREFIX + "3", 6);
-            assertQueried(Options.Default.IP_PREFIX + "4", 6);
-            assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                assertQueried(Options.Default.IP_PREFIX + "1", 0);
+                assertQueried(Options.Default.IP_PREFIX + "2", 0);
+                assertQueried(Options.Default.IP_PREFIX + "3", 6);
+                assertQueried(Options.Default.IP_PREFIX + "4", 6);
+                assertQueried(Options.Default.IP_PREFIX + "5", 0);
 
                 resetCoordinators();
                 c.CCMBridge.DecommissionNode(3);
@@ -270,13 +262,12 @@ namespace Cassandra.IntegrationTests.Core
                 try
                 {
                     query(c, 12);
-                    Assert.Fail();                    
+                    Assert.Fail();
                 }
                 catch (NoHostAvailableException e)
                 {
                     // No more nodes so ...
                 }
-
             }
             catch (Exception e)
             {
@@ -291,7 +282,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [TestMethod]
-		[WorksForMe]
+        [WorksForMe]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
@@ -306,7 +297,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public void tokenAwareTest(bool usePrepared)
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
             createSchema(c.Session);
             try
@@ -360,7 +351,6 @@ namespace Cassandra.IntegrationTests.Core
 
                 assertQueried(Options.Default.IP_PREFIX + "1", 12);
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
-
             }
             catch (Exception e)
             {
@@ -378,12 +368,11 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void tokenAwareWithRF2TestCCM()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
             createSchema(c.Session, 2);
             try
             {
-
                 init(c, 12);
                 query(c, 12);
 
@@ -414,7 +403,6 @@ namespace Cassandra.IntegrationTests.Core
                 assertQueried(Options.Default.IP_PREFIX + "1", 6);
                 assertQueried(Options.Default.IP_PREFIX + "2", 0);
                 assertQueried(Options.Default.IP_PREFIX + "3", 6);
-
             }
             catch (Exception e)
             {
@@ -429,5 +417,3 @@ namespace Cassandra.IntegrationTests.Core
         }
     }
 }
-    
-    

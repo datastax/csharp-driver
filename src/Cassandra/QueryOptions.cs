@@ -17,7 +17,6 @@ using System;
 
 namespace Cassandra
 {
-
     /// <summary>
     /// Options related to defaults for individual queries.
     /// </summary>
@@ -39,16 +38,10 @@ namespace Cassandra
         public const int DefaultPageSize = 5000;
 
         private volatile ConsistencyLevel consistency = DefaultConsistencyLevel;
-        private volatile ConsistencyLevel serialConsistency = DefaultSerialConsistencyLevel;
         private volatile int pageSize = DefaultPageSize;
+        private volatile ConsistencyLevel serialConsistency = DefaultSerialConsistencyLevel;
 
-        /// <summary>
-        /// Creates a new {@code QueryOptions} instance using the {@code DefaultConsistencyLevel},
-        /// {@code DefaultSerialConsistencyLevel} and {@code DefaultPageSize}.
-        /// </summary>
-        public QueryOptions() { }
 
-        
         /// <summary>
         /// Sets the default consistency level to use for queries.
         /// 
@@ -59,7 +52,7 @@ namespace Cassandra
         /// <returns>this QueryOptions instance</returns>
         public QueryOptions SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            this.consistency = consistencyLevel;
+            consistency = consistencyLevel;
             return this;
         }
 
@@ -72,7 +65,7 @@ namespace Cassandra
         {
             return consistency;
         }
-        
+
 
         /// <summary>
         /// Sets the default serial consistency level to use for queries.
@@ -83,12 +76,11 @@ namespace Cassandra
         /// <returns>this QueryOptions instance.</returns>
         public QueryOptions SetSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
         {
-            this.serialConsistency = serialConsistencyLevel;
+            serialConsistency = serialConsistencyLevel;
             return this;
         }
 
-        
-       
+
         /// <summary>
         /// The default serial consistency level used by queries.
         /// </summary>
@@ -108,7 +100,7 @@ namespace Cassandra
         /// strictly positive but you can use int.MaxValue to disable paging.</param>
         /// <returns>this QueryOptions instance</returns>
         public QueryOptions SetPageSize(int pageSize)
-        {            
+        {
             if (pageSize <= 0)
                 throw new ArgumentException("Invalid pageSize, should be > 0, got " + pageSize);
             this.pageSize = pageSize;

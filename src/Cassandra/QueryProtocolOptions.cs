@@ -13,14 +13,6 @@ namespace Cassandra
             WithSerialConsistency = 0x10
         }
 
-        public QueryFlags Flags;
-        public ConsistencyLevel Consistency;
-        public readonly object[] Values;
-        public readonly bool SkipMetadata;
-        public readonly int PageSize;
-        public readonly byte[] PagingState;
-        public readonly ConsistencyLevel SerialConsistency;
-
         public static QueryProtocolOptions DEFAULT = new QueryProtocolOptions(ConsistencyLevel.One,
                                                                               null,
                                                                               false,
@@ -28,13 +20,13 @@ namespace Cassandra
                                                                               null,
                                                                               ConsistencyLevel.Any);
 
-        static internal QueryProtocolOptions CreateFromQuery(Query query, ConsistencyLevel defaultCL)
-        {
-            if (query == null)
-                return QueryProtocolOptions.DEFAULT;
-            else
-                return new QueryProtocolOptions( query.ConsistencyLevel.HasValue ? query.ConsistencyLevel.Value : defaultCL, query.QueryValues, query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel);
-        }
+        public readonly int PageSize;
+        public readonly byte[] PagingState;
+        public readonly ConsistencyLevel SerialConsistency;
+        public readonly bool SkipMetadata;
+        public readonly object[] Values;
+        public ConsistencyLevel Consistency;
+        public QueryFlags Flags;
 
         internal QueryProtocolOptions(ConsistencyLevel consistency,
                                       object[] values,
@@ -43,20 +35,26 @@ namespace Cassandra
                                       byte[] pagingState,
                                       ConsistencyLevel serialConsistency)
         {
-
-            this.Consistency = consistency;
-            this.Values = values;
-            this.SkipMetadata = skipMetadata;
+            Consistency = consistency;
+            Values = values;
+            SkipMetadata = skipMetadata;
             if (pageSize <= 0)
-                this.PageSize = QueryOptions.DefaultPageSize;
+                PageSize = QueryOptions.DefaultPageSize;
+            else if (pageSize == int.MaxValue)
+                PageSize = -1;
             else
-                if (pageSize == int.MaxValue)
-                    this.PageSize = -1;
-                else
-                    this.PageSize = pageSize;
-            this.PagingState = pagingState;
-            this.SerialConsistency = serialConsistency;
+                PageSize = pageSize;
+            PagingState = pagingState;
+            SerialConsistency = serialConsistency;
             AddFlags();
+        }
+
+        internal static QueryProtocolOptions CreateFromQuery(Query query, ConsistencyLevel defaultCL)
+        {
+            if (query == null)
+                return DEFAULT;
+            return new QueryProtocolOptions(query.ConsistencyLevel.HasValue ? query.ConsistencyLevel.Value : defaultCL, query.QueryValues,
+                                            query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel);
         }
 
         private void AddFlags()
@@ -75,18 +73,18 @@ namespace Cassandra
 
         internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency)
         {
-            if ((ushort)(extConsistency ?? Consistency) >= (ushort)ConsistencyLevel.Serial)
+            if ((ushort) (extConsistency ?? Consistency) >= (ushort) ConsistencyLevel.Serial)
                 throw new InvalidOperationException("Serial consistency specified as a non-serial one.");
 
-            wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
-            wb.WriteByte((byte)Flags);
+            wb.WriteUInt16((ushort) (extConsistency ?? Consistency));
+            wb.WriteByte((byte) Flags);
 
             if ((Flags & QueryFlags.Values) == QueryFlags.Values)
             {
-                wb.WriteUInt16((ushort)Values.Length);
+                wb.WriteUInt16((ushort) Values.Length);
                 for (int i = 0; i < Values.Length; i++)
                 {
-                    var bytes = TypeInterpreter.InvCqlConvert(Values[i]);
+                    byte[] bytes = TypeInterpreter.InvCqlConvert(Values[i]);
                     wb.WriteBytes(bytes);
                 }
             }
@@ -97,9 +95,9 @@ namespace Cassandra
                 wb.WriteBytes(PagingState);
             if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
             {
-                if ((ushort)(SerialConsistency) < (ushort)ConsistencyLevel.Serial)
+                if ((ushort) (SerialConsistency) < (ushort) ConsistencyLevel.Serial)
                     throw new InvalidOperationException("Non-serial consistency specified as a serial one.");
-                wb.WriteUInt16((ushort)SerialConsistency);
+                wb.WriteUInt16((ushort) SerialConsistency);
             }
         }
     }

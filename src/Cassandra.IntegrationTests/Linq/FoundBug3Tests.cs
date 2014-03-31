@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -27,7 +28,7 @@ namespace Cassandra.IntegrationTests.Linq
     {
         private string KeyspaceName = "test";
 
-        Session Session;
+        private Session Session;
 
         [TestInitialize]
         public void SetFixture()
@@ -53,12 +54,12 @@ namespace Cassandra.IntegrationTests.Linq
         public void Bug_CSHARP_42()
         {
             Console.WriteLine("Hello World!");
-            var table = Session.GetTable<SalesOrder>();
+            Table<SalesOrder> table = Session.GetTable<SalesOrder>();
             table.CreateIfNotExists();
 
-            var batch = Session.CreateBatch();
+            Batch batch = Session.CreateBatch();
 
-            var order = new SalesOrder()
+            var order = new SalesOrder
             {
                 OrderNumber = "OR00012345",
                 Customer = "Jeremiah Peschka",
@@ -87,7 +88,7 @@ namespace Cassandra.IntegrationTests.Linq
             batch.Append(table.Insert(order));
             batch.Execute();
 
-            var lst = (from x in table select x).Execute().ToList();
+            List<SalesOrder> lst = (from x in table select x).Execute().ToList();
 
             Console.WriteLine("done!");
         }

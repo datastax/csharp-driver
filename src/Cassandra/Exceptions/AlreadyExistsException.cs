@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -36,21 +37,23 @@ namespace Cassandra
         ///  Gets whether the query yielding this exception was a table creation
         ///  attempt.
         /// </summary>
-        public bool WasTableCreation { get { return !string.IsNullOrEmpty((Table)); } }
+        public bool WasTableCreation
+        {
+            get { return !string.IsNullOrEmpty((Table)); }
+        }
 
         public AlreadyExistsException(string keyspace, string table) :
             base(makeMsg(keyspace, table))
         {
-            this.Keyspace = string.IsNullOrEmpty(keyspace.Trim()) ? null : keyspace;
-            this.Table = string.IsNullOrEmpty(table.Trim()) ? null : table;
+            Keyspace = string.IsNullOrEmpty(keyspace.Trim()) ? null : keyspace;
+            Table = string.IsNullOrEmpty(table.Trim()) ? null : table;
         }
 
         private static string makeMsg(string keyspace, string table)
         {
             if (string.IsNullOrEmpty(table))
                 return string.Format("Keyspace {0} already exists", keyspace);
-            else
-                return string.Format("Table {0}.{1} already exists", keyspace, table);
+            return string.Format("Table {0}.{1} already exists", keyspace, table);
         }
     }
 }

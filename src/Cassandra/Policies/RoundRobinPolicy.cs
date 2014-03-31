@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
-using System.Threading;
-using System.Linq;
 
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -31,19 +31,13 @@ namespace Cassandra
     /// </summary>
     public class RoundRobinPolicy : ILoadBalancingPolicy
     {
-        /// <summary>
-        ///  Creates a load balancing policy that picks host to query in a round robin
-        ///  fashion (on all the hosts of the Cassandra cluster).
-        /// </summary>
-        public RoundRobinPolicy() { }
-
-        Cluster _cluster;
-        int _index;
+        private Cluster _cluster;
+        private int _index;
 
         public void Initialize(Cluster cluster)
         {
-            this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
+            _cluster = cluster;
+            _index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
         }
 
 
@@ -73,20 +67,19 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-
             int startidx = Interlocked.Increment(ref _index);
-            
+
             // Overflow protection; not theoretically thread safe but should be good enough
             if (startidx > int.MaxValue - 10000)
                 Thread.VolatileWrite(ref _index, 0);
 
-            var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            Host[] copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
 
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
                 startidx %= copyOfHosts.Length;
 
-                var h = copyOfHosts[startidx];
+                Host h = copyOfHosts[startidx];
 
                 startidx++;
 

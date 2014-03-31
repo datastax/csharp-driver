@@ -12,7 +12,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
+            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             return visitor.GetDelete(out values, _timestamp, withValues);

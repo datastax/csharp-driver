@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -27,28 +28,34 @@ namespace Cassandra
     public class Metadata : IDisposable
     {
         private readonly Hosts _hosts;
-        private ControlConnection _controlConnection = null;
+        private ControlConnection _controlConnection;
+        private volatile TokenMap _tokenMap;
 
-        internal Metadata(IReconnectionPolicy rp) 
-        {
-            this._hosts = new Hosts(rp);
-        }
-
-        internal void SetupControllConnection(ControlConnection controlConnection)
-        {
-            this._controlConnection = controlConnection;
-            _controlConnection.Init();
-        }
-
-        public event HostsEventHandler HostsEvent;
-        public event SchemaChangedEventHandler SchemaChangedEvent;
-        
         /// <summary>
         ///  Returns the name of currently connected cluster.
         /// </summary>
         /// 
         /// <returns>the Cassandra name of currently connected cluster.</returns>
         public String ClusterName { get; internal set; }
+
+        internal Metadata(IReconnectionPolicy rp)
+        {
+            _hosts = new Hosts(rp);
+        }
+
+        public void Dispose()
+        {
+            ShutDown();
+        }
+
+        internal void SetupControllConnection(ControlConnection controlConnection)
+        {
+            _controlConnection = controlConnection;
+            _controlConnection.Init();
+        }
+
+        public event HostsEventHandler HostsEvent;
+        public event SchemaChangedEventHandler SchemaChangedEvent;
 
 
         public Host GetHost(IPAddress address)
@@ -73,21 +80,21 @@ namespace Cassandra
         internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
         {
             if (SchemaChangedEvent != null)
-                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs() { Keyspace = keyspace, What = what, Table = table });
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
         }
 
         internal void SetDownHost(IPAddress address, object sender = null)
         {
             if (_hosts.SetDownIfExists(address))
                 if (HostsEvent != null)
-                    HostsEvent(sender ?? this, new HostsEventArgs() { IPAddress = address, What = HostsEventArgs.Kind.Down });
+                    HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Down});
         }
 
         internal void BringUpHost(IPAddress address, object sender = null)
         {
             if (_hosts.AddIfNotExistsOrBringUpIfDown(address))
                 if (HostsEvent != null)
-                    HostsEvent(sender ?? this, new HostsEventArgs() { IPAddress = address, What = HostsEventArgs.Kind.Up });
+                    HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
         }
 
         /// <summary>
@@ -108,21 +115,16 @@ namespace Cassandra
 
         internal void RebuildTokenMap(string partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
         {
-            this._tokenMap = TokenMap.Build(partitioner, allTokens);
+            _tokenMap = TokenMap.Build(partitioner, allTokens);
         }
-
-        private volatile TokenMap _tokenMap;
 
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            if(_tokenMap==null)
+            if (_tokenMap == null)
             {
                 return new List<IPAddress>();
             }
-            else
-            {
-                return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));
-            }
+            return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));
         }
 
 
@@ -172,11 +174,6 @@ namespace Cassandra
         public TableMetadata GetTable(string keyspace, string tableName)
         {
             return _controlConnection.GetTable(keyspace, tableName);
-        }
-
-        public void Dispose()
-        {
-            ShutDown();
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)

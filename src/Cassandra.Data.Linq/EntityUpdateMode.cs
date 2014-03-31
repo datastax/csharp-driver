@@ -1,4 +1,8 @@
 namespace Cassandra.Data.Linq
 {
-    public enum EntityUpdateMode { ModifiedOnly, AllOrNone }
+    public enum EntityUpdateMode
+    {
+        ModifiedOnly,
+        AllOrNone
+    }
 }

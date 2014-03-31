@@ -6,6 +6,7 @@ namespace Cassandra.Data.Linq
     {
         internal CqlArgumentException(string message)
             : base(message)
-        { }
+        {
+        }
     }
 }

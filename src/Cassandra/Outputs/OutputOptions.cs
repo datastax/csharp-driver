@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,15 +13,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+
+using System.Collections.Generic;
 
 namespace Cassandra
 {
     internal class OutputOptions : IOutput, IWaitableForDispose
     {
-        readonly Dictionary<string, string[]> _options;
+        private readonly Dictionary<string, string[]> _options;
 
-        public IDictionary<string, string[]> Options { get { return _options; } }
+        public IDictionary<string, string[]> Options
+        {
+            get { return _options; }
+        }
 
         internal OutputOptions(BEBinaryReader reader)
         {
@@ -29,8 +33,8 @@ namespace Cassandra
             int n = reader.ReadUInt16();
             for (int i = 0; i < n; i++)
             {
-                var k = reader.ReadString();
-                var v = reader.ReadStringList().ToArray();
+                string k = reader.ReadString();
+                string[] v = reader.ReadStringList().ToArray();
                 _options.Add(k, v);
             }
         }
@@ -38,6 +42,7 @@ namespace Cassandra
         public void Dispose()
         {
         }
+
         public void WaitForDispose()
         {
         }

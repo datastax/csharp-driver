@@ -16,7 +16,6 @@
 
 namespace Cassandra
 {
-
     /// <summary>
     ///  Represents a prepared statement, a query with bound variables that has been
     ///  prepared (pre-parsed) by the database. <p> A prepared statement can be
@@ -26,26 +25,33 @@ namespace Cassandra
     /// </summary>
     public class PreparedStatement
     {
-        private volatile ConsistencyLevel _consistency;
-        private volatile RoutingKey _routingKey;
-
+        internal readonly string Cql;
+        internal readonly byte[] Id;
         internal readonly RowSetMetadata Metadata;
         internal readonly RowSetMetadata ResultMetadata;
-        internal readonly byte[] Id;
-        internal readonly string Cql;
-
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, RowSetMetadata resultMetadata )
-        {
-            this.Metadata = metadata;
-            this.Id = id;
-            this.Cql = cql;
-            this.ResultMetadata = resultMetadata;
-        }        
+        private volatile ConsistencyLevel _consistency;
+        private volatile RoutingKey _routingKey;
 
         /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
         /// </summary>
-        public RowSetMetadata Variables { get { return Metadata; } }
+        public RowSetMetadata Variables
+        {
+            get { return Metadata; }
+        }
+
+        public RoutingKey RoutingKey
+        {
+            get { return _routingKey; }
+        }
+
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, RowSetMetadata resultMetadata)
+        {
+            Metadata = metadata;
+            Id = id;
+            Cql = cql;
+            ResultMetadata = resultMetadata;
+        }
 
         /// <summary>
         ///  Sets a default consistency level for all <code>BoundStatement</code> created
@@ -59,11 +65,9 @@ namespace Cassandra
         /// <returns>this <code>PreparedStatement</code> object.</returns>
         public PreparedStatement SetConsistencyLevel(ConsistencyLevel consistency)
         {
-            this._consistency = consistency;
+            _consistency = consistency;
             return this;
         }
-
-        public RoutingKey RoutingKey { get { return _routingKey; } }
 
         /// <summary>
         ///  Set the routing key for this query. <p> See
@@ -78,7 +82,8 @@ namespace Cassandra
         ///  <see>Query#GetRoutingKey</returns>
         public PreparedStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this;
+            _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
         }
 
         /// <summary>
@@ -100,7 +105,7 @@ namespace Cassandra
             var bs = new BoundStatement(this);
             bs.SetValues(values);
             bs.SetSkipMetadata(ResultMetadata != null ? true : false);
-            
+
             return bs;
         }
     }

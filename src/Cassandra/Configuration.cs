@@ -13,9 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
-
     /// <summary>
     ///  The configuration of the cluster. This handle setting: <ul> <li>Cassandra
     ///  binary protocol level configuration (compression).</li> <li>Connection
@@ -24,55 +24,22 @@ namespace Cassandra
     /// </summary>
     public class Configuration
     {
-
+        private readonly IAuthInfoProvider _authInfoProvider;
+        private readonly IAuthProvider _authProvider;
+        private readonly ClientOptions _clientOptions;
         private readonly Policies _policies;
 
-        private readonly ProtocolOptions _protocolOptions;
         private readonly PoolingOptions _poolingOptions;
-        private readonly SocketOptions _socketOptions;
-        private readonly ClientOptions _clientOptions;
+        private readonly ProtocolOptions _protocolOptions;
         private readonly QueryOptions _queryOptions;
-
-        private readonly IAuthProvider _authProvider;
-        private readonly IAuthInfoProvider _authInfoProvider;
-
-        internal Configuration() :
-            this(new Policies(),
-                 new ProtocolOptions(),
-                 new PoolingOptions(),
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions())
-        {
-        }
-
-        internal Configuration(Policies policies,
-                             ProtocolOptions protocolOptions,
-                             PoolingOptions poolingOptions,
-                             SocketOptions socketOptions,
-                             ClientOptions clientOptions,
-                             IAuthProvider authProvider,
-                             IAuthInfoProvider authInfoProvider,
-                             QueryOptions queryOptions)
-        {
-            this._policies = policies;
-            this._protocolOptions = protocolOptions;
-            this._poolingOptions = poolingOptions;
-            this._socketOptions = socketOptions;
-            this._clientOptions = clientOptions;
-            this._authProvider = authProvider;
-            this._authInfoProvider = authInfoProvider;
-            this._queryOptions = queryOptions;
-        }
+        private readonly SocketOptions _socketOptions;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
         /// </summary>
         public Policies Policies
         {
-            get {return _policies;}
+            get { return _policies; }
         }
 
         /// <summary>
@@ -80,7 +47,7 @@ namespace Cassandra
         /// </summary>
         public SocketOptions SocketOptions
         {
-            get {return _socketOptions;}
+            get { return _socketOptions; }
         }
 
         /// <summary>
@@ -90,7 +57,7 @@ namespace Cassandra
         /// <returns>the protocol options.</returns>
         public ProtocolOptions ProtocolOptions
         {
-             get {return _protocolOptions;}
+            get { return _protocolOptions; }
         }
 
         /// <summary>
@@ -100,7 +67,7 @@ namespace Cassandra
         /// <returns>the pooling options.</returns>
         public PoolingOptions PoolingOptions
         {
-            get {return _poolingOptions;}
+            get { return _poolingOptions; }
         }
 
         /// <summary>
@@ -125,7 +92,7 @@ namespace Cassandra
         /// 
         /// <returns>the authentication provider in use.</returns>
         internal IAuthProvider AuthProvider
-        // Not exposed yet on purpose
+            // Not exposed yet on purpose
         {
             get { return _authProvider; }
         }
@@ -136,9 +103,40 @@ namespace Cassandra
         /// 
         /// <returns>the authentication provider in use.</returns>
         internal IAuthInfoProvider AuthInfoProvider
-        // Not exposed yet on purpose
+            // Not exposed yet on purpose
         {
             get { return _authInfoProvider; }
+        }
+
+        internal Configuration() :
+            this(new Policies(),
+                 new ProtocolOptions(),
+                 new PoolingOptions(),
+                 new SocketOptions(),
+                 new ClientOptions(),
+                 NoneAuthProvider.Instance,
+                 null,
+                 new QueryOptions())
+        {
+        }
+
+        internal Configuration(Policies policies,
+                               ProtocolOptions protocolOptions,
+                               PoolingOptions poolingOptions,
+                               SocketOptions socketOptions,
+                               ClientOptions clientOptions,
+                               IAuthProvider authProvider,
+                               IAuthInfoProvider authInfoProvider,
+                               QueryOptions queryOptions)
+        {
+            _policies = policies;
+            _protocolOptions = protocolOptions;
+            _poolingOptions = poolingOptions;
+            _socketOptions = socketOptions;
+            _clientOptions = clientOptions;
+            _authProvider = authProvider;
+            _authInfoProvider = authInfoProvider;
+            _queryOptions = queryOptions;
         }
     }
 }

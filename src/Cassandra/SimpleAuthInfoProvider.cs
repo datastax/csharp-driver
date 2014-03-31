@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System.Collections.Generic;
 using System.Net;
 
@@ -26,13 +27,14 @@ namespace Cassandra
     /// </summary>
     internal class SimpleAuthInfoProvider : IAuthInfoProvider
     {
-
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
 
         /// <summary>
         ///  Creates a new, empty, simple authentication info provider.
         /// </summary>
-        public SimpleAuthInfoProvider() { }
+        public SimpleAuthInfoProvider()
+        {
+        }
 
         /// <summary>
         ///  Creates a new simple authentication info provider with the informations
@@ -71,7 +73,7 @@ namespace Cassandra
         /// <returns><code>this</code> object.</returns>
         public SimpleAuthInfoProvider AddAll(Dictionary<string, string> properties)
         {
-            foreach (var kv in properties)
+            foreach (KeyValuePair<string, string> kv in properties)
                 _credentials[kv.Key] = kv.Value;
             return this;
         }

@@ -1,5 +1,4 @@
-using System;
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,29 +13,32 @@ using System;
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
     internal class CredentialsRequest : IRequest
     {
         public const byte OpCode = 0x04;
-        readonly int _streamId;
-        readonly IDictionary<string, string> _credentials;
+        private readonly IDictionary<string, string> _credentials;
+        private readonly int _streamId;
+
         public CredentialsRequest(int streamId, IDictionary<string, string> credentials)
         {
-            this._streamId = streamId;
-            this._credentials = credentials;
+            _streamId = streamId;
+            _credentials = credentials;
         }
+
         public RequestFrame GetFrame(byte protocolVersionByte)
         {
             if (protocolVersionByte != RequestFrame.ProtocolV1RequestVersionByte)
-                throw new NotSupportedException("Credentials request is supported in C* <= 1.2.x"); 
-            
+                throw new NotSupportedException("Credentials request is supported in C* <= 1.2.x");
+
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
-            wb.WriteUInt16((ushort)_credentials.Count);
-            foreach (var kv in _credentials)
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
+            wb.WriteUInt16((ushort) _credentials.Count);
+            foreach (KeyValuePair<string, string> kv in _credentials)
             {
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);

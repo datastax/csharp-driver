@@ -20,6 +20,7 @@
 // ported to C# from https://github.com/dain/snappy/blob/master/src/main/java/org/iq80/snappy/CorruptionException.java
 
 using System;
+
 namespace Snappy
 {
     internal class CorruptionException : Exception

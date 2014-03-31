@@ -26,11 +26,10 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class MetadataTests
     {
-        string Keyspace = "tester";
-
-        Cluster Cluster;
-        Session Session;
-        CCMBridge.CCMCluster CCMCluster;
+        private CCMBridge.CCMCluster CCMCluster;
+        private Cluster Cluster;
+        private string Keyspace = "tester";
+        private Session Session;
 
         [TestInitialize]
         public void SetFixture()
@@ -45,32 +44,32 @@ namespace Cassandra.IntegrationTests.Core
 
         public void checkPureMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
         {
-            Dictionary<string, ColumnTypeCode> columns = new Dictionary
-                               <string, ColumnTypeCode>()
-                {
-                    {"q0uuid", ColumnTypeCode.Uuid},
-                    {"q1timestamp", ColumnTypeCode.Timestamp},
-                    {"q2double", ColumnTypeCode.Double},
-                    {"q3int32", ColumnTypeCode.Int},
-                    {"q4int64", ColumnTypeCode.Bigint},
-                    {"q5float", ColumnTypeCode.Float},
-                    {"q6inet", ColumnTypeCode.Inet},
-                    {"q7boolean", ColumnTypeCode.Boolean},
-                    {"q8inet", ColumnTypeCode.Inet},
-                    {"q9blob", ColumnTypeCode.Blob},
-                    {"q10varint", ColumnTypeCode.Varint},
-                    {"q11decimal", ColumnTypeCode.Decimal},
-                    {"q12list", ColumnTypeCode.List},
-                    {"q13set", ColumnTypeCode.Set},
-                    {"q14map", ColumnTypeCode.Map}
-                    //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
-                };
+            var columns = new Dictionary
+                <string, ColumnTypeCode>
+            {
+                {"q0uuid", ColumnTypeCode.Uuid},
+                {"q1timestamp", ColumnTypeCode.Timestamp},
+                {"q2double", ColumnTypeCode.Double},
+                {"q3int32", ColumnTypeCode.Int},
+                {"q4int64", ColumnTypeCode.Bigint},
+                {"q5float", ColumnTypeCode.Float},
+                {"q6inet", ColumnTypeCode.Inet},
+                {"q7boolean", ColumnTypeCode.Boolean},
+                {"q8inet", ColumnTypeCode.Inet},
+                {"q9blob", ColumnTypeCode.Blob},
+                {"q10varint", ColumnTypeCode.Varint},
+                {"q11decimal", ColumnTypeCode.Decimal},
+                {"q12list", ColumnTypeCode.List},
+                {"q13set", ColumnTypeCode.Set},
+                {"q14map", ColumnTypeCode.Map}
+                //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
+            };
 
             string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
-            StringBuilder sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
+            var sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
 
-            foreach (var col in columns)
-                sb.Append(col.Key + " " + col.Value.ToString() +
+            foreach (KeyValuePair<string, ColumnTypeCode> col in columns)
+                sb.Append(col.Key + " " + col.Value +
                           (((col.Value == ColumnTypeCode.List) ||
                             (col.Value == ColumnTypeCode.Set) ||
                             (col.Value == ColumnTypeCode.Map))
@@ -83,16 +82,15 @@ namespace Cassandra.IntegrationTests.Core
             for (int i = 0; i < rowKeys; i++)
                 sb.Append(columns.Keys.Where(key => key.StartsWith("q" + i.ToString())).First() +
                           ((i == rowKeys - 1) ? "" : ", "));
-            var opt = tableOptions != null ? " WITH " + tableOptions.ToString() : "";
+            string opt = tableOptions != null ? " WITH " + tableOptions : "";
             sb.Append("))" + opt + ";");
 
             Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, sb.ToString())
+                );
 
-            );
-
-            var table = this.Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
-            foreach (var metaCol in table.TableColumns)
+            TableMetadata table = Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
+            foreach (TableColumn metaCol in table.TableColumns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.Name));
                 Assert.True(metaCol.TypeCode ==
@@ -103,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
             if (tableOptions != null)
                 Assert.True(tableOptions.Equals(table.Options));
         }
-        
+
         public void checkMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
         {
             CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
@@ -138,11 +136,11 @@ namespace Cassandra.IntegrationTests.Core
                 short rplctnFactor = 1;
                 Session.WaitForSchemaAgreement(
                     Session.Execute(
-    string.Format(@"CREATE KEYSPACE {0} 
+                        string.Format(@"CREATE KEYSPACE {0} 
          WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
          AND durable_writes={3};"
-    , keyspacename, strgyClass, rplctnFactor.ToString(), durableWrites.ToString()))
-                );
+                                      , keyspacename, strgyClass, rplctnFactor, durableWrites))
+                    );
                 Session.ChangeKeyspace(keyspacename);
 
 
@@ -153,7 +151,6 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(ksmd.DurableWrites == durableWrites);
                 Assert.True(ksmd.Replication.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
                 Assert.True(ksmd.StrategyClass == strgyClass);
-
             }
             finally
             {
@@ -178,18 +175,21 @@ namespace Cassandra.IntegrationTests.Core
                 if (strategy_class == ReplicationStrategies.SimpleStrategy)
                 {
                     replication_factor = Randomm.Instance.Next(1, 21);
-                    Session.CreateKeyspaceIfNotExists(Keyspace,ReplicationStrategies.CreateSimpleStrategyReplicationProperty((int)replication_factor), durable_writes);
+                    Session.CreateKeyspaceIfNotExists(Keyspace,
+                                                      ReplicationStrategies.CreateSimpleStrategyReplicationProperty((int) replication_factor),
+                                                      durable_writes);
                     Session.ChangeKeyspace(Keyspace);
                 }
-                else
-                    if (strategy_class == ReplicationStrategies.NetworkTopologyStrategy)
-                    {
-                        data_centers_count = Randomm.Instance.Next(1, 11);
-                        datacenters_replication_factors = new Dictionary<string, int>((int)data_centers_count);
-                        for (int i = 0; i < data_centers_count; i++)
-                            datacenters_replication_factors.Add("dc" + i.ToString(), Randomm.Instance.Next(1, 21));
-                        Session.CreateKeyspaceIfNotExists(Keyspace, ReplicationStrategies.CreateNetworkTopologyStrategyReplicationProperty(datacenters_replication_factors), durable_writes);
-                    }
+                else if (strategy_class == ReplicationStrategies.NetworkTopologyStrategy)
+                {
+                    data_centers_count = Randomm.Instance.Next(1, 11);
+                    datacenters_replication_factors = new Dictionary<string, int>((int) data_centers_count);
+                    for (int i = 0; i < data_centers_count; i++)
+                        datacenters_replication_factors.Add("dc" + i, Randomm.Instance.Next(1, 21));
+                    Session.CreateKeyspaceIfNotExists(Keyspace,
+                                                      ReplicationStrategies.CreateNetworkTopologyStrategyReplicationProperty(
+                                                          datacenters_replication_factors), durable_writes);
+                }
 
                 KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspace(Keyspace);
                 Assert.Equal(strategy_class, ksmd.StrategyClass);
@@ -232,8 +232,16 @@ namespace Cassandra.IntegrationTests.Core
         public void checkTableMetadataWithOptions()
         {
             checkMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
-                new SortedDictionary<string, string> { { "class", "org.apache.cassandra.db.compaction.LeveledCompactionStrategy" }, { "sstable_size_in_mb", "15" } },
-                new SortedDictionary<string, string> { { "sstable_compression", "org.apache.cassandra.io.compress.SnappyCompressor" }, { "chunk_length_kb", "128" } }));
+                                                         new SortedDictionary<string, string>
+                                                         {
+                                                             {"class", "org.apache.cassandra.db.compaction.LeveledCompactionStrategy"},
+                                                             {"sstable_size_in_mb", "15"}
+                                                         },
+                                                         new SortedDictionary<string, string>
+                                                         {
+                                                             {"sstable_compression", "org.apache.cassandra.io.compress.SnappyCompressor"},
+                                                             {"chunk_length_kb", "128"}
+                                                         }));
         }
 
         [TestMethod]

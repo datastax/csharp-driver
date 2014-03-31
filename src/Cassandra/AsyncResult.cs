@@ -13,8 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
- using System.Collections.Concurrent;
+
+using System;
 
 //based on http://blogs.msdn.com/b/nikos/archive/2011/03/14/how-to-implement-iasyncresult-in-another-way.aspx
 
@@ -23,22 +23,22 @@ namespace Cassandra
     internal class AsyncResult<TResult> : AsyncResultNoResult
     {
         // Field set when operation completes
-        private TResult _result = default(TResult);
         internal readonly int StreamId;
+        private TResult _result;
+
+        internal AsyncResult(int streamId, AsyncCallback asyncCallback, object state, object owner, string operationId, object sender,
+                             object tag) :
+                                 base(asyncCallback, state, owner, operationId, sender, tag)
+        {
+            StreamId = streamId;
+        }
 
         internal void SetResult(TResult result)
         {
             _result = result;
         }
 
-        internal AsyncResult(int streamId, AsyncCallback asyncCallback, object state, object owner, string operationId, object sender,
-                             object tag) :
-                                 base(asyncCallback, state, owner, operationId, sender, tag)
-        {
-            this.StreamId = streamId;
-        }
-
-        new public static TResult End(IAsyncResult result, object owner, string operationId)
+        public new static TResult End(IAsyncResult result, object owner, string operationId)
         {
             var asyncResult = result as AsyncResult<TResult>;
             if (asyncResult == null)

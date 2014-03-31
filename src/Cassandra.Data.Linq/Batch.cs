@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,28 +13,34 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Cassandra.Data.Linq
 {
     public abstract class Batch : Query
     {
-        readonly protected Session _session;
+        protected readonly Session _session;
+
+        protected BatchType _batchType = BatchType.Logged;
+        protected DateTimeOffset? _timestamp = null;
+
+        public abstract bool IsEmpty { get; }
+
+        public override RoutingKey RoutingKey
+        {
+            get { return null; }
+        }
+
+        public QueryTrace QueryTrace { get; private set; }
 
         internal Batch(Session session)
         {
             _session = session;
         }
 
-        protected BatchType _batchType = BatchType.Logged;
-        protected DateTimeOffset? _timestamp = null;
-
         public abstract void Append(CqlCommand cqlCommand);
-
-        public abstract bool IsEmpty { get; }
 
         public new Batch SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
@@ -50,18 +56,13 @@ namespace Cassandra.Data.Linq
 
         public void Append(IEnumerable<CqlCommand> cqlCommands)
         {
-            foreach (var cmd in cqlCommands)
+            foreach (CqlCommand cmd in cqlCommands)
                 Append(cmd);
         }
 
         public void Execute()
         {
             EndExecute(BeginExecute(null, null));
-        }
-
-        protected struct CqlQueryTag
-        {
-            public Session Session;
         }
 
         public abstract IAsyncResult BeginExecute(AsyncCallback callback, object state);
@@ -71,11 +72,6 @@ namespace Cassandra.Data.Linq
             InternalEndExecute(ar);
         }
 
-        public override RoutingKey RoutingKey
-        {
-            get { return null; }
-        }
-
         protected override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
             if (!ReferenceEquals(_session, session))
@@ -83,13 +79,11 @@ namespace Cassandra.Data.Linq
             return BeginExecute(callback, state);
         }
 
-        public QueryTrace QueryTrace { get; private set; }
-
         private RowSet InternalEndExecute(IAsyncResult ar)
         {
-            var tag = (CqlQueryTag)Session.GetTag(ar);
-            var ctx = tag.Session;
-            var outp = ctx.EndExecute(ar);
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            Session ctx = tag.Session;
+            RowSet outp = ctx.EndExecute(ar);
             QueryTrace = outp.Info.QueryTrace;
             return outp;
         }
@@ -101,5 +95,9 @@ namespace Cassandra.Data.Linq
             return InternalEndExecute(ar);
         }
 
+        protected struct CqlQueryTag
+        {
+            public Session Session;
+        }
     }
 }

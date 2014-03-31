@@ -15,13 +15,14 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestClass]
     public class CustomTypeTests
     {
-        Session Session;
+        private Session Session;
 
         [TestInitialize]
         public void SetFixture()
@@ -40,22 +41,21 @@ namespace Cassandra.IntegrationTests.Core
 
         private byte[] serializeForDynamicType(params object[] vals)
         {
-
-            BEBinaryWriter elt = new BEBinaryWriter();
-            foreach (var p in vals)
+            var elt = new BEBinaryWriter();
+            foreach (object p in vals)
             {
                 if (p is int)
                 {
-                    elt.WriteUInt16((ushort)(0x8000 | 'i'));
-                    elt.WriteUInt16((ushort)4);
-                    elt.WriteInt32((int)p);
-                    elt.WriteByte((byte)0);
+                    elt.WriteUInt16(0x8000 | 'i');
+                    elt.WriteUInt16(4);
+                    elt.WriteInt32((int) p);
+                    elt.WriteByte(0);
                 }
                 else if (p is String)
                 {
-                    elt.WriteUInt16((ushort)(0x8000 | 's'));
+                    elt.WriteUInt16(0x8000 | 's');
                     elt.WriteString(p as string);
-                    elt.WriteByte((byte)0);
+                    elt.WriteByte(0);
                 }
                 else
                 {
@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
             var ret = new byte[elt.Length];
-            Buffer.BlockCopy(elt.GetBuffer(), 0, ret, 0, (int)elt.Length);
+            Buffer.BlockCopy(elt.GetBuffer(), 0, ret, 0, (int) elt.Length);
             return ret;
         }
 
@@ -71,12 +71,12 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void DynamicCompositeTypeTest()
         {
-            var tabledef = "CREATE TABLE test ("
-            + "    k int,"
-            + "    c 'DynamicCompositeType(s => UTF8Type, i => Int32Type)',"
-            + "    v int,"
-            + "    PRIMARY KEY (k, c)"
-            + ") WITH COMPACT STORAGE";
+            string tabledef = "CREATE TABLE test ("
+                              + "    k int,"
+                              + "    c 'DynamicCompositeType(s => UTF8Type, i => Int32Type)',"
+                              + "    v int,"
+                              + "    PRIMARY KEY (k, c)"
+                              + ") WITH COMPACT STORAGE";
 
             Session.WaitForSchemaAgreement(Session.Execute(tabledef));
 
@@ -84,12 +84,11 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute("INSERT INTO test(k, c, v) VALUES (0, 'i@42', 2)");
             Session.Execute("INSERT INTO test(k, c, v) VALUES (0, 'i@12:i@3', 3)");
 
-            using (var rs = Session.Execute("SELECT * FROM test"))
+            using (RowSet rs = Session.Execute("SELECT * FROM test"))
             {
-
-                var ren = rs.GetRows().GetEnumerator();
+                IEnumerator<Row> ren = rs.GetRows().GetEnumerator();
                 ren.MoveNext();
-                var r = ren.Current;
+                Row r = ren.Current;
                 Assert.Equal(r.GetValue<int>("k"), 0);
                 Assert.ArrEqual(r.GetValue<byte[]>("c"), serializeForDynamicType(12, 3));
                 Assert.Equal(r.GetValue<int>("v"), 3);

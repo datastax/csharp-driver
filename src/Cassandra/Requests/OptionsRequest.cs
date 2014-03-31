@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,22 +13,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
     internal class OptionsRequest : IRequest
     {
         public const byte OpCode = 0x05;
 
-        readonly int _streamId;
+        private readonly int _streamId;
+
         public OptionsRequest(int streamId)
         {
-            this._streamId = streamId;
+            _streamId = streamId;
         }
 
         public RequestFrame GetFrame(byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
             return wb.GetFrame();
         }
     }

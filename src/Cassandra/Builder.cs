@@ -10,74 +10,26 @@ namespace Cassandra
     /// </summary>
     public class Builder : IInitializer
     {
-
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
-        private int _port = ProtocolOptions.DefaultPort;
-        private IAuthProvider _authProvider = NoneAuthProvider.Instance;
-        private IAuthInfoProvider _authInfoProvider = null;
-        private CompressionType _compression = CompressionType.NoCompression;
         private readonly PoolingOptions _poolingOptions = new PoolingOptions();
         private readonly SocketOptions _socketOptions = new SocketOptions();
-        private SSLOptions _sslOptions = null;
-        private QueryOptions _queryOptions = new QueryOptions();
+        private IAuthInfoProvider _authInfoProvider;
+        private IAuthProvider _authProvider = NoneAuthProvider.Instance;
+        private CompressionType _compression = CompressionType.NoCompression;
+        private string _defaultKeyspace;
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
+        private int _port = ProtocolOptions.DefaultPort;
+        private int _queryAbortTimeout = Timeout.Infinite;
+        private QueryOptions _queryOptions = new QueryOptions();
         private IReconnectionPolicy _reconnectionPolicy;
         private IRetryPolicy _retryPolicy;
-        private bool _withoutRowSetBuffering = false;
-
-        private string _defaultKeyspace = null;
-
-        private int _queryAbortTimeout = Timeout.Infinite;
-
-        public ICollection<IPAddress> ContactPoints
-        {
-            get { return _addresses; }
-        }
+        private SSLOptions _sslOptions;
+        private bool _withoutRowSetBuffering;
 
         public int Port
         {
             get { return _port; }
-        }
-
-        /// <summary>
-        ///  The port to use to connect to the Cassandra host. If not set through this
-        ///  method, the default port (9042) will be used instead.
-        /// </summary>
-        /// <param name="port"> the port to set. </param>
-        /// 
-        /// <returns>this Builder</returns>
-        public Builder WithPort(int port)
-        {
-            this._port = port;
-            return this;
-        }
-
-
-        /// <summary>
-        /// Sets the QueryOptions to use for the newly created Cluster.
-        /// 
-        /// If no query options are set through this method, default query
-        /// options will be used.
-        /// </summary>
-        /// <param name="options">the QueryOptions to use.</param>
-        /// <returns>this Builder.</returns>
-        public Builder WithQueryOptions(QueryOptions options)
-        {
-            this._queryOptions = options;
-            return this;
-        }
-
-        /// <summary>
-        ///  Sets the compression to use for the transport.
-        /// </summary>
-        /// <param name="compression"> the compression to set </param>
-        /// 
-        /// <returns>this Builder <see>ProtocolOptions.Compression</see></returns>
-        public Builder WithCompression(CompressionType compression)
-        {
-            this._compression = compression;
-            return this;
         }
 
         /// <summary>
@@ -104,6 +56,78 @@ namespace Cassandra
             get { return _socketOptions; }
         }
 
+        public ICollection<IPAddress> ContactPoints
+        {
+            get { return _addresses; }
+        }
+
+        /// <summary>
+        ///  The configuration that will be used for the new cluster. <p> You <b>should
+        ///  not</b> modify this object directly as change made to the returned object may
+        ///  not be used by the cluster build. Instead, you should use the other methods
+        ///  of this <code>Builder</code></p>.
+        /// </summary>
+        /// 
+        /// <returns>the configuration to use for the new cluster.</returns>
+        public Configuration GetConfiguration()
+        {
+            var policies = new Policies(
+                _loadBalancingPolicy ?? Policies.DefaultLoadBalancingPolicy,
+                _reconnectionPolicy ?? Policies.DefaultReconnectionPolicy,
+                _retryPolicy ?? Policies.DefaultRetryPolicy
+                );
+
+            return new Configuration(policies,
+                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression),
+                                     _poolingOptions,
+                                     _socketOptions,
+                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
+                                     _authProvider,
+                                     _authInfoProvider,
+                                     _queryOptions
+                );
+        }
+
+        /// <summary>
+        ///  The port to use to connect to the Cassandra host. If not set through this
+        ///  method, the default port (9042) will be used instead.
+        /// </summary>
+        /// <param name="port"> the port to set. </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder WithPort(int port)
+        {
+            _port = port;
+            return this;
+        }
+
+
+        /// <summary>
+        /// Sets the QueryOptions to use for the newly created Cluster.
+        /// 
+        /// If no query options are set through this method, default query
+        /// options will be used.
+        /// </summary>
+        /// <param name="options">the QueryOptions to use.</param>
+        /// <returns>this Builder.</returns>
+        public Builder WithQueryOptions(QueryOptions options)
+        {
+            _queryOptions = options;
+            return this;
+        }
+
+        /// <summary>
+        ///  Sets the compression to use for the transport.
+        /// </summary>
+        /// <param name="compression"> the compression to set </param>
+        /// 
+        /// <returns>this Builder <see>ProtocolOptions.Compression</see></returns>
+        public Builder WithCompression(CompressionType compression)
+        {
+            _compression = compression;
+            return this;
+        }
+
         /// <summary>
         ///  Adds a contact point. Contact points are addresses of Cassandra nodes that
         ///  the driver uses to discover the cluster topology. Only one contact point is
@@ -117,7 +141,7 @@ namespace Cassandra
         /// <returns>this Builder </returns>
         public Builder AddContactPoint(string address)
         {
-            this._addresses.AddRange(Utils.ResolveHostByName(address));
+            _addresses.AddRange(Utils.ResolveHostByName(address));
             return this;
         }
 
@@ -146,8 +170,8 @@ namespace Cassandra
         /// <returns>this Builder <see>Builder#addContactPoint</see></returns>
         public Builder AddContactPoints(params IPAddress[] addresses)
         {
-            foreach (var address in addresses)
-                this._addresses.Add(address);
+            foreach (IPAddress address in addresses)
+                _addresses.Add(address);
             return this;
         }
 
@@ -161,7 +185,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
-            this._loadBalancingPolicy = policy;
+            _loadBalancingPolicy = policy;
             return this;
         }
 
@@ -175,7 +199,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithReconnectionPolicy(IReconnectionPolicy policy)
         {
-            this._reconnectionPolicy = policy;
+            _reconnectionPolicy = policy;
             return this;
         }
 
@@ -189,7 +213,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithRetryPolicy(IRetryPolicy policy)
         {
-            this._retryPolicy = policy;
+            _retryPolicy = policy;
             return this;
         }
 
@@ -206,33 +230,6 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  The configuration that will be used for the new cluster. <p> You <b>should
-        ///  not</b> modify this object directly as change made to the returned object may
-        ///  not be used by the cluster build. Instead, you should use the other methods
-        ///  of this <code>Builder</code></p>.
-        /// </summary>
-        /// 
-        /// <returns>the configuration to use for the new cluster.</returns>
-        public Configuration GetConfiguration()
-        {
-            var policies = new Policies(
-                _loadBalancingPolicy ?? Cassandra.Policies.DefaultLoadBalancingPolicy,
-                _reconnectionPolicy ?? Cassandra.Policies.DefaultReconnectionPolicy,
-                _retryPolicy ?? Cassandra.Policies.DefaultRetryPolicy
-                );
-
-            return new Configuration(policies,
-                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression),
-                                     _poolingOptions,
-                                     _socketOptions,
-                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
-                                     _authProvider,
-                                     _authInfoProvider,
-                                     _queryOptions
-                );
-        }
-
-        /// <summary>
         ///  Uses the provided credentials when connecting to Cassandra hosts. <p> This
         ///  should be used if the Cassandra cluster has been configured to use the
         ///  <code>PasswordAuthenticator</code>. If the the default <code>*
@@ -246,12 +243,12 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
-            this._authInfoProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password", password);
-            this._authProvider = new PlainTextAuthProvider(username, password);
+            _authInfoProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password", password);
+            _authProvider = new PlainTextAuthProvider(username, password);
             return this;
         }
 
-        
+
         /// <summary>
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
@@ -265,7 +262,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {
-            this._authProvider = authProvider;
+            _authProvider = authProvider;
             return this;
         }
 
@@ -277,7 +274,7 @@ namespace Cassandra
         /// <returns>this builder</returns>
         public Builder WithoutRowSetBuffering()
         {
-            this._withoutRowSetBuffering = true;
+            _withoutRowSetBuffering = true;
             return this;
         }
 
@@ -291,7 +288,7 @@ namespace Cassandra
         /// <returns>this builder</returns>
         public Builder WithQueryTimeout(int queryAbortTimeout)
         {
-            this._queryAbortTimeout = queryAbortTimeout;
+            _queryAbortTimeout = queryAbortTimeout;
             return this;
         }
 
@@ -302,7 +299,7 @@ namespace Cassandra
         /// <returns>this builder</returns>
         public Builder WithDefaultKeyspace(string defaultKeyspace)
         {
-            this._defaultKeyspace = defaultKeyspace;
+            _defaultKeyspace = defaultKeyspace;
             return this;
         }
 
@@ -319,7 +316,7 @@ namespace Cassandra
         /// <returns>this builder</returns>        
         public Builder WithSSL()
         {
-            this._sslOptions = new SSLOptions();
+            _sslOptions = new SSLOptions();
             return this;
         }
 
@@ -336,7 +333,7 @@ namespace Cassandra
         /// <returns>this builder</returns>        
         public Builder WithSSL(SSLOptions sslOptions)
         {
-            this._sslOptions = sslOptions;
+            _sslOptions = sslOptions;
             return this;
         }
 
@@ -350,6 +347,5 @@ namespace Cassandra
         {
             return Cluster.BuildFrom(this);
         }
-
     }
 }

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,32 +13,34 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
+
+namespace Cassandra
 {
-     internal class QueryRequest : IQueryRequest
+    internal class QueryRequest : IQueryRequest
     {
         public const byte OpCode = 0x07;
 
-        private readonly int _streamId;
-        private readonly string _cqlQuery;
-        private readonly QueryProtocolOptions _queryProtocolOptions;
         private readonly ConsistencyLevel? _consistency;
-        private readonly byte _headerFlags = 0x00;
+        private readonly string _cqlQuery;
+        private readonly byte _headerFlags;
+        private readonly QueryProtocolOptions _queryProtocolOptions;
+        private readonly int _streamId;
 
-        public QueryRequest(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency = null)
+        public QueryRequest(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions,
+                            ConsistencyLevel? consistency = null)
         {
-            this._streamId = streamId;
-            this._cqlQuery = cqlQuery;
-            this._consistency = consistency;
-            this._queryProtocolOptions = queryPrtclOptions;
+            _streamId = streamId;
+            _cqlQuery = cqlQuery;
+            _consistency = consistency;
+            _queryProtocolOptions = queryPrtclOptions;
             if (tracingEnabled)
-                this._headerFlags = 0x02;
+                _headerFlags = 0x02;
         }
 
         public RequestFrame GetFrame(byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _headerFlags, (byte)_streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, _headerFlags, (byte) _streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
             _queryProtocolOptions.Write(wb, _consistency);
@@ -48,16 +50,16 @@
 
         public void WriteToBatch(BEBinaryWriter wb)
         {
-            wb.WriteByte(0);//not a prepared query
+            wb.WriteByte(0); //not a prepared query
             wb.WriteLongString(_cqlQuery);
             if (_queryProtocolOptions.Values == null || _queryProtocolOptions.Values.Length == 0)
-                wb.WriteInt16(0);//not values
+                wb.WriteInt16(0); //not values
             else
             {
-                wb.WriteUInt16((ushort)_queryProtocolOptions.Values.Length);
+                wb.WriteUInt16((ushort) _queryProtocolOptions.Values.Length);
                 for (int i = 0; i < _queryProtocolOptions.Values.Length; i++)
                 {
-                    var bytes = TypeInterpreter.InvCqlConvert(_queryProtocolOptions.Values[i]);
+                    byte[] bytes = TypeInterpreter.InvCqlConvert(_queryProtocolOptions.Values[i]);
                     wb.WriteBytes(bytes);
                 }
             }

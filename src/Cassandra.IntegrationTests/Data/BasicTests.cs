@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using System.Threading;
@@ -25,8 +26,8 @@ namespace Cassandra.IntegrationTests.Data
     [TestClass]
     public class BasicTests
     {
-        CqlConnection connection = null;
-        Session session = null;
+        private CqlConnection connection;
+        private Session session;
 
         [TestInitialize]
         public void SetFixture()
@@ -36,8 +37,8 @@ namespace Cassandra.IntegrationTests.Data
             CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
             session = CCMBridge.ReusableCCMCluster.Connect("tester");
 
-            CassandraConnectionStringBuilder cb = new CassandraConnectionStringBuilder();
-            cb.ContactPoints = new string[] { Options.Default.IP_PREFIX + "1" };
+            var cb = new CassandraConnectionStringBuilder();
+            cb.ContactPoints = new[] {Options.Default.IP_PREFIX + "1"};
             cb.Port = 9042;
             connection = new CqlConnection(cb.ToString());
         }
@@ -52,13 +53,13 @@ namespace Cassandra.IntegrationTests.Data
         public void complexTest()
         {
             connection.Open();
-            var cmd = connection.CreateCommand();
+            DbCommand cmd = connection.CreateCommand();
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
             cmd.CommandText = string.Format(@"CREATE KEYSPACE {0} 
                      WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                , keyspaceName);
+                                            , keyspaceName);
             cmd.ExecuteNonQuery();
 
             connection.ChangeDatabase(keyspaceName);
@@ -73,7 +74,7 @@ namespace Cassandra.IntegrationTests.Data
             cmd.ExecuteNonQuery();
 
 
-            StringBuilder longQ = new StringBuilder();
+            var longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
             int RowsNo = 2000;
@@ -84,18 +85,18 @@ namespace Cassandra.IntegrationTests.Data
          author,
          isok,
          body)
-         VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid().ToString(), i, i % 2 == 0 ? "false" : "true");
+         VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
             }
             longQ.AppendLine("APPLY BATCH;");
             cmd.CommandText = longQ.ToString();
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = string.Format(@"SELECT * from {0} LIMIT 10000;", tableName);
-            var reader = cmd.ExecuteReader();
+            DbDataReader reader = cmd.ExecuteReader();
             while (reader.Read())
             {
                 for (int i = 0; i < reader.FieldCount; i++)
-                    Console.Write(reader.GetValue(i).ToString() + "|");
+                    Console.Write(reader.GetValue(i) + "|");
                 Console.WriteLine();
             }
 
@@ -104,7 +105,6 @@ namespace Cassandra.IntegrationTests.Data
 
             cmd.CommandText = string.Format(@"DROP KEYSPACE {0};", keyspaceName);
             cmd.ExecuteNonQuery();
-
         }
 
         [TestMethod]

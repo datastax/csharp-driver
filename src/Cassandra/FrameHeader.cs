@@ -16,23 +16,23 @@
 
 namespace Cassandra
 {
-
     internal class FrameHeader
     {
-        public const int MaxFrameSize = 256 * 1024 * 1024;
+        public const int MaxFrameSize = 256*1024*1024;
         public const int Size = 8;
-        public byte Version;
         public byte Flags;
-        public byte StreamId;
-        public byte Opcode;
         public byte[] Len = new byte[4];
+        public byte Opcode;
+        public byte StreamId;
+        public byte Version;
+
         public ResponseFrame MakeFrame(IProtoBuf stream)
         {
-            var bodyLen = TypeInterpreter.BytesToInt32(Len, 0);
+            int bodyLen = TypeInterpreter.BytesToInt32(Len, 0);
 
             if (MaxFrameSize - 8 < bodyLen) throw new DriverInternalError("Frame length mismatch");
 
-            var frame = new ResponseFrame() { FrameHeader = this, RawStream = stream };
+            var frame = new ResponseFrame {FrameHeader = this, RawStream = stream};
             return frame;
         }
     }

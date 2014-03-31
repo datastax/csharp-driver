@@ -13,107 +13,30 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
-using System.Linq;
-using System.Text;
-using System.Collections.Generic;
+
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace Cassandra.Data.Linq
 {
     internal class MutationTracker<TEntity> : IMutationTracker
     {
-        private TEntity Clone(TEntity entity)
-        {
-            var ret = Activator.CreateInstance<TEntity>();
-            var props = typeof(TEntity).GetPropertiesOrFields();
-            foreach (var prop in props)
-                prop.SetValueFromPropertyOrField(ret, prop.GetValueFromPropertyOrField(entity));
-            return ret;
-        }
+        private readonly ConcurrentDictionary<TEntity, QueryTrace> _traces =
+            new ConcurrentDictionary<TEntity, QueryTrace>(CqlEqualityComparer<TEntity>.Default);
 
-        private enum MutationType { None, Add, Delete }
-
-
-        private class TableEntry
-        {
-            public TEntity Entity;
-            public MutationType MutationType;
-            public EntityUpdateMode CqlEntityUpdateMode = EntityUpdateMode.AllOrNone;
-            public EntityTrackingMode CqlEntityTrackingMode = EntityTrackingMode.DetachAfterSave;
-            public bool QueryTracingEnabled = false;
-        }
-
-        Dictionary<TEntity, TableEntry> _table = new Dictionary<TEntity, TableEntry>(CqlEqualityComparer<TEntity>.Default);
-        ConcurrentDictionary<TEntity, QueryTrace> _traces = new ConcurrentDictionary<TEntity, QueryTrace>(CqlEqualityComparer<TEntity>.Default);
-
-        public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
-        {
-            if (_table.ContainsKey(entity))
-            {
-                _table[entity].CqlEntityUpdateMode = updmod;
-                _table[entity].CqlEntityTrackingMode = trmod;
-                _table[entity].Entity = entity;
-            }
-            else
-                _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.None, CqlEntityUpdateMode = updmod, CqlEntityTrackingMode = trmod });
-        }
-
-        public void Detach(TEntity entity)
-        {
-            _table.Remove(entity);
-        }
-
-        public void Delete(TEntity entity)
-        {
-            if (_table.ContainsKey(entity))
-                _table[entity].MutationType = MutationType.Delete;
-            else
-                _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.Delete });
-        }
-
-        public void AddNew(TEntity entity, EntityTrackingMode trmod)
-        {
-            if (_table.ContainsKey(entity))
-            {
-                _table[entity].MutationType = MutationType.Add;
-                _table[entity].CqlEntityTrackingMode = trmod;
-            }
-            else
-                _table.Add(Clone(entity), new TableEntry() { Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod });
-        }
-
-        public void EnableQueryTracing(TEntity entity, bool enable)
-        {
-            if (_table.ContainsKey(entity))
-            {
-                _table[entity].QueryTracingEnabled = enable;
-            }
-            else
-                throw new ArgumentOutOfRangeException("entity");
-        }
-
-        public void ClearQueryTraces()
-        {
-            _traces.Clear();
-        }
-
-        public QueryTrace RetriveQueryTrace(TEntity entity)
-        {
-            QueryTrace trace;
-            if (_traces.TryRemove(entity, out trace))
-                return trace;
-            else
-                return null;
-        }
+        private Dictionary<TEntity, TableEntry> _table = new Dictionary<TEntity, TableEntry>(CqlEqualityComparer<TEntity>.Default);
 
         public List<QueryTrace> RetriveAllQueryTraces()
         {
-            List<QueryTrace> ret = new List<QueryTrace>();
+            var ret = new List<QueryTrace>();
             while (!_traces.IsEmpty)
             {
-                var kv = _traces.FirstOrDefault();
-                var trace = RetriveQueryTrace(kv.Key);
+                KeyValuePair<TEntity, QueryTrace> kv = _traces.FirstOrDefault();
+                QueryTrace trace = RetriveQueryTrace(kv.Key);
                 if (trace != null)
                     ret.Add(trace);
             }
@@ -125,31 +48,31 @@ namespace Cassandra.Data.Linq
             var commitActions = new List<Action>();
             try
             {
-                foreach (var kv in _table)
+                foreach (KeyValuePair<TEntity, TableEntry> kv in _table)
                 {
                     if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                         throw new InvalidOperationException();
-                    var cql = "";
+                    string cql = "";
                     object[] values;
                     if (kv.Value.MutationType == MutationType.Add)
-                        cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null,null,false);
+                        cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null, false);
                     else if (kv.Value.MutationType == MutationType.Delete)
-                        cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename,out values);
+                        cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename, out values);
                     else if (kv.Value.MutationType == MutationType.None)
                         cql = CqlQueryTools.GetUpdateCQLAndValues(kv.Key, kv.Value.Entity, tablename, out values,
-                            kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
+                                                                  kv.Value.CqlEntityUpdateMode == EntityUpdateMode.AllOrNone);
                     else
                         continue;
 
                     QueryTrace trace = null;
                     if (cql != null) // null if nothing to update
                     {
-                        var res = context.ExecuteWriteQuery(cql, values, consistencyLevel, kv.Value.QueryTracingEnabled);
+                        RowSet res = context.ExecuteWriteQuery(cql, values, consistencyLevel, kv.Value.QueryTracingEnabled);
                         if (kv.Value.QueryTracingEnabled)
                             trace = res.Info.QueryTrace;
                     }
 
-                    var nkv = kv;
+                    KeyValuePair<TEntity, TableEntry> nkv = kv;
                     commitActions.Add(() =>
                     {
                         if (nkv.Value.QueryTracingEnabled)
@@ -157,13 +80,19 @@ namespace Cassandra.Data.Linq
                                 _traces.TryAdd(nkv.Key, trace);
                         _table.Remove(nkv.Key);
                         if (nkv.Value.MutationType != MutationType.Delete && nkv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
-                            _table.Add(Clone(nkv.Value.Entity), new TableEntry() { Entity = nkv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode });
+                            _table.Add(Clone(nkv.Value.Entity),
+                                       new TableEntry
+                                       {
+                                           Entity = nkv.Value.Entity,
+                                           MutationType = MutationType.None,
+                                           CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode
+                                       });
                     });
                 }
             }
             finally
             {
-                foreach (var act in commitActions)
+                foreach (Action act in commitActions)
                 {
                     act();
                 }
@@ -173,7 +102,7 @@ namespace Cassandra.Data.Linq
         public bool AppendChangesToBatch(BatchStatement batchScript, string tablename)
         {
             bool enableTracing = false;
-            foreach (var kv in _table)
+            foreach (KeyValuePair<TEntity, TableEntry> kv in _table)
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
@@ -181,10 +110,10 @@ namespace Cassandra.Data.Linq
                 if (kv.Value.QueryTracingEnabled)
                     enableTracing = true;
 
-                var cql = "";
+                string cql = "";
                 object[] values;
                 if (kv.Value.MutationType == MutationType.Add)
-                    cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null,false);
+                    cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null, false);
                 else if (kv.Value.MutationType == MutationType.Delete)
                     cql = CqlQueryTools.GetDeleteCQLAndValues(kv.Value.Entity, tablename, out values);
                 else if (kv.Value.MutationType == MutationType.None)
@@ -205,7 +134,7 @@ namespace Cassandra.Data.Linq
         public bool AppendChangesToBatch(StringBuilder batchScript, string tablename)
         {
             bool enableTracing = false;
-            foreach (var kv in _table)
+            foreach (KeyValuePair<TEntity, TableEntry> kv in _table)
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
@@ -214,7 +143,7 @@ namespace Cassandra.Data.Linq
                     enableTracing = true;
 
                 object[] values;
-                var cql = "";
+                string cql = "";
                 if (kv.Value.MutationType == MutationType.Add)
                     cql = CqlQueryTools.GetInsertCQLAndValues(kv.Value.Entity, tablename, out values, null, null, false, false);
                 else if (kv.Value.MutationType == MutationType.Delete)
@@ -238,7 +167,7 @@ namespace Cassandra.Data.Linq
         {
             var newtable = new Dictionary<TEntity, TableEntry>(CqlEqualityComparer<TEntity>.Default);
 
-            foreach (var kv in _table)
+            foreach (KeyValuePair<TEntity, TableEntry> kv in _table)
             {
                 if (!CqlEqualityComparer<TEntity>.Default.Equals(kv.Key, kv.Value.Entity))
                     throw new InvalidOperationException();
@@ -247,11 +176,108 @@ namespace Cassandra.Data.Linq
                     _traces.TryAdd(kv.Key, trace);
 
                 if (kv.Value.MutationType != MutationType.Delete && kv.Value.CqlEntityTrackingMode != EntityTrackingMode.DetachAfterSave)
-                    newtable.Add(Clone(kv.Value.Entity), new TableEntry() { Entity = kv.Value.Entity, MutationType = MutationType.None, CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode });
+                    newtable.Add(Clone(kv.Value.Entity),
+                                 new TableEntry
+                                 {
+                                     Entity = kv.Value.Entity,
+                                     MutationType = MutationType.None,
+                                     CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode
+                                 });
             }
 
             _table = newtable;
         }
 
+        private TEntity Clone(TEntity entity)
+        {
+            var ret = Activator.CreateInstance<TEntity>();
+            List<MemberInfo> props = typeof (TEntity).GetPropertiesOrFields();
+            foreach (MemberInfo prop in props)
+                prop.SetValueFromPropertyOrField(ret, prop.GetValueFromPropertyOrField(entity));
+            return ret;
+        }
+
+        public void Attach(TEntity entity, EntityUpdateMode updmod, EntityTrackingMode trmod)
+        {
+            if (_table.ContainsKey(entity))
+            {
+                _table[entity].CqlEntityUpdateMode = updmod;
+                _table[entity].CqlEntityTrackingMode = trmod;
+                _table[entity].Entity = entity;
+            }
+            else
+                _table.Add(Clone(entity),
+                           new TableEntry
+                           {
+                               Entity = entity,
+                               MutationType = MutationType.None,
+                               CqlEntityUpdateMode = updmod,
+                               CqlEntityTrackingMode = trmod
+                           });
+        }
+
+        public void Detach(TEntity entity)
+        {
+            _table.Remove(entity);
+        }
+
+        public void Delete(TEntity entity)
+        {
+            if (_table.ContainsKey(entity))
+                _table[entity].MutationType = MutationType.Delete;
+            else
+                _table.Add(Clone(entity), new TableEntry {Entity = entity, MutationType = MutationType.Delete});
+        }
+
+        public void AddNew(TEntity entity, EntityTrackingMode trmod)
+        {
+            if (_table.ContainsKey(entity))
+            {
+                _table[entity].MutationType = MutationType.Add;
+                _table[entity].CqlEntityTrackingMode = trmod;
+            }
+            else
+                _table.Add(Clone(entity), new TableEntry {Entity = entity, MutationType = MutationType.Add, CqlEntityTrackingMode = trmod});
+        }
+
+        public void EnableQueryTracing(TEntity entity, bool enable)
+        {
+            if (_table.ContainsKey(entity))
+            {
+                _table[entity].QueryTracingEnabled = enable;
+            }
+            else
+                throw new ArgumentOutOfRangeException("entity");
+        }
+
+        public void ClearQueryTraces()
+        {
+            _traces.Clear();
+        }
+
+        public QueryTrace RetriveQueryTrace(TEntity entity)
+        {
+            QueryTrace trace;
+            if (_traces.TryRemove(entity, out trace))
+                return trace;
+            return null;
+        }
+
+        private enum MutationType
+        {
+            None,
+            Add,
+            Delete
+        }
+
+
+        private class TableEntry
+        {
+            public EntityTrackingMode CqlEntityTrackingMode = EntityTrackingMode.DetachAfterSave;
+            public EntityUpdateMode CqlEntityUpdateMode = EntityUpdateMode.AllOrNone;
+            public TEntity Entity;
+            public MutationType MutationType;
+            public bool QueryTracingEnabled;
+        }
     }
 }

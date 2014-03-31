@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +13,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+
+using System;
+using System.Data;
 using System.Data.Common;
 
 namespace Cassandra.Data
 {
-    class CqlCommandBuilder : DbCommandBuilder
+    internal class CqlCommandBuilder : DbCommandBuilder
     {
-        protected override void ApplyParameterInfo(DbParameter parameter, System.Data.DataRow row, System.Data.StatementType statementType, bool whereClause)
+        protected override void ApplyParameterInfo(DbParameter parameter, DataRow row, StatementType statementType, bool whereClause)
         {
             throw new NotSupportedException();
         }

@@ -13,13 +13,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Net;
 
 namespace Cassandra
 {
-
     /// <summary>
     ///  Exception thrown when a query cannot be performed because no host are
     ///  available. This exception is thrown if <ul> <li>either there is no host live
@@ -30,7 +30,6 @@ namespace Cassandra
     /// </summary>
     public class NoHostAvailableException : DriverException
     {
-
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
@@ -39,13 +38,13 @@ namespace Cassandra
         public NoHostAvailableException(Dictionary<IPAddress, List<Exception>> errors)
             : base(MakeMessage(errors))
         {
-            this.Errors = errors;
+            Errors = errors;
         }
 
         private static String MakeMessage(Dictionary<IPAddress, List<Exception>> errors)
         {
-            List<string> addrs = new List<string>();
-            foreach (var err in errors.Keys)
+            var addrs = new List<string>();
+            foreach (IPAddress err in errors.Keys)
                 addrs.Add(err.ToString());
 
             return string.Format("All host tried for query are in error (tried: {0})", string.Join(",", addrs.ToArray()));

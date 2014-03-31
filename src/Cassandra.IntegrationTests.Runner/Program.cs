@@ -20,17 +20,18 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using Cassandra.IntegrationTests.Runner.Properties;
+using CommandLine;
 
 namespace Cassandra.IntegrationTests.Runner
 {
-    class Program
+    internal class Program
     {
         // The assembly that contains the integration tests
         private static readonly Assembly IntegrationTestsAssembly = typeof (MyTestOptions).Assembly;
-        
-        static MethodInfo FindMethodWithAttribute(Type tpy, Type attr)
+
+        private static MethodInfo FindMethodWithAttribute(Type tpy, Type attr)
         {
-            foreach (var m in tpy.GetMethods())
+            foreach (MethodInfo m in tpy.GetMethods())
             {
                 if (m.GetCustomAttributes(attr, true).Length > 0)
                     return m;
@@ -38,67 +39,67 @@ namespace Cassandra.IntegrationTests.Runner
             return null;
         }
 
-        static void Test(ref object testObj, Type type, MethodInfo mth, StreamWriter output, ref int Passed, ref int Failed)
+        private static void Test(ref object testObj, Type type, MethodInfo mth, StreamWriter output, ref int Passed, ref int Failed)
         {
             try
             {
-	            if (mth!=null && testObj == null)
-	            {
-	                Console.ForegroundColor = ConsoleColor.Black;
-	                Console.BackgroundColor = ConsoleColor.White;
-	                var s = type.FullName +":Init";
-	                Console.WriteLine(new string(' ', 79));
-	                Console.WriteLine(s);
-	                output.WriteLine(new string('-', 79));
-	                output.WriteLine(s);
-	                Console.ResetColor();
-	
-					testObj = type.GetConstructor(new Type[] { }).Invoke(new object[] { });
-	                var ist = FindMethodWithAttribute(type, typeof(TestInitializeAttribute));
-	                if (ist != null)
-	                    ist.Invoke(testObj, new object[] { });
-	            }
-				if(mth==null)
-				{
-					if(testObj != null)
-					{
-		                Console.ForegroundColor = ConsoleColor.Black;
-		                Console.BackgroundColor = ConsoleColor.White;
-		                var s = type.FullName +":Cleanup";
-		                Console.WriteLine(new string(' ', 79));
-		                Console.WriteLine(s);
-		                output.WriteLine(new string('-', 79));
-		                output.WriteLine(s);
-		                Console.ResetColor();
-                        var ist = FindMethodWithAttribute(type, typeof(TestCleanupAttribute));
+                if (mth != null && testObj == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Black;
+                    Console.BackgroundColor = ConsoleColor.White;
+                    string s = type.FullName + ":Init";
+                    Console.WriteLine(new string(' ', 79));
+                    Console.WriteLine(s);
+                    output.WriteLine(new string('-', 79));
+                    output.WriteLine(s);
+                    Console.ResetColor();
+
+                    testObj = type.GetConstructor(new Type[] {}).Invoke(new object[] {});
+                    MethodInfo ist = FindMethodWithAttribute(type, typeof (TestInitializeAttribute));
+                    if (ist != null)
+                        ist.Invoke(testObj, new object[] {});
+                }
+                if (mth == null)
+                {
+                    if (testObj != null)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Black;
+                        Console.BackgroundColor = ConsoleColor.White;
+                        string s = type.FullName + ":Cleanup";
+                        Console.WriteLine(new string(' ', 79));
+                        Console.WriteLine(s);
+                        output.WriteLine(new string('-', 79));
+                        output.WriteLine(s);
+                        Console.ResetColor();
+                        MethodInfo ist = FindMethodWithAttribute(type, typeof (TestCleanupAttribute));
                         if (ist != null)
-                            ist.Invoke(testObj, new object[] { });
+                            ist.Invoke(testObj, new object[] {});
                         GC.Collect();
                         GC.WaitForPendingFinalizers();
-					}
-					return;
-				}
-				{
-	                Console.ForegroundColor = ConsoleColor.Black;
-	                Console.BackgroundColor = ConsoleColor.White;
-	                var s = type.FullName + "." + mth.Name + "() Start...";
-	                Console.WriteLine(new string(' ', 79));
-	                Console.WriteLine(s);
-	                output.WriteLine(new string('-', 79));
-	                output.WriteLine(s);
-	                Console.ResetColor();
-	                mth.Invoke(testObj, new object[] { });
-	                Passed++;
-	                Console.ForegroundColor = ConsoleColor.Black;
-	                Console.BackgroundColor = ConsoleColor.Green;
-	                s = type.FullName + "." + mth.Name + "() Passed";
-	                Console.WriteLine(s);
-	                Console.WriteLine(new string(' ', 79));
-	                output.WriteLine(s);
-	                output.WriteLine(new string('-', 79));
-	                output.Flush();
-	                Console.ResetColor();
-				}
+                    }
+                    return;
+                }
+                {
+                    Console.ForegroundColor = ConsoleColor.Black;
+                    Console.BackgroundColor = ConsoleColor.White;
+                    string s = type.FullName + "." + mth.Name + "() Start...";
+                    Console.WriteLine(new string(' ', 79));
+                    Console.WriteLine(s);
+                    output.WriteLine(new string('-', 79));
+                    output.WriteLine(s);
+                    Console.ResetColor();
+                    mth.Invoke(testObj, new object[] {});
+                    Passed++;
+                    Console.ForegroundColor = ConsoleColor.Black;
+                    Console.BackgroundColor = ConsoleColor.Green;
+                    s = type.FullName + "." + mth.Name + "() Passed";
+                    Console.WriteLine(s);
+                    Console.WriteLine(new string(' ', 79));
+                    output.WriteLine(s);
+                    output.WriteLine(new string('-', 79));
+                    output.Flush();
+                    Console.ResetColor();
+                }
             }
             catch (Exception ex)
             {
@@ -106,7 +107,7 @@ namespace Cassandra.IntegrationTests.Runner
                 {
                     Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.Red;
-                    var s = type.FullName + "." + mth.Name + "() Failed!";
+                    string s = type.FullName + "." + mth.Name + "() Failed!";
                     Console.WriteLine(s);
                     output.WriteLine(s);
                     s = ex.InnerException.Message;
@@ -117,7 +118,7 @@ namespace Cassandra.IntegrationTests.Runner
                     Console.WriteLine(new string(' ', 79));
                     output.WriteLine(s);
                     output.WriteLine(new string('-', 79));
-	                output.Flush();
+                    output.Flush();
                 }
                 else
                 {
@@ -131,7 +132,7 @@ namespace Cassandra.IntegrationTests.Runner
                     output.WriteLine(ex.InnerException.Message);
                     if (ex.InnerException.InnerException != null)
                         printInnerException(ex.InnerException.InnerException, output);
-                output.Flush();
+                    output.Flush();
                 }
                 Console.WriteLine(ex.InnerException.StackTrace);
                 output.WriteLine(ex.InnerException.StackTrace);
@@ -142,10 +143,10 @@ namespace Cassandra.IntegrationTests.Runner
             Console.WriteLine();
             output.WriteLine();
         }
-        
-        static int Main(string[] args)
+
+        private static int Main(string[] args)
         {
-            if (!CommandLine.Parser.Default.ParseArguments(args, MyTestOptions.Default))
+            if (!Parser.Default.ParseArguments(args, MyTestOptions.Default))
             {
                 MyTestOptions.Default.GetUsage();
                 return 1;
@@ -153,7 +154,7 @@ namespace Cassandra.IntegrationTests.Runner
 
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var tstDir = Settings.Default.TestFolder.Replace("$TEST_ROOT", Directory.GetCurrentDirectory());
+            string tstDir = Settings.Default.TestFolder.Replace("$TEST_ROOT", Directory.GetCurrentDirectory());
             Directory.CreateDirectory(tstDir);
 
             var output =
@@ -166,12 +167,12 @@ namespace Cassandra.IntegrationTests.Runner
             bool priorityTestsRun = true;
 
             second_round: // Iterate again over the test packs, and run tests without priority attribute 
-            foreach (var type in IntegrationTestsAssembly.GetTypes())
+            foreach (Type type in IntegrationTestsAssembly.GetTypes())
             {
                 if (type.Name.EndsWith("Tests") && type.IsPublic)
                 {
                     object testObj = null;
-                    foreach (var mth in type.GetMethods())
+                    foreach (MethodInfo mth in type.GetMethods())
                     {
                         if (mth.GetCustomAttributes(typeof (TestMethodAttribute), true).Length > 0)
                         {
@@ -212,9 +213,9 @@ namespace Cassandra.IntegrationTests.Runner
             else
                 Console.BackgroundColor = ConsoleColor.Green;
 
-            var st = Failed > 0
-                ? string.Format("[{0} (of {1}) Failures]", Failed, Failed + Passed)
-                : string.Format("[All {0} Passed :)]", Passed);
+            string st = Failed > 0
+                            ? string.Format("[{0} (of {1}) Failures]", Failed, Failed + Passed)
+                            : string.Format("[All {0} Passed :)]", Passed);
             st += " Press Any Key To Close The Program";
             Console.WriteLine(new string(' ', 79));
             Console.WriteLine(st + new string(' ', 79 - st.Length));
@@ -229,7 +230,7 @@ namespace Cassandra.IntegrationTests.Runner
             return 0;
         }
 
-        static void printInnerException(Exception ex, StreamWriter output)
+        private static void printInnerException(Exception ex, StreamWriter output)
         {
             Console.WriteLine("(");
             Console.WriteLine("Exception");

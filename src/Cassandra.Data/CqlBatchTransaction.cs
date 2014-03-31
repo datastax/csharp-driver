@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,18 +13,28 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Data;
 using System.Data.Common;
 
 namespace Cassandra.Data
 {
     public sealed class CqlBatchTransaction : DbTransaction
     {
+        private readonly List<CqlCommand> commands = new List<CqlCommand>();
         internal CqlConnection CqlConnection;
-        List<CqlCommand> commands = new List<CqlCommand>();
+
+        protected override DbConnection DbConnection
+        {
+            get { return CqlConnection; }
+        }
+
+        public override IsolationLevel IsolationLevel
+        {
+            get { return IsolationLevel.Unspecified; }
+        }
 
         public CqlBatchTransaction(CqlConnection cqlConnection)
         {
@@ -41,20 +51,10 @@ namespace Cassandra.Data
 
         public override void Commit()
         {
-            foreach (var cmd in commands)
+            foreach (CqlCommand cmd in commands)
                 cmd.ExecuteNonQuery();
             commands.Clear();
             CqlConnection.ClearDbTransaction();
-        }
-
-        protected override DbConnection DbConnection
-        {
-            get { return CqlConnection; }
-        }
-
-        public override System.Data.IsolationLevel IsolationLevel
-        {
-            get { return System.Data.IsolationLevel.Unspecified; }
         }
 
         public override void Rollback()

@@ -13,9 +13,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
+using System;
 using System.Net;
 using System.Text;
-using System;
 
 namespace Cassandra
 {
@@ -26,12 +27,10 @@ namespace Cassandra
     ///  authentication using the PLAIN mechanism for version 2 of the CQL __native__
     ///  protocol.
     /// </summary>
-
     public class PlainTextAuthProvider : IAuthProvider
     {
-
-        private readonly string username;
         private readonly string password;
+        private readonly string username;
 
         /// <summary>
         ///  Creates a new simple authentication information provider with the supplied
@@ -39,7 +38,6 @@ namespace Cassandra
         /// </summary>
         /// <param name="username"> to use for authentication requests </param>
         /// <param name="password"> to use for authentication requests</param>
-
         public PlainTextAuthProvider(string username, string password)
         {
             this.username = username;
@@ -57,7 +55,6 @@ namespace Cassandra
         ///  authentication negotiations on behalf of the client </returns>
         /// <throws name="SaslException"> if an unsupported SASL mechanism is supplied or
         ///  an error is encountered when initialising the authenticator</throws>
-
         public IAuthenticator NewAuthenticator(IPAddress host)
         {
             return new PlainTextAuthenticator(username, password);
@@ -70,9 +67,8 @@ namespace Cassandra
         /// </summary>
         private class PlainTextAuthenticator : IAuthenticator
         {
-
-            private readonly byte[] username;
             private readonly byte[] password;
+            private readonly byte[] username;
 
             public PlainTextAuthenticator(string username, string password)
             {
@@ -82,7 +78,7 @@ namespace Cassandra
 
             public byte[] InitialResponse()
             {
-                byte[] initialToken = new byte[username.Length + password.Length + 2];
+                var initialToken = new byte[username.Length + password.Length + 2];
                 initialToken[0] = 0;
                 Buffer.BlockCopy(username, 0, initialToken, 1, username.Length);
                 initialToken[username.Length + 1] = 0;

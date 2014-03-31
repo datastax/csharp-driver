@@ -5,7 +5,6 @@
     /// </summary>
     public interface IReconnectionSchedule
     {
-
         /// <summary>
         ///  When to attempt the next reconnection. This method will be called once when
         ///  the host is detected down to schedule the first reconnection attempt, and

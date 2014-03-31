@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,25 +13,38 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 
 namespace Cassandra
 {
     internal class BEBinaryWriter
     {
-        readonly BinaryWriter _base;
-        public BEBinaryWriter() { _base = new BinaryWriter(new MemoryTributary()); }
+        private readonly BinaryWriter _base;
+        private int _frameSizePos = -1;
 
-        public long Position { get { return _base.BaseStream.Position; } }
+        public long Position
+        {
+            get { return _base.BaseStream.Position; }
+        }
 
-        public long Length { get { return _base.BaseStream.Length; } }
+        public long Length
+        {
+            get { return _base.BaseStream.Length; }
+        }
+
+        public BEBinaryWriter()
+        {
+            _base = new BinaryWriter(new MemoryTributary());
+        }
 
         public byte[] GetBuffer()
         {
-            return (_base.BaseStream as MemoryTributary).ToArray();            
+            return (_base.BaseStream as MemoryTributary).ToArray();
         }
 
         public void WriteByte(byte value)
@@ -70,24 +83,24 @@ namespace Cassandra
 
         public void WriteString(string str)
         {
-            var encoding = new System.Text.UTF8Encoding();
-            var bytes = encoding.GetBytes(str);
-            WriteUInt16((ushort)bytes.Length);
-            _base.Write(bytes);            
+            var encoding = new UTF8Encoding();
+            byte[] bytes = encoding.GetBytes(str);
+            WriteUInt16((ushort) bytes.Length);
+            _base.Write(bytes);
         }
 
         public void WriteLongString(string str)
         {
-            var encoding = new System.Text.UTF8Encoding();
-            var bytes = encoding.GetBytes(str);
+            var encoding = new UTF8Encoding();
+            byte[] bytes = encoding.GetBytes(str);
             WriteInt32(bytes.Length);
             _base.Write(bytes);
         }
 
         public void WriteStringList(List<string> l)
         {
-            WriteUInt16((ushort)l.Count);
-            foreach (var str in l)
+            WriteUInt16((ushort) l.Count);
+            foreach (string str in l)
                 WriteString(str);
         }
 
@@ -99,16 +112,14 @@ namespace Cassandra
 
         public void WriteShortBytes(byte[] buffer)
         {
-            WriteInt16((short)buffer.Length);
+            WriteInt16((short) buffer.Length);
             _base.Write(buffer);
         }
 
-        private int _frameSizePos = -1;
-
         public void WriteFrameSize()
         {
-            _frameSizePos = (int)_base.Seek(0, SeekOrigin.Current);            
-            
+            _frameSizePos = (int) _base.Seek(0, SeekOrigin.Current);
+
             _base.BaseStream.Seek(4, SeekOrigin.Current); //Reserving space for "length of the frame body" value
             _base.BaseStream.SetLength(_base.BaseStream.Length + 4);
         }
@@ -125,11 +136,11 @@ namespace Cassandra
 
         public RequestFrame GetFrame()
         {
-            var len = (int)_base.Seek(0, SeekOrigin.Current);
+            var len = (int) _base.Seek(0, SeekOrigin.Current);
             Debug.Assert(_frameSizePos != -1);
             _base.Seek(_frameSizePos, SeekOrigin.Begin);
             WriteInt32(len - 8);
-            return new RequestFrame() { Buffer = (MemoryTributary)_base.BaseStream };            
+            return new RequestFrame {Buffer = (MemoryTributary) _base.BaseStream};
         }
     }
 }

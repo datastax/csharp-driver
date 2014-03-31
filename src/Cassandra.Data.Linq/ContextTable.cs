@@ -4,7 +4,7 @@ namespace Cassandra.Data.Linq
 {
     public class ContextTable<TEntity> : Table<TEntity>
     {
-        private Context _context;
+        private readonly Context _context;
 
         internal ContextTable(Table<TEntity> table, Context context) : base(table)
         {
@@ -15,8 +15,9 @@ namespace Cassandra.Data.Linq
         {
             AddNew(entity, trmod);
         }
-        
-        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone, EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
+
+        public void Attach(TEntity entity, EntityUpdateMode updmod = EntityUpdateMode.AllOrNone,
+                           EntityTrackingMode trmod = EntityTrackingMode.KeepAttachedAfterSave)
         {
             _context.Attach(this, entity, updmod, trmod);
         }
@@ -46,7 +47,7 @@ namespace Cassandra.Data.Linq
             return _context.RetriveAllQueryTraces(this);
         }
 
-        public QueryTrace RetriveQueryTrace( TEntity entity)
+        public QueryTrace RetriveQueryTrace(TEntity entity)
         {
             return _context.RetriveQueryTrace(this, entity);
         }

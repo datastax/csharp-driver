@@ -2,30 +2,31 @@ using System.Threading;
 
 namespace Cassandra
 {
-    internal class AtomicValue<T> 
+    internal class AtomicValue<T>
     {
         public T RawValue;
-        public AtomicValue(T val)
-        {
-            this.RawValue = val;
-            Thread.MemoryBarrier();
-        }
+
         public T Value
         {
             get
             {
                 Thread.MemoryBarrier();
-                var r = this.RawValue;
+                T r = RawValue;
                 Thread.MemoryBarrier();
                 return r;
             }
             set
             {
                 Thread.MemoryBarrier();
-                this.RawValue = value;
+                RawValue = value;
                 Thread.MemoryBarrier();
             }
         }
 
+        public AtomicValue(T val)
+        {
+            RawValue = val;
+            Thread.MemoryBarrier();
+        }
     }
 }

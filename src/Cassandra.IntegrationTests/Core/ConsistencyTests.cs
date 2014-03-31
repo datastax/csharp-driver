@@ -28,36 +28,36 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFOneTokenAware()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 1);
             try
             {
-
                 init(c, 12, ConsistencyLevel.One);
                 query(c, 12, ConsistencyLevel.One);
 
-                var assC = coordinators.First().Key.ToString();
-                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+                string assC = coordinators.First().Key.ToString();
+                int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>() { ConsistencyLevel.Any };
+                var acceptedList = new List<ConsistencyLevel> {ConsistencyLevel.Any};
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.All
+                var failList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.All
                 };
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -78,14 +78,16 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<string> acceptableErrorMessages = new List<string>(){
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -94,9 +96,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
@@ -112,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -121,9 +125,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<string> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
@@ -137,7 +143,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -155,37 +160,39 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFTwoTokenAware()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 2);
             try
             {
-
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                var assC = coordinators.First().Key.ToString();
-                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+                string assC = coordinators.First().Key.ToString();
+                int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Any,
-                                                    ConsistencyLevel.One
-                                                                        };
+                var acceptedList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Any,
+                    ConsistencyLevel.One
+                };
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All};
+                var failList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.All
+                };
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -198,7 +205,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -206,14 +213,16 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<string> acceptableErrorMessages = new List<string>(){
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -222,9 +231,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<string> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
@@ -240,7 +251,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -249,9 +260,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
@@ -265,7 +278,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -283,36 +295,39 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFThreeTokenAware()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 3);
             try
             {
-
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                var assC = coordinators.First().Key.ToString();
-                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+                string assC = coordinators.First().Key.ToString();
+                int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Any,
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Quorum};
+                var acceptedList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Any,
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Quorum
+                };
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All};
+                var failList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.All
+                };
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -325,7 +340,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -333,14 +348,16 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -349,9 +366,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
@@ -367,7 +386,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -376,9 +395,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
@@ -392,7 +413,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -410,35 +430,39 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFOneDowngradingCL()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder =
+                Cluster.Builder()
+                       .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
+                       .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 1);
             try
             {
-
                 init(c, 12, ConsistencyLevel.One);
                 query(c, 12, ConsistencyLevel.One);
 
-                var assC = coordinators.First().Key.ToString();
-                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+                string assC = coordinators.First().Key.ToString();
+                int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>() { ConsistencyLevel.Any };
+                var acceptedList = new List<ConsistencyLevel> {ConsistencyLevel.Any};
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.All};
+                var failList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.All
+                };
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -451,7 +475,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -459,14 +483,16 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -475,9 +501,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
@@ -493,7 +521,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -502,9 +530,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
@@ -518,7 +548,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -536,37 +565,40 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFTwoDowngradingCL()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder =
+                Cluster.Builder()
+                       .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
+                       .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
             createSchema(c.Session, 2);
             try
             {
-
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
-                var assC = coordinators.First().Key.ToString();
-                var awareCoord = int.Parse(assC.Substring(assC.Length - 1));
+                string assC = coordinators.First().Key.ToString();
+                int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord.ToString(), 12);
+                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord.ToString(), c.Cluster, 30);
-                
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Any,
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All
-                                                    };
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){};
+                var acceptedList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Any,
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.All
+                };
+
+                var failList = new List<ConsistencyLevel>();
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -579,7 +611,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -587,14 +619,16 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -603,9 +637,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
@@ -621,7 +657,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -630,9 +666,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
@@ -646,7 +684,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -664,7 +701,8 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFThreeRoundRobinDowngradingCL()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy()).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder =
+                Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy()).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testRFThreeDowngradingCL(builder);
         }
 
@@ -672,7 +710,10 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFThreeTokenAwareDowngradingCL()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder =
+                Cluster.Builder()
+                       .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
+                       .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testRFThreeDowngradingCL(builder);
         }
 
@@ -682,7 +723,6 @@ namespace Cassandra.IntegrationTests.Core
             createSchema(c.Session, 3);
             try
             {
-
                 init(c, 12, ConsistencyLevel.All);
                 query(c, 12, ConsistencyLevel.All);
 
@@ -690,19 +730,20 @@ namespace Cassandra.IntegrationTests.Core
                 c.CCMBridge.ForceStop(2);
                 TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Any,
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All
-                                                    };
+                var acceptedList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Any,
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.All
+                };
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>(){};
+                var failList = new List<ConsistencyLevel>();
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -715,7 +756,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -723,14 +764,16 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -739,9 +782,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "consistency level EACH_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (UnavailableException e)
@@ -757,7 +802,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -766,9 +811,11 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "consistency level LOCAL_QUORUM not compatible with replication strategy (org.apache.cassandra.locator.SimpleStrategy)",
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                     catch (ReadTimeoutException e)
@@ -782,7 +829,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -800,13 +846,15 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFThreeDowngradingCLTwoDCs()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder =
+                Cluster.Builder()
+                       .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
+                       .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
             createMultiDCSchema(c.Session, 3, 3);
             //c.Cluster.RefreshSchema();
             try
             {
-
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
@@ -823,21 +871,22 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(20000);
                 TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Any,
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All,
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum
-                                                    };
+                var acceptedList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Any,
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.All,
+                    ConsistencyLevel.LocalQuorum,
+                    ConsistencyLevel.EachQuorum
+                };
 
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>();
+                var failList = new List<ConsistencyLevel>();
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -850,7 +899,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -858,15 +907,17 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes",
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes",
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -886,7 +937,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -904,7 +955,6 @@ namespace Cassandra.IntegrationTests.Core
                         // node as DOWN
                     }
                 }
-
             }
             catch (Exception e)
             {
@@ -922,12 +972,14 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testRFThreeDowngradingCLTwoDCsDCAware()
         {
-            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2"))).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder =
+                Cluster.Builder()
+                       .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
+                       .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
             createMultiDCSchema(c.Session, 3, 3);
             try
             {
-
                 init(c, 12, ConsistencyLevel.Two);
                 query(c, 12, ConsistencyLevel.Two);
 
@@ -946,22 +998,22 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
 
 
+                var acceptedList = new List<ConsistencyLevel>
+                {
+                    ConsistencyLevel.Any,
+                    ConsistencyLevel.One,
+                    ConsistencyLevel.Two,
+                    ConsistencyLevel.Quorum,
+                    ConsistencyLevel.Three,
+                    ConsistencyLevel.All,
+                    ConsistencyLevel.LocalQuorum,
+                    ConsistencyLevel.EachQuorum
+                };
 
-                List<ConsistencyLevel> acceptedList = new List<ConsistencyLevel>(){
-                                                    ConsistencyLevel.Any,
-                                                    ConsistencyLevel.One,
-                                                    ConsistencyLevel.Two,
-                                                    ConsistencyLevel.Quorum,
-                                                    ConsistencyLevel.Three,
-                                                    ConsistencyLevel.All,
-                                                    ConsistencyLevel.LocalQuorum,
-                                                    ConsistencyLevel.EachQuorum
-                                                    };
-
-                List<ConsistencyLevel> failList = new List<ConsistencyLevel>();
+                var failList = new List<ConsistencyLevel>();
 
                 // Test successful writes
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -974,7 +1026,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test successful reads
-                foreach (var cl in acceptedList)
+                foreach (ConsistencyLevel cl in acceptedList)
                 {
                     try
                     {
@@ -982,15 +1034,17 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (InvalidQueryException e)
                     {
-                        List<String> acceptableErrorMessages = new List<string>(){
-                        "EACH_QUORUM ConsistencyLevel is only supported for writes",
-                        "ANY ConsistencyLevel is only supported for writes"};
+                        var acceptableErrorMessages = new List<string>
+                        {
+                            "EACH_QUORUM ConsistencyLevel is only supported for writes",
+                            "ANY ConsistencyLevel is only supported for writes"
+                        };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
                 }
 
                 // Test writes which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {
@@ -1010,7 +1064,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // Test reads which should fail
-                foreach (var cl in failList)
+                foreach (ConsistencyLevel cl in failList)
                 {
                     try
                     {

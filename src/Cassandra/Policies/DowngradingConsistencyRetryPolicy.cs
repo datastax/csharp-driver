@@ -13,9 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
-
     /// <summary>
     ///  A retry policy that sometimes retry with a lower consistency level than the
     ///  one initially requested. <p> <b>BEWARE</b>: This policy may retry queries
@@ -53,21 +53,10 @@ namespace Cassandra
     /// </summary>
     public class DowngradingConsistencyRetryPolicy : IRetryPolicy
     {
-
         public static DowngradingConsistencyRetryPolicy Instance = new DowngradingConsistencyRetryPolicy();
 
-        private DowngradingConsistencyRetryPolicy() { }
-
-        private static RetryDecision MaxLikelyToWorkCl(int knownOk)
+        private DowngradingConsistencyRetryPolicy()
         {
-            if (knownOk >= 3)
-                return RetryDecision.Retry(ConsistencyLevel.Three);
-            else if (knownOk >= 2)
-                return RetryDecision.Retry(ConsistencyLevel.Two);
-            else if (knownOk >= 1)
-                return RetryDecision.Retry(ConsistencyLevel.One);
-            else
-                return RetryDecision.Rethrow();
         }
 
         /// <summary>
@@ -91,7 +80,8 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns>a RetryDecision as defined above.</returns>
-        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+                                           int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.Rethrow();
@@ -176,6 +166,16 @@ namespace Cassandra
 
             // Tries the biggest CL that is expected to work
         }
-    }
 
+        private static RetryDecision MaxLikelyToWorkCl(int knownOk)
+        {
+            if (knownOk >= 3)
+                return RetryDecision.Retry(ConsistencyLevel.Three);
+            if (knownOk >= 2)
+                return RetryDecision.Retry(ConsistencyLevel.Two);
+            if (knownOk >= 1)
+                return RetryDecision.Retry(ConsistencyLevel.One);
+            return RetryDecision.Rethrow();
+        }
+    }
 }

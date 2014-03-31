@@ -21,19 +21,16 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 {
     public class CassandraLog
     {
-        [PartitionKey]        
-        public string category;
-        
-        [ClusteringKey(0)]
-        public DateTimeOffset date;
+        [PartitionKey] public string category;
 
-        [ClusteringKey(1)]
-        public string message;
-        
-        public void display()        
+        [ClusteringKey(0)] public DateTimeOffset date;
+
+        [ClusteringKey(1)] public string message;
+
+        public void display()
         {
             Console.WriteLine(category + "\n " + date.ToString("MM/dd/yyyy H:mm:ss.fff zzz") + "\n " + message
-                + Environment.NewLine);
+                              + Environment.NewLine);
         }
     }
 }

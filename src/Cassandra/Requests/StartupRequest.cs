@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -21,20 +22,21 @@ namespace Cassandra
     {
         public const byte OpCode = 0x01;
 
-        readonly int _streamId;
-        readonly IDictionary<string, string> _options;
+        private readonly IDictionary<string, string> _options;
+        private readonly int _streamId;
+
         public StartupRequest(int streamId, IDictionary<string, string> options)
         {
-            this._streamId = streamId;
-            this._options = options;
+            _streamId = streamId;
+            _options = options;
         }
 
         public RequestFrame GetFrame(byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte)_streamId, OpCode);
-            wb.WriteUInt16((ushort)_options.Count);
-            foreach (var kv in _options)
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
+            wb.WriteUInt16((ushort) _options.Count);
+            foreach (KeyValuePair<string, string> kv in _options)
             {
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);

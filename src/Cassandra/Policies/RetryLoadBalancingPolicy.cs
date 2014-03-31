@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -21,18 +22,15 @@ namespace Cassandra
 {
     public class RetryLoadBalancingPolicy : ILoadBalancingPolicy
     {
+        private readonly ILoadBalancingPolicy _loadBalancingPolicy;
+        private readonly IReconnectionPolicy _reconnectionPolicy;
+        public EventHandler<RetryLoadBalancingPolicyEventArgs> ReconnectionEvent;
 
         public RetryLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy, IReconnectionPolicy reconnectionPolicy)
         {
-            this._reconnectionPolicy = reconnectionPolicy;
-            this._loadBalancingPolicy = loadBalancingPolicy;
+            _reconnectionPolicy = reconnectionPolicy;
+            _loadBalancingPolicy = loadBalancingPolicy;
         }
-
-
-        public EventHandler<RetryLoadBalancingPolicyEventArgs> ReconnectionEvent;
-
-        readonly IReconnectionPolicy _reconnectionPolicy;
-        readonly ILoadBalancingPolicy _loadBalancingPolicy;
 
         public void Initialize(Cluster cluster)
         {
@@ -46,11 +44,11 @@ namespace Cassandra
 
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-            var schedule = _reconnectionPolicy.NewSchedule();
+            IReconnectionSchedule schedule = _reconnectionPolicy.NewSchedule();
             while (true)
             {
-                var childQueryPlan = _loadBalancingPolicy.NewQueryPlan(query);
-                foreach (var host in childQueryPlan)
+                IEnumerable<Host> childQueryPlan = _loadBalancingPolicy.NewQueryPlan(query);
+                foreach (Host host in childQueryPlan)
                     yield return host;
 
                 if (ReconnectionEvent != null)
@@ -61,7 +59,7 @@ namespace Cassandra
                         break;
                 }
                 else
-                    Thread.Sleep((int)schedule.NextDelayMs());
+                    Thread.Sleep((int) schedule.NextDelayMs());
             }
         }
     }

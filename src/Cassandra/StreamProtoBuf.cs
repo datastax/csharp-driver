@@ -15,25 +15,25 @@
 //
 
 using System.IO;
-using System.Diagnostics;
 
 namespace Cassandra
 {
     internal class StreamProtoBuf : IProtoBuf
     {
-        private readonly Logger _logger = new Logger(typeof(StreamProtoBuf));
-        readonly Stream _stream;
-        bool _ioError = false;
-        IProtoBufComporessor _compressor;
+        private readonly Logger _logger = new Logger(typeof (StreamProtoBuf));
+        private readonly Stream _stream;
+        private readonly byte[] _trashBuf = new byte[10*1024];
+        private IProtoBufComporessor _compressor;
+        private bool _ioError;
+
         public StreamProtoBuf(Stream stream, IProtoBufComporessor compressor)
         {
-            this._stream = stream;
-            this._compressor = compressor;
+            _stream = stream;
+            _compressor = compressor;
         }
 
         public void Write(byte[] buffer, int offset, int count)
         {
-
             if (buffer == null)
                 _ioError = true;
             else
@@ -46,7 +46,7 @@ namespace Cassandra
                 }
                 catch (IOException ex)
                 {
-                    _logger.Error("Writing to StreamProtoBuf failed: ",ex);
+                    _logger.Error("Writing to StreamProtoBuf failed: ", ex);
                     _ioError = true;
                     throw new CassandraConnectionIOException(ex);
                 }
@@ -75,14 +75,11 @@ namespace Cassandra
                     {
                         throw new CassandraConnectionIOException();
                     }
-                    else if (redl == count - curOffset - offset)
+                    if (redl == count - curOffset - offset)
                     {
                         return;
                     }
-                    else
-                    {
-                        curOffset += redl;
-                    }
+                    curOffset += redl;
                 }
                 catch (IOException ex)
                 {
@@ -93,8 +90,6 @@ namespace Cassandra
             }
         }
 
-        readonly byte[] _trashBuf = new byte[10 * 1024];
-
         public void Skip(int count)
         {
             if (_ioError) return;
@@ -104,20 +99,16 @@ namespace Cassandra
             {
                 try
                 {
-
-                    int redl= _stream.Read(_trashBuf, curOffset, count - curOffset);
+                    int redl = _stream.Read(_trashBuf, curOffset, count - curOffset);
                     if (redl == 0)
                     {
                         throw new CassandraConnectionIOException();
                     }
-                    else if (redl == count - curOffset)
+                    if (redl == count - curOffset)
                     {
                         return;
                     }
-                    else
-                    {
-                        curOffset += redl;
-                    }
+                    curOffset += redl;
                 }
                 catch (IOException ex)
                 {
@@ -127,6 +118,5 @@ namespace Cassandra
                 }
             }
         }
-
     }
 }

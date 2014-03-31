@@ -30,7 +30,8 @@ namespace Cassandra.IntegrationTests.Linq
     {
         private string KeyspaceName = "test";
 
-        Session Session;
+        private Session Session;
+        private TextWriterTraceListener twtl;
 
         [TestInitialize]
         public void SetFixture()
@@ -51,14 +52,12 @@ namespace Cassandra.IntegrationTests.Linq
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        TextWriterTraceListener twtl = null;
-
         [TestMethod]
         [WorksForMe]
         public void DoTest()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            CassandraLogWriter LogWriter = new CassandraLogWriter();
+            var LogWriter = new CassandraLogWriter();
             twtl = new TextWriterTraceListener(LogWriter);
 
             Trace.Listeners.Add(twtl);
@@ -69,33 +68,33 @@ namespace Cassandra.IntegrationTests.Linq
 
             LogWriter.GetContext(new CassandraLogContext(Session));
 
-            TwitterContext twitterContext = new TwitterContext(Session);
+            var twitterContext = new TwitterContext(Session);
 
-            var TweetsTable = twitterContext.GetTable<Tweet>();
-            var AuthorsTable = twitterContext.GetTable<Author>();
-            var FollowedTweetsTable = twitterContext.GetTable<FollowedTweet>();
-            var StatisticsTable = twitterContext.GetTable<Statistics>();
+            ContextTable<Tweet> TweetsTable = twitterContext.GetTable<Tweet>();
+            ContextTable<Author> AuthorsTable = twitterContext.GetTable<Author>();
+            ContextTable<FollowedTweet> FollowedTweetsTable = twitterContext.GetTable<FollowedTweet>();
+            ContextTable<Statistics> StatisticsTable = twitterContext.GetTable<Statistics>();
 
             Console.WriteLine("Done!");
 
             //Adding authors and their followers to the Authors table: 
             Console.WriteLine("Adding authors and their followers to the Authors table..");
             int AuthorsNo = 10;
-            List<Author> authorsLocal = new List<Author>();
-            List<Statistics> statisticsLocal = new List<Statistics>();
-            List<string> authorsID = new List<string>();
+            var authorsLocal = new List<Author>();
+            var statisticsLocal = new List<Statistics>();
+            var authorsID = new List<string>();
 
             for (int i = 0; i < AuthorsNo; i++)
             {
-                var author_ID = "Author" + i.ToString();
-                var authorEnt = new Author() { author_id = author_ID, followers = authorsID.Where(aut => aut != author_ID).ToList() };
+                string author_ID = "Author" + i;
+                var authorEnt = new Author {author_id = author_ID, followers = authorsID.Where(aut => aut != author_ID).ToList()};
                 AuthorsTable.AddNew(authorEnt);
                 AuthorsTable.EnableQueryTracing(authorEnt);
                 authorsLocal.Add(authorEnt);
                 authorsID.Add(authorEnt.author_id);
 
                 //We will also add current author to the Statistics table: 
-                var statEnt = new Statistics() { author_id = author_ID };
+                var statEnt = new Statistics {author_id = author_ID};
                 StatisticsTable.Attach(statEnt, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
 
                 //And increment number of followers for current author, also in Statistics table: 
@@ -103,10 +102,10 @@ namespace Cassandra.IntegrationTests.Linq
                 statisticsLocal.Add(statEnt);
             }
 
-            
+
             twitterContext.SaveChanges(SaveChangesMode.Batch);
-            var traces = AuthorsTable.RetriveAllQueryTraces();
-            foreach (var trace in traces)
+            List<QueryTrace> traces = AuthorsTable.RetriveAllQueryTraces();
+            foreach (QueryTrace trace in traces)
             {
                 Console.WriteLine("coordinator was {0}", trace.Coordinator);
             }
@@ -115,11 +114,17 @@ namespace Cassandra.IntegrationTests.Linq
 
             //Now every author will add a single tweet:
             Console.WriteLine("Now authors are writing their tweets..");
-            List<Tweet> tweetsLocal = new List<Tweet>();
-            List<FollowedTweet> followedTweetsLocal = new List<FollowedTweet>();
-            foreach (var auth in authorsID)
+            var tweetsLocal = new List<Tweet>();
+            var followedTweetsLocal = new List<FollowedTweet>();
+            foreach (string auth in authorsID)
             {
-                var tweetEnt = new Tweet() { tweet_id = Guid.NewGuid(), author_id = auth, body = "Hello world! My name is " + auth + (DateTime.Now.Second % 2 == 0 ? "." : ""), date = DateTimeOffset.Now };
+                var tweetEnt = new Tweet
+                {
+                    tweet_id = Guid.NewGuid(),
+                    author_id = auth,
+                    body = "Hello world! My name is " + auth + (DateTime.Now.Second%2 == 0 ? "." : ""),
+                    date = DateTimeOffset.Now
+                };
                 TweetsTable.AddNew(tweetEnt);
                 tweetsLocal.Add(tweetEnt);
 
@@ -130,9 +135,16 @@ namespace Cassandra.IntegrationTests.Linq
                 FollowedTweet followedTweetEnt = null;
                 Author author = AuthorsTable.FirstOrDefault(a => a.author_id == auth).Execute();
                 if (author != default(Author) && author.followers != null)
-                    foreach (var follower in author.followers)
+                    foreach (string follower in author.followers)
                     {
-                        followedTweetEnt = new FollowedTweet() { user_id = follower, author_id = tweetEnt.author_id, body = tweetEnt.body, date = tweetEnt.date, tweet_id = tweetEnt.tweet_id };
+                        followedTweetEnt = new FollowedTweet
+                        {
+                            user_id = follower,
+                            author_id = tweetEnt.author_id,
+                            body = tweetEnt.body,
+                            date = tweetEnt.date,
+                            tweet_id = tweetEnt.tweet_id
+                        };
                         FollowedTweetsTable.AddNew(followedTweetEnt);
                         followedTweetsLocal.Add(followedTweetEnt);
                     }
@@ -167,27 +179,28 @@ namespace Cassandra.IntegrationTests.Linq
             Console.WriteLine(separator + string.Format("All tweets posted by users that \"{0}\" follows:", author_id) + Environment.NewLine);
 
             // At first we will check if specified above author_id is present in database:
-            Author specifiedAuthor = (from aut in AuthorsTable where aut.author_id == author_id select aut).FirstOrDefault().Execute(); // it's another possible way of using First/FirstOrDefault method 
+            Author specifiedAuthor = (from aut in AuthorsTable where aut.author_id == author_id select aut).FirstOrDefault().Execute();
+                // it's another possible way of using First/FirstOrDefault method 
 
             if (specifiedAuthor != default(Author))
             {
-                var followedTweets = (from t in FollowedTweetsTable where t.user_id == author_id select t).Execute().ToList();
+                List<FollowedTweet> followedTweets = (from t in FollowedTweetsTable where t.user_id == author_id select t).Execute().ToList();
 
                 if (followedTweets.Count() > 0)
-                    foreach (var foloTwt in followedTweets)
+                    foreach (FollowedTweet foloTwt in followedTweets)
                         foloTwt.display();
                 else
-                    Console.WriteLine(string.Format("There is no tweets from users that {0} follows.", author_id));
+                    Console.WriteLine("There is no tweets from users that {0} follows.", author_id);
             }
             else
-                Console.WriteLine(string.Format("Nothing to display because specified author: \"{0}\" does not exist!", author_id));
+                Console.WriteLine("Nothing to display because specified author: \"{0}\" does not exist!", author_id);
 
 
             //Let's check all of authors punctuation in their tweets, or at least, if they end their tweets with full stop, exclamation or question mark:
-            List<string> authorsWithPunctuationProblems = new List<string>();
+            var authorsWithPunctuationProblems = new List<string>();
 
             //To check it, we can use anonymous class because we are interested only in author_id and body of the tweet
-            var slimmedTweets = (from twt in TweetsTable select new { twt.author_id, twt.body }).Execute();
+            var slimmedTweets = (from twt in TweetsTable select new {twt.author_id, twt.body}).Execute();
             foreach (var slimTwt in slimmedTweets)
                 if (!(slimTwt.body.EndsWith(".") || slimTwt.body.EndsWith("!") || slimTwt.body.EndsWith("?")))
                     if (!authorsWithPunctuationProblems.Contains(slimTwt.author_id))
@@ -196,11 +209,12 @@ namespace Cassandra.IntegrationTests.Linq
             if (authorsWithPunctuationProblems.Count > 0)
             {
                 // Now we can check how many of all authors have this problem..            
-                float proportion = (float)authorsWithPunctuationProblems.Count() / AuthorsTable.Count().Execute() * 100;
-                Console.WriteLine(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion) + Environment.NewLine);
+                float proportion = (float) authorsWithPunctuationProblems.Count()/AuthorsTable.Count().Execute()*100;
+                Console.WriteLine(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion) +
+                                  Environment.NewLine);
 
                 // This time I will help them, and update these tweets with a full stop..            
-                foreach (var tweet in TweetsTable.Where(x => authorsWithPunctuationProblems.Contains(x.author_id)).Execute())
+                foreach (Tweet tweet in TweetsTable.Where(x => authorsWithPunctuationProblems.Contains(x.author_id)).Execute())
                 {
                     TweetsTable.Attach(tweet);
                     tweetsLocal.Where(twt => twt.tweet_id == tweet.tweet_id).First().body += ".";
@@ -216,14 +230,13 @@ namespace Cassandra.IntegrationTests.Linq
 
 
             //Deleting all tweets from "Tweet" table
-            foreach (var ent in tweetsLocal)
+            foreach (Tweet ent in tweetsLocal)
             {
                 TweetsTable.Delete(ent);
 
-                var statEnt = statisticsLocal.FirstOrDefault(auth => auth.author_id == ent.author_id);
+                Statistics statEnt = statisticsLocal.FirstOrDefault(auth => auth.author_id == ent.author_id);
                 if (statEnt != default(Statistics))
                     statEnt.tweets_count -= 1;
-
             }
             twitterContext.SaveChanges(SaveChangesMode.Batch);
 
@@ -233,12 +246,10 @@ namespace Cassandra.IntegrationTests.Linq
 
             //Logs:
             Console.WriteLine(separator + "Number of received logs: " + LogWriter.LogsTable.Count().Execute());
-            foreach (var log in LogWriter.LogsTable.Execute())
+            foreach (CassandraLog log in LogWriter.LogsTable.Execute())
                 log.display();
 
             LogWriter.StopWritingToDB();
-
         }
-
     }
 }

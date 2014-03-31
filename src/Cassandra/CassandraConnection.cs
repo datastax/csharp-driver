@@ -13,20 +13,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
-using System.IO;
-using System.Threading;
+
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 
 namespace Cassandra
 {
     internal class CassandraConnection : IDisposable
     {
+
 #if ERRORINJECTION
         public void KillSocket()
         {
@@ -37,45 +39,55 @@ namespace Cassandra
             catch { }
         }
 #endif
-        private static Logger _logger = new Logger(typeof(CassandraConnection));
-        readonly IPAddress _serverAddress;
-        readonly int _port;
-        readonly Socket _socket;
-        readonly ConcurrentStack<int> _freeStreamIDs = new ConcurrentStack<int>();
-        readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
-        readonly int _queryAbortTimeout = Timeout.Infinite;
+ 
+        private static readonly Logger _logger = new Logger(typeof (CassandraConnection));
+        private static readonly FrameParser FrameParser = new FrameParser();
+        private readonly BoolSwitch _alreadyDisposed = new BoolSwitch();
+        private readonly IAuthInfoProvider _authInfoProvider;
+        private readonly IAuthProvider _authProvider;
+        private readonly byte[][] _buffer;
+        private readonly IBuffering _bufferingMode;
+        private readonly IProtoBufComporessor _compressor;
 
-        readonly AtomicValue<Action<ResponseFrame>> _frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
-        readonly AtomicArray<Action<ResponseFrame>> _frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
-        readonly AtomicArray<AsyncResult<IOutput>> _frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
-        readonly AtomicArray<Timer> _frameReadTimers = new AtomicArray<Timer>(sbyte.MaxValue + 1);
+        private readonly AtomicValue<Action<ResponseFrame>> _frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
+        private readonly AtomicArray<AsyncResult<IOutput>> _frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
+        private readonly AtomicArray<Action<ResponseFrame>> _frameReadCallback = new AtomicArray<Action<ResponseFrame>>(sbyte.MaxValue + 1);
+        private readonly AtomicArray<Timer> _frameReadTimers = new AtomicArray<Timer>(sbyte.MaxValue + 1);
+        private readonly ConcurrentStack<int> _freeStreamIDs = new ConcurrentStack<int>();
+        private readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
 
-        volatile byte _binaryProtocolRequestVersionByte = RequestFrame.ProtocolV2RequestVersionByte;
-        volatile byte _binaryProtocolResponseVersionByte = ResponseFrame.ProtocolV2ResponseVersionByte;
+        private readonly Session _owner;
+        private readonly int _port;
+        private readonly Action<ErrorActionParam> _protocolErrorHandlerAction;
+        private readonly int _queryAbortTimeout = Timeout.Infinite;
+        private readonly AutoResetEvent _readerSocketStreamBusy = new AutoResetEvent(true);
+        private readonly IPAddress _serverAddress;
+        private readonly Socket _socket;
+        private readonly BoolSwitch _socketExceptionOccured = new BoolSwitch();
 
-        Action<ResponseFrame> _defaultFatalErrorAction;
+        private readonly SocketOptions _socketOptions;
+        private readonly Stream _socketStream;
 
-        struct ErrorActionParam
+        private readonly Dictionary<string, string> _startupOptions = new Dictionary<string, string>
         {
-            public AbstractResponse AbstractResponse;
-            public AsyncResult<IOutput> Jar;
-        }
+            {"CQL_VERSION", "3.0.0"}
+        };
 
-        Action<ErrorActionParam> _protocolErrorHandlerAction;
-
-        readonly IAuthProvider _authProvider;
-        readonly IAuthInfoProvider _authInfoProvider;
-
-        readonly Session _owner;
-
-        private readonly SocketOptions _socketOptions;        
-
-        void HostIsDown()
-        {
-            _owner.HostIsDown(_serverAddress);
-        }
+        private readonly AtomicValue<string> currentKs = new AtomicValue<string>("");
+        private readonly ConcurrentDictionary<byte[], string> preparedQueries = new ConcurrentDictionary<byte[], string>();
+        private readonly AtomicValue<string> selectedKs = new AtomicValue<string>("");
 
         internal Guid Guid;
+        private volatile byte _binaryProtocolRequestVersionByte = RequestFrame.ProtocolV2RequestVersionByte;
+        private volatile byte _binaryProtocolResponseVersionByte = ResponseFrame.ProtocolV2ResponseVersionByte;
+
+        private int _bufNo;
+        private Action<ResponseFrame> _defaultFatalErrorAction;
+
+        public bool IsHealthy
+        {
+            get { return !_alreadyDisposed.IsTaken() && !_socketExceptionOccured.IsTaken(); }
+        }
 
         internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
@@ -87,11 +99,11 @@ namespace Cassandra
                 _binaryProtocolResponseVersionByte = ResponseFrame.ProtocolV1ResponseVersionByte;
             }
 
-            this.Guid = System.Guid.NewGuid();
-            this._owner = owner;
-            _bufferingMode = null;           
+            Guid = Guid.NewGuid();
+            _owner = owner;
+            _bufferingMode = null;
             switch (protocolOptions.Compression)
-            {                    
+            {
                 case CompressionType.LZ4:
                     _bufferingMode = new FrameBuffering();
                     break;
@@ -105,49 +117,50 @@ namespace Cassandra
                     throw new ArgumentException();
             }
 
-            this._authProvider = authProvider;
-            this._authInfoProvider = authInfoProvider;
+            _authProvider = authProvider;
+            _authInfoProvider = authInfoProvider;
             if (protocolOptions.Compression == CompressionType.Snappy)
             {
                 _startupOptions.Add("COMPRESSION", "snappy");
                 _compressor = new SnappyProtoBufCompressor();
             }
-            else
-                if (protocolOptions.Compression == CompressionType.LZ4)
-                {
-                    _startupOptions.Add("COMPRESSION", "lz4");
-                    _compressor = new LZ4ProtoBufCompressor();
-                }
+            else if (protocolOptions.Compression == CompressionType.LZ4)
+            {
+                _startupOptions.Add("COMPRESSION", "lz4");
+                _compressor = new LZ4ProtoBufCompressor();
+            }
 
-            this._serverAddress = serverAddress;
-            this._port = protocolOptions.Port;
-            this._queryAbortTimeout = clientOptions.QueryAbortTimeout;
+            _serverAddress = serverAddress;
+            _port = protocolOptions.Port;
+            _queryAbortTimeout = clientOptions.QueryAbortTimeout;
 
-            this._socketOptions = socketOptions;
+            _socketOptions = socketOptions;
 
             for (int i = 0; i <= sbyte.MaxValue; i++)
                 _freeStreamIDs.Push(i);
 
-            _protocolErrorHandlerAction = new Action<ErrorActionParam>((param) =>
+            _protocolErrorHandlerAction = param =>
             {
                 if (param.AbstractResponse is ErrorResponse)
                     JobFinished(
                         param.Jar,
                         (param.AbstractResponse as ErrorResponse).Output);
-            });
+            };
 
-            _frameEventCallback.Value = new Action<ResponseFrame>(EventOccured);
+            _frameEventCallback.Value = EventOccured;
 
-            _buffer = new byte[][] { 
-                new byte[_bufferingMode.PreferedBufferSize()], 
-                new byte[_bufferingMode.PreferedBufferSize()] };
+            _buffer = new[]
+            {
+                new byte[_bufferingMode.PreferedBufferSize()],
+                new byte[_bufferingMode.PreferedBufferSize()]
+            };
 
             var newSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             if (_socketOptions.KeepAlive != null)
-                newSock.SetSocketOption((SocketOptionLevel) SocketOptionLevel.Socket, (SocketOptionName) SocketOptionName.KeepAlive,
-                                        (bool) _socketOptions.KeepAlive.Value);
-            
+                newSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,
+                                        _socketOptions.KeepAlive.Value);
+
             newSock.SendTimeout = _socketOptions.ConnectTimeoutMillis;
 
             if (_socketOptions.SoLinger != null)
@@ -171,39 +184,62 @@ namespace Cassandra
                 _socketStream = new NetworkStream(_socket);
             else
             {
-                string targetHost;                
+                string targetHost;
                 try
                 {
-                    targetHost = Dns.GetHostEntry((IPAddress) _serverAddress).HostName;
+                    targetHost = Dns.GetHostEntry(_serverAddress).HostName;
                 }
                 catch (SocketException ex)
                 {
                     targetHost = serverAddress.ToString();
-                    _logger.Error(String.Format((string) "SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.", (object) _serverAddress.ToString()), ex);
+                    _logger.Error(
+                        String.Format(
+                            "SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.",
+                            _serverAddress), ex);
                 }
 
-                _socketStream = new SslStream(new NetworkStream(_socket), false, new RemoteCertificateValidationCallback(protocolOptions.SslOptions.RemoteCertValidationCallback), null);
-                (_socketStream as SslStream).AuthenticateAsClient(targetHost, new X509CertificateCollection(), protocolOptions.SslOptions.SslProtocol, false);
+                _socketStream = new SslStream(new NetworkStream(_socket), false, protocolOptions.SslOptions.RemoteCertValidationCallback, null);
+                (_socketStream as SslStream).AuthenticateAsClient(targetHost, new X509CertificateCollection(), protocolOptions.SslOptions.SslProtocol,
+                                                                  false);
             }
 
             if (IsHealthy)
                 BeginReading();
         }
 
-        byte[][] _buffer = null;
-        int _bufNo = 0;
+        public void Dispose()
+        {
+            if (!_alreadyDisposed.TryTake())
+                return;
 
-        private readonly Stream _socketStream;
+            try
+            {
+                if (_socket != null)
+                {
+                    _socket.Shutdown(SocketShutdown.Both);
+                    _socket.Disconnect(_socketOptions.ReuseAddress ?? false);
+                    _socket.Close();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (SocketException)
+            {
+            }
+        }
 
-        readonly IBuffering _bufferingMode;
+        private void HostIsDown()
+        {
+            _owner.HostIsDown(_serverAddress);
+        }
 
         internal int AllocateStreamId()
         {
             int ret;
             if (_freeStreamIDs.TryPop(out ret))
                 return ret;
-            else
-                throw new StreamAllocationException();
+            throw new StreamAllocationException();
         }
 
         internal void FreeStreamId(int streamId)
@@ -240,26 +276,15 @@ namespace Cassandra
             }
         }
 
-        readonly Dictionary<string, string> _startupOptions = new Dictionary<string, string>()
-        {
-            {"CQL_VERSION","3.0.0"}
-        };
-
-        static readonly FrameParser FrameParser = new FrameParser();
-
-        internal class StreamAllocationException : Exception
-        {
-        }
-
         private AsyncResult<IOutput> SetupJob(int streamId, AsyncCallback callback, object state, object owner, string propId)
         {
             var ar = new AsyncResult<IOutput>(streamId, callback, state, owner, propId, null, null);
 
-            _defaultFatalErrorAction = new Action<ResponseFrame>((frame2) =>
+            _defaultFatalErrorAction = frame2 =>
             {
-                var response2 = FrameParser.Parse(frame2);
-                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = ar });
-            });
+                AbstractResponse response2 = FrameParser.Parse(frame2);
+                _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response2, Jar = ar});
+            };
 
 
             _frameReadAsyncResult[streamId] = ar;
@@ -267,16 +292,15 @@ namespace Cassandra
             return ar;
         }
 
-        private void BeginJob(AsyncResult<IOutput> jar,  Action job, bool startup = true)
+        private void BeginJob(AsyncResult<IOutput> jar, Action job, bool startup = true)
         {
-
             try
             {
                 if (startup && !_isStreamOpened.Value)
                 {
-                    Evaluate(new StartupRequest(jar.StreamId, _startupOptions), jar.StreamId, (frame) =>
+                    Evaluate(new StartupRequest(jar.StreamId, _startupOptions), jar.StreamId, frame =>
                     {
-                        var response = FrameParser.Parse(frame);
+                        AbstractResponse response = FrameParser.Parse(frame);
                         if (response is ReadyResponse)
                         {
                             _isStreamOpened.Value = true;
@@ -284,29 +308,30 @@ namespace Cassandra
                         }
                         else if (response is AuthenticateResponse)
                         {
-                            if (_binaryProtocolRequestVersionByte == RequestFrame.ProtocolV1RequestVersionByte && _authProvider == NoneAuthProvider.Instance)
+                            if (_binaryProtocolRequestVersionByte == RequestFrame.ProtocolV1RequestVersionByte &&
+                                _authProvider == NoneAuthProvider.Instance)
                                 //this should be true only if we have v1 protocol and it is not DSE 
                             {
-                                var credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
+                                IDictionary<string, string> credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
 
-                                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, frame2 =>
                                 {
-                                    var response2 = FrameParser.Parse(frame2);
+                                    AbstractResponse response2 = FrameParser.Parse(frame2);
                                     if (response2 is ReadyResponse)
                                     {
                                         _isStreamOpened.Value = true;
                                         job();
                                     }
                                     else
-                                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
-                                }));
+                                        _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response2, Jar = jar});
+                                });
                             }
                             else
                                 //either DSE or protocol V2 (or both)
                             {
-                                var authenticator = _authProvider.NewAuthenticator(this._serverAddress);
+                                IAuthenticator authenticator = _authProvider.NewAuthenticator(_serverAddress);
 
-                                var initialResponse = authenticator.InitialResponse();
+                                byte[] initialResponse = authenticator.InitialResponse();
                                 if (null == initialResponse)
                                     initialResponse = new byte[0];
 
@@ -314,7 +339,7 @@ namespace Cassandra
                             }
                         }
                         else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar});
+                            _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
                     });
                 }
                 else
@@ -329,9 +354,9 @@ namespace Cassandra
 
         private void WaitForSaslResponse(AsyncResult<IOutput> jar, byte[] response, IAuthenticator authenticator, Action job)
         {
-            Evaluate(new AuthResponseRequest(jar.StreamId, response), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+            Evaluate(new AuthResponseRequest(jar.StreamId, response), jar.StreamId, frame2 =>
             {
-                var response2 = FrameParser.Parse(frame2);
+                AbstractResponse response2 = FrameParser.Parse(frame2);
                 if ((response2 is AuthSuccessResponse)
                     || (response2 is ReadyResponse))
                 {
@@ -347,34 +372,18 @@ namespace Cassandra
                         // sending a further response back to the server.
                         _isStreamOpened.Value = true;
                         job();
-                        return;
                     }
-                    else
-                    {
-                        // Otherwise, send the challenge response back to the server
-                        WaitForSaslResponse(jar, responseToServer, authenticator, job);
-                    }
+                    // Otherwise, send the challenge response back to the server
+                    WaitForSaslResponse(jar, responseToServer, authenticator, job);
                 }
                 else
-                    _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response2, Jar = jar });
-            }));
-        }
-
-        readonly IProtoBufComporessor _compressor = null;
-
-        private BoolSwitch _socketExceptionOccured = new BoolSwitch();
-
-        public bool IsHealthy
-        {
-            get
-            {
-                return !_alreadyDisposed.IsTaken() && !_socketExceptionOccured.IsTaken();
-            }
+                    _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response2, Jar = jar});
+            });
         }
 
         private void AbortTimerProc(object state)
         {
-            int streamId = (int)state;
+            var streamId = (int) state;
 
             SetupSocketException(new CassandraConnectionTimeoutException());
 
@@ -402,8 +411,6 @@ namespace Cassandra
             }
         }
 
-        readonly AutoResetEvent _readerSocketStreamBusy = new AutoResetEvent(true);
-
         private void BeginReading()
         {
             try
@@ -411,9 +418,8 @@ namespace Cassandra
                 if (!(_bufferingMode is FrameBuffering))
                     _readerSocketStreamBusy.WaitOne();
 
-                var rh = _socketStream.BeginRead(_buffer[_bufNo], 0, _buffer[_bufNo].Length, new AsyncCallback((ar) =>
+                IAsyncResult rh = _socketStream.BeginRead(_buffer[_bufNo], 0, _buffer[_bufNo].Length, ar =>
                 {
-
                     try
                     {
                         // when already disposed, _socketStream.EndRead() throws exception
@@ -438,7 +444,7 @@ namespace Cassandra
                         }
                         else
                         {
-                            foreach (var frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _socketStream, _compressor))
+                            foreach (ResponseFrame frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _socketStream, _compressor))
                             {
                                 if (frame.FrameHeader.Version != _binaryProtocolResponseVersionByte)
                                     throw new CassandraConnectionBadProtocolVersionException();
@@ -457,11 +463,10 @@ namespace Cassandra
 
                                 if (act == null)
                                 {
-
                                     throw new InvalidOperationException("Protocol error! Unmached response. Terminating all requests now...");
                                 }
 
-                                act.BeginInvoke(frame, (tar) =>
+                                act.BeginInvoke(frame, tar =>
                                 {
                                     try
                                     {
@@ -496,7 +501,7 @@ namespace Cassandra
                         else
                             _readerSocketStreamBusy.Set();
                     }
-                }), null);
+                }, null);
             }
             catch (IOException e)
             {
@@ -515,13 +520,13 @@ namespace Cassandra
                    || ex is CassandraConnectionTimeoutException;
         }
 
-        private void ForceComplete(Exception ex=null)
+        private void ForceComplete(Exception ex = null)
         {
             for (int streamId = 0; streamId < sbyte.MaxValue + 1; streamId++)
             {
                 if (_frameReadTimers[streamId] != null)
                     _frameReadTimers[streamId].Change(Timeout.Infinite, Timeout.Infinite);
-                var ar = _frameReadAsyncResult[streamId];
+                AsyncResult<IOutput> ar = _frameReadAsyncResult[streamId];
                 if (ar != null && !ar.IsCompleted)
                     _frameReadAsyncResult[streamId].Complete(ex ?? new CassandraConnectionIOException());
             }
@@ -532,41 +537,22 @@ namespace Cassandra
             ForceComplete(ex);
 
             HostIsDown();
-            try { _bufferingMode.Close(); }
-            catch { }
+            try
+            {
+                _bufferingMode.Close();
+            }
+            catch
+            {
+            }
 
             _socketExceptionOccured.TryTake();
             return (ex.InnerException != null && IsStreamRelatedException(ex.InnerException)) || IsStreamRelatedException(ex);
         }
 
-        BoolSwitch _alreadyDisposed = new BoolSwitch();
-
-        void CheckDisposed()
+        private void CheckDisposed()
         {
             if (_alreadyDisposed.IsTaken())
                 throw new ObjectDisposedException("CassandraConnection");
-        }
-
-        public void Dispose()
-        {
-            if (!_alreadyDisposed.TryTake())
-                return;
-
-            try
-            {
-                if (_socket != null)
-                {
-                    _socket.Shutdown(SocketShutdown.Both);
-                    _socket.Disconnect(_socketOptions.ReuseAddress ?? false);
-                    _socket.Close();
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            catch (SocketException)
-            {
-            }
         }
 
         ~CassandraConnection()
@@ -578,7 +564,7 @@ namespace Cassandra
         {
             try
             {
-                var frame = req.GetFrame(_binaryProtocolRequestVersionByte);
+                RequestFrame frame = req.GetFrame(_binaryProtocolRequestVersionByte);
                 lock (_socketStream)
                 {
                     _frameReadCallback[streamId] = nextAction;
@@ -608,7 +594,7 @@ namespace Cassandra
 
         private void EventOccured(ResponseFrame frame)
         {
-            var response = FrameParser.Parse(frame);
+            AbstractResponse response = FrameParser.Parse(frame);
             if (response is EventResponse)
             {
                 if (CassandraEvent != null)
@@ -618,21 +604,21 @@ namespace Cassandra
             throw new DriverInternalError("Unexpected response frame");
         }
 
-        public IAsyncResult BeginRegisterForCassandraEvent(int _streamId, CassandraEventType eventTypes, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginRegisterForCassandraEvent(int _streamId, CassandraEventType eventTypes, AsyncCallback callback, object state,
+                                                           object owner)
         {
-            var jar = SetupJob(_streamId, callback, state, owner, "REGISTER");
-            BeginJob(jar, new Action(() =>
+            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "REGISTER");
+            BeginJob(jar, () =>
             {
-                Evaluate(new RegisterForEventRequest(jar.StreamId, eventTypes), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new RegisterForEventRequest(jar.StreamId, eventTypes), jar.StreamId, frame2 =>
                 {
-                    var response = FrameParser.Parse(frame2);
+                    AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
                         JobFinished(jar, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
-                }));
-            }));
+                        _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                });
+            });
             return jar;
         }
 
@@ -648,52 +634,52 @@ namespace Cassandra
 
         private Dictionary<byte[], string> NotContainsInAlreadyPrepared(Dictionary<byte[], string> Ids)
         {
-            Dictionary<byte[], string> ret = new Dictionary<byte[], string>();
-            foreach (var key in Ids.Keys)
+            var ret = new Dictionary<byte[], string>();
+            foreach (byte[] key in Ids.Keys)
             {
                 if (!preparedQueries.ContainsKey(key))
                     ret.Add(key, Ids[key]);
             }
             return ret;
         }
+
         public Action SetupPreparedQueries(AsyncResult<IOutput> jar, Dictionary<byte[], string> Ids, Action dx)
         {
-            return new Action(() =>
+            return () =>
             {
-                var ncip = NotContainsInAlreadyPrepared(Ids);
-                if (ncip.Count>0)
+                Dictionary<byte[], string> ncip = NotContainsInAlreadyPrepared(Ids);
+                if (ncip.Count > 0)
                 {
-                    foreach (var ncipit in ncip)
+                    foreach (KeyValuePair<byte[], string> ncipit in ncip)
                     {
-                        Evaluate(new PrepareRequest(jar.StreamId, ncipit.Value), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                        Evaluate(new PrepareRequest(jar.StreamId, ncipit.Value), jar.StreamId, frame2 =>
                         {
-                            var response = FrameParser.Parse(frame2);
+                            AbstractResponse response = FrameParser.Parse(frame2);
                             if (response is ResultResponse)
                             {
                                 preparedQueries.TryAdd(ncipit.Key, ncipit.Value);
                                 BeginJob(jar, SetupPreparedQueries(jar, Ids, dx));
                             }
                             else
-                                _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
-                        }));
+                                _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                        });
                         break;
                     }
                 }
                 else
                     dx();
-            });
+            };
         }
 
         private Dictionary<byte[], string> GetIdsFromListOfQueries(List<Query> queries)
         {
             var ret = new Dictionary<byte[], string>();
-            foreach (var q in queries)
+            foreach (Query q in queries)
             {
                 if (q is BoundStatement)
                 {
                     var bs = (q as BoundStatement);
-                    if(!ret.ContainsKey(bs.PreparedStatement.Id))
+                    if (!ret.ContainsKey(bs.PreparedStatement.Id))
                         ret.Add(bs.PreparedStatement.Id, bs.PreparedStatement.Cql);
                 }
             }
@@ -703,7 +689,7 @@ namespace Cassandra
         private List<IQueryRequest> GetRequestsFromListOfQueries(List<Query> queries)
         {
             var ret = new List<IQueryRequest>();
-            foreach (var q in queries)
+            foreach (Query q in queries)
                 ret.Add(q.CreateBatchRequest());
             return ret;
         }
@@ -712,25 +698,24 @@ namespace Cassandra
                                        AsyncCallback callback, object state, object owner,
                                        ConsistencyLevel consistency, bool isTracing)
         {
-            var jar = SetupJob(_streamId, callback, state, owner, "BATCH");
+            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "BATCH");
 
 
-            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries),  () =>
+            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries), () =>
             {
                 Evaluate(new BatchRequest(jar.StreamId, batchType, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
-                         new Action<ResponseFrame>((frame2) =>
+                         frame2 =>
                          {
-                             var response = FrameParser.Parse(frame2);
+                             AbstractResponse response = FrameParser.Parse(frame2);
                              if (response is ResultResponse)
                                  JobFinished(jar, (response as ResultResponse).Output);
                              else
-                                 _protocolErrorHandlerAction(new ErrorActionParam()
+                                 _protocolErrorHandlerAction(new ErrorActionParam
                                  {
                                      AbstractResponse = response,
                                      Jar = jar
                                  });
-
-                         }));
+                         });
             })));
 
             return jar;
@@ -741,54 +726,50 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "BATCH");
         }
 
-        ConcurrentDictionary<byte[], string> preparedQueries = new ConcurrentDictionary<byte[], string>();
-
         public Action SetupPreparedQuery(AsyncResult<IOutput> jar, byte[] Id, string cql, Action dx)
         {
-            return new Action(() =>
+            return () =>
             {
                 if (!preparedQueries.ContainsKey(Id))
                 {
-                    Evaluate(new PrepareRequest(jar.StreamId, cql), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                    Evaluate(new PrepareRequest(jar.StreamId, cql), jar.StreamId, frame2 =>
                     {
-                        var response = FrameParser.Parse(frame2);
+                        AbstractResponse response = FrameParser.Parse(frame2);
                         if (response is ResultResponse)
                         {
                             preparedQueries.TryAdd(Id, cql);
                             dx();
                         }
                         else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
-                    }));
+                            _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                    });
                 }
                 else
                     dx();
-            });
+            };
         }
 
         public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata,
                                               AsyncCallback callback, object state, object owner,
-                                              bool isTracing, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency=null)
+                                              bool isTracing, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency = null)
         {
-            var jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
+            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, Id, cql, () =>
             {
                 Evaluate(new ExecuteRequest(jar.StreamId, Id, Metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
-                         new Action<ResponseFrame>((frame2) =>
+                         frame2 =>
                          {
-                             var response = FrameParser.Parse(frame2);
+                             AbstractResponse response = FrameParser.Parse(frame2);
                              if (response is ResultResponse)
                                  JobFinished(jar, (response as ResultResponse).Output);
                              else
-                                 _protocolErrorHandlerAction(new ErrorActionParam()
+                                 _protocolErrorHandlerAction(new ErrorActionParam
                                  {
                                      AbstractResponse = response,
                                      Jar = jar
                                  });
-
-                         }));
+                         });
             })));
 
             return jar;
@@ -806,21 +787,21 @@ namespace Cassandra
                                    this);
         }
 
-        public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state,
+                                                         object owner)
         {
-            var jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
-            BeginJob(jar, new Action(() =>
+            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
+            BeginJob(jar, () =>
             {
-                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, frame2 =>
                 {
-                    var response = FrameParser.Parse(frame2);
+                    AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
                         JobFinished(jar, new OutputVoid(null));
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
-                }));
-            }));
+                        _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                });
+            });
             return jar;
         }
 
@@ -834,9 +815,6 @@ namespace Cassandra
             return EndExecuteQueryCredentials(BeginExecuteQueryCredentials(streamId, credentials, null, null, this), this);
         }
 
-        AtomicValue<string> currentKs = new AtomicValue<string>("");
-        AtomicValue<string> selectedKs = new AtomicValue<string>("");
-
         public void SetKeyspace(string ks)
         {
             selectedKs.Value = ks;
@@ -844,40 +822,41 @@ namespace Cassandra
 
         public Action SetupKeyspace(AsyncResult<IOutput> jar, Action dx)
         {
-            return new Action(() =>
+            return () =>
             {
                 if (!currentKs.Value.Equals(selectedKs.Value))
                 {
-                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCQL(selectedKs.Value), false, QueryProtocolOptions.DEFAULT), jar.StreamId, new Action<ResponseFrame>((frame3) =>
-                    {
-                        var response = FrameParser.Parse(frame3);
-                        if (response is ResultResponse)
-                        {
-                            currentKs.Value = selectedKs.Value;
-                            dx();
-                        }
-                        else
-                            _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-                    }));
+                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCQL(selectedKs.Value), false, QueryProtocolOptions.DEFAULT),
+                             jar.StreamId, frame3 =>
+                             {
+                                 AbstractResponse response = FrameParser.Parse(frame3);
+                                 if (response is ResultResponse)
+                                 {
+                                     currentKs.Value = selectedKs.Value;
+                                     dx();
+                                 }
+                                 else
+                                     _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                             });
                 }
                 else
                     dx();
-            });
+            };
         }
 
-        public IAsyncResult BeginQuery(int _streamId, string cqlQuery, AsyncCallback callback, object state, object owner, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency = null)
+        public IAsyncResult BeginQuery(int _streamId, string cqlQuery, AsyncCallback callback, object state, object owner, bool tracingEnabled,
+                                       QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency = null)
         {
-            var jar = SetupJob(_streamId, callback, state, owner, "QUERY");
+            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "QUERY");
             BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new QueryRequest(jar.StreamId, cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, (frame2) =>
+                Evaluate(new QueryRequest(jar.StreamId, cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, frame2 =>
                 {
-                    var response = FrameParser.Parse(frame2);
+                    AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
                         JobFinished(jar, (response as ResultResponse).Output);
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
+                        _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
                 });
             }));
             return jar;
@@ -888,30 +867,30 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "QUERY");
         }
 
-        public IOutput Query(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency=null)
+        public IOutput Query(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions,
+                             ConsistencyLevel? consistency = null)
         {
             return EndQuery(BeginQuery(streamId, cqlQuery, null, null, this, tracingEnabled, queryPrtclOptions, consistency), this);
         }
 
         public IAsyncResult BeginPrepareQuery(int stramId, string cqlQuery, AsyncCallback callback, object state, object owner)
         {
-            var jar = SetupJob(stramId, callback, state, owner, "PREPARE");
+            AsyncResult<IOutput> jar = SetupJob(stramId, callback, state, owner, "PREPARE");
             BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new PrepareRequest(jar.StreamId, cqlQuery), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new PrepareRequest(jar.StreamId, cqlQuery), jar.StreamId, frame2 =>
                 {
-                    var response = FrameParser.Parse(frame2);
+                    AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
                     {
-                        var outp = (response as ResultResponse).Output ;
+                        IOutput outp = (response as ResultResponse).Output;
                         if (outp is OutputPrepared)
                             preparedQueries[(outp as OutputPrepared).QueryID] = cqlQuery;
                         JobFinished(jar, outp);
                     }
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
-                }));
+                        _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                });
             }));
             return jar;
         }
@@ -928,20 +907,19 @@ namespace Cassandra
 
         public IAsyncResult BeginExecuteQueryOptions(int _streamId, AsyncCallback callback, object state, object owner)
         {
-            var jar = SetupJob(_streamId, callback, state, owner, "OPTIONS");
+            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "OPTIONS");
 
-            BeginJob(jar, new Action(() =>
+            BeginJob(jar, () =>
             {
-                Evaluate(new OptionsRequest(jar.StreamId), jar.StreamId, new Action<ResponseFrame>((frame2) =>
+                Evaluate(new OptionsRequest(jar.StreamId), jar.StreamId, frame2 =>
                 {
-                    var response = FrameParser.Parse(frame2);
+                    AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is SupportedResponse)
                         JobFinished(jar, (response as SupportedResponse).Output);
                     else
-                        _protocolErrorHandlerAction(new ErrorActionParam() { AbstractResponse = response, Jar = jar });
-
-                }));
-            }), true);
+                        _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
+                });
+            }, true);
 
             return jar;
         }
@@ -954,6 +932,16 @@ namespace Cassandra
         public IOutput ExecuteOptions(int streamId)
         {
             return EndExecuteQueryOptions(BeginExecuteQueryOptions(streamId, null, null, this), this);
+        }
+
+        private struct ErrorActionParam
+        {
+            public AbstractResponse AbstractResponse;
+            public AsyncResult<IOutput> Jar;
+        }
+
+        internal class StreamAllocationException : Exception
+        {
         }
     }
 }

@@ -22,13 +22,15 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class PreparedStatementsCCMTests
     {
-        [TestMethod]        
+        private Session Session;
+
+        [TestMethod]
         [WorksForMe]
         public void reprepareOnNewlyUpNodeTestCCM()
         {
             reprepareOnNewlyUpNodeTest(true);
         }
-        
+
         [TestMethod]
         [WorksForMe]
         public void reprepareOnNewlyUpNodeNoKeyspaceTestCCM()
@@ -38,12 +40,6 @@ namespace Cassandra.IntegrationTests.Core
             reprepareOnNewlyUpNodeTest(false);
         }
 
-        Session Session;
-
-
-        public PreparedStatementsCCMTests()
-        {
-        }
 
         [TestInitialize]
         public void SetFixture()
@@ -74,7 +70,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Session.WaitForSchemaAgreement(
                     Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)")
-                );
+                    );
             }
             catch (AlreadyExistsException)
             {
@@ -84,7 +80,7 @@ namespace Cassandra.IntegrationTests.Core
 
             PreparedStatement ps = Session.Prepare("SELECT * FROM " + modifiedKs + "test WHERE k = ?");
 
-            using (var rs = Session.Execute(ps.Bind("123")))
+            using (RowSet rs = Session.Execute(ps.Bind("123")))
             {
                 Assert.Equal(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
             }
@@ -96,7 +92,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                using (var rowset = Session.Execute(ps.Bind("124")))
+                using (RowSet rowset = Session.Execute(ps.Bind("124")))
                 {
                     Assert.Equal(rowset.GetRows().First().GetValue<int>("i"), 18);
                 }

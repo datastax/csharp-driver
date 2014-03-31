@@ -23,31 +23,11 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class RetryPolicyTests : PolicyTestTools
     {
-
-        public class TestRetryPolicy : IRetryPolicy
-        {
-
-            public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-
-            public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-
-            public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-        }
-
         [TestMethod]
         [WorksForMe]
         public void defaultRetryPolicy()
         {
-            var builder = Cluster.Builder();
+            Builder builder = Cluster.Builder();
             defaultPolicyTest(builder);
         }
 
@@ -55,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void defaultLoggingPolicy()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.Instance));
+            Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.Instance));
             defaultPolicyTest(builder);
         }
 
@@ -63,11 +43,12 @@ namespace Cassandra.IntegrationTests.Core
          * Test the FallthroughRetryPolicy.
          * Uses the same code that DefaultRetryPolicy uses.
          */
+
         [TestMethod]
         [WorksForMe]
         public void fallthroughRetryPolicy()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(FallthroughRetryPolicy.Instance);
+            Builder builder = Cluster.Builder().WithRetryPolicy(FallthroughRetryPolicy.Instance);
             defaultPolicyTest(builder);
         }
 
@@ -75,11 +56,12 @@ namespace Cassandra.IntegrationTests.Core
          * Test the FallthroughRetryPolicy with Logging enabled.
          * Uses the same code that DefaultRetryPolicy uses.
          */
+
         [TestMethod]
         [WorksForMe]
         public void fallthroughLoggingPolicy()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(FallthroughRetryPolicy.Instance));
+            Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(FallthroughRetryPolicy.Instance));
             defaultPolicyTest(builder);
         }
 
@@ -258,7 +240,6 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(unavailableOnce, "Hit testing race condition. [Never encountered an UnavailableException.] (Shouldn't be an issue.):\n");
 
                 // TODO: Missing test to see if nodes were written to
-
             }
             catch (Exception e)
             {
@@ -275,31 +256,28 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
-
         [TestMethod]
         [WorksForMe]
         public void downgradingConsistencyRetryPolicy()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Builder builder = Cluster.Builder().WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             downgradingConsistencyRetryPolicy(builder);
         }
 
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy with LoggingRetryPolicy
         /// </summary>
-
         [TestMethod]
         [WorksForMe]
         public void downgradingConsistencyLoggingPolicy()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
+            Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
             downgradingConsistencyRetryPolicy(builder);
         }
 
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
-
         public void downgradingConsistencyRetryPolicy(Builder builder)
         {
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
@@ -369,7 +347,6 @@ namespace Cassandra.IntegrationTests.Core
                 assertQueried(Options.Default.IP_PREFIX + "3", 12);
 
                 assertAchievedConsistencyLevel(ConsistencyLevel.One);
-
             }
             catch (Exception e)
             {
@@ -386,11 +363,12 @@ namespace Cassandra.IntegrationTests.Core
         /*
          * Test the AlwaysIgnoreRetryPolicy with Logging enabled.
          */
+
         [TestMethod]
         [WorksForMe]
         public void alwaysIgnoreRetryPolicyTest()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(AlwaysIgnoreRetryPolicy.Instance));
+            Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(AlwaysIgnoreRetryPolicy.Instance));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
             createSchema(c.Session);
 
@@ -449,7 +427,6 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 // TODO: Missing test to see if nodes were written to
-
             }
             catch (Exception e)
             {
@@ -467,6 +444,7 @@ namespace Cassandra.IntegrationTests.Core
         /*
          * Test the AlwaysIgnoreRetryPolicy with Logging enabled.
          */
+
         [TestMethod]
         [WorksForMe]
         public void alwaysRetryRetryPolicyTest()
@@ -476,13 +454,12 @@ namespace Cassandra.IntegrationTests.Core
             Console.Write(Thread.CurrentThread.ManagedThreadId);
             Console.WriteLine("]");
 
-            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(AlwaysRetryRetryPolicy.Instance));
+            Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(AlwaysRetryRetryPolicy.Instance));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
             createSchema(c.Session);
 
             try
             {
-
                 init(c, 12);
                 query(c, 12);
 
@@ -494,13 +471,13 @@ namespace Cassandra.IntegrationTests.Core
                 // Test failed reads
                 c.CCMBridge.ForceStop(2);
 
-                Thread t1 = new Thread(() =>
+                var t1 = new Thread(() =>
                 {
                     Console.Write("Thread started");
                     Console.Write("[");
                     Console.Write(Thread.CurrentThread.ManagedThreadId);
                     Console.WriteLine("]");
-                    
+
                     try
                     {
                         query(c, 12);
@@ -576,7 +553,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 // Test failed writes
                 c.CCMBridge.ForceStop(2);
-                Thread t2 = new Thread(() =>
+                var t2 = new Thread(() =>
                 {
                     Console.WriteLine("2 Thread started");
                     try
@@ -588,7 +565,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         Console.WriteLine("2 Thread async call broke");
                     }
-                    catch (NoHostAvailableException) 
+                    catch (NoHostAvailableException)
                     {
                         Console.WriteLine("2 Thread no host");
                     }
@@ -602,7 +579,6 @@ namespace Cassandra.IntegrationTests.Core
                 t2.Join();
 
                 // TODO: Missing test to see if nodes were written to
-
             }
             catch (Exception e)
             {
@@ -613,6 +589,25 @@ namespace Cassandra.IntegrationTests.Core
             {
                 resetCoordinators();
                 c.Discard();
+            }
+        }
+
+        public class TestRetryPolicy : IRetryPolicy
+        {
+            public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+                                               int nbRetry)
+            {
+                return RetryDecision.Rethrow();
+            }
+
+            public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            {
+                return RetryDecision.Rethrow();
+            }
+
+            public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            {
+                return RetryDecision.Rethrow();
             }
         }
     }

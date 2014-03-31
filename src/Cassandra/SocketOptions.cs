@@ -13,42 +13,28 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
-
     /// <summary>
     ///  Options to configure low-level socket options for the connections kept to the
     ///  Cassandra hosts.
     /// </summary>
-
     public class SocketOptions
     {
         public const int DefaultConnectTimeoutMillis = 5000;
 
         private int _connectTimeoutMillis = DefaultConnectTimeoutMillis;
         private bool? _keepAlive;
+        private int? _receiveBufferSize;
         private bool? _reuseAddress;
+        private int? _sendBufferSize;
         private int? _soLinger;
         private bool? _tcpNoDelay;
-        private int? _receiveBufferSize;
-        private int? _sendBufferSize;
-
-        /// <summary>
-        ///  Creates a new <code>SocketOptions</code> instance with default values.
-        /// </summary>
-        public SocketOptions()
-        {
-        }
 
         public int ConnectTimeoutMillis
         {
-            get {return _connectTimeoutMillis;}
-        }
-
-        public SocketOptions SetConnectTimeoutMillis(int connectTimeoutMillis)
-        {
-            this._connectTimeoutMillis = connectTimeoutMillis;
-            return this;
+            get { return _connectTimeoutMillis; }
         }
 
         public bool? KeepAlive
@@ -56,32 +42,14 @@ namespace Cassandra
             get { return _keepAlive; }
         }
 
-        public SocketOptions SetKeepAlive(bool keepAlive)
-        {
-            this._keepAlive = keepAlive;
-            return this;
-        }
-
         public bool? ReuseAddress
         {
             get { return _reuseAddress; }
         }
 
-        public SocketOptions SetReuseAddress(bool reuseAddress)
-        {
-            this._reuseAddress = reuseAddress;
-            return this;
-        }
-
         public int? SoLinger
         {
-             get {return _soLinger;}
-        }
-
-        public SocketOptions SetSoLinger(int soLinger)
-        {
-            this._soLinger = soLinger;
-            return this;
+            get { return _soLinger; }
         }
 
         public bool? TcpNoDelay
@@ -89,21 +57,9 @@ namespace Cassandra
             get { return _tcpNoDelay; }
         }
 
-        public SocketOptions SetTcpNoDelay(bool tcpNoDelay)
-        {
-            this._tcpNoDelay = tcpNoDelay;
-            return this;
-        }
-
         public int? ReceiveBufferSize
         {
             get { return _receiveBufferSize; }
-        }
-
-        public SocketOptions SetReceiveBufferSize(int receiveBufferSize)
-        {
-            this._receiveBufferSize = receiveBufferSize;
-            return this;
         }
 
         public int? SendBufferSize
@@ -111,9 +67,45 @@ namespace Cassandra
             get { return _sendBufferSize; }
         }
 
+        public SocketOptions SetConnectTimeoutMillis(int connectTimeoutMillis)
+        {
+            _connectTimeoutMillis = connectTimeoutMillis;
+            return this;
+        }
+
+        public SocketOptions SetKeepAlive(bool keepAlive)
+        {
+            _keepAlive = keepAlive;
+            return this;
+        }
+
+        public SocketOptions SetReuseAddress(bool reuseAddress)
+        {
+            _reuseAddress = reuseAddress;
+            return this;
+        }
+
+        public SocketOptions SetSoLinger(int soLinger)
+        {
+            _soLinger = soLinger;
+            return this;
+        }
+
+        public SocketOptions SetTcpNoDelay(bool tcpNoDelay)
+        {
+            _tcpNoDelay = tcpNoDelay;
+            return this;
+        }
+
+        public SocketOptions SetReceiveBufferSize(int receiveBufferSize)
+        {
+            _receiveBufferSize = receiveBufferSize;
+            return this;
+        }
+
         public SocketOptions SetSendBufferSize(int sendBufferSize)
         {
-            this._sendBufferSize = sendBufferSize;
+            _sendBufferSize = sendBufferSize;
             return this;
         }
     }

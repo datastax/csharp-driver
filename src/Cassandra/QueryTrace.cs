@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -32,30 +33,21 @@ namespace Cassandra
     /// </summary>
     public class QueryTrace
     {
-        private readonly Logger _logger = new Logger(typeof(QueryTrace));
         private const string SelectSessionsFormat = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
 
         private const string SelectEventsFormat = "SELECT * FROM system_traces.events WHERE session_id = {0}";
+        private readonly object _fetchLock = new object();
+        private readonly Logger _logger = new Logger(typeof (QueryTrace));
+        private readonly Session _session;
 
         private readonly Guid _traceId;
 
-        private string _requestType;
-        // We use the duration to figure out if the trace is complete, because
-        // that's the last event that is written (and it is written asynchronously'
-        // so it's possible that a fetch gets all the trace except the duration).'
-        private int _duration = int.MinValue;
         private IPAddress _coordinator;
-        private IDictionary<string, string> _parameters;
-        private long _startedAt;
+        private int _duration = int.MinValue;
         private List<Event> _events;
-
-        private readonly Session _session;
-
-        public QueryTrace(Guid traceId, Session session)
-        {
-            this._traceId = traceId;
-            this._session = session;
-        }
+        private IDictionary<string, string> _parameters;
+        private string _requestType;
+        private long _startedAt;
 
         /// <summary>
         ///  The identifier of this trace.
@@ -157,13 +149,17 @@ namespace Cassandra
             }
         }
 
+        public QueryTrace(Guid traceId, Session session)
+        {
+            _traceId = traceId;
+            _session = session;
+        }
+
         public override string ToString()
         {
             MaybeFetchTrace();
             return string.Format("{0} [{1}] - {2}µs", _requestType, _traceId, _duration);
         }
-
-        private readonly object _fetchLock = new object();
 
         private void MaybeFetchTrace()
         {
@@ -185,9 +181,9 @@ namespace Cassandra
         {
             try
             {
-                using (var sessRows = _session.Execute(string.Format(SelectSessionsFormat, _traceId)))
+                using (RowSet sessRows = _session.Execute(string.Format(SelectSessionsFormat, _traceId)))
                 {
-                    foreach (var sessRow in sessRows.GetRows())
+                    foreach (Row sessRow in sessRows.GetRows())
                     {
                         _requestType = sessRow.GetValue<string>("request");
                         if (!sessRow.IsNull("duration"))
@@ -203,18 +199,19 @@ namespace Cassandra
 
                 _events = new List<Event>();
 
-                using (var evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId)))
+                using (RowSet evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId)))
                 {
-                    foreach (var evRow in evRows.GetRows())
+                    foreach (Row evRow in evRows.GetRows())
                     {
                         _events.Add(new Event(evRow.GetValue<string>("activity"),
-                                             new DateTimeOffset(Utils.GetTimestampFromGuid(evRow.GetValue<Guid>("event_id")) + (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
-                                             evRow.GetValue<IPEndPoint>("source").Address,
-                                             evRow.IsNull("source_elapsed") ? 0 : evRow.GetValue<int>("source_elapsed"),
-                                                evRow.GetValue<string>("thread")));
+                                              new DateTimeOffset(
+                                                  Utils.GetTimestampFromGuid(evRow.GetValue<Guid>("event_id")) +
+                                                  (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
+                                              evRow.GetValue<IPEndPoint>("source").Address,
+                                              evRow.IsNull("source_elapsed") ? 0 : evRow.GetValue<int>("source_elapsed"),
+                                              evRow.GetValue<string>("thread")));
                     }
                 }
-
             }
             catch (Exception ex)
             {
@@ -226,25 +223,13 @@ namespace Cassandra
         /// <summary>
         ///  A trace event. <p> A query trace is composed of a list of trace events.</p>
         /// </summary>
-
         public class Event
         {
             private readonly string _name;
-            private readonly DateTimeOffset _timestamp;
             private readonly IPAddress _source;
             private readonly int _sourceElapsed;
             private readonly string _threadName;
-
-            internal Event(string name, DateTimeOffset timestamp, IPAddress source, int sourceElapsed, string threadName)
-            {
-                this._name = name;
-                // Convert the UUID timestamp to an epoch timestamp; I stole this seemingly random value from cqlsh, hopefully it's correct.'
-//                this._timestamp = (timestamp - 0x01b21dd213814000L)/10000;
-                this._timestamp = timestamp;
-                this._source = source;
-                this._sourceElapsed = sourceElapsed;
-                this._threadName = threadName;
-            }
+            private readonly DateTimeOffset _timestamp;
 
             /// <summary>
             ///  The event description, i.e. which activity this event correspond to.
@@ -298,9 +283,20 @@ namespace Cassandra
                 get { return _threadName; }
             }
 
+            internal Event(string name, DateTimeOffset timestamp, IPAddress source, int sourceElapsed, string threadName)
+            {
+                _name = name;
+                // Convert the UUID timestamp to an epoch timestamp; I stole this seemingly random value from cqlsh, hopefully it's correct.'
+//                this._timestamp = (timestamp - 0x01b21dd213814000L)/10000;
+                _timestamp = timestamp;
+                _source = source;
+                _sourceElapsed = sourceElapsed;
+                _threadName = threadName;
+            }
+
             public override string ToString()
             {
-                return string.Format("{0} on {1}[{2}] at {3}", _name, _source, _threadName,_timestamp);
+                return string.Format("{0} on {1}[{2}] at {3}", _name, _source, _threadName, _timestamp);
             }
         }
     }

@@ -7,54 +7,9 @@ namespace Cassandra
 {
     internal static class CqlQueryTools
     {
-        static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
-        public static string CqlIdentifier(string id)
-        {
-            if (!string.IsNullOrEmpty(id))
-            {
-                if (!IdentifierRx.IsMatch(id))
-                {
-                    return QuoteIdentifier(id);
-                }
-                else
-                {
-                    return id;
-                }
-            }
-            throw new ArgumentException("invalid identifier");
-        }
+        private static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
 
-        public static string QuoteIdentifier(string id)
-        {
-            return "\"" + id.Replace("\"", "\"\"") + "\"";
-        }
-
-        public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes, bool ifNotExists)
-        {
-            if (replication == null)
-                replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", "1" } };
-            return string.Format(
-                @"CREATE KEYSPACE {3}{0} 
-  WITH replication = {1} 
-   AND durable_writes = {2}"
-                , Cassandra.CqlQueryTools.QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false", ifNotExists ? "IF NOT EXISTS " : "");
-        }
-
-        public static string GetUseKeyspaceCQL(string keyspace)
-        {
-            return string.Format(
-                @"USE {0}"
-                , CqlQueryTools.QuoteIdentifier(keyspace));
-        }
-
-        public static string GetDropKeyspaceCQL(string keyspace,bool ifExists)
-        {
-            return string.Format(
-                @"DROP KEYSPACE {1}{0}"
-                , CqlQueryTools.QuoteIdentifier(keyspace),ifExists?"IF EXISTS ":"");
-        }
-
-        private static readonly string[] HexStringTable = new string[]
+        private static readonly string[] HexStringTable =
         {
             "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B", "0C", "0D", "0E", "0F",
             "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1A", "1B", "1C", "1D", "1E", "1F",
@@ -73,6 +28,51 @@ namespace Cassandra
             "E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "EA", "EB", "EC", "ED", "EE", "EF",
             "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FA", "FB", "FC", "FD", "FE", "FF"
         };
+
+        public static string CqlIdentifier(string id)
+        {
+            if (!string.IsNullOrEmpty(id))
+            {
+                if (!IdentifierRx.IsMatch(id))
+                {
+                    return QuoteIdentifier(id);
+                }
+                return id;
+            }
+            throw new ArgumentException("invalid identifier");
+        }
+
+        public static string QuoteIdentifier(string id)
+        {
+            return "\"" + id.Replace("\"", "\"\"") + "\"";
+        }
+
+        public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes, bool ifNotExists)
+        {
+            if (replication == null)
+                replication = new Dictionary<string, string> {{"class", ReplicationStrategies.SimpleStrategy}, {"replication_factor", "1"}};
+            return string.Format(
+                @"CREATE KEYSPACE {3}{0} 
+  WITH replication = {1} 
+   AND durable_writes = {2}"
+                , QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false",
+                ifNotExists ? "IF NOT EXISTS " : "");
+        }
+
+        public static string GetUseKeyspaceCQL(string keyspace)
+        {
+            return string.Format(
+                @"USE {0}"
+                , QuoteIdentifier(keyspace));
+        }
+
+        public static string GetDropKeyspaceCQL(string keyspace, bool ifExists)
+        {
+            return string.Format(
+                @"DROP KEYSPACE {1}{0}"
+                , QuoteIdentifier(keyspace), ifExists ? "IF EXISTS " : "");
+        }
+
         public static string ToHex(byte[] value)
         {
             var stringBuilder = new StringBuilder();

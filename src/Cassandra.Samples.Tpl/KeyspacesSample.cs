@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +13,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
-using Cassandra.Data.Linq;
 
 //based on https://github.com/pchalamet/cassandra-sharp/tree/master/Samples
+
 namespace TPLSample.KeyspacesSample
 {
     public static class KeyspacesSample
@@ -30,17 +30,18 @@ namespace TPLSample.KeyspacesSample
             // this sample requires buffering
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
 
-            using (var session = cluster.Connect())
+            using (Session session = cluster.Connect())
             {
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
 
-                var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
+                Query query = new SimpleStatement(cqlKeyspaces).EnableTracing();
 
                 var allTasks = new List<Task>();
                 for (int i = 0; i < 100; ++i)
                 {
-                    var futRes = Task<RowSet>.Factory.FromAsync(session.BeginExecute, session.EndExecute, cqlKeyspaces, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), null)
-                        .ContinueWith(t => DisplayKeyspace(t.Result));
+                    Task futRes = Task<RowSet>.Factory.FromAsync(session.BeginExecute, session.EndExecute, cqlKeyspaces,
+                                                                 session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), null)
+                                              .ContinueWith(t => DisplayKeyspace(t.Result));
                     allTasks.Add(futRes);
                 }
 
@@ -54,12 +55,12 @@ namespace TPLSample.KeyspacesSample
         {
             try
             {
-                foreach (var resKeyspace in result.GetRows())
+                foreach (Row resKeyspace in result.GetRows())
                 {
                     Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                      resKeyspace.GetValue<bool>("durable_writes"), 
-                                      resKeyspace.GetValue<string>("keyspace_name"), 
-                                      resKeyspace.GetValue<string>("strategy_class"), 
+                                      resKeyspace.GetValue<bool>("durable_writes"),
+                                      resKeyspace.GetValue<string>("keyspace_name"),
+                                      resKeyspace.GetValue<string>("strategy_class"),
                                       resKeyspace.GetValue<string>("strategy_options"));
                 }
                 Console.WriteLine();

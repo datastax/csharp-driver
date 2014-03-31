@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -31,17 +32,16 @@ namespace Cassandra
                                         received,
                                         required)
         {
-            this.WasDataRetrieved = dataPresent;
+            WasDataRetrieved = dataPresent;
         }
 
         private static string FormatDetails(int received, int required, bool dataPresent)
         {
             if (received < required)
                 return string.Format("{0} replica responded over {1} required", received, required);
-            else if (!dataPresent)
+            if (!dataPresent)
                 return string.Format("the replica queried for data didn't responded");
-            else
-                return string.Format("timeout while waiting for repair of inconsistent replica");
+            return string.Format("timeout while waiting for repair of inconsistent replica");
         }
     }
 }

@@ -13,9 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-using System.Threading;
-using System.Collections.Generic;
-using System.IO;
 
 namespace Cassandra
 {
@@ -32,46 +29,12 @@ namespace Cassandra
         private readonly int _port;
         private readonly SSLOptions _sslOptions;
         private CompressionType _compression = CompressionType.NoCompression;
- 
-        /// <summary>
-        ///  Creates a new <code>ProtocolOptions</code> instance using the
-        ///  <code>DEFAULT_PORT</code>.
-        /// </summary>
-
-        public ProtocolOptions()
-            : this(DefaultPort)
-        {
-        }
-
-        /// <summary>
-        ///  Creates a new <code>ProtocolOptions</code> instance using the provided port.
-        /// </summary>
-        /// <param name="port"> the port to use for the binary protocol.</param>
-
-        public ProtocolOptions(int port)
-        {
-            this._port = port;
-        }
-               
-
-        /// <summary>       
-        /// Creates a new ProtocolOptions instance using the provided port and SSL context.        
-        /// </summary>
-        /// <param name="port">the port to use for the binary protocol.</param>
-        /// <param name="sslOptions">sslOptions the SSL options to use. Use null if SSL is not to be used.</param>
-        
-        public ProtocolOptions(int port, SSLOptions sslOptions)
-        {
-            this._port = port;
-            this._sslOptions = sslOptions;
-        }
 
         /// <summary>
         ///  The port used to connect to the Cassandra hosts.
         /// </summary>
         /// 
         /// <returns>the port used to connect to the Cassandra hosts.</returns>
-        
         public int Port
         {
             get { return _port; }
@@ -82,7 +45,6 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>SSL options used to connect to the Cassandra hosts.</returns>
-        
         public SSLOptions SslOptions
         {
             get { return _sslOptions; }
@@ -94,10 +56,39 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the compression used.</returns>
-
         public CompressionType Compression
         {
             get { return _compression; }
+        }
+
+        /// <summary>
+        ///  Creates a new <code>ProtocolOptions</code> instance using the
+        ///  <code>DEFAULT_PORT</code>.
+        /// </summary>
+        public ProtocolOptions()
+            : this(DefaultPort)
+        {
+        }
+
+        /// <summary>
+        ///  Creates a new <code>ProtocolOptions</code> instance using the provided port.
+        /// </summary>
+        /// <param name="port"> the port to use for the binary protocol.</param>
+        public ProtocolOptions(int port)
+        {
+            _port = port;
+        }
+
+
+        /// <summary>       
+        /// Creates a new ProtocolOptions instance using the provided port and SSL context.        
+        /// </summary>
+        /// <param name="port">the port to use for the binary protocol.</param>
+        /// <param name="sslOptions">sslOptions the SSL options to use. Use null if SSL is not to be used.</param>
+        public ProtocolOptions(int port, SSLOptions sslOptions)
+        {
+            _port = port;
+            _sslOptions = sslOptions;
         }
 
         /// <summary>
@@ -108,13 +99,11 @@ namespace Cassandra
         ///  </param>
         /// 
         /// <returns>this <code>ProtocolOptions</code> object.</returns>
-
         public ProtocolOptions SetCompression(CompressionType compression)
         {
-            this._compression = compression;
+            _compression = compression;
             return this;
         }
-
     }
 }
 

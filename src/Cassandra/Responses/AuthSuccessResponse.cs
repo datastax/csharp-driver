@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +13,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿namespace Cassandra
- {
-     internal class AuthSuccessResponse : AbstractResponse
-     {
-         public const byte OpCode = 0x10;
 
-         public byte[] Token;
+namespace Cassandra
+{
+    internal class AuthSuccessResponse : AbstractResponse
+    {
+        public const byte OpCode = 0x10;
 
-         internal AuthSuccessResponse(ResponseFrame frame)
-             : base(frame)
-         {
-             Token = BEBinaryReader.ReadBytes();
-         }
+        public byte[] Token;
 
-         internal static AuthSuccessResponse Create(ResponseFrame frame)
-         {
-             return new AuthSuccessResponse(frame);
-         }
-     }
- }
+        internal AuthSuccessResponse(ResponseFrame frame)
+            : base(frame)
+        {
+            Token = BEBinaryReader.ReadBytes();
+        }
+
+        internal static AuthSuccessResponse Create(ResponseFrame frame)
+        {
+            return new AuthSuccessResponse(frame);
+        }
+    }
+}

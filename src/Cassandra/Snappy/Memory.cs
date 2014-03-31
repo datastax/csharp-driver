@@ -20,7 +20,7 @@
 
 namespace Snappy
 {
-    interface IMemory
+    internal interface IMemory
     {
         bool FastAccessSupported();
 
@@ -36,4 +36,4 @@ namespace Snappy
 
         void CopyMemory(byte[] input, int inputIndex, byte[] output, int outputIndex, int length);
     }
-}	// end namespace
+} // end namespace

@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System.Collections.Generic;
 using System.Net;
 
@@ -26,7 +27,7 @@ namespace Cassandra
     /// </summary>
     /// 
     internal interface IAuthInfoProvider
-    // only for protocol V1 Credentials support
+        // only for protocol V1 Credentials support
     {
         /// <summary>
         ///  The authentication informations to use to connect to <code>host</code>.
@@ -38,6 +39,6 @@ namespace Cassandra
         ///  are requested. </param>
         /// 
         /// <returns>The authentication informations to use.</returns>
-         IDictionary<string, string> GetAuthInfos(IPAddress host);
+        IDictionary<string, string> GetAuthInfos(IPAddress host);
     }
 }

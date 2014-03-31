@@ -6,7 +6,7 @@ namespace Cassandra.Data.Linq
 {
     internal class CqlStringTool
     {
-        List<object> srcvalues = new List<object>();
+        private readonly List<object> srcvalues = new List<object>();
 
         public string FillWithEncoded(string pure)
         {
@@ -14,13 +14,13 @@ namespace Cassandra.Data.Linq
                 return pure;
 
             var sb = new StringBuilder();
-            var parts = pure.Split('\0');
+            string[] parts = pure.Split('\0');
 
             for (int i = 0; i < parts.Length - 1; i += 2)
             {
                 sb.Append(parts[i]);
-                var idx = int.Parse(parts[i + 1]);
-                sb.Append(CqlQueryTools.Encode(srcvalues[idx]));
+                int idx = int.Parse(parts[i + 1]);
+                sb.Append(srcvalues[idx].Encode());
             }
             sb.Append(parts.Last());
             return sb.ToString();
@@ -36,12 +36,12 @@ namespace Cassandra.Data.Linq
 
             var sb = new StringBuilder();
             var objs = new List<object>();
-            var parts = pure.Split('\0');
+            string[] parts = pure.Split('\0');
 
             for (int i = 0; i < parts.Length - 1; i += 2)
             {
                 sb.Append(parts[i]);
-                var idx = int.Parse(parts[i + 1]);
+                int idx = int.Parse(parts[i + 1]);
                 objs.Add(srcvalues[idx]);
                 sb.Append(" ? ");
             }
@@ -53,7 +53,7 @@ namespace Cassandra.Data.Linq
         public string AddValue(object val)
         {
             srcvalues.Add(val);
-            return "\0" + (srcvalues.Count - 1).ToString() + "\0";
+            return "\0" + (srcvalues.Count - 1) + "\0";
         }
     }
 }

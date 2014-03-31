@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -6,7 +7,9 @@ namespace Cassandra.Data.Linq
 {
     public class CqlScalar<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlScalar(Expression expression, IQueryProvider table) :base(expression,table){}
+        internal CqlScalar(Expression expression, IQueryProvider table) : base(expression, table)
+        {
+        }
 
         public TEntity Execute()
         {
@@ -42,28 +45,28 @@ namespace Cassandra.Data.Linq
             visitor.Evaluate(Expression);
 
             object[] values;
-            var cql = visitor.GetCount(out values, withValues);
+            string cql = visitor.GetCount(out values, withValues);
             return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
         }
 
         public TEntity EndExecute(IAsyncResult ar)
         {
-            using (var outp = InternalEndExecute(ar))
+            using (RowSet outp = InternalEndExecute(ar))
             {
                 QueryTrace = outp.Info.QueryTrace;
 
-                var cols = outp.Columns;
+                CqlColumn[] cols = outp.Columns;
                 if (cols.Length != 1)
                     throw new InvalidOperationException("Single column is expected.");
 
-                var rows = outp.GetRows();
+                IEnumerable<Row> rows = outp.GetRows();
                 bool first = false;
                 TEntity ret = default(TEntity);
-                foreach (var row in rows)
+                foreach (Row row in rows)
                 {
                     if (first == false)
                     {
-                        ret = (TEntity)row[0];
+                        ret = (TEntity) row[0];
                         first = true;
                     }
                     else

@@ -2,7 +2,7 @@ using System;
 
 namespace Cassandra
 {
-    interface IToken : IComparable
+    internal interface IToken : IComparable
     {
     }
 }

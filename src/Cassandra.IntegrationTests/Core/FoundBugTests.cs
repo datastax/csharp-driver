@@ -29,7 +29,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 using (Cluster cluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
                 {
-
                     Session session = null;
                     try
                     {
@@ -55,20 +54,20 @@ namespace Cassandra.IntegrationTests.Core
         [TestMethod]
         [WorksForMe]
         public void Jira_CSHARP_40()
-        //During reconnect the tablespace name becomes invalid
+            //During reconnect the tablespace name becomes invalid
         {
-            var CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            CCMBridge.CCMCluster CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             try
             {
-                var Session = CCMCluster.Session;
-                var Keyspace = "Excelsior";
+                Session Session = CCMCluster.Session;
+                string Keyspace = "Excelsior";
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
-                var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
+                Query query = new SimpleStatement(cqlKeyspaces).EnableTracing();
                 {
-                    using (var result = Session.Execute(query))
-                        foreach (var resKeyspace in result.GetRows())
+                    using (RowSet result = Session.Execute(query))
+                        foreach (Row resKeyspace in result.GetRows())
                         {
                             Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
                                               resKeyspace.GetValue<bool>("durable_writes"),
@@ -85,8 +84,8 @@ namespace Cassandra.IntegrationTests.Core
 
                 try
                 {
-                    using (var result = Session.Execute(query))
-                        foreach (var resKeyspace in result.GetRows())
+                    using (RowSet result = Session.Execute(query))
+                        foreach (Row resKeyspace in result.GetRows())
                         {
                             Console.WriteLine(resKeyspace.GetValue<string>("keyspace_name"));
                         }
@@ -99,9 +98,9 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.waitFor(Options.Default.IP_PREFIX + "1", CCMCluster.Cluster, 60);
 
                 {
-                    var result = Session.Execute(query);
+                    RowSet result = Session.Execute(query);
 
-                    foreach (var resKeyspace in result.GetRows())
+                    foreach (Row resKeyspace in result.GetRows())
                     {
                         Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
                                           resKeyspace.GetValue<bool>("durable_writes"),
@@ -110,7 +109,6 @@ namespace Cassandra.IntegrationTests.Core
                                           resKeyspace.GetValue<string>("strategy_options"));
                     }
                 }
-
             }
             finally
             {

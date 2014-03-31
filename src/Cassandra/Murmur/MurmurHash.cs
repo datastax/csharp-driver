@@ -32,24 +32,24 @@ internal class MurmurHash
     {
         int i_8 = index << 3;
         int blockOffset = offset + i_8;
-        return ((long)key[blockOffset + 0] & 0xff) + (((long)key[blockOffset + 1] & 0xff) << 8) +
-               (((long)key[blockOffset + 2] & 0xff) << 16) + (((long)key[blockOffset + 3] & 0xff) << 24) +
-               (((long)key[blockOffset + 4] & 0xff) << 32) + (((long)key[blockOffset + 5] & 0xff) << 40) +
-               (((long)key[blockOffset + 6] & 0xff) << 48) + (((long)key[blockOffset + 7] & 0xff) << 56);
+        return ((long) key[blockOffset + 0] & 0xff) + (((long) key[blockOffset + 1] & 0xff) << 8) +
+               (((long) key[blockOffset + 2] & 0xff) << 16) + (((long) key[blockOffset + 3] & 0xff) << 24) +
+               (((long) key[blockOffset + 4] & 0xff) << 32) + (((long) key[blockOffset + 5] & 0xff) << 40) +
+               (((long) key[blockOffset + 6] & 0xff) << 48) + (((long) key[blockOffset + 7] & 0xff) << 56);
     }
 
     private static long Rotl64(long v, int n)
     {
-        return ((v << n) | ((long)((ulong)v >> (64 - n))));
+        return ((v << n) | ((long) ((ulong) v >> (64 - n))));
     }
 
     private static long Fmix(long k)
     {
-        k ^= (long)((ulong)k >> 33);
+        k ^= (long) ((ulong) k >> 33);
         k *= -0xAE502812AA7333;
-        k ^= (long)((ulong)k >> 33);
+        k ^= (long) ((ulong) k >> 33);
         k *= -0x3B314601E57A13AD;
-        k ^= (long)((ulong)k >> 33);
+        k ^= (long) ((ulong) k >> 33);
 
         return k;
     }
@@ -69,23 +69,33 @@ internal class MurmurHash
 
         for (int i = 0; i < nblocks; i++)
         {
-            long k1 = GetBlock(key, offset, i * 2 + 0);
-            long k2 = GetBlock(key, offset, i * 2 + 1);
+            long k1 = GetBlock(key, offset, i*2 + 0);
+            long k2 = GetBlock(key, offset, i*2 + 1);
 
-            k1 *= c1; k1 = Rotl64(k1, 31); k1 *= c2; h1 ^= k1;
+            k1 *= c1;
+            k1 = Rotl64(k1, 31);
+            k1 *= c2;
+            h1 ^= k1;
 
-            h1 = Rotl64(h1, 27); h1 += h2; h1 = h1 * 5 + 0x52dce729;
+            h1 = Rotl64(h1, 27);
+            h1 += h2;
+            h1 = h1*5 + 0x52dce729;
 
-            k2 *= c2; k2 = Rotl64(k2, 33); k2 *= c1; h2 ^= k2;
+            k2 *= c2;
+            k2 = Rotl64(k2, 33);
+            k2 *= c1;
+            h2 ^= k2;
 
-            h2 = Rotl64(h2, 31); h2 += h1; h2 = h2 * 5 + 0x38495ab5;
+            h2 = Rotl64(h2, 31);
+            h2 += h1;
+            h2 = h2*5 + 0x38495ab5;
         }
 
         //----------
         // tail
 
         // Advance offset to the unprocessed tail of the data.
-        offset += nblocks * 16;
+        offset += nblocks*16;
 
         {
             long k1 = 0;
@@ -93,32 +103,68 @@ internal class MurmurHash
 
             switch (length & 15)
             {
-                case 15: k2 ^= ((long)key[offset + 14]) << 48; goto case 14;
-                case 14: k2 ^= ((long)key[offset + 13]) << 40; goto case 13;
-                case 13: k2 ^= ((long)key[offset + 12]) << 32; goto case 12;
-                case 12: k2 ^= ((long)key[offset + 11]) << 24; goto case 11;
-                case 11: k2 ^= ((long)key[offset + 10]) << 16; goto case 10;
-                case 10: k2 ^= ((long)key[offset + 9]) << 8; goto case 9;
-                case 9: k2 ^= ((long)key[offset + 8]) << 0;
-                    k2 *= c2; k2 = Rotl64(k2, 33); k2 *= c1; h2 ^= k2; 
+                case 15:
+                    k2 ^= ((long) key[offset + 14]) << 48;
+                    goto case 14;
+                case 14:
+                    k2 ^= ((long) key[offset + 13]) << 40;
+                    goto case 13;
+                case 13:
+                    k2 ^= ((long) key[offset + 12]) << 32;
+                    goto case 12;
+                case 12:
+                    k2 ^= ((long) key[offset + 11]) << 24;
+                    goto case 11;
+                case 11:
+                    k2 ^= ((long) key[offset + 10]) << 16;
+                    goto case 10;
+                case 10:
+                    k2 ^= ((long) key[offset + 9]) << 8;
+                    goto case 9;
+                case 9:
+                    k2 ^= ((long) key[offset + 8]) << 0;
+                    k2 *= c2;
+                    k2 = Rotl64(k2, 33);
+                    k2 *= c1;
+                    h2 ^= k2;
                     goto case 8;
 
-                case 8: k1 ^= ((long)key[offset + 7]) << 56; goto case 7;
-                case 7: k1 ^= ((long)key[offset + 6]) << 48; goto case 6;
-                case 6: k1 ^= ((long)key[offset + 5]) << 40; goto case 5;
-                case 5: k1 ^= ((long)key[offset + 4]) << 32; goto case 4;
-                case 4: k1 ^= ((long)key[offset + 3]) << 24; goto case 3;
-                case 3: k1 ^= ((long)key[offset + 2]) << 16; goto case 2;
-                case 2: k1 ^= ((long)key[offset + 1]) << 8; goto case 1;
-                case 1: k1 ^= ((long)key[offset]);
-                    k1 *= c1; k1 = Rotl64(k1, 31); k1 *= c2; h1 ^= k1; 
+                case 8:
+                    k1 ^= ((long) key[offset + 7]) << 56;
+                    goto case 7;
+                case 7:
+                    k1 ^= ((long) key[offset + 6]) << 48;
+                    goto case 6;
+                case 6:
+                    k1 ^= ((long) key[offset + 5]) << 40;
+                    goto case 5;
+                case 5:
+                    k1 ^= ((long) key[offset + 4]) << 32;
+                    goto case 4;
+                case 4:
+                    k1 ^= ((long) key[offset + 3]) << 24;
+                    goto case 3;
+                case 3:
+                    k1 ^= ((long) key[offset + 2]) << 16;
+                    goto case 2;
+                case 2:
+                    k1 ^= ((long) key[offset + 1]) << 8;
+                    goto case 1;
+                case 1:
+                    k1 ^= key[offset];
+                    k1 *= c1;
+                    k1 = Rotl64(k1, 31);
+                    k1 *= c2;
+                    h1 ^= k1;
                     break;
-            };
+            }
+            ;
         }
         //----------
         // finalization
 
-        h1 ^= length; h2 ^= length;
+        h1 ^= length;
+        h2 ^= length;
 
         h1 += h2;
         h2 += h1;
@@ -129,6 +175,6 @@ internal class MurmurHash
         h1 += h2;
         h2 += h1;
 
-        return (new long[] { h1, h2 });
+        return (new[] {h1, h2});
     }
 }

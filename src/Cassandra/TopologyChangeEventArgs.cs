@@ -10,7 +10,7 @@ namespace Cassandra
             RemovedNode
         };
 
-        public Reason What;
         public IPAddress Address;
+        public Reason What;
     }
 }

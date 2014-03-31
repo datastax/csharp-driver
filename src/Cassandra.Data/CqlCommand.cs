@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +13,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
-using System.Collections.Generic;
-﻿using System.Linq;
-﻿using System.Text;
+
+using System;
 using System.Data;
 using System.Data.Common;
-using Cassandra;
+using System.Linq;
 using System.Threading;
 
 namespace Cassandra.Data
@@ -31,20 +29,10 @@ namespace Cassandra.Data
         private string commandText;
         private ConsistencyLevel consistencyLevel = ConsistencyLevel.One;
 
-        public override void Cancel()
-        {
-        }
-
         public override string CommandText
         {
-            get
-            {
-                return commandText;
-            }
-            set
-            {
-                commandText = value;
-            }
+            get { return commandText; }
+            set { commandText = value; }
         }
 
         /// <summary>
@@ -58,43 +46,25 @@ namespace Cassandra.Data
 
         public override int CommandTimeout
         {
-            get
-            {
-                return Timeout.Infinite;
-            }
-            set
-            {
-            }
+            get { return Timeout.Infinite; }
+            set { }
         }
 
         public override CommandType CommandType
         {
-            get
-            {
-                return CommandType.Text;
-            }
-            set
-            {
-            }
-        }
-
-        protected override DbParameter CreateDbParameter()
-        {
-            throw new NotSupportedException();
+            get { return CommandType.Text; }
+            set { }
         }
 
         protected override DbConnection DbConnection
         {
-            get
-            {
-                return CqlConnection;
-            }
+            get { return CqlConnection; }
             set
             {
                 if (!(value is CqlConnection))
                     throw new InvalidOperationException();
 
-                CqlConnection = (CqlConnection)value;
+                CqlConnection = (CqlConnection) value;
             }
         }
 
@@ -105,36 +75,40 @@ namespace Cassandra.Data
 
         protected override DbTransaction DbTransaction
         {
-            get
-            {
-                return CqlTransaction;
-            }
-            set
-            {
-                CqlTransaction = (DbTransaction as CqlBatchTransaction);
-            }
+            get { return CqlTransaction; }
+            set { CqlTransaction = (DbTransaction as CqlBatchTransaction); }
         }
 
         public override bool DesignTimeVisible
         {
-            get
-            {
-                return true;
-            }
-            set
-            {
-            }
+            get { return true; }
+            set { }
+        }
+
+        public override UpdateRowSource UpdatedRowSource
+        {
+            get { return UpdateRowSource.FirstReturnedRecord; }
+            set { }
+        }
+
+        public override void Cancel()
+        {
+        }
+
+        protected override DbParameter CreateDbParameter()
+        {
+            throw new NotSupportedException();
         }
 
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
-            var outp = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
+            RowSet outp = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
             return new CqlReader(outp);
         }
 
         public override int ExecuteNonQuery()
         {
-            var cm = commandText.ToUpper().TrimStart();
+            string cm = commandText.ToUpper().TrimStart();
             if (cm.StartsWith("CREATE ")
                 || cm.StartsWith("DROP ")
                 || cm.StartsWith("ALTER "))
@@ -146,14 +120,14 @@ namespace Cassandra.Data
 
         public override object ExecuteScalar()
         {
-            var rowSet = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
+            RowSet rowSet = CqlConnection.ManagedConnection.Execute(commandText, ConsistencyLevel);
 
             // return the first field value of the first row if exists
             if (rowSet == null)
             {
                 return null;
             }
-            var row = rowSet.GetRows().FirstOrDefault();
+            Row row = rowSet.GetRows().FirstOrDefault();
             if (row == null || !row.Any())
             {
                 return null;
@@ -164,17 +138,6 @@ namespace Cassandra.Data
         public override void Prepare()
         {
             throw new NotSupportedException();
-        }
-
-        public override UpdateRowSource UpdatedRowSource
-        {
-            get
-            {
-                return UpdateRowSource.FirstReturnedRecord;
-            }
-            set
-            {
-            }
         }
     }
 }

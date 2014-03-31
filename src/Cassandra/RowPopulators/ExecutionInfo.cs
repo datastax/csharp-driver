@@ -15,18 +15,43 @@ namespace Cassandra
     /// </summary>
     public class ExecutionInfo
     {
-        private QueryTrace _queryTrace = null;
-        private List<IPAddress> _tiedHosts = null;
         private ConsistencyLevel _achievedConsistency = ConsistencyLevel.Any;
+        private QueryTrace _queryTrace;
+        private List<IPAddress> _tiedHosts;
 
-        public List<IPAddress> TriedHosts { get { return _tiedHosts; } }
-        public IPAddress QueriedHost { get { return _tiedHosts.Count > 0 ? _tiedHosts[_tiedHosts.Count - 1] : null; } }
-        public QueryTrace QueryTrace { get { return _queryTrace; } }
-        public ConsistencyLevel AchievedConsistency { get { return _achievedConsistency; } }
+        public List<IPAddress> TriedHosts
+        {
+            get { return _tiedHosts; }
+        }
 
-        internal void SetTriedHosts(List<IPAddress> triedHosts) { _tiedHosts = triedHosts; }
+        public IPAddress QueriedHost
+        {
+            get { return _tiedHosts.Count > 0 ? _tiedHosts[_tiedHosts.Count - 1] : null; }
+        }
 
-        internal void SetQueryTrace(QueryTrace queryTrace) { _queryTrace = queryTrace; }
-        internal void SetAchievedConsistency(ConsistencyLevel achievedConsistency) { _achievedConsistency = achievedConsistency; }
+        public QueryTrace QueryTrace
+        {
+            get { return _queryTrace; }
+        }
+
+        public ConsistencyLevel AchievedConsistency
+        {
+            get { return _achievedConsistency; }
+        }
+
+        internal void SetTriedHosts(List<IPAddress> triedHosts)
+        {
+            _tiedHosts = triedHosts;
+        }
+
+        internal void SetQueryTrace(QueryTrace queryTrace)
+        {
+            _queryTrace = queryTrace;
+        }
+
+        internal void SetAchievedConsistency(ConsistencyLevel achievedConsistency)
+        {
+            _achievedConsistency = achievedConsistency;
+        }
     }
 }

@@ -13,23 +13,42 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
-using System.Collections.Generic;
 
 namespace Cassandra
 {
-
     /// <summary>
     ///  A simple <code>Statement</code> implementation built directly from a query
     ///  string.
     /// </summary>
     public class SimpleStatement : Statement
     {
-
         private string _query;
         private volatile RoutingKey _routingKey;
 
-        public SimpleStatement() : base(QueryProtocolOptions.DEFAULT) { }
+        /// <summary>
+        ///  Gets the query string.
+        /// </summary>
+        public override string QueryString
+        {
+            get { return _query; }
+        }
+
+        /// <summary>
+        ///  Gets the routing key for the query. <p> Note that unless the routing key has been
+        ///  explicitly set through <link>#setRoutingKey</link>, this will method will
+        ///  return <code>null</code> (to avoid having to parse the query string to
+        ///  retrieve the partition key).</p>
+        /// </summary>
+        public override RoutingKey RoutingKey
+        {
+            get { return _routingKey; }
+        }
+
+        public SimpleStatement() : base(QueryProtocolOptions.DEFAULT)
+        {
+        }
 
         /// <summary>
         ///  Creates a new <code>SimpleStatement</code> with the provided query string.
@@ -38,30 +57,17 @@ namespace Cassandra
         public SimpleStatement(string query)
             : base(QueryProtocolOptions.DEFAULT)
         {
-            this._query = query;
+            _query = query;
         }
 
         internal SimpleStatement(string query, QueryProtocolOptions queryProtocolOptions)
             : base(queryProtocolOptions)
         {
-            this._query = query;
-            this.SetConsistencyLevel(queryProtocolOptions.Consistency);
-            this.SetSerialConsistencyLevel(queryProtocolOptions.SerialConsistency);
-            this.SetPageSize(queryProtocolOptions.PageSize);
+            _query = query;
+            SetConsistencyLevel(queryProtocolOptions.Consistency);
+            SetSerialConsistencyLevel(queryProtocolOptions.SerialConsistency);
+            SetPageSize(queryProtocolOptions.PageSize);
         }
-
-        /// <summary>
-        ///  Gets the query string.
-        /// </summary>
-        public override string QueryString { get { return _query; } }
-
-        /// <summary>
-        ///  Gets the routing key for the query. <p> Note that unless the routing key has been
-        ///  explicitly set through <link>#setRoutingKey</link>, this will method will
-        ///  return <code>null</code> (to avoid having to parse the query string to
-        ///  retrieve the partition key).</p>
-        /// </summary>
-        public override RoutingKey RoutingKey { get { return _routingKey; } }
 
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually
@@ -79,13 +85,16 @@ namespace Cassandra
         ///  <see>Query#getRoutingKey</returns>
         public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = RoutingKey.Compose(routingKeyComponents); return this;
+            _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
         }
 
 
         protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
         {
-            return session.BeginQuery(QueryString, callback, state, QueryProtocolOptions.CreateFromQuery(this, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),this.ConsistencyLevel , IsTracing, this, this, tag);
+            return session.BeginQuery(QueryString, callback, state,
+                                      QueryProtocolOptions.CreateFromQuery(this, session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
+                                      ConsistencyLevel, IsTracing, this, this, tag);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
@@ -95,25 +104,26 @@ namespace Cassandra
 
         public SimpleStatement SetQueryString(string queryString)
         {
-            this._query = queryString;
+            _query = queryString;
             return this;
         }
 
         public SimpleStatement Bind(params object[] values)
         {
-            this.SetValues(values);
+            SetValues(values);
             return this;
         }
 
         public SimpleStatement BindObjects(object[] values)
         {
-            this.SetValues(values);
+            SetValues(values);
             return this;
         }
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            return new QueryRequest(-1, QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any)); // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
+            return new QueryRequest(-1, QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
+                // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
         }
     }
 }

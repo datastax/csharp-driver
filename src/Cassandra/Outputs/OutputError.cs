@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
- using System;
+
+using System;
 using System.Reflection;
 
 namespace Cassandra
@@ -26,28 +27,29 @@ namespace Cassandra
     {
         public CassandraErrorType CassandraErrorType = CassandraErrorType.Invalid;
         public string Message = "";
-        internal OutputError() { }
-
-        internal static OutputError CreateOutputError(CassandraErrorType code, string message, BEBinaryReader cb)
-        {
-            var tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Output" + code.ToString());
-            if (tpy == null)
-                throw new DriverInternalError("unknown error" + code.ToString());
-            var cnstr = tpy.GetConstructor(new Type[] { });
-            var outp = (OutputError)cnstr.Invoke(new object[] { });
-            tpy.GetField("CassandraErrorType").SetValue(outp, code);
-            tpy.GetField("Message").SetValue(outp, message);
-            var loadM = tpy.GetMethod("Load", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(CassandraErrorType), typeof(string), typeof(BEBinaryReader) }, null);
-            if (loadM != null)
-                loadM.Invoke(outp, new object[] { code, message, cb });
-            return outp;
-        }
 
         public void Dispose()
         {
         }
+
         public void WaitForDispose()
         {
+        }
+
+        internal static OutputError CreateOutputError(CassandraErrorType code, string message, BEBinaryReader cb)
+        {
+            Type tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Output" + code);
+            if (tpy == null)
+                throw new DriverInternalError("unknown error" + code);
+            ConstructorInfo cnstr = tpy.GetConstructor(new Type[] {});
+            var outp = (OutputError) cnstr.Invoke(new object[] {});
+            tpy.GetField("CassandraErrorType").SetValue(outp, code);
+            tpy.GetField("Message").SetValue(outp, message);
+            MethodInfo loadM = tpy.GetMethod("Load", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null,
+                                             new[] {typeof (CassandraErrorType), typeof (string), typeof (BEBinaryReader)}, null);
+            if (loadM != null)
+                loadM.Invoke(outp, new object[] {code, message, cb});
+            return outp;
         }
 
         public abstract DriverException CreateException();

@@ -26,44 +26,8 @@ namespace Cassandra.IntegrationTests.Linq
     [TestClass]
     public class BasicLinqTests
     {
-        public class TweetsContext : Context
-        {
-            public TweetsContext(Session session)
-                : base(session)
-            {
-                AddTables();
-                CreateTablesIfNotExist();
-            }
-
-            private void AddTables()
-            {
-                AddTable<Tweets>();
-            }
-        }
-
-        [AllowFiltering]
-        public class Tweets
-        {
-            [PartitionKey]
-            public Guid tweet_id;
-
-            public string author;
-            [SecondaryIndex]
-            public string body;
-
-            [ClusteringKey(1)]
-            public bool isok;
-
-            [ClusteringKey(2)]
-            public int idx;
-
-            public HashSet<string> exampleSet = new HashSet<string>();
-
-            public byte[] data;
-        }
-
-
-        Session Session;
+        private Session Session;
+        private TweetsContext ents;
 
         [TestInitialize]
         public void SetFixture()
@@ -81,27 +45,19 @@ namespace Cassandra.IntegrationTests.Linq
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        TweetsContext ents;
-
-        class X
-        {
-            public string x;
-            public int y;
-        }
-
         public void Test1()
         {
-            var table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>();
 
-            byte[] buf = new byte[256];
+            var buf = new byte[256];
             for (int i = 0; i < 256; i++)
-                buf[i] = (byte)i;
+                buf[i] = (byte) i;
 
             int RowsNo = 2000;
-            List<Tweets> entL = new List<Tweets>();
+            var entL = new List<Tweets>();
             for (int i = 0; i < RowsNo; i++)
             {
-                var ent = new Tweets() { tweet_id = Guid.NewGuid(), author = "test" + i.ToString(), body = "body" + i.ToString(), isok = (i % 2 == 0) };
+                var ent = new Tweets {tweet_id = Guid.NewGuid(), author = "test" + i, body = "body" + i, isok = (i%2 == 0)};
                 ent.exampleSet.Add(i.ToString());
                 ent.exampleSet.Add((i + 1).ToString());
                 ent.exampleSet.Add((i - 1).ToString());
@@ -111,77 +67,79 @@ namespace Cassandra.IntegrationTests.Linq
             }
             ents.SaveChanges(SaveChangesMode.Batch);
 
-            var cnt = table.Count().Execute();
+            long cnt = table.Count().Execute();
 
-            Assert.Equal<long>(RowsNo, cnt);
+            Assert.Equal(RowsNo, cnt);
 
-            var q = CqlQueryExtensions.FirstOrDefault<byte[]>((from e in table select e.data)).Execute();
+            byte[] q = (from e in table select e.data).FirstOrDefault().Execute();
             for (int i = 0; i < 256; i++)
-                Assert.Equal(q[i], (byte)i);
+                Assert.Equal(q[i], (byte) i);
 
 
-            foreach (var ent in entL)
+            foreach (Tweets ent in entL)
                 table.Delete(ent);
 
             ents.SaveChanges(SaveChangesMode.Batch);
 
-            var cnt2 = table.Count().Execute();
-            Assert.Equal<long>(0, cnt2);
+            long cnt2 = table.Count().Execute();
+            Assert.Equal(0, cnt2);
         }
 
 
         public void testPagination()
         {
-            var table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>();
             int RowsNb = 3000;
 
             for (int i = 0; i < RowsNb; i++)
-                table.AddNew(new Tweets() { tweet_id = Guid.NewGuid(), idx = i, isok = i % 2 == 0, author = "author" + i.ToString(), body = "bla bla bla" });
+                table.AddNew(new Tweets {tweet_id = Guid.NewGuid(), idx = i, isok = i%2 == 0, author = "author" + i, body = "bla bla bla"});
 
             ents.SaveChanges(SaveChangesMode.Batch);
 
             //test filtering
-            var evens = (from ent in table where ent.isok == true select ent).Execute();
-            Assert.True(evens.All(ev => ev.idx % 2 == 0));
+            IEnumerable<Tweets> evens = (from ent in table where ent.isok select ent).Execute();
+            Assert.True(evens.All(ev => ev.idx%2 == 0));
 
             //test pagination
             int PerPage = 1234;
 
-            var firstPage = (from ent in table select ent).Take(PerPage).Execute();
-            var continuation = CqlToken.Create<Guid>(firstPage.Last().tweet_id);
+            IEnumerable<Tweets> firstPage = (from ent in table select ent).Take(PerPage).Execute();
+            CqlToken continuation = CqlToken.Create(firstPage.Last().tweet_id);
 
             int pages = 1;
             int lastcnt = 0;
             while (true)
             {
-                var nextPage = (from ent in table where CqlToken.Create(ent.tweet_id) > continuation select ent).Take(PerPage).Execute().ToList();
+                List<Tweets> nextPage =
+                    (from ent in table where CqlToken.Create(ent.tweet_id) > continuation select ent).Take(PerPage).Execute().ToList();
                 if (nextPage.Count < PerPage)
                 {
                     lastcnt = nextPage.Count;
                     break;
                 }
-                continuation = CqlToken.Create<Guid>(nextPage.Last().tweet_id);
+                continuation = CqlToken.Create(nextPage.Last().tweet_id);
                 pages++;
             }
 
-            Assert.Equal(pages, RowsNb / PerPage);
-            Assert.Equal(lastcnt, RowsNb % PerPage);
+            Assert.Equal(pages, RowsNb/PerPage);
+            Assert.Equal(lastcnt, RowsNb%PerPage);
         }
 
         public void testBuffering()
         {
-            var table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>();
 
-            var q2 = (from e in table where CqlToken.Create(e.idx) <= 0 select e).Take(10).OrderBy((e) => e.idx).ThenByDescending((e) => e.isok);
+            CqlQuery<Tweets> q2 =
+                (from e in table where CqlToken.Create(e.idx) <= 0 select e).Take(10).OrderBy(e => e.idx).ThenByDescending(e => e.isok);
 
-            var qxx = q2.ToString();
+            string qxx = q2.ToString();
             int RowsNb = 10;
             for (int i = 0; i < RowsNb; i++)
             {
-                var ent = new Tweets() { tweet_id = Guid.NewGuid(), author = "author" + i.ToString(), isok = i % 2 == 0, body = "blablabla", idx = i };
+                var ent = new Tweets {tweet_id = Guid.NewGuid(), author = "author" + i, isok = i%2 == 0, body = "blablabla", idx = i};
                 table.AddNew(ent, EntityTrackingMode.KeepAttachedAfterSave);
             }
-            var ent2 = new Tweets() { tweet_id = Guid.NewGuid(), author = "author" + RowsNb + 1, isok = false, body = "blablabla", idx = RowsNb + 1 };
+            var ent2 = new Tweets {tweet_id = Guid.NewGuid(), author = "author" + RowsNb + 1, isok = false, body = "blablabla", idx = RowsNb + 1};
             table.AddNew(ent2, EntityTrackingMode.KeepAttachedAfterSave);
             ents.SaveChanges(SaveChangesMode.OneByOne);
 
@@ -190,13 +148,13 @@ namespace Cassandra.IntegrationTests.Linq
             ents.SaveChanges(SaveChangesMode.OneByOne);
 
 
-            var iq = table.Count();
-            var c = iq.Execute();
+            CqlScalar<long> iq = table.Count();
+            long c = iq.Execute();
 
 
-            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select e).Execute())
+            foreach (Tweets r in (from e in table where e.isok && e.idx == 0 select e).Execute())
             {
-                var x = r;
+                Tweets x = r;
             }
 
             //https://issues.apache.org/jira/browse/CASSANDRA-5303?page=com.atlassian.streams.streams-jira-plugin:activity-stream-issue-tab
@@ -205,39 +163,43 @@ namespace Cassandra.IntegrationTests.Linq
             //    var x = r;
             //}
 
-            foreach (var r in (from e in table where e.isok == false && e.idx == 0 select new { Key = e.idx }).Execute())
+            foreach (var r in (from e in table where e.isok == false && e.idx == 0 select new {Key = e.idx}).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select new { Key = e.idx, e.isok }).Execute())
+            foreach (var r in (from e in table where e.isok && e.idx == 0 select new {Key = e.idx, e.isok}).Execute())
             {
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select new X() { x = e.author, y = e.idx }).Execute())
+            foreach (X r in (from e in table where e.isok && e.idx == 0 select new X {x = e.author, y = e.idx}).Execute())
             {
-                var x = r;
+                X x = r;
             }
 
-            foreach (var r in (from e in table where e.isok == false && e.idx == 0 select e.author).Execute())
+            foreach (string r in (from e in table where e.isok == false && e.idx == 0 select e.author).Execute())
             {
-                var x = r;
+                string x = r;
             }
         }
 
         public void Bug16_JIRA()
         {
-            var table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>();
 
-            Guid tweet_ID = Guid.NewGuid();            
-            var isok = false;
+            Guid tweet_ID = Guid.NewGuid();
+            bool isok = false;
 
-            table.AddNew(new Tweets() { tweet_id = tweet_ID, author = "author", isok = isok, body = "blablabla", idx = 1 }, EntityTrackingMode.KeepAttachedAfterSave);
+            table.AddNew(new Tweets {tweet_id = tweet_ID, author = "author", isok = isok, body = "blablabla", idx = 1},
+                         EntityTrackingMode.KeepAttachedAfterSave);
 
-            table.Where((a) => a.tweet_id == tweet_ID && a.isok == isok && a.idx == 1).Select((t) => new Tweets { body = "Lorem Ipsum", author = "Anonymous" }).Update().Execute();
+            table.Where(a => a.tweet_id == tweet_ID && a.isok == isok && a.idx == 1)
+                 .Select(t => new Tweets {body = "Lorem Ipsum", author = "Anonymous"})
+                 .Update()
+                 .Execute();
 
-            var smth = table.Where(x => x.isok == isok).Execute().ToList();
+            List<Tweets> smth = table.Where(x => x.isok == isok).Execute().ToList();
         }
 
         [TestMethod]
@@ -266,6 +228,40 @@ namespace Cassandra.IntegrationTests.Linq
         public void TestBug16_JIRA()
         {
             Bug16_JIRA();
+        }
+
+        [AllowFiltering]
+        public class Tweets
+        {
+            public string author;
+            [SecondaryIndex] public string body;
+
+            public byte[] data;
+            public HashSet<string> exampleSet = new HashSet<string>();
+            [ClusteringKey(2)] public int idx;
+            [ClusteringKey(1)] public bool isok;
+            [PartitionKey] public Guid tweet_id;
+        }
+
+        public class TweetsContext : Context
+        {
+            public TweetsContext(Session session)
+                : base(session)
+            {
+                AddTables();
+                CreateTablesIfNotExist();
+            }
+
+            private void AddTables()
+            {
+                AddTable<Tweets>();
+            }
+        }
+
+        private class X
+        {
+            public string x;
+            public int y;
         }
     }
 }

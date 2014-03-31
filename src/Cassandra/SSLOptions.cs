@@ -1,33 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net.Security;
 using System.Security.Authentication;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Cassandra
 {
-
     public class SSLOptions
     {
-        private Logger _logger = new Logger(typeof(SSLOptions));          
-        private RemoteCertificateValidationCallback _remoteCertValidationCallback;
-        private bool _checkCertificateRevocation = false;        
-        private SslProtocols _sslProtocol = SslProtocols.Tls;
-        private bool ValidateServerCertificate(
-                                                object sender,
-                                                X509Certificate certificate,
-                                                X509Chain chain,
-                                                SslPolicyErrors sslPolicyErrors)
+        private readonly Logger _logger = new Logger(typeof (SSLOptions));
+        private readonly RemoteCertificateValidationCallback _remoteCertValidationCallback;
+        private readonly SslProtocols _sslProtocol = SslProtocols.Tls;
+        private bool _checkCertificateRevocation;
+
+        /// <summary>
+        /// Verifies Cassandra host SSL certificate used for authentication.
+        /// </summary>
+        public RemoteCertificateValidationCallback RemoteCertValidationCallback
         {
-            if (sslPolicyErrors == SslPolicyErrors.None)
-                return true;
-                        
-            _logger.Error(string.Format("Cassandra node SSL certificate validation error(s): {0}", sslPolicyErrors));
-            
-            // Do not allow this client to communicate with unauthenticated Cassandra hosts.
-            return false;
+            get { return _remoteCertValidationCallback; }
+        }
+
+        /// <summary>
+        /// Ssl Protocol used for communication with Cassandra hosts.
+        /// </summary>
+        public SslProtocols SslProtocol
+        {
+            get { return _sslProtocol; }
         }
 
         /// <summary>
@@ -49,26 +46,25 @@ namespace Cassandra
         ///     </remarks> 
         ///     </param>
         public SSLOptions(SslProtocols SSLProtocol, bool CertificateRevocation, RemoteCertificateValidationCallback RemoteCertValidationCallback)
-        {            
-            _sslProtocol = SSLProtocol; 
-            _checkCertificateRevocation = CertificateRevocation;            
-            _remoteCertValidationCallback = RemoteCertValidationCallback;            
+        {
+            _sslProtocol = SSLProtocol;
+            _checkCertificateRevocation = CertificateRevocation;
+            _remoteCertValidationCallback = RemoteCertValidationCallback;
         }
 
-        /// <summary>
-        /// Verifies Cassandra host SSL certificate used for authentication.
-        /// </summary>
-        public RemoteCertificateValidationCallback RemoteCertValidationCallback
+        private bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
         {
-            get { return _remoteCertValidationCallback; }
-        }
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
 
-        /// <summary>
-        /// Ssl Protocol used for communication with Cassandra hosts.
-        /// </summary>
-        public SslProtocols SslProtocol
-        {
-            get { return _sslProtocol; }
-        }        
+            _logger.Error(string.Format("Cassandra node SSL certificate validation error(s): {0}", sslPolicyErrors));
+
+            // Do not allow this client to communicate with unauthenticated Cassandra hosts.
+            return false;
+        }
     }
 }

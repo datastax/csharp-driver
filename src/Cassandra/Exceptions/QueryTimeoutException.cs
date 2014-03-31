@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 namespace Cassandra
 {
     /// <summary>
@@ -22,7 +23,6 @@ namespace Cassandra
     /// </summary>
     public abstract class QueryTimeoutException : QueryExecutionException
     {
-
         /// <summary>
         ///  Gets the consistency level of the operation that time outed. 
         /// </summary>
@@ -39,7 +39,11 @@ namespace Cassandra
         public int RequiredAcknowledgements { get; private set; }
 
         public QueryTimeoutException(string message, ConsistencyLevel consistencyLevel, int received, int required)
-            : base(message) { this.ConsistencyLevel = consistencyLevel; this.ReceivedAcknowledgements = received; this.RequiredAcknowledgements = required; }
-
+            : base(message)
+        {
+            ConsistencyLevel = consistencyLevel;
+            ReceivedAcknowledgements = received;
+            RequiredAcknowledgements = required;
+        }
     }
 }

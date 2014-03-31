@@ -13,11 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-using System.Diagnostics;
 
 namespace Cassandra
 {
-
     /// <summary>
     ///  A retry policy that wraps another policy, logging the decision made by its
     ///  sub-policy. <p> Note that this policy only log the Ignore and Retry decisions
@@ -26,7 +24,7 @@ namespace Cassandra
     /// </summary>
     public class LoggingRetryPolicy : IRetryPolicy
     {
-        private readonly Logger _logger = new Logger(typeof(LoggingRetryPolicy));
+        private readonly Logger _logger = new Logger(typeof (LoggingRetryPolicy));
         private readonly IRetryPolicy _policy;
 
         /// <summary>
@@ -37,24 +35,26 @@ namespace Cassandra
         ///  constructor will return the same decision than <code>policy</code> but will log them.</param>
         public LoggingRetryPolicy(IRetryPolicy policy)
         {
-            this._policy = policy;
+            _policy = policy;
         }
 
-        private static ConsistencyLevel CL(ConsistencyLevel cl, RetryDecision decision)
-        {
-            return decision.RetryConsistencyLevel ?? cl;
-        }
-
-        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+                                           int nbRetry)
         {
             RetryDecision decision = _policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
-                    _logger.Info(string.Format("Ignoring read timeout (initial consistency: {0}, required responses: {1}, received responses: {2}, data retrieved: {3}, retries: {4})",cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry));
+                    _logger.Info(
+                        string.Format(
+                            "Ignoring read timeout (initial consistency: {0}, required responses: {1}, received responses: {2}, data retrieved: {3}, retries: {4})",
+                            cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry));
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
-                    _logger.Info(string.Format("Retrying on read timeout at consistency {0} (initial consistency: {1}, required responses: {2}, received responses: {3}, data retrieved: {4}, retries: {5})", CL(cl, decision), cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry));
+                    _logger.Info(
+                        string.Format(
+                            "Retrying on read timeout at consistency {0} (initial consistency: {1}, required responses: {2}, received responses: {3}, data retrieved: {4}, retries: {5})",
+                            CL(cl, decision), cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry));
                     break;
             }
             return decision;
@@ -62,14 +62,20 @@ namespace Cassandra
 
         public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
-            RetryDecision decision = _policy.OnWriteTimeout(query,cl, writeType, requiredAcks, receivedAcks, nbRetry);
+            RetryDecision decision = _policy.OnWriteTimeout(query, cl, writeType, requiredAcks, receivedAcks, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
-                    _logger.Info(string.Format("Ignoring write timeout (initial consistency: {0}, write type: {1} required acknowledgments: {2}, received acknowledgments: {3}, retries: {4})", cl, writeType, requiredAcks, receivedAcks, nbRetry));
+                    _logger.Info(
+                        string.Format(
+                            "Ignoring write timeout (initial consistency: {0}, write type: {1} required acknowledgments: {2}, received acknowledgments: {3}, retries: {4})",
+                            cl, writeType, requiredAcks, receivedAcks, nbRetry));
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
-                    _logger.Info(string.Format("Retrying on write timeout at consistency {0}(initial consistency: {1}, write type: {2}, required acknowledgments: {3}, received acknowledgments: {4}, retries: {5})", CL(cl, decision), cl, writeType, requiredAcks, receivedAcks, nbRetry));
+                    _logger.Info(
+                        string.Format(
+                            "Retrying on write timeout at consistency {0}(initial consistency: {1}, write type: {2}, required acknowledgments: {3}, received acknowledgments: {4}, retries: {5})",
+                            CL(cl, decision), cl, writeType, requiredAcks, receivedAcks, nbRetry));
                     break;
             }
             return decision;
@@ -77,17 +83,28 @@ namespace Cassandra
 
         public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            RetryDecision decision = _policy.OnUnavailable(query,cl, requiredReplica, aliveReplica, nbRetry);
+            RetryDecision decision = _policy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
-                    _logger.Info(string.Format("Ignoring unavailable exception (initial consistency: {0}, required replica: {1}, alive replica: {2}, retries: {3})", cl, requiredReplica, aliveReplica, nbRetry));
+                    _logger.Info(
+                        string.Format(
+                            "Ignoring unavailable exception (initial consistency: {0}, required replica: {1}, alive replica: {2}, retries: {3})", cl,
+                            requiredReplica, aliveReplica, nbRetry));
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
-                    _logger.Info(string.Format("Retrying on unavailable exception at consistency {0} (initial consistency: {1}, required replica: {2}, alive replica: {3}, retries: {4})", CL(cl, decision), cl, requiredReplica, aliveReplica, nbRetry));
+                    _logger.Info(
+                        string.Format(
+                            "Retrying on unavailable exception at consistency {0} (initial consistency: {1}, required replica: {2}, alive replica: {3}, retries: {4})",
+                            CL(cl, decision), cl, requiredReplica, aliveReplica, nbRetry));
                     break;
             }
             return decision;
+        }
+
+        private static ConsistencyLevel CL(ConsistencyLevel cl, RetryDecision decision)
+        {
+            return decision.RetryConsistencyLevel ?? cl;
         }
     }
 }

@@ -6,7 +6,8 @@ namespace Cassandra
 {
     internal class Hosts
     {
-        IReconnectionPolicy rp;
+        private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
+        private readonly IReconnectionPolicy rp;
 
         public Hosts(IReconnectionPolicy rp)
         {
@@ -20,8 +21,6 @@ namespace Cassandra
         //        return x.ToString().CompareTo(y.ToString());
         //    }
         //}
-
-        private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
 
         public bool TryGet(IPAddress endpoint, out Host host)
         {
@@ -42,8 +41,7 @@ namespace Cassandra
             Host host;
             if (_hosts.TryGetValue(ep, out host))
                 return host.BringUpIfDown();
-            else
-                return false;
+            return false;
         }
 
         public bool SetDownIfExists(IPAddress ep)
@@ -51,8 +49,7 @@ namespace Cassandra
             Host host;
             if (_hosts.TryGetValue(ep, out host))
                 return host.SetDown();
-            else
-                return false;
+            return false;
         }
 
         public void RemoveIfExists(IPAddress ep)

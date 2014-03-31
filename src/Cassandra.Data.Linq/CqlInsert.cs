@@ -5,12 +5,12 @@ namespace Cassandra.Data.Linq
     public class CqlInsert<TEntity> : CqlCommand
     {
         private readonly TEntity _entity;
-        private bool _ifNotExists = false;
+        private bool _ifNotExists;
 
         internal CqlInsert(TEntity entity, IQueryProvider table)
             : base(null, table)
         {
-            this._entity = entity;
+            _entity = entity;
         }
 
         public CqlInsert<TEntity> IfNotExists()
@@ -21,8 +21,9 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out values, _ttl, _timestamp, _ifNotExists, withValues);
+            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out values, _ttl, _timestamp, _ifNotExists,
+                                                       withValues);
         }
 
         public override string ToString()

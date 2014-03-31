@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,20 +13,104 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System.Collections.Generic;
+
+using System.Collections.Generic;
 using System.IO;
 
 namespace Cassandra
 {
     internal class NoBuffering : IBuffering
     {
-        byte[] _tempBuffer = null;
-        int _curpos = 0;
-        int _tempSize = 0;
+        protected int ByteIdx = 0;
+        protected ResponseFrame TmpFrame;
+        protected FrameHeader TmpFrameHeader = new FrameHeader();
+        private bool _bufferLoaded;
+        private int _curpos;
 
-        byte[] _newBuffer = null;
-        int _newSize = 0;
-        bool _bufferLoaded = false;
+        private byte[] _newBuffer;
+        private int _newSize;
+        private byte[] _tempBuffer;
+        private int _tempSize;
+
+        public virtual IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IProtoBufComporessor compressor)
+        {
+            Init(buffer, size);
+
+            int bodyLen = int.MaxValue;
+            while (AreMore())
+            {
+                byte b = GetByte();
+
+                switch (ByteIdx)
+                {
+                    case 0:
+                        TmpFrameHeader.Version = b;
+                        break;
+                    case 1:
+                        TmpFrameHeader.Flags = b;
+                        break;
+                    case 2:
+                        TmpFrameHeader.StreamId = b;
+                        break;
+                    case 3:
+                        TmpFrameHeader.Opcode = b;
+                        break;
+                    case 4:
+                    {
+                        TmpFrameHeader.Len[0] = b;
+                    }
+                        break;
+                    case 5:
+                        TmpFrameHeader.Len[1] = b;
+                        break;
+                    case 6:
+                        TmpFrameHeader.Len[2] = b;
+                        break;
+                    case 7:
+                        TmpFrameHeader.Len[3] = b;
+                        bodyLen = TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
+                        TmpFrame = TmpFrameHeader.MakeFrame(new StreamProtoBuf(stream, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
+                        yield return TmpFrame;
+                        break;
+                    default:
+                        throw new DriverInternalError("Invalid state");
+                }
+
+                ByteIdx++;
+                if (ByteIdx >= FrameHeader.Size)
+                {
+                    ByteIdx = 0;
+                    TmpFrameHeader = new FrameHeader();
+                }
+            }
+        }
+
+        public virtual void Close()
+        {
+            if (TmpFrame != null)
+                TmpFrame.RawStream.Write(null, 0, 0);
+        }
+
+        public void Reset()
+        {
+            _tempBuffer = null;
+            _curpos = 0;
+            _tempSize = 0;
+            _newBuffer = null;
+            _newSize = 0;
+            _bufferLoaded = false;
+        }
+
+        public virtual int PreferedBufferSize()
+        {
+            return FrameHeader.Size;
+        }
+
+
+        public virtual bool AllowSyncCompletion()
+        {
+            return false;
+        }
 
         protected void Init(byte[] buffer, int size)
         {
@@ -55,7 +139,7 @@ namespace Cassandra
                 _tempSize = _newSize;
                 _newBuffer = null;
             }
-            var ret = _tempBuffer[_curpos];
+            byte ret = _tempBuffer[_curpos];
             _curpos++;
             return ret;
         }
@@ -63,77 +147,6 @@ namespace Cassandra
         protected bool AreMore()
         {
             return !_bufferLoaded || _curpos < _tempSize;
-        }
-
-        protected FrameHeader TmpFrameHeader = new FrameHeader();
-        protected ResponseFrame TmpFrame;
-        protected int ByteIdx = 0;
-
-        virtual public IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IProtoBufComporessor compressor)
-        {
-            Init(buffer, size);
-
-            int bodyLen = int.MaxValue;
-            while (AreMore())
-            {
-
-                byte b = GetByte();
-
-                switch (ByteIdx)
-                {
-                    case 0: TmpFrameHeader.Version = b; break;
-                    case 1: TmpFrameHeader.Flags = b; break;
-                    case 2: TmpFrameHeader.StreamId = b; break;
-                    case 3: TmpFrameHeader.Opcode = b; break;
-                    case 4:
-                        {
-                            TmpFrameHeader.Len[0] = b;
-                        } break;
-                    case 5: TmpFrameHeader.Len[1] = b; break;
-                    case 6: TmpFrameHeader.Len[2] = b; break;
-                    case 7: TmpFrameHeader.Len[3] = b;
-                        bodyLen = TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
-                        TmpFrame = TmpFrameHeader.MakeFrame(new StreamProtoBuf(stream, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
-                        yield return TmpFrame;
-                        break;
-                    default:
-                        throw new DriverInternalError("Invalid state");
-                }
-
-                ByteIdx++;
-                if (ByteIdx >= FrameHeader.Size)
-                {
-                    ByteIdx = 0;
-                    TmpFrameHeader = new FrameHeader();
-                }
-            }
-        }
-
-        virtual public void Close()
-        {
-            if(TmpFrame!=null)
-                TmpFrame.RawStream.Write(null, 0, 0);
-        }
-
-        public void Reset()
-        {
-            _tempBuffer = null;
-            _curpos = 0;
-            _tempSize = 0;
-            _newBuffer = null;
-            _newSize = 0;
-            _bufferLoaded = false;
-        }
-
-        public virtual int PreferedBufferSize()
-        {
-            return FrameHeader.Size;
-        }
-
-
-        public virtual bool AllowSyncCompletion()
-        {
-            return false;
         }
     }
 }
