@@ -54,22 +54,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\References\Cassandra\MurmurHash.cs">
+    <Compile Include="..\..\lib\Cassandra\MurmurHash.cs">
       <Link>MurmurHash.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\CorruptionException.cs">
+    <Compile Include="..\..\lib\Snappy\CorruptionException.cs">
       <Link>Snappy\CorruptionException.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\Memory.cs">
+    <Compile Include="..\..\lib\Snappy\Memory.cs">
       <Link>Snappy\Memory.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\SlowMemory.cs">
+    <Compile Include="..\..\lib\Snappy\SlowMemory.cs">
       <Link>Snappy\SlowMemory.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\SnappyDecompressor.cs">
+    <Compile Include="..\..\lib\Snappy\SnappyDecompressor.cs">
       <Link>Snappy\SnappyDecompressor.cs</Link>
     </Compile>
-    <Compile Include="..\References\Snappy\SnappyInternalUtils.cs">
+    <Compile Include="..\..\lib\Snappy\SnappyInternalUtils.cs">
       <Link>Snappy\SnappyInternalUtils.cs</Link>
     </Compile>
     <Compile Include="AsyncResult.cs" />
