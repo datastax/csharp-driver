@@ -322,25 +322,34 @@ namespace Cassandra.MSTest
                 init(c, 12, ConsistencyLevel.All);
                 query(c, 12, ConsistencyLevel.All);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 4);
-                assertQueried(Options.Default.IP_PREFIX + "2", 4);
-                assertQueried(Options.Default.IP_PREFIX + "3", 4);
+                var hosts = new string[] { 
+                    "unused",
+                    Options.Default.IP_PREFIX + "1", 
+                    Options.Default.IP_PREFIX + "2", 
+                    Options.Default.IP_PREFIX + "3"
+                };
+
+                assertQueried(hosts[1], 4);
+                assertQueried(hosts[2], 4);
+                assertQueried(hosts[3], 4);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(2);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 10);
+                TestUtils.waitForDownWithWait(hosts[2], c.Cluster, 10);
 
                 query(c, 12, ConsistencyLevel.All);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 6);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
+                // counts are allowed to be off by 1, due to roundrobin modulo shift when "node down" update becomes visible.
+                assertQueriedAtLeast(hosts[1], 5);
+                assertQueried(hosts[2], 0);
+                assertQueriedAtLeast(hosts[3], 5);
+                assertQueriedSet(new string[] { hosts[1], hosts[3] }, 12);
 
                 assertAchievedConsistencyLevel(ConsistencyLevel.Two);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(1);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "1", c.Cluster, 5);
+                TestUtils.waitForDownWithWait(hosts[1], c.Cluster, 5);
                 Thread.Sleep(5000);
 
                 try
@@ -354,9 +363,9 @@ namespace Cassandra.MSTest
 
                 query(c, 12, ConsistencyLevel.Quorum);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
+                assertQueried(hosts[1], 0);
+                assertQueried(hosts[2], 0);
+                assertQueried(hosts[3], 12);
 
                 assertAchievedConsistencyLevel(ConsistencyLevel.One);
 
@@ -364,9 +373,9 @@ namespace Cassandra.MSTest
 
                 query(c, 12, ConsistencyLevel.Two);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
+                assertQueried(hosts[1], 0);
+                assertQueried(hosts[2], 0);
+                assertQueried(hosts[3], 12);
 
                 assertAchievedConsistencyLevel(ConsistencyLevel.One);
 
@@ -374,9 +383,9 @@ namespace Cassandra.MSTest
 
                 query(c, 12, ConsistencyLevel.One);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
+                assertQueried(hosts[1], 0);
+                assertQueried(hosts[2], 0);
+                assertQueried(hosts[3], 12);
 
                 assertAchievedConsistencyLevel(ConsistencyLevel.One);
 

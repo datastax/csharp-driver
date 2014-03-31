@@ -85,7 +85,7 @@ namespace Cassandra
         private string DC(Host host)
         {
             string dc = host.Datacenter;
-            return dc ?? _localDc;
+            return dc ?? "";
         }
 
         /// <summary>
@@ -132,14 +132,6 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Query query)
         {
-
-            int startidx = Interlocked.Increment(ref _index);
-            
-            // Overflow protection; not theoretically thread safe but should be good enough
-            if (startidx > int.MaxValue - 10000)
-                Thread.VolatileWrite(ref _index, 0);
-
-
             var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
 
             var localHosts = new List<Host>();
@@ -152,15 +144,17 @@ namespace Cassandra
                         localHosts.Add(h);
             }
 
-
             for (int i = 0; i < localHosts.Count; i++)
             {
-                startidx %= localHosts.Count;
+                int idxSeed = Interlocked.Increment(ref _index);
+                
+                // Overflow protection; not theoretically thread safe but should be good enough
+                if (idxSeed > int.MaxValue - 10000)
+                {
+                    Thread.VolatileWrite(ref _index, 0);
+                }
 
-                var h = localHosts[startidx];
-
-                startidx++;
-                yield return h;
+                yield return localHosts[idxSeed % localHosts.Count];
             }
 
             
@@ -184,12 +178,15 @@ namespace Cassandra
 
             for (int i = 0; i < remoteHosts.Count; i++)
             {
-                startidx %= remoteHosts.Count;
+                int idxSeed = Interlocked.Increment(ref _index);
 
-                var h = remoteHosts[startidx];
+                // Overflow protection; not theoretically thread safe but should be good enough
+                if (idxSeed > int.MaxValue - 10000)
+                {
+                    Thread.VolatileWrite(ref _index, 0);
+                }
 
-                startidx++;
-                yield return h;
+                yield return remoteHosts[idxSeed % remoteHosts.Count];
             }
         }
     }
