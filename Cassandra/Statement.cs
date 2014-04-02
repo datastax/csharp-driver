@@ -23,12 +23,16 @@ namespace Cassandra
     /// </summary>
     public abstract class Statement : Query
     {
-
         /// <summary>
         ///  Gets the query string for this statement.
         /// </summary>
         public abstract string QueryString { get; }
 
         protected Statement(QueryProtocolOptions queryProtocolOptions) : base(queryProtocolOptions) { }
+
+        public override string ToString()
+        {
+            return QueryString;
+        }
     }
 }
