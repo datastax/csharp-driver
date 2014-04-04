@@ -32,5 +32,10 @@ namespace Cassandra
         protected Statement(QueryProtocolOptions queryProtocolOptions) : base(queryProtocolOptions)
         {
         }
+
+        public override string ToString()
+        {
+            return QueryString;
+        }
     }
 }
