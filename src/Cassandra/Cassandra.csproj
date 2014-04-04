@@ -1,0 +1,298 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Cassandra</RootNamespace>
+    <AssemblyName>Cassandra</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;ERRORINJECTION</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>
+    </NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;ERRORINJECTION</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\Cassandra.XML</DocumentationFile>
+    <NoWarn>
+    </NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="LZ4, Version=1.0.3.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
+      <HintPath>..\packages\lz4net.1.0.3.93\lib\net40-client\LZ4.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AsyncResult.cs" />
+    <Compile Include="AsyncResultNoResult.cs" />
+    <Compile Include="AtomicArray.cs" />
+    <Compile Include="AtomicValue.cs" />
+    <Compile Include="BigIntegerTypeAdapter.cs" />
+    <Compile Include="BoolSwitch.cs" />
+    <Compile Include="BoundStatement.cs" />
+    <Compile Include="BufferedProtoBuf.cs" />
+    <Compile Include="BufferingMode.cs" />
+    <Compile Include="Builder.cs" />
+    <Compile Include="CassandraConnectionBadProtocolVersionException.cs" />
+    <Compile Include="CassandraConnectionIOException.cs" />
+    <Compile Include="CassandraConnectionTimeoutException.cs" />
+    <Compile Include="CassandraEventHandler.cs" />
+    <Compile Include="CassandraEventType.cs" />
+    <Compile Include="Cluster.cs" />
+    <Compile Include="CassandraConnectionStringBuilder.cs" />
+    <Compile Include="CompressionType.cs" />
+    <Compile Include="ConsistencyLevel.cs" />
+    <Compile Include="BatchStatement.cs" />
+    <Compile Include="CqlQueryTools.cs" />
+    <Compile Include="DecimalTypeAdapter.cs" />
+    <Compile Include="Diagnostics.cs" />
+    <Compile Include="DynamicCompositeTypeAdapter.cs" />
+    <Compile Include="Exceptions\InvalidTypeException.cs" />
+    <Compile Include="Exceptions\ToManyConnectionsPerHost.cs" />
+    <Compile Include="Exceptions\TraceRetrievalException.cs" />
+    <Compile Include="Guarded.cs" />
+    <Compile Include="Host.cs" />
+    <Compile Include="HostDistance.cs" />
+    <Compile Include="Hosts.cs" />
+    <Compile Include="HostsEventArgs.cs" />
+    <Compile Include="HostsEventHandler.cs" />
+    <Compile Include="IAuthenticator.cs" />
+    <Compile Include="IAuthInfoProvider.cs" />
+    <Compile Include="IAuthProvider.cs" />
+    <Compile Include="IInitializer.cs" />
+    <Compile Include="IProtoBuf.cs" />
+    <Compile Include="IQueryRequest.cs" />
+    <Compile Include="IToken.cs" />
+    <Compile Include="ITypeAdapter.cs" />
+    <Compile Include="IWaitableForDispose.cs" />
+    <Compile Include="KeyType.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="LZ4ProtoBufCompressor.cs" />
+    <Compile Include="M3PToken.cs" />
+    <Compile Include="MemoryTributary.cs" />
+    <Compile Include="Metadata.cs" />
+    <Compile Include="CassandraEventArgs.cs" />
+    <Compile Include="Configuration.cs" />
+    <Compile Include="ControlConnection.cs" />
+    <Compile Include="ClientOptions.cs" />
+    <Compile Include="Exceptions\AlreadyExistsException.cs" />
+    <Compile Include="Exceptions\AuthenticationException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\DriverException.cs" />
+    <Compile Include="Exceptions\DriverInternalError.cs" />
+    <Compile Include="Exceptions\ExecutionException.cs" />
+    <Compile Include="Exceptions\InvalidConfigurationInQueryException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\InvalidQueryException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\NoHostAvailableException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\PreparedQueryNotFoundException.cs" />
+    <Compile Include="Exceptions\QueryExecutionException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\QueryTimeoutException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\QueryValidationException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\ReadTimeoutException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\SyntaxError.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\TruncateException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\UnauthorizedException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\UnavailableException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\WriteTimeoutException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FrameBuffering.cs" />
+    <Compile Include="IBuffering.cs" />
+    <Compile Include="IOutput.cs" />
+    <Compile Include="IProtoBufComporessor.cs" />
+    <Compile Include="Murmur\MurmurHash.cs" />
+    <Compile Include="NoBuffering.cs" />
+    <Compile Include="NoneAuthProvider.cs" />
+    <Compile Include="NullTypeAdapter.cs" />
+    <Compile Include="OPPToken.cs" />
+    <Compile Include="Outputs\AlreadyExistsInfo.cs" />
+    <Compile Include="Outputs\CassandraErrorType.cs" />
+    <Compile Include="Outputs\IsBootstrappingException.cs" />
+    <Compile Include="Outputs\OutputAlreadyExists.cs" />
+    <Compile Include="Outputs\OutputBadCredentials.cs" />
+    <Compile Include="Outputs\OutputConfigError.cs" />
+    <Compile Include="Outputs\OutputInvalid.cs" />
+    <Compile Include="Outputs\OutputIsBootstrapping.cs" />
+    <Compile Include="Outputs\OutputOptions.cs" />
+    <Compile Include="KeyspaceMetadata.cs" />
+    <Compile Include="Outputs\OutputOverloaded.cs" />
+    <Compile Include="Outputs\OutputPrepared.cs" />
+    <Compile Include="Outputs\OutputProtocolError.cs" />
+    <Compile Include="Outputs\OutputReadTimeout.cs" />
+    <Compile Include="Outputs\OutputSchemaChange.cs" />
+    <Compile Include="Outputs\OutputServerError.cs" />
+    <Compile Include="Outputs\OutputSyntaxError.cs" />
+    <Compile Include="Outputs\OutputTruncateError.cs" />
+    <Compile Include="Outputs\OutputUnauthorized.cs" />
+    <Compile Include="Outputs\OutputUnavailableException.cs" />
+    <Compile Include="Outputs\OutputUnprepared.cs" />
+    <Compile Include="Outputs\OutputVoid.cs" />
+    <Compile Include="Outputs\OutputSetKeyspace.cs" />
+    <Compile Include="Outputs\OutputError.cs" />
+    <Compile Include="CassandraCounters.cs" />
+    <Compile Include="Outputs\OutputWriteTimeout.cs" />
+    <Compile Include="Outputs\OverloadedException.cs" />
+    <Compile Include="Outputs\PreparedQueryNotFoundInfo.cs" />
+    <Compile Include="Outputs\ProtocolErrorException.cs" />
+    <Compile Include="Outputs\ReadTimeoutInfo.cs" />
+    <Compile Include="Outputs\ServerErrorException.cs" />
+    <Compile Include="Outputs\UnavailableInfo.cs" />
+    <Compile Include="Outputs\WriteTimeoutInfo.cs" />
+    <Compile Include="PlainTextAuthProvider.cs" />
+    <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
+    <Compile Include="Policies\IReconnectionSchedule.cs" />
+    <Compile Include="Policies\IRetryPolicy.cs" />
+    <Compile Include="Policies\RetryLoadBalancingPolicy.cs" />
+    <Compile Include="Policies\DCAwareRoundRobinPolicy.cs" />
+    <Compile Include="Policies\DefaultRetryPolicy.cs" />
+    <Compile Include="Policies\DowngradingConsistencyRetryPolicy.cs" />
+    <Compile Include="Policies\ExponentialReconnectionPolicy.cs" />
+    <Compile Include="Policies\FallthroughRetryPolicy.cs" />
+    <Compile Include="Policies\ILoadBalancingPolicy.cs" />
+    <Compile Include="Policies\LoggingRetryPolicy.cs" />
+    <Compile Include="Policies\Policies.cs" />
+    <Compile Include="Policies\IReconnectionPolicy.cs" />
+    <Compile Include="Policies\RetryLoadBalancingPolicyEventArgs.cs" />
+    <Compile Include="Policies\RetryDecision.cs" />
+    <Compile Include="Policies\RoundRobinPolicy.cs" />
+    <Compile Include="Policies\TokenAwarePolicy.cs" />
+    <Compile Include="PoolingOptions.cs" />
+    <Compile Include="PreparedStatement.cs" />
+    <Compile Include="StreamProtoBuf.cs" />
+    <Compile Include="ProtocolOptions.cs" />
+    <Compile Include="Query.cs" />
+    <Compile Include="QueryOptions.cs" />
+    <Compile Include="QueryProtocolOptions.cs" />
+    <Compile Include="QueryTrace.cs" />
+    <Compile Include="ReplicationStrategies.cs" />
+    <Compile Include="RequestFrame.cs" />
+    <Compile Include="Requests\AuthResponseRequest.cs" />
+    <Compile Include="Requests\BatchRequest.cs" />
+    <Compile Include="Requests\BatchType.cs" />
+    <Compile Include="Requests\OptionsRequest.cs" />
+    <Compile Include="Requests\RegisterForEventRequest.cs" />
+    <Compile Include="ResponseFrame.cs" />
+    <Compile Include="Responses\AuthChallengeResponse.cs" />
+    <Compile Include="Responses\AuthenticateResponse.cs" />
+    <Compile Include="BEBinaryReader.cs" />
+    <Compile Include="BEBinaryWriter.cs" />
+    <Compile Include="CassandraConnection.cs" />
+    <Compile Include="Requests\PrepareRequest.cs" />
+    <Compile Include="Responses\AuthSuccessResponse.cs" />
+    <Compile Include="Responses\EventResponse.cs" />
+    <Compile Include="Requests\QueryRequest.cs" />
+    <Compile Include="Responses\ResultResponse.cs" />
+    <Compile Include="Responses\SupportedResponse.cs" />
+    <Compile Include="Responses\ErrorResponse.cs" />
+    <Compile Include="Requests\CredentialsRequest.cs" />
+    <Compile Include="Requests\ExecuteRequest.cs" />
+    <Compile Include="FrameHeader.cs" />
+    <Compile Include="FrameParser.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Responses\ReadyResponse.cs" />
+    <Compile Include="IRequest.cs" />
+    <Compile Include="AbstractResponse.cs" />
+    <Compile Include="Requests\StartupRequest.cs" />
+    <Compile Include="Outputs\OutputRows.cs" />
+    <Compile Include="RoutingKey.cs" />
+    <Compile Include="RowPopulators\CqlColumn.cs" />
+    <Compile Include="RowPopulators\ExecutionInfo.cs" />
+    <Compile Include="RowPopulators\RowSet.cs" />
+    <Compile Include="RowPopulators\Row.cs" />
+    <Compile Include="RowPopulators\RowSetMetadata.cs" />
+    <Compile Include="RowPopulators\TypeInterpreter.cs" />
+    <Compile Include="RPToken.cs" />
+    <Compile Include="SchemaChangedEventArgs.cs" />
+    <Compile Include="SchemaChangedEventHandler.cs" />
+    <Compile Include="SchemaChangeEventArgs.cs" />
+    <Compile Include="Session.cs" />
+    <Compile Include="SimpleAuthInfoProvider.cs" />
+    <Compile Include="SimpleStatement.cs" />
+    <Compile Include="SnappyProtoBufCompressor.cs" />
+    <Compile Include="Snappy\CorruptionException.cs" />
+    <Compile Include="Snappy\Memory.cs" />
+    <Compile Include="Snappy\SlowMemory.cs" />
+    <Compile Include="Snappy\SnappyDecompressor.cs" />
+    <Compile Include="Snappy\SnappyInternalUtils.cs" />
+    <Compile Include="SocketOptions.cs" />
+    <Compile Include="SSLOptions.cs" />
+    <Compile Include="Statement.cs" />
+    <Compile Include="StaticRandom.cs" />
+    <Compile Include="StatusChangeEventArgs.cs" />
+    <Compile Include="TableColumn.cs" />
+    <Compile Include="TableMetadata.cs" />
+    <Compile Include="TableOptions.cs" />
+    <Compile Include="TokenFactory.cs" />
+    <Compile Include="TokenMap.cs" />
+    <Compile Include="TopologyChangeEventArgs.cs" />
+    <Compile Include="TypeAdapters.cs" />
+    <Compile Include="Utils.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="README.rst" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
