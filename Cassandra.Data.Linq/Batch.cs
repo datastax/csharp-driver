@@ -88,7 +88,7 @@ namespace Cassandra.Data.Linq
         private string GetCql()
         {
             return "BEGIN " + _batchType + "BATCH\r\n" +
-                ((_timestamp == null) ? "" : ("USING TIMESTAMP " + Convert.ToInt64(Math.Floor((_timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)).ToString() + " ")) +
+                ((_timestamp == null) ? "" : ("USING TIMESTAMP " + (_timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10).ToString() + " ") +
                 _batchScript.ToString() + "APPLY " + _batchType + "BATCH";
         }
 

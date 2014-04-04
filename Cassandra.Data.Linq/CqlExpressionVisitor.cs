@@ -101,7 +101,7 @@ namespace Cassandra.Data.Linq
             if (timestamp != null)
             {
                 sb.Append(" USING TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
                 sb.Append(" ");
             }
 
@@ -134,7 +134,7 @@ namespace Cassandra.Data.Linq
             if (timestamp != null)
             {
                 sb.Append("TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - CqlQueryTools.UnixStart).TotalMilliseconds)));
+                sb.Append((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
                 sb.Append(" ");
             }
             sb.Append(" SET ");
