@@ -69,6 +69,7 @@
     <Compile Include="Core\Randomm.cs" />
     <Compile Include="Core\ReconnectionPolicyTests.cs" />
     <Compile Include="Core\RetryPolicyTests.cs" />
+    <Compile Include="Core\SessionExecuteAsyncTests.cs" />
     <Compile Include="Core\Stress1Tests.cs" />
     <Compile Include="Core\Stress2Tests.cs" />
     <Compile Include="Data\BasicTests.cs" />

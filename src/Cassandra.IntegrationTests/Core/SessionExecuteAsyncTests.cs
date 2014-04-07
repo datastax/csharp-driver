@@ -22,13 +22,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 
-#if MYTEST
-using MyTest;
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-#endif
-
-namespace Cassandra.MSTest
+namespace Cassandra.IntegrationTests.Core
 {
     [TestClass]
     public class SessionExecuteAsyncTests
@@ -44,7 +38,6 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [TestCategory("short")]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
             var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_keyspaces"));
@@ -54,7 +47,6 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [TestCategory("short")]
         public void SessionExecuteAsyncPreparedToSync()
         {
             var statement = Session.Prepare("SELECT * FROM system.schema_keyspaces");
@@ -65,7 +57,6 @@ namespace Cassandra.MSTest
         }
 
         [TestMethod]
-        [TestCategory("short")]
         public void SessionExecuteAsyncCQLQueriesParallel()
         {
             var task1 = Session.ExecuteAsync(new SimpleStatement("select keyspace_name FROM system.schema_keyspaces"));
