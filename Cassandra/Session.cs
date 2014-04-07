@@ -20,6 +20,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -536,6 +537,16 @@ namespace Cassandra
             return ar;
         }
 
+        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state)
+        {
+            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), tag, callback, state);
+        }
+
+        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
+        {
+            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), null, callback, state);
+        }
+
         public static object GetTag(IAsyncResult ar)
         {
             var longActionAc = ar as AsyncResult<RowSet>;
@@ -564,36 +575,47 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(Query query)
         {
             return EndExecute(BeginExecute(query, null, null));
         }
 
-        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state)
-        {
-            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), tag, callback, state);
-        }
-
-        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
-        {
-            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), null, callback, state);
-        }
-
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(string cqlQuery, int pageSize)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
         }
-        
+
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(string cqlQuery)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
+        /// <summary>
+        /// Executes a query asynchronously
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public Task<RowSet> ExecuteAsync(Query query)
+        {
+            return Task.Factory.FromAsync<Query, RowSet>(BeginExecute, EndExecute, query, null);
+        }
         #endregion
 
         #region Prepare

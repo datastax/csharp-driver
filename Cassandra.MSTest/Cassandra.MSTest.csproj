@@ -76,6 +76,7 @@
     <Compile Include="Randomm.cs" />
     <Compile Include="ReconnectionPolicyTests.cs" />
     <Compile Include="RetryPolicyTest.cs" />
+    <Compile Include="SessionExecuteAsyncTests.cs" />
     <Compile Include="TestTools\Assert.cs" />
     <Compile Include="BasicTests.cs" />
   </ItemGroup>
