@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 namespace Cassandra
 {
 
-    public class Session : IDisposable
+    public class Session : ISession
     {
         internal Guid Guid;
 
@@ -41,9 +41,6 @@ namespace Cassandra
         private readonly IAuthProvider _authProvider;
         private readonly IAuthInfoProvider _authInfoProvider;
         
-        /// <summary>
-        /// Gets name of currently used keyspace. 
-        /// </summary>
         public string Keyspace { get { return _keyspace; } }
         private string _keyspace;
         private int _binaryProtocolVersion;
@@ -362,17 +359,6 @@ namespace Cassandra
             return nconn;
         }
         
-
-
-        /// <summary>
-        ///  Creates new keyspace in current cluster.        
-        /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be created.</param>
-        /// <param name="replication">Replication property for this keyspace.
-        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
-        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
-        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 1</code></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             WaitForSchemaAgreement(
@@ -380,17 +366,6 @@ namespace Cassandra
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
-
-        /// <summary>
-        ///  Creates new keyspace in current cluster.
-        ///  If keyspace with specified name already exists, then this method does nothing.
-        /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be created.</param>
-        /// <param name="replication">Replication property for this keyspace.
-        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
-        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
-        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         public void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             if (_binaryProtocolVersion > 1)
@@ -412,11 +387,6 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        ///  Deletes specified keyspace from current cluster.
-        ///  If keyspace with specified name does not exist, then exception will be thrown.
-        /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspace(string keyspace_name)
         {
             WaitForSchemaAgreement(
@@ -424,11 +394,6 @@ namespace Cassandra
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
-        /// <summary>
-        ///  Deletes specified keyspace from current cluster.
-        ///  If keyspace with specified name does not exist, then this method does nothing.
-        /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         public void DeleteKeyspaceIfExists(string keyspace_name)
         {
             if (_binaryProtocolVersion > 1)
@@ -450,10 +415,6 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        ///  Switches to the specified keyspace.
-        /// </summary>
-        /// <param name="keyspace_name">Name of keyspace that is to be used.</param>
         public void ChangeKeyspace(string keyspace_name)
         {
             Execute(CqlQueryTools.GetUseKeyspaceCQL(keyspace_name));
@@ -575,43 +536,26 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
         public RowSet Execute(Query query)
         {
             return EndExecute(BeginExecute(query, null, null));
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
         public RowSet Execute(string cqlQuery, int pageSize)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
         public RowSet Execute(string cqlQuery)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
-        /// <summary>
-        /// Executes a query asynchronously
-        /// </summary>
-        /// <param name="query">The query to execute</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
         public Task<RowSet> ExecuteAsync(Query query)
         {
             return Task.Factory.FromAsync<Query, RowSet>(BeginExecute, EndExecute, query, null);
