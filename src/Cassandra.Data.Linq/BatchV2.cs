@@ -51,6 +51,8 @@ namespace Cassandra.Data.Linq
 
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
+            //TODO: Inherit from BatchStatement; replace new instance with this
+            //TODO: Batch to interface
             if (_batchScript.IsEmpty)
                 throw new ArgumentException("Batch is empty");
 

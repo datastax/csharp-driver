@@ -42,6 +42,7 @@ namespace Cassandra.Data.Linq
 
         public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
+            //TODO: Inherit from SimpleStatement
             if (_batchScript.Length != 0)
             {
                 Session ctx = _session;

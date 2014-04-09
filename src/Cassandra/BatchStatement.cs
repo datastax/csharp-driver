@@ -29,12 +29,23 @@ namespace Cassandra
         private BatchType _batchType = BatchType.Logged;
         private volatile RoutingKey _routingKey;
 
+        /// <summary>
+        /// Gets the batch type
+        /// </summary>
+        public BatchType BatchType
+        {
+            get { return _batchType; }
+        }
+
+        /// <summary>
+        /// Determines if the batch does not contain any query
+        /// </summary>
         public bool IsEmpty
         {
             get { return _queries.Count == 0; }
         }
 
-        public IEnumerable<Statement> Queries
+        public List<Statement> Queries
         {
             get { return _queries; }
         }
@@ -80,11 +91,6 @@ namespace Cassandra
         {
             _batchType = batchType;
             return this;
-        }
-
-        protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
-        {
-            return session.BeginBatch(_batchType, _queries, callback, state, ConsistencyLevel, IsTracing, this, this, tag);
         }
 
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)

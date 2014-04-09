@@ -97,7 +97,7 @@ namespace Cassandra.IntegrationTests.Linq
             ents.SaveChanges(SaveChangesMode.Batch);
 
             //test filtering
-            IEnumerable<Tweets> evens = (from ent in table where ent.isok select ent).Execute();
+            IEnumerable<Tweets> evens = (from ent in table where ent.isok == true select ent).Execute();
             Assert.True(evens.All(ev => ev.idx%2 == 0));
 
             //test pagination
@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Linq
             long c = iq.Execute();
 
 
-            foreach (Tweets r in (from e in table where e.isok && e.idx == 0 select e).Execute())
+            foreach (Tweets r in (from e in table where e.isok == true && e.idx == 0 select e).Execute())
             {
                 Tweets x = r;
             }
@@ -168,12 +168,12 @@ namespace Cassandra.IntegrationTests.Linq
                 var x = r;
             }
 
-            foreach (var r in (from e in table where e.isok && e.idx == 0 select new {Key = e.idx, e.isok}).Execute())
+            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select new {Key = e.idx, e.isok}).Execute())
             {
                 var x = r;
             }
 
-            foreach (X r in (from e in table where e.isok && e.idx == 0 select new X {x = e.author, y = e.idx}).Execute())
+            foreach (X r in (from e in table where e.isok == true && e.idx == 0 select new X {x = e.author, y = e.idx}).Execute())
             {
                 X x = r;
             }

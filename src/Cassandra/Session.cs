@@ -486,16 +486,37 @@ namespace Cassandra
 
         public IAsyncResult BeginExecute(IStatement statement, object tag, AsyncCallback callback, object state)
         {
-            var ar = ((Statement)statement).BeginSessionExecute(this, tag, callback, state) as AsyncResultNoResult;
-            _startedActons.TryAdd(ar.Id, ar);
-            return ar;
+            if (statement == null)
+            {
+                throw new ArgumentNullException("statement");
+            }
+            var options = this.Cluster.Configuration.QueryOptions;
+            var consistency = statement.ConsistencyLevel ?? options.GetConsistencyLevel();
+            if (statement is RegularStatement)
+            {
+                var s = ((RegularStatement)statement);
+                return BeginQuery(s.QueryString, callback, state,
+                                      QueryProtocolOptions.CreateFromQuery(s, options.GetConsistencyLevel()),
+                                      s.ConsistencyLevel, s.IsTracing, s, s, tag);
+            }
+            if (statement is BoundStatement)
+            {
+                var s = ((BoundStatement)statement);
+                return BeginExecuteQuery(s.PreparedStatement.Id, s.PreparedStatement.Metadata,
+                                                 QueryProtocolOptions.CreateFromQuery(s, Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
+                                                 callback, state, s.ConsistencyLevel, s, s, tag, s.IsTracing);
+            }
+            if (statement is BatchStatement)
+            {
+                var s = ((BatchStatement)statement);
+                return BeginBatch(s.BatchType, s.Queries, callback, state, s.ConsistencyLevel, s.IsTracing, s, s, tag);
+            }
+            throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }
 
         public IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state)
         {
-            var ar = ((Statement)statement).BeginSessionExecute(this, null, callback, state) as AsyncResultNoResult;
-            _startedActons.TryAdd(ar.Id, ar) ;
-            return ar;
+            return BeginExecute(statement, null, callback, state);
         }
 
         public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state)
@@ -505,7 +526,7 @@ namespace Cassandra
 
         public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
         {
-            return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), null, callback, state);
+            return BeginExecute(cqlQuery, consistency, null, callback, state);
         }
 
         public static object GetTag(IAsyncResult ar)

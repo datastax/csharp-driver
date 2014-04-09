@@ -240,8 +240,6 @@ namespace Cassandra
             return this;
         }
 
-        protected internal abstract IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state);
-
         protected internal abstract RowSet EndSessionExecute(Session session, IAsyncResult ar);
     }
 }

@@ -77,14 +77,6 @@ namespace Cassandra
             _statement = statement;
         }
 
-        protected internal override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
-        {
-            return session.BeginExecuteQuery(PreparedStatement.Id, PreparedStatement.Metadata,
-                                             QueryProtocolOptions.CreateFromQuery(this,
-                                                                                  session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
-                                             callback, state, ConsistencyLevel, this, this, tag, IsTracing);
-        }
-
         protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             return session.EndExecuteQuery(ar);

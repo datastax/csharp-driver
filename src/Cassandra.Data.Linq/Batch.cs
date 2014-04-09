@@ -72,13 +72,6 @@ namespace Cassandra.Data.Linq
             InternalEndExecute(ar);
         }
 
-        protected override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
-        {
-            if (!ReferenceEquals(_session, session))
-                throw new ArgumentOutOfRangeException("session");
-            return BeginExecute(callback, state);
-        }
-
         private RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);

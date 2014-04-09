@@ -71,13 +71,6 @@ namespace Cassandra.Data.Linq
 
         public abstract IAsyncResult BeginExecute(AsyncCallback callback, object state);
 
-        protected override IAsyncResult BeginSessionExecute(Session session, object tag, AsyncCallback callback, object state)
-        {
-            if (!ReferenceEquals(GetTable().GetSession(), session))
-                throw new ArgumentOutOfRangeException("session");
-            return BeginExecute(callback, state);
-        }
-
         protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
         {
             if (!ReferenceEquals(GetTable().GetSession(), session))
