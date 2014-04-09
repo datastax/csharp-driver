@@ -24,7 +24,7 @@ using Cassandra.Data;
 namespace Cassandra.IntegrationTests.Data
 {
     [TestClass]
-    public class BasicTests
+    public class AdoBasicTests
     {
         private CqlConnection connection;
         private Session session;
@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Data
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        public void complexTest()
+        public void createObjectsInsertAndSelect()
         {
             connection.Open();
             DbCommand cmd = connection.CreateCommand();
@@ -109,9 +109,9 @@ namespace Cassandra.IntegrationTests.Data
 
         [TestMethod]
         [WorksForMe]
-        public void ComplexTest()
+        public void ExecuteNonQueryTest()
         {
-            complexTest();
+            createObjectsInsertAndSelect();
         }
     }
 }
