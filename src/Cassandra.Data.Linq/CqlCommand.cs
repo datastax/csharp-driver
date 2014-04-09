@@ -93,13 +93,6 @@ namespace Cassandra.Data.Linq
             return (_table as ITable);
         }
 
-        protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
-        {
-            if (!ReferenceEquals(GetTable().GetSession(), session))
-                throw new ArgumentOutOfRangeException("session");
-            return InternalEndExecute(ar);
-        }
-
         protected IAsyncResult InternalBeginExecute(AsyncCallback callback, object state)
         {
             InitializeStatement();
@@ -111,9 +104,9 @@ namespace Cassandra.Data.Linq
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
             Session ctx = tag.Session;
-            RowSet outp = base.EndSessionExecute(ctx, ar);
-            QueryTrace = outp.Info.QueryTrace;
-            return outp;
+            RowSet rowSet = ctx.EndExecute(ar);
+            QueryTrace = rowSet.Info.QueryTrace;
+            return rowSet;
         }
 
         public virtual IAsyncResult BeginExecute(AsyncCallback callback, object state)

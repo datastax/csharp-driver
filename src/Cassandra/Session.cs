@@ -540,8 +540,19 @@ namespace Cassandra
             var longActionAc = ar as AsyncResult<RowSet>;
             IAsyncResult oar;
             _startedActons.TryRemove(longActionAc.Id, out oar);
-            var ret = (longActionAc.AsyncSender as Statement).EndSessionExecute(this, ar);
-            return ret;
+            if (longActionAc.AsyncSender is RegularStatement)
+            {
+                return EndQuery(ar);
+            }
+            if (longActionAc.AsyncSender is BoundStatement)
+            {
+                return EndExecuteQuery(ar);
+            }
+            if (longActionAc.AsyncSender is BatchStatement)
+            {
+                return EndBatch(ar);
+            }
+            throw new NotSupportedException("Async result sender not supported " + longActionAc.AsyncSender);
         }
 
         internal void WaitForAllPendingActions(int timeoutMs)

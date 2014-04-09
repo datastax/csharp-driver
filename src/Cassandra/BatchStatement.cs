@@ -93,11 +93,6 @@ namespace Cassandra
             return this;
         }
 
-        protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
-        {
-            return session.EndBatch(ar);
-        }
-
         internal override IQueryRequest CreateBatchRequest()
         {
             throw new InvalidOperationException("Batches cannot be included recursivelly");

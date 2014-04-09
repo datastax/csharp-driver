@@ -81,13 +81,6 @@ namespace Cassandra.Data.Linq
             return outp;
         }
 
-        protected override RowSet EndSessionExecute(Session session, IAsyncResult ar)
-        {
-            if (!ReferenceEquals(_session, session))
-                throw new ArgumentOutOfRangeException("session");
-            return InternalEndExecute(ar);
-        }
-
         protected struct CqlQueryTag
         {
             public Session Session;

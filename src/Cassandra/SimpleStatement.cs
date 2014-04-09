@@ -89,11 +89,6 @@ namespace Cassandra
             return this;
         }
 
-        protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
-        {
-            return session.EndQuery(ar);
-        }
-
         public SimpleStatement SetQueryString(string queryString)
         {
             _query = queryString;

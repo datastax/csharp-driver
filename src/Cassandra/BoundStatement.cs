@@ -77,11 +77,6 @@ namespace Cassandra
             _statement = statement;
         }
 
-        protected internal override RowSet EndSessionExecute(Session session, IAsyncResult ar)
-        {
-            return session.EndExecuteQuery(ar);
-        }
-
         internal override IQueryRequest CreateBatchRequest()
         {
             return new ExecuteRequest(-1, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing,

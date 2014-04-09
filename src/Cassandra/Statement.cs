@@ -239,7 +239,5 @@ namespace Cassandra
             _pageSize = pageSize;
             return this;
         }
-
-        protected internal abstract RowSet EndSessionExecute(Session session, IAsyncResult ar);
     }
 }
