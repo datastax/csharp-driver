@@ -30,7 +30,7 @@ namespace Cassandra
     /// per application. However, a given session can only be set to one keyspace
     /// at a time, so one instance per keyspace is necessary.
     /// </summary>
-    interface ISession: IDisposable
+    public interface ISession: IDisposable
     {
         /// <summary>
         /// Gets name of currently used keyspace. 
@@ -44,10 +44,25 @@ namespace Cassandra
         /// Gets the Cassandra native binary protocol version
         /// </summary>
         int BinaryProtocolVersion { get; }
+        /// <summary>
+        /// Begins asynchronous execute operation
+        /// </summary>
         IAsyncResult BeginExecute(IStatement query, AsyncCallback callback, object state);
+        /// <summary>
+        /// Begins asynchronous execute operation
+        /// </summary>
         IAsyncResult BeginExecute(IStatement query, object tag, AsyncCallback callback, object state);
+        /// <summary>
+        /// Begins asynchronous execute operation
+        /// </summary>
         IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state);
+        /// <summary>
+        /// Begins asynchronous execute operation
+        /// </summary>
         IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state);
+        /// <summary>
+        /// Begins asynchronous prepare operation
+        /// </summary>
         IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state);
         /// <summary>
         ///  Switches to the specified keyspace.
@@ -87,6 +102,11 @@ namespace Cassandra
         /// </summary>
         /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
         void DeleteKeyspaceIfExists(string keyspace_name);
+        /// <summary>
+        /// Ends asynchronous execute operation
+        /// </summary>
+        /// <param name="ar"></param>
+        /// <returns></returns>
         RowSet EndExecute(IAsyncResult ar);
         PreparedStatement EndPrepare(IAsyncResult ar);
         /// <summary>
@@ -110,7 +130,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="query">The query to execute</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task<RowSet> ExecuteAsync(Statement query);
+        Task<RowSet> ExecuteAsync(IStatement query);
         PreparedStatement Prepare(string cqlQuery);
         void WaitForSchemaAgreement(RowSet rs);
         bool WaitForSchemaAgreement(System.Net.IPAddress forHost);

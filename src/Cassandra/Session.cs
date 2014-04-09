@@ -588,9 +588,9 @@ namespace Cassandra
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
-        public Task<RowSet> ExecuteAsync(Statement query)
+        public Task<RowSet> ExecuteAsync(IStatement query)
         {
-            return Task.Factory.FromAsync<Statement, RowSet>(BeginExecute, EndExecute, query, null);
+            return Task.Factory.FromAsync<IStatement, RowSet>(BeginExecute, EndExecute, query, null);
         }
         #endregion
 

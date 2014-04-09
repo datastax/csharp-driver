@@ -13,9 +13,12 @@ namespace Cassandra
         /// </summary>
         ConsistencyLevel? ConsistencyLevel { get; }
         /// <summary>
-        ///  Disable tracing for this query.
+        ///  Disable tracing for the statement.
         /// </summary>
         IStatement DisableTracing();
+        /// <summary>
+        ///  Enables tracing for the statement
+        /// </summary>
         IStatement EnableTracing(bool enable = true);
         /// <summary>
         ///  Gets whether tracing is enabled for this query or not.
