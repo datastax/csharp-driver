@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
         private Cluster cluster;
         private int key = 0;
         private string ksname = "large_data";
-        private Session session;
+        private ISession session;
 
         [TestInitialize]
         public void SetFixture()

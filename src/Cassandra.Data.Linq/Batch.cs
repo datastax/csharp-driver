@@ -21,7 +21,7 @@ namespace Cassandra.Data.Linq
 {
     public abstract class Batch : Statement
     {
-        protected readonly Session _session;
+        protected readonly ISession _session;
 
         protected BatchType _batchType = BatchType.Logged;
         protected DateTimeOffset? _timestamp = null;
@@ -35,7 +35,7 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        internal Batch(Session session)
+        internal Batch(ISession session)
         {
             _session = session;
         }
@@ -75,7 +75,7 @@ namespace Cassandra.Data.Linq
         private RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
-            Session ctx = tag.Session;
+            var ctx = tag.Session;
             RowSet outp = ctx.EndExecute(ar);
             QueryTrace = outp.Info.QueryTrace;
             return outp;
@@ -83,7 +83,7 @@ namespace Cassandra.Data.Linq
 
         protected struct CqlQueryTag
         {
-            public Session Session;
+            public ISession Session;
         }
     }
 }

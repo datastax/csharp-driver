@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class PreparedStatementsTests
     {
-        private Session Session;
+        private ISession Session;
 
         [TestMethod]
         [WorksForMe]

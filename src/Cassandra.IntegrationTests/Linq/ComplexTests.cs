@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Linq
     {
         private string KeyspaceName = "test";
 
-        private Session Session;
+        private ISession Session;
         private TextWriterTraceListener twtl;
 
         [TestInitialize]

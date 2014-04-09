@@ -28,7 +28,7 @@ namespace LinqSamples
         {
             Cluster cluster = Cluster.Builder().WithConnectionString("Contact Points=192.168.13.1;Port=9042").Build();
 
-            using (Session session = cluster.Connect())
+            using (var session = cluster.Connect())
             {
                 string keyspaceName = "Excelsior" + Guid.NewGuid().ToString("N");
 

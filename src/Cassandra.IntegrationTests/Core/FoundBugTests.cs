@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 using (Cluster cluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
                 {
-                    Session session = null;
+                    ISession session = null;
                     try
                     {
                         using (session = cluster.Connect())
@@ -59,7 +59,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.CCMCluster CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
             try
             {
-                Session Session = CCMCluster.Session;
+                var Session = CCMCluster.Session;
                 string Keyspace = "Excelsior";
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);

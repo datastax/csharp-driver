@@ -142,7 +142,7 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>a new session on this cluster set to no keyspace.</returns>
-        public Session Connect()
+        public ISession Connect()
         {
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
@@ -153,7 +153,7 @@ namespace Cassandra
         /// <param name="keyspace"> The name of the keyspace to use for the created <code>Session</code>. </param>
         /// <returns>a new session on this cluster set to keyspace: 
         ///  <code>keyspaceName</code>. </returns>
-        public Session Connect(string keyspace)
+        public ISession Connect(string keyspace)
         {
             var scs = new Session(this, _configuration.Policies,
                                   _configuration.ProtocolOptions,
@@ -181,9 +181,9 @@ namespace Cassandra
         /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         /// <returns>a new session on this cluster set to default keyspace.</returns>
-        public Session ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durable_writes = true)
+        public ISession ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            Session session = Connect("");
+            var session = Connect("");
             session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durable_writes);
             session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             return session;

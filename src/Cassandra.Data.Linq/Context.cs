@@ -28,7 +28,7 @@ namespace Cassandra.Data.Linq
         private readonly Dictionary<string, ITable> _tables = new Dictionary<string, ITable>();
         internal List<CqlCommand> _additionalCommands = new List<CqlCommand>();
         private string _keyspaceName;
-        private Session _managedSession;
+        private ISession _managedSession;
 
         /// <summary>
         /// Gets name of keyspace.
@@ -38,12 +38,12 @@ namespace Cassandra.Data.Linq
             get { return _keyspaceName; }
         }
 
-        public Context(Session cqlSession)
+        public Context(ISession cqlSession)
         {
             Initialize(cqlSession);
         }
 
-        private void Initialize(Session cqlConnection)
+        private void Initialize(ISession cqlConnection)
         {
             if (cqlConnection == null)
                 return;

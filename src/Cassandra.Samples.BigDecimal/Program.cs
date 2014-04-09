@@ -34,7 +34,7 @@ namespace BigDecimalSamples
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             Cluster cluster = Cluster.Builder().AddContactPoint("cassi.cloudapp.net").Build();
 
-            using (Session session = cluster.Connect())
+            using (var session = cluster.Connect())
             {
                 const string keyspaceName = "Excelsior";
 

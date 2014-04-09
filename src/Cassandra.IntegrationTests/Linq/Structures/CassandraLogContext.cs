@@ -4,7 +4,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 {
     public class CassandraLogContext : Context
     {
-        public CassandraLogContext(Session session)
+        public CassandraLogContext(ISession session)
             : base(session)
         {
             AddTable<CassandraLog>();

@@ -24,7 +24,7 @@ namespace Cassandra.Data
     public class CqlConnection : DbConnection, ICloneable
     {
         private static readonly Dictionary<string, Cluster> _clusters = new Dictionary<string, Cluster>();
-        internal Session ManagedConnection = null;
+        internal ISession ManagedConnection;
         private ConnectionState _connectionState = ConnectionState.Closed;
         private CassandraConnectionStringBuilder _connectionStringBuilder;
         private CqlBatchTransaction _currentTransaction;

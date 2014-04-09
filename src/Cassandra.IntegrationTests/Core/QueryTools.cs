@@ -28,7 +28,7 @@ namespace Cassandra.IntegrationTests.Core
             return col.ToString();
         }
 
-        internal static void ExecuteSyncQuery(Session session, string query, ConsistencyLevel consistency, List<object[]> expectedValues = null,
+        internal static void ExecuteSyncQuery(ISession session, string query, ConsistencyLevel consistency, List<object[]> expectedValues = null,
                                               string messageInstead = null)
         {
             if (messageInstead != null)
@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        internal static IPAddress ExecuteSyncNonQuery(Session session, string query, string messageInstead = null,
+        internal static IPAddress ExecuteSyncNonQuery(ISession session, string query, string messageInstead = null,
                                                       ConsistencyLevel? consistency = null)
         {
             if (messageInstead != null)
@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
 
-        internal static PreparedStatement PrepareQuery(Session session, string query, string messageInstead = null)
+        internal static PreparedStatement PrepareQuery(ISession session, string query, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.Core
             return ret;
         }
 
-        internal static IPAddress ExecutePreparedQuery(Session session, PreparedStatement prepared, object[] values, string messageInstead = null)
+        internal static IPAddress ExecutePreparedQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);
@@ -113,7 +113,7 @@ namespace Cassandra.IntegrationTests.Core
             return ret.Info.QueriedHost;
         }
 
-        internal static RowSet ExecutePreparedSelectQuery(Session session, PreparedStatement prepared, object[] values, string messageInstead = null)
+        internal static RowSet ExecutePreparedSelectQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
             if (messageInstead != null)
                 Console.WriteLine("CQL<\t" + messageInstead);

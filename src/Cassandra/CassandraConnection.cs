@@ -56,7 +56,7 @@ namespace Cassandra
         private readonly ConcurrentStack<int> _freeStreamIDs = new ConcurrentStack<int>();
         private readonly AtomicValue<bool> _isStreamOpened = new AtomicValue<bool>(false);
 
-        private readonly Session _owner;
+        private readonly ISession _owner;
         private readonly int _port;
         private readonly Action<ErrorActionParam> _protocolErrorHandlerAction;
         private readonly int _queryAbortTimeout = Timeout.Infinite;
@@ -89,7 +89,7 @@ namespace Cassandra
             get { return !_alreadyDisposed.IsTaken() && !_socketExceptionOccured.IsTaken(); }
         }
 
-        internal CassandraConnection(Session owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
+        internal CassandraConnection(ISession owner, IPAddress serverAddress, ProtocolOptions protocolOptions,
                                      SocketOptions socketOptions, ClientOptions clientOptions,
                                      IAuthProvider authProvider, IAuthInfoProvider authInfoProvider, int protocolVersion)
         {
@@ -229,9 +229,12 @@ namespace Cassandra
             }
         }
 
-        private void HostIsDown()
+        protected virtual void HostIsDown()
         {
-            _owner.HostIsDown(_serverAddress);
+            if (_owner is Session)
+            {
+                ((Session)_owner).HostIsDown(_serverAddress);
+            }
         }
 
         internal int AllocateStreamId()

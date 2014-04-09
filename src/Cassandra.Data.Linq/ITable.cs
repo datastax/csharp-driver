@@ -7,7 +7,7 @@ namespace Cassandra.Data.Linq
         void Create();
         Type GetEntityType();
         string GetQuotedTableName();
-        Session GetSession();
+        ISession GetSession();
         TableType GetTableType();
     }
 }

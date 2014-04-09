@@ -21,7 +21,7 @@ namespace Playground
 {
     public class TwitterContext : Context
     {
-        public TwitterContext(Session session)
+        public TwitterContext(ISession session)
             : base(session)
         {
             AddTable<Tweet>();

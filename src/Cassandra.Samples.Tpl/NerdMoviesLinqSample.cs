@@ -13,7 +13,7 @@ namespace TPLSample.NerdMoviesLinqSample
         {
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().Build();
 
-            using (Session session = cluster.Connect())
+            using (var session = cluster.Connect())
             {
                 const string keyspaceName = "Excelsior";
                 Console.WriteLine("============================================================");

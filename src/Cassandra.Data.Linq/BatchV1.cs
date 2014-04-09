@@ -28,7 +28,7 @@ namespace Cassandra.Data.Linq
             get { return _batchScript.Length == 0; }
         }
 
-        internal BatchV1(Session session) : base(session)
+        internal BatchV1(ISession session) : base(session)
         {
         }
 
@@ -45,7 +45,7 @@ namespace Cassandra.Data.Linq
             //TODO: Inherit from SimpleStatement
             if (_batchScript.Length != 0)
             {
-                Session ctx = _session;
+                var ctx = _session;
                 string cqlQuery = GetCql();
                 var stmt = new SimpleStatement(cqlQuery);
                 this.CopyQueryPropertiesTo(stmt);

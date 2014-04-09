@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
         private CCMBridge.CCMCluster CCMCluster;
         private Cluster Cluster;
         private string Keyspace = "tester";
-        private Session Session;
+        private ISession Session;
 
         [TestInitialize]
         public void SetFixture()

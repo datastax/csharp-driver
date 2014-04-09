@@ -96,14 +96,14 @@ namespace Cassandra.Data.Linq
         protected IAsyncResult InternalBeginExecute(AsyncCallback callback, object state)
         {
             InitializeStatement();
-            Session session = GetTable().GetSession();
+            var session = GetTable().GetSession();
             return session.BeginExecute(this, new CqlQueryTag { Session = session }, callback, state);
         }
 
         protected RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
-            Session ctx = tag.Session;
+            var ctx = tag.Session;
             RowSet rowSet = ctx.EndExecute(ar);
             QueryTrace = rowSet.Info.QueryTrace;
             return rowSet;
@@ -121,7 +121,7 @@ namespace Cassandra.Data.Linq
 
         protected struct CqlQueryTag
         {
-            public Session Session;
+            public ISession Session;
         }
     }
 }

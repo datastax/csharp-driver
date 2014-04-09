@@ -30,7 +30,7 @@ namespace TPLSample.KeyspacesSample
             // this sample requires buffering
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
 
-            using (Session session = cluster.Connect())
+            using (var session = cluster.Connect())
             {
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
 

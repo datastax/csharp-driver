@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class AdvancedTests
     {
-        private Session Session;
+        private ISession Session;
 
         [TestMethod]
         [WorksForMe]
@@ -280,13 +280,13 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                     }
                     Thread.Sleep(5);
                     Console.Write("#");
-                    Session.SimulateSingleConnectionDown();
+                    ((Session)Session).SimulateSingleConnectionDown();
 
                     for (int i = 0; i < 1000; i++)
                     {
                         Thread.Sleep(i*10);
                         Console.Write("#");
-                        Session.SimulateSingleConnectionDown();
+                        ((Session)Session).SimulateSingleConnectionDown();
                     }
                 });
 
@@ -602,13 +602,13 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             {
                 Thread.Sleep(500);
                 Console.Write("#");
-                Session.SimulateSingleConnectionDown();
+                ((Session)Session).SimulateSingleConnectionDown();
 
                 for (int i = 0; i < 100; i++)
                 {
                     Thread.Sleep(i*10);
                     Console.Write("#");
-                    Session.SimulateSingleConnectionDown();
+                    ((Session)Session).SimulateSingleConnectionDown();
                 }
             });
 

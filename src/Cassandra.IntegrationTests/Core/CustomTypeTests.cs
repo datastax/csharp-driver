@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class CustomTypeTests
     {
-        private Session Session;
+        private ISession Session;
 
         [TestInitialize]
         public void SetFixture()

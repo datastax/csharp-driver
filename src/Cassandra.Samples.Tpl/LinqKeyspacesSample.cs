@@ -30,7 +30,7 @@ namespace TPLSample.LinqKeyspacesSample
         {
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().WithoutRowSetBuffering().Build();
 
-            using (Session session = cluster.Connect("system"))
+            using (var session = cluster.Connect("system"))
             {
                 var context = new Context(session);
                 context.AddTable<SchemaColumns>("schema_columns");

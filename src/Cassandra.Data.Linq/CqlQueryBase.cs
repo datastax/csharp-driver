@@ -53,7 +53,7 @@ namespace Cassandra.Data.Linq
         protected IAsyncResult InternalBeginExecute(string cqlQuery, object[] values, Dictionary<string, Tuple<string, object, int>> mappingNames,
                                                     Dictionary<string, string> alter, AsyncCallback callback, object state)
         {
-            Session session = GetTable().GetSession();
+            var session = GetTable().GetSession();
             SimpleStatement stmt = new SimpleStatement(cqlQuery).BindObjects(values);
             this.CopyQueryPropertiesTo(stmt);
             return session.BeginExecute(stmt,
@@ -63,7 +63,7 @@ namespace Cassandra.Data.Linq
         protected RowSet InternalEndExecute(IAsyncResult ar)
         {
             var tag = (CqlQueryTag) Session.GetTag(ar);
-            Session ctx = tag.Session;
+            var ctx = tag.Session;
             RowSet outp = ctx.EndExecute(ar);
             QueryTrace = outp.Info.QueryTrace;
             return outp;
@@ -75,7 +75,7 @@ namespace Cassandra.Data.Linq
         {
             public Dictionary<string, string> Alter;
             public Dictionary<string, Tuple<string, object, int>> Mappings;
-            public Session Session;
+            public ISession Session;
         }
     }
 }

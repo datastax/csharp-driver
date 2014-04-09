@@ -28,7 +28,7 @@ namespace Cassandra.Data.Linq
             get { return _batchScript.IsEmpty; }
         }
 
-        internal BatchV2(Session session) : base(session)
+        internal BatchV2(ISession session) : base(session)
         {
         }
 

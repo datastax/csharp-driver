@@ -9,7 +9,7 @@ namespace Cassandra.IntegrationTests.Core
     public class Stress2Tests
     {
         private static long totalElapsedTime;
-        private Session Session;
+        private ISession Session;
         //        private HistogramMetric _readHistogram = metrics.Metrics.Histogram(typeof(DatastaxDriverTest), "Reads");
         //        private HistogramMetric _writeHistogram = metrics.Metrics.Histogram(typeof(DatastaxDriverTest), "Writes");
 

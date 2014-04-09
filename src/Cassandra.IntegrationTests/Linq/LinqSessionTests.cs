@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Linq
     {
         private string KeyspaceName = "test";
 
-        private Session Session;
+        private ISession Session;
 
         [TestInitialize]
         public void SetFixture()

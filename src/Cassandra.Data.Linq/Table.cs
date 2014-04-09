@@ -26,10 +26,10 @@ namespace Cassandra.Data.Linq
     {
         private static TableType _tableType = TableType.All;
         private readonly string _keyspaceName;
-        private readonly Session _session;
+        private readonly ISession _session;
         private readonly string _tableName;
 
-        internal Table(Session session, string tableName, string keyspaceName)
+        internal Table(ISession session, string tableName, string keyspaceName)
         {
             _session = session;
             _tableName = tableName;
@@ -82,7 +82,7 @@ namespace Cassandra.Data.Linq
                 _session.WaitForSchemaAgreement(_session.Execute(cql));
         }
 
-        public Session GetSession()
+        public ISession GetSession()
         {
             return _session;
         }

@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.Data
     public class AdoBasicTests
     {
         private CqlConnection connection;
-        private Session session;
+        private ISession session;
 
         [TestInitialize]
         public void SetFixture()

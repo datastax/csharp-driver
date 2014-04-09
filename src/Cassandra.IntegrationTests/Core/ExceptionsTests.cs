@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(1, builder);
             try
             {
-                Session session = cluster.Session;
+                var session = cluster.Session;
                 String keyspace = "TestKeyspace";
                 String table = "TestTable";
 
@@ -232,7 +232,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
-                Session session = cluster.Session;
+                var session = cluster.Session;
                 CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";
@@ -379,7 +379,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
-                Session session = cluster.Session;
+                var session = cluster.Session;
                 CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";
@@ -456,7 +456,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(3, builder);
             try
             {
-                Session session = cluster.Session;
+                var session = cluster.Session;
                 CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";
@@ -511,7 +511,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.CCMCluster cluster = CCMBridge.CCMCluster.Create(1, builder);
             try
             {
-                Session session = cluster.Session;
+                var session = cluster.Session;
                 CCMBridge bridge = cluster.CCMBridge;
 
                 String keyspace = "TestKeyspace";

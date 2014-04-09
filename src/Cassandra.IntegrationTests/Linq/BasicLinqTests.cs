@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.Linq
     [TestClass]
     public class BasicLinqTests
     {
-        private Session Session;
+        private ISession Session;
         private TweetsContext ents;
 
         [TestInitialize]
@@ -245,7 +245,7 @@ namespace Cassandra.IntegrationTests.Linq
 
         public class TweetsContext : Context
         {
-            public TweetsContext(Session session)
+            public TweetsContext(ISession session)
                 : base(session)
             {
                 AddTables();

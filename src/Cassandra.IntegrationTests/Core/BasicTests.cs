@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class BasicTests
     {
-        private Session Session;
+        private ISession Session;
 
         [TestInitialize]
         public void SetFixture()

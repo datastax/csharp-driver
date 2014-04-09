@@ -41,7 +41,7 @@ namespace Playground
 
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
 
-            using (Session session = cluster.Connect())
+            using (var session = cluster.Connect())
             {
                 string keyspaceName = "test" + Guid.NewGuid().ToString("N");
 

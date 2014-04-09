@@ -31,7 +31,7 @@ namespace TPLSample.FutureSample
         {
             Cluster cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithoutRowSetBuffering().Build();
 
-            using (Session session = cluster.Connect("system"))
+            using (var session = cluster.Connect("system"))
             {
                 Table<schema_keyspaces> cqlKeyspaces = session.GetTable<schema_keyspaces>();
                 var allResults = new List<Task<List<schema_keyspaces>>>();

@@ -37,12 +37,12 @@ namespace Cassandra.IntegrationTests.Core
         ///  Create schemas for the policy tests, depending on replication
         ///  factors/strategies.
         /// </summary>
-        public static void createSchema(Session session)
+        public static void createSchema(ISession session)
         {
             createSchema(session, 1);
         }
 
-        public static void createSchema(Session session, int replicationFactor)
+        public static void createSchema(ISession session, int replicationFactor)
         {
             session.WaitForSchemaAgreement(
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor)));
@@ -51,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)));
         }
 
-        public static void createMultiDCSchema(Session session, int dc1RF = 1, int dc2RF = 1)
+        public static void createMultiDCSchema(ISession session, int dc1RF = 1, int dc2RF = 1)
         {
             session.WaitForSchemaAgreement(
                 session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy",

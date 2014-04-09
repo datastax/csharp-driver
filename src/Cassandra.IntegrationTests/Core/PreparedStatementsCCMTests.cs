@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class PreparedStatementsCCMTests
     {
-        private Session Session;
+        private ISession Session;
 
         [TestMethod]
         [WorksForMe]

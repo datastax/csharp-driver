@@ -233,7 +233,7 @@ namespace Cassandra.IntegrationTests
         {
             public readonly CCMBridge CCMBridge;
             public readonly Cluster Cluster;
-            public readonly Session Session;
+            public readonly ISession Session;
 
             private bool erroredOut;
 
@@ -333,7 +333,7 @@ namespace Cassandra.IntegrationTests
             private static bool schemaCreated;
 
             protected static Cluster cluster;
-            protected static Session session;
+            protected static ISession session;
 
             protected abstract ICollection<string> GetTableDefinitions();
 
@@ -447,7 +447,7 @@ namespace Cassandra.IntegrationTests
             public static CCMBridge CCMBridge;
 
             private static Cluster Cluster;
-            private static Session Session;
+            private static ISession Session;
 
             internal static void Reset()
             {
@@ -494,7 +494,7 @@ namespace Cassandra.IntegrationTests
                 Cluster = builder.AddContactPoints(Options.Default.IP_PREFIX + "1").Build();
             }
 
-            public static Session Connect(string keyspace = null)
+            public static ISession Connect(string keyspace = null)
             {
                 int tryNo = 0;
                 RETRY:
