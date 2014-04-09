@@ -14,12 +14,14 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 
 namespace Cassandra.IntegrationTests
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class TestClass : Attribute
+    public class TestClass : TestFixtureAttribute
     {
+
     }
 }

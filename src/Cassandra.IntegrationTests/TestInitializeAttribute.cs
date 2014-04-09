@@ -1,9 +1,10 @@
+using NUnit.Framework;
 using System;
 
 namespace Cassandra.IntegrationTests
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public class TestInitializeAttribute : Attribute
+    public class TestInitializeAttribute : SetUpAttribute
     {
     }
 }

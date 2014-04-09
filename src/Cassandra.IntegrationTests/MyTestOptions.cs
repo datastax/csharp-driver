@@ -14,8 +14,10 @@
 //   limitations under the License.
 //
 
+using System;
 using CommandLine;
 using CommandLine.Text;
+using System.Configuration;
 
 namespace Cassandra.IntegrationTests
 {
@@ -79,6 +81,27 @@ namespace Cassandra.IntegrationTests
         [Option("logger",
             HelpText = "Use Logger", DefaultValue = false)]
         public bool UseLogger { get; set; }
+
+        public MyTestOptions()
+        {
+            if (ConfigurationManager.AppSettings.Count > 0)
+            {
+                //Load the values from configuration
+                this.CassandraVersion = ConfigurationManager.AppSettings["CassandraVersion"] ?? this.CassandraVersion;
+                this.IpPrefix = ConfigurationManager.AppSettings["IpPrefix"] ?? this.IpPrefix;
+                if (ConfigurationManager.AppSettings["NoUseBuffering"] != null)
+                {
+                    this.NoUseBuffering = Convert.ToBoolean(ConfigurationManager.AppSettings["NoUseBuffering"]);
+                }
+                this.SSHHost = ConfigurationManager.AppSettings["SSHHost"] ?? this.SSHHost;
+                this.SSHPassword = ConfigurationManager.AppSettings["SSHPassword"] ?? this.SSHPassword;
+                if (ConfigurationManager.AppSettings["SSHPort"] != null)
+                {
+                    this.SSHPort = Convert.ToInt32(ConfigurationManager.AppSettings["SSHPort"]);
+                }
+                this.SSHUser = ConfigurationManager.AppSettings["SSHUser"] ?? this.SSHUser;
+            }
+        }
 
         [HelpOption]
         public string GetUsage()

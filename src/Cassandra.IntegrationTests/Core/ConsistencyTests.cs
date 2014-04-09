@@ -103,12 +103,12 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet

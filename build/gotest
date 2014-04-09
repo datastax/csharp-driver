@@ -1,6 +1,0 @@
-#!/bin/sh
-git pull
-mdtool build -t:Clean -c:Release Cassandra.MyTest.sln
-mdtool build -t:Build -c:Release Cassandra.MyTest.sln
-mono ./MyTestRun/bin/Release/MyTestRun.exe -u $USER -p $PASS -c 1.2.12 -m FullTest
-mono ./MyTestRun/bin/Release/MyTestRun.exe -u $USER -p $PASS -c 2.0.5 -m FullTest
