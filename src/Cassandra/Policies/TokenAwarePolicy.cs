@@ -82,7 +82,7 @@ namespace Cassandra
         /// <param name="query"> the query for which to build the plan. </param>
         /// 
         /// <returns>the new query plan.</returns>
-        public IEnumerable<Host> NewQueryPlan(Query query)
+        public IEnumerable<Host> NewQueryPlan(Statement query)
         {
             RoutingKey routingKey = query == null ? null : query.RoutingKey;
             if (routingKey == null)

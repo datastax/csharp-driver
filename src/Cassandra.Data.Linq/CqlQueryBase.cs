@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace Cassandra.Data.Linq
 {
-    public abstract class CqlQueryBase<TEntity> : Query
+    public abstract class CqlQueryBase<TEntity> : Statement
     {
         private Expression _expression;
         private IQueryProvider _table;

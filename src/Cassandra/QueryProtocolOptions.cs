@@ -49,7 +49,7 @@ namespace Cassandra
             AddFlags();
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(Query query, ConsistencyLevel defaultCL)
+        internal static QueryProtocolOptions CreateFromQuery(Statement query, ConsistencyLevel defaultCL)
         {
             if (query == null)
                 return DEFAULT;

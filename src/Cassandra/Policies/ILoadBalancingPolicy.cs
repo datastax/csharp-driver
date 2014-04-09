@@ -61,6 +61,6 @@ namespace Cassandra
         /// <returns>an iterator of Host. The query is tried against the hosts returned
         ///  by this iterator in order, until the query has been sent successfully to one
         ///  of the host.</returns>
-        IEnumerable<Host> NewQueryPlan(Query query);
+        IEnumerable<Host> NewQueryPlan(Statement query);
     }
 }

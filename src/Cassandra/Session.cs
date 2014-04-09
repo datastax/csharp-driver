@@ -484,16 +484,16 @@ namespace Cassandra
 
         private ConcurrentDictionary<long, IAsyncResult> _startedActons = new ConcurrentDictionary<long, IAsyncResult>();
 
-        public IAsyncResult BeginExecute(Query query, object tag, AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute(IStatement statement, object tag, AsyncCallback callback, object state)
         {
-            var ar = query.BeginSessionExecute(this, tag, callback, state) as AsyncResultNoResult;
+            var ar = ((Statement)statement).BeginSessionExecute(this, tag, callback, state) as AsyncResultNoResult;
             _startedActons.TryAdd(ar.Id, ar);
             return ar;
         }
 
-        public IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state)
+        public IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state)
         {
-            var ar = query.BeginSessionExecute(this, null, callback, state) as AsyncResultNoResult;
+            var ar = ((Statement)statement).BeginSessionExecute(this, null, callback, state) as AsyncResultNoResult;
             _startedActons.TryAdd(ar.Id, ar) ;
             return ar;
         }
@@ -519,7 +519,7 @@ namespace Cassandra
             var longActionAc = ar as AsyncResult<RowSet>;
             IAsyncResult oar;
             _startedActons.TryRemove(longActionAc.Id, out oar);
-            var ret = (longActionAc.AsyncSender as Query).EndSessionExecute(this, ar);
+            var ret = (longActionAc.AsyncSender as Statement).EndSessionExecute(this, ar);
             return ret;
         }
 
@@ -536,7 +536,7 @@ namespace Cassandra
             }
         }
 
-        public RowSet Execute(Query query)
+        public RowSet Execute(IStatement query)
         {
             return EndExecute(BeginExecute(query, null, null));
         }
@@ -556,9 +556,9 @@ namespace Cassandra
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
-        public Task<RowSet> ExecuteAsync(Query query)
+        public Task<RowSet> ExecuteAsync(Statement query)
         {
-            return Task.Factory.FromAsync<Query, RowSet>(BeginExecute, EndExecute, query, null);
+            return Task.Factory.FromAsync<Statement, RowSet>(BeginExecute, EndExecute, query, null);
         }
         #endregion
 
@@ -587,7 +587,7 @@ namespace Cassandra
         
         #endregion
 
-        static RetryDecision GetRetryDecision(Query query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
+        static RetryDecision GetRetryDecision(Statement query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
         {
             if (exc is OverloadedException) return RetryDecision.Retry(null);
             else if (exc is IsBootstrappingException) return RetryDecision.Retry(null);
@@ -715,7 +715,7 @@ namespace Cassandra
             private readonly Logger _logger = new Logger(typeof(LongToken));
             public CassandraConnection Connection;
             public ConsistencyLevel? Consistency=null;
-            public Query Query;
+            public Statement Query;
             private IEnumerator<Host> _hostsIter = null;
             public IAsyncResult LongActionAc;
             public readonly Dictionary<IPAddress, List<Exception>> InnerExceptions = new Dictionary<IPAddress, List<Exception>>();
@@ -890,7 +890,7 @@ namespace Cassandra
             }
         }
         
-        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Query query = null, object sender = null, object tag = null)
+        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
             var token = new LongQueryToken() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryPrtclOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
@@ -905,7 +905,7 @@ namespace Cassandra
             return AsyncResult<RowSet>.End(ar, this, "SessionQuery");
         }
 
-        internal RowSet Query(string cqlQuery, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, bool isTracing = false, Query query = null)
+        internal RowSet Query(string cqlQuery, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, bool isTracing = false, Statement query = null)
         {
             return EndQuery(BeginQuery(cqlQuery, null, null, queryProtocolOptions, consistency,isTracing, query));
         }
@@ -1029,7 +1029,7 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Query query = null, object sender = null, object tag = null, bool isTracing = false)
+        internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Statement query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
             var token = new LongExecuteQueryToken() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, cql = _preparedQueries[id], Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
@@ -1045,7 +1045,7 @@ namespace Cassandra
             return AsyncResult<RowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal RowSet ExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, Query query = null, bool isTracing=false)
+        internal RowSet ExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, Statement query = null, bool isTracing=false)
         {
             var ar = BeginExecuteQuery(id,metadata, queryProtocolOptions, null, null, consistency, query, isTracing);
             return EndExecuteQuery(ar);
@@ -1058,7 +1058,7 @@ namespace Cassandra
         class LongBatchToken : LongToken
         {
             public BatchType BatchType;
-            public List<Query> Queries;
+            public List<Statement> Queries;
             public bool IsTracing;
             public Stopwatch StartedAt;
 
@@ -1105,7 +1105,7 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginBatch(BatchType batchType, List<Query> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Query query = null, object sender = null, object tag = null)
+        internal IAsyncResult BeginBatch(BatchType batchType, List<Statement> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
             var token = new LongBatchToken() { Consistency = consistency ?? this._cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };

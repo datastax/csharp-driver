@@ -671,10 +671,10 @@ namespace Cassandra
             };
         }
 
-        private Dictionary<byte[], string> GetIdsFromListOfQueries(List<Query> queries)
+        private Dictionary<byte[], string> GetIdsFromListOfQueries(List<Statement> queries)
         {
             var ret = new Dictionary<byte[], string>();
-            foreach (Query q in queries)
+            foreach (Statement q in queries)
             {
                 if (q is BoundStatement)
                 {
@@ -686,15 +686,15 @@ namespace Cassandra
             return ret;
         }
 
-        private List<IQueryRequest> GetRequestsFromListOfQueries(List<Query> queries)
+        private List<IQueryRequest> GetRequestsFromListOfQueries(List<Statement> queries)
         {
             var ret = new List<IQueryRequest>();
-            foreach (Query q in queries)
+            foreach (Statement q in queries)
                 ret.Add(q.CreateBatchRequest());
             return ret;
         }
 
-        public IAsyncResult BeginBatch(int _streamId, BatchType batchType, List<Query> queries,
+        public IAsyncResult BeginBatch(int _streamId, BatchType batchType, List<Statement> queries,
                                        AsyncCallback callback, object state, object owner,
                                        ConsistencyLevel consistency, bool isTracing)
         {

@@ -31,7 +31,7 @@ namespace Cassandra
     ///  method) as the methods to set by name only allows to set the first prepared
     ///  occurrence of the column.</p>
     /// </summary>
-    public class BoundStatement : Query
+    public class BoundStatement : Statement
     {
         private readonly PreparedStatement _statement;
 

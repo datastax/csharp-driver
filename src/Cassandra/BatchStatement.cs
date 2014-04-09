@@ -23,9 +23,9 @@ namespace Cassandra
     ///  A simple <code>Statement</code> implementation built directly from a query
     ///  string.
     /// </summary>
-    public class BatchStatement : Query
+    public class BatchStatement : Statement
     {
-        private readonly List<Query> _queries = new List<Query>();
+        private readonly List<Statement> _queries = new List<Statement>();
         private BatchType _batchType = BatchType.Logged;
         private volatile RoutingKey _routingKey;
 
@@ -34,7 +34,7 @@ namespace Cassandra
             get { return _queries.Count == 0; }
         }
 
-        public IEnumerable<Query> Queries
+        public IEnumerable<Statement> Queries
         {
             get { return _queries; }
         }
@@ -70,7 +70,7 @@ namespace Cassandra
             return this;
         }
 
-        public BatchStatement AddQuery(Query query)
+        public BatchStatement AddQuery(Statement query)
         {
             _queries.Add(query);
             return this;

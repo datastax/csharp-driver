@@ -22,7 +22,7 @@ namespace Cassandra
     ///  A simple <code>Statement</code> implementation built directly from a query
     ///  string.
     /// </summary>
-    public class SimpleStatement : Statement
+    public class SimpleStatement : RegularStatement
     {
         private string _query;
         private volatile RoutingKey _routingKey;

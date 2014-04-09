@@ -34,7 +34,7 @@ namespace TPLSample.KeyspacesSample
             {
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
 
-                Query query = new SimpleStatement(cqlKeyspaces).EnableTracing();
+                var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
 
                 var allTasks = new List<Task>();
                 for (int i = 0; i < 100; ++i)

@@ -42,7 +42,7 @@ namespace Cassandra
             return _loadBalancingPolicy.Distance(host);
         }
 
-        public IEnumerable<Host> NewQueryPlan(Query query)
+        public IEnumerable<Host> NewQueryPlan(Statement query)
         {
             IReconnectionSchedule schedule = _reconnectionPolicy.NewSchedule();
             while (true)

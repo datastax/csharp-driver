@@ -65,7 +65,7 @@ namespace Cassandra
         /// 
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(Query query)
+        public IEnumerable<Host> NewQueryPlan(Statement query)
         {
             int startidx = Interlocked.Increment(ref _index);
 

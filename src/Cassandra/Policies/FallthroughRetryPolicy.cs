@@ -47,7 +47,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns><code>RetryDecision.rethrow()</code>.</returns>
-        public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+        public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
             return RetryDecision.Rethrow();
@@ -68,7 +68,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns><code>RetryDecision.rethrow()</code>.</returns>
-        public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }
@@ -88,7 +88,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns><code>RetryDecision.rethrow()</code>.</returns>
-        public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }

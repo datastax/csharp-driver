@@ -44,8 +44,8 @@ namespace Cassandra
         /// Gets the Cassandra native binary protocol version
         /// </summary>
         int BinaryProtocolVersion { get; }
-        IAsyncResult BeginExecute(Query query, AsyncCallback callback, object state);
-        IAsyncResult BeginExecute(Query query, object tag, AsyncCallback callback, object state);
+        IAsyncResult BeginExecute(IStatement query, AsyncCallback callback, object state);
+        IAsyncResult BeginExecute(IStatement query, object tag, AsyncCallback callback, object state);
         IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state);
         IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state);
         IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state);
@@ -92,7 +92,7 @@ namespace Cassandra
         /// <summary>
         /// Executes the provided query.
         /// </summary>
-        RowSet Execute(Query query);
+        RowSet Execute(IStatement query);
         /// <summary>
         /// Executes the provided query.
         /// </summary>
@@ -110,7 +110,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="query">The query to execute</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task<RowSet> ExecuteAsync(Query query);
+        Task<RowSet> ExecuteAsync(Statement query);
         PreparedStatement Prepare(string cqlQuery);
         void WaitForSchemaAgreement(RowSet rs);
         bool WaitForSchemaAgreement(System.Net.IPAddress forHost);

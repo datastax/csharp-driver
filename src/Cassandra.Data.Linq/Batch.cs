@@ -19,7 +19,7 @@ using System.Collections.Generic;
 
 namespace Cassandra.Data.Linq
 {
-    public abstract class Batch : Query
+    public abstract class Batch : Statement
     {
         protected readonly Session _session;
 

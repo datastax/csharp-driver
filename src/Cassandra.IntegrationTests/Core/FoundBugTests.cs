@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
-                Query query = new SimpleStatement(cqlKeyspaces).EnableTracing();
+                var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
                 {
                     using (RowSet result = Session.Execute(query))
                         foreach (Row resKeyspace in result.GetRows())

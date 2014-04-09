@@ -21,7 +21,7 @@ namespace Cassandra.Data.Linq
 {
     public static class CqlQueryExtensions
     {
-        internal static void CopyQueryPropertiesTo(this Query src, Query dst)
+        internal static void CopyQueryPropertiesTo(this Statement src, Statement dst)
         {
             dst.EnableTracing(src.IsTracing)
                .SetConsistencyLevel(src.ConsistencyLevel)

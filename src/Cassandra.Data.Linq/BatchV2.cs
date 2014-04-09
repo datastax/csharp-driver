@@ -43,7 +43,7 @@ namespace Cassandra.Data.Linq
         {
             var sb = new StringBuilder();
             sb.AppendLine("BEGIN " + (_batchType == BatchType.Counter ? "COUNTER " : "") + "BATCH");
-            foreach (Query q in _batchScript.Queries)
+            foreach (Statement q in _batchScript.Queries)
                 sb.AppendLine(q + ";");
             sb.Append("APPLY BATCH");
             return sb.ToString();

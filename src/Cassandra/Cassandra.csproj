@@ -94,6 +94,7 @@
     <Compile Include="IProtoBuf.cs" />
     <Compile Include="IQueryRequest.cs" />
     <Compile Include="ISession.cs" />
+    <Compile Include="IStatement.cs" />
     <Compile Include="IToken.cs" />
     <Compile Include="ITypeAdapter.cs" />
     <Compile Include="IWaitableForDispose.cs" />
@@ -215,7 +216,7 @@
     <Compile Include="PreparedStatement.cs" />
     <Compile Include="StreamProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
-    <Compile Include="Query.cs" />
+    <Compile Include="Statement.cs" />
     <Compile Include="QueryOptions.cs" />
     <Compile Include="QueryProtocolOptions.cs" />
     <Compile Include="QueryTrace.cs" />
@@ -271,7 +272,7 @@
     <Compile Include="Snappy\SnappyInternalUtils.cs" />
     <Compile Include="SocketOptions.cs" />
     <Compile Include="SSLOptions.cs" />
-    <Compile Include="Statement.cs" />
+    <Compile Include="RegularStatement.cs" />
     <Compile Include="StaticRandom.cs" />
     <Compile Include="StatusChangeEventArgs.cs" />
     <Compile Include="TableColumn.cs" />

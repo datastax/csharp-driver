@@ -271,20 +271,20 @@ namespace Cassandra.IntegrationTests.Core
             {
             }
 
-            public RetryDecision OnReadTimeout(Query query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+            public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                                int nbRetry)
             {
                 Console.WriteLine("Read Timeout");
                 return null;
             }
 
-            public RetryDecision OnWriteTimeout(Query query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            public RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
             {
                 Console.WriteLine("Write Timeout");
                 return null;
             }
 
-            public RetryDecision OnUnavailable(Query query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            public RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
             {
                 Console.WriteLine("Unavailable");
                 return null;
