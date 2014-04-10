@@ -42,6 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\SharedAssemblyInfo.cs">
+      <Link>Properties\SharedAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="DseAuthProvider.cs" />
     <Compile Include="KerberosAuthenticator.SSPI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,17 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
-    <metadata>
-        <id>CassandraCSharpDriver</id>
-        <version>2.0.1</version>
-        <title>Datastax C# Driver for Apache Cassandra</title>
-        <authors>Datastax</authors>
-        <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
-        <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
-        <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <description>A C# client driver for Apache Cassandra. This driver works exclusively with
-the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.</description>
-        <releaseNotes />
-        <copyright>Copyright (C) 2013 DataStax Inc.</copyright>
-        <tags>cassandra apache datastax driver database nosql</tags>
-    </metadata>
+  <metadata>
+    <id>CassandraCSharpDriver</id>
+    <version>2.0.1</version>
+    <title>Datastax C# Driver for Apache Cassandra</title>
+    <authors>Datastax</authors>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>
+      A C# client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.
+    </description>
+    <releaseNotes />
+    <copyright>Copyright (C) 2013 DataStax Inc.</copyright>
+    <tags>cassandra apache datastax driver database nosql</tags>
+  </metadata>
+  <files>
+    <file src="Cassandra\bin\Release\Cassandra.*" target="lib\net40" />
+    <file src="Cassandra.Data\bin\Release\Cassandra.Data.*" target="lib\net40" />
+    <file src="Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.*" target="lib\net40" />
+    <file src="Cassandra.DSE\bin\Release\Cassandra.DSE.*" target="lib\net40" />
+  </files>
 </package>

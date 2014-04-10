@@ -1,0 +1,102 @@
+<Project DefaultTargets="local" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Add some tasks from MSBuild Community Tasks project -->
+  <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="MSBuild.Community.Tasks.Git.GitVersion" />
+  <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="MSBuild.Community.Tasks.AssemblyInfo" />
+    
+  <PropertyGroup>
+    <!-- Define some base paths -->
+    <BaseFolder>..</BaseFolder>
+    <SourceFolder>$(BaseFolder)\src</SourceFolder>
+    <ToolsFolder>$(BaseFolder)\tools</ToolsFolder>
+    <BuildFolder>$(BaseFolder)\build</BuildFolder>
+
+    <!-- Paths for build output -->
+    <TestResultsFolder>$(BuildFolder)\testresults</TestResultsFolder>
+    <PackagesFolder>$(BuildFolder)\packages</PackagesFolder>
+
+    <!-- Specific Tools -->
+    <NuGet>$(ToolsFolder)\nuget.exe</NuGet>
+    <NUnit>$(SourceFolder)\packages\NUnit.Runners.2.6.3\tools\nunit-console.exe</NUnit>
+    <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
+  
+    <!-- Other properties -->
+    <Version>2.0.1</Version>
+    <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- Projects to Build -->
+    <AllProjects Include="$(SourceFolder)\**\*.csproj" />
+  
+    <!-- NuGet spec files which will be used to create packages -->
+    <NuSpecFiles Include="$(BuildFolder)\*.nuspec" />
+  </ItemGroup>
+  
+  <!--
+    These are the top level targets, meant to be invoked by msbuild.  Ways to invoke:
+      local - runs the build and unit tests
+      full - runs local, plus does packaging (useful if testing packaging)
+      ci - runs full, plus updates assemblies with a shared version number (meant to be run from a CI server)
+  -->
+  <Target Name="local" DependsOnTargets="compile;test" />
+  <Target Name="full" DependsOnTargets="local;package" />
+  <Target Name="ci" DependsOnTargets="generate_assembly_info;full"/>
+
+  <!-- Cleans output folders, projects -->
+  <Target Name="clean">
+    <Message Text="Cleaning build output folders" Importance="high" />
+    <RemoveDir Directories="$(TestResultsFolder)" ContinueOnError="true" />
+    <RemoveDir Directories="$(PackagesFolder)" ContinueOnError="true" />
+  
+    <Message Text="Cleaning projects" Importance="high" />
+    <MSBuild Projects="@(AllProjects)" Targets="clean" StopOnFirstFailure="true" Properties="Configuration=Release" />
+  </Target>
+
+  <!-- Compiles code -->
+  <Target Name="compile" DependsOnTargets="clean">
+    <Message Text="Compiling projects" Importance="high" />
+    <MSBuild Projects="@(AllProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
+  </Target>
+
+  <!-- Creates nuget package(s) -->
+  <Target Name="package" DependsOnTargets="compile">
+    <Message Text="Creating NuGet package(s)" Importance="high" />
+    <MakeDir Directories="$(PackagesFolder)" />
+    <Exec Command="$(NuGet) pack %(NuSpecFiles.FullPath) -basepath $(SourceFolder) -o $(PackagesFolder) -version $(Version) -symbols" />
+  </Target>
+
+  <!-- Runs unit tests -->
+  <Target Name="test" DependsOnTargets="compile">
+    <Message Text="Running unit tests" Importance="high" />
+    <MakeDir Directories="$(TestResultsFolder)" />
+    <Exec Command="$(NUnit) $(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
+  </Target>
+  
+  <!-- Creates a shared assembly info file so that all assemblies get some common attributes (like version number) -->
+  <Target Name="generate_assembly_info">
+    <PropertyGroup>
+      <GitHash />
+    </PropertyGroup>
+    
+    <!-- Require that the BUILD_NUMBER environment variable is present (should be set automatically by Jenkins) -->
+    <Error Condition="$(BUILD_NUMBER) == ''" Text="The BUILD_NUMBER environment variable is not set." />
+    
+    <!-- Get the Git commit hash and put it into the GitHash property -->
+    <GitVersion LocalPath="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="CommitHash" PropertyName="GitHash" />
+    </GitVersion>
+    
+    <!-- Generate the shared assembly info file -->
+    <AssemblyInfo 
+      OutputFile="$(SharedAssemblyInfo)" 
+      CodeLanguage ="CS"
+      AssemblyCompany="DataStax" 
+      AssemblyProduct="Cassandra .NET Driver" 
+      ComVisible="false"
+      AssemblyCopyright="Copyright © $([System.DateTime]::UtcNow.Year) by DataStax"
+      AssemblyVersion="$(Version)" 
+      AssemblyInformationalVersion="$(Version) (git $(GitHash))"
+      AssemblyFileVersion="$(Version).$(BUILD_NUMBER)" />
+  </Target>
+
+</Project>
