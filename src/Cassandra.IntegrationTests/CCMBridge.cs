@@ -180,7 +180,7 @@ namespace Cassandra.IntegrationTests
                 string[] lines = outp.ToString().Split('\n');
                 for (int i = 0; i < lines.Length; i++)
                     Trace.TraceError("err>" + lines[i].Trim());
-                throw new InvalidOperationException();
+                throw new InvalidOperationException(outp.ToString());
             }
             dead = 0;
             Thread.Sleep(2000);

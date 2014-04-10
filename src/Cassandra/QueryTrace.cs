@@ -38,7 +38,7 @@ namespace Cassandra
         private const string SelectEventsFormat = "SELECT * FROM system_traces.events WHERE session_id = {0}";
         private readonly object _fetchLock = new object();
         private readonly Logger _logger = new Logger(typeof (QueryTrace));
-        private readonly Session _session;
+        private readonly ISession _session;
 
         private readonly Guid _traceId;
 
@@ -149,7 +149,7 @@ namespace Cassandra
             }
         }
 
-        public QueryTrace(Guid traceId, Session session)
+        public QueryTrace(Guid traceId, ISession session)
         {
             _traceId = traceId;
             _session = session;

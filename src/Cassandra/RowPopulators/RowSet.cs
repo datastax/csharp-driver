@@ -53,7 +53,7 @@ namespace Cassandra
         }
 
 
-        internal RowSet(OutputRows rawrows, Session session, bool ownRows = true, RowSetMetadata resultMetadata = null)
+        internal RowSet(OutputRows rawrows, ISession session, bool ownRows = true, RowSetMetadata resultMetadata = null)
         {
             _rawrows = rawrows;
             _ownRows = ownRows;
@@ -65,17 +65,17 @@ namespace Cassandra
                 _info.SetQueryTrace(new QueryTrace(rawrows.TraceID.Value, session));
         }
 
-        internal RowSet(OutputVoid output, Session session)
+        internal RowSet(OutputVoid output, ISession session)
         {
             if (output.TraceID != null)
                 _info.SetQueryTrace(new QueryTrace(output.TraceID.Value, session));
         }
 
-        internal RowSet(OutputSetKeyspace output, Session session)
+        internal RowSet(OutputSetKeyspace output, ISession session)
         {
         }
 
-        internal RowSet(OutputSchemaChange output, Session session)
+        internal RowSet(OutputSchemaChange output, ISession session)
         {
             if (output.TraceID != null)
                 _info.SetQueryTrace(new QueryTrace(output.TraceID.Value, session));
