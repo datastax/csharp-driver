@@ -19,14 +19,9 @@ using System.Reflection;
 
 namespace Cassandra
 {
-}
-
-namespace Cassandra
-{
     internal abstract class OutputError : IOutput, IWaitableForDispose
     {
-        public CassandraErrorType CassandraErrorType = CassandraErrorType.Invalid;
-        public string Message = "";
+        protected string Message = "";
 
         public void Dispose()
         {
@@ -41,14 +36,17 @@ namespace Cassandra
             Type tpy = Assembly.GetExecutingAssembly().GetType("Cassandra.Output" + code);
             if (tpy == null)
                 throw new DriverInternalError("unknown error" + code);
+
             ConstructorInfo cnstr = tpy.GetConstructor(new Type[] {});
             var outp = (OutputError) cnstr.Invoke(new object[] {});
-            tpy.GetField("CassandraErrorType").SetValue(outp, code);
-            tpy.GetField("Message").SetValue(outp, message);
+
+            outp.Message = message;
+
             MethodInfo loadM = tpy.GetMethod("Load", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null,
                                              new[] {typeof (CassandraErrorType), typeof (string), typeof (BEBinaryReader)}, null);
             if (loadM != null)
                 loadM.Invoke(outp, new object[] {code, message, cb});
+
             return outp;
         }
 

@@ -76,8 +76,6 @@ namespace Cassandra.Data.Linq
                     throw new InvalidOperationException("Single row is expected.");
                 return ret;
             }
-
-            throw new InvalidOperationException();
         }
     }
 }
