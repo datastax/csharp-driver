@@ -4,7 +4,7 @@ namespace Cassandra
     {
         private readonly PreparedQueryNotFoundInfo _info = new PreparedQueryNotFoundInfo();
 
-        internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
+        protected override void Load(BEBinaryReader cb)
         {
             short len = cb.ReadInt16();
             _info.UnknownID = new byte[len];

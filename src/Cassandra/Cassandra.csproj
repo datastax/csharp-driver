@@ -167,7 +167,6 @@
     <Compile Include="NullTypeAdapter.cs" />
     <Compile Include="OPPToken.cs" />
     <Compile Include="Outputs\AlreadyExistsInfo.cs" />
-    <Compile Include="Outputs\CassandraErrorType.cs" />
     <Compile Include="Outputs\IsBootstrappingException.cs" />
     <Compile Include="Outputs\OutputAlreadyExists.cs" />
     <Compile Include="Outputs\OutputBadCredentials.cs" />

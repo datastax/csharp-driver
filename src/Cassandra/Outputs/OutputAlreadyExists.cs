@@ -4,7 +4,7 @@ namespace Cassandra
     {
         private readonly AlreadyExistsInfo _info = new AlreadyExistsInfo();
 
-        internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
+        protected override void Load(BEBinaryReader cb)
         {
             _info.Ks = cb.ReadString();
             _info.Table = cb.ReadString();

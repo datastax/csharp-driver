@@ -15,41 +15,35 @@
 //
 
 using System;
-using System.Reflection;
 
 namespace Cassandra
 {
     internal class FrameParser
     {
-        private static readonly MyDel[] RegisteredResponses = new MyDel[sbyte.MaxValue + 1];
+        private static readonly Func<ResponseFrame, AbstractResponse>[] ResponseFactoryMethods;
 
         static FrameParser()
         {
-            Register(typeof (AuthenticateResponse));
-            Register(typeof (ErrorResponse));
-            Register(typeof (EventResponse));
-            Register(typeof (ReadyResponse));
-            Register(typeof (ResultResponse));
-            Register(typeof (SupportedResponse));
-            Register(typeof (AuthSuccessResponse));
-            Register(typeof (AuthChallengeResponse));
-        }
+            ResponseFactoryMethods = new Func<ResponseFrame, AbstractResponse>[sbyte.MaxValue + 1];
 
-        private static void Register(Type response)
-        {
-            object obj = response.GetField("OpCode").GetValue(response);
-            MethodInfo mth = response.GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Static, null, new[] {typeof (ResponseFrame)}, null);
-            RegisteredResponses[(byte) obj] = (MyDel) Delegate.CreateDelegate(typeof (MyDel), mth);
+            // TODO:  Replace with "enhanced enum" pattern?
+            ResponseFactoryMethods[AuthenticateResponse.OpCode] = AuthenticateResponse.Create;
+            ResponseFactoryMethods[ErrorResponse.OpCode] = ErrorResponse.Create;
+            ResponseFactoryMethods[EventResponse.OpCode] = EventResponse.Create;
+            ResponseFactoryMethods[ReadyResponse.OpCode] = ReadyResponse.Create;
+            ResponseFactoryMethods[ResultResponse.OpCode] = ResultResponse.Create;
+            ResponseFactoryMethods[SupportedResponse.OpCode] = SupportedResponse.Create;
+            ResponseFactoryMethods[AuthSuccessResponse.OpCode] = AuthSuccessResponse.Create;
+            ResponseFactoryMethods[AuthChallengeResponse.OpCode] = AuthChallengeResponse.Create;
         }
 
         public AbstractResponse Parse(ResponseFrame frame)
         {
             byte opcode = frame.FrameHeader.Opcode;
-            if (RegisteredResponses[opcode] != null)
-                return RegisteredResponses[opcode](frame);
+            if (ResponseFactoryMethods[opcode] != null)
+                return ResponseFactoryMethods[opcode](frame);
+
             throw new DriverInternalError("Unknown Response Frame type");
         }
-
-        private delegate AbstractResponse MyDel(ResponseFrame frame);
     }
 }

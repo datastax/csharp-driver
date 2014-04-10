@@ -6,5 +6,9 @@ namespace Cassandra
         {
             return new UnauthorizedException(Message);
         }
+
+        protected override void Load(BEBinaryReader reader)
+        {
+        }
     }
 }

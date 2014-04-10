@@ -4,7 +4,7 @@ namespace Cassandra
     {
         private readonly ReadTimeoutInfo _info = new ReadTimeoutInfo();
 
-        internal void Load(CassandraErrorType code, string message, BEBinaryReader cb)
+        protected override void Load(BEBinaryReader cb)
         {
             _info.ConsistencyLevel = (ConsistencyLevel) cb.ReadInt16();
             _info.Received = cb.ReadInt32();

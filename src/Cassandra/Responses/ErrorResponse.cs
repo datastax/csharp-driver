@@ -21,11 +21,12 @@ namespace Cassandra
         public const byte OpCode = 0x00;
         public OutputError Output;
 
-        internal ErrorResponse(ResponseFrame frame) : base(frame)
+        internal ErrorResponse(ResponseFrame frame) 
+            : base(frame)
         {
-            var ctype = (CassandraErrorType) BEBinaryReader.ReadInt32();
+            int errorCode = BEBinaryReader.ReadInt32();
             string message = BEBinaryReader.ReadString();
-            Output = OutputError.CreateOutputError(ctype, message, BEBinaryReader);
+            Output = OutputError.CreateOutputError(errorCode, message, BEBinaryReader);
         }
 
         internal static ErrorResponse Create(ResponseFrame frame)
