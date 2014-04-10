@@ -106,8 +106,15 @@ namespace Cassandra
 
         public void WriteBytes(byte[] buffer)
         {
-            WriteInt32(buffer.Length);
-            _base.Write(buffer);
+            if (buffer == null)
+            {
+                WriteInt32(-1);
+            }
+            else
+            {
+                WriteInt32(buffer.Length);
+                _base.Write(buffer);
+            }
         }
 
         public void WriteShortBytes(byte[] buffer)
