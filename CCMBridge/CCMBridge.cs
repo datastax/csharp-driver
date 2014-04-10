@@ -78,7 +78,7 @@ namespace Cassandra
         public static CCMBridge Create(string name, int nbNodes, bool useAlreadyExisting= false)
         {
 #if !MYTEST
-            if (!useAlreadyExisting && (nbNodes > 4))
+            if (!useAlreadyExisting && (nbNodes > 6))
                 throw new InvalidOperationException();
 #endif
 
@@ -90,7 +90,7 @@ namespace Cassandra
         public static CCMBridge Create(string name, int nbNodesDC1, int nbNodesDC2, bool useAlreadyExisting =false)
         {
 #if !MYTEST
-            if (!useAlreadyExisting && (nbNodesDC1 + nbNodesDC2 > 4))
+            if (!useAlreadyExisting && (nbNodesDC1 + nbNodesDC2 > 6))
                 throw new InvalidOperationException();
 #endif
 
@@ -472,7 +472,7 @@ namespace Cassandra
             public static CCMCluster Create(int nbNodes, Builder builder)
             {
 #if !MYTEST
-                if (nbNodes > 4)
+                if (nbNodes > 6)
                     throw new InvalidOperationException();
 #endif
                 if (nbNodes == 0)
@@ -484,7 +484,7 @@ namespace Cassandra
             public static CCMCluster Create(int nbNodesDC1, int nbNodesDC2, Builder builder)
             {
 #if !MYTEST
-                if (nbNodesDC1 + nbNodesDC2 > 4)
+                if (nbNodesDC1 + nbNodesDC2 > 6)
                     throw new InvalidOperationException();
 #endif
                 if (nbNodesDC1 == 0)
