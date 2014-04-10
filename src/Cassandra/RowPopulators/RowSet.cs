@@ -44,12 +44,12 @@ namespace Cassandra
 
         public byte[] PagingState
         {
-            get { return _rawrows != null ? _rawrows.Metadata.paging_state : null; }
+            get { return _rawrows != null ? _rawrows.Metadata.PagingState : null; }
         }
 
         public bool IsExhausted
         {
-            get { return _rawrows != null ? _rawrows.Metadata.paging_state == null : true; }
+            get { return _rawrows != null ? _rawrows.Metadata.PagingState == null : true; }
         }
 
 
@@ -59,16 +59,16 @@ namespace Cassandra
             _ownRows = ownRows;
 
             if (resultMetadata != null)
-                rawrows._metadata = resultMetadata;
+                rawrows.Metadata = resultMetadata;
 
-            if (rawrows != null && rawrows.TraceID != null)
-                _info.SetQueryTrace(new QueryTrace(rawrows.TraceID.Value, session));
+            if (rawrows != null && rawrows.TraceId != null)
+                _info.SetQueryTrace(new QueryTrace(rawrows.TraceId.Value, session));
         }
 
         internal RowSet(OutputVoid output, Session session)
         {
-            if (output.TraceID != null)
-                _info.SetQueryTrace(new QueryTrace(output.TraceID.Value, session));
+            if (output.TraceId != null)
+                _info.SetQueryTrace(new QueryTrace(output.TraceId.Value, session));
         }
 
         internal RowSet(OutputSetKeyspace output, Session session)
@@ -77,8 +77,8 @@ namespace Cassandra
 
         internal RowSet(OutputSchemaChange output, Session session)
         {
-            if (output.TraceID != null)
-                _info.SetQueryTrace(new QueryTrace(output.TraceID.Value, session));
+            if (output.TraceId != null)
+                _info.SetQueryTrace(new QueryTrace(output.TraceId.Value, session));
         }
 
         public void Dispose()

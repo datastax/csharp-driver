@@ -43,13 +43,13 @@ namespace Cassandra
         }
 
         public AlreadyExistsException(string keyspace, string table) :
-            base(makeMsg(keyspace, table))
+            base(MakeMsg(keyspace, table))
         {
             Keyspace = string.IsNullOrEmpty(keyspace.Trim()) ? null : keyspace;
             Table = string.IsNullOrEmpty(table.Trim()) ? null : table;
         }
 
-        private static string makeMsg(string keyspace, string table)
+        private static string MakeMsg(string keyspace, string table)
         {
             if (string.IsNullOrEmpty(table))
                 return string.Format("Keyspace {0} already exists", keyspace);

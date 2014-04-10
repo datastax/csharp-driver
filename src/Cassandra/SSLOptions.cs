@@ -38,18 +38,18 @@ namespace Cassandra
         /// <summary>
         /// Creates SSL options used for SSL connections with Casandra hosts. 
         /// </summary>
-        /// <param name="SSLProtocol">type of SSL protocol, default set to Tls.</param>
-        /// <param name="CertificateRevocation">specifies whether the certificate revocation list is checked during connection authentication.</param>
-        /// <param name="RemoteCertValidationCallback">verifies Cassandra host SSL certificate used for authentication.
+        /// <param name="sslProtocol">type of SSL protocol, default set to Tls.</param>
+        /// <param name="certificateRevocation">specifies whether the certificate revocation list is checked during connection authentication.</param>
+        /// <param name="remoteCertValidationCallback">verifies Cassandra host SSL certificate used for authentication.
         ///     <remarks>
         ///         Default RemoteCertificateValidationCallback won't establish a connection if any error will occur.         
         ///     </remarks> 
         ///     </param>
-        public SSLOptions(SslProtocols SSLProtocol, bool CertificateRevocation, RemoteCertificateValidationCallback RemoteCertValidationCallback)
+        public SSLOptions(SslProtocols sslProtocol, bool certificateRevocation, RemoteCertificateValidationCallback remoteCertValidationCallback)
         {
-            _sslProtocol = SSLProtocol;
-            _checkCertificateRevocation = CertificateRevocation;
-            _remoteCertValidationCallback = RemoteCertValidationCallback;
+            _sslProtocol = sslProtocol;
+            _checkCertificateRevocation = certificateRevocation;
+            _remoteCertValidationCallback = remoteCertValidationCallback;
         }
 
         private bool ValidateServerCertificate(

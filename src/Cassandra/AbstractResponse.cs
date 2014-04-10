@@ -20,18 +20,18 @@ namespace Cassandra
 {
     internal class AbstractResponse
     {
-        protected BEBinaryReader BEBinaryReader;
-        public Guid? TraceID = null;
+        protected readonly BEBinaryReader BeBinaryReader;
+        protected Guid? TraceId;
 
         internal AbstractResponse(ResponseFrame frame)
         {
-            BEBinaryReader = new BEBinaryReader(frame);
+            BeBinaryReader = new BEBinaryReader(frame);
 
             if ((frame.FrameHeader.Flags & 0x02) == 0x02)
             {
                 var buffer = new byte[16];
-                BEBinaryReader.Read(buffer, 0, 16);
-                TraceID = new Guid(TypeInterpreter.GuidShuffle(buffer));
+                BeBinaryReader.Read(buffer, 0, 16);
+                TraceId = new Guid(TypeInterpreter.GuidShuffle(buffer));
             }
         }
     }

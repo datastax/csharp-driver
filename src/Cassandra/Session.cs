@@ -18,8 +18,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace Cassandra
@@ -33,7 +32,7 @@ namespace Cassandra
         
         private readonly Cluster _cluster;
 
-        internal readonly Policies _policies;
+        internal readonly Policies Policies;
         private readonly ProtocolOptions _protocolOptions;
         private readonly PoolingOptions _poolingOptions;
         private readonly SocketOptions _socketOptions;
@@ -61,19 +60,19 @@ namespace Cassandra
                          string keyspace,
                          int binaryProtocolVersion)
         {
-            this._binaryProtocolVersion = binaryProtocolVersion;
-            this._cluster = cluster;
+            _binaryProtocolVersion = binaryProtocolVersion;
+            _cluster = cluster;
 
-            this._protocolOptions = protocolOptions;
-            this._poolingOptions = poolingOptions;
-            this._socketOptions = socketOptions;
-            this._clientOptions = clientOptions;
-            this._authProvider = authProvider;
-            this._authInfoProvider = authInfoProvider;
+            _protocolOptions = protocolOptions;
+            _poolingOptions = poolingOptions;
+            _socketOptions = socketOptions;
+            _clientOptions = clientOptions;
+            _authProvider = authProvider;
+            _authInfoProvider = authInfoProvider;
 
-            this._policies = policies ?? Policies.DefaultPolicies;
+            Policies = policies ?? Policies.DefaultPolicies;
 
-            this._policies.LoadBalancingPolicy.Initialize(_cluster);
+            Policies.LoadBalancingPolicy.Initialize(_cluster);
 
             _keyspace = keyspace ?? clientOptions.DefaultKeyspace;
 
@@ -88,7 +87,7 @@ namespace Cassandra
         {
             if (allock)
             {
-                var ci = this._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+                var ci = Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
                 if (!ci.MoveNext())
                 {
                     var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
@@ -183,7 +182,7 @@ namespace Cassandra
                 if (currentHost.IsConsiderablyUp)
                 {
                     triedHosts.Add(currentHost.Address);
-                    var hostDistance = _policies.LoadBalancingPolicy.Distance(currentHost);
+                    var hostDistance = Policies.LoadBalancingPolicy.Distance(currentHost);
                 RETRY_GET_POOL:
                     if (!_connectionPool.ContainsKey(currentHost.Address))
                         _connectionPool.TryAdd(currentHost.Address, new ConcurrentDictionary<Guid, CassandraConnection>());
@@ -362,7 +361,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes, false), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                Query(CqlQueryTools.GetCreateKeyspaceCql(keyspace_name, replication, durable_writes, false), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
@@ -371,7 +370,7 @@ namespace Cassandra
             if (_binaryProtocolVersion > 1)
             {
                 WaitForSchemaAgreement(
-                    Query(CqlQueryTools.GetCreateKeyspaceCQL(keyspace_name, replication, durable_writes, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                    Query(CqlQueryTools.GetCreateKeyspaceCql(keyspace_name, replication, durable_writes, true), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
                 _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
             }
             else
@@ -390,7 +389,7 @@ namespace Cassandra
         public void DeleteKeyspace(string keyspace_name)
         {
             WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name, false), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                Query(CqlQueryTools.GetDropKeyspaceCql(keyspace_name, false), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -399,7 +398,7 @@ namespace Cassandra
             if (_binaryProtocolVersion > 1)
             {
                 WaitForSchemaAgreement(
-                    Query(CqlQueryTools.GetDropKeyspaceCQL(keyspace_name, true), QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                    Query(CqlQueryTools.GetDropKeyspaceCql(keyspace_name, true), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
                 _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
             }
             else
@@ -417,7 +416,7 @@ namespace Cassandra
 
         public void ChangeKeyspace(string keyspace_name)
         {
-            Execute(CqlQueryTools.GetUseKeyspaceCQL(keyspace_name));
+            Execute(CqlQueryTools.GetUseKeyspaceCql(keyspace_name));
         }
 
         private void SetKeyspace(string keyspace_name)
@@ -439,8 +438,8 @@ namespace Cassandra
                         ckv.Value.SetKeyspace(keyspace_name);
                 }
             }
-            this._keyspace = keyspace_name;
-            _logger.Info("Changed keyspace to [" + this._keyspace + "]");
+            _keyspace = keyspace_name;
+            _logger.Info("Changed keyspace to [" + _keyspace + "]");
         }
 
         BoolSwitch _alreadyDisposed = new BoolSwitch();
@@ -490,7 +489,7 @@ namespace Cassandra
             {
                 throw new ArgumentNullException("statement");
             }
-            var options = this.Cluster.Configuration.QueryOptions;
+            var options = Cluster.Configuration.QueryOptions;
             var consistency = statement.ConsistencyLevel ?? options.GetConsistencyLevel();
             if (statement is RegularStatement)
             {
@@ -688,7 +687,7 @@ namespace Cassandra
                 }
                 else if (outp is OutputPrepared)
                 {
-                    queryId = (outp as OutputPrepared).QueryID;
+                    queryId = (outp as OutputPrepared).QueryId;
                     metadata = (outp as OutputPrepared).Metadata;
                     resultMetadata = (outp as OutputPrepared).ResultMetadata;
                     _logger.Info("Prepared Query has been successfully processed.");
@@ -757,7 +756,7 @@ namespace Cassandra
             {
                 if (_hostsIter == null)
                 {
-                    _hostsIter = owner._policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
+                    _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
                     if (!_hostsIter.MoveNext())
                     {
                         var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
@@ -822,7 +821,7 @@ namespace Cassandra
                 }
                 catch (QueryValidationException exc)
                 {
-                    var decision = GetRetryDecision(token.Query, exc, token.Query != null ? (token.Query.RetryPolicy ?? _policies.RetryPolicy) : _policies.RetryPolicy, token.QueryRetries);
+                    var decision = GetRetryDecision(token.Query, exc, token.Query != null ? (token.Query.RetryPolicy ?? Policies.RetryPolicy) : Policies.RetryPolicy, token.QueryRetries);
                     if (decision == null)
                     {
                         if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
@@ -887,7 +886,7 @@ namespace Cassandra
 
             override public void Begin(Session owner, int streamId)
             {
-                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner,  IsTracing, QueryProtocolOptions.CreateFromQuery(this.Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),Consistency);
+                Connection.BeginQuery(streamId, CqlQuery, owner.ClbNoQuery, this, owner,  IsTracing, QueryProtocolOptions.CreateFromQuery(Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()),Consistency);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -1011,7 +1010,7 @@ namespace Cassandra
         class LongExecuteQueryToken : LongToken
         {
             public byte[] Id;
-            public string cql;
+            public string Cql;
             public RowSetMetadata Metadata;
             public RowSetMetadata ResultMetadata;
             public QueryProtocolOptions QueryProtocolOptions;
@@ -1026,7 +1025,7 @@ namespace Cassandra
             
             override public void Begin(Session owner,int streamId)
             {
-                Connection.BeginExecuteQuery(streamId, Id, cql, Metadata, owner.ClbNoQuery, this, owner, IsTracinig, QueryProtocolOptions.CreateFromQuery(this.Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), Consistency);
+                Connection.BeginExecuteQuery(streamId, Id, Cql, Metadata, owner.ClbNoQuery, this, owner, IsTracinig, QueryProtocolOptions.CreateFromQuery(Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), Consistency);
             }
             override public void Process(Session owner, IAsyncResult ar, out object value)
             {
@@ -1064,7 +1063,7 @@ namespace Cassandra
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Statement query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var token = new LongExecuteQueryToken() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, cql = _preparedQueries[id], Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
+            var token = new LongExecuteQueryToken() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, Cql = _preparedQueries[id], Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
 
             ExecConn(token, false);
 
@@ -1140,7 +1139,7 @@ namespace Cassandra
         internal IAsyncResult BeginBatch(BatchType batchType, List<Statement> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
-            var token = new LongBatchToken() { Consistency = consistency ?? this._cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            var token = new LongBatchToken() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
 
@@ -1157,7 +1156,7 @@ namespace Cassandra
         internal const long MaxSchemaAgreementWaitMs = 10000;
         internal const string SelectSchemaPeers = "SELECT peer, rpc_address, schema_version FROM system.peers";
         internal const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
-        internal static IPAddress bindAllAddress = new IPAddress(new byte[4]);
+        internal static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
 
 
         public void WaitForSchemaAgreement(RowSet rs)
@@ -1199,7 +1198,7 @@ namespace Cassandra
                 }
                 {
 
-                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, false, QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
+                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
                     {
                         if (outp is OutputRows)
                         {
@@ -1210,7 +1209,7 @@ namespace Cassandra
                                     continue;
 
                                 var rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
-                                if (rpc.Equals(bindAllAddress))
+                                if (rpc.Equals(BindAllAddress))
                                 {
                                     if (!row.IsNull("peer"))
                                         rpc = row.GetValue<IPEndPoint>("peer").Address;
@@ -1225,7 +1224,7 @@ namespace Cassandra
                 }
 
                 {
-                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, false, QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
+                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
                     {
                         if (outp is OutputRows)
                         {

@@ -2,7 +2,7 @@ namespace Cassandra
 {
     public class ProtocolErrorException : QueryValidationException
     {
-        public ProtocolErrorException(string Message) : base(Message)
+        public ProtocolErrorException(string message) : base(message)
         {
         }
     }

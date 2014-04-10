@@ -47,7 +47,7 @@ namespace Cassandra
             return "\"" + id.Replace("\"", "\"\"") + "\"";
         }
 
-        public static string GetCreateKeyspaceCQL(string keyspace, Dictionary<string, string> replication, bool durable_writes, bool ifNotExists)
+        public static string GetCreateKeyspaceCql(string keyspace, Dictionary<string, string> replication, bool durableWrites, bool ifNotExists)
         {
             if (replication == null)
                 replication = new Dictionary<string, string> {{"class", ReplicationStrategies.SimpleStrategy}, {"replication_factor", "1"}};
@@ -55,18 +55,18 @@ namespace Cassandra
                 @"CREATE KEYSPACE {3}{0} 
   WITH replication = {1} 
    AND durable_writes = {2}"
-                , QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durable_writes ? "true" : "false",
+                , QuoteIdentifier(keyspace), Utils.ConvertToCqlMap(replication), durableWrites ? "true" : "false",
                 ifNotExists ? "IF NOT EXISTS " : "");
         }
 
-        public static string GetUseKeyspaceCQL(string keyspace)
+        public static string GetUseKeyspaceCql(string keyspace)
         {
             return string.Format(
                 @"USE {0}"
                 , QuoteIdentifier(keyspace));
         }
 
-        public static string GetDropKeyspaceCQL(string keyspace, bool ifExists)
+        public static string GetDropKeyspaceCql(string keyspace, bool ifExists)
         {
             return string.Format(
                 @"DROP KEYSPACE {1}{0}"

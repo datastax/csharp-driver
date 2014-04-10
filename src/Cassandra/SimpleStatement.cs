@@ -46,7 +46,7 @@ namespace Cassandra
             get { return _routingKey; }
         }
 
-        public SimpleStatement() : base(QueryProtocolOptions.DEFAULT)
+        public SimpleStatement() : base(QueryProtocolOptions.Default)
         {
         }
 
@@ -55,7 +55,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="query"> the query string.</param>
         public SimpleStatement(string query)
-            : base(QueryProtocolOptions.DEFAULT)
+            : base(QueryProtocolOptions.Default)
         {
             _query = query;
         }

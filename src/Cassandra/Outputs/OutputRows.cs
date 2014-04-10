@@ -23,34 +23,30 @@ namespace Cassandra
     internal class OutputRows : IOutput, IWaitableForDispose
     {
         public readonly int Rows;
-        internal readonly bool _buffered;
+        private readonly bool _buffered;
         private readonly ManualResetEventSlim _disposedEvent;
 
         private readonly BEBinaryReader _reader;
-        private readonly Guid? _traceID;
+        private readonly Guid? _traceId;
 
         private int _curentIter;
-        internal RowSetMetadata _metadata;
+        
+        public RowSetMetadata Metadata { get; internal set; }
 
-        public RowSetMetadata Metadata
+        public Guid? TraceId
         {
-            get { return _metadata; }
+            get { return _traceId; }
         }
 
-        public Guid? TraceID
-        {
-            get { return _traceID; }
-        }
-
-        internal OutputRows(BEBinaryReader reader, bool buffered, Guid? traceID)
+        internal OutputRows(BEBinaryReader reader, bool buffered, Guid? traceId)
         {
             _buffered = buffered;
             _reader = reader;
-            _metadata = new RowSetMetadata(reader);
+            Metadata = new RowSetMetadata(reader);
             Rows = reader.ReadInt32();
             if (!buffered)
                 _disposedEvent = new ManualResetEventSlim(buffered);
-            _traceID = traceID;
+            _traceId = traceId;
         }
 
         public void Dispose()

@@ -9,10 +9,10 @@ using System.Collections.Generic;
 namespace System.IO
 {
     /// <summary>
-    /// MemoryTributary is a re-implementation of MemoryStream that uses a dynamic list of byte arrays as a backing store, instead of a single byte array, the allocation
-    /// of which will fail for relatively small streams as it requires contiguous memory.
+    /// MemoryTributary is a re-implementation of MemoryStream that uses a dynamic list of byte arrays as a backing store, instead of a single byte 
+    /// array, the allocation of which will fail for relatively small streams as it requires contiguous memory.
     /// </summary>
-    internal class MemoryTributary : Stream /* http://msdn.microsoft.com/en-us/library/system.io.stream.aspx */
+    internal class MemoryTributary : Stream
     {
         #region Constructors
 
@@ -31,7 +31,7 @@ namespace System.IO
         {
             SetLength(length);
             Position = length;
-            byte[] d = block; //access block to prompt the allocation of memory
+            byte[] d = Block; //access block to prompt the allocation of memory
             Position = 0;
         }
 
@@ -60,7 +60,7 @@ namespace System.IO
 
         public override long Length
         {
-            get { return length; }
+            get { return _length; }
         }
 
         public override long Position { get; set; }
@@ -69,11 +69,11 @@ namespace System.IO
 
         #region Members
 
-        protected long length = 0;
+        private long _length = 0;
 
-        protected long blockSize = 65536;
+        private const long BlockSize = 65536;
 
-        protected List<byte[]> blocks = new List<byte[]>();
+        private readonly List<byte[]> _blocks = new List<byte[]>();
 
         #endregion
 
@@ -84,30 +84,30 @@ namespace System.IO
         /// <summary>
         /// The block of memory currently addressed by Position
         /// </summary>
-        protected byte[] block
+        private byte[] Block
         {
             get
             {
-                while (blocks.Count <= blockId)
-                    blocks.Add(new byte[blockSize]);
-                return blocks[(int) blockId];
+                while (_blocks.Count <= BlockId)
+                    _blocks.Add(new byte[BlockSize]);
+                return _blocks[(int) BlockId];
             }
         }
 
         /// <summary>
         /// The id of the block currently addressed by Position
         /// </summary>
-        protected long blockId
+        private long BlockId
         {
-            get { return Position/blockSize; }
+            get { return Position/BlockSize; }
         }
 
         /// <summary>
         /// The offset of the byte currently addressed by Position, into the block that contains it
         /// </summary>
-        protected long blockOffset
+        private long BlockOffset
         {
-            get { return Position%blockSize; }
+            get { return Position%BlockSize; }
         }
 
         #endregion
@@ -127,7 +127,7 @@ namespace System.IO
                 throw new ArgumentOutOfRangeException("count", lcount, "Number of bytes to copy cannot be negative.");
             }
 
-            long remaining = (length - Position);
+            long remaining = (_length - Position);
             if (lcount > remaining)
                 lcount = remaining;
 
@@ -144,8 +144,8 @@ namespace System.IO
             long copysize = 0;
             do
             {
-                copysize = Math.Min(lcount, (blockSize - blockOffset));
-                Buffer.BlockCopy(block, (int) blockOffset, buffer, offset, (int) copysize);
+                copysize = Math.Min(lcount, (BlockSize - BlockOffset));
+                Buffer.BlockCopy(Block, (int) BlockOffset, buffer, offset, (int) copysize);
                 lcount -= copysize;
                 offset += (int) copysize;
 
@@ -175,7 +175,7 @@ namespace System.IO
 
         public override void SetLength(long value)
         {
-            length = value;
+            _length = value;
         }
 
 #if DEBUG
@@ -201,11 +201,11 @@ namespace System.IO
             {
                 do
                 {
-                    copysize = Math.Min(count, (int) (blockSize - blockOffset));
+                    copysize = Math.Min(count, (int) (BlockSize - BlockOffset));
 
                     EnsureCapacity(Position + copysize);
 
-                    Buffer.BlockCopy(buffer, offset, block, (int) blockOffset, copysize);
+                    Buffer.BlockCopy(buffer, offset, Block, (int) BlockOffset, copysize);
                     count -= copysize;
                     offset += copysize;
 
@@ -221,10 +221,10 @@ namespace System.IO
 
         public override int ReadByte()
         {
-            if (Position >= length)
+            if (Position >= _length)
                 return -1;
 
-            byte b = block[blockOffset];
+            byte b = Block[BlockOffset];
             Position++;
 
             return b;
@@ -237,14 +237,14 @@ namespace System.IO
             validateFrameSize();
 #endif
             EnsureCapacity(Position + 1);
-            block[blockOffset] = value;
+            Block[BlockOffset] = value;
             Position++;
         }
 
-        protected void EnsureCapacity(long intended_length)
+        private void EnsureCapacity(long intendedLength)
         {
-            if (intended_length > length)
-                length = (intended_length);
+            if (intendedLength > _length)
+                _length = (intendedLength);
         }
 
         #endregion

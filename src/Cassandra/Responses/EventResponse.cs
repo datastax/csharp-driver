@@ -26,38 +26,38 @@ namespace Cassandra
         internal EventResponse(ResponseFrame frame)
             : base(frame)
         {
-            string eventTypeString = BEBinaryReader.ReadString();
+            string eventTypeString = BeBinaryReader.ReadString();
             if (eventTypeString == "TOPOLOGY_CHANGE")
             {
                 var ce = new TopologyChangeEventArgs();
-                ce.What = BEBinaryReader.ReadString() == "NEW_NODE"
+                ce.What = BeBinaryReader.ReadString() == "NEW_NODE"
                               ? TopologyChangeEventArgs.Reason.NewNode
                               : TopologyChangeEventArgs.Reason.RemovedNode;
-                ce.Address = BEBinaryReader.ReadInet().Address;
+                ce.Address = BeBinaryReader.ReadInet().Address;
                 CassandraEventArgs = ce;
                 return;
             }
             if (eventTypeString == "STATUS_CHANGE")
             {
                 var ce = new StatusChangeEventArgs();
-                ce.What = BEBinaryReader.ReadString() == "UP"
+                ce.What = BeBinaryReader.ReadString() == "UP"
                               ? StatusChangeEventArgs.Reason.Up
                               : StatusChangeEventArgs.Reason.Down;
-                ce.Address = BEBinaryReader.ReadInet().Address;
+                ce.Address = BeBinaryReader.ReadInet().Address;
                 CassandraEventArgs = ce;
                 return;
             }
             if (eventTypeString == "SCHEMA_CHANGE")
             {
                 var ce = new SchemaChangeEventArgs();
-                string m = BEBinaryReader.ReadString();
+                string m = BeBinaryReader.ReadString();
                 ce.What = m == "CREATED"
                               ? SchemaChangeEventArgs.Reason.Created
                               : (m == "UPDATED"
                                      ? SchemaChangeEventArgs.Reason.Updated
                                      : SchemaChangeEventArgs.Reason.Dropped);
-                ce.Keyspace = BEBinaryReader.ReadString();
-                ce.Table = BEBinaryReader.ReadString();
+                ce.Keyspace = BeBinaryReader.ReadString();
+                ce.Table = BeBinaryReader.ReadString();
                 CassandraEventArgs = ce;
                 return;
             }

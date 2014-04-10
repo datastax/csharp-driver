@@ -13,12 +13,12 @@ namespace Cassandra
             WithSerialConsistency = 0x10
         }
 
-        public static QueryProtocolOptions DEFAULT = new QueryProtocolOptions(ConsistencyLevel.One,
-                                                                              null,
-                                                                              false,
-                                                                              QueryOptions.DefaultPageSize,
-                                                                              null,
-                                                                              ConsistencyLevel.Any);
+        public static readonly QueryProtocolOptions Default = new QueryProtocolOptions(ConsistencyLevel.One,
+                                                                                       null,
+                                                                                       false,
+                                                                                       QueryOptions.DefaultPageSize,
+                                                                                       null,
+                                                                                       ConsistencyLevel.Any);
 
         public readonly int PageSize;
         public readonly byte[] PagingState;
@@ -49,11 +49,11 @@ namespace Cassandra
             AddFlags();
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(Statement query, ConsistencyLevel defaultCL)
+        internal static QueryProtocolOptions CreateFromQuery(Statement query, ConsistencyLevel defaultConsistencyLevel)
         {
             if (query == null)
-                return DEFAULT;
-            return new QueryProtocolOptions(query.ConsistencyLevel.HasValue ? query.ConsistencyLevel.Value : defaultCL, query.QueryValues,
+                return Default;
+            return new QueryProtocolOptions(query.ConsistencyLevel.HasValue ? query.ConsistencyLevel.Value : defaultConsistencyLevel, query.QueryValues,
                                             query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel);
         }
 

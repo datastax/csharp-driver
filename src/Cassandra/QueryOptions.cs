@@ -37,9 +37,9 @@ namespace Cassandra
         /// </summary>
         public const int DefaultPageSize = 5000;
 
-        private volatile ConsistencyLevel consistency = DefaultConsistencyLevel;
-        private volatile int pageSize = DefaultPageSize;
-        private volatile ConsistencyLevel serialConsistency = DefaultSerialConsistencyLevel;
+        private volatile ConsistencyLevel _consistency = DefaultConsistencyLevel;
+        private volatile int _pageSize = DefaultPageSize;
+        private volatile ConsistencyLevel _serialConsistency = DefaultSerialConsistencyLevel;
 
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace Cassandra
         /// <returns>this QueryOptions instance</returns>
         public QueryOptions SetConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
-            consistency = consistencyLevel;
+            _consistency = consistencyLevel;
             return this;
         }
 
@@ -63,7 +63,7 @@ namespace Cassandra
         /// <returns>the default consistency level used by queries.</returns>
         public ConsistencyLevel GetConsistencyLevel()
         {
-            return consistency;
+            return _consistency;
         }
 
 
@@ -76,7 +76,7 @@ namespace Cassandra
         /// <returns>this QueryOptions instance.</returns>
         public QueryOptions SetSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
         {
-            serialConsistency = serialConsistencyLevel;
+            _serialConsistency = serialConsistencyLevel;
             return this;
         }
 
@@ -87,7 +87,7 @@ namespace Cassandra
         /// <returns>the default serial consistency level used by queries.</returns>
         public ConsistencyLevel GetSerialConsistencyLevel()
         {
-            return serialConsistency;
+            return _serialConsistency;
         }
 
 
@@ -103,7 +103,7 @@ namespace Cassandra
         {
             if (pageSize <= 0)
                 throw new ArgumentException("Invalid pageSize, should be > 0, got " + pageSize);
-            this.pageSize = pageSize;
+            this._pageSize = pageSize;
             return this;
         }
 
@@ -114,7 +114,7 @@ namespace Cassandra
         /// <returns>the default page size used by queries.</returns> 
         public int GetPageSize()
         {
-            return pageSize;
+            return _pageSize;
         }
     }
 }

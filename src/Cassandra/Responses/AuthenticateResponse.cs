@@ -24,7 +24,7 @@ namespace Cassandra
 
         internal AuthenticateResponse(ResponseFrame frame) : base(frame)
         {
-            Authenticator = BEBinaryReader.ReadString();
+            Authenticator = BeBinaryReader.ReadString();
         }
 
         internal static AuthenticateResponse Create(ResponseFrame frame)

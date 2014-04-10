@@ -18,12 +18,12 @@ namespace Cassandra
 {
     public class PreparedQueryNotFoundException : QueryValidationException
     {
-        public byte[] UnknownID { get; private set; }
+        public byte[] UnknownId { get; private set; }
 
-        public PreparedQueryNotFoundException(string message, byte[] unknownID) :
-            base(message)
+        public PreparedQueryNotFoundException(string message, byte[] unknownId) 
+            : base(message)
         {
-            UnknownID = unknownID;
+            UnknownId = unknownId;
         }
     }
 }

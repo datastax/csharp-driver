@@ -20,7 +20,7 @@ using System.Collections.Generic;
 
 namespace Cassandra
 {
-    public class Row : IEnumerable<object>, IEnumerable
+    public class Row : IEnumerable<object>
     {
         private readonly Dictionary<string, int> _columnIdxes;
         private readonly byte[][] _columns;
@@ -105,34 +105,34 @@ namespace Cassandra
             return GetValue<T>(_columnIdxes[name]);
         }
 
-        public class ColumnEnumerator : IEnumerator, IEnumerator<object>
+        public class ColumnEnumerator : IEnumerator<object>
         {
-            private readonly Row owner;
-            private int idx = -1;
+            private readonly Row _owner;
+            private int _idx = -1;
 
             public ColumnEnumerator(Row owner)
             {
-                this.owner = owner;
+                _owner = owner;
             }
 
             public object Current
             {
                 get
                 {
-                    if (idx == -1 || idx >= owner._columns.Length) return null;
-                    return owner[idx];
+                    if (_idx == -1 || _idx >= _owner._columns.Length) return null;
+                    return _owner[_idx];
                 }
             }
 
             public bool MoveNext()
             {
-                idx++;
-                return idx < owner._columns.Length;
+                _idx++;
+                return _idx < _owner._columns.Length;
             }
 
             public void Reset()
             {
-                idx = -1;
+                _idx = -1;
             }
 
             public void Dispose()

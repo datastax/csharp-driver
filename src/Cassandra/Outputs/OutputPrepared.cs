@@ -18,15 +18,15 @@ namespace Cassandra
 {
     internal class OutputPrepared : IOutput, IWaitableForDispose
     {
-        public RowSetMetadata Metadata;
-        public byte[] QueryID;
-        public RowSetMetadata ResultMetadata;
+        public readonly RowSetMetadata Metadata;
+        public readonly byte[] QueryId;
+        public readonly RowSetMetadata ResultMetadata;
 
         internal OutputPrepared(BEBinaryReader reader, bool readResultsMetadata)
         {
             short len = reader.ReadInt16();
-            QueryID = new byte[len];
-            reader.Read(QueryID, 0, len);
+            QueryId = new byte[len];
+            reader.Read(QueryId, 0, len);
             Metadata = new RowSetMetadata(reader);
             if (readResultsMetadata)
                 ResultMetadata = new RowSetMetadata(reader);

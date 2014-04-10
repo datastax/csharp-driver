@@ -23,8 +23,8 @@ namespace Cassandra
     internal enum FlagBits
     {
         GlobalTablesSpec = 0x0001,
-        Has_more_pages = 0x0002,
-        No_metadata = 0x0004
+        HasMorePages = 0x0002,
+        NoMetadata = 0x0004
     }
 
     public enum ColumnTypeCode
@@ -95,8 +95,7 @@ namespace Cassandra
         private readonly CqlColumn[] _columns;
 
         private readonly ColumnDesc[] _rawColumns;
-        internal bool no_metadata = false;
-        internal byte[] paging_state = null;
+        internal readonly byte[] PagingState = null;
 
         public CqlColumn[] Columns
         {
@@ -113,12 +112,12 @@ namespace Cassandra
             string gKsname = null;
             string gTablename = null;
 
-            if ((flags & FlagBits.Has_more_pages) == FlagBits.Has_more_pages)
-                paging_state = reader.ReadBytes();
+            if ((flags & FlagBits.HasMorePages) == FlagBits.HasMorePages)
+                PagingState = reader.ReadBytes();
             else
-                paging_state = null;
+                PagingState = null;
 
-            if ((flags & FlagBits.No_metadata) != FlagBits.No_metadata)
+            if ((flags & FlagBits.NoMetadata) != FlagBits.NoMetadata)
             {
                 if ((flags & FlagBits.GlobalTablesSpec) == FlagBits.GlobalTablesSpec)
                 {
@@ -166,8 +165,6 @@ namespace Cassandra
                         _columnIdxes.Add(_rawColumns[i].Name, i);
                 }
             }
-            else
-                no_metadata = true;
         }
 
         private IColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)

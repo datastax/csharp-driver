@@ -44,7 +44,7 @@ namespace Cassandra
         private readonly IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private readonly Session _session;
-        private readonly BoolSwitch shotDown = new BoolSwitch();
+        private readonly BoolSwitch _shotDown = new BoolSwitch();
         private bool _isDiconnected;
         private int _lockingStreamId;
 
@@ -108,7 +108,7 @@ namespace Cassandra
 
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            if (shotDown.TryTake())
+            if (_shotDown.TryTake())
             {
                 _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
@@ -126,7 +126,7 @@ namespace Cassandra
             var triedHosts = new List<IPAddress>();
             var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
 
-            IEnumerator<Host> hostsIter = _session._policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
+            IEnumerator<Host> hostsIter = _session.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
 
             if (!hostsIter.MoveNext())
             {
@@ -300,7 +300,7 @@ namespace Cassandra
                 catch (NoHostAvailableException)
                 {
                     _isDiconnected = true;
-                    if (!shotDown.IsTaken())
+                    if (!_shotDown.IsTaken())
                     {
                         _logger.Error("ControlConnection is lost. Retrying..");
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -311,7 +311,7 @@ namespace Cassandra
                     _isDiconnected = true;
                     if (CassandraConnection.IsStreamRelatedException(ex))
                     {
-                        if (!shotDown.IsTaken())
+                        if (!_shotDown.IsTaken())
                         {
                             _logger.Error("ControlConnection is lost. Retrying..");
                             _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -344,7 +344,7 @@ namespace Cassandra
                 using (
                     RowSet rowset =
                         ProcessRowset(
-                            _activeConnection.Value.Query(sessionId, SelectPeers, false, QueryProtocolOptions.DEFAULT,
+                            _activeConnection.Value.Query(sessionId, SelectPeers, false, QueryProtocolOptions.Default,
                                                           _cluster.Configuration.QueryOptions.GetConsistencyLevel()), SelectPeers))
                 {
                     foreach (Row row in rowset.GetRows())
@@ -358,7 +358,7 @@ namespace Cassandra
                                 hstip = row.GetValue<IPEndPoint>("peer").Address;
                             _logger.Error("No rpc_address found for host in peers system table. ");
                         }
-                        else if (hstip.Equals(Session.bindAllAddress))
+                        else if (hstip.Equals(Session.BindAllAddress))
                         {
                             if (!row.IsNull("peer"))
                                 hstip = row.GetValue<IPEndPoint>("peer").Address;
@@ -385,7 +385,7 @@ namespace Cassandra
                 using (
                     RowSet rowset =
                         ProcessRowset(
-                            _activeConnection.Value.Query(streamId, SelectLocal, false, QueryProtocolOptions.DEFAULT,
+                            _activeConnection.Value.Query(streamId, SelectLocal, false, QueryProtocolOptions.Default,
                                                           _cluster.Configuration.QueryOptions.GetConsistencyLevel()), SelectLocal))
                 {
                     // Update cluster name, DC and rack for the one node we are connected to
@@ -455,7 +455,7 @@ namespace Cassandra
                     using (
                         RowSet rowset =
                             ProcessRowset(
-                                _activeConnection.Value.Query(streamId, Session.SelectSchemaPeers, false, QueryProtocolOptions.DEFAULT,
+                                _activeConnection.Value.Query(streamId, Session.SelectSchemaPeers, false, QueryProtocolOptions.Default,
                                                               _cluster.Configuration.QueryOptions.GetConsistencyLevel()), Session.SelectSchemaPeers))
                     {
                         foreach (Row row in rowset.GetRows())
@@ -464,7 +464,7 @@ namespace Cassandra
                                 continue;
 
                             IPAddress rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
-                            if (rpc.Equals(Session.bindAllAddress))
+                            if (rpc.Equals(Session.BindAllAddress))
                                 if (!row.IsNull("peer"))
                                     rpc = row.GetValue<IPEndPoint>("peer").Address;
 
@@ -480,7 +480,7 @@ namespace Cassandra
                     using (
                         RowSet rowset =
                             ProcessRowset(
-                                _activeConnection.Value.Query(streamId, Session.SelectSchemaLocal, false, QueryProtocolOptions.DEFAULT,
+                                _activeConnection.Value.Query(streamId, Session.SelectSchemaLocal, false, QueryProtocolOptions.Default,
                                                               _cluster.Configuration.QueryOptions.GetConsistencyLevel()), Session.SelectSchemaLocal))
                     {
                         // Update cluster name, DC and rack for the one node we are connected to
@@ -565,7 +565,7 @@ namespace Cassandra
                 using (
                     RowSet rows =
                         ProcessRowset(
-                            _activeConnection.Value.Query(streamId, SelectKeyspaces, false, QueryProtocolOptions.DEFAULT,
+                            _activeConnection.Value.Query(streamId, SelectKeyspaces, false, QueryProtocolOptions.Default,
                                                           _cluster.Configuration.QueryOptions.GetConsistencyLevel()), SelectKeyspaces))
                 {
                     foreach (Row row in rows.GetRows())
@@ -611,7 +611,7 @@ namespace Cassandra
                     int streamId = _activeConnection.Value.AllocateStreamId();
                     using (RowSet rows = ProcessRowset(_activeConnection.Value.Query(streamId, string.Format(
                         SelectKeyspaces + " WHERE keyspace_name='{0}';",
-                        keyspace), false, QueryProtocolOptions.DEFAULT, _cluster.Configuration.QueryOptions.GetConsistencyLevel()), string.Format(
+                        keyspace), false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()), string.Format(
                             SelectKeyspaces + " WHERE keyspace_name='{0}';",
                             keyspace)))
                     {
@@ -636,7 +636,7 @@ namespace Cassandra
                         RowSet rows =
                             ProcessRowset(
                                 _activeConnection.Value.Query(streamId, string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace),
-                                                              false, QueryProtocolOptions.DEFAULT,
+                                                              false, QueryProtocolOptions.Default,
                                                               _cluster.Configuration.QueryOptions.GetConsistencyLevel()),
                                 string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace)))
                     {
@@ -769,27 +769,27 @@ namespace Cassandra
         {
             object[] collectionValuesTypes;
             var cols = new List<TableColumn>();
-            TableOptions Options = null;
+            TableOptions options = null;
             {
                 int streamId = _activeConnection.Value.AllocateStreamId();
                 using (RowSet rows = ProcessRowset(_activeConnection.Value.Query(streamId,
                                                                                  string.Format(
                                                                                      SelectColumns +
                                                                                      " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                                                                     tableName, keyspaceName), false, QueryProtocolOptions.DEFAULT,
+                                                                                     tableName, keyspaceName), false, QueryProtocolOptions.Default,
                                                                                  _cluster.Configuration.QueryOptions.GetConsistencyLevel()),
                                                    string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
                                                                  tableName, keyspaceName)))
                 {
                     foreach (Row row in rows.GetRows())
                     {
-                        ColumnTypeCode tp_code = convertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
+                        ColumnTypeCode tpCode = ConvertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
                         var dsc = new TableColumn
                         {
                             Name = row.GetValue<string>("column_name"),
                             Keyspace = row.GetValue<string>("keyspace_name"),
                             Table = row.GetValue<string>("columnfamily_name"),
-                            TypeCode = tp_code,
+                            TypeCode = tpCode,
                             SecondaryIndexName = row.GetValue<string>("index_name"),
                             SecondaryIndexType = row.GetValue<string>("index_type"),
                             KeyType =
@@ -798,18 +798,18 @@ namespace Cassandra
                                     : KeyType.None,
                         };
 
-                        if (tp_code == ColumnTypeCode.List)
+                        if (tpCode == ColumnTypeCode.List)
                             dsc.TypeInfo = new ListColumnInfo
                             {
                                 ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                             };
-                        else if (tp_code == ColumnTypeCode.Map)
+                        else if (tpCode == ColumnTypeCode.Map)
                             dsc.TypeInfo = new MapColumnInfo
                             {
                                 KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0],
                                 ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[1]
                             };
-                        else if (tp_code == ColumnTypeCode.Set)
+                        else if (tpCode == ColumnTypeCode.Set)
                             dsc.TypeInfo = new SetColumnInfo
                             {
                                 KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
@@ -825,7 +825,7 @@ namespace Cassandra
                                                                                  string.Format(
                                                                                      SelectColumnFamilies +
                                                                                      " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                                                                     tableName, keyspaceName), false, QueryProtocolOptions.DEFAULT,
+                                                                                     tableName, keyspaceName), false, QueryProtocolOptions.Default,
                                                                                  _cluster.Configuration.QueryOptions.GetConsistencyLevel()),
                                                    string.Format(
                                                        SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
@@ -859,28 +859,28 @@ namespace Cassandra
                             int i = 0;
                             foreach (string keyName in rowKeys)
                             {
-                                ColumnTypeCode tp_code = convertToColumnTypeCode(rowKeysTypes[i].ToString(),
+                                ColumnTypeCode tpCode = ConvertToColumnTypeCode(rowKeysTypes[i].ToString(),
                                                                                  out collectionValuesTypes);
                                 var dsc = new TableColumn
                                 {
                                     Name = keyName,
                                     Keyspace = row.GetValue<string>("keyspace_name"),
                                     Table = row.GetValue<string>("columnfamily_name"),
-                                    TypeCode = tp_code,
+                                    TypeCode = tpCode,
                                     KeyType = KeyType.Clustering,
                                 };
-                                if (tp_code == ColumnTypeCode.List)
+                                if (tpCode == ColumnTypeCode.List)
                                     dsc.TypeInfo = new ListColumnInfo
                                     {
                                         ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                                     };
-                                else if (tp_code == ColumnTypeCode.Map)
+                                else if (tpCode == ColumnTypeCode.Map)
                                     dsc.TypeInfo = new MapColumnInfo
                                     {
                                         KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0],
                                         ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[1]
                                     };
-                                else if (tp_code == ColumnTypeCode.Set)
+                                else if (tpCode == ColumnTypeCode.Set)
                                     dsc.TypeInfo = new SetColumnInfo
                                     {
                                         KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
@@ -889,7 +889,7 @@ namespace Cassandra
                                 i++;
                             }
 
-                            Options = new TableOptions
+                            options = new TableOptions
                             {
                                 isCompactStorage = isCompact,
                                 bfFpChance = row.GetValue<double>("bloom_filter_fp_chance"),
@@ -914,37 +914,37 @@ namespace Cassandra
                             Keyspace = row.GetValue<string>("keyspace_name"),
                             Table = row.GetValue<string>("columnfamily_name"),
                             TypeCode =
-                                convertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
+                                ConvertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
                             KeyType = KeyType.Partition
                         });
                     }
                 }
             }
-            return new TableMetadata(tableName, cols.ToArray(), Options);
+            return new TableMetadata(tableName, cols.ToArray(), options);
         }
 
 
-        private ColumnTypeCode convertToColumnTypeCode(string type, out object[] collectionValueTp)
+        private ColumnTypeCode ConvertToColumnTypeCode(string type, out object[] collectionValueTp)
         {
             object[] obj;
             collectionValueTp = new object[2];
             if (type.StartsWith("org.apache.cassandra.db.marshal.ListType"))
             {
-                collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.ListType(", "").Replace(")", ""), out obj);
+                collectionValueTp[0] = ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.ListType(", "").Replace(")", ""), out obj);
                 return ColumnTypeCode.List;
             }
             if (type.StartsWith("org.apache.cassandra.db.marshal.SetType"))
             {
-                collectionValueTp[0] = convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
+                collectionValueTp[0] = ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
                 return ColumnTypeCode.Set;
             }
 
             if (type.StartsWith("org.apache.cassandra.db.marshal.MapType"))
             {
                 collectionValueTp[0] =
-                    convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[0], out obj);
+                    ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[0], out obj);
                 collectionValueTp[1] =
-                    convertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj);
+                    ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj);
                 return ColumnTypeCode.Map;
             }
 

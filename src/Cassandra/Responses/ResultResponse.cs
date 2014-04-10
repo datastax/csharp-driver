@@ -33,23 +33,23 @@ namespace Cassandra
 
         internal ResultResponse(ResponseFrame frame) : base(frame)
         {
-            Kind = (ResultResponseKind) BEBinaryReader.ReadInt32();
+            Kind = (ResultResponseKind) BeBinaryReader.ReadInt32();
             switch (Kind)
             {
                 case ResultResponseKind.Void:
-                    Output = new OutputVoid(TraceID);
+                    Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(BEBinaryReader, frame.RawStream is BufferedProtoBuf, TraceID);
+                    Output = new OutputRows(BeBinaryReader, frame.RawStream is BufferedProtoBuf, TraceId);
                     break;
                 case ResultResponseKind.SetKeyspace:
-                    Output = new OutputSetKeyspace(BEBinaryReader.ReadString());
+                    Output = new OutputSetKeyspace(BeBinaryReader.ReadString());
                     break;
                 case ResultResponseKind.Prepared:
-                    Output = new OutputPrepared(BEBinaryReader, frame.FrameHeader.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
+                    Output = new OutputPrepared(BeBinaryReader, frame.FrameHeader.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
                     break;
                 case ResultResponseKind.SchemaChange:
-                    Output = new OutputSchemaChange(BEBinaryReader, TraceID);
+                    Output = new OutputSchemaChange(BeBinaryReader, TraceId);
                     break;
                 default:
                     throw new DriverInternalError("Unknown ResultResponseKind Type");

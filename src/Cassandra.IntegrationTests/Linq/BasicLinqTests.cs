@@ -58,9 +58,9 @@ namespace Cassandra.IntegrationTests.Linq
             for (int i = 0; i < RowsNo; i++)
             {
                 var ent = new Tweets {tweet_id = Guid.NewGuid(), author = "test" + i, body = "body" + i, isok = (i%2 == 0)};
-                ent.exampleSet.Add(i.ToString());
-                ent.exampleSet.Add((i + 1).ToString());
-                ent.exampleSet.Add((i - 1).ToString());
+                ent.exampleSet.Add(i.ToString(CultureInfo.InvariantCulture));
+                ent.exampleSet.Add((i + 1).ToString(CultureInfo.InvariantCulture));
+                ent.exampleSet.Add((i - 1).ToString(CultureInfo.InvariantCulture));
                 ent.data = buf;
                 table.AddNew(ent, EntityTrackingMode.KeepAttachedAfterSave);
                 entL.Add(ent);

@@ -23,7 +23,7 @@ namespace Cassandra
 
         internal SupportedResponse(ResponseFrame frame) : base(frame)
         {
-            Output = new OutputOptions(BEBinaryReader);
+            Output = new OutputOptions(BeBinaryReader);
         }
 
         internal static SupportedResponse Create(ResponseFrame frame)

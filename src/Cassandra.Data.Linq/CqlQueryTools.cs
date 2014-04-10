@@ -202,10 +202,9 @@ namespace Cassandra.Data.Linq
         public static string Encode(DateTimeOffset val)
         {
             if (val == DateTimeOffset.MinValue)
-                return
-                    0.ToString();
+                return 0.ToString(CultureInfo.InvariantCulture);
             else
-                return Convert.ToInt64(Math.Floor((val - UnixStart).TotalMilliseconds)).ToString();
+                return Convert.ToInt64(Math.Floor((val - UnixStart).TotalMilliseconds)).ToString(CultureInfo.InvariantCulture);
         }
 
         private static string GetCqlTypeFromType(Type tpy)
@@ -477,7 +476,7 @@ namespace Cassandra.Data.Linq
                                 if (firstSet) firstSet = false;
                                 else set.Append(", ");
                                 set.Append(memName.QuoteIdentifier() + " = " + memName.QuoteIdentifier());
-                                set.Append((diff >= 0) ? "+" + diff.ToString() : diff.ToString());
+                                set.Append((diff >= 0) ? "+" + diff : diff.ToString(CultureInfo.InvariantCulture));
                             }
                             continue;
                         }

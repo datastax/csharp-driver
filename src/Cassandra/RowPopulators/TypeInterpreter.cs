@@ -128,69 +128,69 @@ namespace Cassandra
             return Int64ToBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
         }
 
-        internal static void RegisterTypeInterpreter(ColumnTypeCode type_code)
+        internal static void RegisterTypeInterpreter(ColumnTypeCode typeCode)
         {
             {
-                MethodInfo mth = typeof (TypeInterpreter).GetMethod("ConvertFrom" + (type_code),
+                MethodInfo mth = typeof (TypeInterpreter).GetMethod("ConvertFrom" + (typeCode),
                                                                     new[] {typeof (IColumnInfo), typeof (byte[]), typeof (Type)});
-                GoMethods[(byte) type_code] = (CqlConvertDel) Delegate.CreateDelegate(typeof (CqlConvertDel), mth);
+                GoMethods[(byte) typeCode] = (CqlConvertDel) Delegate.CreateDelegate(typeof (CqlConvertDel), mth);
             }
             {
-                MethodInfo mth = typeof (TypeInterpreter).GetMethod("GetDefaultTypeFrom" + (type_code), new[] {typeof (IColumnInfo)});
-                TypMethods[(byte) type_code] = (GetDefaultTypeFromCqlTypeDel) Delegate.CreateDelegate(typeof (GetDefaultTypeFromCqlTypeDel), mth);
+                MethodInfo mth = typeof (TypeInterpreter).GetMethod("GetDefaultTypeFrom" + (typeCode), new[] {typeof (IColumnInfo)});
+                TypMethods[(byte) typeCode] = (GetDefaultTypeFromCqlTypeDel) Delegate.CreateDelegate(typeof (GetDefaultTypeFromCqlTypeDel), mth);
             }
             {
-                MethodInfo mth = typeof (TypeInterpreter).GetMethod("InvConvertFrom" + (type_code), new[] {typeof (IColumnInfo), typeof (byte[])});
-                InvMethods[(byte) type_code] = (InvCqlConvertDel) Delegate.CreateDelegate(typeof (InvCqlConvertDel), mth);
+                MethodInfo mth = typeof (TypeInterpreter).GetMethod("InvConvertFrom" + (typeCode), new[] {typeof (IColumnInfo), typeof (byte[])});
+                InvMethods[(byte) typeCode] = (InvCqlConvertDel) Delegate.CreateDelegate(typeof (InvCqlConvertDel), mth);
             }
         }
 
-        public static object CqlConvert(byte[] buffer, ColumnTypeCode type_code, IColumnInfo type_info, Type cSharpType = null)
+        public static object CqlConvert(byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo, Type cSharpType = null)
         {
-            return GoMethods[(byte) type_code](type_info, buffer, cSharpType);
+            return GoMethods[(byte) typeCode](typeInfo, buffer, cSharpType);
         }
 
-        public static Type GetDefaultTypeFromCqlType(ColumnTypeCode type_code, IColumnInfo type_info)
+        public static Type GetDefaultTypeFromCqlType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
-            return TypMethods[(byte) type_code](type_info);
+            return TypMethods[(byte) typeCode](typeInfo);
         }
 
-        public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo type_info)
+        public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo typeInfo)
         {
-            type_info = null;
+            typeInfo = null;
             if (type.IsGenericType)
             {
                 if (type.Name.Equals("Nullable`1"))
                 {
-                    return GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out type_info);
+                    return GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out typeInfo);
                 }
                 if (type.GetInterface("ISet`1") != null)
                 {
-                    IColumnInfo key_type_info;
-                    ColumnTypeCode key_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out key_type_info);
-                    type_info = new SetColumnInfo {KeyTypeCode = key_type_code, KeyTypeInfo = key_type_info};
+                    IColumnInfo keyTypeInfo;
+                    ColumnTypeCode keyTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out keyTypeInfo);
+                    typeInfo = new SetColumnInfo {KeyTypeCode = keyTypeCode, KeyTypeInfo = keyTypeInfo};
                     return ColumnTypeCode.Set;
                 }
                 if (type.GetInterface("IDictionary`2") != null)
                 {
-                    IColumnInfo key_type_info;
-                    ColumnTypeCode key_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out key_type_info);
-                    IColumnInfo value_type_info;
-                    ColumnTypeCode value_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[1], out value_type_info);
-                    type_info = new MapColumnInfo
+                    IColumnInfo keyTypeInfo;
+                    ColumnTypeCode keyTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out keyTypeInfo);
+                    IColumnInfo valueTypeInfo;
+                    ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[1], out valueTypeInfo);
+                    typeInfo = new MapColumnInfo
                     {
-                        KeyTypeCode = key_type_code,
-                        KeyTypeInfo = key_type_info,
-                        ValueTypeCode = value_type_code,
-                        ValueTypeInfo = value_type_info
+                        KeyTypeCode = keyTypeCode,
+                        KeyTypeInfo = keyTypeInfo,
+                        ValueTypeCode = valueTypeCode,
+                        ValueTypeInfo = valueTypeInfo
                     };
                     return ColumnTypeCode.Map;
                 }
                 if (type.GetInterface("IEnumerable`1") != null)
                 {
-                    IColumnInfo value_type_info;
-                    ColumnTypeCode value_type_code = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out value_type_info);
-                    type_info = new ListColumnInfo {ValueTypeCode = value_type_code, ValueTypeInfo = value_type_info};
+                    IColumnInfo valueTypeInfo;
+                    ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out valueTypeInfo);
+                    typeInfo = new ListColumnInfo {ValueTypeCode = valueTypeCode, ValueTypeInfo = valueTypeInfo};
                     return ColumnTypeCode.List;
                 }
             }
@@ -229,9 +229,9 @@ namespace Cassandra
 
         public static byte[] InvCqlConvert(object value)
         {
-            IColumnInfo type_info;
-            ColumnTypeCode type_code = GetColumnTypeCodeInfo(value.GetType(), out type_info);
-            return InvMethods[(byte) type_code](type_info, value);
+            IColumnInfo typeInfo;
+            ColumnTypeCode typeCode = GetColumnTypeCodeInfo(value.GetType(), out typeInfo);
+            return InvMethods[(byte) typeCode](typeInfo, value);
         }
 
         internal static void CheckArgument(Type t, object value)
@@ -258,136 +258,136 @@ namespace Cassandra
                 throw new InvalidTypeException("value", value.GetType().FullName, new object[] {typeof (T1).FullName, typeof (T2).FullName});
         }
 
-        public static object ConvertFromAscii(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromAscii(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return Encoding.ASCII.GetString(value);
         }
 
-        public static Type GetDefaultTypeFromAscii(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromAscii(IColumnInfo typeInfo)
         {
             return typeof (string);
         }
 
-        public static byte[] InvConvertFromAscii(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromAscii(IColumnInfo typeInfo, object value)
         {
             CheckArgument<string>(value);
             return Encoding.ASCII.GetBytes((string) value);
         }
 
-        public static object ConvertFromBlob(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromBlob(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return value;
         }
 
-        public static Type GetDefaultTypeFromBlob(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromBlob(IColumnInfo typeInfo)
         {
             return typeof (byte[]);
         }
 
-        public static byte[] InvConvertFromBlob(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromBlob(IColumnInfo typeInfo, object value)
         {
             CheckArgument<byte[]>(value);
             return (byte[]) value;
         }
 
-        public static object ConvertFromBigint(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromBigint(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return BytesToInt64(value, 0);
         }
 
-        public static Type GetDefaultTypeFromBigint(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromBigint(IColumnInfo typeInfo)
         {
             return typeof (long);
         }
 
-        public static byte[] InvConvertFromBigint(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromBigint(IColumnInfo typeInfo, object value)
         {
             CheckArgument<long>(value);
             return Int64ToBytes((long) value);
         }
 
-        public static object ConvertFromUuid(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromUuid(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return new Guid(GuidShuffle(value));
         }
 
-        public static Type GetDefaultTypeFromUuid(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromUuid(IColumnInfo typeInfo)
         {
             return typeof (Guid);
         }
 
-        public static byte[] InvConvertFromUuid(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromUuid(IColumnInfo typeInfo, object value)
         {
             CheckArgument<Guid>(value);
             return GuidShuffle(((Guid) value).ToByteArray());
         }
 
-        public static object ConvertFromVarint(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromVarint(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             var buffer = (byte[]) value.Clone();
             Array.Reverse(buffer);
             return TypeAdapters.VarIntTypeAdapter.ConvertFrom(buffer);
         }
 
-        public static Type GetDefaultTypeFromVarint(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromVarint(IColumnInfo typeInfo)
         {
             return TypeAdapters.VarIntTypeAdapter.GetDataType();
         }
 
-        public static byte[] InvConvertFromVarint(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromVarint(IColumnInfo typeInfo, object value)
         {
             byte[] ret = TypeAdapters.VarIntTypeAdapter.ConvertTo(value);
             Array.Reverse(ret);
             return ret;
         }
 
-        public static object ConvertFromSet(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromSet(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (type_info is SetColumnInfo)
+            if (typeInfo is SetColumnInfo)
             {
-                ColumnTypeCode list_typecode = (type_info as SetColumnInfo).KeyTypeCode;
-                IColumnInfo list_typeinfo = (type_info as SetColumnInfo).KeyTypeInfo;
-                Type value_type = GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
+                ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
+                IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
+                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
                 int count = BytesToInt16(value, 0);
                 int idx = 2;
                 Type openType = typeof (List<>);
-                Type listType = openType.MakeGenericType(value_type);
+                Type listType = openType.MakeGenericType(valueType);
                 object ret = Activator.CreateInstance(listType);
                 MethodInfo addM = listType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    short val_buf_len = BytesToInt16(value, idx);
+                    short valBufLen = BytesToInt16(value, idx);
                     idx += 2;
-                    var val_buf = new byte[val_buf_len];
-                    Buffer.BlockCopy(value, idx, val_buf, 0, val_buf_len);
-                    idx += val_buf_len;
-                    addM.Invoke(ret, new[] {CqlConvert(val_buf, list_typecode, list_typeinfo)});
+                    var valBuf = new byte[valBufLen];
+                    Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
+                    idx += valBufLen;
+                    addM.Invoke(ret, new[] {CqlConvert(valBuf, listTypecode, listTypeinfo)});
                 }
                 return ret;
             }
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetDefaultTypeFromSet(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromSet(IColumnInfo typeInfo)
         {
-            if (type_info is SetColumnInfo)
+            if (typeInfo is SetColumnInfo)
             {
-                ColumnTypeCode list_typecode = (type_info as SetColumnInfo).KeyTypeCode;
-                IColumnInfo list_typeinfo = (type_info as SetColumnInfo).KeyTypeInfo;
-                Type value_type = GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
+                ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
+                IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
+                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
                 Type openType = typeof (IEnumerable<>);
-                Type listType = openType.MakeGenericType(value_type);
+                Type listType = openType.MakeGenericType(valueType);
                 return listType;
             }
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static byte[] InvConvertFromSet(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromSet(IColumnInfo typeInfo, object value)
         {
-            Type listType = GetDefaultTypeFromSet(type_info);
+            Type listType = GetDefaultTypeFromSet(typeInfo);
             CheckArgument(listType, value);
-            ColumnTypeCode list_typecode = (type_info as SetColumnInfo).KeyTypeCode;
-            IColumnInfo list_typeinfo = (type_info as SetColumnInfo).KeyTypeInfo;
+            ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
+            IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
 
             var bufs = new List<byte[]>();
             int cnt = 0;
@@ -409,8 +409,8 @@ namespace Cassandra
             idx += 2;
             foreach (byte[] buf in bufs)
             {
-                byte[] val_buf_size = Int16ToBytes((short) buf.Length);
-                Buffer.BlockCopy(val_buf_size, 0, ret, idx, 2);
+                byte[] valBufSize = Int16ToBytes((short) buf.Length);
+                Buffer.BlockCopy(valBufSize, 0, ret, idx, 2);
                 idx += 2;
                 Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
                 idx += buf.Length;
@@ -419,19 +419,19 @@ namespace Cassandra
             return ret;
         }
 
-        public static object ConvertFromTimestamp(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromTimestamp(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             if (cSharpType == null || cSharpType.Equals(typeof (DateTimeOffset)))
                 return BytesToDateTimeOffset(value, 0);
             return BytesToDateTimeOffset(value, 0).DateTime;
         }
 
-        public static Type GetDefaultTypeFromTimestamp(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromTimestamp(IColumnInfo typeInfo)
         {
             return typeof (DateTimeOffset);
         }
 
-        public static byte[] InvConvertFromTimestamp(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromTimestamp(IColumnInfo typeInfo, object value)
         {
             CheckArgument<DateTimeOffset, DateTime>(value);
             if (value is DateTimeOffset)
@@ -445,56 +445,56 @@ namespace Cassandra
                                              : new DateTimeOffset(dt));
         }
 
-        public static object ConvertFromTimeuuid(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromTimeuuid(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return new Guid(GuidShuffle(value));
         }
 
-        public static Type GetDefaultTypeFromTimeuuid(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromTimeuuid(IColumnInfo typeInfo)
         {
             return typeof (Guid);
         }
 
-        public static byte[] InvConvertFromTimeuuid(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromTimeuuid(IColumnInfo typeInfo, object value)
         {
             CheckArgument<Guid>(value);
             return GuidShuffle(((Guid) value).ToByteArray());
         }
 
-        public static object ConvertFromMap(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromMap(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (type_info is MapColumnInfo)
+            if (typeInfo is MapColumnInfo)
             {
-                ColumnTypeCode key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
-                IColumnInfo key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
-                ColumnTypeCode value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
-                IColumnInfo value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
-                Type key_type = GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
-                Type value_type = GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
+                ColumnTypeCode keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
+                IColumnInfo keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
+                ColumnTypeCode valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
+                IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
+                Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
+                Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
                 int count = BytesToInt16(value, 0);
                 int idx = 2;
                 Type openType = typeof (SortedDictionary<,>);
-                Type dicType = openType.MakeGenericType(key_type, value_type);
+                Type dicType = openType.MakeGenericType(keyType, valueType);
                 object ret = Activator.CreateInstance(dicType);
                 MethodInfo addM = dicType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    short key_buf_len = BytesToInt16(value, idx);
+                    short keyBufLen = BytesToInt16(value, idx);
                     idx += 2;
-                    var key_buf = new byte[key_buf_len];
-                    Buffer.BlockCopy(value, idx, key_buf, 0, key_buf_len);
-                    idx += key_buf_len;
+                    var keyBuf = new byte[keyBufLen];
+                    Buffer.BlockCopy(value, idx, keyBuf, 0, keyBufLen);
+                    idx += keyBufLen;
 
-                    short value_buf_len = BytesToInt16(value, idx);
+                    short valueBufLen = BytesToInt16(value, idx);
                     idx += 2;
-                    var value_buf = new byte[value_buf_len];
-                    Buffer.BlockCopy(value, idx, value_buf, 0, value_buf_len);
-                    idx += value_buf_len;
+                    var valueBuf = new byte[valueBufLen];
+                    Buffer.BlockCopy(value, idx, valueBuf, 0, valueBufLen);
+                    idx += valueBufLen;
 
                     addM.Invoke(ret, new[]
                     {
-                        CqlConvert(key_buf, key_typecode, key_typeinfo),
-                        CqlConvert(value_buf, value_typecode, value_typeinfo)
+                        CqlConvert(keyBuf, keyTypecode, keyTypeinfo),
+                        CqlConvert(valueBuf, valueTypecode, valueTypeinfo)
                     });
                 }
                 return ret;
@@ -502,44 +502,44 @@ namespace Cassandra
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetDefaultTypeFromMap(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromMap(IColumnInfo typeInfo)
         {
-            if (type_info is MapColumnInfo)
+            if (typeInfo is MapColumnInfo)
             {
-                ColumnTypeCode key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
-                IColumnInfo key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
-                ColumnTypeCode value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
-                IColumnInfo value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
-                Type key_type = GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
-                Type value_type = GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
+                ColumnTypeCode keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
+                IColumnInfo keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
+                ColumnTypeCode valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
+                IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
+                Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
+                Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
 
                 Type openType = typeof (IDictionary<,>);
-                Type dicType = openType.MakeGenericType(key_type, value_type);
+                Type dicType = openType.MakeGenericType(keyType, valueType);
                 return dicType;
             }
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static byte[] InvConvertFromMap(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromMap(IColumnInfo typeInfo, object value)
         {
-            Type dicType = GetDefaultTypeFromMap(type_info);
+            Type dicType = GetDefaultTypeFromMap(typeInfo);
             CheckArgument(dicType, value);
-            ColumnTypeCode key_typecode = (type_info as MapColumnInfo).KeyTypeCode;
-            IColumnInfo key_typeinfo = (type_info as MapColumnInfo).KeyTypeInfo;
-            ColumnTypeCode value_typecode = (type_info as MapColumnInfo).ValueTypeCode;
-            IColumnInfo value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
-            Type key_type = GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
-            Type value_type = GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
+            ColumnTypeCode keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
+            IColumnInfo keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
+            ColumnTypeCode valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
+            IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
+            Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
+            Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
 
             var kbufs = new List<byte[]>();
             var vbufs = new List<byte[]>();
             int cnt = 0;
             int bsize = 2;
 
-            PropertyInfo key_prop = dicType.GetProperty("Keys");
-            PropertyInfo value_prop = dicType.GetProperty("Values");
+            PropertyInfo keyProp = dicType.GetProperty("Keys");
+            PropertyInfo valueProp = dicType.GetProperty("Values");
 
-            foreach (object obj in key_prop.GetValue(value, new object[] {}) as IEnumerable)
+            foreach (object obj in keyProp.GetValue(value, new object[] {}) as IEnumerable)
             {
                 byte[] buf = InvCqlConvert(obj);
                 kbufs.Add(buf);
@@ -548,7 +548,7 @@ namespace Cassandra
                 cnt++;
             }
 
-            foreach (object obj in value_prop.GetValue(value, new object[] {}) as IEnumerable)
+            foreach (object obj in valueProp.GetValue(value, new object[] {}) as IEnumerable)
             {
                 byte[] buf = InvCqlConvert(obj);
                 vbufs.Add(buf);
@@ -567,16 +567,16 @@ namespace Cassandra
             {
                 {
                     byte[] buf = kbufs[i];
-                    byte[] keyval_buf_size = Int16ToBytes((short) buf.Length);
-                    Buffer.BlockCopy(keyval_buf_size, 0, ret, idx, 2);
+                    byte[] keyvalBufSize = Int16ToBytes((short) buf.Length);
+                    Buffer.BlockCopy(keyvalBufSize, 0, ret, idx, 2);
                     idx += 2;
                     Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
                     idx += buf.Length;
                 }
                 {
                     byte[] buf = vbufs[i];
-                    byte[] keyval_buf_size = Int16ToBytes((short) buf.Length);
-                    Buffer.BlockCopy(keyval_buf_size, 0, ret, idx, 2);
+                    byte[] keyvalBufSize = Int16ToBytes((short) buf.Length);
+                    Buffer.BlockCopy(keyvalBufSize, 0, ret, idx, 2);
                     idx += 2;
                     Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
                     idx += buf.Length;
@@ -586,85 +586,85 @@ namespace Cassandra
             return ret;
         }
 
-        public static object ConvertFromText(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromText(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return Encoding.UTF8.GetString(value);
         }
 
-        public static Type GetDefaultTypeFromText(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromText(IColumnInfo typeInfo)
         {
             return typeof (string);
         }
 
-        public static byte[] InvConvertFromText(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromText(IColumnInfo typeInfo, object value)
         {
             CheckArgument<string>(value);
             return Encoding.UTF8.GetBytes((string) value);
         }
 
-        public static object ConvertFromVarchar(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromVarchar(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return Encoding.UTF8.GetString(value);
         }
 
-        public static Type GetDefaultTypeFromVarchar(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromVarchar(IColumnInfo typeInfo)
         {
             return typeof (string);
         }
 
-        public static byte[] InvConvertFromVarchar(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromVarchar(IColumnInfo typeInfo, object value)
         {
             CheckArgument<string>(value);
             return Encoding.UTF8.GetBytes((string) value);
         }
 
-        public static object ConvertFromList(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromList(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (type_info is ListColumnInfo)
+            if (typeInfo is ListColumnInfo)
             {
-                ColumnTypeCode list_typecode = (type_info as ListColumnInfo).ValueTypeCode;
-                IColumnInfo list_typeinfo = (type_info as ListColumnInfo).ValueTypeInfo;
-                Type value_type = GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
+                ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
+                IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
+                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
                 int count = BytesToInt16(value, 0);
                 int idx = 2;
                 Type openType = typeof (List<>);
-                Type listType = openType.MakeGenericType(value_type);
+                Type listType = openType.MakeGenericType(valueType);
                 object ret = Activator.CreateInstance(listType);
                 MethodInfo addM = listType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    short val_buf_len = BytesToInt16(value, idx);
+                    short valBufLen = BytesToInt16(value, idx);
                     idx += 2;
-                    var val_buf = new byte[val_buf_len];
-                    Buffer.BlockCopy(value, idx, val_buf, 0, val_buf_len);
-                    idx += val_buf_len;
-                    addM.Invoke(ret, new[] {CqlConvert(val_buf, list_typecode, list_typeinfo)});
+                    var valBuf = new byte[valBufLen];
+                    Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
+                    idx += valBufLen;
+                    addM.Invoke(ret, new[] {CqlConvert(valBuf, listTypecode, listTypeinfo)});
                 }
                 return ret;
             }
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static Type GetDefaultTypeFromList(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromList(IColumnInfo typeInfo)
         {
-            if (type_info is ListColumnInfo)
+            if (typeInfo is ListColumnInfo)
             {
-                ColumnTypeCode list_typecode = (type_info as ListColumnInfo).ValueTypeCode;
-                IColumnInfo list_typeinfo = (type_info as ListColumnInfo).ValueTypeInfo;
-                Type value_type = GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
+                ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
+                IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
+                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
                 Type openType = typeof (IEnumerable<>);
-                Type listType = openType.MakeGenericType(value_type);
+                Type listType = openType.MakeGenericType(valueType);
                 return listType;
             }
             throw new DriverInternalError("Invalid ColumnInfo");
         }
 
-        public static byte[] InvConvertFromList(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromList(IColumnInfo typeInfo, object value)
         {
-            Type listType = GetDefaultTypeFromList(type_info);
+            Type listType = GetDefaultTypeFromList(typeInfo);
             CheckArgument(listType, value);
-            ColumnTypeCode list_typecode = (type_info as ListColumnInfo).ValueTypeCode;
-            IColumnInfo list_typeinfo = (type_info as ListColumnInfo).ValueTypeInfo;
+            ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
+            IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
 
             var bufs = new List<byte[]>();
             int cnt = 0;
@@ -686,8 +686,8 @@ namespace Cassandra
             idx += 2;
             foreach (byte[] buf in bufs)
             {
-                byte[] val_buf_size = Int16ToBytes((short) buf.Length);
-                Buffer.BlockCopy(val_buf_size, 0, ret, idx, 2);
+                byte[] valBufSize = Int16ToBytes((short) buf.Length);
+                Buffer.BlockCopy(valBufSize, 0, ret, idx, 2);
                 idx += 2;
                 Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
                 idx += buf.Length;
@@ -696,7 +696,7 @@ namespace Cassandra
             return ret;
         }
 
-        public static object ConvertFromInet(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromInet(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             if (value.Length == 4 || value.Length == 16)
             {
@@ -727,12 +727,12 @@ namespace Cassandra
             throw new DriverInternalError("Invalid lenght of Inet Addr");
         }
 
-        public static Type GetDefaultTypeFromInet(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromInet(IColumnInfo typeInfo)
         {
             return typeof (IPEndPoint);
         }
 
-        public static byte[] InvConvertFromInet(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromInet(IColumnInfo typeInfo, object value)
         {
             CheckArgument<IPEndPoint>(value);
             byte[] addrbytes = (value as IPEndPoint).Address.GetAddressBytes();
@@ -744,35 +744,35 @@ namespace Cassandra
             return ret;
         }
 
-        public static object ConvertFromCounter(IColumnInfo type_info, byte[] _buffer, Type cSharpType)
+        public static object ConvertFromCounter(IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
         {
-            return BytesToInt64(_buffer, 0);
+            return BytesToInt64(buffer, 0);
         }
 
-        public static Type GetDefaultTypeFromCounter(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromCounter(IColumnInfo typeInfo)
         {
             return typeof (long);
         }
 
-        public static byte[] InvConvertFromCounter(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromCounter(IColumnInfo typeInfo, object value)
         {
             CheckArgument<long>(value);
             return Int64ToBytes((long) value);
         }
 
-        public static object ConvertFromDouble(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromDouble(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             var buffer = (byte[]) value.Clone();
             Array.Reverse(buffer);
             return BitConverter.ToDouble(buffer, 0);
         }
 
-        public static Type GetDefaultTypeFromDouble(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromDouble(IColumnInfo typeInfo)
         {
             return typeof (double);
         }
 
-        public static byte[] InvConvertFromDouble(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromDouble(IColumnInfo typeInfo, object value)
         {
             CheckArgument<double>(value);
             byte[] ret = BitConverter.GetBytes((double) value);
@@ -780,35 +780,35 @@ namespace Cassandra
             return ret;
         }
 
-        public static object ConvertFromInt(IColumnInfo type_info, byte[] _buffer, Type cSharpType)
+        public static object ConvertFromInt(IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
         {
-            return BytesToInt32(_buffer, 0);
+            return BytesToInt32(buffer, 0);
         }
 
-        public static Type GetDefaultTypeFromInt(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromInt(IColumnInfo typeInfo)
         {
             return typeof (int);
         }
 
-        public static byte[] InvConvertFromInt(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromInt(IColumnInfo typeInfo, object value)
         {
             CheckArgument<int>(value);
             return Int32ToBytes((int) value);
         }
 
-        public static object ConvertFromFloat(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromFloat(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             var buffer = (byte[]) value.Clone();
             Array.Reverse(buffer);
             return BitConverter.ToSingle(buffer, 0);
         }
 
-        public static Type GetDefaultTypeFromFloat(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromFloat(IColumnInfo typeInfo)
         {
             return typeof (float);
         }
 
-        public static byte[] InvConvertFromFloat(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromFloat(IColumnInfo typeInfo, object value)
         {
             CheckArgument<float>(value);
             byte[] ret = BitConverter.GetBytes((float) value);
@@ -816,19 +816,19 @@ namespace Cassandra
             return ret;
         }
 
-        public static object ConvertFromCustom(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromCustom(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             return value;
 //            return Encoding.UTF8.GetString((byte[])value);
         }
 
-        public static Type GetDefaultTypeFromCustom(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromCustom(IColumnInfo typeInfo)
         {
             return typeof (byte[]);
 //            return typeof(string);
         }
 
-        public static byte[] InvConvertFromCustom(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromCustom(IColumnInfo typeInfo, object value)
         {
             CheckArgument<byte[]>(value);
             return (byte[]) value;
@@ -836,17 +836,17 @@ namespace Cassandra
 //            return Encoding.UTF8.GetBytes((string)value);
         }
 
-        public static object ConvertFromBoolean(IColumnInfo type_info, byte[] _buffer, Type cSharpType)
+        public static object ConvertFromBoolean(IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
         {
-            return _buffer[0] == 1;
+            return buffer[0] == 1;
         }
 
-        public static Type GetDefaultTypeFromBoolean(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromBoolean(IColumnInfo typeInfo)
         {
             return typeof (bool);
         }
 
-        public static byte[] InvConvertFromBoolean(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromBoolean(IColumnInfo typeInfo, object value)
         {
             CheckArgument<bool>(value);
             var buffer = new byte[1];
@@ -854,27 +854,27 @@ namespace Cassandra
             return buffer;
         }
 
-        public static object ConvertFromDecimal(IColumnInfo type_info, byte[] value, Type cSharpType)
+        public static object ConvertFromDecimal(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             var buffer = (byte[]) value.Clone();
             return TypeAdapters.DecimalTypeAdapter.ConvertFrom(buffer);
         }
 
-        public static Type GetDefaultTypeFromDecimal(IColumnInfo type_info)
+        public static Type GetDefaultTypeFromDecimal(IColumnInfo typeInfo)
         {
             return TypeAdapters.DecimalTypeAdapter.GetDataType();
         }
 
-        public static byte[] InvConvertFromDecimal(IColumnInfo type_info, object value)
+        public static byte[] InvConvertFromDecimal(IColumnInfo typeInfo, object value)
         {
             byte[] ret = TypeAdapters.DecimalTypeAdapter.ConvertTo(value);
             return ret;
         }
 
-        private delegate object CqlConvertDel(IColumnInfo type_info, byte[] buffer, Type cSharpType);
+        private delegate object CqlConvertDel(IColumnInfo typeInfo, byte[] buffer, Type cSharpType);
 
-        private delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo type_info);
+        private delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo typeInfo);
 
-        private delegate byte[] InvCqlConvertDel(IColumnInfo type_info, object value);
+        private delegate byte[] InvCqlConvertDel(IColumnInfo typeInfo, object value);
     }
 }

@@ -25,7 +25,7 @@ namespace Cassandra
         internal readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>> Tables =
             new AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>>(null);
 
-        internal readonly ControlConnection _cc;
+        private readonly ControlConnection _cc;
 
         /// <summary>
         ///  Gets the name of this keyspace.

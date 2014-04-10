@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Cassandra
@@ -155,11 +156,11 @@ namespace Cassandra
                 new Dictionary<string, string>
                 {
                     {COMMENT, comment},
-                    {READ_REPAIR, readRepair.ToString()},
-                    {LOCAL_READ_REPAIR, localReadRepair.ToString()},
+                    {READ_REPAIR, readRepair.ToString(CultureInfo.InvariantCulture)},
+                    {LOCAL_READ_REPAIR, localReadRepair.ToString(CultureInfo.InvariantCulture)},
                     {REPLICATE_ON_WRITE, replicateOnWrite.ToString()},
-                    {GC_GRACE, gcGrace.ToString()},
-                    {BF_FP_CHANCE, bfFpChance.ToString()},
+                    {GC_GRACE, gcGrace.ToString(CultureInfo.InvariantCulture)},
+                    {BF_FP_CHANCE, bfFpChance.ToString(CultureInfo.InvariantCulture)},
                     {CACHING, caching},
                     {COMPACTION_OPTIONS, Utils.ConvertToCqlMap(compactionOptions)},
                     {COMPRESSION_PARAMS, Utils.ConvertToCqlMap(compressionParams)}

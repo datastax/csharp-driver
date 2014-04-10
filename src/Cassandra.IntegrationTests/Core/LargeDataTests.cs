@@ -142,7 +142,7 @@ namespace Cassandra.IntegrationTests.Core
             // Write data
             var b = new StringBuilder();
             for (int i = 0; i < 1000; ++i)
-                b.Append(i.ToString()); // Create ultra-long text
+                b.Append(i); // Create ultra-long text
 
             session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b), ConsistencyLevel.Quorum);
 

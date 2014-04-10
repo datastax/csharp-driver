@@ -20,16 +20,16 @@ namespace Cassandra
 {
     internal class OutputVoid : IOutput, IWaitableForDispose
     {
-        private readonly Guid? _traceID;
+        private readonly Guid? _traceId;
 
-        public Guid? TraceID
+        public Guid? TraceId
         {
-            get { return _traceID; }
+            get { return _traceId; }
         }
 
-        public OutputVoid(Guid? traceID)
+        public OutputVoid(Guid? traceId)
         {
-            _traceID = traceID;
+            _traceId = traceId;
         }
 
         public void Dispose()

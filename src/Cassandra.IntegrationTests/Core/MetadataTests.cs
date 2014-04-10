@@ -80,8 +80,8 @@ namespace Cassandra.IntegrationTests.Core
             int rowKeys = Randomm.Instance.Next(1, columns.Count - 3);
 
             for (int i = 0; i < rowKeys; i++)
-                sb.Append(columns.Keys.Where(key => key.StartsWith("q" + i.ToString())).First() +
-                          ((i == rowKeys - 1) ? "" : ", "));
+                sb.Append(columns.Keys.First(key => key.StartsWith("q" + i.ToString(CultureInfo.InvariantCulture))) + ((i == rowKeys - 1) ? "" : ", "));
+
             string opt = tableOptions != null ? " WITH " + tableOptions : "";
             sb.Append("))" + opt + ";");
 
@@ -93,11 +93,11 @@ namespace Cassandra.IntegrationTests.Core
             foreach (TableColumn metaCol in table.TableColumns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.Name));
-                Assert.True(metaCol.TypeCode ==
-                            columns.Where(tpc => tpc.Key == metaCol.Name).First().Value);
+                Assert.True(metaCol.TypeCode == columns.First(tpc => tpc.Key == metaCol.Name).Value);
                 Assert.True(metaCol.Table == tablename);
                 Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
             }
+
             if (tableOptions != null)
                 Assert.True(tableOptions.Equals(table.Options));
         }

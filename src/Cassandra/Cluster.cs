@@ -179,12 +179,12 @@ namespace Cassandra
         /// <param name="replication">Replication property for this keyspace. To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
         /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
         /// <returns>a new session on this cluster set to default keyspace.</returns>
-        public ISession ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durable_writes = true)
+        public ISession ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             var session = Connect("");
-            session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durable_writes);
+            session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durableWrites);
             session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
             return session;
         }

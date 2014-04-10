@@ -25,7 +25,7 @@ namespace Cassandra
         internal AuthSuccessResponse(ResponseFrame frame)
             : base(frame)
         {
-            Token = BEBinaryReader.ReadBytes();
+            Token = BeBinaryReader.ReadBytes();
         }
 
         internal static AuthSuccessResponse Create(ResponseFrame frame)

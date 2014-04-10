@@ -11,7 +11,8 @@ namespace Cassandra
         private const int StatePending = 0;
         private const int StateCompletedSynchronously = 1;
         private const int StateCompletedAsynchronously = 2;
-        private static long CurId;
+        private static long _curId;
+
         private readonly AsyncCallback _asyncCallback;
         private readonly object _asyncState;
 
@@ -52,7 +53,7 @@ namespace Cassandra
             object sender,
             object tag)
         {
-            Id = Interlocked.Increment(ref CurId);
+            Id = Interlocked.Increment(ref _curId);
             _asyncCallback = asyncCallback;
             _asyncState = state;
             _owner = owner;

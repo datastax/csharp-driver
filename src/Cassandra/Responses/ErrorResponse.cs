@@ -24,9 +24,9 @@ namespace Cassandra
         internal ErrorResponse(ResponseFrame frame) 
             : base(frame)
         {
-            int errorCode = BEBinaryReader.ReadInt32();
-            string message = BEBinaryReader.ReadString();
-            Output = OutputError.CreateOutputError(errorCode, message, BEBinaryReader);
+            int errorCode = BeBinaryReader.ReadInt32();
+            string message = BeBinaryReader.ReadString();
+            Output = OutputError.CreateOutputError(errorCode, message, BeBinaryReader);
         }
 
         internal static ErrorResponse Create(ResponseFrame frame)

@@ -40,7 +40,7 @@ namespace Cassandra
         }
 #endif
  
-        private static readonly Logger _logger = new Logger(typeof (CassandraConnection));
+        private static readonly Logger Logger = new Logger(typeof (CassandraConnection));
         private static readonly FrameParser FrameParser = new FrameParser();
         private readonly BoolSwitch _alreadyDisposed = new BoolSwitch();
         private readonly IAuthInfoProvider _authInfoProvider;
@@ -73,9 +73,9 @@ namespace Cassandra
             {"CQL_VERSION", "3.0.0"}
         };
 
-        private readonly AtomicValue<string> currentKs = new AtomicValue<string>("");
-        private readonly ConcurrentDictionary<byte[], string> preparedQueries = new ConcurrentDictionary<byte[], string>();
-        private readonly AtomicValue<string> selectedKs = new AtomicValue<string>("");
+        private readonly AtomicValue<string> _currentKs = new AtomicValue<string>("");
+        private readonly ConcurrentDictionary<byte[], string> _preparedQueries = new ConcurrentDictionary<byte[], string>();
+        private readonly AtomicValue<string> _selectedKs = new AtomicValue<string>("");
 
         internal Guid Guid;
         private volatile byte _binaryProtocolRequestVersionByte = RequestFrame.ProtocolV2RequestVersionByte;
@@ -192,7 +192,7 @@ namespace Cassandra
                 catch (SocketException ex)
                 {
                     targetHost = serverAddress.ToString();
-                    _logger.Error(
+                    Logger.Error(
                         String.Format(
                             "SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.",
                             _serverAddress), ex);
@@ -607,10 +607,10 @@ namespace Cassandra
             throw new DriverInternalError("Unexpected response frame");
         }
 
-        public IAsyncResult BeginRegisterForCassandraEvent(int _streamId, CassandraEventType eventTypes, AsyncCallback callback, object state,
+        public IAsyncResult BeginRegisterForCassandraEvent(int streamId, CassandraEventType eventTypes, AsyncCallback callback, object state,
                                                            object owner)
         {
-            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "REGISTER");
+            AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "REGISTER");
             BeginJob(jar, () =>
             {
                 Evaluate(new RegisterForEventRequest(jar.StreamId, eventTypes), jar.StreamId, frame2 =>
@@ -635,22 +635,22 @@ namespace Cassandra
             return EndRegisterForCassandraEvent(BeginRegisterForCassandraEvent(streamId, eventTypes, null, null, this), this);
         }
 
-        private Dictionary<byte[], string> NotContainsInAlreadyPrepared(Dictionary<byte[], string> Ids)
+        private Dictionary<byte[], string> NotContainsInAlreadyPrepared(Dictionary<byte[], string> ids)
         {
             var ret = new Dictionary<byte[], string>();
-            foreach (byte[] key in Ids.Keys)
+            foreach (byte[] key in ids.Keys)
             {
-                if (!preparedQueries.ContainsKey(key))
-                    ret.Add(key, Ids[key]);
+                if (!_preparedQueries.ContainsKey(key))
+                    ret.Add(key, ids[key]);
             }
             return ret;
         }
 
-        public Action SetupPreparedQueries(AsyncResult<IOutput> jar, Dictionary<byte[], string> Ids, Action dx)
+        public Action SetupPreparedQueries(AsyncResult<IOutput> jar, Dictionary<byte[], string> ids, Action dx)
         {
             return () =>
             {
-                Dictionary<byte[], string> ncip = NotContainsInAlreadyPrepared(Ids);
+                Dictionary<byte[], string> ncip = NotContainsInAlreadyPrepared(ids);
                 if (ncip.Count > 0)
                 {
                     foreach (KeyValuePair<byte[], string> ncipit in ncip)
@@ -660,8 +660,8 @@ namespace Cassandra
                             AbstractResponse response = FrameParser.Parse(frame2);
                             if (response is ResultResponse)
                             {
-                                preparedQueries.TryAdd(ncipit.Key, ncipit.Value);
-                                BeginJob(jar, SetupPreparedQueries(jar, Ids, dx));
+                                _preparedQueries.TryAdd(ncipit.Key, ncipit.Value);
+                                BeginJob(jar, SetupPreparedQueries(jar, ids, dx));
                             }
                             else
                                 _protocolErrorHandlerAction(new ErrorActionParam {AbstractResponse = response, Jar = jar});
@@ -697,11 +697,11 @@ namespace Cassandra
             return ret;
         }
 
-        public IAsyncResult BeginBatch(int _streamId, BatchType batchType, List<Statement> queries,
+        public IAsyncResult BeginBatch(int streamId, BatchType batchType, List<Statement> queries,
                                        AsyncCallback callback, object state, object owner,
                                        ConsistencyLevel consistency, bool isTracing)
         {
-            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "BATCH");
+            AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "BATCH");
 
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries), () =>
@@ -729,18 +729,18 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "BATCH");
         }
 
-        public Action SetupPreparedQuery(AsyncResult<IOutput> jar, byte[] Id, string cql, Action dx)
+        public Action SetupPreparedQuery(AsyncResult<IOutput> jar, byte[] id, string cql, Action dx)
         {
             return () =>
             {
-                if (!preparedQueries.ContainsKey(Id))
+                if (!_preparedQueries.ContainsKey(id))
                 {
                     Evaluate(new PrepareRequest(jar.StreamId, cql), jar.StreamId, frame2 =>
                     {
                         AbstractResponse response = FrameParser.Parse(frame2);
                         if (response is ResultResponse)
                         {
-                            preparedQueries.TryAdd(Id, cql);
+                            _preparedQueries.TryAdd(id, cql);
                             dx();
                         }
                         else
@@ -752,15 +752,15 @@ namespace Cassandra
             };
         }
 
-        public IAsyncResult BeginExecuteQuery(int _streamId, byte[] Id, string cql, RowSetMetadata Metadata,
+        public IAsyncResult BeginExecuteQuery(int streamId, byte[] id, string cql, RowSetMetadata metadata,
                                               AsyncCallback callback, object state, object owner,
                                               bool isTracing, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency = null)
         {
-            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "EXECUTE");
+            AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "EXECUTE");
 
-            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, Id, cql, () =>
+            BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, id, cql, () =>
             {
-                Evaluate(new ExecuteRequest(jar.StreamId, Id, Metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
+                Evaluate(new ExecuteRequest(jar.StreamId, id, metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
                          frame2 =>
                          {
                              AbstractResponse response = FrameParser.Parse(frame2);
@@ -783,17 +783,17 @@ namespace Cassandra
             return AsyncResult<IOutput>.End(result, owner, "EXECUTE");
         }
 
-        public IOutput ExecuteQuery(int streamId, byte[] Id, string cql, RowSetMetadata Metadata,
+        public IOutput ExecuteQuery(int streamId, byte[] id, string cql, RowSetMetadata metadata,
                                     bool isTracing, QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency)
         {
-            return EndExecuteQuery(BeginExecuteQuery(streamId, Id, cql, Metadata, null, null, this, isTracing, queryPrtclOptions, consistency),
+            return EndExecuteQuery(BeginExecuteQuery(streamId, id, cql, metadata, null, null, this, isTracing, queryPrtclOptions, consistency),
                                    this);
         }
 
-        public IAsyncResult BeginExecuteQueryCredentials(int _streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state,
+        public IAsyncResult BeginExecuteQueryCredentials(int streamId, IDictionary<string, string> credentials, AsyncCallback callback, object state,
                                                          object owner)
         {
-            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "CREDENTIALS");
+            AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "CREDENTIALS");
             BeginJob(jar, () =>
             {
                 Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, frame2 =>
@@ -820,22 +820,22 @@ namespace Cassandra
 
         public void SetKeyspace(string ks)
         {
-            selectedKs.Value = ks;
+            _selectedKs.Value = ks;
         }
 
         public Action SetupKeyspace(AsyncResult<IOutput> jar, Action dx)
         {
             return () =>
             {
-                if (!currentKs.Value.Equals(selectedKs.Value))
+                if (!_currentKs.Value.Equals(_selectedKs.Value))
                 {
-                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCQL(selectedKs.Value), false, QueryProtocolOptions.DEFAULT),
+                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCql(_selectedKs.Value), false, QueryProtocolOptions.Default),
                              jar.StreamId, frame3 =>
                              {
                                  AbstractResponse response = FrameParser.Parse(frame3);
                                  if (response is ResultResponse)
                                  {
-                                     currentKs.Value = selectedKs.Value;
+                                     _currentKs.Value = _selectedKs.Value;
                                      dx();
                                  }
                                  else
@@ -847,10 +847,10 @@ namespace Cassandra
             };
         }
 
-        public IAsyncResult BeginQuery(int _streamId, string cqlQuery, AsyncCallback callback, object state, object owner, bool tracingEnabled,
+        public IAsyncResult BeginQuery(int streamId, string cqlQuery, AsyncCallback callback, object state, object owner, bool tracingEnabled,
                                        QueryProtocolOptions queryPrtclOptions, ConsistencyLevel? consistency = null)
         {
-            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "QUERY");
+            AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "QUERY");
             BeginJob(jar, SetupKeyspace(jar, () =>
             {
                 Evaluate(new QueryRequest(jar.StreamId, cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, frame2 =>
@@ -888,7 +888,7 @@ namespace Cassandra
                     {
                         IOutput outp = (response as ResultResponse).Output;
                         if (outp is OutputPrepared)
-                            preparedQueries[(outp as OutputPrepared).QueryID] = cqlQuery;
+                            _preparedQueries[(outp as OutputPrepared).QueryId] = cqlQuery;
                         JobFinished(jar, outp);
                     }
                     else
@@ -908,9 +908,9 @@ namespace Cassandra
             return EndPrepareQuery(BeginPrepareQuery(streamId, cqlQuery, null, null, this), this);
         }
 
-        public IAsyncResult BeginExecuteQueryOptions(int _streamId, AsyncCallback callback, object state, object owner)
+        public IAsyncResult BeginExecuteQueryOptions(int streamId, AsyncCallback callback, object state, object owner)
         {
-            AsyncResult<IOutput> jar = SetupJob(_streamId, callback, state, owner, "OPTIONS");
+            AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "OPTIONS");
 
             BeginJob(jar, () =>
             {

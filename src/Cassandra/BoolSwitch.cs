@@ -4,16 +4,16 @@ namespace Cassandra
 {
     internal class BoolSwitch
     {
-        private int val;
+        private int _val;
 
         public bool TryTake()
         {
-            return Interlocked.Increment(ref val) == 1;
+            return Interlocked.Increment(ref _val) == 1;
         }
 
         public bool IsTaken()
         {
-            return val > 0;
+            return _val > 0;
         }
     }
 }

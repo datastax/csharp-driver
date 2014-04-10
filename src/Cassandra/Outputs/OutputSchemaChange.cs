@@ -20,19 +20,19 @@ namespace Cassandra
 {
     internal class OutputSchemaChange : IOutput, IWaitableForDispose
     {
-        private readonly Guid? _traceID;
+        private readonly Guid? _traceId;
         public string Change;
         public string Keyspace;
         public string Table;
 
-        public Guid? TraceID
+        public Guid? TraceId
         {
-            get { return _traceID; }
+            get { return _traceId; }
         }
 
-        internal OutputSchemaChange(BEBinaryReader reader, Guid? traceID)
+        internal OutputSchemaChange(BEBinaryReader reader, Guid? traceId)
         {
-            _traceID = traceID;
+            _traceId = traceId;
             Change = reader.ReadString();
             Keyspace = reader.ReadString();
             Table = reader.ReadString();

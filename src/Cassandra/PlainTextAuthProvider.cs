@@ -29,8 +29,8 @@ namespace Cassandra
     /// </summary>
     public class PlainTextAuthProvider : IAuthProvider
     {
-        private readonly string password;
-        private readonly string username;
+        private readonly string _password;
+        private readonly string _username;
 
         /// <summary>
         ///  Creates a new simple authentication information provider with the supplied
@@ -40,8 +40,8 @@ namespace Cassandra
         /// <param name="password"> to use for authentication requests</param>
         public PlainTextAuthProvider(string username, string password)
         {
-            this.username = username;
-            this.password = password;
+            _username = username;
+            _password = password;
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace Cassandra
         ///  an error is encountered when initialising the authenticator</throws>
         public IAuthenticator NewAuthenticator(IPAddress host)
         {
-            return new PlainTextAuthenticator(username, password);
+            return new PlainTextAuthenticator(_username, _password);
         }
 
         /// <summary>

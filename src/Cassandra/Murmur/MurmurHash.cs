@@ -30,8 +30,8 @@ internal class MurmurHash
 {
     private static long GetBlock(byte[] key, int offset, int index)
     {
-        int i_8 = index << 3;
-        int blockOffset = offset + i_8;
+        int i8 = index << 3;
+        int blockOffset = offset + i8;
         return ((long) key[blockOffset + 0] & 0xff) + (((long) key[blockOffset + 1] & 0xff) << 8) +
                (((long) key[blockOffset + 2] & 0xff) << 16) + (((long) key[blockOffset + 3] & 0xff) << 24) +
                (((long) key[blockOffset + 4] & 0xff) << 32) + (((long) key[blockOffset + 5] & 0xff) << 40) +
@@ -158,7 +158,6 @@ internal class MurmurHash
                     h1 ^= k1;
                     break;
             }
-            ;
         }
         //----------
         // finalization
