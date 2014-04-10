@@ -12,7 +12,7 @@ namespace Cassandra.IntegrationTests.Data
     public class AdoUnitTests
     {
         /// <summary>
-        /// Determines that the 
+        /// Determines that the CqlCommand.ExecuteReader method uses Session.Execute sync method.
         /// </summary>
         [Test]
         public void CommandExecuteReaderUsesSyncExecute()
