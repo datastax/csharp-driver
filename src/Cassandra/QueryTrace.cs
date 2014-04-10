@@ -25,11 +25,11 @@ namespace Cassandra
     ///  when query tracing is enabled for the query. The trace itself is stored in
     ///  Cassandra in the <code>sessions</code> and <code>events</code> table in the
     ///  <code>system_traces</code> keyspace and can be retrieve manually using the
-    ///  trace identifier (the one returned by <link>#getTraceId</link>). <p> This
+    ///  trace identifier (the one returned by <link>#getTraceId</link>). </p><p> This
     ///  class provides facilities to fetch the traces from Cassandra. Please note
     ///  that the writting of the trace is done asynchronously in Cassandra. So
     ///  accessing the trace too soon after the query may result in the trace being
-    ///  incomplete.
+    ///  incomplete.</p>
     /// </summary>
     public class QueryTrace
     {

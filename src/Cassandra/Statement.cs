@@ -224,12 +224,12 @@ namespace Cassandra
         /// <p>
         /// Also note that only {@code SELECT} queries ever make use of that
         /// setting.
+        /// </p>
         ///
-        /// @param fetchSize the fetch size to use. If {@code fetchSize &lte; 0},
+        /// @param fetchSize the fetch size to use. If {@code fetchSize &lt;= 0},
         /// the default fetch size will be used. To disable paging of the
         /// result set, use {@code fetchSize == Integer.MAX_VALUE}.
         /// @return this {@code Statement} object.
-        ///
         /// </summary>
         /// <param name="pageSize">the page size to use. If set to 0 or less, the default value will be used.
         /// To disable paging of the result set, use int.MaxValue</param>

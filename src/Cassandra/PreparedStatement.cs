@@ -77,9 +77,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to
         ///  obtain the routing key. </param>
-        /// 
-        /// <returns>this <code>PreparedStatement</code> object.
-        ///  <see>Query#GetRoutingKey</returns>
+        /// <returns>this <code>PreparedStatement</code> object.  <see>Query#GetRoutingKey</see></returns>
         public PreparedStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);

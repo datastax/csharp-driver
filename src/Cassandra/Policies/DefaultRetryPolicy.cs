@@ -57,7 +57,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns><code>RetryDecision.retry(cl)</code> if no retry attempt has yet
-        ///  been tried and <code>receivedResponses >= requiredResponses &&
+        ///  been tried and <code>receivedResponses >= requiredResponses &amp;&amp;
         ///  !dataRetrieved</code>, <code>RetryDecision.rethrow()</code>
         ///  otherwise.</returns>
         public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,

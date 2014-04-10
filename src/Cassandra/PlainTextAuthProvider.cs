@@ -25,7 +25,7 @@ namespace Cassandra
     ///  to programmatically define authentication information that will then apply to
     ///  all hosts. The PlainTextAuthenticator instances it returns support SASL
     ///  authentication using the PLAIN mechanism for version 2 of the CQL __native__
-    ///  protocol.
+    ///  protocol.</p>
     /// </summary>
     public class PlainTextAuthProvider : IAuthProvider
     {

@@ -64,11 +64,13 @@ namespace Cassandra
         /// Begins asynchronous prepare operation
         /// </summary>
         IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state);
+
         /// <summary>
         ///  Switches to the specified keyspace.
         /// </summary>
-        /// <param name="keyspace_name">Name of keyspace that is to be used.</param
+        /// <param name="keyspace_name">Name of keyspace that is to be used.</param>
         void ChangeKeyspace(string keyspace_name);
+
         /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>

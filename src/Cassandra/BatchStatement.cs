@@ -69,12 +69,8 @@ namespace Cassandra
         ///  <link>#setRoutingKey(ByteBuffer...)</link> method instead to build the
         ///  routing key.</p>
         /// </summary>
-        /// <param name="routingKeyComponents"> the raw (binary) values to compose to
-        ///  obtain the routing key.
-        ///  </param>
-        /// 
-        /// <returns>this <code>BatchStatement</code> object.
-        ///  <see>Query#getRoutingKey</returns>
+        /// <param name="routingKeyComponents"> the raw (binary) values to compose to obtain the routing key.</param>
+        /// <returns>this <code>BatchStatement</code> object. <see>Query#getRoutingKey</see></returns>
         public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);

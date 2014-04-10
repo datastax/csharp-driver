@@ -66,14 +66,11 @@ namespace Cassandra
         ///  excess are reclaimed. <p> If an opened connection to an host at distance
         ///  <code>distance</code> handles less than this number of simultaneous requests
         ///  and there is more than <link>#GetCoreConnectionsPerHost</link> connections
-        ///  open to this host, the connection is closed. <p> The default value for this
+        ///  open to this host, the connection is closed. </p><p> The default value for this
         ///  option is 25 for <code>Local</code> and <code>Remote</code> hosts.</p>
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
-        ///  </param>
-        /// 
-        /// <returns>the configured threshold, or the default one if none have been
-        ///  set.</returns>
+        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.</param>
+        /// <returns>the configured threshold, or the default one if none have been set.</returns>
         public int GetMinSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
             switch (distance)
@@ -118,15 +115,12 @@ namespace Cassandra
         ///  distance <code>* distance</code> connection are handling more than this
         ///  number of simultaneous requests and there is less than
         ///  <link>#getMaxConnectionPerHost</link> connections open to this host, a new
-        ///  connection is open. <p> Note that a given connection cannot handle more than
-        ///  128 simultaneous requests (protocol limitation). <p> The default value for
+        ///  connection is open. </p><p> Note that a given connection cannot handle more than
+        ///  128 simultaneous requests (protocol limitation). </p><p> The default value for
         ///  this option is 100 for <code>Local</code> and <code>Remote</code> hosts.</p>
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
-        ///  </param>
-        /// 
-        /// <returns>the configured threshold, or the default one if none have been
-        ///  set.</returns>
+        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.</param>
+        /// <returns>the configured threshold, or the default one if none have been set.</returns>
         public int GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
             switch (distance)

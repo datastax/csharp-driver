@@ -52,9 +52,8 @@ namespace Cassandra
 
         /// <summary>
         ///  Returns the compression used by the protocol. <p> The default compression is
-        ///  <code>Compression.SNAPPY</code>.
+        ///  <code>Compression.SNAPPY</code>.</p>
         /// </summary>
-        /// 
         /// <returns>the compression used.</returns>
         public CompressionType Compression
         {

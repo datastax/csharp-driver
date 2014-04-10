@@ -14,7 +14,7 @@ namespace Cassandra
     ///  assigned the distance <code>Ignored</code>, no connection to that host will
     ///  maintained active. In other words, <code>Ignored</code> should be assigned to
     ///  hosts that should not be used by this driver (because they are in a remote
-    ///  datacenter for instance).
+    ///  datacenter for instance).</p>
     /// </summary>
     public enum HostDistance
     {

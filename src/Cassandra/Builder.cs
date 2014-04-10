@@ -233,13 +233,10 @@ namespace Cassandra
         ///  Uses the provided credentials when connecting to Cassandra hosts. <p> This
         ///  should be used if the Cassandra cluster has been configured to use the
         ///  <code>PasswordAuthenticator</code>. If the the default <code>*
-        ///  AllowAllAuthenticator</code> is used instead, using this method has no effect.
+        ///  AllowAllAuthenticator</code> is used instead, using this method has no effect.</p>
         /// </summary>
-        /// <param name="username"> the username to use to login to Cassandra hosts.
-        ///  </param>
+        /// <param name="username"> the username to use to login to Cassandra hosts.</param>
         /// <param name="password"> the password corresponding to </param>
-        /// <param name="<code>username"></code>. </param>
-        /// 
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
@@ -253,12 +250,9 @@ namespace Cassandra
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
         ///  call both this method and {@code withCredentials}' on the same
-        ///  <code>Builder</code> instance as one will supercede the other
+        ///  <code>Builder</code> instance as one will supercede the other</p>
         /// </summary>
-        /// <param name="authProvider"> the </param>
-        /// <param name="<link>AuthProvider"></link> to use to login to Cassandra hosts.
-        ///  </param>
-        /// 
+        /// <param name="authProvider"> the <link>AuthProvider"></link> to use to login to Cassandra hosts.</param>
         /// <returns>this Builder</returns>
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {
@@ -312,8 +306,7 @@ namespace Cassandra
         /// advised to enable SSL on every Cassandra node if you plan on using
         /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
         /// </remarks>
-        /// <param name="sslOptions">SSL options to use.</param>
-        /// <returns>this builder</returns>        
+        /// <returns>this builder</returns>
         public Builder WithSSL()
         {
             _sslOptions = new SSLOptions();

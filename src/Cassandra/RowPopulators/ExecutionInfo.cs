@@ -5,7 +5,7 @@ namespace Cassandra
 {
     /// <summary>
     ///  Basic information on the execution of a query. <p> This provides the
-    ///  following information on the execution of a (successful) query: <ul> <li>The
+    ///  following information on the execution of a (successful) query: </p> <ul> <li>The
     ///  list of Cassandra hosts tried in order (usually just one, unless a node has
     ///  been tried but was dead/in error or a timeout provoked a retry (which depends
     ///  on the RetryPolicy)).</li> <li>The consistency level achieved by the query
