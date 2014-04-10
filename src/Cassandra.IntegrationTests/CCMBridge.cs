@@ -411,7 +411,7 @@ namespace Cassandra.IntegrationTests
                     {
                         session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, 1));
                     }
-                    catch (AlreadyExistsException e)
+                    catch (AlreadyExistsException)
                     {
                         // It's ok, ignore'
                     }
@@ -424,7 +424,7 @@ namespace Cassandra.IntegrationTests
                         {
                             session.Execute(tableDef);
                         }
-                        catch (AlreadyExistsException e)
+                        catch (AlreadyExistsException)
                         {
                             // It's ok, ignore'
                         }
@@ -432,10 +432,10 @@ namespace Cassandra.IntegrationTests
 
                     schemaCreated = true;
                 }
-                catch (DriverException e)
+                catch (DriverException)
                 {
                     erroredOut = true;
-                    throw e;
+                    throw;
                 }
             }
         }

@@ -97,18 +97,11 @@ namespace Cassandra.IntegrationTests.Core
 
         protected void assertQueriedAtLeast(String host, int n)
         {
-            try
-            {
-                int queried = coordinators[IPAddress.Parse(host)];
-                if (DEBUG)
-                    Debug.WriteLine(String.Format("Expected > {0}\tReceived: {1}", n, queried));
-                else
-                    Assert.True(queried >= n, "For " + host);
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
+            int queried = coordinators[IPAddress.Parse(host)];
+            if (DEBUG)
+                Debug.WriteLine(String.Format("Expected > {0}\tReceived: {1}", n, queried));
+            else
+                Assert.True(queried >= n, "For " + host);
         }
 
         protected void assertAchievedConsistencyLevel(ConsistencyLevel cl)

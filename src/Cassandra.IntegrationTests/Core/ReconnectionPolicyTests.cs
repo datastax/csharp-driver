@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Core
                 new ExponentialReconnectionPolicy(-1, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException e)
+            catch (ArgumentException)
             {
             }
 
@@ -59,7 +59,7 @@ namespace Cassandra.IntegrationTests.Core
                 new ExponentialReconnectionPolicy(1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException e)
+            catch (ArgumentException)
             {
             }
 
@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.Core
                 new ExponentialReconnectionPolicy(-1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException e)
+            catch (ArgumentException)
             {
             }
 
@@ -77,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
                 new ExponentialReconnectionPolicy(2, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException e)
+            catch (ArgumentException)
             {
             }
 
@@ -126,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
                 new ConstantReconnectionPolicy(-1);
                 Assert.Fail();
             }
-            catch (ArgumentException e)
+            catch (ArgumentException)
             {
             }
 
@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
                     query(c, 12);
                     Assert.Fail("Test race condition where node has not shut off quickly enough.");
                 }
-                catch (NoHostAvailableException e)
+                catch (NoHostAvailableException)
                 {
                 }
 
@@ -200,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
                         Assert.True(retryTime - 6 < elapsedSeconds && elapsedSeconds < retryTime + 6,
                                     String.Format("Waited {0} seconds instead an expected {1} seconds wait", elapsedSeconds, retryTime));
                     }
-                    catch (NoHostAvailableException e)
+                    catch (NoHostAvailableException)
                     {
                         Thread.Sleep(1000);
                         continue;

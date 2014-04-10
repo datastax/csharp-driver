@@ -132,22 +132,22 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -238,12 +238,12 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -267,22 +267,22 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -373,12 +373,12 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -402,22 +402,22 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -508,12 +508,12 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -537,22 +537,22 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -644,12 +644,12 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -673,22 +673,22 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -789,12 +789,12 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -818,22 +818,22 @@ namespace Cassandra.IntegrationTests.Core
                         };
                         Assert.True(acceptableErrorMessages.Contains(e.Message), String.Format("Received: {0}", e.Message));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -924,12 +924,12 @@ namespace Cassandra.IntegrationTests.Core
                         init(c, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -944,22 +944,22 @@ namespace Cassandra.IntegrationTests.Core
                         query(c, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {
@@ -1051,12 +1051,12 @@ namespace Cassandra.IntegrationTests.Core
                         init(c, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
@@ -1071,22 +1071,22 @@ namespace Cassandra.IntegrationTests.Core
                         query(c, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         // expected to fail when the client hasn't marked the'
                         // node as DOWN yet
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         // expected to fail when the client has already marked the
                         // node as DOWN
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {

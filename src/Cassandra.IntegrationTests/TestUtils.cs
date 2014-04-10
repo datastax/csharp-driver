@@ -93,7 +93,7 @@ namespace Cassandra.IntegrationTests
             {
                 address = IPAddress.Parse(node);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // That's a problem but that's not *our* problem
                 return;
@@ -118,7 +118,7 @@ namespace Cassandra.IntegrationTests
                 {
                     Thread.Sleep(1000);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                 }
             }

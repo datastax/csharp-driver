@@ -169,7 +169,7 @@ namespace Cassandra.IntegrationTests.Core
                     query(c, 12);
                     Assert.Fail();
                 }
-                catch (NoHostAvailableException e)
+                catch (NoHostAvailableException)
                 {
                     // No more nodes so ...
                 }
@@ -264,7 +264,7 @@ namespace Cassandra.IntegrationTests.Core
                     query(c, 12);
                     Assert.Fail();
                 }
-                catch (NoHostAvailableException e)
+                catch (NoHostAvailableException)
                 {
                     // No more nodes so ...
                 }
@@ -327,10 +327,10 @@ namespace Cassandra.IntegrationTests.Core
                     query(c, 12, usePrepared);
                     Assert.Fail();
                 }
-                catch (UnavailableException e)
+                catch (UnavailableException)
                 {
                 }
-                catch (ReadTimeoutException e)
+                catch (ReadTimeoutException)
                 {
                 }
 

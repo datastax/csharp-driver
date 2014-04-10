@@ -115,12 +115,12 @@ namespace Cassandra.IntegrationTests.Core
                         if (restartOnce)
                             successfulQuery = true;
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         //                        Assert.Equal("Not enough replica available for query at consistency ONE (1 required but only 0 alive)".ToLower(), e.Message.ToLower());
                         unavailableOnce = true;
                     }
-                    catch (ReadTimeoutException e)
+                    catch (ReadTimeoutException)
                     {
                         //                        Assert.Equal("Cassandra timeout during read query at consistency ONE (1 responses were required but only 0 replica responded)".ToLower(), e.Message.ToLower());
                         readTimeoutOnce = true;
@@ -172,12 +172,12 @@ namespace Cassandra.IntegrationTests.Core
                         if (restartOnce)
                             successfulQuery = true;
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         //                        Assert.Equal("Not enough replica available for query at consistency ONE (1 required but only 0 alive)".ToLower(), e.Message.ToLower());
                         unavailableOnce = true;
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         //                        Assert.Equal("Cassandra timeout during write query at consistency ONE (1 replica were required but only 0 acknowledged the write)".ToLower(), e.Message.ToLower());
                         writeTimeoutOnce = true;
@@ -223,12 +223,12 @@ namespace Cassandra.IntegrationTests.Core
                         if (restartOnce)
                             successfulQuery = true;
                     }
-                    catch (UnavailableException e)
+                    catch (UnavailableException)
                     {
                         //                        Assert.Equal("Not enough replica available for query at consistency ONE (1 required but only 0 alive)", e.Message);
                         unavailableOnce = true;
                     }
-                    catch (WriteTimeoutException e)
+                    catch (WriteTimeoutException)
                     {
                         //                        Assert.Equal("Cassandra timeout during write query at consistency ONE (1 replica were required but only 0 acknowledged the write)", e.Message);
                         writeTimeoutOnce = true;
@@ -315,7 +315,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     query(c, 12, ConsistencyLevel.All);
                 }
-                catch (ReadTimeoutException e)
+                catch (ReadTimeoutException)
                 {
                     //                    assertEquals("Cassandra timeout during read query at consistency TWO (2 responses were required but only 1 replica responded)", e.getMessage());
                 }

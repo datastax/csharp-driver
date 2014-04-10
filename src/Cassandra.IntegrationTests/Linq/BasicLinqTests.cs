@@ -173,9 +173,9 @@ namespace Cassandra.IntegrationTests.Linq
                 var x = r;
             }
 
-            foreach (X r in (from e in table where e.isok == true && e.idx == 0 select new X {x = e.author, y = e.idx}).Execute())
+            foreach (var r in (from e in table where e.isok == true && e.idx == 0 select new {x = e.author, y = e.idx}).Execute())
             {
-                X x = r;
+                var x = r;
             }
 
             foreach (string r in (from e in table where e.isok == false && e.idx == 0 select e.author).Execute())
@@ -256,12 +256,6 @@ namespace Cassandra.IntegrationTests.Linq
             {
                 AddTable<Tweets>();
             }
-        }
-
-        private class X
-        {
-            public string x;
-            public int y;
         }
     }
 }

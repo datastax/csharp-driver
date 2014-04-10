@@ -543,7 +543,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                                              }
                                          }, null);
                 }
-                catch (ObjectDisposedException e)
+                catch (ObjectDisposedException)
                 {
                     Console.Write("!");
                     break;
@@ -596,7 +596,6 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             thr.Start();
 
             var monit = new object();
-            int readyCnt = 0;
 
             var errorInjector = new Thread(() =>
             {

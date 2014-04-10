@@ -128,9 +128,9 @@ namespace LinqSamples
 
         public class ExtMovie
         {
-            public int Size;
-            public string TheDirector;
-            public string TheMaker;
+            public int Size { get; set; }
+            public string TheDirector { get; set; }
+            public string TheMaker { get; set; }
         }
 
         [AllowFiltering]

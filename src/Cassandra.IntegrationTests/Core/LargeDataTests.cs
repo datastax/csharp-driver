@@ -224,7 +224,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.WaitForSchemaAgreement(
                     session.Execute("DROP TABLE " + tableName));
             }
-            catch (InvalidQueryException ex)
+            catch (InvalidQueryException)
             {
             }
 
