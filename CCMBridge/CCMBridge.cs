@@ -148,7 +148,7 @@ namespace Cassandra
         public void BootstrapNode(int n, string dc)
         {
 #if !MYTEST
-            if (n > 4)
+            if (n > 5)
                 throw new InvalidOperationException();
 #endif
 
