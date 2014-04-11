@@ -15,37 +15,32 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
     internal abstract class OutputError : IOutput, IWaitableForDispose
     {
-        // Cache of factory methods for creating instances of OutputError, indexed by the error code
-        private static readonly Func<OutputError>[] OutputErrorFactoryMethods;
- 
-        static OutputError()
+        // Cache of methods for creating instances of OutputError, indexed by the error code
+        private static readonly Dictionary<int, Func<OutputError>> OutputErrorFactoryMethods = new Dictionary<int, Func<OutputError>>()
         {
-            // Use 0x2500 as the array size since that's currently the highest error code (a Dictionary lookup would be slower, but
-            // more memory efficient if that becomes an issue)
-            OutputErrorFactoryMethods = new Func<OutputError>[0x2500];
-
             // Add factory methods for all known error codes
-            OutputErrorFactoryMethods[0x0000] = () => new OutputServerError();
-            OutputErrorFactoryMethods[0x000A] = () => new OutputProtocolError();
-            OutputErrorFactoryMethods[0x0100] = () => new OutputBadCredentials();
-            OutputErrorFactoryMethods[0x1000] = () => new OutputUnavailableException();
-            OutputErrorFactoryMethods[0x1001] = () => new OutputOverloaded();
-            OutputErrorFactoryMethods[0x1002] = () => new OutputIsBootstrapping();
-            OutputErrorFactoryMethods[0x1003] = () => new OutputTruncateError();
-            OutputErrorFactoryMethods[0x1100] = () => new OutputWriteTimeout();
-            OutputErrorFactoryMethods[0x1200] = () => new OutputReadTimeout();
-            OutputErrorFactoryMethods[0x2000] = () => new OutputSyntaxError();
-            OutputErrorFactoryMethods[0x2100] = () => new OutputUnauthorized();
-            OutputErrorFactoryMethods[0x2200] = () => new OutputInvalid();
-            OutputErrorFactoryMethods[0x2300] = () => new OutputConfigError();
-            OutputErrorFactoryMethods[0x2400] = () => new OutputAlreadyExists();
-            OutputErrorFactoryMethods[0x2500] = () => new OutputUnprepared();
-        }
+            {0x0000, () => new OutputServerError()          },
+            {0x000A, () => new OutputProtocolError()        },
+            {0x0100, () => new OutputBadCredentials()       },
+            {0x1000, () => new OutputUnavailableException() },
+            {0x1001, () => new OutputOverloaded()           },
+            {0x1002, () => new OutputIsBootstrapping()      },
+            {0x1003, () => new OutputTruncateError()        },
+            {0x1100, () => new OutputWriteTimeout()         },
+            {0x1200, () => new OutputReadTimeout()          },
+            {0x2000, () => new OutputSyntaxError()          },
+            {0x2100, () => new OutputUnauthorized()         },
+            {0x2200, () => new OutputInvalid()              },
+            {0x2300, () => new OutputConfigError()          },
+            {0x2400, () => new OutputAlreadyExists()        },
+            {0x2500, () => new OutputUnprepared()           }
+        };
 
         protected string Message { get; private set; }
 
