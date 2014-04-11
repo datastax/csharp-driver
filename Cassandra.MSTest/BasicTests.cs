@@ -33,7 +33,11 @@ namespace Cassandra.MSTest
         [WorksForMe]
         public void QueryBinding()
         {
-            QueryBindingTest();
+            //There is no support for query binding in protocol v1 
+            if (!Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            {
+                QueryBindingTest();
+            }
         }
 
         [TestMethod]
