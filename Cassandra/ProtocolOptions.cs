@@ -199,13 +199,19 @@ namespace Cassandra
                 Flags |= QueryFlags.WithSerialConsistency;
         }
 
-        internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency)
+        internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency, byte protocolVersion)
         {
+            //protocol v1: <id><n><value_1>....<value_n><consistency>
+            //protocol v2: <id><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
+
             if ((ushort)(extConsistency ?? Consistency) >= (ushort)ConsistencyLevel.Serial)
                 throw new InvalidOperationException("Serial consistency specified as a non-serial one.");
 
-            wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
-            wb.WriteByte((byte)Flags);
+            if (protocolVersion > 1)
+            {
+                wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
+                wb.WriteByte((byte)Flags);
+            }
 
             if ((Flags & QueryFlags.Values) == QueryFlags.Values)
             {
@@ -217,15 +223,23 @@ namespace Cassandra
                 }
             }
 
-            if ((Flags & QueryFlags.PageSize) == QueryFlags.PageSize)
-                wb.WriteInt32(PageSize);
-            if ((Flags & QueryFlags.WithPagingState) == QueryFlags.WithPagingState)
-                wb.WriteBytes(PagingState);
-            if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
+
+            if (protocolVersion == 1)
             {
-                if ((ushort)(SerialConsistency) < (ushort)ConsistencyLevel.Serial)
-                    throw new InvalidOperationException("Non-serial consistency specified as a serial one.");
-                wb.WriteUInt16((ushort)SerialConsistency);
+                wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
+            }
+            else
+            {
+                if ((Flags & QueryFlags.PageSize) == QueryFlags.PageSize)
+                    wb.WriteInt32(PageSize);
+                if ((Flags & QueryFlags.WithPagingState) == QueryFlags.WithPagingState)
+                    wb.WriteBytes(PagingState);
+                if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
+                {
+                    if ((ushort)(SerialConsistency) < (ushort)ConsistencyLevel.Serial)
+                        throw new InvalidOperationException("Non-serial consistency specified as a serial one.");
+                    wb.WriteUInt16((ushort)SerialConsistency);
+                }
             }
         }
     }
