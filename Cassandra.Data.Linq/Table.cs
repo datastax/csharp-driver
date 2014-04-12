@@ -165,22 +165,13 @@ namespace Cassandra.Data.Linq
 
         public void CreateIfNotExists()
         {
-            if (_session.BinaryProtocolVersion > 1)
+            try
             {
-                var cqls = CqlQueryTools.GetCreateCQL(this, true);
-                foreach (var cql in cqls)
-                    _session.WaitForSchemaAgreement(_session.Execute(cql));
+                Create();
             }
-            else
+            catch (AlreadyExistsException)
             {
-                try
-                {
-                    Create();
-                }
-                catch (AlreadyExistsException)
-                {
-                    //do nothing
-                }
+                //do nothing
             }
         }
 
