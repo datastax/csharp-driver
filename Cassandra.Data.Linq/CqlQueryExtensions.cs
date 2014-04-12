@@ -162,6 +162,15 @@ namespace Cassandra.Data.Linq
             return ret;
         }
 
+        public static CqlDelete DeleteIf<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
+        {
+            var ret = new CqlDelete(Expression.Call(
+                null, CqlMthHelps.DeleteIfMi,
+                 new Expression[] { source.Expression, predicate }), source.Provider);
+            source.CopyQueryPropertiesTo(ret);
+            return ret;
+        }
+
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
             var ret = new CqlUpdate(source.Expression, source.Provider);

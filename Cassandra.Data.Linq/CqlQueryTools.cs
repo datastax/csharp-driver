@@ -736,6 +736,7 @@ namespace Cassandra.Data.Linq
         internal static MethodInfo SelectMi = typeof(CqlMthHelps).GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo UpdateIfMi = typeof(CqlMthHelps).GetMethod("UpdateIf", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo DeleteIfMi = typeof(CqlMthHelps).GetMethod("DeleteIf", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo FirstMi = typeof(CqlMthHelps).GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo First_ForCQLTableMi = typeof(CqlMthHelps).GetMethod("First", new Type[] { typeof(ITable), typeof(int), typeof(object) });        
         internal static MethodInfo FirstOrDefaultMi = typeof(CqlMthHelps).GetMethod("FirstOrDefault", BindingFlags.NonPublic | BindingFlags.Static);
@@ -749,6 +750,7 @@ namespace Cassandra.Data.Linq
         internal static object Select(object a, object b) { return null; }
         internal static object Where(object a, object b) { return null; }
         internal static object UpdateIf(object a, object b) { return null; }
+        internal static object DeleteIf(object a, object b) { return null; }
         internal static object First(object a, int b) { return null; }
         internal static object FirstOrDefault(object a, int b) { return null; }
         internal static object Take(object a, int b) { return null; }

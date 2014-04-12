@@ -162,7 +162,7 @@ namespace Cassandra.Data.Linq
 
 
 
-        public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool withValues = true)
+        public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool ifExists = false, bool withValues = true)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("DELETE FROM ");
@@ -179,6 +179,21 @@ namespace Cassandra.Data.Linq
                 sb.Append(" WHERE ");
                 sb.Append(WhereClause);
             }
+
+            if (ifExists)
+            {
+                sb.Append(" IF EXISTS ");
+            }
+
+            if (UpdateIfClause.Length > 0)
+            {
+                if (ifExists)
+                    throw new CqlArgumentException("IfExits and DeleteIf are mutually excusive,");
+
+                sb.Append(" IF ");
+                sb.Append(UpdateIfClause);
+            }
+
             if (SelectFields.Count > 0)
                 throw new CqlArgumentException("Unable to delete entity partially");
 
@@ -372,7 +387,7 @@ namespace Cassandra.Data.Linq
                 }
                 return node;
             }
-            else if (node.Method.Name == "UpdateIf")
+            else if (node.Method.Name == "UpdateIf" || node.Method.Name == "DeleteIf")
             {
                 this.Visit(node.Arguments[0]);
 

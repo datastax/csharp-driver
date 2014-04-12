@@ -195,6 +195,12 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.Equal((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a) => a.f1 == 123).ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40) IF ""x_f1"" = 123");
+
+            Assert.Equal((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).DeleteIf((a) => a.f1 == 123).ToString(),
+                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40) IF ""x_f1"" = 123");
+
+            Assert.Equal((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete().IfExists().ToString(),
+                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40) IF EXISTS ");
         }
 
         [TestMethod]
