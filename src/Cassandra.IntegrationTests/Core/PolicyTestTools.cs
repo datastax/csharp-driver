@@ -104,10 +104,12 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(queried >= n, "For " + host);
         }
 
-        protected void assertAchievedConsistencyLevel(ConsistencyLevel cl)
+        /// <summary>
+        /// Asserts that all consistencies achieved in the last execution are equal to the consistency passed 
+        /// </summary>
+        protected void assertAchievedConsistencyLevel(ConsistencyLevel expectedConsistency)
         {
-            foreach (ConsistencyLevel c in achievedConsistencies)
-                Assert.Equal(cl, c);
+            Assert.True(achievedConsistencies.All(consistency => consistency == expectedConsistency), "Not all consistencies achieved are " + expectedConsistency);
         }
 
         /// <summary>

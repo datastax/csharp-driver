@@ -274,6 +274,28 @@ namespace Cassandra.IntegrationTests.Core
             Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
             downgradingConsistencyRetryPolicy(builder);
         }
+        /// <summary>
+        /// Unit test on retry decisions
+        /// </summary>
+        [TestMethod]
+        public void DowngradingConsistencyRetryTest()
+        {
+            //Retry if 1 of 2 replicas are alive
+            var decision = Session.GetRetryDecision(null, new UnavailableException(ConsistencyLevel.Two, 2, 1), DowngradingConsistencyRetryPolicy.Instance, 0);
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
+
+            //Retry if 2 of 3 replicas are alive
+            decision = Session.GetRetryDecision(null, new UnavailableException(ConsistencyLevel.Three, 3, 2), DowngradingConsistencyRetryPolicy.Instance, 0);
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
+
+            //Throw if 0 replicas are alive
+            decision = Session.GetRetryDecision(null, new UnavailableException(ConsistencyLevel.Three, 3, 0), DowngradingConsistencyRetryPolicy.Instance, 0);
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Rethrow);
+
+            //Retry if 1 of 3 replicas is alive
+            decision = Session.GetRetryDecision(null, new ReadTimeoutException(ConsistencyLevel.All, 3, 1, false), DowngradingConsistencyRetryPolicy.Instance, 0);
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
+        }
 
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
@@ -288,70 +310,24 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 init(c, 12, ConsistencyLevel.All);
+
                 query(c, 12, ConsistencyLevel.All);
+                assertAchievedConsistencyLevel(ConsistencyLevel.All);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 4);
-                assertQueried(Options.Default.IP_PREFIX + "2", 4);
-                assertQueried(Options.Default.IP_PREFIX + "3", 4);
-
-                resetCoordinators();
+                //Kill one node: 2 nodes alive
                 c.CCMBridge.ForceStop(2);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 10);
+                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
 
+                //After killing one node, the achieved consistency level should be downgraded
+                resetCoordinators();
                 query(c, 12, ConsistencyLevel.All);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 6);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
-
                 assertAchievedConsistencyLevel(ConsistencyLevel.Two);
 
-                resetCoordinators();
-                c.CCMBridge.ForceStop(1);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "1", c.Cluster, 5);
-                Thread.Sleep(5000);
-
-                try
-                {
-                    query(c, 12, ConsistencyLevel.All);
-                }
-                catch (ReadTimeoutException)
-                {
-                    //                    assertEquals("Cassandra timeout during read query at consistency TWO (2 responses were required but only 1 replica responded)", e.getMessage());
-                }
-
-                query(c, 12, ConsistencyLevel.Quorum);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
-
-                assertAchievedConsistencyLevel(ConsistencyLevel.One);
-
-                resetCoordinators();
-
-                query(c, 12, ConsistencyLevel.Two);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
-
-                assertAchievedConsistencyLevel(ConsistencyLevel.One);
-
-                resetCoordinators();
-
-                query(c, 12, ConsistencyLevel.One);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
-
-                assertAchievedConsistencyLevel(ConsistencyLevel.One);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 c.ErrorOut();
-                throw e;
+                throw;
             }
             finally
             {

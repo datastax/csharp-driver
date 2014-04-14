@@ -367,25 +367,15 @@ namespace Cassandra
 
         public void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            if (_binaryProtocolVersion > 1)
+            try
             {
-                WaitForSchemaAgreement(
-                    Query(CqlQueryTools.GetCreateKeyspaceCql(keyspace_name, replication, durable_writes, true), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
-                _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
+                CreateKeyspace(keyspace_name, replication, durable_writes);
             }
-            else
+            catch (AlreadyExistsException)
             {
-                try
-                {
-                    CreateKeyspace(keyspace_name, replication, durable_writes);
-                }
-                catch (AlreadyExistsException)
-                {
-                    _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspace_name));
-                }
+                _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspace_name));
             }
         }
-
         public void DeleteKeyspace(string keyspace_name)
         {
             WaitForSchemaAgreement(
@@ -567,26 +557,41 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(IStatement query)
         {
             return EndExecute(BeginExecute(query, null, null));
         }
 
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(string cqlQuery, int pageSize)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
         }
 
+        /// <summary>
+        /// Executes the provided query.
+        /// </summary>
         public RowSet Execute(string cqlQuery)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
+        /// <summary>
+        /// Executes a query asynchronously
+        /// </summary>
         public Task<RowSet> ExecuteAsync(IStatement query)
         {
             return Task.Factory.FromAsync<IStatement, RowSet>(BeginExecute, EndExecute, query, null);
@@ -618,8 +623,7 @@ namespace Cassandra
         
         #endregion
 
-        static RetryDecision GetRetryDecision(Statement query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
-        {
+        internal static RetryDecision GetRetryDecision(Statement query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)        {
             if (exc is OverloadedException) return RetryDecision.Retry(null);
             else if (exc is IsBootstrappingException) return RetryDecision.Retry(null);
             else if (exc is TruncateException) return RetryDecision.Retry(null);

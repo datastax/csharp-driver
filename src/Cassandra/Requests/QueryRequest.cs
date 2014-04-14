@@ -43,7 +43,7 @@ namespace Cassandra
             wb.WriteFrameHeader(protocolVersionByte, _headerFlags, (byte) _streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
-            _queryProtocolOptions.Write(wb, _consistency);
+            _queryProtocolOptions.Write(wb, _consistency, protocolVersionByte);
 
             return wb.GetFrame();
         }

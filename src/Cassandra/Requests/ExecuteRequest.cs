@@ -49,7 +49,7 @@ namespace Cassandra
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(protocolVersionByte, _flags, (byte) _streamId, OpCode);
             wb.WriteShortBytes(_id);
-            _queryProtocolOptions.Write(wb, _consistency);
+            _queryProtocolOptions.Write(wb, _consistency, protocolVersionByte);
 
             return wb.GetFrame();
         }
