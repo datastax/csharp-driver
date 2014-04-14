@@ -177,5 +177,4 @@ namespace Cassandra
             // Tries the biggest CL that is expected to work
         }
     }
-
 }

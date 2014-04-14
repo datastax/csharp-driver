@@ -633,7 +633,7 @@ namespace Cassandra
         
         #endregion
 
-        static RetryDecision GetRetryDecision(Query query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
+        internal static RetryDecision GetRetryDecision(Query query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
         {
             if (exc is OverloadedException) return RetryDecision.Retry(null);
             else if (exc is IsBootstrappingException) return RetryDecision.Retry(null);

@@ -85,8 +85,6 @@ namespace Cassandra.MSTest
 
 
         ///  Helper test methodspt
-
-
         public static void assertQueried(String host, int n)
         {
             try
@@ -102,6 +100,8 @@ namespace Cassandra.MSTest
                 throw new ApplicationException("", e);// RuntimeException(e);
             }
         }
+
+
         protected void assertQueriedAtLeast(String host, int n)
         {
             try
@@ -118,10 +118,12 @@ namespace Cassandra.MSTest
             }
         }
 
-        protected void assertAchievedConsistencyLevel(ConsistencyLevel cl)
+        /// <summary>
+        /// Asserts that all consistencies achieved in the last execution are equal to the consistency passed 
+        /// </summary>
+        protected void assertAchievedConsistencyLevel(ConsistencyLevel expectedConsistency)
         {
-            foreach (var c in achievedConsistencies)
-                Assert.Equal(cl, c);
+            Assert.True(achievedConsistencies.All(consistency => consistency == expectedConsistency), "Not all consistencies achieved are " + expectedConsistency);
         }
 
         /// <summary>
