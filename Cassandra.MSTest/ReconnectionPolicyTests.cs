@@ -94,11 +94,11 @@ namespace Cassandra.MSTest
                 schedule.NextDelayMs();
             Assert.True(schedule.NextDelayMs() == reconnectionPolicy.MaxDelayMs);
 
-            // Run integration test
-            long restartTime = 2 + 4 + 8 + 2;   // 16: 3 full cycles + 2 seconds
-            long retryTime = 30;                // 4th cycle start time
-            long breakTime = 62;                // time until next reconnection attempt
-            reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
+            //// Run integration test
+            //long restartTime = 2 + 4 + 8 + 2;   // 16: 3 full cycles + 2 seconds
+            //long retryTime = 30;                // 4th cycle start time
+            //long breakTime = 62;                // time until next reconnection attempt
+            //reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
         /*
@@ -136,11 +136,11 @@ namespace Cassandra.MSTest
             Assert.True(schedule.NextDelayMs() == 10000);
             Assert.True(schedule.NextDelayMs() == 10000);
 
-            // Run integration test
-            int restartTime = 32;   
-            int retryTime = 50;        
-            int breakTime = 10;        // time until next reconnection attempt
-            reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
+            //// Run integration test
+            //int restartTime = 32;   
+            //int retryTime = 50;        
+            //int breakTime = 10;        // time until next reconnection attempt
+            //reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
         public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
