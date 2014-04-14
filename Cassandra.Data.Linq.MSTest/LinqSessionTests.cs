@@ -111,7 +111,11 @@ namespace Cassandra.Data.Linq.MSTest
             }
 
             var testmovie = new NerdMovie { Year = 2005, Director = "Quentin Tarantino", Movie = "Pulp Fiction", Maker = "Pixar" };
-            table.Where(m => m.Movie == testmovie.Movie && m.Maker == testmovie.Maker && m.Director == testmovie.Director).Select(m => new NerdMovie { Year = testmovie.Year }).Update().Execute();
+            table
+                .Where(m => m.Movie == testmovie.Movie && m.Maker == testmovie.Maker && m.Director == testmovie.Director)
+                .Select(m => new NerdMovie { Year = testmovie.Year })
+                .Update()
+                .Execute();
 
 
             var anonMovie = new { Director = "Quentin Tarantino", Year = 2005 };
@@ -134,6 +138,37 @@ namespace Cassandra.Data.Linq.MSTest
             (from m in table where m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
 
             var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
+
+            CqlCommand comm = table.Insert(
+                new NerdMovie
+                {
+                    Year = 2005,
+                    Director = "Quentin Tarantino",
+                    Movie = "Pulp Fiction",
+                    Maker = "Pixar"
+                });
+            comm.Execute();
+
+            comm = table
+                .Where(m =>
+                    m.Movie == "Pulp Fiction"
+                    && m.Maker == "Pixar"
+                    && m.Director == "Quentin Tarantino")
+                .Select(m => new NerdMovie { Year = 2006 })
+                .Update()
+                .SetTimestamp(DateTime.Now);
+            comm.Execute();
+
+            Console.WriteLine(
+                table
+                    .Where(m =>
+                        m.Movie == "Pulp Fiction"
+                        && m.Maker == "Pixar"
+                        && m.Director == "Quentin Tarantino")
+                    .Execute()
+                    .FirstOrDefault()
+                    .Year);
         }
 
         [TestMethod]

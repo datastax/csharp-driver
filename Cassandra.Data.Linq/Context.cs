@@ -278,9 +278,8 @@ namespace Cassandra.Data.Linq
                 if (batchScript.Length != 0)
                 {
                     cql ="BEGIN BATCH\r\n" + batchScript.ToString() + "APPLY BATCH";
-                    if(callback!=null)
-                        return BeginExecuteWriteQuery(cql, null, consistencyLevel, enableTracing,
-                            new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
+                    return BeginExecuteWriteQuery(cql, null, consistencyLevel, enableTracing,
+                        new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
                 }
             }
 
