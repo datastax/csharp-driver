@@ -229,6 +229,10 @@ namespace Cassandra
 
         public static byte[] InvCqlConvert(object value)
         {
+            if (value == null)
+            {
+                return null;
+            }
             IColumnInfo typeInfo;
             ColumnTypeCode typeCode = GetColumnTypeCodeInfo(value.GetType(), out typeInfo);
             return InvMethods[(byte) typeCode](typeInfo, value);

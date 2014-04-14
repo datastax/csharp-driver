@@ -79,7 +79,21 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testPreparedInt()
         {
-            insertingSingleValuePrepared(typeof (Int32));
+            insertingSingleValuePrepared(typeof(Int32));
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testPreparedNullInt()
+        {
+            insertingSingleValuePrepared(typeof(Int32), null);
+        }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testPreparedNullVarchar()
+        {
+            insertingSingleValuePrepared(typeof(string), null);
         }
 
         [TestMethod]
@@ -131,7 +145,7 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        public void insertingSingleValuePrepared(Type tp)
+        public void insertingSingleValuePrepared(Type tp, object value = null)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
             string tableName = "table" + Guid.NewGuid().ToString("N");
@@ -155,7 +169,14 @@ namespace Cassandra.IntegrationTests.Core
             PreparedStatement prep = QueryTools.PrepareQuery(Session,
                                                              string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName,
                                                                            toInsert[0][0]));
-            QueryTools.ExecutePreparedQuery(Session, prep, new object[1] {toInsert[0][1]});
+            if (value == null)
+            {
+                QueryTools.ExecutePreparedQuery(Session, prep, new object[] { toInsert[0][1] });
+            }
+            else
+            {
+                QueryTools.ExecutePreparedQuery(Session, prep, new object[] {value});
+            }
 
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
