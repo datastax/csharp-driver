@@ -139,36 +139,44 @@ namespace Cassandra.Data.Linq.MSTest
 
             var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
 
+        }
 
-            CqlCommand comm = table.Insert(
-                new NerdMovie
-                {
-                    Year = 2005,
-                    Director = "Quentin Tarantino",
-                    Movie = "Pulp Fiction",
-                    Maker = "Pixar"
-                });
-            comm.Execute();
+        /// <summary>
+        /// Tests that the timestamp set is in the correct precision, it updates using the current date.
+        /// </summary>
+        [TestMethod]
+        public void CqlCommandSetTimestampTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            table.Insert(new NerdMovie
+            {
+                Year = 1999,
+                Director = "Andrew Stanton",
+                Movie = "Finding Nemo",
+                Maker = "Pixar"
+            }).Execute();
 
-            comm = table
+            //Change the year of making, using now as timestamp
+            table
                 .Where(m =>
-                    m.Movie == "Pulp Fiction"
-                    && m.Maker == "Pixar"
-                    && m.Director == "Quentin Tarantino")
-                .Select(m => new NerdMovie { Year = 2006 })
+                    m.Movie == "Finding Nemo" &&
+                    m.Maker == "Pixar" &&
+                    m.Director == "Andrew Stanton")
+                .Select(m => new NerdMovie { Year = 2003 })
                 .Update()
-                .SetTimestamp(DateTime.Now);
-            comm.Execute();
+                .SetTimestamp(DateTime.Now)
+                .Execute();
 
-            Console.WriteLine(
+            Assert.Equals(
                 table
                     .Where(m =>
-                        m.Movie == "Pulp Fiction"
-                        && m.Maker == "Pixar"
-                        && m.Director == "Quentin Tarantino")
+                        m.Movie == "Finding Nemo" &&
+                        m.Maker == "Pixar" &&
+                        m.Director == "Andrew Stanton")
                     .Execute()
                     .FirstOrDefault()
-                    .Year);
+                    .Year, 2003);
         }
 
         [TestMethod]
