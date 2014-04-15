@@ -2,16 +2,27 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>CassandraCSharpDriver</id>
-        <version>2.0.1</version>
+        <version>2.0.0-beta1</version>
         <title>Datastax C# Driver for Apache Cassandra</title>
         <authors>Datastax</authors>
         <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
         <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <description>A C# client driver for Apache Cassandra. This driver works exclusively with
-the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.</description>
+        <description>A C# client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.</description>
         <releaseNotes />
         <copyright>Copyright (C) 2013 DataStax Inc.</copyright>
         <tags>cassandra apache datastax driver database nosql</tags>
+        <dependencies>
+            <dependency id="lz4net" version="1.0.3.93" />
+        </dependencies>
     </metadata>
+    <files>
+        <!-- path relative to the nuspec file -->
+        <file src="..\Cassandra\bin\Release\Cassandra.dll" target="lib\net40\Cassandra.dll "/>
+        <file src="..\Cassandra\bin\Release\Cassandra.xml" target="lib\net40\Cassandra.xml "/>
+        <file src="..\Cassandra.Data\bin\Release\Cassandra.Data.dll" target="lib\net40\Cassandra.Data.dll "/>
+        <file src="..\Cassandra.Data\bin\Release\Cassandra.Data.xml" target="lib\net40\Cassandra.Data.xml "/>
+        <file src="..\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.dll" target="lib\net40\Cassandra.Data.Linq.dll "/>
+        <file src="..\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.xml" target="lib\net40\Cassandra.Data.Linq.xml "/>
+    </files>
 </package>
