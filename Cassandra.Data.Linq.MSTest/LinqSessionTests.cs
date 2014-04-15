@@ -134,6 +134,45 @@ namespace Cassandra.Data.Linq.MSTest
             (from m in table where m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
 
             var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new { MA = m.MainActor, Y = m.Year }).Execute().ToList();
+
+        }
+
+        /// <summary>
+        /// Tests that the timestamp set is in the correct precision, it updates using the current date.
+        /// </summary>
+        [TestMethod]
+        public void CqlCommandSetTimestampTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            table.Insert(new NerdMovie
+            {
+                Year = 1999,
+                Director = "Andrew Stanton",
+                Movie = "Finding Nemo",
+                Maker = "Pixar"
+            }).Execute();
+
+            //Change the year of making, using now as timestamp
+            table
+                .Where(m =>
+                    m.Movie == "Finding Nemo" &&
+                    m.Maker == "Pixar" &&
+                    m.Director == "Andrew Stanton")
+                .Select(m => new NerdMovie { Year = 2003 })
+                .Update()
+                .SetTimestamp(DateTime.Now)
+                .Execute();
+
+            Assert.Equals(
+                table
+                    .Where(m =>
+                        m.Movie == "Finding Nemo" &&
+                        m.Maker == "Pixar" &&
+                        m.Director == "Andrew Stanton")
+                    .Execute()
+                    .FirstOrDefault()
+                    .Year, 2003);
         }
 
         [TestMethod]
