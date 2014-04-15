@@ -175,7 +175,8 @@ namespace Cassandra.Data.Linq
 
         internal RowSet ExecuteWriteQuery(string cqlQuery, object[] values, ConsistencyLevel consistencyLevel, bool enableTraceing)
         {
-            return _managedSession.Execute(new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel));
+            var statement = _managedSession.Prepare(cqlQuery);
+            return _managedSession.Execute(statement.Bind(values).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel));
         }
 
         internal IAsyncResult BeginExecuteWriteQuery(string cqlQuery, object[] values, ConsistencyLevel consistencyLevel, bool enableTraceing, object tag, AsyncCallback callback, object state)
