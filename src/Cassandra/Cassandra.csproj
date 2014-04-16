@@ -218,6 +218,11 @@
     <Compile Include="Policies\TokenAwarePolicy.cs" />
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />
+    <Compile Include="RequestHandlers\BatchRequestHandler.cs" />
+    <Compile Include="RequestHandlers\ExecuteQueryRequestHandler.cs" />
+    <Compile Include="RequestHandlers\PrepareRequestHandler.cs" />
+    <Compile Include="RequestHandlers\QueryRequestHandler.cs" />
+    <Compile Include="RequestHandlers\RequestHandler.cs" />
     <Compile Include="StreamProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Statement.cs" />
