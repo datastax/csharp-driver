@@ -455,8 +455,8 @@ namespace Cassandra
                     using (
                         RowSet rowset =
                             ProcessRowset(
-                                _activeConnection.Value.Query(streamId, Session.SelectSchemaPeers, false, QueryProtocolOptions.Default,
-                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()), Session.SelectSchemaPeers))
+                                _activeConnection.Value.Query(streamId, CqlQueryTools.SelectSchemaPeers, false, QueryProtocolOptions.Default,
+                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()), CqlQueryTools.SelectSchemaPeers))
                     {
                         foreach (Row row in rowset.GetRows())
                         {
@@ -480,8 +480,8 @@ namespace Cassandra
                     using (
                         RowSet rowset =
                             ProcessRowset(
-                                _activeConnection.Value.Query(streamId, Session.SelectSchemaLocal, false, QueryProtocolOptions.Default,
-                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()), Session.SelectSchemaLocal))
+                                _activeConnection.Value.Query(streamId, CqlQueryTools.SelectSchemaLocal, false, QueryProtocolOptions.Default,
+                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()), CqlQueryTools.SelectSchemaLocal))
                     {
                         // Update cluster name, DC and rack for the one node we are connected to
                         foreach (Row localRow in rowset.GetRows())

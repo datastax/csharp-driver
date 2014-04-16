@@ -21,7 +21,7 @@ namespace Cassandra.RequestHandlers
 
         override public void Begin(Session owner, int streamId)
         {
-            Connection.BeginBatch(streamId, BatchType, Queries, owner.ClbNoQuery, this, owner, Consistency ?? owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), IsTracing);
+            Connection.BeginBatch(streamId, BatchType, Queries, owner.RequestCallback, this, owner, Consistency ?? owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), IsTracing);
         }
 
         override public void Process(Session owner, IAsyncResult ar, out object value)

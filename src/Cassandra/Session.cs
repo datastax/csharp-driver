@@ -680,33 +680,6 @@ namespace Cassandra
             }
         }
 
-        internal void ProcessPrepareQuery(IOutput outp, out RowSetMetadata metadata, out byte[] queryId, out RowSetMetadata resultMetadata)
-        {
-            using (outp)
-            {
-                if (outp is OutputError)
-                {
-                    var ex = (outp as OutputError).CreateException();
-                    _logger.Error(ex);
-                    throw ex; 
-                }
-                else if (outp is OutputPrepared)
-                {
-                    queryId = (outp as OutputPrepared).QueryId;
-                    metadata = (outp as OutputPrepared).Metadata;
-                    resultMetadata = (outp as OutputPrepared).ResultMetadata;
-                    _logger.Info("Prepared Query has been successfully processed.");
-                    return; //ok
-                }
-                else
-                {
-                    var ex = new DriverInternalError("Unexpected output kind");
-                    _logger.Error("Prepared Query has returned an unexpected output kind.", ex);
-                    throw ex; 
-                }
-            }
-        }
-
         void ExecConn(RequestHandler handler, bool moveNext)
         {
             while (true)
@@ -733,7 +706,7 @@ namespace Cassandra
             }
         }
 
-        internal void ClbNoQuery(IAsyncResult ar)
+        internal void RequestCallback(IAsyncResult ar)
         {
             var handler = ar.AsyncState as RequestHandler;
             try
@@ -802,9 +775,9 @@ namespace Cassandra
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var token = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryProtocolOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
+            var handler = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryProtocolOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
 
-            ExecConn(token, false);
+            ExecConn(handler, false);
 
             return longActionAc;
         }
@@ -835,9 +808,9 @@ namespace Cassandra
         internal IAsyncResult BeginPrepareQuery(string cqlQuery, AsyncCallback callback, object state, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<KeyValuePair<RowSetMetadata, Tuple<byte[],string, RowSetMetadata>>>(-1, callback, state, this, "SessionPrepareQuery", sender, tag);
-            var token = new PrepareRequestHandler() { Consistency = _cluster.Configuration.QueryOptions.GetConsistencyLevel(), CqlQuery = cqlQuery, LongActionAc = longActionAc };
+            var handler = new PrepareRequestHandler() { Consistency = _cluster.Configuration.QueryOptions.GetConsistencyLevel(), CqlQuery = cqlQuery, LongActionAc = longActionAc };
 
-            ExecConn(token, false);
+            ExecConn(handler, false);
 
             return longActionAc;
         }
@@ -890,8 +863,6 @@ namespace Cassandra
         }
 
         internal const long MaxSchemaAgreementWaitMs = 10000;
-        internal const string SelectSchemaPeers = "SELECT peer, rpc_address, schema_version FROM system.peers";
-        internal const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
         internal static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
 
 
@@ -934,7 +905,7 @@ namespace Cassandra
                 }
                 {
 
-                    using (var outp = connection.Query(streamId1, SelectSchemaPeers, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
+                    using (var outp = connection.Query(streamId1, CqlQueryTools.SelectSchemaPeers, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
                     {
                         if (outp is OutputRows)
                         {
@@ -960,18 +931,20 @@ namespace Cassandra
                 }
 
                 {
-                    using (var outp = connection.Query(streamId2, SelectSchemaLocal, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
+                    using (var outp = connection.Query(streamId2, CqlQueryTools.SelectSchemaLocal, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()))
                     {
                         if (outp is OutputRows)
                         {
                             var rowset = new RowSet((outp as OutputRows), null, false);
                             // Update cluster name, DC and rack for the one node we are connected to
                             foreach (var localRow in rowset.GetRows())
+                            {
                                 if (!localRow.IsNull("schema_version"))
                                 {
                                     versions.Add(localRow.GetValue<Guid>("schema_version"));
                                     break;
                                 }
+                            }
                         }
                     }
                 }

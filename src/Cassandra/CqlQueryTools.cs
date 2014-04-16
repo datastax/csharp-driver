@@ -7,6 +7,14 @@ namespace Cassandra
 {
     internal static class CqlQueryTools
     {
+        /// <summary>
+        /// The cql query to select the peers
+        /// </summary>
+        public const string SelectSchemaPeers = "SELECT peer, rpc_address, schema_version FROM system.peers";
+        /// <summary>
+        /// The cql query to get the local schema version information
+        /// </summary>
+        public const string SelectSchemaLocal = "SELECT schema_version FROM system.local WHERE key='local'";
         private static readonly Regex IdentifierRx = new Regex(@"\b[a-z][a-z0-9_]*\b", RegexOptions.Compiled);
 
         private static readonly string[] HexStringTable =
