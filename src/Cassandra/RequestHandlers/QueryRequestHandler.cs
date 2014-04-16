@@ -18,7 +18,7 @@ namespace Cassandra.RequestHandlers
 
         override public void Process(Session owner, IAsyncResult ar, out object value)
         {
-            value = owner.ProcessRowset(Connection.EndQuery(ar, owner));
+            value = ProcessRowset(Connection.EndQuery(ar, owner), owner);
         }
     }
 }

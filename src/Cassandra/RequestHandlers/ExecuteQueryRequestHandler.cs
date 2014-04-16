@@ -41,7 +41,7 @@ namespace Cassandra.RequestHandlers
 
         override public void Process(Session owner, IAsyncResult ar, out object value)
         {
-            value = owner.ProcessRowset(Connection.EndExecuteQuery(ar, owner), ResultMetadata);
+            value = ProcessRowset(Connection.EndExecuteQuery(ar, owner), owner, ResultMetadata);
         }
 
         override public void Complete(Session owner, object value, Exception exc = null)
@@ -57,7 +57,9 @@ namespace Cassandra.RequestHandlers
                 {
                     RowSet rowset = value as RowSet;
                     if (rowset == null)
+                    {
                         rowset = new RowSet(null, owner, false);
+                    }
                     rowset.Info.SetTriedHosts(TriedHosts);
                     rowset.Info.SetAchievedConsistency(Consistency ?? QueryProtocolOptions.Consistency);
                     ar.SetResult(rowset);

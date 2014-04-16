@@ -45,6 +45,46 @@ namespace Cassandra.RequestHandlers
 
             Connection = owner.Connect(_hostsIter, TriedHosts, InnerExceptions, out streamId);
         }
+
+        internal virtual RowSet ProcessRowset(IOutput outp, Session owner, RowSetMetadata resultMetadata = null)
+        {
+            bool ok = false;
+            try
+            {
+                if (outp is OutputError)
+                {
+                    var ex = (outp as OutputError).CreateException();
+                    _logger.Error(ex);
+                    throw ex;
+                }
+                else if (outp is OutputVoid)
+                    return new RowSet(outp as OutputVoid, owner);
+                else if (outp is OutputSchemaChange)
+                    return new RowSet(outp as OutputSchemaChange, owner);
+                else if (outp is OutputSetKeyspace)
+                {
+                    owner.SetKeyspace((outp as OutputSetKeyspace).Value);
+                    return new RowSet(outp as OutputSetKeyspace, owner);
+                }
+                else if (outp is OutputRows)
+                {
+                    ok = true;
+                    return new RowSet(outp as OutputRows, owner, true, resultMetadata);
+                }
+                else
+                {
+                    var ex = new DriverInternalError("Unexpected output kind");
+                    _logger.Error(ex);
+                    throw ex;
+                }
+            }
+            finally
+            {
+                if (!ok)
+                    outp.Dispose();
+            }
+        }
+
         abstract public void Begin(Session owner, int steamId);
         abstract public void Process(Session owner, IAsyncResult ar, out object value);
         abstract public void Complete(Session owner, object value, Exception exc = null);

@@ -410,7 +410,7 @@ namespace Cassandra
             Execute(CqlQueryTools.GetUseKeyspaceCql(keyspace_name));
         }
 
-        private void SetKeyspace(string keyspace_name)
+        internal void SetKeyspace(string keyspace_name)
         {
             foreach (var kv in _connectionPool)
             {
@@ -704,45 +704,6 @@ namespace Cassandra
                     _logger.Error("Prepared Query has returned an unexpected output kind.", ex);
                     throw ex; 
                 }
-            }
-        }
-
-        internal RowSet ProcessRowset(IOutput outp, RowSetMetadata resultMetadata = null)
-        {
-            bool ok = false;
-            try
-            {
-                if (outp is OutputError)
-                {
-                    var ex = (outp as OutputError).CreateException();
-                    _logger.Error(ex);
-                    throw ex;
-                }
-                else if (outp is OutputVoid)
-                    return new RowSet(outp as OutputVoid, this);
-                else if (outp is OutputSchemaChange)
-                    return new RowSet(outp as OutputSchemaChange, this);
-                else if (outp is OutputSetKeyspace)
-                {
-                    SetKeyspace((outp as OutputSetKeyspace).Value);
-                    return new RowSet(outp as OutputSetKeyspace, this);
-                }
-                else if (outp is OutputRows)
-                {
-                    ok = true;
-                    return new RowSet(outp as OutputRows, this, true, resultMetadata);
-                }
-                else
-                {
-                    var ex = new DriverInternalError("Unexpected output kind");
-                    _logger.Error(ex);
-                    throw ex; 
-                }
-            }
-            finally
-            {
-                if (!ok)
-                    outp.Dispose();
             }
         }
 
