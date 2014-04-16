@@ -547,7 +547,7 @@ internal static class WindowsAPI
                 message = "The handle passed to the function is not valid.";
                 break;
             case SEC_E_INVALID_TOKEN:
-                message = "The input token is malformed . Possible causes include a token corrupted in transit, a token of incorrect size, and a token passed into the wrong security package. This last condition can happen if the client and server did not negotiate the proper security package.";
+                message = "The input token is malformed. Possible causes include a token corrupted in transit, a token of incorrect size, and a token passed into the wrong security package. This last condition can happen if the client and server did not negotiate the proper security package.";
                 break;
             case SEC_E_LOGON_DENIED:
                 message = "The logon failed.";

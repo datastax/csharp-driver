@@ -6,7 +6,7 @@ namespace Cassandra
     internal class CassandraConnectionIOException : IOException
     {
         public CassandraConnectionIOException(Exception innerException = null)
-            : base("cassandra connection io exception", innerException)
+            : base("Cassandra connection I/O exception", innerException)
         {
         }
     }
