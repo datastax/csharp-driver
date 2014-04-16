@@ -65,7 +65,7 @@ namespace Cassandra.MSTest
         [WorksForMe]
         public void defaultLoggingPolicy()
         {
-            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.Instance));
+            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(new DefaultRetryPolicy()));
             defaultPolicyTest(builder);
         }
 
