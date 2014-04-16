@@ -746,76 +746,75 @@ namespace Cassandra
             }
         }
 
-
-        void ExecConn(RequestHandler token, bool moveNext)
+        void ExecConn(RequestHandler handler, bool moveNext)
         {
             while (true)
             {
                 try
                 {
                     int streamId;
-                    token.Connect(this, moveNext, out streamId);
-                    token.Begin(this,streamId);
+                    handler.Connect(this, moveNext, out streamId);
+                    handler.Begin(this,streamId);
                     return;
                 }
                 catch (Exception ex)
                 {
                     if (!CassandraConnection.IsStreamRelatedException(ex))
                     {
-                        token.Complete(this, null, ex);
+                        handler.Complete(this, null, ex);
                         return;
                     }
                     else if (_alreadyDisposed.IsTaken())
+                    {
                         return;
-                    //else
-                        //retry
+                    }
                 }
             }
         }
 
         internal void ClbNoQuery(IAsyncResult ar)
         {
-            var token = ar.AsyncState as RequestHandler;
+            var handler = ar.AsyncState as RequestHandler;
             try
             {
                 try
                 {
                     object value;
-                    token.Process(this, ar, out value);
-                    token.Complete(this, value);
+                    handler.Process(this, ar, out value);
+                    handler.Complete(this, value);
                 }
                 catch (QueryValidationException exc)
                 {
-                    var decision = GetRetryDecision(token.Query, exc, token.Query != null ? (token.Query.RetryPolicy ?? Policies.RetryPolicy) : Policies.RetryPolicy, token.QueryRetries);
+                    var decision = GetRetryDecision(handler.Query, exc, handler.Query != null ? (handler.Query.RetryPolicy ?? Policies.RetryPolicy) : Policies.RetryPolicy, handler.QueryRetries);
                     if (decision == null)
                     {
-                        if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
-                            token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
+                        if (!handler.InnerExceptions.ContainsKey(handler.Connection.GetHostAdress()))
+                            handler.InnerExceptions.Add(handler.Connection.GetHostAdress(), new List<Exception>());
 
-                        token.InnerExceptions[token.Connection.GetHostAdress()].Add(exc);
-                        ExecConn(token, true);
+                        handler.InnerExceptions[handler.Connection.GetHostAdress()].Add(exc);
+                        ExecConn(handler, true);
                     }
                     else
                     {
                         switch (decision.DecisionType)
                         {
                             case RetryDecision.RetryDecisionType.Rethrow:
-                                token.Complete(this, null, exc);
+                                handler.Complete(this, null, exc);
                                 return;
                             case RetryDecision.RetryDecisionType.Retry:
-                                if (token.LongActionAc.IsCompleted)
+                                if (handler.LongActionAc.IsCompleted)
                                     return;
-                                token.Consistency = (decision.RetryConsistencyLevel.HasValue && (decision.RetryConsistencyLevel.Value<ConsistencyLevel.Serial)) ? decision.RetryConsistencyLevel.Value : token.Consistency;
-                                token.QueryRetries++;
+                                handler.Consistency = (decision.RetryConsistencyLevel.HasValue && (decision.RetryConsistencyLevel.Value<ConsistencyLevel.Serial)) ? decision.RetryConsistencyLevel.Value : handler.Consistency;
+                                handler.QueryRetries++;
 
-                                if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
-                                    token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
+                                if (!handler.InnerExceptions.ContainsKey(handler.Connection.GetHostAdress()))
+                                    handler.InnerExceptions.Add(handler.Connection.GetHostAdress(), new List<Exception>());
 
-                                token.InnerExceptions[token.Connection.GetHostAdress()].Add(exc);
-                                ExecConn(token, exc is UnavailableException);
+                                handler.InnerExceptions[handler.Connection.GetHostAdress()].Add(exc);
+                                ExecConn(handler, exc is UnavailableException);
                                 return;
                             default:
-                                token.Complete(this, null);
+                                handler.Complete(this, null);
                                 return;
                         }
                     }
@@ -825,23 +824,24 @@ namespace Cassandra
             {
                 if (CassandraConnection.IsStreamRelatedException(ex))
                 {
-                    if (!token.InnerExceptions.ContainsKey(token.Connection.GetHostAdress()))
-                        token.InnerExceptions.Add(token.Connection.GetHostAdress(), new List<Exception>());
-                    token.InnerExceptions[token.Connection.GetHostAdress()].Add(ex);
-                    ExecConn(token, true);
+                    if (!handler.InnerExceptions.ContainsKey(handler.Connection.GetHostAdress()))
+                    {
+                        handler.InnerExceptions.Add(handler.Connection.GetHostAdress(), new List<Exception>());
+                    }
+                    handler.InnerExceptions[handler.Connection.GetHostAdress()].Add(ex);
+                    ExecConn(handler, true);
                 }
                 else
-                    token.Complete(this, null, ex);
+                {
+                    handler.Complete(this, null, ex);
+                }
             }
         }
 
-        #region Query
-
-        
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var token = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryPrtclOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
+            var token = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryProtocolOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(token, false);
 
@@ -858,9 +858,6 @@ namespace Cassandra
             return EndQuery(BeginQuery(cqlQuery, null, null, queryProtocolOptions, consistency,isTracing, query));
         }
 
-        #endregion
-
-        #region Prepare
 
         private readonly ConcurrentDictionary<byte[], string> _preparedQueries = new ConcurrentDictionary<byte[], string>();
 
@@ -898,15 +895,11 @@ namespace Cassandra
             return EndPrepareQuery(ar, out metadata);
         }
 
-
-        #endregion
-
-        #region ExecuteQuery
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Statement query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var token = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, Cql = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracinig = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
-            ExecConn(token, false);
+            var handler = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, CqlQuery = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracing = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
+            ExecConn(handler, false);
             return longActionAc;
         }
 
@@ -922,17 +915,11 @@ namespace Cassandra
             return EndExecuteQuery(ar);
         }
 
-        #endregion
-
-        #region Batch
-
         internal IAsyncResult BeginBatch(BatchType batchType, List<Statement> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
-            var token = new BatchRequestHandler() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
-
-            ExecConn(token, false);
-
+            var handler = new BatchRequestHandler() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            ExecConn(handler, false);
             return longActionAc;
         }
 
@@ -940,8 +927,6 @@ namespace Cassandra
         {
             return AsyncResult<RowSet>.End(ar, this, "SessionBatch");
         }
-
-        #endregion
 
         internal const long MaxSchemaAgreementWaitMs = 10000;
         internal const string SelectSchemaPeers = "SELECT peer, rpc_address, schema_version FROM system.peers";
