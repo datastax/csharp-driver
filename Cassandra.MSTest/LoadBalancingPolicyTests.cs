@@ -81,6 +81,27 @@ namespace Cassandra.MSTest
             }
         }
 
+
+        [TestMethod]
+        public void PoliciesAreDifferentInstancesWhenDefault()
+        {
+
+            var builder = Cluster.Builder();
+            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
+
+            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", Options.Default.IP_PREFIX)).Build())
+            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", Options.Default.IP_PREFIX)).Build())
+            {
+                using (var session1 = cluster1.Connect())
+                using (var session2 = cluster2.Connect())
+                {
+                    Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
+                    Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");
+                    Assert.True(!Object.ReferenceEquals(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy), "Retry policy instances should be different");
+                }
+            }
+        }
+
         [TestMethod]
         [WorksForMe]
         public void roundRobinWith2DCsTestCCM()
@@ -219,71 +240,81 @@ namespace Cassandra.MSTest
                 init(c, 12);
                 query(c, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-            assertQueried(Options.Default.IP_PREFIX + "2", 0);
-            assertQueried(Options.Default.IP_PREFIX + "3", 6);
-            assertQueried(Options.Default.IP_PREFIX + "4", 6);
-            assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                var hosts = new string[] { 
+                    "unused",
+                    Options.Default.IP_PREFIX + "1", 
+                    Options.Default.IP_PREFIX + "2", 
+                    Options.Default.IP_PREFIX + "3",
+                    Options.Default.IP_PREFIX + "4",
+                    Options.Default.IP_PREFIX + "5"
+                };
+
+                var hostsDc1 = new string[] { hosts[1], hosts[2] };
+                var hostsDc2 = new string[] { hosts[3], hosts[4] };
+
+                // verify queries went to local DC; therein distributed equally
+                assertQueriedSet(hostsDc1, 0);
+                assertQueried(hosts[3], 6);
+                assertQueried(hosts[4], 6);
+                assertQueried(hosts[5], 0);
 
                 resetCoordinators();
                 c.CCMBridge.BootstrapNode(5, "dc3");
-                TestUtils.waitFor(Options.Default.IP_PREFIX + "5", c.Cluster, 60);
-
+                TestUtils.waitFor(hosts[5], c.Cluster, 60);
 
                 query(c, 12);
 
-            assertQueried(Options.Default.IP_PREFIX + "1", 0);
-            assertQueried(Options.Default.IP_PREFIX + "2", 0);
-            assertQueried(Options.Default.IP_PREFIX + "3", 6);
-            assertQueried(Options.Default.IP_PREFIX + "4", 6);
-            assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                // verify queries went to local DC; therein distributed equally
+                assertQueriedSet(hostsDc1, 0);
+                assertQueried(hosts[3], 6);
+                assertQueried(hosts[4], 6);
+                assertQueried(hosts[5], 0);
 
                 resetCoordinators();
                 c.CCMBridge.DecommissionNode(3);
                 c.CCMBridge.DecommissionNode(4);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "3", c.Cluster, 20);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "4", c.Cluster, 20);
+                TestUtils.waitForDecommission(hosts[3], c.Cluster, 20);
+                TestUtils.waitForDecommission(hosts[4], c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 6);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 6);
+                // verify queries distributed equally across remote DCs
+                assertQueriedSet(hostsDc1, 6);
+                assertQueriedSet(hostsDc2, 0);
+                assertQueried(hosts[5], 6);
 
                 resetCoordinators();
                 c.CCMBridge.DecommissionNode(5);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "5", c.Cluster, 20);
+                TestUtils.waitForDecommission(hosts[5], c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 12);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                // verify queries went to the only live DC
+                assertQueriedSet(hostsDc1, 12);
+                assertQueriedSet(hostsDc2, 0);
+                assertQueried(hosts[5], 0);
 
                 resetCoordinators();
                 c.CCMBridge.DecommissionNode(2);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitForDecommission(hosts[2], c.Cluster, 20);
 
                 query(c, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 12);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                // verify queries went to the only live node
+                assertQueried(hosts[1], 12);
+                assertQueried(hosts[2], 0);
+                assertQueriedSet(hostsDc2, 0);
+                assertQueried(hosts[5], 0);
 
                 resetCoordinators();
                 c.CCMBridge.ForceStop(1);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.waitForDown(hosts[2], c.Cluster, 20);
 
+                // verify no host exception with all nodes down
                 try
                 {
                     query(c, 12);
-                    Assert.Fail();                    
+                    Assert.Fail();
                 }
                 catch (NoHostAvailableException e)
                 {
