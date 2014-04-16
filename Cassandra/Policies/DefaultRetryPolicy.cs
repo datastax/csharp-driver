@@ -27,9 +27,7 @@
     /// </summary>
     public class DefaultRetryPolicy : IRetryPolicy
     {
-        public static readonly DefaultRetryPolicy Instance = new DefaultRetryPolicy();
-
-        private DefaultRetryPolicy()
+        public DefaultRetryPolicy()
         {
         }
 

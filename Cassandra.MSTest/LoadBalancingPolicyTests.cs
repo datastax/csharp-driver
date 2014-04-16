@@ -81,6 +81,27 @@ namespace Cassandra.MSTest
             }
         }
 
+
+        [TestMethod]
+        public void PoliciesAreDifferentInstancesWhenDefault()
+        {
+
+            var builder = Cluster.Builder();
+            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
+
+            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", Options.Default.IP_PREFIX)).Build())
+            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", Options.Default.IP_PREFIX)).Build())
+            {
+                using (var session1 = cluster1.Connect())
+                using (var session2 = cluster2.Connect())
+                {
+                    Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
+                    Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");
+                    Assert.True(!Object.ReferenceEquals(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy), "Retry policy instances should be different");
+                }
+            }
+        }
+
         [TestMethod]
         [WorksForMe]
         public void roundRobinWith2DCsTestCCM()

@@ -44,6 +44,15 @@ namespace Cassandra
         /// Gets name of currently used keyspace. 
         /// </summary>
         public string Keyspace { get { return _keyspace; } }
+
+        internal Policies Policies
+        {
+            get
+            {
+                return _policies;
+            }
+        }
+
         private string _keyspace;
 
         public Cluster Cluster { get { return _cluster; } }

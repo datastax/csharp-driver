@@ -25,23 +25,47 @@
         ///  The default load balancing policy. <p> The default load balancing policy is
         ///  <link>RoundRobinPolicy</link>.</p>
         /// </summary>
-        public static readonly ILoadBalancingPolicy DefaultLoadBalancingPolicy = new RoundRobinPolicy();
+        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy
+        {
+            get
+            {
+                return new RoundRobinPolicy();
+            }
+        }
 
         /// <summary>
         ///  The default reconnection policy. <p> The default reconnetion policy is an
         ///  <link>ExponentialReconnectionPolicy</link> where the base delay is 1 second
         ///  and the max delay is 10 minutes;</p>
         /// </summary>
-        public static readonly IReconnectionPolicy DefaultReconnectionPolicy = new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
+        public static IReconnectionPolicy DefaultReconnectionPolicy
+        {
+            get
+            {
+                return new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
+            }
+        }
 
         /// <summary>
         ///  The default retry policy. <p> The default retry policy is
         ///  <link>DefaultRetryPolicy</link>.</p>
         /// </summary>
-        public static readonly IRetryPolicy DefaultRetryPolicy = Cassandra.DefaultRetryPolicy.Instance;
+        public static IRetryPolicy DefaultRetryPolicy
+        {
+            get
+            {
+                return new DefaultRetryPolicy();
+            }
+        }
 
+        public static Policies DefaultPolicies
+        {
+            get
+            {
+                return new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy);
+            }
+        }
 
-        public static readonly Policies DefaultPolicies = new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy);
 
         private readonly ILoadBalancingPolicy _loadBalancingPolicy;
         private readonly IReconnectionPolicy _reconnectionPolicy;
