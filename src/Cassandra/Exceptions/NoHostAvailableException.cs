@@ -47,7 +47,7 @@ namespace Cassandra
             foreach (IPAddress err in errors.Keys)
                 addrs.Add(err.ToString());
 
-            return string.Format("All host tried for query are in error (tried: {0})", string.Join(",", addrs.ToArray()));
+            return string.Format("None of the hosts tried for query are available (tried: {0})", string.Join(",", addrs.ToArray()));
         }
     }
 }
