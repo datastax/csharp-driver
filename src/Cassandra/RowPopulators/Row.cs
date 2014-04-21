@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -22,18 +23,23 @@ namespace Cassandra
 {
     public class Row : IEnumerable<object>
     {
+        /// <summary>
+        /// Gets or sets the index of the columns within the row
+        /// </summary>
         protected virtual Dictionary<string, int> ColumnIndexes { get; set; }
-        private readonly byte[][] _columns;
-        private readonly RowSetMetadata _metadata;
+
+        protected virtual CqlColumn[] Columns { get; set; }
+
+        protected virtual byte[][] Values { get; set; }
 
         public int Length
         {
-            get { return _columns.Length; }
+            get { return Values.Length; }
         }
 
         public object this[int idx]
         {
-            get { return _columns[idx] == null ? null : _metadata.ConvertToObject(idx, _columns[idx]); }
+            get { return Values[idx] == null ? null : ConvertToObject(idx, Values[idx]); }
         }
 
         public object this[string name]
@@ -41,28 +47,11 @@ namespace Cassandra
             get { return this[ColumnIndexes[name]]; }
         }
 
-        internal Row(OutputRows rawrows, RowSetMetadata metadata)
+        internal Row(byte[][] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)
         {
-            var l = new List<byte[]>();
-            ColumnIndexes = metadata.ColumnIndexes;
-            _metadata = metadata;
-            int i = 0;
-            foreach (int len in rawrows.GetRawColumnLengths())
-            {
-                if (len < 0)
-                    l.Add(null);
-                else
-                {
-                    var buffer = new byte[len];
-                    rawrows.ReadRawColumnValue(buffer, 0, len);
-                    l.Add(buffer);
-                }
-
-                i++;
-                if (i >= _metadata.Columns.Length)
-                    break;
-            }
-            _columns = l.ToArray();
+            Values = values;
+            Columns = columns;
+            ColumnIndexes = columnIndexes;
         }
 
         public IEnumerator GetEnumerator()
@@ -77,17 +66,17 @@ namespace Cassandra
 
         public bool IsNull(string name)
         {
-            return _columns[ColumnIndexes[name]] == null;
+            return Values[ColumnIndexes[name]] == null;
         }
 
         public bool IsNull(int idx)
         {
-            return _columns[idx] == null;
+            return Values[idx] == null;
         }
 
         public object GetValue(Type tpy, int idx)
         {
-            return (_columns[idx] == null ? null : _metadata.ConvertToObject(idx, _columns[idx], tpy));
+            return (Values[idx] == null ? null : ConvertToObject(idx, Values[idx], tpy));
         }
 
         public object GetValue(Type tpy, string name)
@@ -97,7 +86,12 @@ namespace Cassandra
 
         public T GetValue<T>(int idx)
         {
-            return (T) (_columns[idx] == null ? null : _metadata.ConvertToObject(idx, _columns[idx], typeof (T)));
+            return (T) (Values[idx] == null ? null : ConvertToObject(idx, Values[idx], typeof (T)));
+        }
+
+        internal object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
+        {
+            return TypeInterpreter.CqlConvert(buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
         }
 
         public T GetValue<T>(string name)
@@ -119,7 +113,7 @@ namespace Cassandra
             {
                 get
                 {
-                    if (_idx == -1 || _idx >= _owner._columns.Length) return null;
+                    if (_idx == -1 || _idx >= _owner.Values.Length) return null;
                     return _owner[_idx];
                 }
             }
@@ -127,7 +121,7 @@ namespace Cassandra
             public bool MoveNext()
             {
                 _idx++;
-                return _idx < _owner._columns.Length;
+                return _idx < _owner.Values.Length;
             }
 
             public void Reset()

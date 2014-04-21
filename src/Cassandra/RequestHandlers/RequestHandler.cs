@@ -99,8 +99,35 @@ namespace Cassandra.RequestHandlers
             }
             for (var i = 0; i < outputRows.Rows; i++)
             {
-                rs.AddRow(new Row(outputRows, outputRows.Metadata));
+                rs.AddRow(ProcessRowItem(outputRows));
             }
+        }
+
+        internal virtual Row ProcessRowItem(OutputRows outputRows)
+        {
+            var valuesList = new List<byte[]>();
+            int i = 0;
+            foreach (int len in outputRows.GetRawColumnLengths())
+            {
+                if (len < 0)
+                {
+                    valuesList.Add(null);
+                }
+                else
+                {
+                    var buffer = new byte[len];
+                    outputRows.ReadRawColumnValue(buffer, 0, len);
+                    valuesList.Add(buffer);
+                }
+
+                i++;
+                if (i >= outputRows.Metadata.Columns.Length)
+                {
+                    break;
+                }
+            }
+
+            return new Row(valuesList.ToArray(), outputRows.Metadata.Columns, outputRows.Metadata.ColumnIndexes);
         }
 
         abstract public void Begin(Session owner, int steamId);

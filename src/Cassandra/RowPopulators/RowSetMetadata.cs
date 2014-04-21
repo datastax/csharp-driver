@@ -94,11 +94,12 @@ namespace Cassandra
         /// <summary>
         /// Gets or sets the index of the columns within the row
         /// </summary>
-        public Dictionary<string, int> ColumnIndexes { get; set; }
+        public virtual Dictionary<string, int> ColumnIndexes { get; protected set; }
 
         private readonly CqlColumn[] _columns;
 
         private readonly ColumnDesc[] _rawColumns;
+
         internal readonly byte[] PagingState = null;
 
         public CqlColumn[] Columns
@@ -211,7 +212,7 @@ namespace Cassandra
 
         internal object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
         {
-            return TypeInterpreter.CqlConvert(buffer, _rawColumns[i].TypeCode, _rawColumns[i].TypeInfo, cSharpType);
+            return TypeInterpreter.CqlConvert(buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
         }
 
         internal byte[] ConvertFromObject(object o)
