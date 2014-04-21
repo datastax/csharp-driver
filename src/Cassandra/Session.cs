@@ -832,7 +832,7 @@ namespace Cassandra
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Statement query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var handler = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, CqlQuery = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracing = isTracing, ResultMetadata = (query as BoundStatement).PreparedStatement.ResultMetadata };
+            var handler = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, CqlQuery = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracing = isTracing};
             ExecConn(handler, false);
             return longActionAc;
         }
@@ -909,7 +909,8 @@ namespace Cassandra
                     {
                         if (outp is OutputRows)
                         {
-                            var rowset = new RowSet((outp as OutputRows), null, false);
+                            var requestHandler = new QueryRequestHandler();
+                            var rowset = requestHandler.ProcessResponse(outp, null);
                             foreach (var row in rowset.GetRows())
                             {
                                 if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
@@ -935,8 +936,8 @@ namespace Cassandra
                     {
                         if (outp is OutputRows)
                         {
-                            var rowset = new RowSet((outp as OutputRows), null, false);
-                            // Update cluster name, DC and rack for the one node we are connected to
+                            var requestHandler = new QueryRequestHandler();
+                            var rowset = requestHandler.ProcessResponse(outp, null);
                             foreach (var localRow in rowset.GetRows())
                             {
                                 if (!localRow.IsNull("schema_version"))

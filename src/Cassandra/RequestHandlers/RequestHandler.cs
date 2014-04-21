@@ -36,6 +36,7 @@ namespace Cassandra.RequestHandlers
         public readonly Dictionary<IPAddress, List<Exception>> InnerExceptions = new Dictionary<IPAddress, List<Exception>>();
         public readonly List<IPAddress> TriedHosts = new List<IPAddress>();
         public int QueryRetries = 0;
+
         virtual public void Connect(Session owner, bool moveNext, out int streamId)
         {
             if (_hostsIter == null)
@@ -62,10 +63,9 @@ namespace Cassandra.RequestHandlers
             Connection = owner.Connect(_hostsIter, TriedHosts, InnerExceptions, out streamId);
         }
 
-        internal virtual RowSet ProcessRowset(IOutput outp, Session owner, RowSetMetadata resultMetadata = null)
+        internal virtual RowSet ProcessResponse(IOutput outp, Session owner)
         {
-            bool ok = false;
-            try
+            using (outp)
             {
                 if (outp is OutputError)
                 {
@@ -73,31 +73,33 @@ namespace Cassandra.RequestHandlers
                     _logger.Error(ex);
                     throw ex;
                 }
-                else if (outp is OutputVoid)
-                    return new RowSet(outp as OutputVoid, owner);
-                else if (outp is OutputSchemaChange)
-                    return new RowSet(outp as OutputSchemaChange, owner);
-                else if (outp is OutputSetKeyspace)
+                var rs = new RowSet();
+                if (outp.TraceId != null)
+                {
+                    rs.Info.SetQueryTrace(new QueryTrace(outp.TraceId.Value, owner));
+                }
+                if (outp is OutputSetKeyspace)
                 {
                     owner.SetKeyspace((outp as OutputSetKeyspace).Value);
-                    return new RowSet(outp as OutputSetKeyspace, owner);
                 }
                 else if (outp is OutputRows)
                 {
-                    ok = true;
-                    return new RowSet(outp as OutputRows, owner, true, resultMetadata);
+                    ProcessRows(rs, (OutputRows)outp);
                 }
-                else
-                {
-                    var ex = new DriverInternalError("Unexpected output kind");
-                    _logger.Error(ex);
-                    throw ex;
-                }
+                return rs;
             }
-            finally
+        }
+
+        internal virtual void ProcessRows(RowSet rs, OutputRows outputRows)
+        {
+            if (outputRows.Metadata != null)
             {
-                if (!ok)
-                    outp.Dispose();
+                rs.Columns = outputRows.Metadata.Columns;
+                rs.PagingState = outputRows.Metadata.PagingState;
+            }
+            for (var i = 0; i < outputRows.Rows; i++)
+            {
+                rs.AddRow(new Row(outputRows, outputRows.Metadata));
             }
         }
 

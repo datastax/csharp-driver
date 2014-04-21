@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.RequestHandlers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -507,8 +508,7 @@ namespace Cassandra
 
         private RowSet ProcessRowset(IOutput outp, string originCqlQuery)
         {
-            bool ok = false;
-            try
+            using (outp)
             {
                 if (outp is OutputError)
                 {
@@ -522,8 +522,8 @@ namespace Cassandra
                     return null;
                 else if (outp is OutputRows)
                 {
-                    ok = true;
-                    return new RowSet(outp as OutputRows, _session, true);
+                    var queryHandler = new QueryRequestHandler();
+                    return queryHandler.ProcessResponse(outp, _session);
                 }
                 else
                 {
@@ -531,11 +531,6 @@ namespace Cassandra
                     _logger.Error(ex);
                     throw ex;
                 }
-            }
-            finally
-            {
-                if (!ok)
-                    outp.Dispose();
             }
         }
 

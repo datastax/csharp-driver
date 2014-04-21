@@ -15,7 +15,9 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 
@@ -41,9 +43,72 @@ namespace Cassandra.IntegrationTests.Core
                     valueComparator(ret, expectedValues);
 
             using (RowSet ret = session.Execute(query, consistency))
-                ret.PrintTo(Console.Out, cellEncoder: CellEncoder);
+                PrintResult(ret, Console.Out, cellEncoder: CellEncoder);
 
             Console.WriteLine("CQL> Done.");
+        }
+
+        private static void PrintResult(
+            RowSet ret,
+            TextWriter stream,
+            string delim = "\t|",
+            string rowDelim = "\r\n",
+            bool printHeader = true,
+            bool printFooter = true,
+            string separ = "-------------------------------------------------------------------------------",
+            string lasLFrm = "Returned {0} rows.",
+            Func<object, string> cellEncoder = null
+            )
+        {
+            if (printHeader)
+            {
+                bool first = true;
+                foreach (CqlColumn column in ret.Columns)
+                {
+                    if (first) first = false;
+                    else
+                        stream.Write(delim);
+
+                    stream.Write(column.Name);
+                }
+                stream.Write(rowDelim);
+                stream.Write(separ);
+                stream.Write(rowDelim);
+            }
+            int i = 0;
+            foreach (Row row in ret.GetRows())
+            {
+                bool first = true;
+                for (int j = 0; j < ret.Columns.Length; j++)
+                {
+                    if (first) first = false;
+                    else
+                        stream.Write(delim);
+
+                    if (row[j] is Array || (row[j].GetType().IsGenericType && row[j] is IEnumerable))
+                        cellEncoder = delegate(object collection)
+                        {
+                            string result = "<Collection>";
+                            if (collection.GetType() == typeof(byte[]))
+                                result += CqlQueryTools.ToHex((byte[])collection);
+                            else
+                                foreach (object val in (collection as IEnumerable))
+                                    result += val + ",";
+                            return result.Substring(0, result.Length - 1) + "</Collection>";
+                        };
+
+                    stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
+                }
+                stream.Write(rowDelim);
+                i++;
+            }
+            if (printFooter)
+            {
+                stream.Write(separ);
+                stream.Write(rowDelim);
+                stream.Write(lasLFrm, i);
+                stream.Write(rowDelim);
+            }
         }
 
         internal static void valueComparator(RowSet rawrowset, List<object[]> insertedRows)

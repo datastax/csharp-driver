@@ -91,7 +91,11 @@ namespace Cassandra
 
     public class RowSetMetadata
     {
-        private readonly Dictionary<string, int> _columnIdxes;
+        /// <summary>
+        /// Gets or sets the index of the columns within the row
+        /// </summary>
+        public Dictionary<string, int> ColumnIndexes { get; set; }
+
         private readonly CqlColumn[] _columns;
 
         private readonly ColumnDesc[] _rawColumns;
@@ -146,7 +150,7 @@ namespace Cassandra
                 _rawColumns = coldat.ToArray();
 
                 _columns = new CqlColumn[_rawColumns.Length];
-                _columnIdxes = new Dictionary<string, int>();
+                ColumnIndexes = new Dictionary<string, int>();
                 for (int i = 0; i < _rawColumns.Length; i++)
                 {
                     _columns[i] = new CqlColumn
@@ -161,8 +165,8 @@ namespace Cassandra
                         TypeInfo = _rawColumns[i].TypeInfo
                     };
                     //TODO: what with full long column names?
-                    if (!_columnIdxes.ContainsKey(_rawColumns[i].Name))
-                        _columnIdxes.Add(_rawColumns[i].Name, i);
+                    if (!ColumnIndexes.ContainsKey(_rawColumns[i].Name))
+                        ColumnIndexes.Add(_rawColumns[i].Name, i);
                 }
             }
         }
@@ -213,11 +217,6 @@ namespace Cassandra
         internal byte[] ConvertFromObject(object o)
         {
             return TypeInterpreter.InvCqlConvert(o);
-        }
-
-        internal Row GetRow(OutputRows rawrows)
-        {
-            return new Row(rawrows, _columnIdxes);
         }
     }
 }

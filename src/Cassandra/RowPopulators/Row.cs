@@ -22,7 +22,7 @@ namespace Cassandra
 {
     public class Row : IEnumerable<object>
     {
-        private readonly Dictionary<string, int> _columnIdxes;
+        protected virtual Dictionary<string, int> ColumnIndexes { get; set; }
         private readonly byte[][] _columns;
         private readonly RowSetMetadata _metadata;
 
@@ -38,14 +38,14 @@ namespace Cassandra
 
         public object this[string name]
         {
-            get { return this[_columnIdxes[name]]; }
+            get { return this[ColumnIndexes[name]]; }
         }
 
-        internal Row(OutputRows rawrows, Dictionary<string, int> columnIdxes)
+        internal Row(OutputRows rawrows, RowSetMetadata metadata)
         {
             var l = new List<byte[]>();
-            _columnIdxes = columnIdxes;
-            _metadata = rawrows.Metadata;
+            ColumnIndexes = metadata.ColumnIndexes;
+            _metadata = metadata;
             int i = 0;
             foreach (int len in rawrows.GetRawColumnLengths())
             {
@@ -77,7 +77,7 @@ namespace Cassandra
 
         public bool IsNull(string name)
         {
-            return _columns[_columnIdxes[name]] == null;
+            return _columns[ColumnIndexes[name]] == null;
         }
 
         public bool IsNull(int idx)
@@ -92,7 +92,7 @@ namespace Cassandra
 
         public object GetValue(Type tpy, string name)
         {
-            return GetValue(tpy, _columnIdxes[name]);
+            return GetValue(tpy, ColumnIndexes[name]);
         }
 
         public T GetValue<T>(int idx)
@@ -102,7 +102,7 @@ namespace Cassandra
 
         public T GetValue<T>(string name)
         {
-            return GetValue<T>(_columnIdxes[name]);
+            return GetValue<T>(ColumnIndexes[name]);
         }
 
         public class ColumnEnumerator : IEnumerator<object>

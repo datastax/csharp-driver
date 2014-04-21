@@ -37,7 +37,6 @@ namespace Cassandra.RequestHandlers
         /// </summary>
         public string CqlQuery { get; set; }
         public RowSetMetadata Metadata { get; set; }
-        public RowSetMetadata ResultMetadata { get; set; }
         public QueryProtocolOptions QueryProtocolOptions { get; set; }
         /// <summary>
         /// Determines if the request is being traced in Cassandra
@@ -57,7 +56,7 @@ namespace Cassandra.RequestHandlers
 
         override public void Process(Session owner, IAsyncResult ar, out object value)
         {
-            value = ProcessRowset(Connection.EndExecuteQuery(ar, owner), owner, ResultMetadata);
+            value = ProcessResponse(Connection.EndExecuteQuery(ar, owner), owner);
         }
 
         override public void Complete(Session owner, object value, Exception exc = null)
@@ -74,7 +73,7 @@ namespace Cassandra.RequestHandlers
                     RowSet rowset = value as RowSet;
                     if (rowset == null)
                     {
-                        rowset = new RowSet(null, owner, false);
+                        rowset = new RowSet();
                     }
                     rowset.Info.SetTriedHosts(TriedHosts);
                     rowset.Info.SetAchievedConsistency(Consistency ?? QueryProtocolOptions.Consistency);

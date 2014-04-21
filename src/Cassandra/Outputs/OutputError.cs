@@ -72,5 +72,11 @@ namespace Cassandra
             error.Load(cb);
             return error;
         }
+
+        public System.Guid? TraceId
+        {
+            get;
+            internal set;
+        }
     }
 }
