@@ -223,6 +223,7 @@
     <Compile Include="RequestHandlers\PrepareRequestHandler.cs" />
     <Compile Include="RequestHandlers\QueryRequestHandler.cs" />
     <Compile Include="RequestHandlers\RequestHandler.cs" />
+    <Compile Include="RowPopulators\RowEnumerator.cs" />
     <Compile Include="StreamProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Statement.cs" />

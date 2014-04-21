@@ -52,6 +52,7 @@
     <Compile Include="AdoUnitTests.cs" />
     <Compile Include="LinqSelectUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RowSetUnitTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
