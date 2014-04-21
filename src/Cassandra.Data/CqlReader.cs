@@ -75,7 +75,7 @@ namespace Cassandra.Data
 
         public override void Close()
         {
-            popul.Dispose();
+
         }
 
         public override bool GetBoolean(int ordinal)

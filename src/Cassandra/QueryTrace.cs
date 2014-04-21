@@ -181,25 +181,23 @@ namespace Cassandra
         {
             try
             {
-                using (RowSet sessRows = _session.Execute(string.Format(SelectSessionsFormat, _traceId)))
+                var sessRows = _session.Execute(string.Format(SelectSessionsFormat, _traceId));
+                foreach (Row sessRow in sessRows.GetRows())
                 {
-                    foreach (Row sessRow in sessRows.GetRows())
-                    {
-                        _requestType = sessRow.GetValue<string>("request");
-                        if (!sessRow.IsNull("duration"))
-                            _duration = sessRow.GetValue<int>("duration");
-                        _coordinator = sessRow.GetValue<IPEndPoint>("coordinator").Address;
-                        if (!sessRow.IsNull("parameters"))
-                            _parameters = sessRow.GetValue<IDictionary<string, string>>("parameters");
-                        _startedAt = sessRow.GetValue<DateTimeOffset>("started_at").ToFileTime(); //.getTime();
+                    _requestType = sessRow.GetValue<string>("request");
+                    if (!sessRow.IsNull("duration"))
+                        _duration = sessRow.GetValue<int>("duration");
+                    _coordinator = sessRow.GetValue<IPEndPoint>("coordinator").Address;
+                    if (!sessRow.IsNull("parameters"))
+                        _parameters = sessRow.GetValue<IDictionary<string, string>>("parameters");
+                    _startedAt = sessRow.GetValue<DateTimeOffset>("started_at").ToFileTime(); //.getTime();
 
-                        break;
-                    }
+                    break;
                 }
 
                 _events = new List<Event>();
 
-                using (RowSet evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId)))
+                var evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId));
                 {
                     foreach (Row evRow in evRows.GetRows())
                     {

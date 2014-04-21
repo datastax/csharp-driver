@@ -51,31 +51,29 @@ namespace Cassandra.Data.Linq
 
         public TEntity EndExecute(IAsyncResult ar)
         {
-            using (RowSet outp = InternalEndExecute(ar))
+            var outp = InternalEndExecute(ar);
+            QueryTrace = outp.Info.QueryTrace;
+
+            CqlColumn[] cols = outp.Columns;
+            if (cols.Length != 1)
+                throw new InvalidOperationException("Single column is expected.");
+
+            IEnumerable<Row> rows = outp.GetRows();
+            bool first = false;
+            TEntity ret = default(TEntity);
+            foreach (Row row in rows)
             {
-                QueryTrace = outp.Info.QueryTrace;
-
-                CqlColumn[] cols = outp.Columns;
-                if (cols.Length != 1)
-                    throw new InvalidOperationException("Single column is expected.");
-
-                IEnumerable<Row> rows = outp.GetRows();
-                bool first = false;
-                TEntity ret = default(TEntity);
-                foreach (Row row in rows)
+                if (first == false)
                 {
-                    if (first == false)
-                    {
-                        ret = (TEntity) row[0];
-                        first = true;
-                    }
-                    else
-                        throw new InvalidOperationException("Single row is expected.");
+                    ret = (TEntity) row[0];
+                    first = true;
                 }
-                if (!first)
+                else
                     throw new InvalidOperationException("Single row is expected.");
-                return ret;
             }
+            if (!first)
+                throw new InvalidOperationException("Single row is expected.");
+            return ret;
         }
     }
 }

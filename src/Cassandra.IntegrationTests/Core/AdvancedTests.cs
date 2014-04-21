@@ -220,7 +220,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                 Console.WriteLine();
                 Console.WriteLine("Inserted... now we are checking the count");
 
-                using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
                 {
                     Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
                 }
@@ -378,7 +378,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                 Console.WriteLine();
                 Console.WriteLine("Inserted... now we are checking the count");
 
-                using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+                var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
                 {
                     Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
                 }
@@ -472,7 +472,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+            var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
             {
                 Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
             }
@@ -633,7 +633,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             Console.WriteLine();
             Console.WriteLine("Inserted... now we are checking the count");
 
-            using (RowSet ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum))
+            var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
             {
                 Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
             }

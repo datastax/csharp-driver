@@ -52,23 +52,21 @@ namespace Cassandra.Data.Linq
 
         public TEntity EndExecute(IAsyncResult ar)
         {
-            using (RowSet outp = InternalEndExecute(ar))
-            {
-                Row row = outp.GetRows().FirstOrDefault();
-                if (row == null)
-                    if (((MethodCallExpression) Expression).Method.Name == "First")
-                        throw new InvalidOperationException("Sequence contains no elements.");
-                    else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
-                        return default(TEntity);
+            var rs = InternalEndExecute(ar);
+            Row row = rs.GetRows().FirstOrDefault();
+            if (row == null)
+                if (((MethodCallExpression) Expression).Method.Name == "First")
+                    throw new InvalidOperationException("Sequence contains no elements.");
+                else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
+                    return default(TEntity);
 
-                CqlColumn[] cols = outp.Columns;
-                var colToIdx = new Dictionary<string, int>();
-                for (int idx = 0; idx < cols.Length; idx++)
-                    colToIdx.Add(cols[idx].Name, idx);
+            CqlColumn[] cols = rs.Columns;
+            var colToIdx = new Dictionary<string, int>();
+            for (int idx = 0; idx < cols.Length; idx++)
+                colToIdx.Add(cols[idx].Name, idx);
 
-                var tag = (CqlQueryTag) Session.GetTag(ar);
-                return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
-            }
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
         }
 
         public TEntity Execute()

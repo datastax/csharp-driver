@@ -83,17 +83,10 @@ namespace Cassandra.IntegrationTests.Core
             int rs1 = 0;
             int rs2 = 0;
 
-            using (rs)
-            {
-                foreach (Row row in rs.GetRows())
-                    rs1++;
-            }
-
-            using (rs_without_paging)
-            {
-                foreach (Row row in rs_without_paging.GetRows())
-                    rs2++;
-            }
+            foreach (Row row in rs.GetRows())
+                rs1++;
+            foreach (Row row in rs_without_paging.GetRows())
+                rs2++;
 
             Assert.True(rs1 == rs2 && rs1 == rowsCount);
         }

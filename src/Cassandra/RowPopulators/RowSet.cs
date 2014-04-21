@@ -21,7 +21,7 @@ using System.IO;
 
 namespace Cassandra
 {
-    public class RowSet : IDisposable
+    public class RowSet
     {
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
@@ -70,11 +70,6 @@ namespace Cassandra
         internal virtual void AddRow(Row row)
         {
             RowList.Add(row);
-        }
-
-        public void Dispose()
-        {
-
         }
 
         public IEnumerable<Row> GetRows()

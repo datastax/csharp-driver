@@ -37,13 +37,14 @@ namespace Cassandra.IntegrationTests.Core
                 Console.WriteLine("CQL<\t" + messageInstead);
             else
                 Console.WriteLine("CQL< Query:\t" + query);
-
+            
+            var ret = session.Execute(query, consistency);
             if (expectedValues != null)
-                using (RowSet ret = session.Execute(query, consistency))
-                    valueComparator(ret, expectedValues);
+            {
+                valueComparator(ret, expectedValues);
+            }
 
-            using (RowSet ret = session.Execute(query, consistency))
-                PrintResult(ret, Console.Out, cellEncoder: CellEncoder);
+            PrintResult(ret, Console.Out, cellEncoder: CellEncoder);
 
             Console.WriteLine("CQL> Done.");
         }

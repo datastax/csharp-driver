@@ -249,14 +249,12 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(
                     new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
                         ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
-                       .Dispose();
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
 
                 bridge.ForceStop(2);
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
-                           .Dispose();
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
                 }
                 catch (ReadTimeoutException e)
                 {
@@ -398,8 +396,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(
                     new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
                         ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
-                       .Dispose();
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
 
                 bridge.Stop(2);
                 // Ensure that gossip has reported the node as down.
@@ -407,8 +404,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
-                           .Dispose();
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
                 }
                 catch (UnavailableException e)
                 {
@@ -475,8 +471,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(
                     new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
                         ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All))
-                       .Dispose();
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
 
                 bridge.ForceStop(2);
                 try

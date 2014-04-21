@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute("INSERT INTO test(k, c, v) VALUES (0, 'i@42', 2)");
             Session.Execute("INSERT INTO test(k, c, v) VALUES (0, 'i@12:i@3', 3)");
 
-            using (RowSet rs = Session.Execute("SELECT * FROM test"))
+            var rs = Session.Execute("SELECT * FROM test");
             {
                 IEnumerator<Row> ren = rs.GetRows().GetEnumerator();
                 ren.MoveNext();
