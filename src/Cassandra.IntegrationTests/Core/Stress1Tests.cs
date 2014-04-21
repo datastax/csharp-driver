@@ -166,9 +166,8 @@ namespace Cassandra.IntegrationTests.Core
             RETRY:
             try
             {
-                using (
-                    RowSet res = Session.Execute(string.Format(@"SELECT COUNT(*) FROM {0} LIMIT {1}", tableName, RowsNo + 100),
-                                                 ConsistencyLevel.Quorum))
+                var res = Session.Execute(string.Format(@"SELECT COUNT(*) FROM {0} LIMIT {1}", tableName, RowsNo + 100),
+                                                 ConsistencyLevel.Quorum);
                 {
                     var cnt = res.GetRows().FirstOrDefault().GetValue<long>(0);
                     Assert.Equal(RowsNo, cnt);

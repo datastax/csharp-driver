@@ -27,7 +27,7 @@ namespace Cassandra
                                      string writeType) :
                                          base(
                                          string.Format(
-                                             "Cassandra timeout during write query at consitency {0} ({1} replica acknowledged the write over {2} required)",
+                                             "Cassandra timeout during write query at consistency {0} ({1} replica(s) acknowledged the write over {2} required)",
                                              consistency.ToString().ToUpper(), received, required),
                                          consistency,
                                          received,

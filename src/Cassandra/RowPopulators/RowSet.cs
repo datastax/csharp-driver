@@ -21,151 +21,60 @@ using System.IO;
 
 namespace Cassandra
 {
-    public class RowSet : IDisposable
+    public class RowSet
     {
-        public delegate string CellEncoder(object val);
+        /// <summary>
+        /// Gets or set the internal row list. It contains the rows of the latest query page.
+        /// </summary>
+        protected virtual List<Row> RowList { get; set; }
 
-        private readonly BoolSwitch _alreadyDisposed = new BoolSwitch();
-        private readonly BoolSwitch _alreadyIterated = new BoolSwitch();
+        /// <summary>
+        /// Gets the execution info of the query
+        /// </summary>
+        public ExecutionInfo Info { get; set; }
 
-        private readonly ExecutionInfo _info = new ExecutionInfo();
-        private readonly bool _ownRows;
-        private readonly OutputRows _rawrows;
+        /// <summary>
+        /// Gets or sets the columns in the rowset
+        /// </summary>
+        public CqlColumn[] Columns { get; set; }
 
-        public ExecutionInfo Info
-        {
-            get { return _info; }
-        }
+        /// <summary>
+        /// Gets or sets the paging state of the query for the rowset
+        /// </summary>
+        public byte[] PagingState { get; set; }
 
-        public CqlColumn[] Columns
-        {
-            get { return _rawrows == null ? new CqlColumn[] {} : _rawrows.Metadata.Columns; }
-        }
-
-        public byte[] PagingState
-        {
-            get { return _rawrows != null ? _rawrows.Metadata.PagingState : null; }
-        }
-
+        /// <summary>
+        /// Determines if all the rows from the previous query have been retrieved
+        /// </summary>
         public bool IsExhausted
         {
-            get { return _rawrows != null ? _rawrows.Metadata.PagingState == null : true; }
+            get
+            {
+                if (RowList.Count == 0 || PagingState == null)
+                {
+                    return true;
+                }
+                return false;
+            }
         }
 
-
-        internal RowSet(OutputRows rawrows, ISession session, bool ownRows = true, RowSetMetadata resultMetadata = null)
+        public RowSet()
         {
-            _rawrows = rawrows;
-            _ownRows = ownRows;
-
-            if (resultMetadata != null)
-                rawrows.Metadata = resultMetadata;
-
-            if (rawrows != null && rawrows.TraceId != null)
-                _info.SetQueryTrace(new QueryTrace(rawrows.TraceId.Value, session));
+            RowList = new List<Row>();
+            Info = new ExecutionInfo();
         }
 
-        internal RowSet(OutputVoid output, ISession session)
+        /// <summary>
+        /// Adds a row to the inner row list
+        /// </summary>
+        internal virtual void AddRow(Row row)
         {
-            if (output.TraceId != null)
-                _info.SetQueryTrace(new QueryTrace(output.TraceId.Value, session));
-        }
-
-        internal RowSet(OutputSetKeyspace output, ISession session)
-        {
-        }
-
-        internal RowSet(OutputSchemaChange output, ISession session)
-        {
-            if (output.TraceId != null)
-                _info.SetQueryTrace(new QueryTrace(output.TraceId.Value, session));
-        }
-
-        public void Dispose()
-        {
-            if (!_alreadyDisposed.TryTake())
-                return;
-
-            if (_ownRows)
-                _rawrows.Dispose();
+            RowList.Add(row);
         }
 
         public IEnumerable<Row> GetRows()
         {
-            if (!_alreadyIterated.TryTake())
-                throw new InvalidOperationException("RowSet already iterated");
-            if (_rawrows != null)
-            {
-                for (int i = 0; i < _rawrows.Rows; i++)
-                    yield return _rawrows.Metadata.GetRow(_rawrows);
-            }
-        }
-
-        ~RowSet()
-        {
-            Dispose();
-        }
-
-
-        public void PrintTo(TextWriter stream,
-                            string delim = "\t|",
-                            string rowDelim = "\r\n",
-                            bool printHeader = true,
-                            bool printFooter = true,
-                            string separ = "-------------------------------------------------------------------------------",
-                            string lasLFrm = "Returned {0} rows.",
-                            CellEncoder cellEncoder = null
-            )
-        {
-            if (printHeader)
-            {
-                bool first = true;
-                foreach (CqlColumn column in Columns)
-                {
-                    if (first) first = false;
-                    else
-                        stream.Write(delim);
-
-                    stream.Write(column.Name);
-                }
-                stream.Write(rowDelim);
-                stream.Write(separ);
-                stream.Write(rowDelim);
-            }
-            int i = 0;
-            foreach (Row row in GetRows())
-            {
-                bool first = true;
-                for (int j = 0; j < Columns.Length; j++)
-                {
-                    if (first) first = false;
-                    else
-                        stream.Write(delim);
-
-                    if (row[j] is Array || (row[j].GetType().IsGenericType && row[j] is IEnumerable))
-                        cellEncoder = delegate(object collection)
-                        {
-                            string result = "<Collection>";
-                            if (collection.GetType() == typeof (byte[]))
-                                result += CqlQueryTools.ToHex((byte[]) collection);
-                            else
-                                foreach (object val in (collection as IEnumerable))
-                                    result += val + ",";
-                            return result.Substring(0, result.Length - 1) + "</Collection>";
-                        };
-
-                    stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
-                }
-                stream.Write(rowDelim);
-                i++;
-            }
-            if (printFooter)
-            {
-                stream.Write(separ);
-                stream.Write(rowDelim);
-                stream.Write(lasLFrm, i);
-                stream.Write(rowDelim);
-            }
+            return RowList;
         }
     }
 }

@@ -184,7 +184,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     IPAddress ccord;
                     ConsistencyLevel cac;
-                    using (RowSet rs = c.Session.Execute(bs))
+                    var rs = c.Session.Execute(bs);
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
@@ -200,11 +200,10 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     IPAddress ccord;
                     ConsistencyLevel cac;
-                    using (
-                        RowSet rs =
+                    var rs =
                             c.Session.Execute(
                                 new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey)
-                                                                                                          .SetConsistencyLevel(cl)))
+                                                                                                          .SetConsistencyLevel(cl));
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;

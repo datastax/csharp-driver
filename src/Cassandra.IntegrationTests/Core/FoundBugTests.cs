@@ -66,15 +66,15 @@ namespace Cassandra.IntegrationTests.Core
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
                 var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
                 {
-                    using (RowSet result = Session.Execute(query))
-                        foreach (Row resKeyspace in result.GetRows())
-                        {
-                            Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                              resKeyspace.GetValue<bool>("durable_writes"),
-                                              resKeyspace.GetValue<string>("keyspace_name"),
-                                              resKeyspace.GetValue<string>("strategy_class"),
-                                              resKeyspace.GetValue<string>("strategy_options"));
-                        }
+                    var result = Session.Execute(query);
+                    foreach (Row resKeyspace in result.GetRows())
+                    {
+                        Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
+                                            resKeyspace.GetValue<bool>("durable_writes"),
+                                            resKeyspace.GetValue<string>("keyspace_name"),
+                                            resKeyspace.GetValue<string>("strategy_class"),
+                                            resKeyspace.GetValue<string>("strategy_options"));
+                    }
                 }
 
                 CCMCluster.CCMBridge.ForceStop(1);
@@ -84,11 +84,11 @@ namespace Cassandra.IntegrationTests.Core
 
                 try
                 {
-                    using (RowSet result = Session.Execute(query))
-                        foreach (Row resKeyspace in result.GetRows())
-                        {
-                            Console.WriteLine(resKeyspace.GetValue<string>("keyspace_name"));
-                        }
+                    var result = Session.Execute(query);
+                    foreach (Row resKeyspace in result.GetRows())
+                    {
+                        Console.WriteLine(resKeyspace.GetValue<string>("keyspace_name"));
+                    }
                 }
                 catch (Exception)
                 {

@@ -207,11 +207,8 @@ namespace Cassandra.IntegrationTests.Core
 
             int rowID = 5;
             RowSet result = QueryTools.ExecutePreparedSelectQuery(Session, prep_select, new object[1] {rowID});
-            using (result)
-            {
-                foreach (Row row in result.GetRows())
-                    Assert.True((string) row.GetValue(typeof (int), "label") == "row" + rowID);
-            }
+            foreach (Row row in result.GetRows())
+                Assert.True((string) row.GetValue(typeof (int), "label") == "row" + rowID);
             Assert.True(result.Columns != null);
             Assert.True(result.Columns.Length == 3);
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));

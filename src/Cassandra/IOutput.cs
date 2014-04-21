@@ -20,5 +20,6 @@ namespace Cassandra
 {
     internal interface IOutput : IDisposable
     {
+        Guid? TraceId { get; }
     }
 }

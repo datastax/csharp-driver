@@ -30,7 +30,7 @@ namespace Cassandra
         /// <para><value>TraceLevel.Verbose</value> - Output all debugging and tracing messages.</para>                
         /// </summary>
         public static readonly TraceSwitch CassandraTraceSwitch = new TraceSwitch("TraceSwitch",
-                                                                                  "This switch lets user to choose which kind of messages should be included in log.");
+                                                                                  "This switch lets the user choose which kind of messages should be included in log.");
 
         /// <summary>
         /// Defines if exception StackTrace information should be printed by trace logger.

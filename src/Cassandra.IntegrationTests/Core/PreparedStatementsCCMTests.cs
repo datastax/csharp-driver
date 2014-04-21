@@ -80,7 +80,7 @@ namespace Cassandra.IntegrationTests.Core
 
             PreparedStatement ps = Session.Prepare("SELECT * FROM " + modifiedKs + "test WHERE k = ?");
 
-            using (RowSet rs = Session.Execute(ps.Bind("123")))
+            var rs = Session.Execute(ps.Bind("123"));
             {
                 Assert.Equal(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
             }
@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                using (RowSet rowset = Session.Execute(ps.Bind("124")))
+                var rowset = Session.Execute(ps.Bind("124"));
                 {
                     Assert.Equal(rowset.GetRows().First().GetValue<int>("i"), 18);
                 }

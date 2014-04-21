@@ -115,9 +115,8 @@ namespace Cassandra.IntegrationTests.Core
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            using (
-                RowSet rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName),
-                                            Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()))
+            var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName),
+                                            Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             {
                 int ind = 0;
                 foreach (Row row in rs.GetRows())

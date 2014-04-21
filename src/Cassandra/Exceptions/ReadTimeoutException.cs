@@ -38,9 +38,9 @@ namespace Cassandra
         private static string FormatDetails(int received, int required, bool dataPresent)
         {
             if (received < required)
-                return string.Format("{0} replica responded over {1} required", received, required);
+                return string.Format("{0} replica(s) responded over {1} required", received, required);
             if (!dataPresent)
-                return string.Format("the replica queried for data didn't responded");
+                return string.Format("the replica queried for data didn't respond");
             return string.Format("timeout while waiting for repair of inconsistent replica");
         }
     }

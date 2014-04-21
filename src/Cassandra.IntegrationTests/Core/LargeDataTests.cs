@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute("INSERT INTO wide_rows(k,i) VALUES(" + key + "," + i + ")", ConsistencyLevel.Quorum);
 
             // Read data        
-            using (RowSet rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key, ConsistencyLevel.Quorum))
+            var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 // Verify data
                 int j = 0;
@@ -96,7 +96,7 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute(sb.ToString(), ConsistencyLevel.Quorum);
 
             // Read data
-            using (RowSet rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key, ConsistencyLevel.Quorum))
+            var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 // Verify data
                 int j = 0;
@@ -125,7 +125,7 @@ namespace Cassandra.IntegrationTests.Core
                                 ConsistencyLevel.Quorum);
 
             // Read data
-            using (RowSet rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key, ConsistencyLevel.Quorum))
+            var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 // Verify data            
                 foreach (Row row in rs.GetRows())
@@ -147,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b), ConsistencyLevel.Quorum);
 
             // Read data
-            using (RowSet rs = session.Execute("SELECT * FROM large_text WHERE k = " + key, ConsistencyLevel.Quorum))
+            var rs = session.Execute("SELECT * FROM large_text WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 Row row = rs.GetRows().FirstOrDefault(); // select().all().from("large_text").where(eq("k", key))).one();
                 // Verify data
@@ -197,7 +197,7 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute(insrt.ToString(), ConsistencyLevel.Quorum);
 
             // Read data
-            using (RowSet rs = session.Execute("SELECT * FROM wide_table WHERE k = " + key, ConsistencyLevel.Quorum))
+            var rs = session.Execute("SELECT * FROM wide_table WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 Row row = rs.GetRows().FirstOrDefault();
 

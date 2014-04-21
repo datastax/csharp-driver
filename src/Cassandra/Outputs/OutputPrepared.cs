@@ -39,5 +39,11 @@ namespace Cassandra
         public void WaitForDispose()
         {
         }
+
+        public System.Guid? TraceId
+        {
+            get;
+            internal set;
+        }
     }
 }

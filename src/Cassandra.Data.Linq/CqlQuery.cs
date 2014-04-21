@@ -94,20 +94,18 @@ namespace Cassandra.Data.Linq
 
         public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
         {
-            using (RowSet outp = InternalEndExecute(ar))
-            {
-                QueryTrace = outp.Info.QueryTrace;
+            var outp = InternalEndExecute(ar);
+            QueryTrace = outp.Info.QueryTrace;
 
-                CqlColumn[] cols = outp.Columns;
-                var colToIdx = new Dictionary<string, int>();
-                for (int idx = 0; idx < cols.Length; idx++)
-                    colToIdx.Add(cols[idx].Name, idx);
-                IEnumerable<Row> rows = outp.GetRows();
-                var tag = (CqlQueryTag) Session.GetTag(ar);
-                foreach (Row row in rows)
-                {
-                    yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
-                }
+            CqlColumn[] cols = outp.Columns;
+            var colToIdx = new Dictionary<string, int>();
+            for (int idx = 0; idx < cols.Length; idx++)
+                colToIdx.Add(cols[idx].Name, idx);
+            IEnumerable<Row> rows = outp.GetRows();
+            var tag = (CqlQueryTag) Session.GetTag(ar);
+            foreach (Row row in rows)
+            {
+                yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
             }
         }
     }
