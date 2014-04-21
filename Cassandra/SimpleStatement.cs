@@ -62,8 +62,7 @@ namespace Cassandra
         ///  obtain the routing key.
         ///  </param>
         /// 
-        /// <returns>this <code>SimpleStatement</code> object.
-        ///  <see>Query#getRoutingKey</returns>
+        /// <returns>this <code>SimpleStatement</code> object. <see>Query#getRoutingKey</see></returns>
         public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents) 
         {
             this._routingKey = RoutingKey.Compose(routingKeyComponents); return this; 

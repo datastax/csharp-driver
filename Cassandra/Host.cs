@@ -31,7 +31,7 @@ namespace Cassandra
     ///  this host. More active connections will be kept to <code>Local</code> host
     ///  than to a <code>Remote</code> one (and thus well behaving
     ///  <code>LoadBalancingPolicy</code> should assign a <code>Remote</code> distance
-    ///  only to hosts that are the less often queried). <p> However, if an host is
+    ///  only to hosts that are the less often queried). &lt;p&gt; However, if an host is
     ///  assigned the distance <code>Ignored</code>, no connection to that host will
     ///  maintained active. In other words, <code>Ignored</code> should be assigned to
     ///  hosts that should not be used by this driver (because they are in a remote

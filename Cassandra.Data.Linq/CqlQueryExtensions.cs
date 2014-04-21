@@ -207,7 +207,7 @@ namespace Cassandra.Data.Linq
         /// <typeparam name="TSource">The type of the elements of source.</typeparam>
         /// <typeparam name="TKey">The type of the key returned by keySelector.</typeparam>
         /// <param name="source">A sequence of values to order, returned from CqlQuery&lt;TSource&gt;.</param>
-        /// <param name="keySelector">A function to extract a key from an element.</param>
+        /// <param name="func">A function to extract a key from an element.</param>
         /// <returns>a CqlQuery&lt;TSource&gt; which after execution returns an IEnumerable&lt;TSource&gt; sorted in descending manner according to a key.</returns>
         public static CqlQuery<TSource> OrderByDescending<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {

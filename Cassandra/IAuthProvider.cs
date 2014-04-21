@@ -35,7 +35,7 @@ namespace Cassandra
 
     /// <summary>
     ///  A provider that provides no authentication capability. <p> This is only
-    ///  useful as a placeholder when no authentication is to be used.
+    ///  useful as a placeholder when no authentication is to be used.</p>
     /// </summary>
     public class NoneAuthProvider : IAuthProvider
     {
