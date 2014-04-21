@@ -39,7 +39,7 @@ namespace Cassandra
 
         public UnavailableException(ConsistencyLevel consistency, int required, int alive) :
             base(
-            string.Format("Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", consistency, required, alive)
+            string.Format("Not enough replicas available for query at consistency {0} ({1} required but only {2} alive)", consistency, required, alive)
             )
         {
             Consistency = consistency;

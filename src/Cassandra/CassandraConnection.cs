@@ -194,7 +194,7 @@ namespace Cassandra
                     targetHost = serverAddress.ToString();
                     Logger.Error(
                         String.Format(
-                            "SSL connection: Can not resolve {0} address. Using IP address instead of hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.",
+                            "SSL connection: Can not resolve address {0}. Using the IP address instead of the hostname. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that the Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.",
                             _serverAddress), ex);
                 }
 
@@ -466,7 +466,7 @@ namespace Cassandra
 
                                 if (act == null)
                                 {
-                                    throw new InvalidOperationException("Protocol error! Unmached response. Terminating all requests now...");
+                                    throw new InvalidOperationException("Protocol error! Unmatched response. Terminating all requests now...");
                                 }
 
                                 act.BeginInvoke(frame, tar =>
