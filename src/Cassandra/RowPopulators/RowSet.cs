@@ -15,14 +15,17 @@
 //
 
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
-    public class RowSet
+    public class RowSet : IEnumerable<Row>
     {
+        public event Func<byte[], Task<RowSet>> FetchNextPage;
+        protected Task FetchNextPageTask = null;
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
         /// </summary>
@@ -62,6 +65,7 @@ namespace Cassandra
         {
             RowList = new List<Row>();
             Info = new ExecutionInfo();
+            Columns = new CqlColumn[] { };
         }
 
         /// <summary>
@@ -74,7 +78,49 @@ namespace Cassandra
 
         public IEnumerable<Row> GetRows()
         {
-            return RowList;
+            //legacy: Keep the GetRows method for Compatibity.
+            return this;
+        }
+
+        public IEnumerator<Row> GetEnumerator()
+        {
+            var enumerator = new RowEnumerator(RowList);
+            if (PagingState != null)
+            {
+                enumerator.MovedToEnd += PageNext;
+            }
+            return enumerator;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        protected virtual void PageNext()
+        {
+            if (PagingState == null)
+            {
+                return;
+            }
+            if (FetchNextPage == null)
+            {
+                //Clear the paging state
+                PagingState = null;
+                return;
+            }
+            if (FetchNextPageTask == null)
+            {
+                FetchNextPageTask = 
+                    FetchNextPage(this.PagingState)
+                    .ContinueWith(t =>
+                    {
+                        var rs = t.Result;
+                        this.PagingState = rs.PagingState;
+                        this.RowList.AddRange(rs.RowList);
+                    });
+            }
+            FetchNextPageTask.Wait();
         }
     }
 }

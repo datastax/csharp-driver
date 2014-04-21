@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Data
+namespace Cassandra.Tests
 {
     [TestFixture]
     public class AdoUnitTests
