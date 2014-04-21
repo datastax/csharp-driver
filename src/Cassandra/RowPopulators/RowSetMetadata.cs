@@ -163,7 +163,8 @@ namespace Cassandra
                             _rawColumns[i].TypeCode,
                             _rawColumns[i].TypeInfo),
                         TypeCode = _rawColumns[i].TypeCode,
-                        TypeInfo = _rawColumns[i].TypeInfo
+                        TypeInfo = _rawColumns[i].TypeInfo,
+                        Index = i
                     };
                     //TODO: what with full long column names?
                     if (!ColumnIndexes.ContainsKey(_rawColumns[i].Name))

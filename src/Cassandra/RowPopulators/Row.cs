@@ -56,12 +56,12 @@ namespace Cassandra
 
         public IEnumerator GetEnumerator()
         {
-            return new ColumnEnumerator(this);
+            return Columns.Select(c => this.GetValue(c.Type, c.Index)).GetEnumerator();
         }
 
         IEnumerator<object> IEnumerable<object>.GetEnumerator()
         {
-            return new ColumnEnumerator(this);
+            return Columns.Select(c => this.GetValue(c.Type, c.Index)).GetEnumerator();
         }
 
         public bool IsNull(string name)
@@ -97,41 +97,6 @@ namespace Cassandra
         public T GetValue<T>(string name)
         {
             return GetValue<T>(ColumnIndexes[name]);
-        }
-
-        public class ColumnEnumerator : IEnumerator<object>
-        {
-            private readonly Row _owner;
-            private int _idx = -1;
-
-            public ColumnEnumerator(Row owner)
-            {
-                _owner = owner;
-            }
-
-            public object Current
-            {
-                get
-                {
-                    if (_idx == -1 || _idx >= _owner.Values.Length) return null;
-                    return _owner[_idx];
-                }
-            }
-
-            public bool MoveNext()
-            {
-                _idx++;
-                return _idx < _owner.Values.Length;
-            }
-
-            public void Reset()
-            {
-                _idx = -1;
-            }
-
-            public void Dispose()
-            {
-            }
         }
     }
 }
