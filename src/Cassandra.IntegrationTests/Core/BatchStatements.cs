@@ -75,7 +75,6 @@ namespace Cassandra.IntegrationTests.Core
         [TestMethod]
         public void BatchSimpleStatement()
         {
-            string statement = null;
             SimpleStatement simpleStatement = null;
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             List<object[]> expectedValues = new List<object[]>();
