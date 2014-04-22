@@ -15,25 +15,26 @@
 //
 
 using System;
-using System.Linq;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Represents a result of a query returned by Cassandra.
+    /// </summary>
     public class RowSet : IEnumerable<Row>
     {
+        private object _pageLock = new object();
+        /// <summary>
+        /// Contains the PagingState keys of the pages already retrieved.
+        /// </summary>
+        protected ConcurrentDictionary<byte[], bool> _pagers = new ConcurrentDictionary<byte[], bool>();
         /// <summary>
         /// Event that is fired to get the next page.
         /// </summary>
         public event Func<byte[], RowSet> FetchNextPage;
-
-        /// <summary>
-        /// The task that handles the fetching of the next page.
-        /// When set it states that is currently fetching.
-        /// </summary>
-        protected Task FetchNextPageTask = null;
 
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
@@ -113,34 +114,33 @@ namespace Cassandra
 
         protected virtual void PageNext()
         {
-            if (PagingState == null)
+            if (this.PagingState == null)
             {
                 return;
             }
             if (FetchNextPage == null)
             {
                 //Clear the paging state
-                PagingState = null;
+                this.PagingState = null;
                 return;
             }
-
-            if (FetchNextPageTask == null)
+            var pageState = this.PagingState;
+            lock (_pageLock)
             {
-                FetchNextPageTask = Task.Factory.StartNew(() =>
+                if (pageState == null)
                 {
-                    var rs = FetchNextPage(this.PagingState);
+                    //Double-checked locking (inversed)
+                    return;
+                }
+                bool value;
+                bool alreadyPresent = _pagers.TryGetValue(pageState, out value);
+                if (!alreadyPresent)
+                {
+                    var rs = FetchNextPage(pageState);
                     this.PagingState = rs.PagingState;
-                    this.FetchNextPageTask = null;
                     this.RowList.AddRange(rs.RowList);
-                });
-            }
-            try
-            {
-                FetchNextPageTask.Wait();
-            }
-            catch (AggregateException ex)
-            {
-                throw ex.InnerException;
+                    _pagers.AddOrUpdate(pageState, true, (k, v) => v);
+                }
             }
         }
     }

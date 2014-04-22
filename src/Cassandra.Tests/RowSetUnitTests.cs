@@ -90,6 +90,48 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
+        /// Tests that when multi threading, all enumerators of the same rowset wait for the fetching.
+        /// </summary>
+        [Test]
+        public void RowSetFetchNextAllEnumeratorsWait()
+        {
+            var rowLength = 10;
+            var rs = CreateStringsRowset(10, rowLength);
+            rs.PagingState = new byte[0];
+            var fetchCounter = 0;
+            rs.FetchNextPage += (pagingState) =>
+            {
+                fetchCounter++;
+                //fake a 
+                Thread.Sleep(1500);
+                return CreateStringsRowset(10, rowLength);
+            };
+            var counterList = new List<int>();
+            Action iteration = () =>
+            {
+                var counter = 0;
+                foreach (var row in rs)
+                {
+                    counter++;
+                    if (counter == rowLength ||counter == rowLength-1)
+                    {
+                        //Try to synchronize, all the threads will try to fetch at the almost same time.
+                        Thread.Sleep(200);
+                    }
+                }
+                counterList.Add(counter);
+            };
+            Parallel.Invoke(iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration);
+            
+            //Assert that the fetch was called just 1 time
+            Assert.AreEqual(1, fetchCounter);
+            foreach (var counter in counterList)
+            {
+                Assert.AreEqual(rowLength * 2, counter);
+            }
+        }
+
+        /// <summary>
         /// Tests that multiple threads do not affect the current enumerator
         /// </summary>
         [Test]

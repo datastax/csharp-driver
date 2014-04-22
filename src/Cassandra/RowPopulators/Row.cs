@@ -21,6 +21,9 @@ using System.Collections.Generic;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Represents an CQL row
+    /// </summary>
     public class Row : IEnumerable<object>
     {
         /// <summary>
