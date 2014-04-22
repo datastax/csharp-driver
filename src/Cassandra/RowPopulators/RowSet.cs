@@ -24,8 +24,17 @@ namespace Cassandra
 {
     public class RowSet : IEnumerable<Row>
     {
+        /// <summary>
+        /// Event that is fired to get the next page.
+        /// </summary>
         public event Func<byte[], Task<RowSet>> FetchNextPage;
+
+        /// <summary>
+        /// The task that handles the fetching of the next page.
+        /// When set it states that is currently fetching.
+        /// </summary>
         protected Task FetchNextPageTask = null;
+
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
         /// </summary>
@@ -34,22 +43,22 @@ namespace Cassandra
         /// <summary>
         /// Gets the execution info of the query
         /// </summary>
-        public ExecutionInfo Info { get; set; }
+        public virtual ExecutionInfo Info { get; set; }
 
         /// <summary>
         /// Gets or sets the columns in the rowset
         /// </summary>
-        public CqlColumn[] Columns { get; set; }
+        public virtual CqlColumn[] Columns { get; set; }
 
         /// <summary>
         /// Gets or sets the paging state of the query for the rowset
         /// </summary>
-        public byte[] PagingState { get; set; }
+        public virtual byte[] PagingState { get; set; }
 
         /// <summary>
         /// Determines if all the rows from the previous query have been retrieved
         /// </summary>
-        public bool IsExhausted
+        public virtual bool IsExhausted
         {
             get
             {
@@ -76,6 +85,10 @@ namespace Cassandra
             RowList.Add(row);
         }
 
+        /// <summary>
+        /// For backward compatibility: It is possible to iterate using the RowSet as it is enumerable.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<Row> GetRows()
         {
             //legacy: Keep the GetRows method for Compatibity.
@@ -117,6 +130,7 @@ namespace Cassandra
                     {
                         var rs = t.Result;
                         this.PagingState = rs.PagingState;
+                        this.FetchNextPageTask = null;
                         this.RowList.AddRange(rs.RowList);
                     });
             }

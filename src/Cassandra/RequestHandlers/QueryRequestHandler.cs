@@ -29,7 +29,7 @@ namespace Cassandra.RequestHandlers
     {
         override public void Begin(Session owner, int streamId)
         {
-            Connection.BeginQuery(streamId, CqlQuery, owner.RequestCallback, this, owner, IsTracing, QueryProtocolOptions.CreateFromQuery(Query, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), Consistency);
+            Connection.BeginQuery(streamId, CqlQuery, owner.RequestCallback, this, owner, IsTracing, QueryProtocolOptions.CreateFromQuery(Statement, owner.Cluster.Configuration.QueryOptions.GetConsistencyLevel()), Consistency);
         }
 
         override public void Process(Session owner, IAsyncResult ar, out object value)

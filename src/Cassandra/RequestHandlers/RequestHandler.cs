@@ -30,7 +30,10 @@ namespace Cassandra.RequestHandlers
         private readonly Logger _logger = new Logger(typeof(RequestHandler));
         public CassandraConnection Connection;
         public ConsistencyLevel? Consistency = null;
-        public Statement Query;
+        /// <summary>
+        /// The statement that executed the request
+        /// </summary>
+        public Statement Statement { get; set; }
         private IEnumerator<Host> _hostsIter = null;
         public IAsyncResult LongActionAc;
         public readonly Dictionary<IPAddress, List<Exception>> InnerExceptions = new Dictionary<IPAddress, List<Exception>>();
@@ -41,7 +44,7 @@ namespace Cassandra.RequestHandlers
         {
             if (_hostsIter == null)
             {
-                _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(Query).GetEnumerator();
+                _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(Statement).GetEnumerator();
                 if (!_hostsIter.MoveNext())
                 {
                     var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
@@ -52,12 +55,14 @@ namespace Cassandra.RequestHandlers
             else
             {
                 if (moveNext)
+                {
                     if (!_hostsIter.MoveNext())
                     {
                         var ex = new NoHostAvailableException(InnerExceptions);
                         _logger.Error(ex);
                         throw ex;
                     }
+                }
             }
 
             Connection = owner.Connect(_hostsIter, TriedHosts, InnerExceptions, out streamId);
@@ -84,18 +89,29 @@ namespace Cassandra.RequestHandlers
                 }
                 else if (outp is OutputRows)
                 {
-                    ProcessRows(rs, (OutputRows)outp);
+                    ProcessRows(rs, (OutputRows)outp, owner);
                 }
                 return rs;
             }
         }
 
-        internal virtual void ProcessRows(RowSet rs, OutputRows outputRows)
+        /// <summary>
+        /// Process rows and sets the paging event handler
+        /// </summary>
+        internal virtual void ProcessRows(RowSet rs, OutputRows outputRows, Session session)
         {
             if (outputRows.Metadata != null)
             {
                 rs.Columns = outputRows.Metadata.Columns;
                 rs.PagingState = outputRows.Metadata.PagingState;
+                if (rs.PagingState != null)
+                {
+                    rs.FetchNextPage += (pagingState) => 
+                    {
+                        Statement.SetPagingState(pagingState);
+                        return session.ExecuteAsync(Statement);
+                    };
+                }
             }
             for (var i = 0; i < outputRows.Rows; i++)
             {

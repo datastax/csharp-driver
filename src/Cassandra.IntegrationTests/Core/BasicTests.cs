@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(sst.Bind(new object[] {Guid.NewGuid(), "label", 1}));
         }
 
-        private void QueryFetchingTest(int rowsCount = 5000)
+        private void QueryFetchingTest(int rowsCount = 1500)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
@@ -78,14 +78,14 @@ namespace Cassandra.IntegrationTests.Core
             for (int i = 0; i < rowsCount; i++)
                 Session.Execute(string.Format("INSERT INTO {2}(tweet_id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
 
-            RowSet rs = Session.Execute("SELECT * FROM " + tableName);
+            RowSet rs = Session.Execute("SELECT * FROM " + tableName, 10);
             RowSet rs_without_paging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
             int rs1 = 0;
             int rs2 = 0;
 
-            foreach (Row row in rs.GetRows())
+            foreach (Row row in rs)
                 rs1++;
-            foreach (Row row in rs_without_paging.GetRows())
+            foreach (Row row in rs_without_paging)
                 rs2++;
 
             Assert.True(rs1 == rs2 && rs1 == rowsCount);
