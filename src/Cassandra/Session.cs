@@ -719,7 +719,7 @@ namespace Cassandra
                 }
                 catch (QueryValidationException exc)
                 {
-                    var decision = GetRetryDecision(handler.Query, exc, handler.Query != null ? (handler.Query.RetryPolicy ?? Policies.RetryPolicy) : Policies.RetryPolicy, handler.QueryRetries);
+                    var decision = GetRetryDecision(handler.Statement, exc, handler.Statement != null ? (handler.Statement.RetryPolicy ?? Policies.RetryPolicy) : Policies.RetryPolicy, handler.QueryRetries);
                     if (decision == null)
                     {
                         if (!handler.InnerExceptions.ContainsKey(handler.Connection.GetHostAdress()))
@@ -775,7 +775,7 @@ namespace Cassandra
         internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var handler = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Query = query, QueryProtocolOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
+            var handler = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Statement = query, QueryProtocolOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
 
             ExecConn(handler, false);
 
@@ -832,7 +832,7 @@ namespace Cassandra
         internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Statement query = null, object sender = null, object tag = null, bool isTracing = false)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var handler = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, CqlQuery = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Query = query, LongActionAc = longActionAc, IsTracing = isTracing};
+            var handler = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, CqlQuery = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Statement = query, LongActionAc = longActionAc, IsTracing = isTracing};
             ExecConn(handler, false);
             return longActionAc;
         }
@@ -852,7 +852,7 @@ namespace Cassandra
         internal IAsyncResult BeginBatch(BatchType batchType, List<Statement> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
         {
             var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
-            var handler = new BatchRequestHandler() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Query = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            var handler = new BatchRequestHandler() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Statement = query, LongActionAc = longActionAc, IsTracing = isTracing };
             ExecConn(handler, false);
             return longActionAc;
         }
