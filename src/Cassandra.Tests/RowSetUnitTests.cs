@@ -81,12 +81,34 @@ namespace Cassandra.Tests
             }
             catch (TestException)
             {
-                //An exception of type TestException is expected.n  
+                //An exception of type TestException is expected. 
             }
             catch (Exception ex)
             {
                 Assert.Fail("Expected exception of type TestException, got: " + ex.GetType());
             }
+        }
+
+        /// <summary>
+        /// Tests that multiple threads do not affect the current enumerator
+        /// </summary>
+        [Test]
+        public void RowSetEnumeratorAreDifferentInstances()
+        {
+            var rowLength = 10;
+            var rs = CreateStringsRowset(10, rowLength);
+            Action iteration = () =>
+            {
+                var counter = 0;
+                foreach (var row in rs)
+                {
+                    Thread.Sleep(25);
+                    counter++;
+                }
+                Assert.AreEqual(rowLength, counter);
+            };
+            //Invoke the actions in parallel
+            Parallel.Invoke(iteration, iteration, iteration, iteration);
         }
 
         /// <summary>
