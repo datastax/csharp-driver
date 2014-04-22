@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cassandra.Tests
@@ -11,14 +12,29 @@ namespace Cassandra.Tests
     public class RowSetUnitTests
     {
         [Test]
+        public void RowIteratesThroughValues()
+        {
+            var rs = CreateStringsRowset(4, 1);
+            var row = rs.First();
+            //Use Linq's IEnumerable ToList: it iterates and maps to a list
+            var cellValues = row.ToList();
+            Assert.AreEqual("row_0_col_0", cellValues[0]);
+            Assert.AreEqual("row_0_col_1", cellValues[1]);
+            Assert.AreEqual("row_0_col_2", cellValues[2]);
+            Assert.AreEqual("row_0_col_3", cellValues[3]);
+        }
+
+        [Test]
         public void RowSetIteratesTest()
         {
-            var rs = CreateStringsRowset(1, 1);
+            var rs = CreateStringsRowset(2, 3);
 
-            //use linq to iterate and map it to a list
+            //Use Linq's IEnumerable ToList to iterate and map it to a list
             var rowList = rs.ToList();
-            Assert.AreEqual(1, rowList.Count);
+            Assert.AreEqual(3, rowList.Count);
             Assert.AreEqual("row_0_col_0", rowList[0].GetValue<string>("col_0"));
+            Assert.AreEqual("row_1_col_1", rowList[1].GetValue<string>("col_1"));
+            Assert.AreEqual("row_2_col_0", rowList[2].GetValue<string>("col_0"));
         }
 
         [Test]
@@ -31,9 +47,7 @@ namespace Cassandra.Tests
             //There is a subscriber to the event to fetch next
             rs.FetchNextPage += (pagingState) =>
             {
-                var task = new Task<RowSet>(() => CreateStringsRowset(1, 1, "b_"));
-                task.Start();
-                return task;
+                return CreateStringsRowset(1, 1, "b_");
             };
 
             //use linq to iterate and map it to a list
@@ -41,6 +55,38 @@ namespace Cassandra.Tests
             Assert.AreEqual(2, rowList.Count);
             Assert.AreEqual("a_row_0_col_0", rowList[0].GetValue<string>("col_0"));
             Assert.AreEqual("b_row_0_col_0", rowList[1].GetValue<string>("col_0"));
+        }
+
+        /// <summary>
+        /// Ensures that in case there is an exception while retrieving the next page, it propagates.
+        /// </summary>
+        [Test]
+        public void RowSetFetchNextPropagatesExceptionTest()
+        {
+            var rs = CreateStringsRowset(1, 1);
+            //It has paging state, stating that there are more pages.
+            rs.PagingState = new byte[] { 0 };
+            //Throw a test exception when fetching the next page.
+            rs.FetchNextPage += (pagingState) =>
+            {
+                throw new TestException();
+            };
+
+            //use linq to iterate and map it to a list
+            try 
+            {
+                //The row set should throw an exception when getting the next page.
+                var rowList = rs.ToList();
+                Assert.Fail("It should throw a TestException");
+            }
+            catch (TestException)
+            {
+                //An exception of type TestException is expected.n  
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail("Expected exception of type TestException, got: " + ex.GetType());
+            }
         }
 
         /// <summary>
@@ -77,5 +123,7 @@ namespace Cassandra.Tests
             }
             return rs;
         }
+
+        public class TestException : Exception { }
     }
 }

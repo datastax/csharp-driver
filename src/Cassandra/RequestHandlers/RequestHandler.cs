@@ -106,10 +106,10 @@ namespace Cassandra.RequestHandlers
                 rs.PagingState = outputRows.Metadata.PagingState;
                 if (rs.PagingState != null)
                 {
-                    rs.FetchNextPage += (pagingState) => 
+                    rs.FetchNextPage += (pagingState) =>
                     {
                         Statement.SetPagingState(pagingState);
-                        return session.ExecuteAsync(Statement);
+                        return session.Execute(Statement);
                     };
                 }
             }

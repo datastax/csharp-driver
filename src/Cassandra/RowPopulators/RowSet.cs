@@ -27,7 +27,7 @@ namespace Cassandra
         /// <summary>
         /// Event that is fired to get the next page.
         /// </summary>
-        public event Func<byte[], Task<RowSet>> FetchNextPage;
+        public event Func<byte[], RowSet> FetchNextPage;
 
         /// <summary>
         /// The task that handles the fetching of the next page.
@@ -51,7 +51,8 @@ namespace Cassandra
         public virtual CqlColumn[] Columns { get; set; }
 
         /// <summary>
-        /// Gets or sets the paging state of the query for the rowset
+        /// Gets or sets the paging state of the query for the rowset.
+        /// When set it states that there are more pages.
         /// </summary>
         public virtual byte[] PagingState { get; set; }
 
@@ -122,19 +123,25 @@ namespace Cassandra
                 PagingState = null;
                 return;
             }
+
             if (FetchNextPageTask == null)
             {
-                FetchNextPageTask = 
-                    FetchNextPage(this.PagingState)
-                    .ContinueWith(t =>
-                    {
-                        var rs = t.Result;
-                        this.PagingState = rs.PagingState;
-                        this.FetchNextPageTask = null;
-                        this.RowList.AddRange(rs.RowList);
-                    });
+                FetchNextPageTask = Task.Factory.StartNew(() =>
+                {
+                    var rs = FetchNextPage(this.PagingState);
+                    this.PagingState = rs.PagingState;
+                    this.FetchNextPageTask = null;
+                    this.RowList.AddRange(rs.RowList);
+                });
             }
-            FetchNextPageTask.Wait();
+            try
+            {
+                FetchNextPageTask.Wait();
+            }
+            catch (AggregateException ex)
+            {
+                throw ex.InnerException;
+            }
         }
     }
 }
