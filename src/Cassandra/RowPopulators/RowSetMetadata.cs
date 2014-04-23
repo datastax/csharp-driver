@@ -210,15 +210,5 @@ namespace Cassandra
                     return null;
             }
         }
-
-        internal object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
-        {
-            return TypeInterpreter.CqlConvert(buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
-        }
-
-        internal byte[] ConvertFromObject(object o)
-        {
-            return TypeInterpreter.InvCqlConvert(o);
-        }
     }
 }

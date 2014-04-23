@@ -61,7 +61,7 @@ namespace Cassandra
             wb.WriteUInt16((ushort) _queryProtocolOptions.Values.Length);
             for (int i = 0; i < _metadata.Columns.Length; i++)
             {
-                byte[] bytes = _metadata.ConvertFromObject(_queryProtocolOptions.Values[i]);
+                byte[] bytes = TypeInterpreter.InvCqlConvert(_queryProtocolOptions.Values[i]);
                 wb.WriteBytes(bytes);
             }
         }
