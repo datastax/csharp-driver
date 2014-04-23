@@ -24,6 +24,30 @@ namespace Cassandra.Tests
             Assert.AreEqual("row_0_col_3", cellValues[3]);
         }
 
+        /// <summary>
+        /// Test that all possible ways to get the value from the row gets the same value
+        /// </summary>
+        [Test]
+        public void RowGetTheSameValues()
+        {
+            var row = CreateStringsRowset(3, 1).First();
+
+            var value00 = row[0];
+            var value01 = row.GetValue<object>(0);
+            var value02 = row.GetValue(typeof(object), 0);
+            Assert.True(value00.Equals(value01) && value01.Equals(value02), "Row values do not match");
+
+            var value10 = (string)row[1];
+            var value11 = row.GetValue<string>(1);
+            var value12 = (string)row.GetValue(typeof(string), 1);
+            Assert.True(value10.Equals(value11) && value11.Equals(value12), "Row values do not match");
+
+            var value20 = (string)row["col_2"];
+            var value21 = row.GetValue<string>("col_2");
+            var value22 = (string)row.GetValue(typeof(string), "col_2");
+            Assert.True(value20.Equals(value21) && value21.Equals(value22), "Row values do not match");
+        }
+
         [Test]
         public void RowSetIteratesTest()
         {
