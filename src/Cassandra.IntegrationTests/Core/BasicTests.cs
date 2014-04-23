@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
@@ -62,8 +63,10 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(sst.Bind(new object[] {Guid.NewGuid(), "label", 1}));
         }
 
-        private void QueryFetchingTest(int rowsCount = 1500)
+
+        private void QueryFetchingTest(int rowsInTable = 1003)
         {
+            var pageSize = 10;
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
@@ -75,20 +78,26 @@ namespace Cassandra.IntegrationTests.Core
             catch (AlreadyExistsException)
             {
             }
-            for (int i = 0; i < rowsCount; i++)
+            for (int i = 0; i < rowsInTable; i++)
+            {
                 Session.Execute(string.Format("INSERT INTO {2}(tweet_id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
+            }
 
-            RowSet rs = Session.Execute("SELECT * FROM " + tableName, 10);
-            RowSet rs_without_paging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
-            int rs1 = 0;
-            int rs2 = 0;
+            var rs = Session.Execute("SELECT * FROM " + tableName, pageSize);
 
-            foreach (Row row in rs)
-                rs1++;
-            foreach (Row row in rs_without_paging)
-                rs2++;
+            //Check that the internal list of items count is pageSize
+            Assert.True(rs.InnerQueueCount == pageSize);
 
-            Assert.True(rs1 == rs2 && rs1 == rowsCount);
+            var rsWithoutPaging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
+
+            //It should have all the rows already in the inner list
+            Assert.True(rsWithoutPaging.InnerQueueCount == rowsInTable);
+
+            //Use Linq to iterate through all the rows
+            var allTheRowsPaged = rs.ToList();
+
+            Assert.True(allTheRowsPaged.Count == rowsInTable);
+
         }
 
 
