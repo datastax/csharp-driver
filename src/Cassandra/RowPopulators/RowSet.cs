@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,7 +40,12 @@ namespace Cassandra
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
         /// </summary>
-        protected virtual List<Row> RowList { get; set; }
+        protected virtual ConcurrentQueue<Row> RowQueue { get; set; }
+
+        /// <summary>
+        /// Gets the amount of items in the internal queue. For testing purposes.
+        /// </summary>
+        internal int InnerQueueCount { get { return RowQueue.Count; } }
 
         /// <summary>
         /// Gets the execution info of the query
@@ -58,23 +64,34 @@ namespace Cassandra
         public virtual byte[] PagingState { get; set; }
 
         /// <summary>
-        /// Determines if all the rows from the previous query have been retrieved
+        /// Returns whether this ResultSet has more results.
+        /// It has side-effects, if the internal queue has been consumed it will page for more results.
         /// </summary>
-        public virtual bool IsExhausted
+        public virtual bool IsExhausted()
         {
-            get
+            if (RowQueue.Count > 0)
             {
-                if (RowList.Count == 0 || PagingState == null)
-                {
-                    return true;
-                }
                 return false;
             }
+            PageNext();
+
+            return RowQueue.Count == 0;
+        }
+
+        /// <summary>
+        /// Whether all results from this result set has been fetched from the database.
+        /// </summary>
+        public virtual bool IsFullyFetched 
+        { 
+            get
+            {
+                return this.PagingState == null;
+            } 
         }
 
         public RowSet()
         {
-            RowList = new List<Row>();
+            RowQueue = new ConcurrentQueue<Row>();
             Info = new ExecutionInfo();
             Columns = new CqlColumn[] { };
         }
@@ -84,7 +101,7 @@ namespace Cassandra
         /// </summary>
         internal virtual void AddRow(Row row)
         {
-            RowList.Add(row);
+            RowQueue.Enqueue(row);
         }
 
         /// <summary>
@@ -99,12 +116,14 @@ namespace Cassandra
 
         public IEnumerator<Row> GetEnumerator()
         {
-            var enumerator = new RowEnumerator(RowList);
-            if (PagingState != null)
+            while (!IsExhausted())
             {
-                enumerator.MovedToEnd += PageNext;
+                Row row = null;
+                while (RowQueue.TryDequeue(out row))
+                {
+                    yield return row;
+                }
             }
-            return enumerator;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -114,7 +133,7 @@ namespace Cassandra
 
         protected virtual void PageNext()
         {
-            if (this.PagingState == null)
+            if (IsFullyFetched)
             {
                 return;
             }
@@ -124,12 +143,11 @@ namespace Cassandra
                 this.PagingState = null;
                 return;
             }
-            var pageState = this.PagingState;
             lock (_pageLock)
             {
+                var pageState = this.PagingState;
                 if (pageState == null)
                 {
-                    //Double-checked locking (inversed)
                     return;
                 }
                 bool value;
@@ -137,8 +155,11 @@ namespace Cassandra
                 if (!alreadyPresent)
                 {
                     var rs = FetchNextPage(pageState);
+                    foreach (var newRow in rs.RowQueue)
+                    {
+                        this.RowQueue.Enqueue(newRow);
+                    }
                     this.PagingState = rs.PagingState;
-                    this.RowList.AddRange(rs.RowList);
                     _pagers.AddOrUpdate(pageState, true, (k, v) => v);
                 }
             }

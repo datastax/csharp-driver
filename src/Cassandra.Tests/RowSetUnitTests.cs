@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -114,67 +115,109 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
+        /// Tests that once iterated, it can not be iterated any more.
+        /// </summary>
+        [Test]
+        public void RowSetMustDequeue()
+        {
+            var rowLength = 10;
+            var rs = CreateStringsRowset(2, rowLength);
+            rs.FetchNextPage += (pagingState) =>
+            {
+                Assert.Fail("Event to get next page must not be called as there is no paging state.");
+                return null;
+            };
+            //Use Linq to iterate
+            var rowsFirstIteration = rs.ToList();
+            Assert.AreEqual(rowLength, rowsFirstIteration.Count);
+
+            //Following iterations must yield 0 rows
+            var rowsSecondIteration = rs.ToList();
+            var rowsThridIteration = rs.ToList();
+            Assert.AreEqual(0, rowsSecondIteration.Count);
+            Assert.AreEqual(0, rowsThridIteration.Count);
+
+            Assert.IsTrue(rs.IsExhausted());
+            Assert.IsTrue(rs.IsFullyFetched);
+        }
+
+        /// <summary>
         /// Tests that when multi threading, all enumerators of the same rowset wait for the fetching.
         /// </summary>
         [Test]
         public void RowSetFetchNextAllEnumeratorsWait()
         {
-            var rowLength = 10;
-            var rs = CreateStringsRowset(10, rowLength);
+            var pageSize = 10;
+            var rs = CreateStringsRowset(10, pageSize);
             rs.PagingState = new byte[0];
             var fetchCounter = 0;
             rs.FetchNextPage += (pagingState) =>
             {
                 fetchCounter++;
-                //fake a 
-                Thread.Sleep(1500);
-                return CreateStringsRowset(10, rowLength);
+                //fake a fetch
+                Thread.Sleep(1000);
+                return CreateStringsRowset(10, pageSize);
             };
-            var counterList = new List<int>();
+            var counterList = new ConcurrentBag<int>();
             Action iteration = () =>
             {
                 var counter = 0;
                 foreach (var row in rs)
                 {
                     counter++;
-                    if (counter == rowLength ||counter == rowLength-1)
-                    {
-                        //Try to synchronize, all the threads will try to fetch at the almost same time.
-                        Thread.Sleep(200);
-                    }
+                    //Try to synchronize, all the threads will try to fetch at the almost same time.
+                    Thread.Sleep(300);
                 }
                 counterList.Add(counter);
             };
-            Parallel.Invoke(iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration);
-            
+            //Invoke it in parallel more than 10 times
+            Parallel.Invoke(iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration);
+
             //Assert that the fetch was called just 1 time
             Assert.AreEqual(1, fetchCounter);
-            foreach (var counter in counterList)
-            {
-                Assert.AreEqual(rowLength * 2, counter);
-            }
+
+            //Sum all rows dequeued from the different threads 
+            var totalRows = counterList.Sum();
+            //Check that the total amount of rows dequeued are the same as pageSize * number of pages. 
+            Assert.AreEqual(pageSize * 2, totalRows);
         }
 
-        /// <summary>
-        /// Tests that multiple threads do not affect the current enumerator
-        /// </summary>
         [Test]
-        public void RowSetEnumeratorAreDifferentInstances()
+        public void RowSetFetchNext3Pages()
         {
             var rowLength = 10;
-            var rs = CreateStringsRowset(10, rowLength);
-            Action iteration = () =>
+            var rs = CreateStringsRowset(10, rowLength, "page_0_");
+            rs.PagingState = new byte[0];
+            var fetchCounter = 0;
+            rs.FetchNextPage += (pagingState) =>
             {
-                var counter = 0;
-                foreach (var row in rs)
+                fetchCounter++;
+                var pageRowSet = CreateStringsRowset(10, rowLength, "page_" + fetchCounter + "_");
+                if (fetchCounter < 3)
                 {
-                    Thread.Sleep(25);
-                    counter++;
+                    //when retrieving the pages, state that there are more results
+                    pageRowSet.PagingState = new byte[0];
                 }
-                Assert.AreEqual(rowLength, counter);
+                else
+                {
+                    //On the 3rd page, state that there aren't any more pages.
+                    pageRowSet.PagingState = null;
+                }
+                return pageRowSet;
             };
-            //Invoke the actions in parallel
-            Parallel.Invoke(iteration, iteration, iteration, iteration);
+
+            //Use Linq to iterate
+            var rowsFirstIteration = rs.ToList();
+
+            Assert.AreEqual(3, fetchCounter, "Fetch must have been called 3 times");
+
+            Assert.AreEqual(rowsFirstIteration.Count, rowLength * 4, "RowSet must contain 4 pages in total");
+
+            //Check the values are in the correct order
+            Assert.AreEqual(rowsFirstIteration[0].GetValue<string>(0), "page_0_row_0_col_0");
+            Assert.AreEqual(rowsFirstIteration[rowLength].GetValue<string>(0), "page_1_row_0_col_0");
+            Assert.AreEqual(rowsFirstIteration[rowLength * 2].GetValue<string>(0), "page_2_row_0_col_0");
+            Assert.AreEqual(rowsFirstIteration[rowLength * 3].GetValue<string>(0), "page_3_row_0_col_0");
         }
 
         /// <summary>
