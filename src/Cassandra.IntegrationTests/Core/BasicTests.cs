@@ -62,9 +62,11 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(sst.Bind(new object[] {Guid.NewGuid(), "label", 1}));
         }
 
-        private void QueryFetchingTest(int rowsCount = 1500)
+        private void QueryFetchingTest(int pageSize=0, int rowCount=1500, bool withPaging=false)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            RowSet rs, rs_without_paging = null;
+            int rowCounter1, rowCounter2;
             try
             {
                 Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
@@ -75,20 +77,36 @@ namespace Cassandra.IntegrationTests.Core
             catch (AlreadyExistsException)
             {
             }
-            for (int i = 0; i < rowsCount; i++)
+            for (int i = 0; i < rowCount; i++)
                 Session.Execute(string.Format("INSERT INTO {2}(tweet_id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
 
-            RowSet rs = Session.Execute("SELECT * FROM " + tableName, 10);
-            RowSet rs_without_paging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
-            int rs1 = 0;
-            int rs2 = 0;
+            if (withPaging)
+            {
+                rowCounter1 = 0;
+                SimpleStatement statement = new SimpleStatement("SELECT * FROM " + tableName);
+                statement.SetPageSize(pageSize);
 
-            foreach (Row row in rs)
-                rs1++;
-            foreach (Row row in rs_without_paging)
-                rs2++;
+                rs = Session.Execute(statement);
+                foreach (Row row in rs)
+                    rowCounter1++;
 
-            Assert.True(rs1 == rs2 && rs1 == rowsCount);
+                byte[] ps = rs.PagingState;
+                Assert.True(rowCounter1 == rowCount);
+            }
+            else
+            {
+                rs = Session.Execute("SELECT * FROM " + tableName);
+                rs_without_paging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
+                rowCounter1 = 0;
+                rowCounter2 = 0;
+
+                foreach (Row row in rs.GetRows())
+                    rowCounter1++;
+                foreach (Row row in rs_without_paging)
+                    rowCounter2++;
+
+                Assert.True(rowCounter1 == rowCounter2 && rowCounter1 == rowCount);
+            }
         }
 
 
@@ -354,6 +372,11 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             QueryFetchingTest();
         }
 
+        [TestMethod]
+        public void PagingTest()
+        {
+            QueryFetchingTest(5000, 10000, true);
+        }
         [TestMethod]
         [WorksForMe]
         public void BigInsert()
