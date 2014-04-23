@@ -88,9 +88,10 @@ namespace Cassandra.IntegrationTests.Core
 
                 rs = Session.Execute(statement);
                 foreach (Row row in rs)
+                {
                     rowCounter1++;
+                }
 
-                byte[] ps = rs.PagingState;
                 Assert.True(rowCounter1 == rowCount);
             }
             else
@@ -373,10 +374,23 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [TestMethod]
-        public void PagingTest()
+        public void BasicPagingTest()
         {
             QueryFetchingTest(5000, 10000, true);
         }
+
+        [TestMethod]
+        public void AllRecordsInOnePagePagingTest()
+        {
+            QueryFetchingTest(5000, 5000, true);
+        }
+
+        [TestMethod]
+        public void OneRecordPerPagePagingTest()
+        {
+            QueryFetchingTest(1, 500, true);
+        }
+
         [TestMethod]
         [WorksForMe]
         public void BigInsert()
