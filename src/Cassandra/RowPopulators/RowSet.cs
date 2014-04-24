@@ -25,7 +25,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a result of a query returned by Cassandra.
     /// </summary>
-    public class RowSet : IEnumerable<Row>
+    public class RowSet : IEnumerable<Row>, IDisposable
     {
         private object _pageLock = new object();
         /// <summary>
@@ -163,6 +163,15 @@ namespace Cassandra
                     _pagers.AddOrUpdate(pageState, true, (k, v) => v);
                 }
             }
+        }
+
+        /// <summary>
+        /// For backward compatibity only
+        /// </summary>
+        [Obsolete("Explicitly releasing the RowSet resources is not required. It will be removed in future versions.", false)]
+        public void Dispose()
+        {
+
         }
     }
 }
