@@ -76,8 +76,8 @@ namespace Cassandra.IntegrationTests.Core
         public void BatchSimpleStatement()
         {
             SimpleStatement simpleStatement = null;
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            List<object[]> expectedValues = new List<object[]>();
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            var expectedValues = new List<object[]>();
 
             CreateTable(tableName);
 
@@ -94,6 +94,24 @@ namespace Cassandra.IntegrationTests.Core
             //Verify Results
             RowSet rs = Session.Execute("SELECT * FROM " + tableName);
 
+            VerifyData(rs, expectedValues);
+        }
+
+        [TestMethod]
+        public void BatchMixedStatements()
+        {
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            CreateTable(tableName);
+
+            var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, {2}, {3})", tableName, 1, "label", 2));
+            var ps = Session.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
+            var batchStatement = new BatchStatement();
+            var expectedValues = new List<object[]> { new object[] { 1, "label", 2 }, new object[] { 1, "test", 2 } };
+
+            batchStatement.AddQuery(ps.Bind(new object[] { 1, "test", 2 }));
+            batchStatement.AddQuery(simpleStatement);
+
+            var rs = Session.Execute("SELECT * FROM " + tableName);
             VerifyData(rs, expectedValues);
         }
 

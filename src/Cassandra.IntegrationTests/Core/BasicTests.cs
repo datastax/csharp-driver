@@ -15,12 +15,14 @@
 //
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -44,70 +46,23 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        private void QueryBindingTest()
+        /// <summary>
+        /// Creates a table and inserts a number of records synchronously.
+        /// </summary>
+        /// <returns>The name of the table</returns>
+        private string CreateSimpleTableAndInsert(int rowsInTable)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            try
+            Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                    id uuid PRIMARY KEY,
+                    label text,        
+                    );", tableName)));
+            for (int i = 0; i < rowsInTable; i++)
             {
-                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         label text,
-         number int,        
-         );", tableName)));
+                Session.Execute(string.Format("INSERT INTO {2}(id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
             }
-            catch (AlreadyExistsException)
-            {
-            }
-            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(tweet_id,label,number) VALUES(?,?,?)", tableName));
-            Session.Execute(sst.Bind(new object[] {Guid.NewGuid(), "label", 1}));
-        }
 
-        private void QueryFetchingTest(int pageSize=0, int rowCount=1500, bool withPaging=false)
-        {
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            RowSet rs, rs_without_paging = null;
-            int rowCounter1, rowCounter2;
-            try
-            {
-                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         label text,        
-         );", tableName)));
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-            for (int i = 0; i < rowCount; i++)
-                Session.Execute(string.Format("INSERT INTO {2}(tweet_id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
-
-            if (withPaging)
-            {
-                rowCounter1 = 0;
-                SimpleStatement statement = new SimpleStatement("SELECT * FROM " + tableName);
-                statement.SetPageSize(pageSize);
-
-                rs = Session.Execute(statement);
-                foreach (Row row in rs)
-                {
-                    rowCounter1++;
-                }
-
-                Assert.True(rowCounter1 == rowCount);
-            }
-            else
-            {
-                rs = Session.Execute("SELECT * FROM " + tableName);
-                rs_without_paging = Session.Execute("SELECT * FROM " + tableName, int.MaxValue);
-                rowCounter1 = 0;
-                rowCounter2 = 0;
-
-                foreach (Row row in rs.GetRows())
-                    rowCounter1++;
-                foreach (Row row in rs_without_paging)
-                    rowCounter2++;
-
-                Assert.True(rowCounter1 == rowCounter2 && rowCounter1 == rowCount);
-            }
+            return tableName;
         }
 
 
@@ -360,42 +315,98 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [TestMethod]
-        [WorksForMe]
         public void QueryBinding()
         {
-            QueryBindingTest();
+            //There is no support for query binding in protocol v1 
+            if (!Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            {
+                return;
+            }
+            string tableName = CreateSimpleTableAndInsert(0);
+            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label, number) VALUES(?, ?, ?)", tableName));
+            Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
         }
 
         [TestMethod]
-        [WorksForMe]
-        public void QueryFetching()
+        public void PagingOnSimpleStatementTest()
         {
-            QueryFetchingTest();
+            var pageSize = 10;
+            var totalRowLength = 1003;
+            var table = CreateSimpleTableAndInsert(totalRowLength);
+            var statementWithPaging = new SimpleStatement("SELECT * FROM " + table);
+
+            var statementWithoutPaging = new SimpleStatement("SELECT * FROM " + table);
+            statementWithoutPaging.SetPageSize(int.MaxValue);
+            statementWithPaging.SetPageSize(pageSize);
+
+            var rs = Session.Execute(statementWithPaging);
+
+            var rsWithoutPaging = Session.Execute(statementWithoutPaging);
+            
+
+            //Check that the internal list of items count is pageSize
+            Assert.True(rs.InnerQueueCount == pageSize);
+
+            Assert.True(rsWithoutPaging.InnerQueueCount == totalRowLength);
+
+            var allTheRowsPaged = rs.ToList();
+            Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
         [TestMethod]
-        public void BasicPagingTest()
+        public void QueryPaging()
         {
-            QueryFetchingTest(5000, 10000, true);
+            var pageSize = 10;
+            var totalRowLength = 1003;
+            var table = CreateSimpleTableAndInsert(totalRowLength);
+            var rs = Session.Execute("SELECT * FROM " + table, pageSize);
+
+            //Check that the internal list of items count is pageSize
+            Assert.True(rs.InnerQueueCount == pageSize);
+
+            var rsWithoutPaging = Session.Execute("SELECT * FROM " + table, int.MaxValue);
+
+            //It should have all the rows already in the inner list
+            Assert.True(rsWithoutPaging.InnerQueueCount == totalRowLength);
+
+            //Use Linq to iterate through all the rows
+            var allTheRowsPaged = rs.ToList();
+
+            Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
         [TestMethod]
-        public void AllRecordsInOnePagePagingTest()
+        public void QueryPagingParallel()
         {
-            QueryFetchingTest(5000, 5000, true);
-        }
+            var pageSize = 25;
+            var totalRowLength = 300;
+            var table = CreateSimpleTableAndInsert(totalRowLength);
+            var query = new SimpleStatement(String.Format("SELECT * FROM {0} LIMIT 10000", table))
+                .SetPageSize(pageSize);
+            var rs = Session.Execute(query);
+            var counterList = new ConcurrentBag<int>();
+            Action iterate = () =>
+            {
+                var counter = 0;
+                foreach (var row in rs)
+                {
+                    counter++;
+                }
+                counterList.Add(counter);
+            };
 
-        [TestMethod]
-        public void OneRecordPerPagePagingTest()
-        {
-            QueryFetchingTest(1, 500, true);
+            //Iterate in parallel the RowSet
+            Parallel.Invoke(iterate, iterate, iterate, iterate);
+
+            //Check that the sum of all rows in different threads is the same as total rows
+            Assert.Equal<int>(totalRowLength, counterList.Sum());
         }
 
         [TestMethod]
         [WorksForMe]
         public void BigInsert()
         {
-            BigInsertTest(3000);
+            BigInsertTest(1000);
         }
 
         [TestMethod]

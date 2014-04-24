@@ -17,28 +17,35 @@
 using System;
 using System.Linq;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Cassandra
 {
-    public class RowSet : IEnumerable<Row>
+    /// <summary>
+    /// Represents a result of a query returned by Cassandra.
+    /// </summary>
+    public class RowSet : IEnumerable<Row>, IDisposable
     {
+        private object _pageLock = new object();
+        /// <summary>
+        /// Contains the PagingState keys of the pages already retrieved.
+        /// </summary>
+        protected ConcurrentDictionary<byte[], bool> _pagers = new ConcurrentDictionary<byte[], bool>();
         /// <summary>
         /// Event that is fired to get the next page.
         /// </summary>
-        public event Func<byte[], Task<RowSet>> FetchNextPage;
-
-        /// <summary>
-        /// The task that handles the fetching of the next page.
-        /// When set it states that is currently fetching.
-        /// </summary>
-        protected Task FetchNextPageTask = null;
+        public event Func<byte[], RowSet> FetchNextPage;
 
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
         /// </summary>
-        protected virtual List<Row> RowList { get; set; }
+        protected virtual ConcurrentQueue<Row> RowQueue { get; set; }
+
+        /// <summary>
+        /// Gets the amount of items in the internal queue. For testing purposes.
+        /// </summary>
+        internal int InnerQueueCount { get { return RowQueue.Count; } }
 
         /// <summary>
         /// Gets the execution info of the query
@@ -51,28 +58,40 @@ namespace Cassandra
         public virtual CqlColumn[] Columns { get; set; }
 
         /// <summary>
-        /// Gets or sets the paging state of the query for the rowset
+        /// Gets or sets the paging state of the query for the rowset.
+        /// When set it states that there are more pages.
         /// </summary>
         public virtual byte[] PagingState { get; set; }
 
         /// <summary>
-        /// Determines if all the rows from the previous query have been retrieved
+        /// Returns whether this ResultSet has more results.
+        /// It has side-effects, if the internal queue has been consumed it will page for more results.
         /// </summary>
-        public virtual bool IsExhausted
+        public virtual bool IsExhausted()
         {
-            get
+            if (RowQueue.Count > 0)
             {
-                if (RowList.Count == 0 || PagingState == null)
-                {
-                    return true;
-                }
                 return false;
             }
+            PageNext();
+
+            return RowQueue.Count == 0;
+        }
+
+        /// <summary>
+        /// Whether all results from this result set has been fetched from the database.
+        /// </summary>
+        public virtual bool IsFullyFetched 
+        { 
+            get
+            {
+                return this.PagingState == null;
+            } 
         }
 
         public RowSet()
         {
-            RowList = new List<Row>();
+            RowQueue = new ConcurrentQueue<Row>();
             Info = new ExecutionInfo();
             Columns = new CqlColumn[] { };
         }
@@ -82,7 +101,7 @@ namespace Cassandra
         /// </summary>
         internal virtual void AddRow(Row row)
         {
-            RowList.Add(row);
+            RowQueue.Enqueue(row);
         }
 
         /// <summary>
@@ -97,12 +116,14 @@ namespace Cassandra
 
         public IEnumerator<Row> GetEnumerator()
         {
-            var enumerator = new RowEnumerator(RowList);
-            if (PagingState != null)
+            while (!IsExhausted())
             {
-                enumerator.MovedToEnd += PageNext;
+                Row row = null;
+                while (RowQueue.TryDequeue(out row))
+                {
+                    yield return row;
+                }
             }
-            return enumerator;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -112,29 +133,45 @@ namespace Cassandra
 
         protected virtual void PageNext()
         {
-            if (PagingState == null)
+            if (IsFullyFetched)
             {
                 return;
             }
             if (FetchNextPage == null)
             {
                 //Clear the paging state
-                PagingState = null;
+                this.PagingState = null;
                 return;
             }
-            if (FetchNextPageTask == null)
+            lock (_pageLock)
             {
-                FetchNextPageTask = 
-                    FetchNextPage(this.PagingState)
-                    .ContinueWith(t =>
+                var pageState = this.PagingState;
+                if (pageState == null)
+                {
+                    return;
+                }
+                bool value;
+                bool alreadyPresent = _pagers.TryGetValue(pageState, out value);
+                if (!alreadyPresent)
+                {
+                    var rs = FetchNextPage(pageState);
+                    foreach (var newRow in rs.RowQueue)
                     {
-                        var rs = t.Result;
-                        this.PagingState = rs.PagingState;
-                        this.FetchNextPageTask = null;
-                        this.RowList.AddRange(rs.RowList);
-                    });
+                        this.RowQueue.Enqueue(newRow);
+                    }
+                    this.PagingState = rs.PagingState;
+                    _pagers.AddOrUpdate(pageState, true, (k, v) => v);
+                }
             }
-            FetchNextPageTask.Wait();
+        }
+
+        /// <summary>
+        /// For backward compatibity only
+        /// </summary>
+        [Obsolete("Explicitly releasing the RowSet resources is not required. It will be removed in future versions.", false)]
+        public void Dispose()
+        {
+
         }
     }
 }
