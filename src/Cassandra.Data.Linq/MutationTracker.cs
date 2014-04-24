@@ -85,7 +85,8 @@ namespace Cassandra.Data.Linq
                                        {
                                            Entity = nkv.Value.Entity,
                                            MutationType = MutationType.None,
-                                           CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode
+                                           CqlEntityUpdateMode = nkv.Value.CqlEntityUpdateMode,
+                                           CqlEntityTrackingMode = nkv.Value.CqlEntityTrackingMode
                                        });
                     });
                 }
@@ -181,7 +182,8 @@ namespace Cassandra.Data.Linq
                                  {
                                      Entity = kv.Value.Entity,
                                      MutationType = MutationType.None,
-                                     CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode
+                                     CqlEntityUpdateMode = kv.Value.CqlEntityUpdateMode,
+                                     CqlEntityTrackingMode = kv.Value.CqlEntityTrackingMode
                                  });
             }
 
