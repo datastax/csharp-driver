@@ -61,6 +61,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Session.Execute(string.Format("INSERT INTO {2}(id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
             }
+
             return tableName;
         }
 
@@ -324,6 +325,32 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             string tableName = CreateSimpleTableAndInsert(0);
             var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label, number) VALUES(?, ?, ?)", tableName));
             Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
+        }
+
+        [TestMethod]
+        public void PagingOnSimpleStatementTest()
+        {
+            var pageSize = 10;
+            var totalRowLength = 1003;
+            var table = CreateSimpleTableAndInsert(totalRowLength);
+            var statementWithPaging = new SimpleStatement("SELECT * FROM " + table);
+
+            var statementWithoutPaging = new SimpleStatement("SELECT * FROM " + table);
+            statementWithoutPaging.SetPageSize(int.MaxValue);
+            statementWithPaging.SetPageSize(pageSize);
+
+            var rs = Session.Execute(statementWithPaging);
+
+            var rsWithoutPaging = Session.Execute(statementWithoutPaging);
+            
+
+            //Check that the internal list of items count is pageSize
+            Assert.True(rs.InnerQueueCount == pageSize);
+
+            Assert.True(rsWithoutPaging.InnerQueueCount == totalRowLength);
+
+            var allTheRowsPaged = rs.ToList();
+            Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
         [TestMethod]
