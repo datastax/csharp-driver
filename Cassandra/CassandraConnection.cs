@@ -147,11 +147,15 @@ namespace Cassandra
             if (_socketOptions.TcpNoDelay != null)
                 newSock.NoDelay = _socketOptions.TcpNoDelay.Value;
 
+            //Avoid waiting more time that expected
             var connectionResult = newSock.BeginConnect(_serverAddress, _port, null, null);
             connectionResult.AsyncWaitHandle.WaitOne(_socketOptions.ConnectTimeoutMillis);
 
             if (!newSock.Connected)
+            {
+                newSock.Close();
                 throw new SocketException((int)SocketError.TimedOut);
+            }
 
             _socket = newSock;
             _bufferingMode.Reset();
