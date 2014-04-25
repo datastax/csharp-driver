@@ -63,6 +63,7 @@
     <Compile Include="Core\AdvancedTests.cs" />
     <Compile Include="Core\BasicTests.cs" />
     <Compile Include="Core\CollectionsTests.cs" />
+    <Compile Include="Core\ConnectionTimeoutTest.cs" />
     <Compile Include="Core\ConsistencyTests.cs" />
     <Compile Include="Core\CustomTypeTests.cs" />
     <Compile Include="Core\ExceptionsTests.cs" />

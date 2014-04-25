@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
             Builder cassandraBuilder = Cluster.Builder()
                                               .WithLoadBalancingPolicy(lbp)
                                               .WithReconnectionPolicy(new ConstantReconnectionPolicy(constDelayMS))
-                                              .WithRetryPolicy(DefaultRetryPolicy.Instance)
+                                              .WithRetryPolicy(new DefaultRetryPolicy())
 //                   .WithQueryTimeout(queryTimeout)
                 ;
             cassandraBuilder.PoolingOptions.SetCoreConnectionsPerHost(HostDistance.Local, coreConnectionPerHost);

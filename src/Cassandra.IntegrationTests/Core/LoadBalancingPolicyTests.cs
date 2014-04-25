@@ -78,8 +78,8 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", Options.Default.IP_PREFIX)).Build())
             using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", Options.Default.IP_PREFIX)).Build())
             {
-                using (var session1 = cluster1.Connect())
-                using (var session2 = cluster2.Connect())
+                using (var session1 = (Session) cluster1.Connect())
+                using (var session2 = (Session) cluster2.Connect())
                 {
                     Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
                     Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");

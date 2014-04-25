@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cassandra.MSTest
+namespace Cassandra.IntegrationTests
 {
     [TestClass]
     public class ConnectionTimeoutTest
