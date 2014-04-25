@@ -57,6 +57,7 @@
     <Compile Include="Basics.cs" />
     <Compile Include="Collections.cs" />
     <Compile Include="CollectionsTests.cs" />
+    <Compile Include="ConnectionTimeoutTest.cs" />
     <Compile Include="ConsistencyTests.cs" />
     <Compile Include="CustomTypeTest.cs" />
     <Compile Include="ExceptionsTests.cs" />
