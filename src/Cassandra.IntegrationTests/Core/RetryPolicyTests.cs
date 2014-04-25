@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void defaultLoggingPolicy()
         {
-            Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.Instance));
+            var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(new DefaultRetryPolicy()));
             defaultPolicyTest(builder);
         }
 

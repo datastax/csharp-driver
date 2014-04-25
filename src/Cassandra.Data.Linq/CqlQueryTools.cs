@@ -434,7 +434,7 @@ namespace Cassandra.Data.Linq
             if (timestamp != null)
             {
                 sb.Append(" TIMESTAMP ");
-                sb.Append(Convert.ToInt64(Math.Floor((timestamp.Value - UnixStart).TotalMilliseconds)));
+                sb.Append((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
             }
 
             if (withValues)

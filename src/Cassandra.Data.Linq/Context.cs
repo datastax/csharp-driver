@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,9 +115,8 @@ namespace Cassandra.Data.Linq
 
         internal RowSet ExecuteWriteQuery(string cqlQuery, object[] values, ConsistencyLevel consistencyLevel, bool enableTraceing)
         {
-            return
-                _managedSession.Execute(
-                    new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel));
+            var statement = _managedSession.Prepare(cqlQuery);
+            return _managedSession.Execute(statement.Bind(values).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel));
         }
 
         internal IAsyncResult BeginExecuteWriteQuery(string cqlQuery, object[] values, ConsistencyLevel consistencyLevel, bool enableTraceing,
@@ -224,15 +223,9 @@ namespace Cassandra.Data.Linq
 
                 if (batchScript.Length != 0)
                 {
-                    cql = "BEGIN BATCH\r\n" + batchScript + "APPLY BATCH";
-                    if (callback != null)
-                        return BeginExecuteWriteQuery(cql, null, consistencyLevel, enableTracing,
-                                                      new CqlSaveTag
-                                                      {
-                                                          TableTypes = tableTypes,
-                                                          TableType = TableType.Standard,
-                                                          NewAdditionalCommands = newAdditionalCommands
-                                                      }, callback, state);
+                    cql ="BEGIN BATCH\r\n" + batchScript.ToString() + "APPLY BATCH";
+                    return BeginExecuteWriteQuery(cql, null, consistencyLevel, enableTracing,
+                        new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
                 }
             }
 
