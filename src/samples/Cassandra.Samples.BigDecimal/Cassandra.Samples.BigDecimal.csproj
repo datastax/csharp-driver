@@ -54,16 +54,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
-      <Project>{7FD62B8B-365D-48D6-8C21-2EF215294F64}</Project>
-      <Name>Cassandra.Data.Linq</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
-      <Name>Cassandra</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
@@ -71,6 +61,20 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
+      <Project>{7fd62b8b-365d-48d6-8c21-2ef215294f64}</Project>
+      <Name>Cassandra.Data.Linq</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Cassandra.Data\Cassandra.Data.csproj">
+      <Project>{ee00ce02-f1e6-4f7d-b43c-f6fadce4c72b}</Project>
+      <Name>Cassandra.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Cassandra\Cassandra.csproj">
+      <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
+      <Name>Cassandra</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

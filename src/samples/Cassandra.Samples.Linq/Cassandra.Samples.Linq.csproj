@@ -5,26 +5,27 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{F51B8A01-65A5-437D-BCE1-DE829C89E92A}</ProjectGuid>
+    <ProjectGuid>{A05921D4-E1BE-4F2B-BC51-04AE1748E8C0}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Playground</RootNamespace>
-    <AssemblyName>Playground</AssemblyName>
+    <RootNamespace>LinqSamples</RootNamespace>
+    <AssemblyName>LinqSamples</AssemblyName>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>4</WarningLevel>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>4</WarningLevel>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>LinqSamples.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -32,29 +33,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Author.cs" />
-    <Compile Include="CassandraLog.cs" />
-    <Compile Include="CassandraLogContext.cs" />
-    <Compile Include="CassandraLogWriter.cs" />
-    <Compile Include="FollowedTweet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Statistics.cs" />
-    <Compile Include="Tweet.cs" />
-    <Compile Include="TwitterContext.cs" />
-    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="README.rst" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
-      <Project>{7FD62B8B-365D-48D6-8C21-2EF215294F64}</Project>
+    <ProjectReference Include="..\..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
+      <Project>{7fd62b8b-365d-48d6-8c21-2ef215294f64}</Project>
       <Name>Cassandra.Data.Linq</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
+    <ProjectReference Include="..\..\Cassandra.Data\Cassandra.Data.csproj">
+      <Project>{ee00ce02-f1e6-4f7d-b43c-f6fadce4c72b}</Project>
+      <Name>Cassandra.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Cassandra\Cassandra.csproj">
+      <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
       <Name>Cassandra</Name>
     </ProjectReference>
   </ItemGroup>
