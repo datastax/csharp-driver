@@ -73,7 +73,6 @@ namespace Cassandra
         {
             Init(buffer, size);
 
-            int bodyLen = int.MaxValue;
             while (AreMore())
             {
 
@@ -92,7 +91,7 @@ namespace Cassandra
                     case 5: TmpFrameHeader.Len[1] = b; break;
                     case 6: TmpFrameHeader.Len[2] = b; break;
                     case 7: TmpFrameHeader.Len[3] = b;
-                        bodyLen = TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
+                        TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
                         TmpFrame = TmpFrameHeader.MakeFrame(new StreamProtoBuf(stream, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
                         yield return TmpFrame;
                         break;

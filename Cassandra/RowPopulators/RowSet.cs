@@ -32,7 +32,7 @@ namespace Cassandra
 		///  on the RetryPolicy)).</li> <li>The consistency level achieved by the query
 		///  (usually the one asked, though some specific RetryPolicy may allow this to be
 		///  different).</li> <li>The query trace recorded by Cassandra if tracing had
-		///  been set for the query.</li> </ul>
+		///  been set for the query.</li> </ul></p>
 		/// </summary>
     public class ExecutionInfo
     {
