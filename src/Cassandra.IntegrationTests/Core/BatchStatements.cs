@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -71,9 +73,54 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
+        [TestMethod]
+        public void BatchSimpleStatementSingle()
+        {
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+
+            CreateTable(tableName);
+
+            var batch = new BatchStatement();
+
+            var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label 1", 10));
+            batch.AddQuery(simpleStatement);
+            Session.Execute(batch);
+
+            //Verify Results
+            var rs = Session.Execute("SELECT * FROM " + tableName);
+            var row = rs.First();
+            Assert.True(row != null, "There should be a row stored.");
+            Assert.True(row.SequenceEqual(new object[] { 1, "label 1", 10 }), "Stored values dont match");
+        }
+
+        [TestMethod]
+        public void BatchSimpleStatementSingleBinded()
+        {
+            if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            {
+                //Ignore: There is no binded simple statement support in Cassandra 1.x
+                return;
+            }
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+
+            CreateTable(tableName);
+
+            var batch = new BatchStatement();
+
+            var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
+            batch.AddQuery(simpleStatement.Bind(100, "label 100", 10000));
+            Session.Execute(batch);
+
+            //Verify Results
+            var rs = Session.Execute("SELECT * FROM " + tableName);
+            var row = rs.First();
+            Assert.True(row != null, "There should be a row stored.");
+            Assert.True(row.SequenceEqual(new object[] { 100, "label 100", 10000}), "Stored values dont match");
+        }
+
         [TestIgnore]
         [TestMethod]
-        public void BatchSimpleStatement()
+        public void BatchSimpleStatementMultiple()
         {
             SimpleStatement simpleStatement = null;
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
