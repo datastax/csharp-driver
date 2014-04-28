@@ -29,7 +29,7 @@ namespace Cassandra
                 var list_typecode = (type_info as ListColumnInfo).ValueTypeCode;
                 var list_typeinfo = (type_info as ListColumnInfo).ValueTypeInfo;
                 var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(list_typecode, list_typeinfo);
-                int count = BytesToInt16(value, 0);
+                int count = BytesToUInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(List<>);
                 var listType = openType.MakeGenericType(value_type);
@@ -37,7 +37,7 @@ namespace Cassandra
                 var addM = listType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    var val_buf_len = BytesToInt16(value,idx);
+                    var val_buf_len = BytesToUInt16(value,idx);
                     idx+=2;
                     byte[] val_buf = new byte[val_buf_len];
                     Buffer.BlockCopy(value, idx, val_buf, 0, val_buf_len);
