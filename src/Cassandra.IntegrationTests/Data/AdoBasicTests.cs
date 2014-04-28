@@ -14,22 +14,25 @@
 //   limitations under the License.
 //
 
+using Assert = NUnit.Framework.Assert;
 using System;
 using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using System.Threading;
 using Cassandra.Data;
+using NUnit.Framework;
+using NAssert = NUnit.Framework.Assert;
 
 namespace Cassandra.IntegrationTests.Data
 {
-    [TestClass]
+    [TestFixture]
     public class AdoBasicTests
     {
         private CqlConnection connection;
         private ISession session;
 
-        [TestInitialize]
+        [SetUp]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
@@ -43,7 +46,7 @@ namespace Cassandra.IntegrationTests.Data
             connection = new CqlConnection(cb.ToString());
         }
 
-        [TestCleanup]
+        [TearDown]
         public void Dispose()
         {
             connection.Dispose();
@@ -53,7 +56,7 @@ namespace Cassandra.IntegrationTests.Data
         public void createObjectsInsertAndSelect()
         {
             connection.Open();
-            DbCommand cmd = connection.CreateCommand();
+            var cmd = connection.CreateCommand();
 
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
@@ -77,7 +80,7 @@ namespace Cassandra.IntegrationTests.Data
             var longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
-            int RowsNo = 2000;
+            int RowsNo = 300;
             for (int i = 0; i < RowsNo; i++)
             {
                 longQ.AppendFormat(@"INSERT INTO {0} (
@@ -92,13 +95,15 @@ namespace Cassandra.IntegrationTests.Data
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = string.Format(@"SELECT * from {0} LIMIT 10000;", tableName);
-            DbDataReader reader = cmd.ExecuteReader();
+            var reader = cmd.ExecuteReader();
+            var counter = 0;
             while (reader.Read())
             {
-                for (int i = 0; i < reader.FieldCount; i++)
-                    Console.Write(reader.GetValue(i) + "|");
-                Console.WriteLine();
+                NAssert.AreEqual(4, reader.FieldCount);
+                counter++;
             }
+
+            NAssert.AreEqual(RowsNo, counter);
 
             cmd.CommandText = string.Format(@"DROP TABLE {0};", tableName);
             cmd.ExecuteNonQuery();
@@ -107,8 +112,26 @@ namespace Cassandra.IntegrationTests.Data
             cmd.ExecuteNonQuery();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        /// <summary>
+        /// Tests that ExecuteScalar method returns the first column value of the first row, or null if no rows.
+        /// </summary>
+        [Test]
+        public void ExecuteScalarReturnsFirstColumn()
+        {
+            connection.Open();
+            var cmd1 = connection.CreateCommand();
+            var cmd2 = connection.CreateCommand();
+            var cmd3 = connection.CreateCommand();
+
+            cmd1.CommandText = "SELECT keyspace_name, durable_writes FROM system.schema_keyspaces";
+            cmd2.CommandText = "SELECT durable_writes, keyspace_name FROM system.schema_keyspaces";
+            cmd3.CommandText = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = 'NOT_EXISTENT_" + Guid.NewGuid().ToString() + "'";
+            NAssert.IsInstanceOf<string>(cmd1.ExecuteScalar());
+            NAssert.IsInstanceOf<bool>(cmd2.ExecuteScalar());
+            NAssert.IsNull(cmd3.ExecuteScalar());
+        }
+
+        [Test]
         public void ExecuteNonQueryTest()
         {
             createObjectsInsertAndSelect();
