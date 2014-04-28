@@ -68,9 +68,9 @@ namespace Cassandra
                    | (buffer[idx + 3] & 0xFF);
         }
 
-        private static short BytesToInt16(byte[] buffer, int idx)
+        private static ushort BytesToUInt16(byte[] buffer, int idx)
         {
-            return (short) ((buffer[idx] << 8) | (buffer[idx + 1] & 0xFF));
+            return (ushort) ((buffer[idx] << 8) | (buffer[idx + 1] & 0xFF));
         }
 
         private static byte[] Int32ToBytes(int value)
@@ -352,7 +352,7 @@ namespace Cassandra
                 ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
                 IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
                 Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-                int count = BytesToInt16(value, 0);
+                int count = BytesToUInt16(value, 0);
                 int idx = 2;
                 Type openType = typeof (List<>);
                 Type listType = openType.MakeGenericType(valueType);
@@ -360,7 +360,7 @@ namespace Cassandra
                 MethodInfo addM = listType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    short valBufLen = BytesToInt16(value, idx);
+                    var valBufLen = BytesToUInt16(value, idx);
                     idx += 2;
                     var valBuf = new byte[valBufLen];
                     Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
@@ -475,7 +475,7 @@ namespace Cassandra
                 IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
                 Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
                 Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
-                int count = BytesToInt16(value, 0);
+                int count = BytesToUInt16(value, 0);
                 int idx = 2;
                 Type openType = typeof (SortedDictionary<,>);
                 Type dicType = openType.MakeGenericType(keyType, valueType);
@@ -483,13 +483,13 @@ namespace Cassandra
                 MethodInfo addM = dicType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    short keyBufLen = BytesToInt16(value, idx);
+                    var keyBufLen = BytesToUInt16(value, idx);
                     idx += 2;
                     var keyBuf = new byte[keyBufLen];
                     Buffer.BlockCopy(value, idx, keyBuf, 0, keyBufLen);
                     idx += keyBufLen;
 
-                    short valueBufLen = BytesToInt16(value, idx);
+                    var valueBufLen = BytesToUInt16(value, idx);
                     idx += 2;
                     var valueBuf = new byte[valueBufLen];
                     Buffer.BlockCopy(value, idx, valueBuf, 0, valueBufLen);
@@ -629,7 +629,7 @@ namespace Cassandra
                 ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
                 IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
                 Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-                int count = BytesToInt16(value, 0);
+                int count = BytesToUInt16(value, 0);
                 int idx = 2;
                 Type openType = typeof (List<>);
                 Type listType = openType.MakeGenericType(valueType);
@@ -637,7 +637,7 @@ namespace Cassandra
                 MethodInfo addM = listType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    short valBufLen = BytesToInt16(value, idx);
+                    var valBufLen = BytesToUInt16(value, idx);
                     idx += 2;
                     var valBuf = new byte[valBufLen];
                     Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
