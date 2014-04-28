@@ -962,8 +962,7 @@ namespace Cassandra
             return false;
         }
 
-#if ERRORINJECTION
-        public void SimulateSingleConnectionDown()
+        internal void SimulateSingleConnectionDown()
         {
             if (_connectionPool.Count > 0)
             {
@@ -984,6 +983,5 @@ namespace Cassandra
                 }
             }
         }
-#endif
     }
 }

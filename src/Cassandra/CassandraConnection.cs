@@ -28,18 +28,6 @@ namespace Cassandra
 {
     internal class CassandraConnection : IDisposable
     {
-
-#if ERRORINJECTION
-        public void KillSocket()
-        {
-            try
-            {
-                _socket.Shutdown(SocketShutdown.Both);
-            }
-            catch { }
-        }
-#endif
- 
         private static readonly Logger Logger = new Logger(typeof (CassandraConnection));
         private static readonly FrameParser FrameParser = new FrameParser();
         private readonly BoolSwitch _alreadyDisposed = new BoolSwitch();
@@ -945,6 +933,21 @@ namespace Cassandra
         public IOutput ExecuteOptions(int streamId)
         {
             return EndExecuteQueryOptions(BeginExecuteQueryOptions(streamId, null, null, this), this);
+        }
+
+        /// <summary>
+        /// Shutdowns the underlying socket for read and writing: Testing purposes
+        /// </summary>
+        internal void KillSocket()
+        {
+            try
+            {
+                _socket.Shutdown(SocketShutdown.Both);
+            }
+            catch 
+            {
+
+            }
         }
 
         private struct ErrorActionParam
