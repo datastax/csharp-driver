@@ -333,16 +333,16 @@ namespace Cassandra.Data.Linq
                 }
                 return node;
             }
-            if (node.Method.Name == "UpdateIf")
+            if (node.Method.Name == "UpdateIf" || node.Method.Name == "DeleteIf")
             {
-                Visit(node.Arguments[0]);
+                this.Visit(node.Arguments[0]);
 
                 using (phasePhase.set(ParsePhase.Condition))
                 {
                     if (UpdateIfClause.Length != 0)
                         UpdateIfClause.Append(" AND ");
                     using (currentConditionBuilder.set(UpdateIfClause))
-                        Visit(node.Arguments[1]);
+                        this.Visit(node.Arguments[1]);
                 }
                 return node;
             }

@@ -47,6 +47,11 @@ namespace Cassandra.Data.Linq
             return null;
         }
 
+        internal static object DeleteIf(object a, object b)
+        {
+            return null;
+        }
+
         internal static object First(object a, int b)
         {
             return null;
