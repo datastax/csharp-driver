@@ -32,7 +32,7 @@ namespace Cassandra
                 var value_typeinfo = (type_info as MapColumnInfo).ValueTypeInfo;
                 var key_type = TypeInterpreter.GetDefaultTypeFromCqlType(key_typecode, key_typeinfo);
                 var value_type = TypeInterpreter.GetDefaultTypeFromCqlType(value_typecode, value_typeinfo);
-                int count = BytesToInt16(value, 0);
+                int count = BytesToUInt16(value, 0);
                 int idx = 2;
                 var openType = typeof(SortedDictionary<,>);
                 var dicType = openType.MakeGenericType(key_type, value_type);
@@ -40,13 +40,13 @@ namespace Cassandra
                 var addM = dicType.GetMethod("Add");
                 for (int i = 0; i < count; i++)
                 {
-                    var key_buf_len = BytesToInt16(value, idx);
+                    var key_buf_len = BytesToUInt16(value, idx);
                     idx += 2;
                     byte[] key_buf = new byte[key_buf_len];
                     Buffer.BlockCopy(value, idx, key_buf, 0, key_buf_len);
                     idx += key_buf_len;
 
-                    var value_buf_len = BytesToInt16(value, idx);
+                    var value_buf_len = BytesToUInt16(value, idx);
                     idx += 2;
                     byte[] value_buf = new byte[value_buf_len];
                     Buffer.BlockCopy(value, idx, value_buf, 0, value_buf_len);

@@ -34,9 +34,9 @@ namespace Cassandra
                 );
         }
 
-        static short BytesToInt16(byte[] buffer, int idx)
+        static ushort BytesToUInt16(byte[] buffer, int idx)
         {
-            return (short)((buffer[idx] << 8) | (buffer[idx + 1] & 0xFF));
+            return (ushort)((buffer[idx] << 8) | (buffer[idx + 1] & 0xFF));
         }
 
         static byte[] Int32ToBytes(int value)

@@ -414,5 +414,82 @@ namespace Cassandra.MSTest
                 CCMCluster.Discard();
             }
         }
+
+		private void createTable(string tableName, string cqlType)
+		{
+            try
+            {
+                session.WaitForSchemaAgreement(
+                    session.Execute("DROP TABLE " + tableName));
+            }
+            catch (InvalidConfigurationInQueryException) { }
+
+            session.WaitForSchemaAgreement(
+                session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k))", tableName, cqlType)));
+		}
+
+        /// <summary>
+        ///  Test list with a single large text value
+        /// </summary>
+        /// <throws name="Exception"></throws>
+        [TestMethod]
+        [WorksForMe]
+        public void largeListText()
+        {
+            SetupDefaultCluster();
+			createTable("large_list_text", "list<text>");
+
+            string b = new string('8', UInt16.MaxValue);
+            session.Execute(string.Format("INSERT INTO large_list_text(k,i) VALUES({0},['{1}'])", key, b), ConsistencyLevel.Quorum);
+
+            using (var rs = session.Execute("SELECT * FROM large_list_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
+            {
+                Row row = rs.GetRows().FirstOrDefault();
+                Assert.True(b.Equals(((List<string>)row["i"])[0]));
+            }
+        }
+
+        /// <summary>
+        ///  Test set with a single large text value
+        /// </summary>
+        /// <throws name="Exception"></throws>
+        [TestMethod]
+        [WorksForMe]
+        public void largeSetText()
+        {
+            SetupDefaultCluster();
+            createTable("large_set_text", "set<text>");
+
+            string b = new string('8', UInt16.MaxValue - 8); //according to specs it should accept  full UInt16.MaxValue, but for some reason it throws "The sum of all clustering columns is too long"
+            session.Execute(string.Format("INSERT INTO large_set_text(k,i) VALUES({0},{{'{1}'}})", key, b), ConsistencyLevel.Quorum);
+
+            using (var rs = session.Execute("SELECT * FROM large_set_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
+            {
+                Row row = rs.GetRows().FirstOrDefault();
+                Assert.True(b.Equals(((List<string>)row["i"]).First()));
+            }
+        }
+
+            /// <summary>
+    ///  Test map with a large text key and large text value
+        /// </summary>
+        /// <throws name="Exception"></throws>
+        [TestMethod]
+        [WorksForMe]
+        public void largeMapText()
+        {
+            SetupDefaultCluster();
+            createTable("large_map_text", "map<text, text>");
+
+            string b = new string('8', UInt16.MaxValue - 8); //according to specs it should accept  full UInt16.MaxValue, but for some reason it throws "The sum of all clustering columns is too long"
+            session.Execute(string.Format("INSERT INTO large_map_text(k,i) VALUES({0},{{ '{1}' : '{1}' }})", key, b), ConsistencyLevel.Quorum);
+
+            using (var rs = session.Execute("SELECT * FROM large_map_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
+            {
+                Row row = rs.GetRows().FirstOrDefault();
+                Assert.True(b.Equals(((SortedDictionary<string, string>)row["i"]).First().Key));
+                Assert.True(b.Equals(((SortedDictionary<string, string>)row["i"]).First().Value));
+            }
+        }
     }
 }
