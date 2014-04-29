@@ -32,7 +32,7 @@ namespace Cassandra
             _loadBalancingPolicy = loadBalancingPolicy;
         }
 
-        public void Initialize(Cluster cluster)
+        public void Initialize(ICluster cluster)
         {
             _loadBalancingPolicy.Initialize(cluster);
         }

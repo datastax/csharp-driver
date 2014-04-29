@@ -36,7 +36,7 @@ namespace Cassandra
 
         private readonly string _localDc;
         private readonly int _usedHostsPerRemoteDc;
-        Cluster _cluster;
+        ICluster _cluster;
         int _index;
 
         /// <summary>
@@ -76,10 +76,10 @@ namespace Cassandra
         }
 
 
-        public void Initialize(Cluster cluster)
+        public void Initialize(ICluster cluster)
         {
             this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
+            this._index = StaticRandom.Instance.Next(cluster.AllHosts().Count);
         }
 
         private string DC(Host host)
@@ -105,7 +105,7 @@ namespace Cassandra
                 return HostDistance.Local;
 
             int ix = 0;
-            foreach (var h in _cluster.Metadata.AllHosts())
+            foreach (var h in _cluster.AllHosts())
             {
                 if (h.Address.Equals(host.Address))
                 {
@@ -132,7 +132,7 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Statement query)
         {
-            var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            var copyOfHosts = (from h in _cluster.AllHosts() where h.IsConsiderablyUp select h).ToArray();
 
             var localHosts = new List<Host>();
 

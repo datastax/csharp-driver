@@ -37,13 +37,13 @@ namespace Cassandra
         /// </summary>
         public RoundRobinPolicy() { }
 
-        Cluster _cluster;
+        ICluster _cluster;
         int _index;
 
-        public void Initialize(Cluster cluster)
+        public void Initialize(ICluster cluster)
         {
             this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.Metadata.AllHosts().Count);
+            this._index = StaticRandom.Instance.Next(cluster.AllHosts().Count);
         }
 
 
@@ -73,7 +73,7 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(Statement query)
         {
-            var copyOfHosts = (from h in _cluster.Metadata.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            var copyOfHosts = (from h in _cluster.AllHosts() where h.IsConsiderablyUp select h).ToArray();
 
             for (int i = 0; i < copyOfHosts.Length; i++)
             {

@@ -22,22 +22,37 @@ using System.Threading;
 
 namespace Cassandra
 {
-    /// <summary>
-    ///  Informations and known state of a Cassandra cluster. <p> This is the main
-    ///  entry point of the driver. A simple example of access to a Cassandra cluster
-    ///  would be: 
-    /// <pre> Cluster cluster = Cluster.Builder.AddContactPoint("192.168.0.1").Build(); 
-    ///  Session session = Cluster.Connect("db1"); 
-    ///  foreach (var row in session.execute("SELECT * FROM table1")) 
-    ///    //do something ... </pre> 
-    ///  </p><p> A cluster object maintains a
-    ///  permanent connection to one of the cluster node that it uses solely to
-    ///  maintain informations on the state and current topology of the cluster. Using
-    ///  the connection, the driver will discover all the nodes composing the cluster
-    ///  as well as new nodes joining the cluster.</p>
-    /// </summary>
-    public class Cluster : IDisposable
+    public class Cluster : ICluster
     {
+        /// <summary>
+        ///  Build a new cluster based on the provided initializer. <p> Note that for
+        ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
+        ///  verbose shortcut with <link>NewBuilder#Build</link>. </p><p> Also note that that all
+        ///  the contact points provided by <code>* initializer</code> must share the same
+        ///  port.</p>
+        /// </summary>
+        /// <param name="initializer"> the Cluster.Initializer to use </param>
+        /// 
+        /// <returns>the newly created Cluster instance </returns>
+        public static Cluster BuildFrom(IInitializer initializer)
+        {
+            ICollection<IPAddress> contactPoints = initializer.ContactPoints;
+            if (contactPoints.Count == 0)
+                throw new ArgumentException("Cannot build a cluster without contact points");
+
+            return new Cluster(contactPoints, initializer.GetConfiguration());
+        }
+
+        /// <summary>
+        ///  Creates a new <link>Cluster.NewBuilder</link> instance. <p> This is a shortcut
+        ///  for <code>new Cluster.NewBuilder()</code></p>.
+        /// </summary>
+        /// <returns>the new cluster builder.</returns>
+        public static Builder Builder()
+        {
+            return new Builder();
+        }
+
         private readonly int _binaryProtocolVersion;
         private readonly Configuration _configuration;
         private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
@@ -102,57 +117,16 @@ namespace Cassandra
             _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
         }
 
-        public void Dispose()
+        public ICollection<Host> AllHosts()
         {
-            Shutdown();
+            return Metadata.AllHosts();
         }
 
-        /// <summary>
-        ///  Build a new cluster based on the provided initializer. <p> Note that for
-        ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
-        ///  verbose shortcut with <link>NewBuilder#Build</link>. </p><p> Also note that that all
-        ///  the contact points provided by <code>* initializer</code> must share the same
-        ///  port.</p>
-        /// </summary>
-        /// <param name="initializer"> the Cluster.Initializer to use </param>
-        /// 
-        /// <returns>the newly created Cluster instance </returns>
-        public static Cluster BuildFrom(IInitializer initializer)
-        {
-            ICollection<IPAddress> contactPoints = initializer.ContactPoints;
-            if (contactPoints.Count == 0)
-                throw new ArgumentException("Cannot build a cluster without contact points");
-
-            return new Cluster(contactPoints, initializer.GetConfiguration());
-        }
-
-        /// <summary>
-        ///  Creates a new <link>Cluster.NewBuilder</link> instance. <p> This is a shortcut
-        ///  for <code>new Cluster.NewBuilder()</code></p>.
-        /// </summary>
-        /// 
-        /// <returns>the new cluster builder.</returns>
-        public static Builder Builder()
-        {
-            return new Builder();
-        }
-
-        /// <summary>
-        ///  Creates a new session on this cluster.
-        /// </summary>
-        /// 
-        /// <returns>a new session on this cluster set to no keyspace.</returns>
         public ISession Connect()
         {
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
 
-        /// <summary>
-        ///  Creates a new session on this cluster and sets a keyspace to use.
-        /// </summary>
-        /// <param name="keyspace"> The name of the keyspace to use for the created <code>Session</code>. </param>
-        /// <returns>a new session on this cluster set to keyspace: 
-        ///  <code>keyspaceName</code>. </returns>
         public ISession Connect(string keyspace)
         {
             var scs = new Session(this, _configuration.Policies,
@@ -189,11 +163,26 @@ namespace Cassandra
             return session;
         }
 
-        /// <summary>
-        ///  Shutdown this cluster instance. This closes all connections from all the
-        ///  sessions of this <code>* Cluster</code> instance and reclaim all resources
-        ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
-        /// </summary>
+        public void Dispose()
+        {
+            Shutdown();
+        }
+
+        public Host GetHost(IPAddress address)
+        {
+            return Metadata.GetHost(address);
+        }
+
+        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
+        {
+            return Metadata.GetReplicas(partitionKey);
+        }
+
+        public bool RefreshSchema(string keyspace = null, string table = null)
+        {
+            return _metadata.RefreshSchema(keyspace, table);
+        }
+
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
             foreach (KeyValuePair<Guid, Session> kv in _connectedSessions)
@@ -219,11 +208,6 @@ namespace Cassandra
         ~Cluster()
         {
             Shutdown();
-        }
-
-        public bool RefreshSchema(string keyspace = null, string table = null)
-        {
-            return _metadata.RefreshSchema(keyspace, table);
         }
     }
 }

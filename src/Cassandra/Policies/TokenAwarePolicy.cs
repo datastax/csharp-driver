@@ -40,7 +40,7 @@ namespace Cassandra
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
         private readonly ILoadBalancingPolicy _childPolicy;
-        private Cluster _cluster;
+        private ICluster _cluster;
 
         /// <summary>
         ///  Creates a new <code>TokenAware</code> policy that wraps the provided child
@@ -53,7 +53,7 @@ namespace Cassandra
             _childPolicy = childPolicy;
         }
 
-        public void Initialize(Cluster cluster)
+        public void Initialize(ICluster cluster)
         {
             _cluster = cluster;
             _childPolicy.Initialize(cluster);
@@ -92,7 +92,7 @@ namespace Cassandra
                 yield break;
             }
 
-            ICollection<IPAddress> replicas = _cluster.Metadata.GetReplicas(routingKey.RawRoutingKey);
+            ICollection<IPAddress> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
                 foreach (Host iter in _childPolicy.NewQueryPlan(query))
@@ -103,7 +103,7 @@ namespace Cassandra
             IEnumerator<IPAddress> iterator = replicas.GetEnumerator();
             while (iterator.MoveNext())
             {
-                Host host = _cluster.Metadata.GetHost(iterator.Current);
+                Host host = _cluster.GetHost(iterator.Current);
                 if (host != null && host.IsConsiderablyUp && _childPolicy.Distance(host) == HostDistance.Local)
                     yield return host;
             }

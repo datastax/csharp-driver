@@ -95,6 +95,7 @@
     <Compile Include="IAuthenticator.cs" />
     <Compile Include="IAuthInfoProvider.cs" />
     <Compile Include="IAuthProvider.cs" />
+    <Compile Include="ICluster.cs" />
     <Compile Include="IInitializer.cs" />
     <Compile Include="IProtoBuf.cs" />
     <Compile Include="IQueryRequest.cs" />
