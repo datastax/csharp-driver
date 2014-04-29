@@ -25,18 +25,18 @@ namespace Cassandra.IntegrationTests.Core.Policies
         }
 
 
-        public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+        public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
             return RetryDecision.Ignore();
         }
 
-        public RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             return RetryDecision.Ignore();
         }
 
-        public RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Ignore();
         }

@@ -30,7 +30,7 @@
         ///  returned, a
         ///  <link>com.datastax.driver.core.exceptions.ReadTimeoutException</link> will be
         ///  thrown for the operation.</returns>
-        RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry);
+        RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry);
 
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a write timeout.
@@ -50,7 +50,7 @@
         ///  returned, a
         ///  <link>com.datastax.driver.core.exceptions.WriteTimeoutException</link> will
         ///  be thrown for the operation.</returns>
-        RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry);
+        RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry);
 
         /// <summary>
         ///  Defines whether to retry and at which consistency level on an unavailable
@@ -70,6 +70,6 @@
         ///  returned, an
         ///  <link>com.datastax.driver.core.exceptions.UnavailableException</link> will be
         ///  thrown for the operation.</returns>
-        RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry);
+        RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry);
     }
 }

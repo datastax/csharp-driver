@@ -58,7 +58,7 @@ namespace Cassandra
         ///  been tried and <code>receivedResponses >= requiredResponses &amp;&amp;
         ///  !dataRetrieved</code>, <code>RetryDecision.rethrow()</code>
         ///  otherwise.</returns>
-        public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,
+        public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,
                                            bool dataRetrieved, int nbRetry)
         {
             if (nbRetry != 0)
@@ -94,7 +94,7 @@ namespace Cassandra
         /// <returns><code>RetryDecision.retry(cl)</code> if no retry attempt has yet
         ///  been tried and <code>writeType == WriteType.BATCH_LOG</code>,
         ///  <code>RetryDecision.rethrow()</code> otherwise.</returns>
-        public RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
+        public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
                                             int nbRetry)
         {
             if (nbRetry != 0)
@@ -120,7 +120,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns><code>RetryDecision.rethrow()</code>.</returns>
-        public RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }

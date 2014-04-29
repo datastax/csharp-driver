@@ -80,7 +80,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns>a RetryDecision as defined above.</returns>
-        public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+        public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
             if (nbRetry != 0)
@@ -119,7 +119,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns>a RetryDecision as defined above.</returns>
-        public RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             if (nbRetry != 0)
                 return RetryDecision.Rethrow();
@@ -160,7 +160,7 @@ namespace Cassandra
         ///  operation. </param>
         /// 
         /// <returns>a RetryDecision as defined above.</returns>
-        public RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return nbRetry != 0 ? RetryDecision.Rethrow() : MaxLikelyToWorkCl(aliveReplica);
 

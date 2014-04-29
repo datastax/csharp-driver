@@ -38,7 +38,7 @@ namespace Cassandra
             _policy = policy;
         }
 
-        public RetryDecision OnReadTimeout(Statement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
+        public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
             RetryDecision decision = _policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
@@ -60,7 +60,7 @@ namespace Cassandra
             return decision;
         }
 
-        public RetryDecision OnWriteTimeout(Statement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             RetryDecision decision = _policy.OnWriteTimeout(query, cl, writeType, requiredAcks, receivedAcks, nbRetry);
             switch (decision.DecisionType)
@@ -81,7 +81,7 @@ namespace Cassandra
             return decision;
         }
 
-        public RetryDecision OnUnavailable(Statement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             RetryDecision decision = _policy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
             switch (decision.DecisionType)
