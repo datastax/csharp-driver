@@ -64,17 +64,17 @@ namespace Cassandra.IntegrationTests.Core
             var firstRowValues = new object[] 
             { 
                 Guid.NewGuid(), "first", 10, Int64.MaxValue - 1, 1.999F, 32.002D, 1.101010M, 
-                new byte[] {255, 255}, true, new DateTime(2005, 8, 5), null
+                new byte[] {255, 255}, true, new DateTime(2005, 8, 5), new IPAddress(new byte[] {192, 168, 0, 100})
             };
             var secondRowValues = new object[] 
             { 
                 Guid.NewGuid(), "second", 0, 0L, 0F, 0D, 0M, 
-                new byte[] {0, 0}, true, new DateTime(1970, 9, 18), null
+                new byte[] {0, 0}, true, new DateTime(1970, 9, 18), new IPAddress(new byte[] {0, 0, 0, 0})
             };
             var thirdRowValues = new object[] 
             { 
                 Guid.NewGuid(), "third", -100, Int64.MinValue + 1, -150.111F, -5.12342D, -8.101010M, 
-                new byte[] {1, 1}, true, new DateTime(1543, 5, 24), null
+                new byte[] {1, 1}, true, new DateTime(1543, 5, 24), new IPAddress(new byte[] {255, 128, 12, 1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
             };
 
             Session.Execute(preparedStatement.Bind(firstRowValues));
