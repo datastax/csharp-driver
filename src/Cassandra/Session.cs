@@ -916,11 +916,11 @@ namespace Cassandra
                                 if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
                                     continue;
 
-                                var rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
+                                var rpc = row.GetValue<IPAddress>("rpc_address");
                                 if (rpc.Equals(BindAllAddress))
                                 {
                                     if (!row.IsNull("peer"))
-                                        rpc = row.GetValue<IPEndPoint>("peer").Address;
+                                        rpc = row.GetValue<IPAddress>("peer");
                                 }
 
                                 Host peer = _cluster.Metadata.GetHost(rpc);

@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -187,7 +187,7 @@ namespace Cassandra
                     _requestType = sessRow.GetValue<string>("request");
                     if (!sessRow.IsNull("duration"))
                         _duration = sessRow.GetValue<int>("duration");
-                    _coordinator = sessRow.GetValue<IPEndPoint>("coordinator").Address;
+                    _coordinator = sessRow.GetValue<IPAddress>("coordinator");
                     if (!sessRow.IsNull("parameters"))
                         _parameters = sessRow.GetValue<IDictionary<string, string>>("parameters");
                     _startedAt = sessRow.GetValue<DateTimeOffset>("started_at").ToFileTime(); //.getTime();
@@ -205,7 +205,7 @@ namespace Cassandra
                                               new DateTimeOffset(
                                                   Utils.GetTimestampFromGuid(evRow.GetValue<Guid>("event_id")) +
                                                   (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
-                                              evRow.GetValue<IPEndPoint>("source").Address,
+                                              evRow.GetValue<IPAddress>("source"),
                                               evRow.IsNull("source_elapsed") ? 0 : evRow.GetValue<int>("source_elapsed"),
                                               evRow.GetValue<string>("thread")));
                     }

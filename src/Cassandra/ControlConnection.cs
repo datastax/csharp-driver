@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -350,17 +350,17 @@ namespace Cassandra
                 {
                     IPAddress hstip = null;
                     if (!row.IsNull("rpc_address"))
-                        hstip = row.GetValue<IPEndPoint>("rpc_address").Address;
+                        hstip = row.GetValue<IPAddress>("rpc_address");
                     if (hstip == null)
                     {
                         if (!row.IsNull("peer"))
-                            hstip = row.GetValue<IPEndPoint>("peer").Address;
+                            hstip = row.GetValue<IPAddress>("peer");
                         _logger.Error("No rpc_address found for host in peers system table. ");
                     }
                     else if (hstip.Equals(Session.BindAllAddress))
                     {
                         if (!row.IsNull("peer"))
-                            hstip = row.GetValue<IPEndPoint>("peer").Address;
+                            hstip = row.GetValue<IPAddress>("peer");
                     }
 
                     if (hstip != null)
@@ -454,10 +454,10 @@ namespace Cassandra
                         if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
                             continue;
 
-                        IPAddress rpc = row.GetValue<IPEndPoint>("rpc_address").Address;
+                        IPAddress rpc = row.GetValue<IPAddress>("rpc_address");
                         if (rpc.Equals(Session.BindAllAddress))
                             if (!row.IsNull("peer"))
-                                rpc = row.GetValue<IPEndPoint>("peer").Address;
+                                rpc = row.GetValue<IPAddress>("peer");
 
                         Host peer = _cluster.Metadata.GetHost(rpc);
                         if (peer != null && peer.IsConsiderablyUp)

@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,6 +109,12 @@ namespace Cassandra.IntegrationTests.Core
             var btarr = new byte[NextUInt16()];
             NextBytes(btarr);
             return btarr;
+        }
+
+        public System.Net.IPAddress NextIPAddress()
+        {
+            byte[] btarr = new byte[]{(byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128)};
+            return new System.Net.IPAddress(btarr);
         }
 
         public bool NextBoolean()

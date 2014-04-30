@@ -260,6 +260,13 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestMethod]
         [WorksForMe]
+        public void testPreparedInet()
+        {
+            insertingSingleValuePrepared(typeof(System.Net.IPAddress));
+        }
+
+        [TestMethod]
+        [WorksForMe]
         public void testPreparedUUID()
         {
             insertingSingleValuePrepared(typeof (Guid));

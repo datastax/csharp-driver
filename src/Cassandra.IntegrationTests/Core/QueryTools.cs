@@ -231,7 +231,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 case "Guid":
                     return "uuid";
-                case "IPEndPoint":
+                case "IPAddress":
                     return "inet";
 
                 default:

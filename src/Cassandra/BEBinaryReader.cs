@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,6 +62,9 @@ namespace Cassandra
             return ReadPureString(length);
         }
 
+        /// <summary>
+        /// Reads protocol inet: Ip (4 or 16 bytes) followed by a port (int)
+        /// </summary>
         public IPEndPoint ReadInet()
         {
             byte length = ReadByte();

@@ -210,7 +210,7 @@ namespace Cassandra
                     return ColumnTypeCode.Double;
                 if (type.Equals(typeof (float)))
                     return ColumnTypeCode.Float;
-                if (type.Equals(typeof (IPEndPoint)))
+                if (type.Equals(typeof(IPAddress)))
                     return ColumnTypeCode.Inet;
                 if (type.Equals(typeof (int)))
                     return ColumnTypeCode.Int;
@@ -704,48 +704,20 @@ namespace Cassandra
         {
             if (value.Length == 4 || value.Length == 16)
             {
-                var ip = new IPAddress(value);
-                return new IPEndPoint(ip, 0);
-            }
-            else
-            {
-                byte length = value[0];
-                IPAddress ip;
-                int port;
-                var buf = new byte[length];
-                if (length == 4)
-                {
-                    Buffer.BlockCopy(value, 1, buf, 0, 4);
-                    ip = new IPAddress(buf);
-                    port = BytesToInt32(buf, 1 + 4);
-                    return new IPEndPoint(ip, port);
-                }
-                if (length == 16)
-                {
-                    Buffer.BlockCopy(value, 1, buf, 0, 16);
-                    ip = new IPAddress(buf);
-                    port = BytesToInt32(buf, 1 + 16);
-                    return new IPEndPoint(ip, port);
-                }
+                return new IPAddress(value);
             }
             throw new DriverInternalError("Invalid lenght of Inet Addr");
         }
 
         public static Type GetDefaultTypeFromInet(IColumnInfo typeInfo)
         {
-            return typeof (IPEndPoint);
+            return typeof(IPAddress);
         }
 
         public static byte[] InvConvertFromInet(IColumnInfo typeInfo, object value)
         {
-            CheckArgument<IPEndPoint>(value);
-            byte[] addrbytes = (value as IPEndPoint).Address.GetAddressBytes();
-            byte[] port = Int32ToBytes((value as IPEndPoint).Port);
-            var ret = new byte[addrbytes.Length + 4 + 1];
-            ret[0] = (byte) addrbytes.Length;
-            Buffer.BlockCopy(addrbytes, 0, ret, 1, addrbytes.Length);
-            Buffer.BlockCopy(port, 0, ret, 1 + addrbytes.Length, port.Length);
-            return ret;
+            CheckArgument<IPAddress>(value);
+            return (value as IPAddress).GetAddressBytes();
         }
 
         public static object ConvertFromCounter(IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
