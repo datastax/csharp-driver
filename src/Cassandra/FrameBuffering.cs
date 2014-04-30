@@ -27,6 +27,8 @@ namespace Cassandra
         {
             Init(buffer, size);
 
+            var body = new List<byte>(1024);
+
             while (AreMore())
             {
                 byte b = GetByte();
@@ -46,9 +48,7 @@ namespace Cassandra
                         TmpFrameHeader.Opcode = b;
                         break;
                     case 4:
-                    {
                         TmpFrameHeader.Len[0] = b;
-                    }
                         break;
                     case 5:
                         TmpFrameHeader.Len[1] = b;
@@ -59,24 +59,27 @@ namespace Cassandra
                     case 7:
                         TmpFrameHeader.Len[3] = b;
                         _bodyLen = TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
-                        TmpFrame =
-                            TmpFrameHeader.MakeFrame(new BufferedProtoBuf(_bodyLen, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
+                        TmpFrame = TmpFrameHeader.MakeFrame(new BufferedProtoBuf(_bodyLen, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
                         yield return TmpFrame;
                         break;
                     default:
-                    {
-                        TmpFrame.RawStream.WriteByte(b);
-                    }
+                        body.Add(b);
                         break;
                 }
                 ByteIdx++;
                 if (ByteIdx - 8 >= _bodyLen)
                 {
+                    if (body.Count > 0)
+                    {
+                        TmpFrame.RawStream.Write(body.ToArray(), 0, body.Count);
+                        body.Clear();
+                    }
                     ByteIdx = 0;
                     _bodyLen = int.MaxValue;
                     TmpFrameHeader = new FrameHeader();
                 }
             }
+            if (body.Count > 0) TmpFrame.RawStream.Write(body.ToArray(), 0, body.Count);
         }
 
         public override void Close()
