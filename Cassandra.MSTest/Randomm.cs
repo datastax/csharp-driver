@@ -100,12 +100,18 @@ namespace Cassandra.MSTest
             var now = DateTimeOffset.Now.UtcDateTime;
             return new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Millisecond, TimeSpan.Zero);
         }
-        
+
         public byte[] NextByte()
-        {            
-            byte[] btarr = new byte[this.NextUInt16()];            
+        {
+            byte[] btarr = new byte[this.NextUInt16()];
             this.NextBytes(btarr);
             return btarr;
+        }
+
+        public System.Net.IPAddress NextIPAddress()
+        {
+            byte[] btarr = new byte[]{(byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128)};
+            return new System.Net.IPAddress(btarr);
         }
 
         public bool NextBoolean()

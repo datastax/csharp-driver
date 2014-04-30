@@ -153,7 +153,7 @@ namespace Cassandra.MSTest
 
                 case "Guid":
                     return "uuid";
-                case "IPEndPoint":
+                case "IPAddress":
                     return "inet";
 
                 default:

@@ -26,47 +26,23 @@ namespace Cassandra
             if (value.Length == 4 || value.Length == 16)
             {
                 var ip = new IPAddress(value);
-                return new IPEndPoint(ip, 0);
-            }
-            else
-            {
-                var length = value[0];
-                IPAddress ip;
-                int port;
-                var buf = new byte[length];
-                if (length == 4)
-                {
-                    Buffer.BlockCopy(value, 1, buf, 0, 4);
-                    ip = new IPAddress(buf);
-                    port = BytesToInt32(buf, 1 + 4);
-                    return new IPEndPoint(ip, port);
-                }
-                else if (length == 16)
-                {
-                    Buffer.BlockCopy(value, 1, buf, 0, 16);
-                    ip = new IPAddress(buf);
-                    port = BytesToInt32(buf, 1 + 16);
-                    return new IPEndPoint(ip, port);
-                }
+                return ip;
             }
             throw new DriverInternalError("Invalid lenght of Inet Addr");
         }
 
         public static Type GetDefaultTypeFromInet(IColumnInfo type_info)
         {
-            return typeof(IPEndPoint);
+            return typeof(IPAddress);
         }
 
+        /// <summary>
+        /// Converts a value from CLR IPAddress to byte BE Byte array
+        /// </summary>
         public static byte[] InvConvertFromInet(IColumnInfo type_info, object value)
         {
-            CheckArgument<IPEndPoint>(value);
-            var addrbytes = (value as IPEndPoint).Address.GetAddressBytes();
-            var port = Int32ToBytes((value as IPEndPoint).Port);
-            var ret = new byte[addrbytes.Length + 4 + 1];
-            ret[0] = (byte)addrbytes.Length;
-            Buffer.BlockCopy(addrbytes, 0, ret, 1, addrbytes.Length);
-            Buffer.BlockCopy(port, 0, ret, 1 + addrbytes.Length, port.Length);
-            return ret;
+            CheckArgument<IPAddress>(value);
+            return (value as IPAddress).GetAddressBytes();
         }
     }
 }

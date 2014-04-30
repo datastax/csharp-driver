@@ -102,6 +102,13 @@ namespace Cassandra.MSTest
         {
             insertingSingleValuePrepared(typeof(System.Byte));
         }
+
+        [TestMethod]
+        [WorksForMe]
+        public void testPreparedInet()
+        {
+            insertingSingleValuePrepared(typeof(System.Net.IPAddress));
+        }
         
         [TestMethod]   
 		[WorksForMe]
