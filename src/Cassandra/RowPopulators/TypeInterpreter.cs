@@ -23,12 +23,15 @@ using System.Text;
 
 namespace Cassandra
 {
+    internal delegate object CqlConvertDelegate(IColumnInfo typeInfo, byte[] buffer, Type cSharpType);
+    internal delegate byte[] InvCqlConvertDelegate(IColumnInfo typeInfo, object value);
+
     internal class TypeInterpreter
     {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-        private static readonly CqlConvertDel[] GoMethods = new CqlConvertDel[byte.MaxValue + 1];
+        private static readonly CqlConvertDelegate[] GoMethods = new CqlConvertDelegate[byte.MaxValue + 1];
         private static readonly GetDefaultTypeFromCqlTypeDel[] TypMethods = new GetDefaultTypeFromCqlTypeDel[byte.MaxValue + 1];
-        private static readonly InvCqlConvertDel[] InvMethods = new InvCqlConvertDel[byte.MaxValue + 1];
+        private static readonly InvCqlConvertDelegate[] InvMethods = new InvCqlConvertDelegate[byte.MaxValue + 1];
         private static readonly Dictionary<Type, byte> MapTypeToCode = new Dictionary<Type, byte>();
 
         static TypeInterpreter()
@@ -133,7 +136,7 @@ namespace Cassandra
             {
                 MethodInfo mth = typeof (TypeInterpreter).GetMethod("ConvertFrom" + (typeCode),
                                                                     new[] {typeof (IColumnInfo), typeof (byte[]), typeof (Type)});
-                GoMethods[(byte) typeCode] = (CqlConvertDel) Delegate.CreateDelegate(typeof (CqlConvertDel), mth);
+                GoMethods[(byte) typeCode] = (CqlConvertDelegate) Delegate.CreateDelegate(typeof (CqlConvertDelegate), mth);
             }
             {
                 MethodInfo mth = typeof (TypeInterpreter).GetMethod("GetDefaultTypeFrom" + (typeCode), new[] {typeof (IColumnInfo)});
@@ -141,7 +144,7 @@ namespace Cassandra
             }
             {
                 MethodInfo mth = typeof (TypeInterpreter).GetMethod("InvConvertFrom" + (typeCode), new[] {typeof (IColumnInfo), typeof (byte[])});
-                InvMethods[(byte) typeCode] = (InvCqlConvertDel) Delegate.CreateDelegate(typeof (InvCqlConvertDel), mth);
+                InvMethods[(byte) typeCode] = (InvCqlConvertDelegate) Delegate.CreateDelegate(typeof (InvCqlConvertDelegate), mth);
             }
         }
 
@@ -847,10 +850,8 @@ namespace Cassandra
             return ret;
         }
 
-        private delegate object CqlConvertDel(IColumnInfo typeInfo, byte[] buffer, Type cSharpType);
 
         private delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo typeInfo);
 
-        private delegate byte[] InvCqlConvertDel(IColumnInfo typeInfo, object value);
     }
 }

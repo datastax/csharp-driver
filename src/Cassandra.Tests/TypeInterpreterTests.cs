@@ -11,6 +11,34 @@ namespace Cassandra.Tests
     public class TypeInterpreterTests
     {
         [Test]
+        public void EncodeDecodeSingleValuesTest()
+        {
+            var initialValues = new []
+            {
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>("utf8 text mañana", TypeInterpreter.ConvertFromText, TypeInterpreter.InvConvertFromText),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>("ascii text", TypeInterpreter.ConvertFromAscii, TypeInterpreter.InvConvertFromAscii),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1234, TypeInterpreter.ConvertFromInt, TypeInterpreter.InvConvertFromInt),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>((long)3129, TypeInterpreter.ConvertFromBigint, TypeInterpreter.InvConvertFromBigint),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1234F, TypeInterpreter.ConvertFromFloat, TypeInterpreter.InvConvertFromFloat),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1.14D, TypeInterpreter.ConvertFromDouble, TypeInterpreter.InvConvertFromDouble),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1.01M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTime(1983, 2, 24), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeInterpreter.ConvertFromInet, TypeInterpreter.InvConvertFromInet),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(true, TypeInterpreter.ConvertFromBoolean, TypeInterpreter.InvConvertFromBoolean),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new byte[] {16}, TypeInterpreter.ConvertFromBlob, TypeInterpreter.InvConvertFromBlob)
+            };
+
+            foreach (var valueToConvert in initialValues)
+            {
+                var value = valueToConvert.Item1;
+                var encoder = valueToConvert.Item3;
+                var decoder = valueToConvert.Item2;
+                byte[] encoded = encoder(null, value);
+                Assert.AreEqual(value, decoder(null, encoded, value.GetType()));
+            }
+        }
+
+        [Test]
         public void EncodeDecodeSingleValuesFactoryTest()
         {
             var initialValues = new object[]
@@ -18,6 +46,7 @@ namespace Cassandra.Tests
                 new object[] {"just utf8 text olé!", ColumnTypeCode.Text},
                 new object[] {"just ascii text", ColumnTypeCode.Ascii},
                 new object[] {123, ColumnTypeCode.Int},
+                new object[] {Int64.MinValue + 100, ColumnTypeCode.Bigint},
                 new object[] {44F, ColumnTypeCode.Float},
                 new object[] {-320D, ColumnTypeCode.Double},
                 new object[] {99.89770M, ColumnTypeCode.Decimal},
@@ -25,7 +54,6 @@ namespace Cassandra.Tests
                 new object[] {new IPAddress(new byte[] { 10, 0, 5, 5}), ColumnTypeCode.Inet},
                 new object[] {Guid.NewGuid(), ColumnTypeCode.Uuid},
                 new object[] {false, ColumnTypeCode.Boolean},
-                new object[] {Int32.MinValue + 100, ColumnTypeCode.Bigint},
                 new object[] {new byte [] { 1, 2}, ColumnTypeCode.Blob}
             };
             foreach (object[] value in initialValues)
