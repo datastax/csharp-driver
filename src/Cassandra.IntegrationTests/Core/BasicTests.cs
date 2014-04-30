@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder().WithCompression(CompressionType.LZ4));
+            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
         }
 
