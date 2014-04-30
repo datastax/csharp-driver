@@ -29,34 +29,89 @@ namespace Cassandra
     internal class TypeInterpreter
     {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-        private static readonly CqlConvertDelegate[] GoMethods = new CqlConvertDelegate[byte.MaxValue + 1];
-        private static readonly GetDefaultTypeFromCqlTypeDel[] TypMethods = new GetDefaultTypeFromCqlTypeDel[byte.MaxValue + 1];
-        private static readonly InvCqlConvertDelegate[] InvMethods = new InvCqlConvertDelegate[byte.MaxValue + 1];
+
         private static readonly Dictionary<Type, byte> MapTypeToCode = new Dictionary<Type, byte>();
 
-        static TypeInterpreter()
+        /// <summary>
+        /// Decoders by type code
+        /// </summary>
+        private static readonly Dictionary<ColumnTypeCode, InvCqlConvertDelegate> Encoders = new Dictionary<ColumnTypeCode, InvCqlConvertDelegate>()
         {
-            RegisterTypeInterpreter(ColumnTypeCode.Ascii);
-            RegisterTypeInterpreter(ColumnTypeCode.Bigint);
-            RegisterTypeInterpreter(ColumnTypeCode.Blob);
-            RegisterTypeInterpreter(ColumnTypeCode.Boolean);
-            RegisterTypeInterpreter(ColumnTypeCode.Counter);
-            RegisterTypeInterpreter(ColumnTypeCode.Custom);
-            RegisterTypeInterpreter(ColumnTypeCode.Double);
-            RegisterTypeInterpreter(ColumnTypeCode.Float);
-            RegisterTypeInterpreter(ColumnTypeCode.Int);
-            RegisterTypeInterpreter(ColumnTypeCode.Text);
-            RegisterTypeInterpreter(ColumnTypeCode.Timestamp);
-            RegisterTypeInterpreter(ColumnTypeCode.Uuid);
-            RegisterTypeInterpreter(ColumnTypeCode.Varchar);
-            RegisterTypeInterpreter(ColumnTypeCode.Timeuuid);
-            RegisterTypeInterpreter(ColumnTypeCode.Inet);
-            RegisterTypeInterpreter(ColumnTypeCode.List);
-            RegisterTypeInterpreter(ColumnTypeCode.Map);
-            RegisterTypeInterpreter(ColumnTypeCode.Set);
-            RegisterTypeInterpreter(ColumnTypeCode.Decimal);
-            RegisterTypeInterpreter(ColumnTypeCode.Varint);
-        }
+            {ColumnTypeCode.Ascii,        InvConvertFromAscii},
+            {ColumnTypeCode.Bigint,       InvConvertFromBigint},
+            {ColumnTypeCode.Blob,         InvConvertFromBlob},
+            {ColumnTypeCode.Boolean,      InvConvertFromBoolean},
+            {ColumnTypeCode.Counter,      InvConvertFromCounter},
+            {ColumnTypeCode.Custom,       InvConvertFromCustom},
+            {ColumnTypeCode.Double,       InvConvertFromDouble},
+            {ColumnTypeCode.Float,        InvConvertFromFloat},
+            {ColumnTypeCode.Int,          InvConvertFromInt},
+            {ColumnTypeCode.Text,         InvConvertFromText},
+            {ColumnTypeCode.Timestamp,    InvConvertFromTimestamp},
+            {ColumnTypeCode.Uuid,         InvConvertFromUuid},
+            {ColumnTypeCode.Varchar,      InvConvertFromVarchar},
+            {ColumnTypeCode.Timeuuid,     InvConvertFromTimeuuid},
+            {ColumnTypeCode.Inet,         InvConvertFromInet},
+            {ColumnTypeCode.List,         InvConvertFromList},
+            {ColumnTypeCode.Map,          InvConvertFromMap},
+            {ColumnTypeCode.Set,          InvConvertFromSet},
+            {ColumnTypeCode.Decimal,      InvConvertFromDecimal},
+            {ColumnTypeCode.Varint,       InvConvertFromVarint}
+        };
+
+        /// <summary>
+        /// Decoders by type code
+        /// </summary>
+        private static readonly Dictionary<ColumnTypeCode, CqlConvertDelegate> Decoders = new Dictionary<ColumnTypeCode, CqlConvertDelegate>()
+        {
+            {ColumnTypeCode.Ascii,        ConvertFromAscii},
+            {ColumnTypeCode.Bigint,       ConvertFromBigint},
+            {ColumnTypeCode.Blob,         ConvertFromBlob},
+            {ColumnTypeCode.Boolean,      ConvertFromBoolean},
+            {ColumnTypeCode.Counter,      ConvertFromCounter},
+            {ColumnTypeCode.Custom,       ConvertFromCustom},
+            {ColumnTypeCode.Double,       ConvertFromDouble},
+            {ColumnTypeCode.Float,        ConvertFromFloat},
+            {ColumnTypeCode.Int,          ConvertFromInt},
+            {ColumnTypeCode.Text,         ConvertFromText},
+            {ColumnTypeCode.Timestamp,    ConvertFromTimestamp},
+            {ColumnTypeCode.Uuid,         ConvertFromUuid},
+            {ColumnTypeCode.Varchar,      ConvertFromVarchar},
+            {ColumnTypeCode.Timeuuid,     ConvertFromTimeuuid},
+            {ColumnTypeCode.Inet,         ConvertFromInet},
+            {ColumnTypeCode.List,         ConvertFromList},
+            {ColumnTypeCode.Map,          ConvertFromMap},
+            {ColumnTypeCode.Set,          ConvertFromSet},
+            {ColumnTypeCode.Decimal,      ConvertFromDecimal},
+            {ColumnTypeCode.Varint,       ConvertFromVarint}
+        };
+
+        /// <summary>
+        /// Default CLR type by type code
+        /// </summary>
+        private static readonly Dictionary<ColumnTypeCode, GetDefaultTypeFromCqlTypeDel> DefaultTypes = new Dictionary<ColumnTypeCode, GetDefaultTypeFromCqlTypeDel>()
+        {
+            {ColumnTypeCode.Ascii,        GetDefaultTypeFromAscii},
+            {ColumnTypeCode.Bigint,       GetDefaultTypeFromBigint},
+            {ColumnTypeCode.Blob,         GetDefaultTypeFromBlob},
+            {ColumnTypeCode.Boolean,      GetDefaultTypeFromBoolean},
+            {ColumnTypeCode.Counter,      GetDefaultTypeFromCounter},
+            {ColumnTypeCode.Custom,       GetDefaultTypeFromCustom},
+            {ColumnTypeCode.Double,       GetDefaultTypeFromDouble},
+            {ColumnTypeCode.Float,        GetDefaultTypeFromFloat},
+            {ColumnTypeCode.Int,          GetDefaultTypeFromInt},
+            {ColumnTypeCode.Text,         GetDefaultTypeFromText},
+            {ColumnTypeCode.Timestamp,    GetDefaultTypeFromTimestamp},
+            {ColumnTypeCode.Uuid,         GetDefaultTypeFromUuid},
+            {ColumnTypeCode.Varchar,      GetDefaultTypeFromVarchar},
+            {ColumnTypeCode.Timeuuid,     GetDefaultTypeFromTimeuuid},
+            {ColumnTypeCode.Inet,         GetDefaultTypeFromInet},
+            {ColumnTypeCode.List,         GetDefaultTypeFromList},
+            {ColumnTypeCode.Map,          GetDefaultTypeFromMap},
+            {ColumnTypeCode.Set,          GetDefaultTypeFromSet},
+            {ColumnTypeCode.Decimal,      GetDefaultTypeFromDecimal},
+            {ColumnTypeCode.Varint,       GetDefaultTypeFromVarint}
+        };
 
         internal static byte[] GuidShuffle(byte[] b)
         {
@@ -131,31 +186,14 @@ namespace Cassandra
             return Int64ToBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
         }
 
-        internal static void RegisterTypeInterpreter(ColumnTypeCode typeCode)
-        {
-            {
-                MethodInfo mth = typeof (TypeInterpreter).GetMethod("ConvertFrom" + (typeCode),
-                                                                    new[] {typeof (IColumnInfo), typeof (byte[]), typeof (Type)});
-                GoMethods[(byte) typeCode] = (CqlConvertDelegate) Delegate.CreateDelegate(typeof (CqlConvertDelegate), mth);
-            }
-            {
-                MethodInfo mth = typeof (TypeInterpreter).GetMethod("GetDefaultTypeFrom" + (typeCode), new[] {typeof (IColumnInfo)});
-                TypMethods[(byte) typeCode] = (GetDefaultTypeFromCqlTypeDel) Delegate.CreateDelegate(typeof (GetDefaultTypeFromCqlTypeDel), mth);
-            }
-            {
-                MethodInfo mth = typeof (TypeInterpreter).GetMethod("InvConvertFrom" + (typeCode), new[] {typeof (IColumnInfo), typeof (byte[])});
-                InvMethods[(byte) typeCode] = (InvCqlConvertDelegate) Delegate.CreateDelegate(typeof (InvCqlConvertDelegate), mth);
-            }
-        }
-
         public static object CqlConvert(byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo, Type cSharpType = null)
         {
-            return GoMethods[(byte) typeCode](typeInfo, buffer, cSharpType);
+            return Decoders[typeCode](typeInfo, buffer, cSharpType);
         }
 
         public static Type GetDefaultTypeFromCqlType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
-            return TypMethods[(byte) typeCode](typeInfo);
+            return DefaultTypes[typeCode](typeInfo);
         }
 
         public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo typeInfo)
@@ -238,7 +276,7 @@ namespace Cassandra
             }
             IColumnInfo typeInfo;
             ColumnTypeCode typeCode = GetColumnTypeCodeInfo(value.GetType(), out typeInfo);
-            return InvMethods[(byte) typeCode](typeInfo, value);
+            return Encoders[typeCode](typeInfo, value);
         }
 
         internal static void CheckArgument(Type t, object value)
@@ -849,7 +887,6 @@ namespace Cassandra
             byte[] ret = TypeAdapters.DecimalTypeAdapter.ConvertTo(value);
             return ret;
         }
-
 
         private delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo typeInfo);
 
