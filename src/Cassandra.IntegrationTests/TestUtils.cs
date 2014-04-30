@@ -37,6 +37,20 @@ namespace Cassandra.IntegrationTests
         public static readonly string SIMPLE_TABLE = "test";
 
         public static readonly string CREATE_TABLE_SIMPLE_FORMAT = "CREATE TABLE {0} (k text PRIMARY KEY, t text, i int, f float)";
+        public const string CREATE_TABLE_ALL_TYPES = @"
+            create table {0} (
+            id uuid primary key,
+            text_sample text,
+            int_sample int,
+            bigint_sample bigint,
+            float_sample float,
+            double_sample double,
+            decimal_sample decimal,
+            blob_sample blob,
+            boolean_sample boolean,
+            timestamp_sample timestamp,
+            inet_sample inet);
+        ";
 
         public static readonly string INSERT_FORMAT = "INSERT INTO {0} (k, t, i, f) VALUES ('{1}', '{2}', {3}, {4})";
         public static readonly string SELECT_ALL_FORMAT = "SELECT * FROM {0}";
