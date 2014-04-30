@@ -57,6 +57,7 @@
     <Compile Include="LoadBalancingUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RowSetUnitTests.cs" />
+    <Compile Include="TypeInterpreterTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
