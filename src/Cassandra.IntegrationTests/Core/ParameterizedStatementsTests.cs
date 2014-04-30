@@ -216,7 +216,7 @@ namespace Cassandra.IntegrationTests.Core
                     var current = rowEnum.Current;
                     if (objArr[y].GetType() == typeof(byte[]))
                     {
-                        Assert.ArrEqual<byte>((byte[])objArr[y], (byte[])current);
+                        Assert.AreEqual((byte[])objArr[y], (byte[])current);
                     }
                     else if (current.GetType() == typeof(DateTimeOffset))
                     {
@@ -228,12 +228,12 @@ namespace Cassandra.IntegrationTests.Core
                             }
                             else
                             {
-                                Assert.Equal<DateTimeOffset>(FromUnixTime((long)objArr[y]), (DateTimeOffset)current, String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
+                                Assert.AreEqual(FromUnixTime((long)objArr[y]), (DateTimeOffset)current, String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
                             }
                         }
                         else
                         {
-                            Assert.Equal<DateTimeOffset>((DateTimeOffset)objArr[y], ((DateTimeOffset)current), String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
+                            Assert.AreEqual((DateTimeOffset)objArr[y], ((DateTimeOffset)current), String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
                         }
                     }
                     else

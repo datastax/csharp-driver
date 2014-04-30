@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -62,10 +63,10 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     String expected = String.Format("Keyspace {0} already exists", keyspace.ToLower());
 
-                    Assert.Equal(e.Message, expected);
-                    Assert.Equal(e.Keyspace, keyspace.ToLower());
-                    Assert.Equal(e.Table, null);
-                    Assert.Equal(e.WasTableCreation, false);
+                    Assert.AreEqual(e.Message, expected);
+                    Assert.AreEqual(e.Keyspace, keyspace.ToLower());
+                    Assert.AreEqual(e.Table, null);
+                    Assert.AreEqual(e.WasTableCreation, false);
                 }
 
                 session.Execute(cqlCommands[1]);
@@ -77,9 +78,9 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (AlreadyExistsException e)
                 {
-                    Assert.Equal(e.Keyspace, keyspace.ToLower());
-                    Assert.Equal(e.Table, table.ToLower());
-                    Assert.Equal(e.WasTableCreation, true);
+                    Assert.AreEqual(e.Keyspace, keyspace.ToLower());
+                    Assert.AreEqual(e.Table, table.ToLower());
+                    Assert.AreEqual(e.WasTableCreation, true);
                 }
             }
             catch (Exception e)
@@ -119,7 +120,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (DriverInternalError e2)
                 {
-                    Assert.Equal(e2.InnerException.Message, errorMessage);
+                    Assert.AreEqual(e2.InnerException.Message, errorMessage);
 
                     //DriverInternalError copy = (DriverInternalError)e2.copy();
                     //Assert.Equal(copy.Message, e2.Message);
@@ -143,7 +144,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (InvalidConfigurationInQueryException e)
             {
-                Assert.Equal(e.Message, errorMessage);
+                Assert.AreEqual(e.Message, errorMessage);
             }
         }
 
@@ -163,7 +164,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (InvalidQueryException e)
             {
-                Assert.Equal(e.Message, errorMessage);
+                Assert.AreEqual(e.Message, errorMessage);
 
                 //InvalidConfigurationInQueryException copy = (InvalidConfigurationInQueryException)e.copy();
                 //Assert.Equal(copy.Message, e.Message);
@@ -210,8 +211,8 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (NoHostAvailableException e)
             {
-                Assert.Equal(e.Message, String.Format("All host tried for query are in error (tried: {0})", ipAddress));
-                Assert.ArrEqual(e.Errors.Keys.ToArray(), errorsHashMap.Keys.ToArray());
+                Assert.AreEqual(e.Message, String.Format("All host tried for query are in error (tried: {0})", ipAddress));
+                Assert.AreEqual(e.Errors.Keys.ToArray(), errorsHashMap.Keys.ToArray());
 
                 //NoHostAvailableException copy = (NoHostAvailableException)e.copy();
                 //Assert.Equal(copy.Message, e.Message);
@@ -258,10 +259,10 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (ReadTimeoutException e)
                 {
-                    Assert.Equal(e.ConsistencyLevel, ConsistencyLevel.All);
-                    Assert.Equal(e.ReceivedAcknowledgements, 2);
-                    Assert.Equal(e.RequiredAcknowledgements, 3);
-                    Assert.Equal(e.WasDataRetrieved, true);
+                    Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
+                    Assert.AreEqual(e.ReceivedAcknowledgements, 2);
+                    Assert.AreEqual(e.RequiredAcknowledgements, 3);
+                    Assert.AreEqual(e.WasDataRetrieved, true);
 
                     //ReadTimeoutException copy = (ReadTimeoutException)e.copy();
                     //Assert.Equal(copy.Message, e.Message);
@@ -293,7 +294,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (SyntaxError e)
             {
-                Assert.Equal(e.Message, errorMessage);
+                Assert.AreEqual(e.Message, errorMessage);
 
                 //SyntaxError copy = (SyntaxError)e.copy();
                 //Assert.Equal(copy.Message, e.Message);
@@ -315,7 +316,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (TraceRetrievalException e)
             {
-                Assert.Equal(e.Message, errorMessage);
+                Assert.AreEqual(e.Message, errorMessage);
             }
         }
 
@@ -334,7 +335,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (TruncateException e)
             {
-                Assert.Equal(e.Message, errorMessage);
+                Assert.AreEqual(e.Message, errorMessage);
 
                 //TruncateException copy = (TruncateException)e.copy();
                 //Assert.Equal(copy.Message, e.Message);
@@ -356,7 +357,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (UnauthorizedException e)
             {
-                Assert.Equal(e.Message, errorMessage);
+                Assert.AreEqual(e.Message, errorMessage);
 
                 //UnauthorizedException copy = (UnauthorizedException)e.copy();
                 //Assert.Equal(copy.Message, e.Message);
@@ -408,9 +409,9 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (UnavailableException e)
                 {
-                    Assert.Equal(e.Consistency, ConsistencyLevel.All);
-                    Assert.Equal(e.RequiredReplicas, replicationFactor);
-                    Assert.Equal(e.AliveReplicas, replicationFactor - 1);
+                    Assert.AreEqual(e.Consistency, ConsistencyLevel.All);
+                    Assert.AreEqual(e.RequiredReplicas, replicationFactor);
+                    Assert.AreEqual(e.AliveReplicas, replicationFactor - 1);
                 }
 
                 try
@@ -423,10 +424,10 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     String expectedError = String.Format(
                         "Not enough replica available for query at consistency {0} ({1} required but only {2} alive)", ConsistencyLevel.All, 3, 2);
-                    Assert.Equal(e.Message, expectedError);
-                    Assert.Equal(e.Consistency, ConsistencyLevel.All);
-                    Assert.Equal(e.RequiredReplicas, replicationFactor);
-                    Assert.Equal(e.AliveReplicas, replicationFactor - 1);
+                    Assert.AreEqual(e.Message, expectedError);
+                    Assert.AreEqual(e.Consistency, ConsistencyLevel.All);
+                    Assert.AreEqual(e.RequiredReplicas, replicationFactor);
+                    Assert.AreEqual(e.AliveReplicas, replicationFactor - 1);
                 }
             }
             catch (Exception e)
@@ -482,10 +483,10 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (WriteTimeoutException e)
                 {
-                    Assert.Equal(e.ConsistencyLevel, ConsistencyLevel.All);
-                    Assert.Equal(e.ReceivedAcknowledgements, 2);
-                    Assert.Equal(e.RequiredAcknowledgements, 3);
-                    Assert.Equal(e.WriteType, "SIMPLE");
+                    Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
+                    Assert.AreEqual(e.ReceivedAcknowledgements, 2);
+                    Assert.AreEqual(e.RequiredAcknowledgements, 3);
+                    Assert.AreEqual(e.WriteType, "SIMPLE");
                 }
             }
             catch (Exception e)

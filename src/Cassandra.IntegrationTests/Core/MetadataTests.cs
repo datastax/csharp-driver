@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -192,10 +193,10 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspace(Keyspace);
-                Assert.Equal(strategy_class, ksmd.StrategyClass);
-                Assert.Equal(durable_writes, ksmd.DurableWrites);
+                Assert.AreEqual(strategy_class, ksmd.StrategyClass);
+                Assert.AreEqual(durable_writes, ksmd.DurableWrites);
                 if (replication_factor != null)
-                    Assert.Equal(replication_factor, ksmd.Replication["replication_factor"]);
+                    Assert.AreEqual(replication_factor, ksmd.Replication["replication_factor"]);
                 if (datacenters_replication_factors != null)
                     Assert.True(datacenters_replication_factors.SequenceEqual(ksmd.Replication));
             }

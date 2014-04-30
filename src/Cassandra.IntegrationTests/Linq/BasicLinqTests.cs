@@ -20,6 +20,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -69,11 +70,11 @@ namespace Cassandra.IntegrationTests.Linq
 
             long cnt = table.Count().Execute();
 
-            Assert.Equal(RowsNo, cnt);
+            Assert.AreEqual(RowsNo, cnt);
 
             byte[] q = (from e in table select e.data).FirstOrDefault().Execute();
             for (int i = 0; i < 256; i++)
-                Assert.Equal(q[i], (byte) i);
+                Assert.AreEqual(q[i], (byte) i);
 
 
             foreach (Tweets ent in entL)
@@ -82,7 +83,7 @@ namespace Cassandra.IntegrationTests.Linq
             ents.SaveChanges(SaveChangesMode.Batch);
 
             long cnt2 = table.Count().Execute();
-            Assert.Equal(0, cnt2);
+            Assert.AreEqual(0, cnt2);
         }
 
 
@@ -121,8 +122,8 @@ namespace Cassandra.IntegrationTests.Linq
                 pages++;
             }
 
-            Assert.Equal(pages, RowsNb/PerPage);
-            Assert.Equal(lastcnt, RowsNb%PerPage);
+            Assert.AreEqual(pages, RowsNb/PerPage);
+            Assert.AreEqual(lastcnt, RowsNb%PerPage);
         }
 
         public void testBuffering()

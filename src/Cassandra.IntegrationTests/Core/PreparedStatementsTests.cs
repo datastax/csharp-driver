@@ -21,7 +21,6 @@ using System.Numerics;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using System.Net;
-using NAssert = NUnit.Framework.Assert;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -88,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             FROM {0} WHERE id IN ({1}, {2}, {3})", AllTypesTableName, firstRowValues[0], secondRowValues[0], thirdRowValues[0]);
             var rowList = Session.Execute(selectQuery).ToList();
             //Check that they were inserted and retrieved
-            NAssert.AreEqual(3, rowList.Count);
+            Assert.AreEqual(3, rowList.Count);
             
             //Create a dictionary with the inserted values to compare with the retrieved values
             var insertedValues = new Dictionary<Guid, object[]>()
@@ -105,7 +104,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     var insertedValue = inserted[i];
                     var retrievedValue = retrievedRow[i];
-                    NAssert.AreEqual(insertedValue, retrievedValue);
+                    Assert.AreEqual(insertedValue, retrievedValue);
                 }
             }
 
@@ -131,9 +130,9 @@ namespace Cassandra.IntegrationTests.Core
 
             var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
             var row = rs.First();
-            NAssert.IsNotNull(row);
-            NAssert.AreEqual(1, row.Where(v => v != null).Count());
-            NAssert.IsTrue(row.Where(v => v == null).Count() > 5, "The rest of the row values must be null");
+            Assert.IsNotNull(row);
+            Assert.AreEqual(1, row.Where(v => v != null).Count());
+            Assert.IsTrue(row.Where(v => v == null).Count() > 5, "The rest of the row values must be null");
         }
 
         [TestMethod]

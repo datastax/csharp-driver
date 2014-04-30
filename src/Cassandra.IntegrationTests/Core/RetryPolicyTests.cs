@@ -17,6 +17,7 @@
 using System;
 using System.Threading;
 using Cassandra.IntegrationTests.Core.Policies;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {

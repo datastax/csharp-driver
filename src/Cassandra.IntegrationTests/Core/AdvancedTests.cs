@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -222,7 +223,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
 
                 var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
                 {
-                    Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+                    Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
                 }
 
                 Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
@@ -380,7 +381,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
 
                 var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
                 {
-                    Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+                    Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
                 }
 
                 try
@@ -474,7 +475,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
 
             var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
             {
-                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+                Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
             }
 
             try
@@ -635,7 +636,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
 
             var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
             {
-                Assert.Equal(RowsNo, ret.GetRows().ToList().Count);
+                Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
             }
 
             try

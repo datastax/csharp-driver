@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -124,9 +125,9 @@ namespace Cassandra.IntegrationTests.Core
             {
                 if (row.Any(col => col.GetType() == typeof (byte[])))
                     for (int j = 0; j < row.Length; j++)
-                        Assert.True(row[j].GetType() == typeof (byte[])
-                                        ? Assert.ArrEqual((byte[]) row[j], (byte[]) insertedRows[i][j])
-                                        : row[j].Equals(insertedRows[i][j]));
+                    {
+                        Assert.AreEqual(insertedRows[i][j], row[j]);
+                    }
                 else
                 {
                     for (int m = 0; m < row.Length; m++)

@@ -23,6 +23,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -399,7 +400,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Parallel.Invoke(iterate, iterate, iterate, iterate);
 
             //Check that the sum of all rows in different threads is the same as total rows
-            Assert.Equal<int>(totalRowLength, counterList.Sum());
+            Assert.AreEqual(totalRowLength, counterList.Sum());
         }
 
         [TestMethod]

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -72,7 +73,7 @@ namespace Cassandra.IntegrationTests.Linq
 
             long cnt = table.Count().Execute();
 
-            Assert.Equal(RowsNo, cnt);
+            Assert.AreEqual(RowsNo, cnt);
 
 
             foreach (Tweets enti in entL)
@@ -82,7 +83,7 @@ namespace Cassandra.IntegrationTests.Linq
 
             byte[] dat = (from e in table select e.data).FirstOrDefault().Execute();
 
-            Assert.ArrEqual(dat, buf);
+            Assert.AreEqual(dat, buf);
         }
 
         [AllowFiltering]

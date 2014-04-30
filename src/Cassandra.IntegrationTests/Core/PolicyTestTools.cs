@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -87,7 +88,7 @@ namespace Cassandra.IntegrationTests.Core
                 if (DEBUG)
                     Debug.WriteLine(String.Format("Expected: {0}\tReceived: {1}", n, queried));
                 else
-                    Assert.Equal(queried == null ? 0 : queried, n, "For " + host);
+                    Assert.AreEqual(queried == null ? 0 : queried, n, "For " + host);
             }
             catch (Exception e)
             {
@@ -112,7 +113,7 @@ namespace Cassandra.IntegrationTests.Core
                 if (DEBUG)
                     Debug.WriteLine(String.Format("Expected: {0}\tReceived: {1}", n, queriedInSet));
                 else
-                    Assert.Equal(queriedInSet, n, String.Format("For [{0}]", String.Join(", ", hosts)));
+                    Assert.AreEqual(queriedInSet, n, String.Format("For [{0}]", String.Join(", ", hosts)));
 
             }
             catch (Exception e)

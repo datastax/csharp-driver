@@ -17,6 +17,7 @@
 using System.IO;
 using System.Linq;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -40,16 +41,16 @@ namespace Cassandra.IntegrationTests.Linq
             ContextTable<TestTable> table = context.GetTable<TestTable>(null);
 
             table.AddNew(new TestTable {ck1 = 1, ck2 = 2, f1 = 3, pk = "x"});
-            Assert.Equal(ContextLine(context, 1), @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3)");
+            Assert.AreEqual(ContextLine(context, 1), @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3)");
 
             var e = new TestTable {ck1 = 3, ck2 = 4, f1 = 5, pk = "y"};
             table.Attach(e);
 
             e.f1 = null;
-            Assert.Equal(ContextLine(context, 2), @"UPDATE ""x_t"" SET ""x_f1"" = NULL  WHERE ""x_pk"" = 'y'  AND ""x_ck1"" = 3  AND ""x_ck2"" = 4 ");
+            Assert.AreEqual(ContextLine(context, 2), @"UPDATE ""x_t"" SET ""x_f1"" = NULL  WHERE ""x_pk"" = 'y'  AND ""x_ck1"" = 3  AND ""x_ck2"" = 4 ");
 
             e.f1 = 10;
-            Assert.Equal(ContextLine(context, 2), @"UPDATE ""x_t"" SET ""x_f1"" = 10  WHERE ""x_pk"" = 'y'  AND ""x_ck1"" = 3  AND ""x_ck2"" = 4 ");
+            Assert.AreEqual(ContextLine(context, 2), @"UPDATE ""x_t"" SET ""x_f1"" = 10  WHERE ""x_pk"" = 'y'  AND ""x_ck1"" = 3  AND ""x_ck2"" = 4 ");
         }
 
         [AllowFiltering]

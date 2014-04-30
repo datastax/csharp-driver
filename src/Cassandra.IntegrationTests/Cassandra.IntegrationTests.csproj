@@ -57,8 +57,6 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="Assert.cs" />
-    <Compile Include="AssertException.cs" />
     <Compile Include="CCMBridge.cs" />
     <Compile Include="Core\AdvancedTests.cs" />
     <Compile Include="Core\BasicTests.cs" />

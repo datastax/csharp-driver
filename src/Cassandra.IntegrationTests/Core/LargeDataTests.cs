@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -127,10 +128,10 @@ namespace Cassandra.IntegrationTests.Core
 
             // Read data
             var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key, ConsistencyLevel.Quorum);
+            // Verify data            
+            foreach (var row in rs)
             {
-                // Verify data            
-                foreach (Row row in rs.GetRows())
-                    Assert.ArrEqual((byte[]) row["i"], bb);
+                Assert.AreEqual((byte[])row["i"], bb);
             }
         }
 

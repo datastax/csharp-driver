@@ -19,6 +19,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -74,19 +75,19 @@ namespace Cassandra.IntegrationTests.Linq
             CqlQuery<TestTable> query3 = query.Where(i => i.Token <= time);
             query3 = query3.OrderByDescending(i => i.Token);
 
-            Assert.Equal("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 ALLOW FILTERING", query.ToString());
-            Assert.Equal("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 AND \"time\" >= 3 ORDER BY \"time\" ASC ALLOW FILTERING",
+            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 ALLOW FILTERING", query.ToString());
+            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 AND \"time\" >= 3 ORDER BY \"time\" ASC ALLOW FILTERING",
                          query2.ToString());
-            Assert.Equal("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 AND \"time\" <= 3 ORDER BY \"time\" DESC ALLOW FILTERING",
+            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 AND \"time\" <= 3 ORDER BY \"time\" DESC ALLOW FILTERING",
                          query3.ToString());
 
             List<TestTable> result2 = query2.Execute().ToList();
             List<TestTable> result3 = query3.Execute().ToList();
 
-            Assert.Equal(3, result2.First().Token);
-            Assert.Equal(5, result2.Last().Token);
-            Assert.Equal(3, result3.First().Token);
-            Assert.Equal(1, result3.Last().Token);
+            Assert.AreEqual(3, result2.First().Token);
+            Assert.AreEqual(5, result2.Last().Token);
+            Assert.AreEqual(3, result3.First().Token);
+            Assert.AreEqual(1, result3.Last().Token);
         }
 
         [AllowFiltering]

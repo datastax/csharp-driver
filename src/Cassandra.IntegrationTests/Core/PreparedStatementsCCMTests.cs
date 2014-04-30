@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-using System.Diagnostics;
+using NUnit.Framework;
+using System;
 using System.Linq;
 
 namespace Cassandra.IntegrationTests.Core
@@ -82,7 +83,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var rs = Session.Execute(ps.Bind("123"));
             {
-                Assert.Equal(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
+                Assert.AreEqual(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
             }
             CCMBridge.ReusableCCMCluster.CCMBridge.Stop();
             TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
@@ -94,12 +95,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var rowset = Session.Execute(ps.Bind("124"));
                 {
-                    Assert.Equal(rowset.GetRows().First().GetValue<int>("i"), 18);
+                    Assert.AreEqual(rowset.GetRows().First().GetValue<int>("i"), 18);
                 }
             }
             catch (NoHostAvailableException e)
             {
-                Debug.WriteLine(">> " + e.Errors);
+                System.Diagnostics.Debug.WriteLine(">> " + e.Errors);
                 throw e;
             }
         }

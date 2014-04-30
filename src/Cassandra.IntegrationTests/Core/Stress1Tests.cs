@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -170,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
                                                  ConsistencyLevel.Quorum);
                 {
                     var cnt = res.GetRows().FirstOrDefault().GetValue<long>(0);
-                    Assert.Equal(RowsNo, cnt);
+                    Assert.AreEqual(RowsNo, cnt);
                 }
             }
             catch (Exception)

@@ -22,7 +22,6 @@ using System.Text;
 using System.Threading;
 using Cassandra.Data;
 using NUnit.Framework;
-using NAssert = NUnit.Framework.Assert;
 
 namespace Cassandra.IntegrationTests.Data
 {
@@ -99,11 +98,11 @@ namespace Cassandra.IntegrationTests.Data
             var counter = 0;
             while (reader.Read())
             {
-                NAssert.AreEqual(4, reader.FieldCount);
+                Assert.AreEqual(4, reader.FieldCount);
                 counter++;
             }
 
-            NAssert.AreEqual(RowsNo, counter);
+            Assert.AreEqual(RowsNo, counter);
 
             cmd.CommandText = string.Format(@"DROP TABLE {0};", tableName);
             cmd.ExecuteNonQuery();
@@ -126,9 +125,9 @@ namespace Cassandra.IntegrationTests.Data
             cmd1.CommandText = "SELECT keyspace_name, durable_writes FROM system.schema_keyspaces";
             cmd2.CommandText = "SELECT durable_writes, keyspace_name FROM system.schema_keyspaces";
             cmd3.CommandText = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = 'NOT_EXISTENT_" + Guid.NewGuid().ToString() + "'";
-            NAssert.IsInstanceOf<string>(cmd1.ExecuteScalar());
-            NAssert.IsInstanceOf<bool>(cmd2.ExecuteScalar());
-            NAssert.IsNull(cmd3.ExecuteScalar());
+            Assert.IsInstanceOf<string>(cmd1.ExecuteScalar());
+            Assert.IsInstanceOf<bool>(cmd2.ExecuteScalar());
+            Assert.IsNull(cmd3.ExecuteScalar());
         }
 
         [Test]

@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -135,7 +136,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(1, builder);
             createSchema(c.Session, 1);
 
@@ -152,7 +153,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Start timing and ensure that the node is down
 
                 //long startTime = 0;
-                Stopwatch startTime = Stopwatch.StartNew();    // = 0;
+                var startTime = Stopwatch.StartNew();    // = 0;
                 try
                 {
                     //startTime = System.nanoTime() / 1000000000;                

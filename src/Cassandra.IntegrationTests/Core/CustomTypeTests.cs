@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 
@@ -89,21 +90,21 @@ namespace Cassandra.IntegrationTests.Core
                 IEnumerator<Row> ren = rs.GetRows().GetEnumerator();
                 ren.MoveNext();
                 Row r = ren.Current;
-                Assert.Equal(r.GetValue<int>("k"), 0);
-                Assert.ArrEqual(r.GetValue<byte[]>("c"), serializeForDynamicType(12, 3));
-                Assert.Equal(r.GetValue<int>("v"), 3);
+                Assert.AreEqual(r.GetValue<int>("k"), 0);
+                Assert.AreEqual(r.GetValue<byte[]>("c"), serializeForDynamicType(12, 3));
+                Assert.AreEqual(r.GetValue<int>("v"), 3);
 
                 ren.MoveNext();
                 r = ren.Current;
-                Assert.Equal(r.GetValue<int>("k"), 0);
-                Assert.ArrEqual(r.GetValue<byte[]>("c"), serializeForDynamicType(42));
-                Assert.Equal(r.GetValue<int>("v"), 2);
+                Assert.AreEqual(r.GetValue<int>("k"), 0);
+                Assert.AreEqual(r.GetValue<byte[]>("c"), serializeForDynamicType(42));
+                Assert.AreEqual(r.GetValue<int>("v"), 2);
 
                 ren.MoveNext();
                 r = ren.Current;
-                Assert.Equal(r.GetValue<int>("k"), 0);
-                Assert.ArrEqual(r.GetValue<byte[]>("c"), serializeForDynamicType("foo", 32));
-                Assert.Equal(r.GetValue<int>("v"), 1);
+                Assert.AreEqual(r.GetValue<int>("k"), 0);
+                Assert.AreEqual(r.GetValue<byte[]>("c"), serializeForDynamicType("foo", 32));
+                Assert.AreEqual(r.GetValue<int>("v"), 1);
             }
         }
     }
