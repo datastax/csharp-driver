@@ -102,7 +102,6 @@ namespace Cassandra
         {
             var bs = new BoundStatement(this);
             bs.SetValues(values);
-            bs.SetSkipMetadata(ResultMetadata != null ? true : false);
 
             return bs;
         }

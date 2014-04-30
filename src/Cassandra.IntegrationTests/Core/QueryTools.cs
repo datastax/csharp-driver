@@ -220,6 +220,7 @@ namespace Cassandra.IntegrationTests.Core
                     return "text";
 
                 case "DateTimeOffset":
+                case "DateTime":
                     return "timestamp";
 
                 case "Byte":

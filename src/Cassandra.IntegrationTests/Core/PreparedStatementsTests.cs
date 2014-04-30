@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests.Core
         [WorksForMe]
         public void testPreparedTimestamp()
         {
-            insertingSingleValuePrepared(typeof (DateTimeOffset));
+            insertingSingleValuePrepared(typeof(DateTimeOffset));
         }
 
         [TestMethod]
@@ -201,7 +201,9 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             for (int i = 0; i < 10; i++)
-                Session.Execute(string.Format("INSERT INTO {0}(tweet_id, numb, label) VALUES({1},{2},'{3}')", tableName, i, i*.1d, "row" + i));
+            {
+                Session.Execute(string.Format("INSERT INTO {0} (tweet_id, numb, label) VALUES({1}, 0.01,'{2}')", tableName, i, "row" + i));
+            }
 
             PreparedStatement prep_select = QueryTools.PrepareQuery(Session, string.Format("SELECT * FROM {0} WHERE tweet_id = ?;", tableName));
 
