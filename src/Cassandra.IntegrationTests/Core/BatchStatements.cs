@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [TestMethod]
-        public void BatchPreparedStatementAsyncTest()
+        public void BatchPreparedStatementBasicAsyncTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             List<object[]> expectedValues = new List<object[]> { new object[] { 1, "label1", 1 }, new object[] { 2, "label2", 2 }, new object[] { 3, "label3", 3 } };
@@ -71,6 +71,28 @@ namespace Cassandra.IntegrationTests.Core
             
             // Verify results
             VerifyData(rs, expectedValues);
+        }
+
+        [TestIgnore]
+        [TestMethod]
+        public void BatchPreparedStatementPreparedA()
+        {
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            var expectedValues = new List<object[]> { new object[] { 1, "label1", 1 }, new object[] { 2, "label2", 2 }, new object[] { 3, "label3", 3 } };
+            var batch = new BatchStatement();
+
+            CreateTable(tableName);
+
+            var prepared = Session.EndPrepare(Session.BeginPrepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName), delegate { }, new object()));
+            
+
+            batch.AddQuery(prepared.Bind(new object[] { 1, "label1", 1 }));
+
+            Session.Execute(batch);
+
+            var rs = Session.Execute("SELECT * FROM " + tableName);
+
+            var row = rs.First();
         }
 
         [TestMethod]
@@ -118,7 +140,6 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(row.SequenceEqual(new object[] { 100, "label 100", 10000}), "Stored values dont match");
         }
 
-        [TestIgnore]
         [TestMethod]
         public void BatchSimpleStatementMultiple()
         {
@@ -132,7 +153,7 @@ namespace Cassandra.IntegrationTests.Core
 
             for(var x = 1; x <= 5; x++)
             {
-                simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0}(id, label, number) VALUES ({1}, {2}, {3})", tableName, x, "label" + x, x * x));
+                simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0}(id, label, number) VALUES ({1}, '{2}', {3})", tableName, x, "label" + x, x * x));
                 expectedValues.Add(new object[] { x, "label" + x, x * x });
                 batch.AddQuery(simpleStatement);
             }
@@ -145,8 +166,50 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [TestMethod]
+        public void BatchStatementTwoTablesTest()
+        {
+            var expectedValues = new List<object[]>();
+            var batch = new BatchStatement();
+
+            CreateTwoTableTestEnv("table1", "table2");
+
+            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO table1 (id, label, number) VALUES ({0}, '{1}', {2})", 1, "label1", 1)));
+            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
+
+            Session.Execute(batch);
+
+            //Verify Results
+            RowSet rsTable1 = Session.Execute("SELECT * FROM table1");
+            VerifyData(rsTable1, new List<object[]> {new object[] { 1, "label1", 1 } });
+
+            RowSet rsTable2 = Session.Execute("SELECT * FROM table2");
+            VerifyData(rsTable2, new List<object[]> { new object[] { 2, "label2", 2 } });
+        }
+
+        [TestMethod]
+        public void BatchStatementOnTwoTablesWithOneInvalidTableTest()
+        {
+            var batch = new BatchStatement();
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+
+            CreateTable(tableName);
+
+            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label1", 1)));
+            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
+
+            Assert.Throws<InvalidQueryException>(
+                delegate { Session.Execute(batch); }, "expected InvalidQueryException, but did not get one");
+        }
+
+        [TestMethod]
         public void BatchMixedStatements()
         {
+            if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            {
+                //Ignore: There is no binded simple statement support in Cassandra 1.x
+                return;
+            }
+
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             CreateTable(tableName);
 
@@ -212,18 +275,29 @@ namespace Cassandra.IntegrationTests.Core
 
         private void CreateTable(string tableName)
         {
-            try
-            {
-                Session.WaitForSchemaAgreement(
+            Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-                                                                        id int PRIMARY KEY,
-                                                                        label text,
-                                                                        number int
-                                                                        );", tableName)));
-            }
-            catch (AlreadyExistsException)
-            {
-            }
+                                                                    id int PRIMARY KEY,
+                                                                    label text,
+                                                                    number int
+                                                                    );", tableName)));
+        }
+
+        private void CreateTwoTableTestEnv(string table1, string table2)
+        {
+            Session.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0} (
+                                                                          id int PRIMARY KEY,
+                                                                          label text,
+                                                                          number int
+                                                                          );", table1)));
+
+            Session.WaitForSchemaAgreement(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0} (
+                                                                          id int PRIMARY KEY,
+                                                                          label text,
+                                                                          number int
+                                                                          );", table2)));
         }
     }
 }
