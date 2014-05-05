@@ -3,7 +3,7 @@ using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.Core
 {
     [TestClass]
     public class ConnectionTimeoutTest

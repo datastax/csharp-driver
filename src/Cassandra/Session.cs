@@ -361,8 +361,7 @@ namespace Cassandra
         
         public void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetCreateKeyspaceCql(keyspace_name, replication, durable_writes, false), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace_name, replication, durable_writes, false)));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully CREATED.");
         }
 
@@ -379,8 +378,7 @@ namespace Cassandra
         }
         public void DeleteKeyspace(string keyspace_name)
         {
-            WaitForSchemaAgreement(
-                Query(CqlQueryTools.GetDropKeyspaceCql(keyspace_name, false), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+            WaitForSchemaAgreement(Execute(CqlQueryTools.GetDropKeyspaceCql(keyspace_name, false)));
             _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
         }
 
@@ -388,8 +386,7 @@ namespace Cassandra
         {
             if (_binaryProtocolVersion > 1)
             {
-                WaitForSchemaAgreement(
-                    Query(CqlQueryTools.GetDropKeyspaceCql(keyspace_name, true), QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()));
+                WaitForSchemaAgreement(Execute(CqlQueryTools.GetDropKeyspaceCql(keyspace_name, true)));
                 _logger.Info("Keyspace [" + keyspace_name + "] has been successfully DELETED");
             }
             else
@@ -489,22 +486,15 @@ namespace Cassandra
             var consistency = statement.ConsistencyLevel ?? options.GetConsistencyLevel();
             if (statement is RegularStatement)
             {
-                var s = ((RegularStatement)statement);
-                return BeginQuery(s.QueryString, callback, state,
-                                      QueryProtocolOptions.CreateFromQuery(s, options.GetConsistencyLevel()),
-                                      s.ConsistencyLevel, s.IsTracing, s, s, tag);
+                return BeginQuery((RegularStatement)statement, callback, state, tag);
             }
             if (statement is BoundStatement)
             {
-                var s = ((BoundStatement)statement);
-                return BeginExecuteQuery(s.PreparedStatement.Id, s.PreparedStatement.Metadata,
-                                                 QueryProtocolOptions.CreateFromQuery(s, Cluster.Configuration.QueryOptions.GetConsistencyLevel()),
-                                                 callback, state, s.ConsistencyLevel, s, s, tag, s.IsTracing);
+                return BeginExecuteQuery((BoundStatement)statement, callback, state, tag);
             }
             if (statement is BatchStatement)
             {
-                var s = ((BatchStatement)statement);
-                return BeginBatch(s.BatchType, s.Queries, callback, state, s.ConsistencyLevel, s.IsTracing, s, s, tag);
+                return BeginBatch((BatchStatement)statement, callback, state, tag);
             }
             throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }
@@ -777,10 +767,19 @@ namespace Cassandra
             }
         }
 
-        internal IAsyncResult BeginQuery(string cqlQuery, AsyncCallback callback, object state, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
+        internal IAsyncResult BeginQuery(RegularStatement query, AsyncCallback callback, object state, object tag = null)
         {
-            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", sender, tag);
-            var handler = new QueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, CqlQuery = cqlQuery, Statement = query, QueryProtocolOptions = queryProtocolOptions, LongActionAc = longActionAc, IsTracing = isTracing };
+            var options = QueryProtocolOptions.CreateFromQuery(query, Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionQuery", query, tag);
+            var handler = new QueryRequestHandler() 
+            { 
+                Consistency = options.Consistency, 
+                CqlQuery = query.QueryString, 
+                Statement = query, 
+                QueryProtocolOptions = options, 
+                LongActionAc = longActionAc, 
+                IsTracing = query.IsTracing 
+            };
 
             ExecConn(handler, false);
 
@@ -791,12 +790,6 @@ namespace Cassandra
         {
             return AsyncResult<RowSet>.End(ar, this, "SessionQuery");
         }
-
-        internal RowSet Query(string cqlQuery, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, bool isTracing = false, Statement query = null)
-        {
-            return EndQuery(BeginQuery(cqlQuery, null, null, queryProtocolOptions, consistency,isTracing, query));
-        }
-
 
         private readonly ConcurrentDictionary<byte[], string> _preparedQueries = new ConcurrentDictionary<byte[], string>();
 
@@ -834,10 +827,23 @@ namespace Cassandra
             return EndPrepareQuery(ar, out metadata);
         }
 
-        internal IAsyncResult BeginExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, AsyncCallback callback, object state, ConsistencyLevel? consistency, Statement query = null, object sender = null, object tag = null, bool isTracing = false)
+        internal IAsyncResult BeginExecuteQuery(BoundStatement statement, AsyncCallback callback, object state, object tag = null)
         {
-            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", sender, tag);
-            var handler = new ExecuteQueryRequestHandler() { Consistency = consistency ?? queryProtocolOptions.Consistency, Id = id, CqlQuery = GetPreparedQuery(id), Metadata = metadata, QueryProtocolOptions = queryProtocolOptions, Statement = query, LongActionAc = longActionAc, IsTracing = isTracing};
+            var options = QueryProtocolOptions.CreateFromQuery(statement, Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            var queryId = statement.PreparedStatement.Id;
+
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionExecuteQuery", statement, tag);
+            var handler = new ExecuteQueryRequestHandler() 
+            { 
+                Consistency = options.Consistency, 
+                Id = queryId, 
+                CqlQuery = GetPreparedQuery(queryId), 
+                Metadata = statement.PreparedStatement.Metadata,
+                QueryProtocolOptions = options, 
+                Statement = statement, 
+                LongActionAc = longActionAc, 
+                IsTracing = statement.IsTracing
+            };
             ExecConn(handler, false);
             return longActionAc;
         }
@@ -848,16 +854,18 @@ namespace Cassandra
             return AsyncResult<RowSet>.End(ar, this, "SessionExecuteQuery");
         }
 
-        internal RowSet ExecuteQuery(byte[] id, RowSetMetadata metadata, QueryProtocolOptions queryProtocolOptions, ConsistencyLevel consistency, Statement query = null, bool isTracing=false)
+        internal IAsyncResult BeginBatch(BatchStatement statement, AsyncCallback callback, object state, object tag = null)
         {
-            var ar = BeginExecuteQuery(id,metadata, queryProtocolOptions, null, null, consistency, query, isTracing);
-            return EndExecuteQuery(ar);
-        }
-
-        internal IAsyncResult BeginBatch(BatchType batchType, List<Statement> queries, AsyncCallback callback, object state, ConsistencyLevel? consistency, bool isTracing = false, Statement query = null, object sender = null, object tag = null)
-        {
-            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", sender, tag);
-            var handler = new BatchRequestHandler() { Consistency = consistency ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), Queries = queries, BatchType = batchType, Statement = query, LongActionAc = longActionAc, IsTracing = isTracing };
+            var longActionAc = new AsyncResult<RowSet>(-1, callback, state, this, "SessionBatch", statement, tag);
+            var handler = new BatchRequestHandler() 
+            { 
+                Consistency = statement.ConsistencyLevel ?? _cluster.Configuration.QueryOptions.GetConsistencyLevel(), 
+                Queries = statement.Queries, 
+                BatchType = statement.BatchType, 
+                Statement = statement, 
+                LongActionAc = longActionAc,
+                IsTracing = statement.IsTracing 
+            };
             ExecConn(handler, false);
             return longActionAc;
         }
