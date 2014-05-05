@@ -19,6 +19,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -32,10 +33,11 @@ namespace Cassandra
         /// Contains the PagingState keys of the pages already retrieved.
         /// </summary>
         protected ConcurrentDictionary<byte[], bool> _pagers = new ConcurrentDictionary<byte[], bool>();
+
         /// <summary>
-        /// Event that is fired to get the next page.
+        /// Delegate that is called to get the next page.
         /// </summary>
-        public event Func<byte[], RowSet> FetchNextPage;
+        protected internal Func<byte[], RowSet> FetchNextPage { get; set; }
 
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
@@ -105,6 +107,22 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Force the fetching the next page of results for this result set, if any.
+        /// </summary>
+        public void FetchMoreResults()
+        {
+            PageNext();
+        }
+
+        /// <summary>
+        /// Force the fetching the next page of results without blocking for this result set, if any.
+        /// </summary>
+        public Task FetchMoreResultsAsync()
+        {
+            return Task.Factory.StartNew(() => FetchMoreResults());
+        }
+
+        /// <summary>
         /// For backward compatibility: It is possible to iterate using the RowSet as it is enumerable.
         /// </summary>
         /// <returns></returns>
@@ -131,6 +149,9 @@ namespace Cassandra
             return this.GetEnumerator();
         }
 
+        /// <summary>
+        /// Gets the next results and add the rows to the current rowset queue
+        /// </summary>
         protected virtual void PageNext()
         {
             if (IsFullyFetched)
@@ -139,7 +160,7 @@ namespace Cassandra
             }
             if (FetchNextPage == null)
             {
-                //Clear the paging state
+                //There is no handler, clear the paging state
                 this.PagingState = null;
                 return;
             }

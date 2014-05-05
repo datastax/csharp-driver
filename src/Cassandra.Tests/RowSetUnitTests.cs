@@ -69,8 +69,8 @@ namespace Cassandra.Tests
             var rs = CreateStringsRowset(1, 1, "a_");
             //It has paging state, stating that there are more pages
             rs.PagingState = new byte[] { 0 };
-            //There is a subscriber to the event to fetch next
-            rs.FetchNextPage += (pagingState) =>
+            //Add a handler to fetch next
+            rs.FetchNextPage = (pagingState) =>
             {
                 return CreateStringsRowset(1, 1, "b_");
             };
@@ -92,7 +92,7 @@ namespace Cassandra.Tests
             //It has paging state, stating that there are more pages.
             rs.PagingState = new byte[] { 0 };
             //Throw a test exception when fetching the next page.
-            rs.FetchNextPage += (pagingState) =>
+            rs.FetchNextPage = (pagingState) =>
             {
                 throw new TestException();
             };
@@ -122,7 +122,7 @@ namespace Cassandra.Tests
         {
             var rowLength = 10;
             var rs = CreateStringsRowset(2, rowLength);
-            rs.FetchNextPage += (pagingState) =>
+            rs.FetchNextPage = (pagingState) =>
             {
                 Assert.Fail("Event to get next page must not be called as there is no paging state.");
                 return null;
@@ -151,7 +151,7 @@ namespace Cassandra.Tests
             var rs = CreateStringsRowset(10, pageSize);
             rs.PagingState = new byte[0];
             var fetchCounter = 0;
-            rs.FetchNextPage += (pagingState) =>
+            rs.FetchNextPage = (pagingState) =>
             {
                 fetchCounter++;
                 //fake a fetch
@@ -189,7 +189,7 @@ namespace Cassandra.Tests
             var rs = CreateStringsRowset(10, rowLength, "page_0_");
             rs.PagingState = new byte[0];
             var fetchCounter = 0;
-            rs.FetchNextPage += (pagingState) =>
+            rs.FetchNextPage = (pagingState) =>
             {
                 fetchCounter++;
                 var pageRowSet = CreateStringsRowset(10, rowLength, "page_" + fetchCounter + "_");
@@ -207,17 +207,64 @@ namespace Cassandra.Tests
             };
 
             //Use Linq to iterate
-            var rowsFirstIteration = rs.ToList();
+            var rows = rs.ToList();
 
             Assert.AreEqual(3, fetchCounter, "Fetch must have been called 3 times");
 
-            Assert.AreEqual(rowsFirstIteration.Count, rowLength * 4, "RowSet must contain 4 pages in total");
+            Assert.AreEqual(rows.Count, rowLength * 4, "RowSet must contain 4 pages in total");
 
             //Check the values are in the correct order
-            Assert.AreEqual(rowsFirstIteration[0].GetValue<string>(0), "page_0_row_0_col_0");
-            Assert.AreEqual(rowsFirstIteration[rowLength].GetValue<string>(0), "page_1_row_0_col_0");
-            Assert.AreEqual(rowsFirstIteration[rowLength * 2].GetValue<string>(0), "page_2_row_0_col_0");
-            Assert.AreEqual(rowsFirstIteration[rowLength * 3].GetValue<string>(0), "page_3_row_0_col_0");
+            Assert.AreEqual(rows[0].GetValue<string>(0), "page_0_row_0_col_0");
+            Assert.AreEqual(rows[rowLength].GetValue<string>(0), "page_1_row_0_col_0");
+            Assert.AreEqual(rows[rowLength * 2].GetValue<string>(0), "page_2_row_0_col_0");
+            Assert.AreEqual(rows[rowLength * 3].GetValue<string>(0), "page_3_row_0_col_0");
+        }
+
+        [Test]
+        public void RowSetFetchNext3PagesExplicitFetch()
+        {
+            var rowLength = 10;
+            var rs = CreateStringsRowset(10, rowLength, "page_0_");
+            rs.PagingState = new byte[0];
+            var fetchCounter = 0;
+            rs.FetchNextPage = (pagingState) =>
+            {
+                fetchCounter++;
+                var pageRowSet = CreateStringsRowset(10, rowLength, "page_" + fetchCounter + "_");
+                if (fetchCounter < 3)
+                {
+                    //when retrieving the pages, state that there are more results
+                    pageRowSet.PagingState = new byte[0];
+                }
+                else if (fetchCounter == 3)
+                {
+                    //On the 3rd page, state that there aren't any more pages.
+                    pageRowSet.PagingState = null;
+                }
+                else
+                {
+                    throw new Exception("It should not be called more than 3 times.");
+                }
+                return pageRowSet;
+            };
+            Assert.AreEqual(rowLength * 1, rs.InnerQueueCount);
+            rs.FetchMoreResults();
+            Assert.AreEqual(rowLength * 2, rs.InnerQueueCount);
+            rs.FetchMoreResults();
+            Assert.AreEqual(rowLength * 3, rs.InnerQueueCount);
+            rs.FetchMoreResults();
+            Assert.AreEqual(rowLength * 4, rs.InnerQueueCount);
+
+            //Use Linq to iterate: 
+            var rows = rs.ToList();
+
+            Assert.AreEqual(rows.Count, rowLength * 4, "RowSet must contain 4 pages in total");
+
+            //Check the values are in the correct order
+            Assert.AreEqual(rows[0].GetValue<string>(0), "page_0_row_0_col_0");
+            Assert.AreEqual(rows[rowLength].GetValue<string>(0), "page_1_row_0_col_0");
+            Assert.AreEqual(rows[rowLength * 2].GetValue<string>(0), "page_2_row_0_col_0");
+            Assert.AreEqual(rows[rowLength * 3].GetValue<string>(0), "page_3_row_0_col_0");
         }
 
         /// <summary>
