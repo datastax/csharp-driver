@@ -24,12 +24,12 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture]
     public class SessionExecuteAsyncTests
     {
         ISession Session;
 
-        [TestInitialize]
+        [SetUp]
         public void SetFixture()
         {
             CCMBridge.ReusableCCMCluster.Setup(2);
@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
             Session = CCMBridge.ReusableCCMCluster.Connect("tester");
         }
 
-        [TestMethod]
+        [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
             var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_keyspaces"));
@@ -46,17 +46,46 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(rowset.GetRows().Count() > 0, "Returned result set of keyspaces should be greater than zero.");
         }
 
-        [TestMethod]
+        [Test]
         public void SessionExecuteAsyncPreparedToSync()
         {
-            var statement = Session.Prepare("SELECT * FROM system.schema_keyspaces");
-            var task = Session.ExecuteAsync(statement.Bind());
+            var statement = Session.Prepare("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?");
+            var task = Session.ExecuteAsync(statement.Bind("system"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
             Assert.True(rowset.GetRows().Count() > 0, "Returned result set of keyspaces should be greater than zero.");
         }
 
-        [TestMethod]
+        [Test]
+        public void SessionExecuteAsyncSyntaxErrorQuery()
+        {
+            //Execute an invalid query 
+            var task = Session.ExecuteAsync(new SimpleStatement("SELECT WILL FAIL"));
+            task.ContinueWith(t =>
+            {
+                Assert.NotNull(t.Exception);
+            }, TaskContinuationOptions.OnlyOnFaulted);
+
+            task.ContinueWith(t =>
+            {
+                Assert.Fail("It should not continued");
+            }, TaskContinuationOptions.OnlyOnRanToCompletion);
+
+            Exception exThrown = null;
+            try
+            {
+                task.Wait();
+            }
+            catch (Exception ex)
+            {
+                exThrown = ex;
+            }
+            Assert.NotNull(exThrown);
+            Assert.IsInstanceOf<AggregateException>(exThrown);
+            Assert.IsInstanceOf<SyntaxError>(((AggregateException)exThrown).InnerExceptions.First());
+        }
+
+        [Test]
         public void SessionExecuteAsyncCQLQueriesParallel()
         {
             var task1 = Session.ExecuteAsync(new SimpleStatement("select keyspace_name FROM system.schema_keyspaces"));
@@ -69,7 +98,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(task3.Result.GetRows().First().GetValue<string>("column_name") != null, "Returned result set of columns should be greater than zero.");
         }
 
-        [TestCleanup]
+        [TearDown]
         public void Dispose()
         {
             CCMBridge.ReusableCCMCluster.Drop();
