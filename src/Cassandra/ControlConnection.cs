@@ -939,6 +939,7 @@ namespace Cassandra
                     return ColumnTypeCode.Boolean;
                 case "org.apache.cassandra.db.marshal.InetAddressType":
                     return ColumnTypeCode.Inet;
+                case "org.apache.cassandra.db.marshal.DateType":
                 case "org.apache.cassandra.db.marshal.TimestampType":
                     return ColumnTypeCode.Timestamp;
                 case "org.apache.cassandra.db.marshal.LongType":
