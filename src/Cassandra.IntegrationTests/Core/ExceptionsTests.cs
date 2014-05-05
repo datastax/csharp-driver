@@ -550,5 +550,40 @@ namespace Cassandra.IntegrationTests.Core
                 cluster.Discard();
             }
         }
+
+        [Test]
+        public void RowSetPagingAfterDisconnect()
+        {
+            var builder = Cluster.Builder();
+            var cluster = CCMBridge.CCMCluster.Create(1, builder);
+            try
+            {
+                var session = cluster.Session;
+                CCMBridge bridge = cluster.CCMBridge;
+
+                String keyspace = "TestKeyspace";
+                String table = "TestTable";
+
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1)));
+                session.Execute("USE " + keyspace);
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)));
+
+                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
+                var rs = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
+                Assert.AreEqual(1, rs.InnerQueueCount);
+
+                session.Dispose();
+                //It should not fail, just do nothing
+                rs.FetchMoreResults();
+                Assert.AreEqual(1, rs.InnerQueueCount);
+            }
+            finally
+            {
+                cluster.Discard();
+            }
+        }
     }
 }

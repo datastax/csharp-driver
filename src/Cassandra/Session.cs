@@ -470,6 +470,11 @@ namespace Cassandra
             Dispose();
         }
 
+        public bool IsDisposed
+        {
+            get { return this._alreadyDisposed.IsTaken(); }
+        }
+
         #region Execute
 
         private ConcurrentDictionary<long, IAsyncResult> _startedActons = new ConcurrentDictionary<long, IAsyncResult>();

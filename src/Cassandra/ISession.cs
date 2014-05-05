@@ -33,17 +33,21 @@ namespace Cassandra
     public interface ISession: IDisposable
     {
         /// <summary>
-        /// Gets name of currently used keyspace. 
+        /// Gets the Cassandra native binary protocol version
         /// </summary>
-        string Keyspace { get; }
+        int BinaryProtocolVersion { get; }
         /// <summary>
         /// Gets the cluster information and state
         /// </summary>
         Cluster Cluster { get; }
         /// <summary>
-        /// Gets the Cassandra native binary protocol version
+        /// Determines if the object has been disposed.
         /// </summary>
-        int BinaryProtocolVersion { get; }
+        bool IsDisposed { get; }
+        /// <summary>
+        /// Gets name of currently used keyspace. 
+        /// </summary>
+        string Keyspace { get; }
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
@@ -110,6 +114,9 @@ namespace Cassandra
         /// <param name="ar"></param>
         /// <returns></returns>
         RowSet EndExecute(IAsyncResult ar);
+        /// <summary>
+        /// Ends asynchronous prepare operation
+        /// </summary>
         PreparedStatement EndPrepare(IAsyncResult ar);
         /// <summary>
         /// Executes the provided query.
@@ -133,6 +140,10 @@ namespace Cassandra
         /// <param name="query">The query to execute</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         Task<RowSet> ExecuteAsync(IStatement query);
+        /// <summary>
+        /// Prepares the provided query string.
+        /// </summary>
+        /// <param name="cqlQuery">cql query to prepare</param>
         PreparedStatement Prepare(string cqlQuery);
         void WaitForSchemaAgreement(RowSet rs);
         bool WaitForSchemaAgreement(System.Net.IPAddress forHost);
