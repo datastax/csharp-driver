@@ -210,8 +210,11 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223 }).Update().ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck1"" IN (10, 30, 40)");
 
-            Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new TestTable() { f1 = 1223, ck1=null }).Update().ToString(),
+            Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new TestTable() { f1 = 1223, ck1 = null }).Update().ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40)");
+
+            Assert.AreEqual((from ent in table where ent.ck1 == 1 select new TestTable() { f1 = 1223, ck1=null }).Update().ToString(),
+                    @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" = 1");
 
             Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40) IF ""x_f1"" = 123");

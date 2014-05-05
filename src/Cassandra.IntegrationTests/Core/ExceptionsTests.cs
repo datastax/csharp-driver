@@ -26,6 +26,12 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class ExceptionsTests
     {
+        public ExceptionsTests()
+        {
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+        }
+
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
