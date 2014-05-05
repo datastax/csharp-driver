@@ -73,28 +73,6 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
-        [TestIgnore]
-        [TestMethod]
-        public void BatchPreparedStatementPreparedA()
-        {
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            var expectedValues = new List<object[]> { new object[] { 1, "label1", 1 }, new object[] { 2, "label2", 2 }, new object[] { 3, "label3", 3 } };
-            var batch = new BatchStatement();
-
-            CreateTable(tableName);
-
-            var prepared = Session.EndPrepare(Session.BeginPrepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName), delegate { }, new object()));
-            
-
-            batch.AddQuery(prepared.Bind(new object[] { 1, "label1", 1 }));
-
-            Session.Execute(batch);
-
-            var rs = Session.Execute("SELECT * FROM " + tableName);
-
-            var row = rs.First();
-        }
-
         [TestMethod]
         public void BatchSimpleStatementSingle()
         {
@@ -223,6 +201,44 @@ namespace Cassandra.IntegrationTests.Core
 
             var rs = Session.Execute("SELECT * FROM " + tableName);
             VerifyData(rs, expectedValues);
+        }
+
+        [TestMethod]
+        public void BatchMixedDMLStatementTypesTest()
+        {
+            if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            {
+                //Ignore: There is no binded simple statement support in Cassandra 1.x
+                return;
+            }
+            
+            string tableName = "table" + Guid.NewGuid().ToString("N");
+            CreateTable(tableName);
+
+            var batch = new BatchStatement();
+            var ps = Session.Prepare(String.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
+            var simpleUpdate = new SimpleStatement(String.Format("UPDATE {0} SET label = 'new_label' WHERE id = 1", tableName));
+            var simpleDelete = new SimpleStatement(String.Format("DELETE FROM {0} WHERE id = 2", tableName));
+
+            batch.AddQuery(ps.Bind(new object[] { 1, "test", 2 }));
+            batch.AddQuery(ps.Bind(new object[] { 2, "test", 4 }));
+            batch.AddQuery(simpleUpdate);
+            batch.AddQuery(simpleDelete);
+            batch.SetConsistencyLevel(ConsistencyLevel.Quorum);
+            Session.Execute(batch);
+
+            //Verify that row count = 1 (indicating that the DELETE worked.) Verify that label = 'new_label' (indicating that the UPDATE worked.)
+            var rs = Session.Execute("SELECT * FROM " + tableName);
+            var row = rs.First();
+            Assert.True(row != null, "There should be a row stored.");
+            Assert.True(row.SequenceEqual(new object[] { 1, "new_label", 2 }), "Stored values dont match");
+
+        }
+
+        [TestMethod]
+        public void SimpleUpdateTest()
+        {
+
         }
 
         [TestIgnore]
