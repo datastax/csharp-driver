@@ -20,6 +20,9 @@ namespace Cassandra.IntegrationTests
     {
         public static Options Default = new Options();
 
+        /// <summary>
+        /// Cassandra version. For example: 1.2.16 or 2.0.7
+        /// </summary>
         public readonly string CASSANDRA_VERSION;
         public readonly string IP_PREFIX;
 
@@ -39,7 +42,7 @@ namespace Cassandra.IntegrationTests
             SSH_PORT = MyTestOptions.Default.SSHPort;
             SSH_USERNAME = MyTestOptions.Default.SSHUser;
             SSH_PASSWORD = MyTestOptions.Default.SSHPassword;
-            CASSANDRA_VERSION = "-v " + MyTestOptions.Default.CassandraVersion;
+            CASSANDRA_VERSION = MyTestOptions.Default.CassandraVersion;
 
             USE_COMPRESSION = MyTestOptions.Default.UseCompression;
             USE_NOBUFFERING = MyTestOptions.Default.NoUseBuffering;

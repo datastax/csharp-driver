@@ -118,7 +118,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestMethod]
         public void BatchSimpleStatementSingleBinded()
         {
-            if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
             {
                 //Ignore: There is no binded simple statement support in Cassandra 1.x
                 return;
@@ -204,7 +204,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestMethod]
         public void BatchMixedStatements()
         {
-            if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
             {
                 //Ignore: There is no binded simple statement support in Cassandra 1.x
                 return;

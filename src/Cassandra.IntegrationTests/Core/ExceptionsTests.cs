@@ -573,6 +573,12 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
                 var rs = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
+                if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
+                {
+                    //Paging should be ignored in 1.x
+                    Assert.AreEqual(2, rs.InnerQueueCount);
+                    return;
+                }
                 Assert.AreEqual(1, rs.InnerQueueCount);
 
                 session.Dispose();
