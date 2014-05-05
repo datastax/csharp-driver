@@ -319,7 +319,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         public void QueryBinding()
         {
             //There is no support for query binding in protocol v1 
-            if (!Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
+            if (!Options.Default.CASSANDRA_VERSION.StartsWith("1."))
             {
                 return;
             }

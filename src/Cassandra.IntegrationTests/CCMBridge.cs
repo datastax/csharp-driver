@@ -72,7 +72,7 @@ namespace Cassandra
         public static CCMBridge Create(string name)
         {
             CCMBridge bridge = new CCMBridge();
-            bridge.ExecuteCCM(string.Format("Create {0} -b -i {1} {2}", name, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION));
+            bridge.ExecuteCCM(string.Format("Create {0} -b -i {1} -v {2}", name, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION));
             return bridge;
         }
 
@@ -84,7 +84,7 @@ namespace Cassandra
 #endif
 
             CCMBridge bridge = new CCMBridge();
-            bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b {3}", name, nbNodes, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
+            bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b -v {3}", name, nbNodes, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
         }
 
@@ -96,7 +96,7 @@ namespace Cassandra
 #endif
 
             CCMBridge bridge = new CCMBridge();
-            bridge.ExecuteCCM(string.Format("Create {0} -n {1}:{2} -s -i {3} -b {4}", name, nbNodesDC1, nbNodesDC2, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
+            bridge.ExecuteCCM(string.Format("Create {0} -n {1}:{2} -s -i {3} -b -v {4}", name, nbNodesDC1, nbNodesDC2, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
         }
 

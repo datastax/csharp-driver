@@ -17,11 +17,14 @@
 using System.Linq;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+using System;
+using Moq;
+using System.Collections.Generic;
 
-namespace Cassandra.IntegrationTests.Linq
+namespace Cassandra.Tests
 {
-    [TestClass]
-    public class LinqUTTests
+    [TestFixture]
+    public class LinqToCqlUnitTests
     {
 
         [AllowFiltering]
@@ -44,8 +47,7 @@ namespace Cassandra.IntegrationTests.Linq
             public int f1 { get; set; }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestCqlFromLinq()
         {
             Table<TestTable> table = SessionExtensions.GetTable<TestTable>(null);
@@ -177,8 +179,7 @@ APPLY BATCH".Replace("\r", ""));
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestCqlFromLinqPaxosSupport()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -197,8 +198,7 @@ APPLY BATCH".Replace("\r", ""));
                 @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40) IF EXISTS ");
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestCqlNullValuesLinqSupport()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -210,11 +210,88 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223 }).Update().ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck1"" IN (10, 30, 40)");
 
-            Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new TestTable() { f1 = 1223, ck1=null }).Update().ToString(),
+            Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new TestTable() { f1 = 1223, ck1 = null }).Update().ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40)");
+
+            Assert.AreEqual((from ent in table where ent.ck1 == 1 select new TestTable() { f1 = 1223, ck1=null }).Update().ToString(),
+                    @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" = 1");
 
             Assert.AreEqual((from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40) IF ""x_f1"" = 123");
+        }
+
+        /// <summary>
+        /// Test utility: Represents an application entity with most of common types as properties
+        /// </summary>
+        public class AllTypesEntity
+        {
+            public bool BooleanValue { get; set; }
+            public DateTime DateTimeValue { get; set; }
+            public decimal DecimalValue { get; set; }
+            public double DoubleValue { get; set; }
+            public Int64 Int64Value { get; set; }
+            public int IntValue { get; set; }
+            public string StringValue { get; set; }
+            public Guid UuidValue { get; set; }
+        }
+
+        /// <summary>
+        /// Tests the Linq to CQL generated where clause 
+        /// </summary>
+        [Test]
+        public void LinqSelectWhereTest()
+        {
+            var sessionMock = new Mock<ISession>();
+            var session = sessionMock.Object;
+
+            var ctx = new Context(session);
+            var entity = new AllTypesEntity();
+
+            ctx.AddTable<AllTypesEntity>();
+            ContextTable<AllTypesEntity> table = ctx.GetTable<AllTypesEntity>();
+            var date = new DateTime(1975, 1, 1);
+            var linqQueries = new List<CqlQuery<AllTypesEntity>>()
+            {
+                (from ent in table where ent.BooleanValue == true select ent),
+                (from ent in table where ent.BooleanValue == false select ent),
+                (from ent in table where ent.DateTimeValue < date select ent),
+                (from ent in table where ent.DateTimeValue >= date select ent),
+                (from ent in table where ent.IntValue == 0 select ent),
+                (from ent in table where ent.StringValue == "Hello world" select ent)
+                
+            };
+            var expectedCqlQueries = new List<string>()
+            {
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = true",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = false",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" < 157766400000",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" >= 157766400000",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"IntValue\" = 0",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"StringValue\" = 'Hello world'"
+            };
+            var actualCqlQueries = new List<IStatement>();
+            sessionMock
+                .Setup(s => s.BeginExecute(It.IsAny<IStatement>(), It.IsAny<object>(), It.IsAny<AsyncCallback>(), It.IsAny<object>()))
+                .Callback<IStatement, object, AsyncCallback, object>((stmt2, b, c, d) => actualCqlQueries.Add(stmt2));
+
+
+            //Execute all linq queries
+            foreach (var q in linqQueries)
+            {
+                q.Execute();
+            }
+            sessionMock.Verify();
+
+            Assert.AreEqual(expectedCqlQueries.Count, actualCqlQueries.Count);
+            //Check that all expected queries and actual queries are equal
+            for (var i = 0; i < expectedCqlQueries.Count; i++)
+            {
+                Assert.IsInstanceOf<SimpleStatement>(actualCqlQueries[i]);
+                Assert.AreEqual(
+                    expectedCqlQueries[i],
+                    ((SimpleStatement)actualCqlQueries[i]).QueryString,
+                    "Expected Cql query and generated CQL query by Linq do not match.");
+            }
         }
     }
 }

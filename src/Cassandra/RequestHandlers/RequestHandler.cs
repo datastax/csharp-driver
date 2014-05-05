@@ -106,8 +106,13 @@ namespace Cassandra.RequestHandlers
                 rs.PagingState = outputRows.Metadata.PagingState;
                 if (rs.PagingState != null)
                 {
-                    rs.FetchNextPage += (pagingState) =>
+                    rs.FetchNextPage = (pagingState) =>
                     {
+                        if (session.IsDisposed)
+                        {
+                            _logger.Warning("Trying to page results using a Session already disposed.");
+                            return new RowSet();
+                        }
                         Statement.SetPagingState(pagingState);
                         return session.Execute(Statement);
                     };

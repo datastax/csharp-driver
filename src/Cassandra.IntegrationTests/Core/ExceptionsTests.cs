@@ -26,6 +26,12 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class ExceptionsTests
     {
+        public ExceptionsTests()
+        {
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+        }
+
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
@@ -538,6 +544,47 @@ namespace Cassandra.IntegrationTests.Core
             catch (Exception e)
             {
                 throw e;
+            }
+            finally
+            {
+                cluster.Discard();
+            }
+        }
+
+        [Test]
+        public void RowSetPagingAfterDisconnect()
+        {
+            var builder = Cluster.Builder();
+            var cluster = CCMBridge.CCMCluster.Create(1, builder);
+            try
+            {
+                var session = cluster.Session;
+                CCMBridge bridge = cluster.CCMBridge;
+
+                String keyspace = "TestKeyspace";
+                String table = "TestTable";
+
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1)));
+                session.Execute("USE " + keyspace);
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)));
+
+                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
+                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
+                var rs = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
+                if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
+                {
+                    //Paging should be ignored in 1.x
+                    Assert.AreEqual(2, rs.InnerQueueCount);
+                    return;
+                }
+                Assert.AreEqual(1, rs.InnerQueueCount);
+
+                session.Dispose();
+                //It should not fail, just do nothing
+                rs.FetchMoreResults();
+                Assert.AreEqual(1, rs.InnerQueueCount);
             }
             finally
             {

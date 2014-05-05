@@ -14,15 +14,17 @@
 //   limitations under the License.
 //
 
+using System;
 using System.IO;
 using System.Linq;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+using Moq;
 
-namespace Cassandra.IntegrationTests.Linq
+namespace Cassandra.Tests
 {
-    [TestClass]
-    public class ContextUTTests
+    [TestFixture]
+    public class LinqContextUnitTests
     {
         private string ContextLine(Context context, int line)
         {
@@ -32,11 +34,14 @@ namespace Cassandra.IntegrationTests.Linq
             return sr.ReadLine().Split(';').First();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestCqlFromContext()
         {
-            var context = new Context(null);
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.BeginExecute(It.IsAny<IStatement>(), It.IsAny<object>(), It.IsAny<AsyncCallback>(), It.IsAny<object>()))
+                .Returns((AsyncResultNoResult) null);
+            var context = new Context(sessionMock.Object);
             context.AddTable<TestTable>();
             ContextTable<TestTable> table = context.GetTable<TestTable>(null);
 

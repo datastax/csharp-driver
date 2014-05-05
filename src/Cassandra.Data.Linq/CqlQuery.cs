@@ -60,6 +60,12 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        public new CqlQuery<TEntity> SetPageSize(int pageSize)
+        {
+            base.SetPageSize(pageSize);
+            return this;
+        }
+
         protected override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor();

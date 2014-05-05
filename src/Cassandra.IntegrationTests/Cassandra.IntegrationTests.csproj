@@ -85,12 +85,10 @@
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="Linq\BasicLinqTests.cs" />
     <Compile Include="Linq\ComplexTests.cs" />
-    <Compile Include="Linq\ContextUTTests.cs" />
     <Compile Include="Linq\FoundBug2Tests.cs" />
     <Compile Include="Linq\FoundBug3Tests.cs" />
     <Compile Include="Linq\FoundBugTests.cs" />
     <Compile Include="Linq\LinqSessionTests.cs" />
-    <Compile Include="Linq\LinqUTTests.cs" />
     <Compile Include="Linq\SalesOrder.cs" />
     <Compile Include="Linq\Structures\Author.cs" />
     <Compile Include="Linq\Structures\CassandraLog.cs" />
