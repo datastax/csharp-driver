@@ -19,10 +19,10 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq
+namespace Cassandra.Tests
 {
-    [TestClass]
-    public class ContextUTTests
+    [TestFixture]
+    public class LinqContextUnitTests
     {
         private string ContextLine(Context context, int line)
         {
@@ -32,8 +32,7 @@ namespace Cassandra.IntegrationTests.Linq
             return sr.ReadLine().Split(';').First();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestCqlFromContext()
         {
             var context = new Context(null);
