@@ -14,10 +14,12 @@
 //   limitations under the License.
 //
 
+using System;
 using System.IO;
 using System.Linq;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+using Moq;
 
 namespace Cassandra.Tests
 {
@@ -35,7 +37,11 @@ namespace Cassandra.Tests
         [Test]
         public void TestCqlFromContext()
         {
-            var context = new Context(null);
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.BeginExecute(It.IsAny<IStatement>(), It.IsAny<object>(), It.IsAny<AsyncCallback>(), It.IsAny<object>()))
+                .Returns((AsyncResultNoResult) null);
+            var context = new Context(sessionMock.Object);
             context.AddTable<TestTable>();
             ContextTable<TestTable> table = context.GetTable<TestTable>(null);
 
