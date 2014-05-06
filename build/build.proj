@@ -20,16 +20,17 @@
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Other properties -->
-    <Version>2.0.1</Version>
+    <Version>2.0.0</Version>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   
   <ItemGroup>
     <!-- Projects to Build -->
-    <AllProjects Include="$(SourceFolder)\**\*.csproj" />
+    <AllProjects Include="$(SourceFolder)\Cassandra.sln" />
+    <CoreProjects Include="$(SourceFolder)\Cassandra\Cassandra.csproj;$(SourceFolder)\Cassandra.Data\Cassandra.Data.csproj;$(SourceFolder)\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj" />
   
     <!-- NuGet spec files which will be used to create packages -->
-    <NuSpecFiles Include="$(BuildFolder)\*.nuspec" />
+    <NuSpecFiles Include="$(BuildFolder)\*.nuspec" /> 
   </ItemGroup>
   
   <!--
@@ -55,18 +56,19 @@
   <!-- Compiles code -->
   <Target Name="compile" DependsOnTargets="clean">
     <Message Text="Compiling projects" Importance="high" />
-    <MSBuild Projects="@(AllProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
+    <MSBuild Projects="@(CoreProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
   </Target>
 
   <!-- Creates nuget package(s) -->
-  <Target Name="package" DependsOnTargets="compile">
+  <Target Name="package" DependsOnTargets="generate_assembly_info;compile">
+    <Error Condition="$(PACKAGE_VERSION) == ''" Text="The PACKAGE_VERSION environment variable is not set." />
     <Message Text="Creating NuGet package(s)" Importance="high" />
     <MakeDir Directories="$(PackagesFolder)" />
-    <Exec Command="$(NuGet) pack %(NuSpecFiles.FullPath) -basepath $(SourceFolder) -o $(PackagesFolder) -version $(Version) -symbols" />
+    <Exec Command="$(NuGet) pack &quot;%(NuSpecFiles.FullPath)&quot; -basepath $(SourceFolder) -o $(PackagesFolder) -version $(PACKAGE_VERSION)" />
   </Target>
 
   <!-- Runs unit tests -->
-  <Target Name="test" DependsOnTargets="compile">
+  <Target Name="test" DependsOnTargets="generate_assembly_info;compile">
     <Message Text="Running unit tests" Importance="high" />
     <MakeDir Directories="$(TestResultsFolder)" />
     <Exec Command="$(NUnit) $(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
