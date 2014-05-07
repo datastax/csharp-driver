@@ -58,6 +58,10 @@
     <Message Text="Compiling projects" Importance="high" />
     <MSBuild Projects="@(CoreProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
   </Target>
+  <Target Name="compile-all" DependsOnTargets="clean">
+    <Message Text="Compiling projects" Importance="high" />
+    <MSBuild Projects="@(AllProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
+  </Target>
 
   <!-- Creates nuget package(s) -->
   <Target Name="package" DependsOnTargets="generate_assembly_info;compile">
@@ -68,7 +72,12 @@
   </Target>
 
   <!-- Runs unit tests -->
-  <Target Name="test" DependsOnTargets="generate_assembly_info;compile">
+  <Target Name="test" DependsOnTargets="generate_assembly_info;compile-all">
+    <Message Text="Running unit tests" Importance="high" />
+    <MakeDir Directories="$(TestResultsFolder)" />
+    <Exec Command="$(NUnit) $(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
+  </Target>
+  <Target Name="unit-test" DependsOnTargets="compile-all">
     <Message Text="Running unit tests" Importance="high" />
     <MakeDir Directories="$(TestResultsFolder)" />
     <Exec Command="$(NUnit) $(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
