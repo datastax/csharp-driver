@@ -68,9 +68,11 @@ task.ContinueWith((t) =>
 
 You can use the project [Mailing list](https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user) or create a ticket on the [Jira issue tracker](https://datastax-oss.atlassian.net/browse/CSHARP).
 
-## Running the tests
+## Building and running the tests
 
-Use [NUnit](http://nunit.org/?p=download) to run the test in the solution Cassandra.Tests (unit tests) and Cassandra.IntegrationTests (integration tests).
+You can use Visual Studio or msbuild to build the solution. 
+
+[Check the documentation for more info](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
 Copyright 2013, DataStax
