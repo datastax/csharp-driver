@@ -1,4 +1,4 @@
-<Project DefaultTargets="local" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="compile" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- Add some tasks from MSBuild Community Tasks project -->
   <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="MSBuild.Community.Tasks.Git.GitVersion" />
   <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="MSBuild.Community.Tasks.AssemblyInfo" />
@@ -16,7 +16,6 @@
 
     <!-- Specific Tools -->
     <NuGet>$(ToolsFolder)\nuget.exe</NuGet>
-    <NUnit>$(SourceFolder)\packages\NUnit.Runners.2.6.3\tools\nunit-console.exe</NUnit>
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Other properties -->
@@ -27,24 +26,14 @@
   <ItemGroup>
     <!-- Projects to Build -->
     <AllProjects Include="$(SourceFolder)\Cassandra.sln" />
-    <CoreProjects Include="$(SourceFolder)\Cassandra\Cassandra.csproj;$(SourceFolder)\Cassandra.Data\Cassandra.Data.csproj;$(SourceFolder)\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj" />
+    <!--<CoreProjects Include="$(SourceFolder)\Cassandra\Cassandra.csproj;$(SourceFolder)\Cassandra.Data\Cassandra.Data.csproj;$(SourceFolder)\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj" />-->
   
     <!-- NuGet spec files which will be used to create packages -->
     <NuSpecFiles Include="$(BuildFolder)\*.nuspec" /> 
   </ItemGroup>
-  
-  <!--
-    These are the top level targets, meant to be invoked by msbuild.  Ways to invoke:
-      local - runs the build and unit tests
-      full - runs local, plus does packaging (useful if testing packaging)
-      ci - runs full, plus updates assemblies with a shared version number (meant to be run from a CI server)
-  -->
-  <Target Name="local" DependsOnTargets="compile;test" />
-  <Target Name="full" DependsOnTargets="local;package" />
-  <Target Name="ci" DependsOnTargets="generate_assembly_info;full"/>
-
   <!-- Cleans output folders, projects -->
   <Target Name="clean">
+  
     <Message Text="Cleaning build output folders" Importance="high" />
     <RemoveDir Directories="$(TestResultsFolder)" ContinueOnError="true" />
     <RemoveDir Directories="$(PackagesFolder)" ContinueOnError="true" />
@@ -56,15 +45,11 @@
   <!-- Compiles code -->
   <Target Name="compile" DependsOnTargets="clean">
     <Message Text="Compiling projects" Importance="high" />
-    <MSBuild Projects="@(CoreProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
-  </Target>
-  <Target Name="compile-all" DependsOnTargets="clean">
-    <Message Text="Compiling projects" Importance="high" />
     <MSBuild Projects="@(AllProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
   </Target>
 
   <!-- Creates nuget package(s) -->
-  <Target Name="package" DependsOnTargets="generate_assembly_info;compile">
+  <Target Name="package" DependsOnTargets="generate-assembly-info;unit-test">
     <Error Condition="$(PACKAGE_VERSION) == ''" Text="The PACKAGE_VERSION environment variable is not set." />
     <Message Text="Creating NuGet package(s)" Importance="high" />
     <MakeDir Directories="$(PackagesFolder)" />
@@ -72,25 +57,30 @@
   </Target>
 
   <!-- Runs unit tests -->
-  <Target Name="test" DependsOnTargets="generate_assembly_info;compile-all">
+  <Target Name="unit-test" DependsOnTargets="compile">
     <Message Text="Running unit tests" Importance="high" />
+    
+    <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
+    
     <MakeDir Directories="$(TestResultsFolder)" />
-    <Exec Command="$(NUnit) $(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
+    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll&quot; /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
   </Target>
-  <Target Name="unit-test" DependsOnTargets="compile-all">
-    <Message Text="Running unit tests" Importance="high" />
-    <MakeDir Directories="$(TestResultsFolder)" />
-    <Exec Command="$(NUnit) $(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
-  </Target>
+
+  <!-- Include only unit tests for now, it will later depend on "unit-test;integration-test" -->
+  <Target Name="test" DependsOnTargets="unit-test" />
+
+  <Target Name="ci" DependsOnTargets="generate-assembly-info;test"/>
   
   <!-- Creates a shared assembly info file so that all assemblies get some common attributes (like version number) -->
-  <Target Name="generate_assembly_info">
+  <Target Name="generate-assembly-info">
+    <Message Text="Running unit tests" Importance="high" />
+    
+    <!-- Require that the BUILD_NUMBER environment variable is present (should be set automatically by Jenkins) -->
+    <Error Condition="$(BUILD_NUMBER) == ''" Text="The BUILD_NUMBER environment variable is not set." ContinueOnError="false" />
+    
     <PropertyGroup>
       <GitHash />
     </PropertyGroup>
-    
-    <!-- Require that the BUILD_NUMBER environment variable is present (should be set automatically by Jenkins) -->
-    <Error Condition="$(BUILD_NUMBER) == ''" Text="The BUILD_NUMBER environment variable is not set." />
     
     <!-- Get the Git commit hash and put it into the GitHash property -->
     <GitVersion LocalPath="$(MSBuildProjectDirectory)">
