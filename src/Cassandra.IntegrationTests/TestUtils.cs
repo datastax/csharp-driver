@@ -17,6 +17,7 @@
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Threading;
 
 namespace Cassandra.IntegrationTests
@@ -162,5 +163,106 @@ namespace Cassandra.IntegrationTests
         {
             return testForDown ? !host.IsUp : host.IsConsiderablyUp;
         }
+
+        /// <summary>
+        /// Executes a python command
+        /// </summary>
+        public static ProcessOutput ExecutePythonCommand(string pythonArgs, int timeout = 5000)
+        {
+            var output = new ProcessOutput();
+            using (var process = new Process())
+            {
+                process.StartInfo.FileName = "python";
+                process.StartInfo.Arguments = pythonArgs;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+
+
+                using (var outputWaitHandle = new AutoResetEvent(false))
+                using (var errorWaitHandle = new AutoResetEvent(false))
+                {
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                        {
+                            try
+                            {
+                                outputWaitHandle.Set();
+                            }
+                            catch
+                            {
+                                //probably is already disposed
+                            }
+                        }
+                        else
+                        {
+                            output.OutputText.AppendLine(e.Data);
+                        }
+                    };
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                        {
+                            try
+                            {
+                                errorWaitHandle.Set();
+                            }
+                            catch
+                            {
+                                //probably is already disposed
+                            }
+                        }
+                        else
+                        {
+                            output.OutputText.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.Start();
+
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    if (process.WaitForExit(timeout) &&
+                        outputWaitHandle.WaitOne(timeout) &&
+                        errorWaitHandle.WaitOne(timeout))
+                    {
+                        // Process completed.
+                        output.ExitCode = process.ExitCode;
+                    }
+                    else
+                    {
+                        // Timed out.
+                        output.ExitCode = -1;
+                    }
+                }
+            }
+            return output;
+        }
+
     }
-} // end namespace
+
+    /// <summary>
+    /// Represents a result from executing an external process.
+    /// </summary>
+    public class ProcessOutput
+    {
+        public int ExitCode { get; set; }
+
+        public StringBuilder OutputText { get; set; }
+
+        public ProcessOutput()
+        {
+            OutputText = new StringBuilder();
+            ExitCode = Int32.MinValue;
+        }
+
+        public override string ToString()
+        {
+            return
+                "Exit Code: " + this.ExitCode + Environment.NewLine +
+                "Output Text: " + this.OutputText.ToString() + Environment.NewLine;
+        }
+    }
+}

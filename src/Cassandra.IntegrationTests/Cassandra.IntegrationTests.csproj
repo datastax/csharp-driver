@@ -83,6 +83,7 @@
     <Compile Include="Core\Stress1Tests.cs" />
     <Compile Include="Core\Stress2Tests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
+    <Compile Include="InfrastructureTests.cs" />
     <Compile Include="Linq\BasicLinqTests.cs" />
     <Compile Include="Linq\ComplexTests.cs" />
     <Compile Include="Linq\FoundBug2Tests.cs" />
