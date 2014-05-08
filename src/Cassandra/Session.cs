@@ -441,19 +441,30 @@ namespace Cassandra
         internal void InternalDispose()
         {
             if (!_alreadyDisposed.TryTake())
+            {
                 return;
+            }
 
-            _trashcanCleaner.Change(Timeout.Infinite, Timeout.Infinite);
+            if (_trashcanCleaner != null)
+            {
+                _trashcanCleaner.Change(Timeout.Infinite, Timeout.Infinite);
+            }
 
             foreach (var kv in _connectionPool)
+            {
                 foreach (var kvv in kv.Value)
                 {
                     var conn = kvv.Value;
                     FreeConnection(conn);
                 }
+            }
             foreach (var kv in _trashcan)
+            {
                 foreach (var ckv in kv.Value)
+                {
                     FreeConnection(ckv.Value);
+                }
+            }
         }
 
         public void Dispose()
@@ -462,9 +473,20 @@ namespace Cassandra
             Cluster.SessionDisposed(this);
         }
 
+        /// <summary>
+        /// Finalizer
+        /// </summary>
         ~Session()
         {
-            Dispose();
+            try
+            {
+                Dispose(); 
+            }
+            catch
+            {
+                //Finalizers are called in their own specific threads.
+                //There is no point in throwing an exception
+            }
         }
 
         public bool IsDisposed
