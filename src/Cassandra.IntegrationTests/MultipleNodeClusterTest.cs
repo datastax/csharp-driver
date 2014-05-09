@@ -12,6 +12,7 @@ namespace Cassandra.IntegrationTests
     /// <summary>
     /// Represents a set of tests that reuse an test cluster of n node
     /// </summary>
+    [TestFixture]
     public class MultipleNodesClusterTest
     {
         protected virtual string CcmLocalConfigDir { get; set; }
@@ -19,6 +20,17 @@ namespace Cassandra.IntegrationTests
         protected virtual ISession Session { get; set; }
 
         protected virtual int NodeLength { get; set; }
+
+        /// <summary>
+        /// Determines if the test should use a remote ccm instance
+        /// </summary>
+        protected virtual bool UseRemoteCcm
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings["UseRemote"] == "true";
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of MultipleNodeCluster Test
@@ -34,7 +46,7 @@ namespace Cassandra.IntegrationTests
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             var keyspaceName = "tester";
-            if (ConfigurationManager.AppSettings["UseRemote"] == "true")
+            if (UseRemoteCcm)
             {
                 CCMBridge.ReusableCCMCluster.Setup(NodeLength);
                 CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
@@ -60,7 +72,7 @@ namespace Cassandra.IntegrationTests
         [TestFixtureTearDown]
         public virtual void TestFixtureTearDown()
         {
-            if (ConfigurationManager.AppSettings["UseRemote"] == "true")
+            if (UseRemoteCcm)
             {
                 CCMBridge.ReusableCCMCluster.Drop();
             }

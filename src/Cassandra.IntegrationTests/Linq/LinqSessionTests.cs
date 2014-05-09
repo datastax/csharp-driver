@@ -21,36 +21,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    [TestClass]
-    public class LinqSessionTests
+    [Category("short")]
+    public class LinqSessionTests : SingleNodeClusterTest
     {
-        private string KeyspaceName = "test";
-
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-            Session.CreateKeyspaceIfNotExists(KeyspaceName);
-            Session.ChangeKeyspace(KeyspaceName);
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-        [TestMethod]
-        [WorksForMe]
-        public void DoTest()
+        [Test]
+        public void LinqBatchInsertAndSelectTest()
         {
             Table<NerdMovie> table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
@@ -127,9 +106,8 @@ namespace Cassandra.IntegrationTests.Linq
             var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Y = m.Year}).Execute().ToList();
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void DoTestTpl()
+        [Test]
+        public void LinqBatchInsertAndSelectTestTpl()
         {
             Table<NerdMovie> table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
