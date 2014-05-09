@@ -5,10 +5,10 @@ using System.Linq.Expressions;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("short")]
     public class ConnectionTimeoutTest
     {
-        [TestMethod]
+        [Test]
         public void connectionTimeoutTest()
         {
             var sw = Stopwatch.StartNew();

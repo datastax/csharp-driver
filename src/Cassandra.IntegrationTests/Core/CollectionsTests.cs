@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,9 +21,11 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     public class CollectionsTests : SingleNodeClusterTest
     {
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,
@@ -262,190 +263,163 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListOrderPrepending()
         {
             checkingOrderOfCollection("list", typeof (Int32), null, "prepending");
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListOrderAppending()
         {
             checkingOrderOfCollection("list", typeof (Int32), null, "appending");
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetOrder()
         {
             checkingOrderOfCollection("set", typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMap()
         {
             insertingSingleCollection("map", typeof (string), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapDouble()
         {
             insertingSingleCollection("map", typeof (Double), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapInt32()
         {
             insertingSingleCollection("map", typeof (Int32), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapInt64()
         {
             insertingSingleCollection("map", typeof (Int64), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListDouble()
         {
             insertingSingleCollection("list", typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListInt64()
         {
             insertingSingleCollection("list", typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListInt32()
         {
             insertingSingleCollection("list", typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListString()
         {
             insertingSingleCollection("list", typeof (string));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetString()
         {
             insertingSingleCollection("set", typeof (string));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetDouble()
         {
             insertingSingleCollection("set", typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetInt32()
         {
             insertingSingleCollection("set", typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetInt64()
         {
             insertingSingleCollection("set", typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapPrepared()
         {
             insertingSingleCollectionPrepared("map", typeof (string), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapDoublePrepared()
         {
             insertingSingleCollectionPrepared("map", typeof (Double), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapInt32Prepared()
         {
             insertingSingleCollectionPrepared("map", typeof (Int32), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMapInt64Prepared()
         {
             insertingSingleCollectionPrepared("map", typeof (Int64), typeof (DateTimeOffset));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListDoublePrepared()
         {
             insertingSingleCollectionPrepared("list", typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListInt64Prepared()
         {
             insertingSingleCollectionPrepared("list", typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListInt32Prepared()
         {
             insertingSingleCollectionPrepared("list", typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testListStringPrepared()
         {
             insertingSingleCollectionPrepared("list", typeof (string));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetStringPrepared()
         {
             insertingSingleCollectionPrepared("set", typeof (string));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetDoublePrepared()
         {
             insertingSingleCollectionPrepared("set", typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetInt32Prepared()
         {
             insertingSingleCollectionPrepared("set", typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testSetInt64Prepared()
         {
             insertingSingleCollectionPrepared("set", typeof (Int64));
