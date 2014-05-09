@@ -15,7 +15,10 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -167,12 +170,12 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// Executes a python command
         /// </summary>
-        public static ProcessOutput ExecutePythonCommand(string pythonArgs, int timeout = 5000)
+        public static ProcessOutput ExecutePythonCommand(string pythonArgs, int timeout = 30000)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
             {
-                process.StartInfo.FileName = "python";
+                process.StartInfo.FileName = "python.exe";
                 process.StartInfo.Arguments = pythonArgs;
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
@@ -239,6 +242,129 @@ namespace Cassandra.IntegrationTests
                 }
             }
             return output;
+        }
+
+        public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 30000)
+        {
+            var ccmPath = ConfigurationManager.AppSettings["CcmPath"];
+            if (ccmPath == null)
+            {
+                //By convention
+                ccmPath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"workspace\\tools\\ccm");
+            }
+            ccmPath = Path.Combine(ccmPath, "ccm");
+            if (!FileExists(ccmPath))
+            {
+                return new ProcessOutput()
+                {
+                    ExitCode = 1000,
+                    OutputText = new StringBuilder("Ccm file does not exists in path" + ccmPath)
+                };
+            }
+            ccmPath = EscapePath(ccmPath);
+            ccmConfigDir = EscapePath(ccmConfigDir);
+            ccmArgs += " --config-dir=" + ccmConfigDir;
+            Console.WriteLine("Executing ccm: " + ccmArgs);
+            return ExecutePythonCommand(ccmPath + " " + ccmArgs, timeout);
+        }
+
+        /// <summary>
+        /// Starts a Cassandra cluster with the name, version and amount of nodes provided.
+        /// </summary>
+        /// <param name="ccmConfigDir">Path to the location where the cluster will be created</param>
+        /// <param name="cassandraVersion">Cassandra version in the form of MAJOR.MINOR.PATCH semver</param>
+        /// <param name="nodeLength">amount of nodes in the cluster</param>
+        /// <param name="clusterName"></param>
+        /// <returns></returns>
+        public static ProcessOutput ExecuteLocalCcmStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, string clusterName = "test")
+        {
+            //Starting ccm cluster involves:
+            //  1.- Getting the Apache Cassandra Distro
+            //  2.- Compiling it
+            //  3.- Fill the config files
+            //  4.- Starting each node.
+
+            //As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
+            //Only if ccm list succedes, create the cluster and continue.
+            var output = TestUtils.ExecuteLocalCcm("list", ccmConfigDir, 2000);
+            if (output.ExitCode != 0)
+            {
+                return output;
+            }
+
+            var ccmCommand = String.Format("create {0} -v {1}", clusterName, cassandraVersion);
+            //When creating a cluster, it could download the Cassandra binaries from the internet.
+            //Give enough time = 3 minutes.
+            var timeout = 180000;
+            output = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, timeout);
+            if (output.ExitCode != 0)
+            {
+                return output;
+            }
+            ccmCommand = "populate -n " + nodeLength;
+            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir);
+            if (populateOutput.ExitCode != 0)
+            {
+                return populateOutput;
+            }
+            output.OutputText.AppendLine(populateOutput.ToString());
+            var startOutput = TestUtils.ExecuteLocalCcm("start", ccmConfigDir);
+            if (startOutput.ExitCode != 0)
+            {
+                return startOutput;
+            }
+            output.OutputText.AppendLine(startOutput.ToString());
+            return output;
+
+        }
+
+        /// <summary>
+        /// Stops the cluster and removes the config files
+        /// </summary>
+        /// <returns></returns>
+        public static ProcessOutput ExecuteLocalCcmRemove(string ccmConfigDir)
+        {
+            return TestUtils.ExecuteLocalCcm("remove", ccmConfigDir);
+        }
+
+        private static Dictionary<string, bool> _existsCache = new Dictionary<string,bool>();
+        /// <summary>
+        /// Checks that the file exists and caches the result in a static variable
+        /// </summary>
+        public static bool FileExists(string path)
+        {
+            if (!_existsCache.ContainsKey(path))
+            {
+                _existsCache[path] = File.Exists(path);
+            }
+            return _existsCache[path];
+        }
+
+        /// <summary>
+        /// Adds double quotes to the path in case it contains spaces.
+        /// </summary>
+        public static string EscapePath(string path)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException("path");
+            }
+            if (path.Contains(" "))
+            {
+                return "\"" + path + "\"";
+            }
+            return path;
+        }
+
+        /// <summary>
+        /// Create a temporary directory inside OS temp path and returns the name of path of the newly created directory
+        /// </summary>
+        /// <returns></returns>
+        public static string CreateTempDirectory()
+        {
+            string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(tempDirectory);
+            return tempDirectory;
         }
 
     }
