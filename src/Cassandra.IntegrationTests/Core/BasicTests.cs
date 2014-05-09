@@ -27,26 +27,9 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    public class BasicTests
+    [Category("short")]
+    public class BasicTests : SingleNodeClusterTest
     {
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
         /// <summary>
         /// Creates a table and inserts a number of records synchronously.
         /// </summary>
@@ -54,18 +37,17 @@ namespace Cassandra.IntegrationTests.Core
         private string CreateSimpleTableAndInsert(int rowsInTable)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-                    id uuid PRIMARY KEY,
-                    label text,        
-                    );", tableName)));
+            Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
+                CREATE TABLE {0}(
+                id uuid PRIMARY KEY,
+                label text);", tableName)));
             for (int i = 0; i < rowsInTable; i++)
             {
-                Session.Execute(string.Format("INSERT INTO {2}(id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
+                Session.Execute(string.Format("INSERT INTO {2} (id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
             }
 
             return tableName;
         }
-
 
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
@@ -315,7 +297,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"DROP TABLE {0};", tableName));
         }
 
-        [TestMethod]
+        [Test]
         public void QueryBinding()
         {
             //There is no support for query binding in protocol v1 
@@ -328,7 +310,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
         }
 
-        [TestMethod]
+        [Test]
         public void PagingOnSimpleStatementTest()
         {
             var pageSize = 10;
@@ -354,7 +336,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
-        [TestMethod]
+        [Test]
         public void QueryPaging()
         {
             var pageSize = 10;
@@ -376,7 +358,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
-        [TestMethod]
+        [Test]
         public void QueryPagingParallel()
         {
             var pageSize = 25;
@@ -403,141 +385,121 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Assert.AreEqual(totalRowLength, counterList.Sum());
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void BigInsert()
         {
             BigInsertTest(1000);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void creatingSecondaryIndex()
         {
             createSecondaryIndexTest();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testCounter()
         {
             testCounters();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testBlob()
         {
             insertingSingleValue(typeof (byte));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testASCII()
         {
             insertingSingleValue(typeof (Char));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testDecimal()
         {
             insertingSingleValue(typeof (Decimal));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testVarInt()
         {
             insertingSingleValue(typeof (BigInteger));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testBigInt()
         {
             insertingSingleValue(typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testDouble()
         {
             insertingSingleValue(typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testFloat()
         {
             insertingSingleValue(typeof (Single));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testInt()
         {
             insertingSingleValue(typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testBoolean()
         {
             insertingSingleValue(typeof (Boolean));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testUUID()
         {
             insertingSingleValue(typeof (Guid));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testTimestamp()
         {
             TimestampTest();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_INT()
         {
             ExceedingCassandraType(typeof (Int32), typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_BIGINT()
         {
             ExceedingCassandraType(typeof (Int64), typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_FLOAT()
         {
             ExceedingCassandraType(typeof (Single), typeof (Single));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_DOUBLE()
         {
             ExceedingCassandraType(typeof (Double), typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void ExceedingCassandra_INT()
         {
             ExceedingCassandraType(typeof (Int32), typeof (Int64), false);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof (Single), typeof (Double), false);

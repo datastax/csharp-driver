@@ -178,9 +178,12 @@ namespace Cassandra.IntegrationTests
             {
                 process.StartInfo.FileName = "python.exe";
                 process.StartInfo.Arguments = pythonArgs;
-                process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
+                //Hide the python window if possible
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                process.StartInfo.CreateNoWindow = true; 
 
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
