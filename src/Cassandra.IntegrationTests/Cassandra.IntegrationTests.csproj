@@ -84,6 +84,7 @@
     <Compile Include="Core\Stress2Tests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
+    <Compile Include="MultipleNodeClusterTest.cs" />
     <Compile Include="TestInfrastructureException.cs" />
     <Compile Include="Linq\BasicLinqTests.cs" />
     <Compile Include="Linq\ComplexTests.cs" />
@@ -115,6 +116,7 @@
     <Compile Include="TestInitializeAttribute.cs" />
     <Compile Include="TestMethodAttribute.cs" />
     <Compile Include="TestUtils.cs" />
+    <Compile Include="TwoNodesClusterTest.cs" />
     <Compile Include="WorksForMeAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
