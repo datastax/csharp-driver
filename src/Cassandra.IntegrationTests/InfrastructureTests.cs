@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests
         public void CcmStartRemove()
         {
             var ccmConfigDir = TestUtils.CreateTempDirectory();
-            var output = TestUtils.ExecuteLocalCcmStart(ccmConfigDir, "2.0.6");
+            var output = TestUtils.ExecuteLocalCcmClusterStart(ccmConfigDir, "2.0.6");
             if (output.ExitCode == 0)
             {
                 Console.WriteLine("Ccm started correctly: " + output.OutputText.ToString());
@@ -69,7 +69,7 @@ namespace Cassandra.IntegrationTests
                 Console.WriteLine(output);
             }
 
-            TestUtils.ExecuteLocalCcmRemove(ccmConfigDir);
+            TestUtils.ExecuteLocalCcmClusterRemove(ccmConfigDir);
         }
 
         /// <summary>

@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Cassandra.IntegrationTests
@@ -276,7 +277,7 @@ namespace Cassandra.IntegrationTests
         /// <param name="nodeLength">amount of nodes in the cluster</param>
         /// <param name="clusterName"></param>
         /// <returns></returns>
-        public static ProcessOutput ExecuteLocalCcmStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, string clusterName = "test")
+        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, string clusterName = "test")
         {
             //Starting ccm cluster involves:
             //  1.- Getting the Apache Cassandra Distro
@@ -284,7 +285,10 @@ namespace Cassandra.IntegrationTests
             //  3.- Fill the config files
             //  4.- Starting each node.
 
-            //As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
+            //Considerations: 
+            //  As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
+            //  Also, the process can exit before the nodes are actually up: Execute ccm status until they are up
+
             //Only if ccm list succedes, create the cluster and continue.
             var output = TestUtils.ExecuteLocalCcm("list", ccmConfigDir, 2000);
             if (output.ExitCode != 0)
@@ -302,7 +306,7 @@ namespace Cassandra.IntegrationTests
                 return output;
             }
             ccmCommand = "populate -n " + nodeLength;
-            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir);
+            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 4000);
             if (populateOutput.ExitCode != 0)
             {
                 return populateOutput;
@@ -314,6 +318,32 @@ namespace Cassandra.IntegrationTests
                 return startOutput;
             }
             output.OutputText.AppendLine(startOutput.ToString());
+
+            //Nodes are starting, but we dont know for sure if they are have started.
+            var allNodesAreUp = false;
+            var safeCounter = 0;
+            while (!allNodesAreUp && safeCounter < 10)
+            {
+                var statusOutput = TestUtils.ExecuteLocalCcm("node1 show", ccmConfigDir, 1000);
+                if (statusOutput.ExitCode != 0)
+                {
+                    //Something went wrong
+                    output = statusOutput;
+                    break;
+                }
+                //Analyze the status output to see if all nodes are up
+                if (Regex.Matches(statusOutput.OutputText.ToString(), "UP", RegexOptions.Multiline).Count == nodeLength)
+                {
+                    //All nodes are up
+                    var logFileText = TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, "node1\\logs\\system.log"));
+                    if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
+                    {
+                        break;
+                    }
+                }
+                safeCounter++;
+            }
+
             return output;
 
         }
@@ -322,9 +352,34 @@ namespace Cassandra.IntegrationTests
         /// Stops the cluster and removes the config files
         /// </summary>
         /// <returns></returns>
-        public static ProcessOutput ExecuteLocalCcmRemove(string ccmConfigDir)
+        public static ProcessOutput ExecuteLocalCcmClusterRemove(string ccmConfigDir)
         {
             return TestUtils.ExecuteLocalCcm("remove", ccmConfigDir);
+        }
+
+        /// <summary>
+        /// Reads a text file without file locking
+        /// </summary>
+        /// <returns></returns>
+        public static string TryReadAllTextNoLock(string fileName)
+        {
+            string fileText = "";
+            try
+            {
+                using (var file = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    using (var reader = new StreamReader(file))
+                    {
+                        fileText = reader.ReadToEnd();
+                    }
+                }
+
+            }
+            catch
+            {
+                //We tried and failed, dont mind
+            }
+            return fileText;
         }
 
         private static Dictionary<string, bool> _existsCache = new Dictionary<string,bool>();

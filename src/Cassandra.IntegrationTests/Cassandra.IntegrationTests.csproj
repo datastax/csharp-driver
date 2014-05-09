@@ -84,6 +84,7 @@
     <Compile Include="Core\Stress2Tests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
+    <Compile Include="TestInfrastructureException.cs" />
     <Compile Include="Linq\BasicLinqTests.cs" />
     <Compile Include="Linq\ComplexTests.cs" />
     <Compile Include="Linq\FoundBug2Tests.cs" />
@@ -101,6 +102,7 @@
     <Compile Include="Linq\Structures\TwitterContext.cs" />
     <Compile Include="Linq\Utils.cs" />
     <Compile Include="Core\ParameterizedStatementsTests.cs" />
+    <Compile Include="SingleNodeClusterTest.cs" />
     <Compile Include="TestClass.cs" />
     <Compile Include="MyTestOptions.cs" />
     <Compile Include="NeedSomeFixAttribute.cs" />
