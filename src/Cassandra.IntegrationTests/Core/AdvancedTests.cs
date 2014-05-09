@@ -23,82 +23,28 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    public class AdvancedTests
+    [TestFixture, Category("long")]
+    public class AdvancedTests : TwoNodesClusterTest
     {
-        private ISession Session;
-
-        [TestMethod]
-        [WorksForMe]
-        [Stress]
-        public void ParallelInsert()
+        public override void TestFixtureSetUp()
         {
-            parallelInsertTest();
-        }
-
-        [TestMethod]
-        [WorksForMe]
-        [Stress]
-        public void ErrorInjectionParallelInsert()
-        {
-            ErrorInjectionInParallelInsertTest();
-        }
-
-        [TestMethod]
-        [WorksForMe]
-        [Stress]
-        public void MassiveAsync()
-        {
-            MassiveAsyncTest();
-        }
-
-        [TestMethod]
-        [WorksForMe]
-        [Stress]
-        public void ErrorInjectionMassiveAsync()
-        {
-            MassiveAsyncErrorInjectionTest();
-        }
-
-        [TestMethod]
-        [WorksForMe]
-        public void ShutdownAsync()
-        {
-            ShutdownAsyncTest();
-        }
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-            CCMBridge.ReusableCCMCluster.Setup(2);
-
-            Builder builder = Cluster.Builder();
-
-            builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
+            this.Builder = Cluster.Builder()
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(100))
+                .WithQueryTimeout(60 * 1000);
 
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) =>
             {
                 Console.Write("o");
-                Thread.Sleep((int) ev.DelayMs);
+                Thread.Sleep((int)ev.DelayMs);
             };
-            builder.WithLoadBalancingPolicy(rp);
-            builder.WithQueryTimeout(60*1000);
+            this.Builder.WithLoadBalancingPolicy(rp);
 
-            CCMBridge.ReusableCCMCluster.Build(builder);
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            base.TestFixtureSetUp();
         }
 
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-
-        public void parallelInsertTest()
+        [Test]
+        public void ParallelInsertTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
 
@@ -236,15 +182,13 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             Session.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
         }
 
-
+        [Test]
         public void ErrorInjectionInParallelInsertTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
             Session.WaitForSchemaAgreement(
                 Session.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                                  , keyspaceName)));
+                    string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName)));
             Session.ChangeKeyspace(keyspaceName);
 
             for (int KK = 0; KK < 1; KK++)
@@ -255,18 +199,19 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                 try
                 {
                     Session.WaitForSchemaAgreement(
-                        Session.Execute(string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid,
-         author text,
-         body text,
-         isok boolean,
-         PRIMARY KEY(tweet_id))", tableName)));
+                        Session.Execute(string.Format(@"
+                            CREATE TABLE {0}(
+                            tweet_id uuid,
+                            author text,
+                            body text,
+                            isok boolean,
+                            PRIMARY KEY(tweet_id))", tableName)));
                 }
                 catch (AlreadyExistsException)
                 {
                 }
 
-                int RowsNo = 10000;
+                int RowsNo = 5000;
                 var ar = new bool[RowsNo];
                 var threads = new List<Thread>();
                 var monit = new object();
@@ -307,14 +252,8 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                                 readyCnt++;
                                 Monitor.Wait(monit);
                             }
-
-                            Session.Execute(string.Format(@"INSERT INTO {0} (
-         tweet_id,
-         author,
-         isok,
-         body)
-VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true"), ConsistencyLevel.One
-                                );
+                            var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
+                            Session.Execute(query, ConsistencyLevel.One);
                             ar[i] = true;
                             Thread.MemoryBarrier();
                         }
@@ -333,24 +272,6 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                     threads[idx].Start();
                 }
                 errorInjector.Start();
-
-                lock (monit)
-                {
-                    while (true)
-                    {
-                        if (readyCnt < RowsNo + (1))
-                        {
-                            Monitor.Exit(monit);
-                            Thread.Sleep(100);
-                            Monitor.Enter(monit);
-                        }
-                        else
-                        {
-                            Monitor.PulseAll(monit);
-                            break;
-                        }
-                    }
-                }
 
                 Console.WriteLine();
                 Console.WriteLine("Start!");
@@ -380,17 +301,9 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                 Console.WriteLine("Inserted... now we are checking the count");
 
                 var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
-                {
-                    Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
-                }
+                Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
 
-                try
-                {
-                    Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
-                }
-                catch
-                {
-                }
+                Session.Execute(string.Format(@"DROP TABLE {0};", tableName));
             }
 
 
@@ -403,6 +316,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             }
         }
 
+        [Test]
         public void MassiveAsyncTest()
         {
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
@@ -474,9 +388,7 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             Console.WriteLine("Inserted... now we are checking the count");
 
             var ret = Session.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
-            {
-                Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
-            }
+            Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
 
             try
             {
@@ -487,26 +399,27 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
             }
         }
 
+        [Test]
         public void ShutdownAsyncTest()
         {
+            var localSession = Cluster.Connect();
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(
-                Session.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                                  , keyspaceName)));
-            Session.ChangeKeyspace(keyspaceName);
+            localSession.WaitForSchemaAgreement(
+                localSession.Execute(
+                    string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName)));
+            localSession.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.WaitForSchemaAgreement(
-                    Session.Execute(string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid,
-         author text,
-         body text,
-         isok boolean,
-         PRIMARY KEY(tweet_id))", tableName)));
+                localSession.WaitForSchemaAgreement(
+                    localSession.Execute(string.Format(@"
+                        CREATE TABLE {0}(
+                        tweet_id uuid,
+                        author text,
+                        body text,
+                        isok boolean,
+                        PRIMARY KEY(tweet_id))", tableName)));
             }
             catch (AlreadyExistsException)
             {
@@ -521,28 +434,24 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                 int tmpi = i;
                 try
                 {
-                    Session.BeginExecute(string.Format(@"INSERT INTO {0} (
-             tweet_id,
-             author,
-             isok,
-             body)
-    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
-                                         , ConsistencyLevel.Quorum, arx =>
-                                         {
-                                             try
-                                             {
-                                                 Session.EndExecute(arx);
-                                             }
-                                             catch (ObjectDisposedException)
-                                             {
-                                                 Console.Write("*");
-                                             }
-                                             finally
-                                             {
-                                                 ar[tmpi] = true;
-                                                 Thread.MemoryBarrier();
-                                             }
-                                         }, null);
+                    var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", 
+                        tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
+                    localSession.BeginExecute(query, ConsistencyLevel.Quorum, arx =>
+                    {
+                        try
+                        {
+                            localSession.EndExecute(arx);
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            Console.Write("*");
+                        }
+                        finally
+                        {
+                            ar[tmpi] = true;
+                            Thread.MemoryBarrier();
+                        }
+                    }, null);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -550,9 +459,10 @@ VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ?
                     break;
                 }
             }
-            CCMBridge.ReusableCCMCluster.Shutdown(); // it makes shutdown
+            localSession.Dispose();
         }
 
+        [Test]
         public void MassiveAsyncErrorInjectionTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();

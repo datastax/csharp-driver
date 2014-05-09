@@ -401,7 +401,7 @@ namespace Cassandra
             static Cluster Cluster;
             static ISession Session;
 
-            public static void Build(Builder builder)
+            public static Cluster Build(Builder builder)
             {
                 if (Options.Default.USE_COMPRESSION)
                 {
@@ -415,6 +415,7 @@ namespace Cassandra
                 }
 
                 Cluster = builder.AddContactPoints(Options.Default.IP_PREFIX + "1").Build();
+                return Cluster;
             }
 
             public static ISession Connect(string keyspace = null)

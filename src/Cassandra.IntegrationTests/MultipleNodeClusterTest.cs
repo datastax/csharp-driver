@@ -15,11 +15,18 @@ namespace Cassandra.IntegrationTests
     [TestFixture]
     public class MultipleNodesClusterTest
     {
+        /// <summary>
+        /// Gets or sets the Cluster builder for this test
+        /// </summary>
+        protected virtual Builder Builder { get; set; }
+
         protected virtual string CcmLocalConfigDir { get; set; }
 
-        protected virtual ISession Session { get; set; }
+        protected virtual Cluster Cluster { get; set; }
 
         protected virtual int NodeLength { get; set; }
+
+        protected virtual ISession Session { get; set; }
 
         /// <summary>
         /// Determines if the test should use a remote ccm instance
@@ -49,23 +56,29 @@ namespace Cassandra.IntegrationTests
             if (UseRemoteCcm)
             {
                 CCMBridge.ReusableCCMCluster.Setup(NodeLength);
-                CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-                Session = CCMBridge.ReusableCCMCluster.Connect(keyspaceName);
+                this.Cluster = CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
+                this.Session = CCMBridge.ReusableCCMCluster.Connect(keyspaceName);
             }
             else
             {
                 //Create a local instance
                 CcmLocalConfigDir = TestUtils.CreateTempDirectory();
-                var output = TestUtils.ExecuteLocalCcmClusterStart(CcmLocalConfigDir, "2.0.6");
+                var output = TestUtils.ExecuteLocalCcmClusterStart(CcmLocalConfigDir, Options.Default.CASSANDRA_VERSION, NodeLength);
 
                 if (output.ExitCode != 0)
                 {
                     throw new TestInfrastructureException("Local ccm could not start: " + output.ToString());
                 }
-                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
-                Session = cluster.Connect();
-                Session.CreateKeyspaceIfNotExists(keyspaceName);
-                Session.ChangeKeyspace(keyspaceName);
+                if (Builder == null)
+                {
+                    Builder = Cluster.Builder();
+                }
+                this.Cluster = Builder
+                    .AddContactPoint("127.0.0.1")
+                    .Build();
+                this.Session = this.Cluster.Connect();
+                this.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                this.Session.ChangeKeyspace(keyspaceName);
             }
         }
 
