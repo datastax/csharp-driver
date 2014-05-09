@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests
         public void CcmStartRemove()
         {
             var ccmConfigDir = TestUtils.CreateTempDirectory();
-            var output = TestUtils.ExecuteLocalCcmStart(ccmConfigDir, "2.0.3");
+            var output = TestUtils.ExecuteLocalCcmStart(ccmConfigDir, "2.0.6");
             if (output.ExitCode == 0)
             {
                 Console.WriteLine("Ccm started correctly: " + output.OutputText.ToString());
@@ -70,6 +70,18 @@ namespace Cassandra.IntegrationTests
             }
 
             TestUtils.ExecuteLocalCcmRemove(ccmConfigDir);
+        }
+
+        /// <summary>
+        /// Checks that ccm is present in the user profile path (generally C:\Users\(USERNAME)\)
+        /// </summary>
+        [Test]
+        public void CcmStartRemoveMultipleTimes()
+        {
+            for (var i = 0; i < 4; i++)
+            {
+                CcmStartRemove();
+            }
         }
     }
 }
