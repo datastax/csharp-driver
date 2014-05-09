@@ -25,26 +25,8 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    public class CollectionsTests
+    public class CollectionsTests : SingleNodeClusterTest
     {
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,
                                               string pendingMode = "")
         {

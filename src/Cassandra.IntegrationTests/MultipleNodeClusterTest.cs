@@ -29,8 +29,8 @@ namespace Cassandra.IntegrationTests
             this.NodeLength = nodeLength;
         }
 
-        [SetUp]
-        public virtual void Setup()
+        [TestFixtureSetUp]
+        public virtual void TestFixtureSetUp()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             var keyspaceName = "tester";
@@ -57,8 +57,8 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        [TearDown]
-        public virtual void Teardown()
+        [TestFixtureTearDown]
+        public virtual void TestFixtureTearDown()
         {
             if (ConfigurationManager.AppSettings["UseRemote"] == "true")
             {
