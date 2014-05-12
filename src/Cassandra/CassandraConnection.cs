@@ -579,10 +579,17 @@ namespace Cassandra
                     frame.Buffer.WriteTo(_socketStream);
                 }
             }
+            catch (InvalidQueryException)
+            {
+                //The socket is OK, it is just an exception
+                throw;
+            }
             catch (Exception ex)
             {
                 if (!SetupSocketException(ex))
+                {
                     throw;
+                }
             }
         }
 
