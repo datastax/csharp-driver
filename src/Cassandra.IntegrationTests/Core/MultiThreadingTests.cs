@@ -24,7 +24,7 @@ using System.Threading;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("long")]
-    public class AdvancedTests : TwoNodesClusterTest
+    public class MultiThreadingTests : TwoNodesClusterTest
     {
         public override void TestFixtureSetUp()
         {
