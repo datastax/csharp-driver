@@ -77,6 +77,7 @@
     <Compile Include="Cluster.cs" />
     <Compile Include="CassandraConnectionStringBuilder.cs" />
     <Compile Include="CompressionType.cs" />
+    <Compile Include="Connection.cs" />
     <Compile Include="ConsistencyLevel.cs" />
     <Compile Include="BatchStatement.cs" />
     <Compile Include="CqlQueryTools.cs" />

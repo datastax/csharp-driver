@@ -4,7 +4,7 @@ namespace Cassandra
 {
     internal class BoolSwitch
     {
-        private int _val;
+        private int _val = 0;
 
         public bool TryTake()
         {

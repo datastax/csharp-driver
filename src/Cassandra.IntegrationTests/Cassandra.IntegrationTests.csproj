@@ -58,6 +58,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="CCMBridge.cs" />
+    <Compile Include="Core\ConnectionTests.cs" />
     <Compile Include="Core\MultiThreadingTests.cs" />
     <Compile Include="Core\BasicTests.cs" />
     <Compile Include="Core\BatchStatements.cs" />
