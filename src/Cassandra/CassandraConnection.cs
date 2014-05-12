@@ -346,6 +346,10 @@ namespace Cassandra
                 else
                     job();
             }
+            catch (QueryValidationException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 if (!SetupSocketException(ex))
