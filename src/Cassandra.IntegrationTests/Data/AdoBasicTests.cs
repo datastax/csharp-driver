@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Data
             base.TestFixtureSetUp();
 
             var host = "127.0.0.1";
-            if (UseRemoteCcm)
+            if (TestUtils.UseRemoteCcm)
             {
                 host = Options.Default.IP_PREFIX + "1";
             }

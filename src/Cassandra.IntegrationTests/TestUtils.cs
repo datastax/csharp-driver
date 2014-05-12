@@ -61,6 +61,17 @@ namespace Cassandra.IntegrationTests
         public static readonly string SELECT_ALL_FORMAT = "SELECT * FROM {0}";
         public static readonly string SELECT_WHERE_FORMAT = "SELECT * FROM {0} WHERE {1}";
 
+        /// <summary>
+        /// Determines if the test should use a remote ccm instance
+        /// </summary>
+        public static bool UseRemoteCcm
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings["UseRemote"] == "true";
+            }
+        }
+
         // Wait for a node to be up and running
         // This is used because there is some delay between when a node has been
         // added through ccm and when it's actually available for querying'
@@ -425,6 +436,57 @@ namespace Cassandra.IntegrationTests
             return tempDirectory;
         }
 
+        public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null)
+        {
+            var clusterInfo = new CcmClusterInfo();
+            if (builder == null)
+            {
+                builder = Cluster.Builder();
+            }
+            if (UseRemoteCcm)
+            {
+                CCMBridge.ReusableCCMCluster.Setup(nodeLength);
+                clusterInfo.Cluster = CCMBridge.ReusableCCMCluster.Build(builder);
+                if (keyspaceName != null)
+                {
+                    clusterInfo.Session = CCMBridge.ReusableCCMCluster.Connect(keyspaceName);
+                }
+            }
+            else
+            {
+                //Create a local instance
+                clusterInfo.ConfigDir = TestUtils.CreateTempDirectory();
+                var output = TestUtils.ExecuteLocalCcmClusterStart(clusterInfo.ConfigDir, Options.Default.CASSANDRA_VERSION, nodeLength);
+
+                if (output.ExitCode != 0)
+                {
+                    throw new TestInfrastructureException("Local ccm could not start: " + output.ToString());
+                }
+                clusterInfo.Cluster = builder
+                    .AddContactPoint("127.0.0.1")
+                    .Build();
+                clusterInfo.Session = clusterInfo.Cluster.Connect();
+                if (keyspaceName != null)
+                {
+                    clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                    clusterInfo.Session.ChangeKeyspace(keyspaceName);
+                }
+            }
+            return clusterInfo;
+        }
+
+        public static void CcmRemove(CcmClusterInfo info)
+        {
+            if (UseRemoteCcm)
+            {
+                CCMBridge.ReusableCCMCluster.Drop();
+            }
+            else
+            {
+                //Remove the cluster
+                TestUtils.ExecuteLocalCcmClusterRemove(info.ConfigDir);
+            }
+        }
     }
 
     /// <summary>
@@ -448,5 +510,14 @@ namespace Cassandra.IntegrationTests
                 "Exit Code: " + this.ExitCode + Environment.NewLine +
                 "Output Text: " + this.OutputText.ToString() + Environment.NewLine;
         }
+    }
+
+    public class CcmClusterInfo
+    {
+        public Cluster Cluster { get; set; }
+
+        public ISession Session { get; set; }
+
+        public string ConfigDir { get; set; }
     }
 }
