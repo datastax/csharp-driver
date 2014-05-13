@@ -80,8 +80,7 @@
     <Compile Include="Core\ReconnectionPolicyTests.cs" />
     <Compile Include="Core\RetryPolicyTests.cs" />
     <Compile Include="Core\SessionExecuteAsyncTests.cs" />
-    <Compile Include="Core\Stress1Tests.cs" />
-    <Compile Include="Core\Stress2Tests.cs" />
+    <Compile Include="Core\StressTests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
     <Compile Include="MultipleNodeClusterTest.cs" />
@@ -104,15 +103,9 @@
     <Compile Include="Linq\Utils.cs" />
     <Compile Include="Core\ParameterizedStatementsTests.cs" />
     <Compile Include="SingleNodeClusterTest.cs" />
-    <Compile Include="TestClass.cs" />
     <Compile Include="MyTestOptions.cs" />
-    <Compile Include="NeedSomeFixAttribute.cs" />
     <Compile Include="Options.cs" />
-    <Compile Include="PriorityAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StressAttribute.cs" />
-    <Compile Include="TestCleanupAttribute.cs" />
-    <Compile Include="TestInitializeAttribute.cs" />
     <Compile Include="TestUtils.cs" />
     <Compile Include="TwoNodesClusterTest.cs" />
   </ItemGroup>

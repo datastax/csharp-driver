@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class RetryPolicyTests : PolicyTestTools
     {
         protected virtual string IpPrefix

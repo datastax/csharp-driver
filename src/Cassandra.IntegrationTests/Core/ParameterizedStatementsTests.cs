@@ -9,26 +9,9 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    class ParameterizedStatementsTests
+    [Category("short")]
+    public class ParameterizedStatementsTests : SingleNodeClusterTest
     {
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
         [Test]
         public void TestText()
         {

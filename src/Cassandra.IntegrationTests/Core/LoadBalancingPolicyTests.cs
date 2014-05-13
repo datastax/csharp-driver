@@ -19,7 +19,7 @@ using System;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
         protected virtual string IpPrefix

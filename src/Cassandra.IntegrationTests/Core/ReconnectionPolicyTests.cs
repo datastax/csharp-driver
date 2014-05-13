@@ -21,7 +21,7 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class ReconnectionPolicyTests : PolicyTestTools
     {
         protected virtual string IpPrefix
