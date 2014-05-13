@@ -29,79 +29,79 @@ namespace Cassandra.IntegrationTests.Core
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        [TestMethod]
+        [Test]
         public void TestText()
         {
             ParameterizedStatementTest(typeof(string));
         }
 
-        [TestMethod]
+        [Test]
         public void testBlob()
         {
             ParameterizedStatementTest(typeof(byte));
         }
 
-        [TestMethod]
+        [Test]
         public void testASCII()
         {
             ParameterizedStatementTest(typeof(Char));
         }
 
-        [TestMethod]
+        [Test]
         public void testDecimal()
         {
             ParameterizedStatementTest(typeof(Decimal));
         }
 
-        [TestMethod]
+        [Test]
         public void testVarInt()
         {
             ParameterizedStatementTest(typeof(BigInteger));
         }
 
-        [TestMethod]
+        [Test]
         public void testBigInt()
         {
             ParameterizedStatementTest(typeof(Int64));
         }
 
-        [TestMethod]
+        [Test]
         public void testDouble()
         {
             ParameterizedStatementTest(typeof(Double));
         }
 
-        [TestMethod]
+        [Test]
         public void testFloat()
         {
             ParameterizedStatementTest(typeof(Single));
         }
 
-        [TestMethod]
+        [Test]
         public void testInt()
         {
             ParameterizedStatementTest(typeof(Int32));
         }
 
-        [TestMethod]
+        [Test]
         public void testBoolean()
         {
             ParameterizedStatementTest(typeof(Boolean));
         }
 
-        [TestMethod]
+        [Test]
         public void testUUID()
         {
             ParameterizedStatementTest(typeof(Guid));
         }
 
-        [TestMethod]
+        [Test]
         public void testTimeStamp()
         {
             ParameterizedStatementTimeStampTest();
         }
 
-        [TestMethod]
+        [Test]
         public void testIntAsync()
         {
             ParameterizedStatementTest(typeof(Int32), true);

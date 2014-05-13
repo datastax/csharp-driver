@@ -22,6 +22,7 @@ using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -52,8 +53,7 @@ namespace Cassandra.IntegrationTests.Linq
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void DoTest()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;

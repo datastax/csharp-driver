@@ -425,8 +425,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void RowsetIteratedTwice()
         {
             var clusterInfo = TestUtils.CcmSetup(1);

@@ -114,10 +114,8 @@
     <Compile Include="TestCleanupAttribute.cs" />
     <Compile Include="TestIgnoreAttribute.cs" />
     <Compile Include="TestInitializeAttribute.cs" />
-    <Compile Include="TestMethodAttribute.cs" />
     <Compile Include="TestUtils.cs" />
     <Compile Include="TwoNodesClusterTest.cs" />
-    <Compile Include="WorksForMeAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">

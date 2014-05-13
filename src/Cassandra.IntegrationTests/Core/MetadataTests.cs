@@ -207,29 +207,25 @@ namespace Cassandra.IntegrationTests.Core
         }
 
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void checkSimpleStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void checkNetworkTopologyStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void checkTableMetadata()
         {
             checkMetadata();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void checkTableMetadataWithOptions()
         {
             checkMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
@@ -245,8 +241,7 @@ namespace Cassandra.IntegrationTests.Core
                                                          }));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void checkKeyspaceMetadata()
         {
             checkKSMetadata();

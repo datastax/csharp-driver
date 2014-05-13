@@ -25,15 +25,13 @@ namespace Cassandra.IntegrationTests.Core
     {
         private ISession Session;
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void reprepareOnNewlyUpNodeTestCCM()
         {
             reprepareOnNewlyUpNodeTest(true);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void reprepareOnNewlyUpNodeNoKeyspaceTestCCM()
         {
             // This is the same test than reprepareOnNewlyUpNodeTest, except that the

@@ -24,11 +24,10 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class ReconnectionPolicyTests : PolicyTestTools
     {
-        /*
- * Test the ExponentialReconnectionPolicy.
- */
-        [TestMethod]
-        [WorksForMe]
+        /// <summary>
+        /// Test the ExponentialReconnectionPolicy.
+        /// </summary>
+        [Test]
         public void exponentialReconnectionPolicyTest()
         {
             var builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000));
@@ -92,11 +91,10 @@ namespace Cassandra.IntegrationTests.Core
             //reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
-        /*
-         * Test the ConstantReconnectionPolicy.
-         */
-        [TestMethod]
-        [WorksForMe]
+        /// <summary>
+        /// Test the ConstantReconnectionPolicy.
+        /// </summary>
+        [Test]
         public void constantReconnectionPolicyTest()
         {
             Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25 * 1000));

@@ -22,8 +22,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class FoundBugTests
     {
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void Jira_CSHARP_80_82()
         {
             try
@@ -52,8 +51,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void Jira_CSHARP_40()
             //During reconnect the tablespace name becomes invalid
         {

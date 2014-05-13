@@ -243,9 +243,7 @@ namespace Cassandra.IntegrationTests.Core
             Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg + "ms");
         }
 
-        [TestMethod]
-        [Stress]
-        [WorksForMe]
+        [Test]
         public void test1()
         {
             parallelInsertTestGeneric(10, 100);

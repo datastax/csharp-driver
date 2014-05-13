@@ -24,16 +24,14 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class RetryPolicyTests : PolicyTestTools
     {
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void defaultRetryPolicy()
         {
             Builder builder = Cluster.Builder();
             defaultPolicyTest(builder);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void defaultLoggingPolicy()
         {
             var builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(new DefaultRetryPolicy()));
@@ -44,9 +42,7 @@ namespace Cassandra.IntegrationTests.Core
          * Test the FallthroughRetryPolicy.
          * Uses the same code that DefaultRetryPolicy uses.
          */
-
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void fallthroughRetryPolicy()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(FallthroughRetryPolicy.Instance);
@@ -57,9 +53,7 @@ namespace Cassandra.IntegrationTests.Core
          * Test the FallthroughRetryPolicy with Logging enabled.
          * Uses the same code that DefaultRetryPolicy uses.
          */
-
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void fallthroughLoggingPolicy()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(FallthroughRetryPolicy.Instance));
@@ -257,8 +251,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void downgradingConsistencyRetryPolicy()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -268,8 +261,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy with LoggingRetryPolicy
         /// </summary>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void downgradingConsistencyLoggingPolicy()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
@@ -278,7 +270,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         /// Unit test on retry decisions
         /// </summary>
-        [TestMethod]
+        [Test]
         public void DowngradingConsistencyRetryTest()
         {
             //Retry if 1 of 2 replicas are alive
@@ -340,10 +332,8 @@ namespace Cassandra.IntegrationTests.Core
         /*
          * Test the AlwaysIgnoreRetryPolicy with Logging enabled.
          */
-
-        [TestMethod]
-        [WorksForMe]
-        public void alwaysIgnoreRetryPolicyTest()
+        [Test]
+        public void AlwaysIgnoreRetryPolicyTest()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(AlwaysIgnoreRetryPolicy.Instance));
             CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
@@ -421,10 +411,8 @@ namespace Cassandra.IntegrationTests.Core
         /*
          * Test the AlwaysIgnoreRetryPolicy with Logging enabled.
          */
-
-        [TestMethod]
-        [WorksForMe]
-        public void alwaysRetryRetryPolicyTest()
+        [Test]
+        public void AlwaysRetryRetryPolicyTest()
         {
             Console.Write("MainThread is");
             Console.Write("[");

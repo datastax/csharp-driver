@@ -25,8 +25,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class ConsistencyTests : PolicyTestTools
     {
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFOneTokenAware()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -157,8 +156,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFTwoTokenAware()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -292,8 +290,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFThreeTokenAware()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
@@ -427,8 +424,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFOneDowngradingCL()
         {
             Builder builder =
@@ -562,8 +558,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFTwoDowngradingCL()
         {
             Builder builder =
@@ -698,8 +693,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFThreeRoundRobinDowngradingCL()
         {
             Builder builder =
@@ -707,8 +701,7 @@ namespace Cassandra.IntegrationTests.Core
             testRFThreeDowngradingCL(builder);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFThreeTokenAwareDowngradingCL()
         {
             Builder builder =
@@ -843,8 +836,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFThreeDowngradingCLTwoDCs()
         {
             Builder builder =
@@ -969,8 +961,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testRFThreeDowngradingCLTwoDCsDCAware()
         {
             Builder builder =

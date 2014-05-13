@@ -272,8 +272,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a wide row of size 1,000,000
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void wideRows()
         {
             SetupDefaultCluster();
@@ -285,8 +284,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a batch that writes a row of size 10,000
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void wideBatchRows()
         {
             SetupDefaultCluster();
@@ -298,8 +296,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a wide row of size 1,000,000 consisting of a ByteBuffer
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void wideByteRows()
         {
             SetupDefaultCluster();
@@ -311,8 +308,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a row with a single extra large text value
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void largeText()
         {
             SetupDefaultCluster();
@@ -323,8 +319,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Creates a table with 330 columns
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void wideTable()
         {
             SetupDefaultCluster();
@@ -348,8 +343,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests 10 random tests consisting of the other methods in this class
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void mixedDurationTestCCM()
         {
             if (CCMCluster != null)
@@ -437,8 +431,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test list with a single large text value
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void largeListText()
         {
             SetupDefaultCluster();
@@ -458,8 +451,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test set with a single large text value
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void largeSetText()
         {
             SetupDefaultCluster();
@@ -479,8 +471,7 @@ namespace Cassandra.IntegrationTests.Core
     ///  Test map with a large text key and large text value
         /// </summary>
         /// <throws name="Exception"></throws>
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void largeMapText()
         {
             SetupDefaultCluster();

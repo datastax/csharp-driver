@@ -48,8 +48,7 @@ namespace Cassandra.IntegrationTests.Linq
         }
 
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-43
         //LINQ query with multiple "where" generate wrong cql and it is failed to execute
         public void Bug_CSHARP_43()

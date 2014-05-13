@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NUnit.Framework;
+using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
@@ -184,9 +185,7 @@ namespace Cassandra.IntegrationTests.Core
             Console.WriteLine("... Inserted values from " + startIndex + " to " + endIndex + " avg:" + avg + "ms");
         }
 
-        [TestMethod]
-        [Stress]
-        [WorksForMe]
+        [Test]
         public void test1()
         {
             parallelInsertTestGeneric(10, 1);

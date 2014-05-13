@@ -203,29 +203,25 @@ namespace Cassandra.IntegrationTests.Linq
             List<Tweets> smth = table.Where(x => x.isok == isok).Execute().ToList();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void Test()
         {
             Test1();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestPagination()
         {
             testPagination();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestBuffering()
         {
             testBuffering();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void TestBug16_JIRA()
         {
             Bug16_JIRA();

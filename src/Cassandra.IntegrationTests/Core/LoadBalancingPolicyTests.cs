@@ -22,8 +22,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestClass]
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void roundRobinTestCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -68,8 +67,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-
-        [TestMethod]
+        [Test]
         public void PoliciesAreDifferentInstancesWhenDefault()
         {
 
@@ -89,8 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void roundRobinWith2DCsTestCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -132,8 +129,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void DCAwareRoundRobinTestCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
@@ -161,8 +157,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void forceStopCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
@@ -208,8 +203,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
@@ -303,15 +297,13 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void tokenAwarePreparedTestCCM()
         {
             tokenAwareTest(true);
@@ -386,8 +378,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void tokenAwareWithRF2TestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));

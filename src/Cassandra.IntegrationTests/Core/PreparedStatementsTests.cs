@@ -135,8 +135,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsTrue(row.Where(v => v == null).Count() > 5, "The rest of the row values must be null");
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void PreparedSelectOneTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");
@@ -173,99 +172,85 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testMassivePrepared()
         {
             massivePreparedStatementTest();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedDecimal()
         {
             insertingSingleValuePrepared(typeof (Decimal));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedVarInt()
         {
             insertingSingleValuePrepared(typeof (BigInteger));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedBigInt()
         {
             insertingSingleValuePrepared(typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedDouble()
         {
             insertingSingleValuePrepared(typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedFloat()
         {
             insertingSingleValuePrepared(typeof (Single));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedInt()
         {
             insertingSingleValuePrepared(typeof(Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedNullInt()
         {
             insertingSingleValuePrepared(typeof(Int32), null);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedNullVarchar()
         {
             insertingSingleValuePrepared(typeof(string), null);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedVarchar()
         {
             insertingSingleValuePrepared(typeof (String));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedBoolean()
         {
             insertingSingleValuePrepared(typeof (Boolean));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedBlob()
         {
             insertingSingleValuePrepared(typeof (Byte));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedInet()
         {
             insertingSingleValuePrepared(typeof(System.Net.IPAddress));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testPreparedUUID()
         {
             insertingSingleValuePrepared(typeof (Guid));

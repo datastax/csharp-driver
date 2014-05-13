@@ -20,6 +20,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -47,8 +48,7 @@ namespace Cassandra.IntegrationTests.Linq
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-42
         //Create table causes InvalidOperationException
         public void Bug_CSHARP_42()

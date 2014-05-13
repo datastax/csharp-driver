@@ -45,8 +45,7 @@ namespace Cassandra.IntegrationTests.Linq
             CCMBridge.ReusableCCMCluster.Drop();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-44
         //Linq: Attach entity, update entity values, save changes. Comparison of null property values throws exception
         public void Bug_CSHARP_44()
