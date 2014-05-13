@@ -67,7 +67,7 @@ namespace Cassandra
             _freeOperations = new ConcurrentStack<int>(Enumerable.Range(0, 128));
             _currentOperations = new Dictionary<int, OperationState>();
             _sendSocketEvent.Completed += OnSendCompleted;
-            _receiveSocketEvent.SetBuffer(new byte[256], 0, 256);
+            _receiveSocketEvent.SetBuffer(new byte[10240], 0, 10240);
             _receiveSocketEvent.Completed += OnReceiveCompleted;
 
             InitSocket();
@@ -81,6 +81,13 @@ namespace Cassandra
                 //It timed out: Close the socket and throw the exception
                 _socket.Close();
                 throw new SocketException((int)SocketError.TimedOut);
+            }
+
+            //Start receiving
+            var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
+            if (!willRaiseEvent)
+            {
+                OnReceiveCompleted(this, _receiveSocketEvent);
             }
         }
 
@@ -126,6 +133,16 @@ namespace Cassandra
                 state.TaskCompletionSource.TrySetResult(buffer);
                 //Remove from the internal state
                 _currentOperations.Remove(streamId);
+                var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
+                if (!willRaiseEvent)
+                {
+                    OnReceiveCompleted(this, _receiveSocketEvent);
+                }
+            }
+            else
+            {
+                //TODO: Fail the current message
+                throw new SocketException((int)e.SocketError);
             }
         }
 
@@ -133,37 +150,39 @@ namespace Cassandra
         {
              if (e.SocketError == SocketError.Success)
              {
-                 //Begin read
-                _receiveSocketEvent.SetBuffer(new byte[1024], 0, 1024);
-                var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
-                if (!willRaiseEvent)
-                {
-                    OnReceiveCompleted(this, _receiveSocketEvent);
-                }
+
              }
              else
              {
                  //TODO: Get the streamId and Raise exception
+                 throw new SocketException((int)e.SocketError);
              }
         }
 
-        protected internal virtual Task<object> Startup()
+        protected internal virtual void Send(IRequest request, TaskCompletionSource<object> tcs)
         {
+            //TODO: Implement a thread safe write queue
             int streamId = -1;
             if (!_freeOperations.TryPop(out streamId))
             {
                 //TODO: Throw a BusyException
             }
-            var request = new StartupRequest(streamId, new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
-            var buffer = request.GetFrame(1).Buffer.ToArray();
+            var buffer = request.GetFrame((byte)streamId, 1).Buffer.ToArray();
             var state = new OperationState()
             {
-                TaskCompletionSource = new TaskCompletionSource<object>()
+                TaskCompletionSource = tcs
             };
             _currentOperations.Add(streamId, state);
 
-            Write(_sendSocketEvent, request.GetFrame(1).Buffer.ToArray());
-            return state.TaskCompletionSource.Task;
+            Write(_sendSocketEvent, buffer);
+        }
+
+        protected internal virtual Task<object> Startup()
+        {
+            var request = new StartupRequest(new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
+            var tcs = new TaskCompletionSource<object>();
+            Send(request, tcs);
+            return tcs.Task;
         }
 
         protected internal virtual void Write(SocketAsyncEventArgs sendEvent, byte[] buffer)

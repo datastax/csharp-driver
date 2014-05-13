@@ -2,7 +2,7 @@ using System.IO;
 
 namespace Cassandra
 {
-    internal struct RequestFrame
+    public struct RequestFrame
     {
         public const int VersionIdx = 0;
         public const int FlagsIdx = 1;

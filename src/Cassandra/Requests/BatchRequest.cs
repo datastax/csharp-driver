@@ -25,25 +25,23 @@ namespace Cassandra
         private readonly ConsistencyLevel _consistency;
         private readonly byte _flags;
         private readonly ICollection<IQueryRequest> _requests;
-        private readonly int _streamId;
         private readonly BatchType _type;
 
-        public BatchRequest(int streamId, BatchType type, ICollection<IQueryRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
+        public BatchRequest(BatchType type, ICollection<IQueryRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
         {
             _type = type;
             _requests = requests;
-            _streamId = streamId;
             _consistency = consistency;
             if (tracingEnabled)
                 _flags = 0x02;
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             if (protocolVersionByte != RequestFrame.ProtocolV2RequestVersionByte)
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _flags, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, _flags, streamId, OpCode);
             wb.WriteByte((byte) _type);
             wb.WriteInt16((short) _requests.Count);
             foreach (IQueryRequest br in _requests)

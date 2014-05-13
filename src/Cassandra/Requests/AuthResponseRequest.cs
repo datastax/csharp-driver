@@ -19,19 +19,17 @@ namespace Cassandra
     internal class AuthResponseRequest : IRequest
     {
         public const byte OpCode = 0x0F;
-        private readonly int _streamId;
         private readonly byte[] _token;
 
-        public AuthResponseRequest(int streamId, byte[] token)
+        public AuthResponseRequest(byte[] token)
         {
-            _streamId = streamId;
             _token = token;
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
             wb.WriteBytes(_token);
             return wb.GetFrame();
         }

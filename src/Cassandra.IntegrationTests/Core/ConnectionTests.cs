@@ -17,7 +17,8 @@ namespace Cassandra.IntegrationTests.Core
             var connection = new Connection(new IPEndPoint(new IPAddress(new byte[]{127, 0, 0, 1}), 9042), new ProtocolOptions(), new SocketOptions());
             connection.Init();
             var task = connection.Startup();
-            task.Wait();
+            task.Wait(5000);
+            Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
         }
     }
 }

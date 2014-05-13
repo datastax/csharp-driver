@@ -24,12 +24,10 @@ namespace Cassandra
         private readonly string _cqlQuery;
         private readonly byte _headerFlags;
         private readonly QueryProtocolOptions _queryProtocolOptions;
-        private readonly int _streamId;
 
-        public QueryRequest(int streamId, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions,
+        public QueryRequest(string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions,
                             ConsistencyLevel? consistency = null)
         {
-            _streamId = streamId;
             _cqlQuery = cqlQuery;
             _consistency = consistency;
             _queryProtocolOptions = queryPrtclOptions;
@@ -37,10 +35,10 @@ namespace Cassandra
                 _headerFlags = 0x02;
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _headerFlags, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, _headerFlags, streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
             _queryProtocolOptions.Write(wb, _consistency, protocolVersionByte);

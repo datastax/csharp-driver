@@ -299,7 +299,7 @@ namespace Cassandra
             {
                 if (startup && !_isStreamOpened.Value)
                 {
-                    Evaluate(new StartupRequest(jar.StreamId, _startupOptions), jar.StreamId, frame =>
+                    Evaluate(new StartupRequest(_startupOptions), jar.StreamId, frame =>
                     {
                         AbstractResponse response = FrameParser.Parse(frame);
                         if (response is ReadyResponse)
@@ -315,7 +315,7 @@ namespace Cassandra
                             {
                                 IDictionary<string, string> credentials = _authInfoProvider.GetAuthInfos(_serverAddress);
 
-                                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, frame2 =>
+                                Evaluate(new CredentialsRequest(credentials), jar.StreamId, frame2 =>
                                 {
                                     AbstractResponse response2 = FrameParser.Parse(frame2);
                                     if (response2 is ReadyResponse)
@@ -359,7 +359,7 @@ namespace Cassandra
 
         private void WaitForSaslResponse(AsyncResult<IOutput> jar, byte[] response, IAuthenticator authenticator, Action job)
         {
-            Evaluate(new AuthResponseRequest(jar.StreamId, response), jar.StreamId, frame2 =>
+            Evaluate(new AuthResponseRequest(response), jar.StreamId, frame2 =>
             {
                 AbstractResponse response2 = FrameParser.Parse(frame2);
                 if ((response2 is AuthSuccessResponse)
@@ -569,7 +569,7 @@ namespace Cassandra
         {
             try
             {
-                RequestFrame frame = req.GetFrame(_binaryProtocolRequestVersionByte);
+                RequestFrame frame = req.GetFrame((byte) streamId, _binaryProtocolRequestVersionByte);
                 lock (_socketStream)
                 {
                     _frameReadCallback[streamId] = nextAction;
@@ -622,7 +622,7 @@ namespace Cassandra
             AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "REGISTER");
             BeginJob(jar, () =>
             {
-                Evaluate(new RegisterForEventRequest(jar.StreamId, eventTypes), jar.StreamId, frame2 =>
+                Evaluate(new RegisterForEventRequest(eventTypes), jar.StreamId, frame2 =>
                 {
                     AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
@@ -664,7 +664,7 @@ namespace Cassandra
                 {
                     foreach (KeyValuePair<byte[], string> ncipit in ncip)
                     {
-                        Evaluate(new PrepareRequest(jar.StreamId, ncipit.Value), jar.StreamId, frame2 =>
+                        Evaluate(new PrepareRequest(ncipit.Value), jar.StreamId, frame2 =>
                         {
                             AbstractResponse response = FrameParser.Parse(frame2);
                             if (response is ResultResponse)
@@ -715,7 +715,7 @@ namespace Cassandra
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQueries(jar, GetIdsFromListOfQueries(queries), () =>
             {
-                Evaluate(new BatchRequest(jar.StreamId, batchType, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
+                Evaluate(new BatchRequest(batchType, GetRequestsFromListOfQueries(queries), consistency, isTracing), jar.StreamId,
                          frame2 =>
                          {
                              AbstractResponse response = FrameParser.Parse(frame2);
@@ -744,7 +744,7 @@ namespace Cassandra
             {
                 if (!_preparedQueries.ContainsKey(id))
                 {
-                    Evaluate(new PrepareRequest(jar.StreamId, cql), jar.StreamId, frame2 =>
+                    Evaluate(new PrepareRequest(cql), jar.StreamId, frame2 =>
                     {
                         AbstractResponse response = FrameParser.Parse(frame2);
                         if (response is ResultResponse)
@@ -769,7 +769,7 @@ namespace Cassandra
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, id, cql, () =>
             {
-                Evaluate(new ExecuteRequest(jar.StreamId, id, metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
+                Evaluate(new ExecuteRequest(id, metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
                          frame2 =>
                          {
                              AbstractResponse response = FrameParser.Parse(frame2);
@@ -805,7 +805,7 @@ namespace Cassandra
             AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "CREDENTIALS");
             BeginJob(jar, () =>
             {
-                Evaluate(new CredentialsRequest(jar.StreamId, credentials), jar.StreamId, frame2 =>
+                Evaluate(new CredentialsRequest(credentials), jar.StreamId, frame2 =>
                 {
                     AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ReadyResponse)
@@ -838,7 +838,7 @@ namespace Cassandra
             {
                 if (!_currentKs.Value.Equals(_selectedKs.Value))
                 {
-                    Evaluate(new QueryRequest(jar.StreamId, CqlQueryTools.GetUseKeyspaceCql(_selectedKs.Value), false, QueryProtocolOptions.Default),
+                    Evaluate(new QueryRequest(CqlQueryTools.GetUseKeyspaceCql(_selectedKs.Value), false, QueryProtocolOptions.Default),
                              jar.StreamId, frame3 =>
                              {
                                  AbstractResponse response = FrameParser.Parse(frame3);
@@ -862,7 +862,7 @@ namespace Cassandra
             AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "QUERY");
             BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new QueryRequest(jar.StreamId, cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, frame2 =>
+                Evaluate(new QueryRequest(cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, frame2 =>
                 {
                     AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
@@ -890,7 +890,7 @@ namespace Cassandra
             AsyncResult<IOutput> jar = SetupJob(stramId, callback, state, owner, "PREPARE");
             BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new PrepareRequest(jar.StreamId, cqlQuery), jar.StreamId, frame2 =>
+                Evaluate(new PrepareRequest(cqlQuery), jar.StreamId, frame2 =>
                 {
                     AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)
@@ -923,7 +923,7 @@ namespace Cassandra
 
             BeginJob(jar, () =>
             {
-                Evaluate(new OptionsRequest(jar.StreamId), jar.StreamId, frame2 =>
+                Evaluate(new OptionsRequest(), jar.StreamId, frame2 =>
                 {
                     AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is SupportedResponse)

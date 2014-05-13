@@ -27,16 +27,14 @@ namespace Cassandra
         private readonly byte[] _id;
         private readonly RowSetMetadata _metadata;
         private readonly QueryProtocolOptions _queryProtocolOptions;
-        private readonly int _streamId;
 
-        public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions,
+        public ExecuteRequest(byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions,
                               ConsistencyLevel? consistency = null)
         {
             if (queryProtocolOptions.Values.Length != metadata.Columns.Length)
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
 
             _consistency = consistency;
-            _streamId = streamId;
             _id = id;
             _metadata = metadata;
             _queryProtocolOptions = queryProtocolOptions;
@@ -44,10 +42,10 @@ namespace Cassandra
                 _flags = 0x02;
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _flags, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, _flags, streamId, OpCode);
             wb.WriteShortBytes(_id);
             _queryProtocolOptions.Write(wb, _consistency, protocolVersionByte);
 
