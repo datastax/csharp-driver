@@ -194,7 +194,7 @@ namespace Cassandra.IntegrationTests
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                process.StartInfo.CreateNoWindow = true; 
+                process.StartInfo.CreateNoWindow = true;
 
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
@@ -291,7 +291,7 @@ namespace Cassandra.IntegrationTests
         /// <param name="nodeLength">amount of nodes in the cluster</param>
         /// <param name="clusterName"></param>
         /// <returns></returns>
-        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, string clusterName = "test")
+        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, int secondDCNodeLength = 0, string clusterName = "test")
         {
             //Starting ccm cluster involves:
             //  1.- Getting the Apache Cassandra Distro
@@ -319,7 +319,14 @@ namespace Cassandra.IntegrationTests
             {
                 return output;
             }
-            ccmCommand = "populate -n " + nodeLength;
+            if (secondDCNodeLength > 0)
+            {
+                ccmCommand = String.Format("populate -n {0}:{1}", nodeLength, secondDCNodeLength); 
+            }
+            else
+            {
+                ccmCommand = "populate -n " + nodeLength;
+            }
             var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 4000);
             if (populateOutput.ExitCode != 0)
             {
@@ -438,10 +445,6 @@ namespace Cassandra.IntegrationTests
 
         public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0)
         {
-            if (secondDcNodeLength > 0)
-            {
-                throw new NotImplementedException();
-            }
             var clusterInfo = new CcmClusterInfo();
             if (builder == null)
             {
@@ -460,7 +463,7 @@ namespace Cassandra.IntegrationTests
             {
                 //Create a local instance
                 clusterInfo.ConfigDir = TestUtils.CreateTempDirectory();
-                var output = TestUtils.ExecuteLocalCcmClusterStart(clusterInfo.ConfigDir, Options.Default.CASSANDRA_VERSION, nodeLength);
+                var output = TestUtils.ExecuteLocalCcmClusterStart(clusterInfo.ConfigDir, Options.Default.CASSANDRA_VERSION, nodeLength, secondDcNodeLength);
 
                 if (output.ExitCode != 0)
                 {
