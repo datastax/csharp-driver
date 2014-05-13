@@ -24,24 +24,19 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class MetadataTests
     {
-        private CCMBridge.CCMCluster CCMCluster;
         private Cluster Cluster;
         private string Keyspace = "tester";
         private ISession Session;
 
-        [TestInitialize]
+        [TestFixtureSetUp]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
         }
 
-        [TestCleanup]
-        public void Dispose()
-        {
-        }
 
         public void checkPureMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
         {
@@ -105,11 +100,11 @@ namespace Cassandra.IntegrationTests.Core
 
         public void checkMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
         {
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            var clusterInfo = TestUtils.CcmSetup(2);
             try
             {
-                Session = CCMCluster.Session;
-                Cluster = CCMCluster.Cluster;
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
 
@@ -117,17 +112,17 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                CCMCluster.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
         public void checkKSMetadata()
         {
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            var clusterInfo = TestUtils.CcmSetup(2);
             try
             {
-                Session = CCMCluster.Session;
-                Cluster = CCMCluster.Cluster;
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
 
@@ -155,17 +150,17 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                CCMCluster.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
         public void CreateKeyspaceWithPropertiesTest(string strategy_class)
         {
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            var clusterInfo = TestUtils.CcmSetup(2);
             try
             {
-                Session = CCMCluster.Session;
-                Cluster = CCMCluster.Cluster;
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
 
                 bool durable_writes = Randomm.Instance.NextBoolean();
 
@@ -202,31 +197,31 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                CCMCluster.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
 
         [Test]
-        public void checkSimpleStrategyKeyspace()
+        public void CheckSimpleStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.SimpleStrategy);
         }
 
         [Test]
-        public void checkNetworkTopologyStrategyKeyspace()
+        public void CheckNetworkTopologyStrategyKeyspace()
         {
             CreateKeyspaceWithPropertiesTest(ReplicationStrategies.NetworkTopologyStrategy);
         }
 
         [Test]
-        public void checkTableMetadata()
+        public void CheckTableMetadata()
         {
             checkMetadata();
         }
 
         [Test]
-        public void checkTableMetadataWithOptions()
+        public void CheckTableMetadataWithOptions()
         {
             checkMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
                                                          new SortedDictionary<string, string>
@@ -242,7 +237,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void checkKeyspaceMetadata()
+        public void CheckKeyspaceMetadata()
         {
             checkKSMetadata();
         }
