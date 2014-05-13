@@ -86,8 +86,8 @@
     <Compile Include="InfrastructureTests.cs" />
     <Compile Include="MultipleNodeClusterTest.cs" />
     <Compile Include="TestInfrastructureException.cs" />
-    <Compile Include="Linq\BasicLinqTests.cs" />
-    <Compile Include="Linq\ComplexTests.cs" />
+    <Compile Include="Linq\LinqContextBasicTests.cs" />
+    <Compile Include="Linq\LinqContextComplexTests.cs" />
     <Compile Include="Linq\FoundBug2Tests.cs" />
     <Compile Include="Linq\FoundBug3Tests.cs" />
     <Compile Include="Linq\FoundBugTests.cs" />
@@ -112,7 +112,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StressAttribute.cs" />
     <Compile Include="TestCleanupAttribute.cs" />
-    <Compile Include="TestIgnoreAttribute.cs" />
     <Compile Include="TestInitializeAttribute.cs" />
     <Compile Include="TestUtils.cs" />
     <Compile Include="TwoNodesClusterTest.cs" />

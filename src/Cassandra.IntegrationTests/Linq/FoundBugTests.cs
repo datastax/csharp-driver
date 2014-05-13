@@ -23,31 +23,9 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    [TestClass]
-    public class FoundBugTests
+    [Category("short")]
+    public class FoundBugTests : SingleNodeClusterTest
     {
-        private string KeyspaceName = "test";
-
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-            Session.CreateKeyspaceIfNotExists(KeyspaceName);
-            Session.ChangeKeyspace(KeyspaceName);
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-
         [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-43
         //LINQ query with multiple "where" generate wrong cql and it is failed to execute

@@ -24,31 +24,21 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    [TestClass]
-    public class BasicLinqTests
+    [Category("short")]
+    public class LinqContextBasicTests : TwoNodesClusterTest
     {
-        private ISession Session;
         private TweetsContext ents;
 
-        [TestInitialize]
-        public void SetFixture()
+        public override void TestFixtureSetUp()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            base.TestFixtureSetUp();
             ents = new TweetsContext(Session);
         }
 
-        [TestCleanup]
-        public void Dispose()
+        [Test]
+        public void LinqContextInsertDeleteSelectTest()
         {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-        public void Test1()
-        {
-            ContextTable<Tweets> table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>("tweets01");
 
             var buf = new byte[256];
             for (int i = 0; i < 256; i++)
@@ -86,10 +76,10 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.AreEqual(0, cnt2);
         }
 
-
-        public void testPagination()
+        [Test]
+        public void LinqContextPaginationTest()
         {
-            ContextTable<Tweets> table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>("tweets02");
             int RowsNb = 3000;
 
             for (int i = 0; i < RowsNb; i++)
@@ -126,9 +116,10 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.AreEqual(lastcnt, RowsNb%PerPage);
         }
 
-        public void testBuffering()
+        [Test]
+        public void LinqContextBufferingTest()
         {
-            ContextTable<Tweets> table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>("tweets03");
 
             CqlQuery<Tweets> q2 =
                 (from e in table where CqlToken.Create(e.idx) <= 0 select e).Take(10).OrderBy(e => e.idx).ThenByDescending(e => e.isok);
@@ -185,9 +176,10 @@ namespace Cassandra.IntegrationTests.Linq
             }
         }
 
-        public void Bug16_JIRA()
+        [Test]
+        public void Bug16JiraTest()
         {
-            ContextTable<Tweets> table = ents.GetTable<Tweets>();
+            ContextTable<Tweets> table = ents.GetTable<Tweets>("tweets04");
 
             Guid tweet_ID = Guid.NewGuid();
             bool isok = false;
@@ -201,30 +193,6 @@ namespace Cassandra.IntegrationTests.Linq
                  .Execute();
 
             List<Tweets> smth = table.Where(x => x.isok == isok).Execute().ToList();
-        }
-
-        [Test]
-        public void Test()
-        {
-            Test1();
-        }
-
-        [Test]
-        public void TestPagination()
-        {
-            testPagination();
-        }
-
-        [Test]
-        public void TestBuffering()
-        {
-            testBuffering();
-        }
-
-        [Test]
-        public void TestBug16_JIRA()
-        {
-            Bug16_JIRA();
         }
 
         [AllowFiltering]
@@ -251,7 +219,10 @@ namespace Cassandra.IntegrationTests.Linq
 
             private void AddTables()
             {
-                AddTable<Tweets>();
+                AddTable<Tweets>("tweets01");
+                AddTable<Tweets>("tweets02");
+                AddTable<Tweets>("tweets03");
+                AddTable<Tweets>("tweets04");
             }
         }
     }

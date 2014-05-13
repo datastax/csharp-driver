@@ -241,7 +241,7 @@ namespace Cassandra.IntegrationTests.Core
 
         }
 
-        [TestIgnore]
+        [Ignore]
         [Test]
         public void LargeBatchPreparedStatement()
         {
