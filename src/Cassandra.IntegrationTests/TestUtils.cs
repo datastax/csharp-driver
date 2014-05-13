@@ -487,6 +487,22 @@ namespace Cassandra.IntegrationTests
                 TestUtils.ExecuteLocalCcmClusterRemove(info.ConfigDir);
             }
         }
+
+        /// <summary>
+        /// Stops a node in the cluster with the provided index (1 based)
+        /// </summary>
+        public static void CcmStopNode(CcmClusterInfo info, int n)
+        {
+            ExecuteLocalCcm(string.Format("node{0} stop", n), info.ConfigDir, 2000);
+        }
+
+        /// <summary>
+        /// Stops a node (not gently) in the cluster with the provided index (1 based)
+        /// </summary>
+        public static void CcmStopForce(CcmClusterInfo info, int n)
+        {
+            ExecuteLocalCcm(string.Format("node{0} stop --not-gently", n), info.ConfigDir, 2000);
+        }
     }
 
     /// <summary>
