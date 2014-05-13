@@ -17,9 +17,11 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -302,6 +304,40 @@ namespace Cassandra.IntegrationTests.Core
             {
             }
             localSession.Dispose();
+        }
+
+        [Test]
+        public void InsertFireAndForget()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
+            Trace.Listeners.Add(new ConsoleTraceListener());
+
+            var keyspaceName = "test_" + Guid.NewGuid().ToString("N").ToLower();
+            var localSession = Cluster.Connect();
+            localSession.CreateKeyspaceIfNotExists(keyspaceName);
+            localSession.ChangeKeyspace(keyspaceName);
+
+            localSession.WaitForSchemaAgreement(
+                localSession.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, "sampletable")));
+
+            var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
+            var rowLength = 10000;
+            var rnd = new Random();
+            var taskList = new List<Task<RowSet>>();
+            for (var i = 0; i < rowLength; i++)
+            {
+                taskList.Add(localSession.ExecuteAsync(insertStatement.Bind(Guid.NewGuid(), new byte[1024 * rnd.Next(10)])));
+            }
+
+            var taskArray = taskList.ToArray();
+            Task.WaitAny(taskArray);
+            var rs = localSession.Execute("SELECT * FROM sampletable", ConsistencyLevel.One);
+            Assert.IsTrue(rs.Count() > 0, "Table should contain 1 or more rows by now");
+            
+            Task.WaitAll(taskArray);
+            rs = localSession.Execute("SELECT * FROM sampletable", ConsistencyLevel.Quorum);
+
+            Assert.AreEqual(rowLength, rs.Count());
         }
 
         [Test]

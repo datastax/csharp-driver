@@ -24,28 +24,17 @@ using System.Net;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    public class PreparedStatementsTests
+    [Category("short")]
+    public class PreparedStatementsTests : TwoNodesClusterTest
     {
-        private ISession Session;
         private const string AllTypesTableName = "all_types_table_prepared";
 
-        [TestInitialize]
-        public void SetFixture()
+        public override void TestFixtureSetUp()
         {
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            base.TestFixtureSetUp();
 
             //Create a table that can be reused within this test class
             Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, AllTypesTableName)));
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            Session.WaitForSchemaAgreement(Session.Execute("DROP TABLE " + AllTypesTableName));
-            CCMBridge.ReusableCCMCluster.Drop();
         }
 
         [Test]
@@ -135,8 +124,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsTrue(row.Where(v => v == null).Count() > 5, "The rest of the row values must be null");
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void PreparedSelectOneTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");
@@ -173,105 +161,91 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testMassivePrepared()
+        [Test]
+        public void TestMassivePrepared()
         {
             massivePreparedStatementTest();
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedDecimal()
+        [Test]
+        public void TestPreparedDecimal()
         {
-            insertingSingleValuePrepared(typeof (Decimal));
+            InsertingSingleValuePrepared(typeof (Decimal));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedVarInt()
+        [Test]
+        public void TestPreparedVarInt()
         {
-            insertingSingleValuePrepared(typeof (BigInteger));
+            InsertingSingleValuePrepared(typeof (BigInteger));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedBigInt()
+        [Test]
+        public void TestPreparedBigInt()
         {
-            insertingSingleValuePrepared(typeof (Int64));
+            InsertingSingleValuePrepared(typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedDouble()
+        [Test]
+        public void TestPreparedDouble()
         {
-            insertingSingleValuePrepared(typeof (Double));
+            InsertingSingleValuePrepared(typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedFloat()
+        [Test]
+        public void TestPreparedFloat()
         {
-            insertingSingleValuePrepared(typeof (Single));
+            InsertingSingleValuePrepared(typeof (Single));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedInt()
+        [Test]
+        public void TestPreparedInt()
         {
-            insertingSingleValuePrepared(typeof(Int32));
+            InsertingSingleValuePrepared(typeof(Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedNullInt()
+        [Test]
+        public void TestPreparedNullInt()
         {
-            insertingSingleValuePrepared(typeof(Int32), null);
+            InsertingSingleValuePrepared(typeof(Int32), null);
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedNullVarchar()
+        [Test]
+        public void TestPreparedNullVarchar()
         {
-            insertingSingleValuePrepared(typeof(string), null);
+            InsertingSingleValuePrepared(typeof(string), null);
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedVarchar()
+        [Test]
+        public void TestPreparedVarchar()
         {
-            insertingSingleValuePrepared(typeof (String));
+            InsertingSingleValuePrepared(typeof (String));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedBoolean()
+        [Test]
+        public void TestPreparedBoolean()
         {
-            insertingSingleValuePrepared(typeof (Boolean));
+            InsertingSingleValuePrepared(typeof (Boolean));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedBlob()
+        [Test]
+        public void TestPreparedBlob()
         {
-            insertingSingleValuePrepared(typeof (Byte));
+            InsertingSingleValuePrepared(typeof (Byte));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedInet()
+        [Test]
+        public void TestPreparedInet()
         {
-            insertingSingleValuePrepared(typeof(System.Net.IPAddress));
+            InsertingSingleValuePrepared(typeof(System.Net.IPAddress));
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void testPreparedUUID()
+        [Test]
+        public void TestPreparedUUID()
         {
-            insertingSingleValuePrepared(typeof (Guid));
+            InsertingSingleValuePrepared(typeof (Guid));
         }
 
-        public void insertingSingleValuePrepared(Type tp, object value = null)
+        public void InsertingSingleValuePrepared(Type tp, object value = null)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
             string tableName = "table" + Guid.NewGuid().ToString("N");

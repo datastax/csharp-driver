@@ -20,35 +20,15 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    [TestClass]
-    public class FoundBug3Tests
+    [Category("short")]
+    public class FoundBug3Tests : SingleNodeClusterTest
     {
-        private string KeyspaceName = "test";
 
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-            Session.CreateKeyspaceIfNotExists(KeyspaceName);
-            Session.ChangeKeyspace(KeyspaceName);
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-42
         //Create table causes InvalidOperationException
         public void Bug_CSHARP_42()
@@ -65,24 +45,7 @@ namespace Cassandra.IntegrationTests.Linq
                 Customer = "Jeremiah Peschka",
                 SalesPerson = "The Internet",
                 OrderDate = DateTime.Now,
-                ShipDate = DateTime.Now.AddDays(2),
-                //ShippingAddress = new Address()
-                //{
-                //    Line1 = "742 Evergreen Terrace",
-                //    City = "Springfield",
-                //    State = "Yup"
-                //},
-                //BillingAddress = new Address()
-                //{
-                //    Line1 = "1234 Fake Street",
-                //    City = "Springfield",
-                //    State = "Yup"
-                //},
-                //LineItems = new List<LineItem>()
-                //        {
-                //            new LineItem() { Quantity = 1, ProductNumber = "PN54321", UnitPrice = 43.43 },
-                //            new LineItem() { Quantity = 12, ProductNumber = "PN12345", UnitPrice = 5.00 }
-                //        }
+                ShipDate = DateTime.Now.AddDays(2)
             };
 
             batch.Append(table.Insert(order));

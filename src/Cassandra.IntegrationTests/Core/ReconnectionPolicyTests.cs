@@ -21,14 +21,21 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class ReconnectionPolicyTests : PolicyTestTools
     {
-        /*
- * Test the ExponentialReconnectionPolicy.
- */
-        [TestMethod]
-        [WorksForMe]
+        protected virtual string IpPrefix
+        {
+            get
+            {
+                return "127.0.0.";
+            }
+        }
+
+        /// <summary>
+        /// Test the ExponentialReconnectionPolicy.
+        /// </summary>
+        [Test]
         public void exponentialReconnectionPolicyTest()
         {
             var builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000));
@@ -92,11 +99,10 @@ namespace Cassandra.IntegrationTests.Core
             //reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
-        /*
-         * Test the ConstantReconnectionPolicy.
-         */
-        [TestMethod]
-        [WorksForMe]
+        /// <summary>
+        /// Test the ConstantReconnectionPolicy.
+        /// </summary>
+        [Test]
         public void constantReconnectionPolicyTest()
         {
             Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25 * 1000));
@@ -137,18 +143,18 @@ namespace Cassandra.IntegrationTests.Core
         public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(1, builder);
-            createSchema(c.Session, 1);
+            var clusterInfo = TestUtils.CcmSetup(1, builder);
+            createSchema(clusterInfo.Session, 1);
 
             try
             {
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
                 // Ensure a basic test works
-                assertQueried(Options.Default.IP_PREFIX + "1", 12);
+                assertQueried(IpPrefix + "1", 12);
                 resetCoordinators();
-                c.CCMBridge.ForceStop(1);
+                TestUtils.CcmStopForce(clusterInfo, 1);
 
                 // Start timing and ensure that the node is down
 
@@ -157,7 +163,7 @@ namespace Cassandra.IntegrationTests.Core
                 try
                 {
                     //startTime = System.nanoTime() / 1000000000;                
-                    query(c, 12);
+                    query(clusterInfo, 12);
                     Assert.Fail("Test race condition where node has not shut off quickly enough.");
                 }
                 catch (NoHostAvailableException) { }
@@ -172,15 +178,15 @@ namespace Cassandra.IntegrationTests.Core
                     // Restart node at restartTime
                     if (!restarted && elapsedSeconds > restartTime)
                     {
-                        c.CCMBridge.Start(1);
+                        TestUtils.CcmStart(clusterInfo, 1);
                         restarted = true;
                     }
 
                     // Continue testing queries each second
                     try
                     {                        
-                        query(c, 12);
-                        assertQueried(Options.Default.IP_PREFIX + "1", 12);
+                        query(clusterInfo, 12);
+                        assertQueried(IpPrefix + "1", 12);
                         resetCoordinators();
 
                         // Ensure the time when the query completes successfully is what was expected
@@ -195,12 +201,12 @@ namespace Cassandra.IntegrationTests.Core
                     Thread.Sleep((int)(breakTime * 1000));
 
                     // The same query once more, just to be sure
-                    query(c, 12);
-                    assertQueried(Options.Default.IP_PREFIX + "1", 12);
+                    query(clusterInfo, 12);
+                    assertQueried(IpPrefix + "1", 12);
                     resetCoordinators();
 
                     // Ensure the reconnection times reset
-                    c.CCMBridge.ForceStop(1);
+                    TestUtils.CcmStopForce(clusterInfo, 1);
 
                     // Start timing and ensure that the node is down
                     //startTime = 0;
@@ -209,7 +215,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         //startTime = System.nanoTime() / 1000000000;
                         startTime.Start();
-                        query(c, 12);
+                        query(clusterInfo, 12);
                         Assert.Fail("Test race condition where node has not shut off quickly enough.");
                     }
                     catch (NoHostAvailableException) { }
@@ -223,15 +229,15 @@ namespace Cassandra.IntegrationTests.Core
                         // Restart node at restartTime
                         if (!restarted && elapsedSeconds > restartTime)
                         {
-                            c.CCMBridge.Start(1);
+                            TestUtils.CcmStart(clusterInfo, 1);
                             restarted = true;
                         }
 
                         // Continue testing queries each second
                         try
                         {
-                            query(c, 12);
-                            assertQueried(Options.Default.IP_PREFIX + "1", 12);
+                            query(clusterInfo, 12);
+                            assertQueried(IpPrefix + "1", 12);
                             resetCoordinators();
 
                             // Ensure the time when the query completes successfully is what was expected
@@ -248,15 +254,10 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
             }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
     }

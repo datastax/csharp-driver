@@ -22,39 +22,26 @@ using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    [TestClass]
-    public class ComplexTests
+    [Category("short")]
+    public class LinqContextComplexTests : TwoNodesClusterTest
     {
-        private string KeyspaceName = "test";
-
-        private ISession Session;
         private TextWriterTraceListener twtl;
 
-        [TestInitialize]
-        public void SetFixture()
+        public override void TestFixtureTearDown()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-            Session.CreateKeyspaceIfNotExists(KeyspaceName);
-            Session.ChangeKeyspace(KeyspaceName);
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
+            base.TestFixtureTearDown();
             if (twtl != null)
+            {
                 Trace.Listeners.Remove(twtl);
-            CCMBridge.ReusableCCMCluster.Drop();
+            }
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void DoTest()
+        [Test]
+        public void LinqContextTrackMultipleTables()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             var LogWriter = new CassandraLogWriter();

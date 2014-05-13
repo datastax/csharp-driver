@@ -10,27 +10,10 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    class BatchStatements
+    [Category("short")]
+    public class BatchStatements : SingleNodeClusterTest
     {
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-        [TestMethod]
+        [Test]
         public void BatchPreparedStatementTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -52,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
-        [TestMethod]
+        [Test]
         public void BatchPreparedStatementBasicAsyncTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -73,7 +56,7 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
-        [TestMethod]
+        [Test]
         public void BatchSimpleStatementSingle()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -93,7 +76,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(row.SequenceEqual(new object[] { 1, "label 1", 10 }), "Stored values dont match");
         }
 
-        [TestMethod]
+        [Test]
         public void BatchSimpleStatementSingleBinded()
         {
             if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
@@ -118,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(row.SequenceEqual(new object[] { 100, "label 100", 10000}), "Stored values dont match");
         }
 
-        [TestMethod]
+        [Test]
         public void BatchSimpleStatementMultiple()
         {
             SimpleStatement simpleStatement = null;
@@ -143,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
-        [TestMethod]
+        [Test]
         public void BatchStatementTwoTablesTest()
         {
             var expectedValues = new List<object[]>();
@@ -164,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rsTable2, new List<object[]> { new object[] { 2, "label2", 2 } });
         }
 
-        [TestMethod]
+        [Test]
         public void BatchStatementOnTwoTablesWithOneInvalidTableTest()
         {
             var batch = new BatchStatement();
@@ -179,7 +162,7 @@ namespace Cassandra.IntegrationTests.Core
                 delegate { Session.Execute(batch); }, "expected InvalidQueryException, but did not get one");
         }
 
-        [TestMethod]
+        [Test]
         public void BatchMixedStatements()
         {
             if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
@@ -203,7 +186,7 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
-        [TestMethod]
+        [Test]
         public void BatchMixedDMLStatementTypesTest()
         {
             if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
@@ -235,14 +218,14 @@ namespace Cassandra.IntegrationTests.Core
 
         }
 
-        [TestMethod]
+        [Test]
         public void SimpleUpdateTest()
         {
 
         }
 
-        [TestIgnore]
-        [TestMethod]
+        [Ignore]
+        [Test]
         public void LargeBatchPreparedStatement()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");

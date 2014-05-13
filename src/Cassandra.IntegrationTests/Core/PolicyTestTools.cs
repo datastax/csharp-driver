@@ -142,22 +142,22 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Init methods that handle writes using batch and consistency options.
         /// </summary>
-        protected void init(CCMBridge.CCMCluster c, int n)
+        protected void init(CcmClusterInfo clusterInfo, int n)
         {
-            init(c, n, false, ConsistencyLevel.One);
+            init(clusterInfo, n, false, ConsistencyLevel.One);
         }
 
-        protected void init(CCMBridge.CCMCluster c, int n, bool batch)
+        protected void init(CcmClusterInfo clusterInfo, int n, bool batch)
         {
-            init(c, n, batch, ConsistencyLevel.One);
+            init(clusterInfo, n, batch, ConsistencyLevel.One);
         }
 
-        protected void init(CCMBridge.CCMCluster c, int n, ConsistencyLevel cl)
+        protected void init(CcmClusterInfo clusterInfo, int n, ConsistencyLevel cl)
         {
-            init(c, n, false, cl);
+            init(clusterInfo, n, false, cl);
         }
 
-        protected void init(CCMBridge.CCMCluster c, int n, bool batch, ConsistencyLevel cl)
+        protected void init(CcmClusterInfo clusterInfo, int n, bool batch, ConsistencyLevel cl)
         {
             // We don't use insert for our test because the resultSet don't ship the queriedHost
             // Also note that we don't use tracing because this would trigger requests that screw up the test'
@@ -170,16 +170,16 @@ namespace Cassandra.IntegrationTests.Core
                     bth.AppendLine(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE));
                     bth.AppendLine("APPLY BATCH");
 
-                    RowSet qh = c.Session.Execute(new SimpleStatement(bth.ToString()).SetConsistencyLevel(cl));
+                    RowSet qh = clusterInfo.Session.Execute(new SimpleStatement(bth.ToString()).SetConsistencyLevel(cl));
                 }
                 else
                 {
                     RowSet qh =
-                        c.Session.Execute(
+                        clusterInfo.Session.Execute(
                             new SimpleStatement(String.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", TestUtils.SIMPLE_TABLE)).SetConsistencyLevel(cl));
                 }
 
-            prepared = c.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);
+            prepared = clusterInfo.Session.Prepare("SELECT * FROM " + TestUtils.SIMPLE_TABLE + " WHERE k = ?").SetConsistencyLevel(cl);
         }
 
 
@@ -187,22 +187,22 @@ namespace Cassandra.IntegrationTests.Core
         ///  Query methods that handle reads based on PreparedStatements and/or
         ///  ConsistencyLevels.
         /// </summary>
-        protected void query(CCMBridge.CCMCluster c, int n)
+        protected void query(CcmClusterInfo clusterInfo, int n)
         {
-            query(c, n, false, ConsistencyLevel.One);
+            query(clusterInfo, n, false, ConsistencyLevel.One);
         }
 
-        protected void query(CCMBridge.CCMCluster c, int n, bool usePrepared)
+        protected void query(CcmClusterInfo clusterInfo, int n, bool usePrepared)
         {
-            query(c, n, usePrepared, ConsistencyLevel.One);
+            query(clusterInfo, n, usePrepared, ConsistencyLevel.One);
         }
 
-        protected void query(CCMBridge.CCMCluster c, int n, ConsistencyLevel cl)
+        protected void query(CcmClusterInfo clusterInfo, int n, ConsistencyLevel cl)
         {
-            query(c, n, false, cl);
+            query(clusterInfo, n, false, cl);
         }
 
-        protected void query(CCMBridge.CCMCluster c, int n, bool usePrepared, ConsistencyLevel cl)
+        protected void query(CcmClusterInfo clusterInfo, int n, bool usePrepared, ConsistencyLevel cl)
         {
             if (usePrepared)
             {
@@ -211,7 +211,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     IPAddress ccord;
                     ConsistencyLevel cac;
-                    var rs = c.Session.Execute(bs);
+                    var rs = clusterInfo.Session.Execute(bs);
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
@@ -228,7 +228,7 @@ namespace Cassandra.IntegrationTests.Core
                     IPAddress ccord;
                     ConsistencyLevel cac;
                     var rs =
-                            c.Session.Execute(
+                            clusterInfo.Session.Execute(
                                 new SimpleStatement(String.Format("SELECT * FROM {0} WHERE k = 0", TABLE)).SetRoutingKey(routingKey)
                                                                                                           .SetConsistencyLevel(cl));
                     {

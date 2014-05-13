@@ -19,65 +19,66 @@ using System;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
-        [TestMethod]
-        [WorksForMe]
-        public void roundRobinTestCCM()
+        protected virtual string IpPrefix
+        {
+            get
+            {
+                return "127.0.0.";
+            }
+        }
+
+        [Test]
+        public void RoundRobinTestCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
-            createSchema(c.Session);
+            var clusterInfo = TestUtils.CcmSetup(2, builder);
+            createSchema(clusterInfo.Session);
             try
             {
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 6);
-                assertQueried(Options.Default.IP_PREFIX + "2", 6);
-
-                resetCoordinators();
-                c.CCMBridge.BootstrapNode(3);
-                TestUtils.waitFor(Options.Default.IP_PREFIX + "3", c.Cluster, 60);
-
-                query(c, 12);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 4);
-                assertQueried(Options.Default.IP_PREFIX + "2", 4);
-                assertQueried(Options.Default.IP_PREFIX + "3", 4);
+                assertQueried(IpPrefix + "1", 6);
+                assertQueried(IpPrefix + "2", 6);
 
                 resetCoordinators();
-                c.CCMBridge.DecommissionNode(1);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "1", c.Cluster, 60);
+                TestUtils.CcmBootstrapNode(clusterInfo, 3);
+                TestUtils.waitFor(IpPrefix + "3", clusterInfo.Cluster, 60);
 
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "2", 6);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
-            }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
+                assertQueried(IpPrefix + "1", 4);
+                assertQueried(IpPrefix + "2", 4);
+                assertQueried(IpPrefix + "3", 4);
+
+                resetCoordinators();
+                TestUtils.CcmDecommissionNode(clusterInfo, 1);
+                TestUtils.waitForDecommission(IpPrefix + "1", clusterInfo.Cluster, 60);
+
+                query(clusterInfo, 12);
+
+                assertQueried(IpPrefix + "2", 6);
+                assertQueried(IpPrefix + "3", 6);
             }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
-
-        [TestMethod]
+        [Test]
         public void PoliciesAreDifferentInstancesWhenDefault()
         {
 
             var builder = Cluster.Builder();
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
+            var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
 
-            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", Options.Default.IP_PREFIX)).Build())
-            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", Options.Default.IP_PREFIX)).Build())
+            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", IpPrefix)).Build())
+            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", IpPrefix)).Build())
             {
                 using (var session1 = (Session) cluster1.Connect())
                 using (var session2 = (Session) cluster2.Connect())
@@ -89,201 +90,182 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void roundRobinWith2DCsTestCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
-            createSchema(c.Session);
+            var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
+            createSchema(clusterInfo.Session);
             try
             {
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 3);
-                assertQueried(Options.Default.IP_PREFIX + "2", 3);
-                assertQueried(Options.Default.IP_PREFIX + "3", 3);
-                assertQueried(Options.Default.IP_PREFIX + "4", 3);
+                assertQueried(IpPrefix + "1", 3);
+                assertQueried(IpPrefix + "2", 3);
+                assertQueried(IpPrefix + "3", 3);
+                assertQueried(IpPrefix + "4", 3);
 
                 resetCoordinators();
-                c.CCMBridge.BootstrapNode(5, "dc2");
-                c.CCMBridge.DecommissionNode(1);
-                TestUtils.waitFor(Options.Default.IP_PREFIX + "5", c.Cluster, 20);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "1", c.Cluster, 20);
+                TestUtils.CcmBootstrapNode(clusterInfo, 5, "dc2");
+                TestUtils.CcmDecommissionNode(clusterInfo, 1);
+                TestUtils.waitFor(IpPrefix + "5", clusterInfo.Cluster, 20);
+                TestUtils.waitForDecommission(IpPrefix + "1", clusterInfo.Cluster, 20);
 
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 3);
-                assertQueried(Options.Default.IP_PREFIX + "3", 3);
-                assertQueried(Options.Default.IP_PREFIX + "4", 3);
-                assertQueried(Options.Default.IP_PREFIX + "5", 3);
-            }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 3);
+                assertQueried(IpPrefix + "3", 3);
+                assertQueried(IpPrefix + "4", 3);
+                assertQueried(IpPrefix + "5", 3);
             }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void DCAwareRoundRobinTestCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
-            createMultiDCSchema(c.Session);
+            var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
+            createMultiDCSchema(clusterInfo.Session);
             try
             {
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
-                assertQueried(Options.Default.IP_PREFIX + "4", 6);
-            }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 0);
+                assertQueried(IpPrefix + "3", 6);
+                assertQueried(IpPrefix + "4", 6);
             }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void forceStopCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             builder.WithQueryTimeout(10000);
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(4, builder);
-            createSchema(c.Session);
+            var clusterInfo = TestUtils.CcmSetup(4, builder, null);
+            createSchema(clusterInfo.Session);
             try
             {
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
                 resetCoordinators();
-                c.CCMBridge.ForceStop(1);
-                c.CCMBridge.ForceStop(2);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", c.Cluster, 40);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 40);
+                TestUtils.CcmStopForce(clusterInfo, 1);
+                TestUtils.CcmStopForce(clusterInfo, 2);
+                TestUtils.waitForDown(IpPrefix + "1", clusterInfo.Cluster, 40);
+                TestUtils.waitForDown(IpPrefix + "2", clusterInfo.Cluster, 40);
 
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                c.CCMBridge.ForceStop(3);
-                c.CCMBridge.ForceStop(4);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "3", c.Cluster, 40);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "4", c.Cluster, 40);
+                TestUtils.CcmStopForce(clusterInfo, 3);
+                TestUtils.CcmStopForce(clusterInfo, 4);
+                TestUtils.waitForDown(IpPrefix + "3", clusterInfo.Cluster, 40);
+                TestUtils.waitForDown(IpPrefix + "4", clusterInfo.Cluster, 40);
 
                 try
                 {
-                    query(c, 12);
-                    Assert.Fail();
+                    query(clusterInfo, 12);
+                    Assert.Fail("It should throw an exception");
                 }
                 catch (NoHostAvailableException)
                 {
                     // No more nodes so ...
                 }
             }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void dcAwareRoundRobinTestWithOneRemoteHostCCM()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, 2, builder);
-            createMultiDCSchema(c.Session);
+            var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
+            createMultiDCSchema(clusterInfo.Session);
             try
             {
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
-                assertQueried(Options.Default.IP_PREFIX + "4", 6);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
-
-                resetCoordinators();
-                c.CCMBridge.BootstrapNode(5, "dc3");
-                TestUtils.waitFor(Options.Default.IP_PREFIX + "5", c.Cluster, 60);
-
-
-                query(c, 12);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 6);
-                assertQueried(Options.Default.IP_PREFIX + "4", 6);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 0);
+                assertQueried(IpPrefix + "3", 6);
+                assertQueried(IpPrefix + "4", 6);
+                assertQueried(IpPrefix + "5", 0);
 
                 resetCoordinators();
-                c.CCMBridge.DecommissionNode(3);
-                c.CCMBridge.DecommissionNode(4);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "3", c.Cluster, 20);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "4", c.Cluster, 20);
+                TestUtils.CcmBootstrapNode(clusterInfo, 5, "dc3");
+                TestUtils.waitFor(IpPrefix + "5", clusterInfo.Cluster, 60);
 
-                query(c, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 6);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 6);
+                query(clusterInfo, 12);
 
-                resetCoordinators();
-                c.CCMBridge.DecommissionNode(5);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "5", c.Cluster, 20);
-
-                query(c, 12);
-
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 12);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 0);
+                assertQueried(IpPrefix + "3", 6);
+                assertQueried(IpPrefix + "4", 6);
+                assertQueried(IpPrefix + "5", 0);
 
                 resetCoordinators();
-                c.CCMBridge.DecommissionNode(2);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.CcmDecommissionNode(clusterInfo, 3);
+                TestUtils.CcmDecommissionNode(clusterInfo, 4);
+                TestUtils.waitForDecommission(IpPrefix + "3", clusterInfo.Cluster, 20);
+                TestUtils.waitForDecommission(IpPrefix + "4", clusterInfo.Cluster, 20);
 
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 12);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 6);
+                assertQueried(IpPrefix + "3", 0);
+                assertQueried(IpPrefix + "4", 0);
+                assertQueried(IpPrefix + "5", 6);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(1);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 20);
+                TestUtils.CcmDecommissionNode(clusterInfo, 5);
+                TestUtils.waitForDecommission(IpPrefix + "5", clusterInfo.Cluster, 20);
+
+                query(clusterInfo, 12);
+
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 12);
+                assertQueried(IpPrefix + "3", 0);
+                assertQueried(IpPrefix + "4", 0);
+                assertQueried(IpPrefix + "5", 0);
+
+                resetCoordinators();
+                TestUtils.CcmDecommissionNode(clusterInfo, 2);
+                TestUtils.waitForDecommission(IpPrefix + "2", clusterInfo.Cluster, 20);
+
+                query(clusterInfo, 12);
+
+                assertQueried(IpPrefix + "1", 12);
+                assertQueried(IpPrefix + "2", 0);
+                assertQueried(IpPrefix + "3", 0);
+                assertQueried(IpPrefix + "4", 0);
+                assertQueried(IpPrefix + "5", 0);
+
+                resetCoordinators();
+                TestUtils.CcmStopForce(clusterInfo, 1);
+                TestUtils.waitForDown(IpPrefix + "2", clusterInfo.Cluster, 20);
 
                 try
                 {
-                    query(c, 12);
+                    query(clusterInfo, 12);
                     Assert.Fail();
                 }
                 catch (NoHostAvailableException)
@@ -291,27 +273,20 @@ namespace Cassandra.IntegrationTests.Core
                     // No more nodes so ...
                 }
             }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void tokenAwarePreparedTestCCM()
         {
             tokenAwareTest(true);
@@ -320,33 +295,33 @@ namespace Cassandra.IntegrationTests.Core
         public void tokenAwareTest(bool usePrepared)
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
-            createSchema(c.Session);
+            var clusterInfo = TestUtils.CcmSetup(2, builder);
+            createSchema(clusterInfo.Session);
             try
             {
-                //c.Cluster.RefreshSchema();
-                init(c, 12);
-                query(c, 12);
+                //clusterInfo.Cluster.RefreshSchema();
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
                 // Not the best test ever, we should use OPP and check we do it the
                 // right nodes. But since M3P is hard-coded for now, let just check
                 // we just hit only one node.
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 12);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 12);
 
                 resetCoordinators();
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 12);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 12);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(2);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
+                TestUtils.CcmStopForce(clusterInfo, 2);
+                TestUtils.waitForDown(IpPrefix + "2", clusterInfo.Cluster, 60);
 
                 try
                 {
-                    query(c, 12, usePrepared);
+                    query(clusterInfo, 12, usePrepared);
                     Assert.Fail();
                 }
                 catch (UnavailableException)
@@ -357,86 +332,54 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 resetCoordinators();
-                c.CCMBridge.Start(2);
-                TestUtils.waitFor(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
+                TestUtils.CcmStart(clusterInfo, 2);
+                TestUtils.waitFor(IpPrefix + "2", clusterInfo.Cluster, 60);
 
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 12);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 12);
 
                 resetCoordinators();
-                c.CCMBridge.DecommissionNode(2);
-                TestUtils.waitForDecommission(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
+                TestUtils.CcmDecommissionNode(clusterInfo, 2);
+                TestUtils.waitForDecommission(IpPrefix + "2", clusterInfo.Cluster, 60);
 
-                query(c, 12);
+                query(clusterInfo, 12);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 12);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-            }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
+                assertQueried(IpPrefix + "1", 12);
+                assertQueried(IpPrefix + "2", 0);
             }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void tokenAwareWithRF2TestCCM()
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(2, builder);
-            createSchema(c.Session, 2);
+            var clusterInfo = TestUtils.CcmSetup(2, builder);
+            createSchema(clusterInfo.Session, 2);
             try
             {
 
-                init(c, 12);
-                query(c, 12);
+                init(clusterInfo, 12);
+                query(clusterInfo, 12);
 
                 // Not the best test ever, we should use OPP and check we do it the
                 // right nodes. But since M3P is hard-coded for now, let just check
                 // we just hit only one node.
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 12);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 12);
+                assertQueried(IpPrefix + "3", 0);
 
-                //resetCoordinators();
-                //c.CCMBridge.BootstrapNode(3);
-                //TestUtils.waitFor(Options.Default.IP_PREFIX + "3", c.Cluster, 60);
-
-                //query(c, 12);
-
-                //// We should still be hitting only one node
-                //assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                //assertQueried(Options.Default.IP_PREFIX + "2", 12);
-                //assertQueried(Options.Default.IP_PREFIX + "3", 0);
-
-                //resetCoordinators();
-                //c.CCMBridge.Stop(2);
-                //TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", c.Cluster, 60);
-
-                //query(c, 12);
-
-                //assertQueried(Options.Default.IP_PREFIX + "1", 6);
-                //assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                //assertQueried(Options.Default.IP_PREFIX + "3", 6);
-
-            }
-            catch (Exception e)
-            {
-                c.ErrorOut();
-                throw e;
             }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
     }

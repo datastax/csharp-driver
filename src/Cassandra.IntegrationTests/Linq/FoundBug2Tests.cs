@@ -23,30 +23,18 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
-    [TestClass]
-    public class FoundBug2Tests
+    [Category("short")]
+    public class FoundBug2Tests : TwoNodesClusterTest
     {
-        private ISession Session;
         private TweetsContext ents;
 
-        [TestInitialize]
-        public void SetFixture()
+        public override void TestFixtureSetUp()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            base.TestFixtureSetUp();
             ents = new TweetsContext(Session);
         }
 
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-44
         //Linq: Attach entity, update entity values, save changes. Comparison of null property values throws exception
         public void Bug_CSHARP_44()

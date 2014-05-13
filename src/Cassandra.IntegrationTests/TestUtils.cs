@@ -436,8 +436,12 @@ namespace Cassandra.IntegrationTests
             return tempDirectory;
         }
 
-        public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null)
+        public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0)
         {
+            if (secondDcNodeLength > 0)
+            {
+                throw new NotImplementedException();
+            }
             var clusterInfo = new CcmClusterInfo();
             if (builder == null)
             {
@@ -486,6 +490,51 @@ namespace Cassandra.IntegrationTests
                 //Remove the cluster
                 TestUtils.ExecuteLocalCcmClusterRemove(info.ConfigDir);
             }
+        }
+
+        /// <summary>
+        /// Starts a node
+        /// </summary>
+        /// <param name="info"></param>
+        /// <param name="n"></param>
+        public static void CcmStart(CcmClusterInfo info, int n)
+        {
+            var cmd = string.Format("node{0} start", n);
+            ExecuteLocalCcm(cmd, info.ConfigDir, 5000);
+        }
+
+        /// <summary>
+        /// Stops a node in the cluster with the provided index (1 based)
+        /// </summary>
+        public static void CcmStopNode(CcmClusterInfo info, int n)
+        {
+            var cmd = string.Format("node{0} stop", n);
+            ExecuteLocalCcm(cmd, info.ConfigDir, 2000);
+        }
+
+        /// <summary>
+        /// Stops a node (not gently) in the cluster with the provided index (1 based)
+        /// </summary>
+        public static void CcmStopForce(CcmClusterInfo info, int n)
+        {
+            ExecuteLocalCcm(string.Format("node{0} stop --not-gently", n), info.ConfigDir, 2000);
+        }
+
+        public static void CcmBootstrapNode(CcmClusterInfo info, int node, string dc = null)
+        {
+            if (dc == null)
+            {
+                ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node), info.ConfigDir);
+            }
+            else
+            {
+                ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -d {4}", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node, dc), info.ConfigDir);
+            }
+        }
+
+        public static void CcmDecommissionNode(CcmClusterInfo info, int node)
+        {
+            ExecuteLocalCcm(string.Format("node{0} decommission", node), info.ConfigDir);
         }
     }
 

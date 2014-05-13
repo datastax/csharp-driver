@@ -29,6 +29,17 @@ namespace Cassandra.IntegrationTests
         protected virtual ISession Session { get; set; }
 
         /// <summary>
+        /// Gets the Ip prefix for ccm tests
+        /// </summary>
+        protected virtual string IpPrefix
+        {
+            get
+            {
+                return "127.0.0.";
+            }
+        }
+
+        /// <summary>
         /// Creates a new instance of MultipleNodeCluster Test
         /// </summary>
         /// <param name="nodeLength">Determines the amount of nodes in the test cluster</param>
