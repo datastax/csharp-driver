@@ -22,28 +22,36 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class ConsistencyTests : PolicyTestTools
     {
+        protected virtual string IpPrefix
+        {
+            get
+            {
+                return "127.0.0.";
+            }
+        }
+
         [Test]
-        public void testRFOneTokenAware()
+        public void TestRFOneTokenAware()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
-            createSchema(c.Session, 1);
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            createSchema(clusterInfo.Session, 1);
             try
             {
-                init(c, 12, ConsistencyLevel.One);
-                query(c, 12, ConsistencyLevel.One);
+                init(clusterInfo, 12, ConsistencyLevel.One);
+                query(clusterInfo, 12, ConsistencyLevel.One);
 
                 string assC = coordinators.First().Key.ToString();
                 int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
+                assertQueried(IpPrefix + awareCoord, 12);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
+                TestUtils.CcmStopForce(clusterInfo, awareCoord);
+                TestUtils.waitForDownWithWait(IpPrefix + awareCoord, clusterInfo.Cluster, 30);
 
                 var acceptedList = new List<ConsistencyLevel> {ConsistencyLevel.Any};
 
@@ -61,7 +69,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -74,7 +82,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -91,8 +99,8 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
-                        Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
+                        init(clusterInfo, 12, cl);
+                        Assert.Fail(String.Format("It must not pass at consistency level {0}.", cl));
                     }
                     catch (InvalidQueryException e)
                     {
@@ -120,7 +128,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -144,15 +152,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -160,21 +163,21 @@ namespace Cassandra.IntegrationTests.Core
         public void testRFTwoTokenAware()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
-            createSchema(c.Session, 2);
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            createSchema(clusterInfo.Session, 2);
             try
             {
-                init(c, 12, ConsistencyLevel.Two);
-                query(c, 12, ConsistencyLevel.Two);
+                init(clusterInfo, 12, ConsistencyLevel.Two);
+                query(clusterInfo, 12, ConsistencyLevel.Two);
 
                 string assC = coordinators.First().Key.ToString();
                 int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
+                assertQueried(IpPrefix + awareCoord, 12);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
+                TestUtils.CcmStopForce(clusterInfo, awareCoord);
+                TestUtils.waitForDownWithWait(IpPrefix + awareCoord, clusterInfo.Cluster, 30);
 
                 var acceptedList = new List<ConsistencyLevel>
                 {
@@ -195,7 +198,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -208,7 +211,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -225,7 +228,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -254,7 +257,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -278,15 +281,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -294,21 +292,21 @@ namespace Cassandra.IntegrationTests.Core
         public void testRFThreeTokenAware()
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
-            createSchema(c.Session, 3);
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            createSchema(clusterInfo.Session, 3);
             try
             {
-                init(c, 12, ConsistencyLevel.Two);
-                query(c, 12, ConsistencyLevel.Two);
+                init(clusterInfo, 12, ConsistencyLevel.Two);
+                query(clusterInfo, 12, ConsistencyLevel.Two);
 
                 string assC = coordinators.First().Key.ToString();
                 int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
+                assertQueried(IpPrefix + awareCoord, 12);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
+                TestUtils.CcmStopForce(clusterInfo, awareCoord);
+                TestUtils.waitForDownWithWait(IpPrefix + awareCoord, clusterInfo.Cluster, 30);
 
                 var acceptedList = new List<ConsistencyLevel>
                 {
@@ -329,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -342,7 +340,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -359,7 +357,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -388,7 +386,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -412,15 +410,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -431,21 +424,21 @@ namespace Cassandra.IntegrationTests.Core
                 Cluster.Builder()
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
-            createSchema(c.Session, 1);
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            createSchema(clusterInfo.Session, 1);
             try
             {
-                init(c, 12, ConsistencyLevel.One);
-                query(c, 12, ConsistencyLevel.One);
+                init(clusterInfo, 12, ConsistencyLevel.One);
+                query(clusterInfo, 12, ConsistencyLevel.One);
 
                 string assC = coordinators.First().Key.ToString();
                 int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
+                assertQueried(IpPrefix + awareCoord, 12);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
+                TestUtils.CcmStopForce(clusterInfo, awareCoord);
+                TestUtils.waitForDownWithWait(IpPrefix + awareCoord, clusterInfo.Cluster, 30);
 
                 var acceptedList = new List<ConsistencyLevel> {ConsistencyLevel.Any};
 
@@ -463,7 +456,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -476,7 +469,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -493,7 +486,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -522,7 +515,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -546,15 +539,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -565,21 +553,21 @@ namespace Cassandra.IntegrationTests.Core
                 Cluster.Builder()
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
-            createSchema(c.Session, 2);
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            createSchema(clusterInfo.Session, 2);
             try
             {
-                init(c, 12, ConsistencyLevel.Two);
-                query(c, 12, ConsistencyLevel.Two);
+                init(clusterInfo, 12, ConsistencyLevel.Two);
+                query(clusterInfo, 12, ConsistencyLevel.Two);
 
                 string assC = coordinators.First().Key.ToString();
                 int awareCoord = int.Parse(assC.Substring(assC.Length - 1));
 
-                assertQueried(Options.Default.IP_PREFIX + awareCoord, 12);
+                assertQueried(IpPrefix + awareCoord, 12);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(awareCoord);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + awareCoord, c.Cluster, 30);
+                TestUtils.CcmStopForce(clusterInfo, awareCoord);
+                TestUtils.waitForDownWithWait(IpPrefix + awareCoord, clusterInfo.Cluster, 30);
 
                 var acceptedList = new List<ConsistencyLevel>
                 {
@@ -598,7 +586,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -611,7 +599,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -628,7 +616,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -657,7 +645,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -681,15 +669,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -713,16 +696,16 @@ namespace Cassandra.IntegrationTests.Core
 
         public void testRFThreeDowngradingCL(Builder builder)
         {
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, builder);
-            createSchema(c.Session, 3);
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            createSchema(clusterInfo.Session, 3);
             try
             {
-                init(c, 12, ConsistencyLevel.All);
-                query(c, 12, ConsistencyLevel.All);
+                init(clusterInfo, 12, ConsistencyLevel.All);
+                query(clusterInfo, 12, ConsistencyLevel.All);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(2);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
+                TestUtils.CcmStopForce(clusterInfo, 2);
+                TestUtils.waitForDownWithWait(IpPrefix + "2", clusterInfo.Cluster, 5);
 
                 var acceptedList = new List<ConsistencyLevel>
                 {
@@ -741,7 +724,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -754,7 +737,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -771,7 +754,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -800,7 +783,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (InvalidQueryException e)
@@ -824,15 +807,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -843,26 +821,26 @@ namespace Cassandra.IntegrationTests.Core
                 Cluster.Builder()
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
-            createMultiDCSchema(c.Session, 3, 3);
-            //c.Cluster.RefreshSchema();
+            var clusterInfo = TestUtils.CcmSetup(3, builder, null, 3);
+            createMultiDCSchema(clusterInfo.Session, 3, 3);
+            //clusterInfo.Cluster.RefreshSchema();
             try
             {
-                init(c, 12, ConsistencyLevel.Two);
-                query(c, 12, ConsistencyLevel.Two);
+                init(clusterInfo, 12, ConsistencyLevel.Two);
+                query(clusterInfo, 12, ConsistencyLevel.Two);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 12);
-                assertQueried(Options.Default.IP_PREFIX + "4", 0);
-                assertQueried(Options.Default.IP_PREFIX + "5", 0);
-                assertQueried(Options.Default.IP_PREFIX + "6", 0);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 0);
+                assertQueried(IpPrefix + "3", 12);
+                assertQueried(IpPrefix + "4", 0);
+                assertQueried(IpPrefix + "5", 0);
+                assertQueried(IpPrefix + "6", 0);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(2);
+                TestUtils.CcmStopForce(clusterInfo, 2);
                 // FIXME: This sleep is needed to allow the waitFor() to work
                 Thread.Sleep(20000);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
+                TestUtils.waitForDownWithWait(IpPrefix + "2", clusterInfo.Cluster, 5);
 
                 var acceptedList = new List<ConsistencyLevel>
                 {
@@ -883,7 +861,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -896,7 +874,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -914,7 +892,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (UnavailableException)
@@ -934,7 +912,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (ReadTimeoutException)
@@ -949,15 +927,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -968,26 +941,26 @@ namespace Cassandra.IntegrationTests.Core
                 Cluster.Builder()
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
-            CCMBridge.CCMCluster c = CCMBridge.CCMCluster.Create(3, 3, builder);
-            createMultiDCSchema(c.Session, 3, 3);
+            var clusterInfo = TestUtils.CcmSetup(3, builder, null, 3);
+            createMultiDCSchema(clusterInfo.Session, 3, 3);
             try
             {
-                init(c, 12, ConsistencyLevel.Two);
-                query(c, 12, ConsistencyLevel.Two);
+                init(clusterInfo, 12, ConsistencyLevel.Two);
+                query(clusterInfo, 12, ConsistencyLevel.Two);
 
-                assertQueried(Options.Default.IP_PREFIX + "1", 0);
-                assertQueried(Options.Default.IP_PREFIX + "2", 0);
-                assertQueried(Options.Default.IP_PREFIX + "3", 0);
+                assertQueried(IpPrefix + "1", 0);
+                assertQueried(IpPrefix + "2", 0);
+                assertQueried(IpPrefix + "3", 0);
                 // BUG: JAVA-88
-                //assertQueried(Options.Default.IP_PREFIX + "4", 12);
-                //assertQueried(Options.Default.IP_PREFIX + "5", 0);
-                //assertQueried(Options.Default.IP_PREFIX + "6", 0);
+                //assertQueried(IpPrefix + "4", 12);
+                //assertQueried(IpPrefix + "5", 0);
+                //assertQueried(IpPrefix + "6", 0);
 
                 resetCoordinators();
-                c.CCMBridge.ForceStop(2);
+                TestUtils.CcmStopForce(clusterInfo, 2);
                 // FIXME: This sleep is needed to allow the waitFor() to work
                 Thread.Sleep(20000);
-                TestUtils.waitForDownWithWait(Options.Default.IP_PREFIX + "2", c.Cluster, 5);
+                TestUtils.waitForDownWithWait(IpPrefix + "2", clusterInfo.Cluster, 5);
 
 
                 var acceptedList = new List<ConsistencyLevel>
@@ -1009,7 +982,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                     }
                     catch (Exception e)
                     {
@@ -1022,7 +995,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                     }
                     catch (InvalidQueryException e)
                     {
@@ -1040,7 +1013,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        init(c, 12, cl);
+                        init(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (UnavailableException)
@@ -1060,7 +1033,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        query(c, 12, cl);
+                        query(clusterInfo, 12, cl);
                         Assert.Fail(String.Format("Test passed at CL.{0}.", cl));
                     }
                     catch (ReadTimeoutException)
@@ -1075,15 +1048,10 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
             }
-            catch (Exception)
-            {
-                c.ErrorOut();
-                throw;
-            }
             finally
             {
                 resetCoordinators();
-                c.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
     }
