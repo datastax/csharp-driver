@@ -489,11 +489,23 @@ namespace Cassandra.IntegrationTests
         }
 
         /// <summary>
+        /// Starts a node
+        /// </summary>
+        /// <param name="info"></param>
+        /// <param name="n"></param>
+        public static void CcmStart(CcmClusterInfo info, int n)
+        {
+            var cmd = string.Format("node{0} start", n);
+            ExecuteLocalCcm(cmd, info.ConfigDir, 5000);
+        }
+
+        /// <summary>
         /// Stops a node in the cluster with the provided index (1 based)
         /// </summary>
         public static void CcmStopNode(CcmClusterInfo info, int n)
         {
-            ExecuteLocalCcm(string.Format("node{0} stop", n), info.ConfigDir, 2000);
+            var cmd = string.Format("node{0} stop", n);
+            ExecuteLocalCcm(cmd, info.ConfigDir, 2000);
         }
 
         /// <summary>

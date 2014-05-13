@@ -24,42 +24,45 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class LargeDataTests
     {
-        private CCMBridge.CCMCluster CCMCluster;
-        private Cluster cluster;
+        private CcmClusterInfo ClusterInfo;
+        private Cluster Cluster;
         private int key = 0;
         private string ksname = "large_data";
-        private ISession session;
+        private ISession Session;
 
-        [TestInitialize]
+        [SetUp]
         public void SetFixture()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
         }
 
-        private void SetupDefaultCluster()
+        private void SetupDefaultCluster(int nodeLength = 2)
         {
-            if (CCMCluster != null)
-                CCMCluster.Discard();
-
-            CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
-            session = CCMCluster.Session;
-            cluster = CCMCluster.Cluster;
-            session.CreateKeyspaceIfNotExists(ksname);
-            session.ChangeKeyspace(ksname);
+            if (ClusterInfo != null)
+            {
+                TestUtils.CcmRemove(ClusterInfo);
+            }
+            ClusterInfo = TestUtils.CcmSetup(nodeLength);
+            Session = ClusterInfo.Session;
+            Cluster = ClusterInfo.Cluster;
+            Session.CreateKeyspaceIfNotExists(ksname);
+            Session.ChangeKeyspace(ksname);
         }
 
-        [TestCleanup]
+        [TearDown]
         public void Dispose()
         {
-            if (CCMCluster != null)
-                CCMCluster.Discard();
+            if (ClusterInfo != null)
+            {
+                TestUtils.CcmRemove(ClusterInfo);
+            }
         }
 
         /*
-         * Test a wide row of size 1,000,000
+         * Test a wide row
          * @param c The cluster object
          * @param key The key value that will receive the data
          * @throws Exception
@@ -68,11 +71,12 @@ namespace Cassandra.IntegrationTests.Core
         private void testWideRows()
         {
             // Write data
-            for (int i = 0; i < 500; ++i) //1000000
-                session.Execute("INSERT INTO wide_rows(k,i) VALUES(" + key + "," + i + ")", ConsistencyLevel.Quorum);
+            //Use a row length of 1024, we are testing the driver not Cassandra itself
+            for (int i = 0; i < 1024; ++i)
+                Session.Execute("INSERT INTO wide_rows(k,i) VALUES(" + key + "," + i + ")", ConsistencyLevel.Quorum);
 
             // Read data        
-            var rs = session.Execute("SELECT i FROM wide_rows WHERE k = " + key, ConsistencyLevel.Quorum);
+            var rs = Session.Execute("SELECT i FROM wide_rows WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 // Verify data
                 int j = 0;
@@ -82,7 +86,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /*
-         * Test a batch that writes a row of size 10,000
+         * Test a batch that writes a row of size
      * @param c The cluster object
      * @param key The key value that will receive the data
      * @throws Throwable
@@ -92,13 +96,13 @@ namespace Cassandra.IntegrationTests.Core
         {
             // Write data        
             var sb = new StringBuilder("BEGIN BATCH ");
-            for (int i = 0; i < 500; ++i) // 10000
+            for (int i = 0; i < 1024; ++i)
                 sb.AppendLine(string.Format("INSERT INTO wide_batch_rows(k,i) VALUES({0},{1})", key, i));
             sb.Append("APPLY BATCH");
-            session.Execute(sb.ToString(), ConsistencyLevel.Quorum);
+            Session.Execute(sb.ToString(), ConsistencyLevel.Quorum);
 
             // Read data
-            var rs = session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key, ConsistencyLevel.Quorum);
+            var rs = Session.Execute("SELECT i FROM wide_batch_rows WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 // Verify data
                 int j = 0;
@@ -108,7 +112,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /*
-         * Test a wide row of size 1,000,000 consisting of a ByteBuffer
+         * Test a wide row consisting of a ByteBuffer
          */
 
         private void testByteRows()
@@ -122,12 +126,12 @@ namespace Cassandra.IntegrationTests.Core
             Array.Copy(bw.GetBuffer(), bb, 58);
 
             // Write data
-            for (int i = 0; i < 500; ++i) //1000000
-                session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, CqlQueryTools.ToHex(bb)),
+            for (int i = 0; i < 1024; ++i)
+                Session.Execute(string.Format("INSERT INTO wide_byte_rows(k,i) values({0},0x{1})", key, CqlQueryTools.ToHex(bb)),
                                 ConsistencyLevel.Quorum);
 
             // Read data
-            var rs = session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key, ConsistencyLevel.Quorum);
+            var rs = Session.Execute("SELECT i FROM wide_byte_rows WHERE k = " + key, ConsistencyLevel.Quorum);
             // Verify data            
             foreach (var row in rs)
             {
@@ -146,10 +150,10 @@ namespace Cassandra.IntegrationTests.Core
             for (int i = 0; i < 1000; ++i)
                 b.Append(i); // Create ultra-long text
 
-            session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b), ConsistencyLevel.Quorum);
+            Session.Execute(string.Format("INSERT INTO large_text(k,i) VALUES({0},'{1}')", key, b), ConsistencyLevel.Quorum);
 
             // Read data
-            var rs = session.Execute("SELECT * FROM large_text WHERE k = " + key, ConsistencyLevel.Quorum);
+            var rs = Session.Execute("SELECT * FROM large_text WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 Row row = rs.GetRows().FirstOrDefault(); // select().all().from("large_text").where(eq("k", key))).one();
                 // Verify data
@@ -196,10 +200,10 @@ namespace Cassandra.IntegrationTests.Core
                 valus.Append("," + i);
             }
             insrt.Append(") " + valus + ")");
-            session.Execute(insrt.ToString(), ConsistencyLevel.Quorum);
+            Session.Execute(insrt.ToString(), ConsistencyLevel.Quorum);
 
             // Read data
-            var rs = session.Execute("SELECT * FROM wide_table WHERE k = " + key, ConsistencyLevel.Quorum);
+            var rs = Session.Execute("SELECT * FROM wide_table WHERE k = " + key, ConsistencyLevel.Quorum);
             {
                 Row row = rs.GetRows().FirstOrDefault();
 
@@ -223,19 +227,19 @@ namespace Cassandra.IntegrationTests.Core
         {
             try
             {
-                session.WaitForSchemaAgreement(
-                    session.Execute("DROP TABLE " + tableName));
+                Session.WaitForSchemaAgreement(
+                    Session.Execute("DROP TABLE " + tableName));
             }
             catch (InvalidQueryException)
             {
             }
 
             if (tableName == "wide_table")
-                session.WaitForSchemaAgreement(
-                    session.Execute(GetTableDeclaration()));
+                Session.WaitForSchemaAgreement(
+                    Session.Execute(GetTableDeclaration()));
             else
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, cqlType)));
+                Session.WaitForSchemaAgreement(
+                    Session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, cqlType)));
 
             try
             {
@@ -269,14 +273,13 @@ namespace Cassandra.IntegrationTests.Core
 
 
         /// <summary>
-        ///  Test a wide row of size 1,000,000
+        ///  Test a wide row 
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void wideRows()
+        public void WideRows()
         {
             SetupDefaultCluster();
-            session.ChangeKeyspace(ksname);
             largeDataTest("wide_rows");
         }
 
@@ -285,22 +288,21 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void wideBatchRows()
+        public void WideBatchRows()
         {
             SetupDefaultCluster();
-            session.ChangeKeyspace(ksname);
             largeDataTest("wide_batch_rows");
         }
 
         /// <summary>
-        ///  Test a wide row of size 1,000,000 consisting of a ByteBuffer
+        ///  Test a wide row consisting of a ByteBuffer
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void wideByteRows()
+        public void WideByteRows()
         {
             SetupDefaultCluster();
-            session.ChangeKeyspace(ksname);
+            Session.ChangeKeyspace(ksname);
             largeDataTest("wide_byte_rows", "blob");
         }
 
@@ -309,7 +311,7 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void largeText()
+        public void LargeText()
         {
             SetupDefaultCluster();
             largeDataTest("large_text", "text");
@@ -320,7 +322,7 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void wideTable()
+        public void WideTable()
         {
             SetupDefaultCluster();
             largeDataTest("wide_table");
@@ -340,28 +342,22 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// <summary>
-        ///  Tests 10 random tests consisting of the other methods in this class
+        ///  Tests 5 others tests consisting of the other methods in this class
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void mixedDurationTestCCM()
+        public void MixedDurationTestCCM()
         {
-            if (CCMCluster != null)
-                CCMCluster.Discard();
-            CCMCluster = CCMBridge.CCMCluster.Create(3, Cluster.Builder());
-            cluster = CCMCluster.Cluster;
-            session = CCMCluster.Session;
+            SetupDefaultCluster(3);
 
-            session.CreateKeyspace("large_data", ReplicationStrategies.CreateSimpleStrategyReplicationProperty(3));
-            session.ChangeKeyspace("large_data");
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows")));
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows")));
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows")));
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text")));
+            Session.WaitForSchemaAgreement(
+                Session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_rows")));
+            Session.WaitForSchemaAgreement(
+                Session.Execute(String.Format("CREATE TABLE {0} (k INT, i INT, PRIMARY KEY(k, i))", "wide_batch_rows")));
+            Session.WaitForSchemaAgreement(
+                Session.Execute(String.Format("CREATE TABLE {0} (k INT, i BLOB, PRIMARY KEY(k, i))", "wide_byte_rows")));
+            Session.WaitForSchemaAgreement(
+                Session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i text)", "large_text")));
 
             // Create the extra wide table definition
             var tableDeclaration = new StringBuilder();
@@ -372,45 +368,32 @@ namespace Cassandra.IntegrationTests.Core
                 tableDeclaration.Append(String.Format(", \"{0}\" INT", createColumnName(i)));
             }
             tableDeclaration.Append(")");
-            session.WaitForSchemaAgreement(
-                session.Execute(tableDeclaration.ToString())
+            Session.WaitForSchemaAgreement(
+                Session.Execute(tableDeclaration.ToString())
                 );
 
             var rndm = new Random(DateTime.Now.Millisecond);
-            try
+
+            for (int i = 0; i < 10; ++i)
             {
-                for (int i = 0; i < 10; ++i)
+                switch (rndm.Next(0, 5))
                 {
-                    switch (rndm.Next(0, 5))
-                    {
-                        case 0:
-                            testWideRows();
-                            break;
-                        case 1:
-                            testWideBatchRows();
-                            break;
-                        case 2:
-                            testByteRows();
-                            break;
-                        case 3:
-                            testLargeText();
-                            break;
-                        case 4:
-                            testWideTable();
-                            break;
-                        default:
-                            break;
-                    }
+                    case 0:
+                        testWideRows();
+                        break;
+                    case 1:
+                        testWideBatchRows();
+                        break;
+                    case 2:
+                        testByteRows();
+                        break;
+                    case 3:
+                        testLargeText();
+                        break;
+                    case 4:
+                        testWideTable();
+                        break;
                 }
-            }
-            catch (Exception e)
-            {
-                CCMCluster.ErrorOut();
-                throw e;
-            }
-            finally
-            {
-                CCMCluster.Discard();
             }
         }
 
@@ -418,13 +401,13 @@ namespace Cassandra.IntegrationTests.Core
 		{
             try
             {
-                session.WaitForSchemaAgreement(
-                    session.Execute("DROP TABLE " + tableName));
+                Session.WaitForSchemaAgreement(
+                    Session.Execute("DROP TABLE " + tableName));
             }
             catch (InvalidQueryException) { }
 
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k))", tableName, cqlType)));
+            Session.WaitForSchemaAgreement(
+                Session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k))", tableName, cqlType)));
 		}
 
         /// <summary>
@@ -432,15 +415,15 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void largeListText()
+        public void LargeListText()
         {
             SetupDefaultCluster();
 			createTable("large_list_text", "list<text>");
 
             string b = new string('8', UInt16.MaxValue);
-            session.Execute(string.Format("INSERT INTO large_list_text(k,i) VALUES({0},['{1}'])", key, b), ConsistencyLevel.Quorum);
+            Session.Execute(string.Format("INSERT INTO large_list_text(k,i) VALUES({0},['{1}'])", key, b), ConsistencyLevel.Quorum);
 
-            using (var rs = session.Execute("SELECT * FROM large_list_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
+            using (var rs = Session.Execute("SELECT * FROM large_list_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 Row row = rs.GetRows().FirstOrDefault();
                 Assert.True(b.Equals(((List<string>)row["i"])[0]));
@@ -452,35 +435,35 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void largeSetText()
+        public void LargeSetText()
         {
             SetupDefaultCluster();
             createTable("large_set_text", "set<text>");
 
             string b = new string('8', UInt16.MaxValue - 8); //according to specs it should accept  full UInt16.MaxValue, but for some reason it throws "The sum of all clustering columns is too long"
-            session.Execute(string.Format("INSERT INTO large_set_text(k,i) VALUES({0},{{'{1}'}})", key, b), ConsistencyLevel.Quorum);
+            Session.Execute(string.Format("INSERT INTO large_set_text(k,i) VALUES({0},{{'{1}'}})", key, b), ConsistencyLevel.Quorum);
 
-            using (var rs = session.Execute("SELECT * FROM large_set_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
+            using (var rs = Session.Execute("SELECT * FROM large_set_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 Row row = rs.GetRows().FirstOrDefault();
                 Assert.True(b.Equals(((List<string>)row["i"]).First()));
             }
         }
 
-            /// <summary>
-    ///  Test map with a large text key and large text value
+        /// <summary>
+        ///  Test map with a large text key and large text value
         /// </summary>
         /// <throws name="Exception"></throws>
         [Test]
-        public void largeMapText()
+        public void LargeMapText()
         {
             SetupDefaultCluster();
             createTable("large_map_text", "map<text, text>");
 
             string b = new string('8', UInt16.MaxValue - 8); //according to specs it should accept  full UInt16.MaxValue, but for some reason it throws "The sum of all clustering columns is too long"
-            session.Execute(string.Format("INSERT INTO large_map_text(k,i) VALUES({0},{{ '{1}' : '{1}' }})", key, b), ConsistencyLevel.Quorum);
+            Session.Execute(string.Format("INSERT INTO large_map_text(k,i) VALUES({0},{{ '{1}' : '{1}' }})", key, b), ConsistencyLevel.Quorum);
 
-            using (var rs = session.Execute("SELECT * FROM large_map_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
+            using (var rs = Session.Execute("SELECT * FROM large_map_text WHERE k = " + key.ToString(), ConsistencyLevel.Quorum))
             {
                 Row row = rs.GetRows().FirstOrDefault();
                 Assert.True(b.Equals(((SortedDictionary<string, string>)row["i"]).First().Key));
