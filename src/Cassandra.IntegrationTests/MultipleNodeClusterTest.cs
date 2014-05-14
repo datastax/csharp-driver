@@ -13,7 +13,7 @@ namespace Cassandra.IntegrationTests
     /// Represents a set of tests that reuse an test cluster of n node
     /// </summary>
     [TestFixture]
-    public class MultipleNodesClusterTest
+    public abstract class MultipleNodesClusterTest
     {
         /// <summary>
         /// Gets or sets the Cluster builder for this test

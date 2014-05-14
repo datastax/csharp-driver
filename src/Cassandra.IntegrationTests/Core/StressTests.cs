@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
+    [TestFixture, Category("long")]
     public class StressTests
     {
         [Test]

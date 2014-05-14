@@ -29,31 +29,17 @@ namespace Cassandra.IntegrationTests.Linq
     [Category("short")]
     public class LinqContextComplexTests : TwoNodesClusterTest
     {
-        private TextWriterTraceListener twtl;
 
         public override void TestFixtureTearDown()
         {
             base.TestFixtureTearDown();
-            if (twtl != null)
-            {
-                Trace.Listeners.Remove(twtl);
-            }
         }
 
         [Test]
         public void LinqContextTrackMultipleTables()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            var LogWriter = new CassandraLogWriter();
-            twtl = new TextWriterTraceListener(LogWriter);
-
-            Trace.Listeners.Add(twtl);
-
-
             Trace.TraceInformation("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-            LogWriter.GetContext(new CassandraLogContext(Session));
 
             var twitterContext = new TwitterContext(Session);
 
@@ -230,13 +216,6 @@ namespace Cassandra.IntegrationTests.Linq
             //Statistics after deletion of tweets:
             Trace.TraceInformation("After deletion of all tweets our \"Statistics\" table looks like:");
             StatisticsTable.DisplayTable();
-
-            //Logs:
-            Trace.TraceInformation(separator + "Number of received logs: " + LogWriter.LogsTable.Count().Execute());
-            foreach (CassandraLog log in LogWriter.LogsTable.Execute())
-                log.display();
-
-            LogWriter.StopWritingToDB();
         }
     }
 }
