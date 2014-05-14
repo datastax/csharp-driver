@@ -39,6 +39,11 @@ namespace Cassandra.IntegrationTests
             }
         }
 
+        private MultipleNodesClusterTest()
+        {
+
+        }
+
         /// <summary>
         /// Creates a new instance of MultipleNodeCluster Test
         /// </summary>
@@ -51,6 +56,10 @@ namespace Cassandra.IntegrationTests
         [TestFixtureSetUp]
         public virtual void TestFixtureSetUp()
         {
+            if (this.NodeLength == 0)
+            {
+                return;
+            }
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             this.CcmClusterInfo = TestUtils.CcmSetup(NodeLength, Builder, "tester");
             this.Cluster = this.CcmClusterInfo.Cluster;
@@ -60,6 +69,10 @@ namespace Cassandra.IntegrationTests
         [TestFixtureTearDown]
         public virtual void TestFixtureTearDown()
         {
+            if (this.NodeLength == 0)
+            {
+                return;
+            }
             try
             {
                 //Try to close the connections

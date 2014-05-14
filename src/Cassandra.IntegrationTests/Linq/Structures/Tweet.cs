@@ -16,6 +16,7 @@
 
 using System;
 using Cassandra.Data.Linq;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
@@ -29,9 +30,9 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public void display()
         {
-            Console.WriteLine("Author: " + author_id);
-            Console.WriteLine("Date: " + date);
-            Console.WriteLine("Tweet content: " + body + Environment.NewLine);
+            Trace.TraceInformation("Author: " + author_id);
+            Trace.TraceInformation("Date: " + date);
+            Trace.TraceInformation("Tweet content: " + body + Environment.NewLine);
         }
     }
 }

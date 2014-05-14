@@ -279,7 +279,7 @@ namespace Cassandra.IntegrationTests
             ccmPath = EscapePath(ccmPath);
             ccmConfigDir = EscapePath(ccmConfigDir);
             ccmArgs += " --config-dir=" + ccmConfigDir;
-            Console.WriteLine("Executing ccm: " + ccmArgs);
+            Trace.TraceInformation("Executing ccm: " + ccmArgs);
             return ExecutePythonCommand(ccmPath + " " + ccmArgs, timeout);
         }
 

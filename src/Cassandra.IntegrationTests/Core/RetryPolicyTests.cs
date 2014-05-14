@@ -18,6 +18,7 @@ using System;
 using System.Threading;
 using Cassandra.IntegrationTests.Core.Policies;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -416,10 +417,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void AlwaysRetryRetryPolicyTest()
         {
-            Console.Write("MainThread is");
-            Console.Write("[");
-            Console.Write(Thread.CurrentThread.ManagedThreadId);
-            Console.WriteLine("]");
+            Trace.TraceInformation("MainThread is");
+            Trace.TraceInformation("[");
+            Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+            Trace.TraceInformation("]");
 
             var builder = Cluster.Builder()
                 .WithRetryPolicy(new LoggingRetryPolicy(AlwaysRetryRetryPolicy.Instance))
@@ -443,10 +444,10 @@ namespace Cassandra.IntegrationTests.Core
 
                 var t1 = new Thread(() =>
                 {
-                    Console.Write("Thread started");
-                    Console.Write("[");
-                    Console.Write(Thread.CurrentThread.ManagedThreadId);
-                    Console.WriteLine("]");
+                    Trace.TraceInformation("Thread started");
+                    Trace.TraceInformation("[");
+                    Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+                    Trace.TraceInformation("]");
 
                     try
                     {
@@ -454,15 +455,15 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (ThreadInterruptedException)
                     {
-                        Console.Write("Thread broke");
-                        Console.Write("[");
-                        Console.Write(Thread.CurrentThread.ManagedThreadId);
-                        Console.WriteLine("]");
+                        Trace.TraceInformation("Thread broke");
+                        Trace.TraceInformation("[");
+                        Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+                        Trace.TraceInformation("]");
                     }
-                    Console.Write("Thread finished");
-                    Console.Write("[");
-                    Console.Write(Thread.CurrentThread.ManagedThreadId);
-                    Console.WriteLine("]");
+                    Trace.TraceInformation("Thread finished");
+                    Trace.TraceInformation("[");
+                    Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+                    Trace.TraceInformation("]");
                 });
                 t1.Start();
                 t1.Join(10000);
@@ -480,10 +481,10 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmStart(clusterInfo, 2);
                 TestUtils.waitFor(IpPrefix + "2", clusterInfo.Cluster, 30);
 
-                Console.Write("MainThread started");
-                Console.Write("[");
-                Console.Write(Thread.CurrentThread.ManagedThreadId);
-                Console.WriteLine("]");
+                Trace.TraceInformation("MainThread started");
+                Trace.TraceInformation("[");
+                Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+                Trace.TraceInformation("]");
 
                 // Test successful reads
                 for (int i = 0; i < 10; ++i)
@@ -494,17 +495,17 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (ThreadInterruptedException)
                     {
-                        Console.Write("Main Thread broke");
-                        Console.Write("[");
-                        Console.Write(Thread.CurrentThread.ManagedThreadId);
-                        Console.WriteLine("]");
+                        Trace.TraceInformation("Main Thread broke");
+                        Trace.TraceInformation("[");
+                        Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+                        Trace.TraceInformation("]");
                     }
                 }
 
-                Console.Write("Main Thread finished");
-                Console.Write("[");
-                Console.Write(Thread.CurrentThread.ManagedThreadId);
-                Console.WriteLine("]");
+                Trace.TraceInformation("Main Thread finished");
+                Trace.TraceInformation("[");
+                Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
+                Trace.TraceInformation("]");
 
                 // A weak test to ensure that the nodes were contacted
                 assertQueriedAtLeast(IpPrefix + "1", 1);
@@ -525,7 +526,7 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmStopForce(clusterInfo, 2);
                 var t2 = new Thread(() =>
                 {
-                    Console.WriteLine("2 Thread started");
+                    Trace.TraceInformation("2 Thread started");
                     try
                     {
                         init(clusterInfo, 12);
@@ -533,13 +534,13 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     catch (ThreadInterruptedException)
                     {
-                        Console.WriteLine("2 Thread async call broke");
+                        Trace.TraceInformation("2 Thread async call broke");
                     }
                     catch (NoHostAvailableException)
                     {
-                        Console.WriteLine("2 Thread no host");
+                        Trace.TraceInformation("2 Thread no host");
                     }
-                    Console.WriteLine("2 Thread finished");
+                    Trace.TraceInformation("2 Thread finished");
                 });
                 t2.Start();
                 t2.Join(10000);

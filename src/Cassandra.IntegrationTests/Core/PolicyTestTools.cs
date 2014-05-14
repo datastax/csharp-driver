@@ -234,7 +234,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         ccord = rs.Info.QueriedHost;
                         cac = rs.Info.AchievedConsistency;
-                        Console.WriteLine("Query {0} executed by {1} with consistency {2}", i, ccord, cac);
+                        Trace.TraceInformation("Query {0} executed by {1} with consistency {2}", i, ccord, cac);
                     }
                     addCoordinator(ccord, cac);
                 }
