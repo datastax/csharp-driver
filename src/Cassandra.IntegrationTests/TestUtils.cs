@@ -198,7 +198,7 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// Executes a python command
         /// </summary>
-        public static ProcessOutput ExecutePythonCommand(string pythonArgs, int timeout = 30000)
+        public static ProcessOutput ExecutePythonCommand(string pythonArgs, int timeout = 300000)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
@@ -275,7 +275,7 @@ namespace Cassandra.IntegrationTests
             return output;
         }
 
-        public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 30000)
+        public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000)
         {
             var ccmPath = ConfigurationManager.AppSettings["CcmPath"];
             if (ccmPath == null)
@@ -305,9 +305,10 @@ namespace Cassandra.IntegrationTests
         /// <param name="ccmConfigDir">Path to the location where the cluster will be created</param>
         /// <param name="cassandraVersion">Cassandra version in the form of MAJOR.MINOR.PATCH semver</param>
         /// <param name="nodeLength">amount of nodes in the cluster</param>
+        /// <param name="secondDcNodeLength">amount of nodes to add the second DC</param>
         /// <param name="clusterName"></param>
         /// <returns></returns>
-        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, int secondDCNodeLength = 0, string clusterName = "test")
+        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, int secondDcNodeLength = 0, string clusterName = "test")
         {
             //Starting ccm cluster involves:
             //  1.- Getting the Apache Cassandra Distro
@@ -318,6 +319,8 @@ namespace Cassandra.IntegrationTests
             //Considerations: 
             //  As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
             //  Also, the process can exit before the nodes are actually up: Execute ccm status until they are up
+
+            var totalNodeLength = nodeLength + secondDcNodeLength;
 
             //Only if ccm list succedes, create the cluster and continue.
             var output = TestUtils.ExecuteLocalCcm("list", ccmConfigDir, 2000);
@@ -335,15 +338,15 @@ namespace Cassandra.IntegrationTests
             {
                 return output;
             }
-            if (secondDCNodeLength > 0)
+            if (secondDcNodeLength > 0)
             {
-                ccmCommand = String.Format("populate -n {0}:{1}", nodeLength, secondDCNodeLength); 
+                ccmCommand = String.Format("populate -n {0}:{1}", nodeLength, secondDcNodeLength); 
             }
             else
             {
                 ccmCommand = "populate -n " + nodeLength;
             }
-            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 4000);
+            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 300000);
             if (populateOutput.ExitCode != 0)
             {
                 return populateOutput;
@@ -361,7 +364,7 @@ namespace Cassandra.IntegrationTests
             var safeCounter = 0;
             while (!allNodesAreUp && safeCounter < 10)
             {
-                var statusOutput = TestUtils.ExecuteLocalCcm("node1 show", ccmConfigDir, 1000);
+                var statusOutput = TestUtils.ExecuteLocalCcm("status", ccmConfigDir, 1000);
                 if (statusOutput.ExitCode != 0)
                 {
                     //Something went wrong
@@ -369,20 +372,35 @@ namespace Cassandra.IntegrationTests
                     break;
                 }
                 //Analyze the status output to see if all nodes are up
-                if (Regex.Matches(statusOutput.OutputText.ToString(), "UP", RegexOptions.Multiline).Count == nodeLength)
+                if (Regex.Matches(statusOutput.OutputText.ToString(), "UP", RegexOptions.Multiline).Count == totalNodeLength)
                 {
                     //All nodes are up
-                    var logFileText = TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, "node1\\logs\\system.log"));
-                    if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
+                    for (int x = 1; x < totalNodeLength; x++)
                     {
-                        break;
+                        var foundText = false;
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        while (sw.ElapsedMilliseconds < 180000)
+                        {
+                            var logFileText =
+                                TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, String.Format("node{0}\\logs\\system.log", x)));
+                            if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
+                            {
+                                foundText = true;
+                                break;
+                            }
+                        }
+                        if (!foundText)
+                        {
+                            throw new TestInfrastructureException(String.Format("node{0} did not properly start", x));
+                        }
                     }
+                    allNodesAreUp = true;
                 }
                 safeCounter++;
             }
 
             return output;
-
         }
 
         /// <summary>
