@@ -63,11 +63,18 @@
     <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
     
     <MakeDir Directories="$(TestResultsFolder)" />
-    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll&quot; /labels /nologo /framework=net-4.0 /xml=&quot;$(TestResultsFolder)\Cassandra.Tests.xml&quot; /out=&quot;$(TestResultsFolder)\Cassandra.Tests.txt&quot;" />
+    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll&quot; /labels /nologo /framework:net-4.0 /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out:&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
   </Target>
+  
+  <!-- Runs unit and integration tests-->
+  <Target Name="test" DependsOnTargets="compile">
+    <Message Text="Running integration tests" Importance="high" />
 
-  <!-- Include only unit tests for now, it will later depend on "unit-test;integration-test" -->
-  <Target Name="test" DependsOnTargets="unit-test" />
+    <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
+
+    <MakeDir Directories="$(TestResultsFolder)" />
+    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll&quot; &quot;$(SourceFolder)\Cassandra.IntegrationTests\bin\Release\Cassandra.IntegrationTests.dll&quot; /labels /nologo /framework:net-4.0 /exclude:long,duration /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out=&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
+  </Target>
 
   <Target Name="ci" DependsOnTargets="generate-assembly-info;test"/>
   

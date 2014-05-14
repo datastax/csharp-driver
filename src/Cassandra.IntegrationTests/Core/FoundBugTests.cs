@@ -21,7 +21,7 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("long")]
     public class FoundBugTests
     {
         [Test]
