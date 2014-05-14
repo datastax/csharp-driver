@@ -56,6 +56,22 @@ namespace Cassandra.IntegrationTests
             timestamp_sample timestamp,
             inet_sample inet);
         ";
+        public const string CREATE_TABLE_TIME_SERIES = @"
+            create table {0} (
+            id uuid,
+            event_time timestamp,
+            text_sample text,
+            int_sample int,
+            bigint_sample bigint,
+            float_sample float,
+            double_sample double,
+            decimal_sample decimal,
+            blob_sample blob,
+            boolean_sample boolean,
+            timestamp_sample timestamp,
+            inet_sample inet,
+            PRIMARY KEY(id, event_time));
+        ";
 
         public static readonly string INSERT_FORMAT = "INSERT INTO {0} (k, t, i, f) VALUES ('{1}', '{2}', {3}, {4})";
         public static readonly string SELECT_ALL_FORMAT = "SELECT * FROM {0}";
