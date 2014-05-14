@@ -167,6 +167,7 @@
     <Compile Include="NoBuffering.cs" />
     <Compile Include="NoneAuthProvider.cs" />
     <Compile Include="NullTypeAdapter.cs" />
+    <Compile Include="OperationState.cs" />
     <Compile Include="OPPToken.cs" />
     <Compile Include="Outputs\AlreadyExistsInfo.cs" />
     <Compile Include="Outputs\IsBootstrappingException.cs" />

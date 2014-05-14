@@ -13,6 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+using System;
+using System.Linq;
 
 namespace Cassandra
 {
@@ -20,11 +22,53 @@ namespace Cassandra
     {
         public const int MaxFrameSize = 256*1024*1024;
         public const int Size = 8;
-        public byte Flags;
+
+        /// <summary>
+        /// Returns the length of the frame body 
+        /// </summary>
+        public int BodyLength
+        {
+            get
+            {
+                return TypeInterpreter.BytesToInt32(Len, 0);
+            }
+        }
+        
+        public byte Flags { get; set; }
+        
         public byte[] Len = new byte[4];
-        public byte Opcode;
-        public byte StreamId;
-        public byte Version;
+        
+        public byte Opcode { get; set; }
+        
+        public byte StreamId { get; set; }
+
+        /// <summary>
+        /// Returns the length of the frame body and the header
+        /// </summary>
+        public int TotalFrameLength
+        {
+            get
+            {
+                return this.BodyLength + Size;
+            }
+        }
+
+        public byte Version { get; set; }
+
+        /// <summary>
+        /// Parses the first 8 bytes and returns a FrameHeader
+        /// </summary>
+        public static FrameHeader Parse(byte[] buffer)
+        {
+            return new FrameHeader()
+            {
+                Version = buffer[0],
+                Flags = buffer[1],
+                StreamId = buffer[2],
+                Opcode = buffer[3],
+                Len = buffer.Skip(4).Take(4).ToArray()
+            };
+        }
 
         public ResponseFrame MakeFrame(IProtoBuf stream)
         {

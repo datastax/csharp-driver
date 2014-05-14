@@ -107,5 +107,38 @@ namespace Cassandra
             }
             return true;
         }
+
+        /// <summary>
+        /// Returns a new byte array that is the result of the sum of the 2 byte arrays: [1, 2] + [3, 4] = [1, 2, 3, 4]
+        /// </summary>
+        public static byte[] JoinBuffers(byte[] buffer1, byte[] buffer2)
+        {
+            if (buffer1 == null)
+            {
+                return buffer2;
+            }
+            if (buffer2 == null)
+            {
+                return buffer1;
+            }
+            var newBuffer = new byte[buffer1.Length + buffer2.Length];
+            Buffer.BlockCopy(buffer1, 0, newBuffer, 0, buffer1.Length);
+            Buffer.BlockCopy(buffer2, 0, newBuffer, buffer1.Length, buffer2.Length);
+            return newBuffer;
+        }
+
+        /// <summary>
+        /// Returns a new buffer as a slice of the provided buffer
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="startIndex">zero-based index</param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public static byte[] SliceBuffer(byte[] value, int startIndex, int count)
+        {
+            var newBuffer = new byte[count];
+            Buffer.BlockCopy(value, startIndex, newBuffer, 0, count);
+            return newBuffer;
+        }
     }
 }
