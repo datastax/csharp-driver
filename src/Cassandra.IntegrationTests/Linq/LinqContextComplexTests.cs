@@ -29,31 +29,17 @@ namespace Cassandra.IntegrationTests.Linq
     [Category("short")]
     public class LinqContextComplexTests : TwoNodesClusterTest
     {
-        private TextWriterTraceListener twtl;
 
         public override void TestFixtureTearDown()
         {
             base.TestFixtureTearDown();
-            if (twtl != null)
-            {
-                Trace.Listeners.Remove(twtl);
-            }
         }
 
         [Test]
         public void LinqContextTrackMultipleTables()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            var LogWriter = new CassandraLogWriter();
-            twtl = new TextWriterTraceListener(LogWriter);
-
-            Trace.Listeners.Add(twtl);
-
-
-            Console.WriteLine("Connecting, setting keyspace and creating Tables..");
+            Trace.TraceInformation("Connecting, setting keyspace and creating Tables..");
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-            LogWriter.GetContext(new CassandraLogContext(Session));
 
             var twitterContext = new TwitterContext(Session);
 
@@ -62,10 +48,10 @@ namespace Cassandra.IntegrationTests.Linq
             ContextTable<FollowedTweet> FollowedTweetsTable = twitterContext.GetTable<FollowedTweet>();
             ContextTable<Statistics> StatisticsTable = twitterContext.GetTable<Statistics>();
 
-            Console.WriteLine("Done!");
+            Trace.TraceInformation("Done!");
 
             //Adding authors and their followers to the Authors table: 
-            Console.WriteLine("Adding authors and their followers to the Authors table..");
+            Trace.TraceInformation("Adding authors and their followers to the Authors table..");
             int AuthorsNo = 10;
             var authorsLocal = new List<Author>();
             var statisticsLocal = new List<Statistics>();
@@ -94,13 +80,13 @@ namespace Cassandra.IntegrationTests.Linq
             List<QueryTrace> traces = AuthorsTable.RetriveAllQueryTraces();
             foreach (QueryTrace trace in traces)
             {
-                Console.WriteLine("coordinator was {0}", trace.Coordinator);
+                Trace.TraceInformation("coordinator was {0}", trace.Coordinator);
             }
-            Console.WriteLine("Done!");
+            Trace.TraceInformation("Done!");
 
 
             //Now every author will add a single tweet:
-            Console.WriteLine("Now authors are writing their tweets..");
+            Trace.TraceInformation("Now authors are writing their tweets..");
             var tweetsLocal = new List<Tweet>();
             var followedTweetsLocal = new List<FollowedTweet>();
             foreach (string auth in authorsID)
@@ -137,13 +123,13 @@ namespace Cassandra.IntegrationTests.Linq
                     }
             }
             twitterContext.SaveChanges(SaveChangesMode.Batch);
-            Console.WriteLine("Done!");
+            Trace.TraceInformation("Done!");
             string separator = Environment.NewLine + "───────────────────────────────────────────────────────────────────────" + Environment.NewLine;
 
-            Console.WriteLine(separator);
+            Trace.TraceInformation(separator);
 
             //To display users that follows "Author8":         
-            Console.WriteLine("\"Author8\" is followed by:" + Environment.NewLine);
+            Trace.TraceInformation("\"Author8\" is followed by:" + Environment.NewLine);
             try
             {
                 Author Author8 = AuthorsTable.First(aut => aut.author_id == "Author8").Execute();
@@ -151,19 +137,19 @@ namespace Cassandra.IntegrationTests.Linq
             }
             catch (InvalidOperationException)
             {
-                Console.WriteLine("\"Author8\" does not exist in database!");
+                Trace.TraceInformation("\"Author8\" does not exist in database!");
             }
 
 
             //To display all of user "Author15" tweets:
-            Console.WriteLine(separator + "All tweets posted by Author15:" + Environment.NewLine);
+            Trace.TraceInformation(separator + "All tweets posted by Author15:" + Environment.NewLine);
             foreach (Tweet tweet in (from twt in TweetsTable where twt.author_id == "Author15" select twt).Execute())
                 tweet.display();
 
 
             //To display all tweets from users that "Author45" follows:
             string author_id = "Author45";
-            Console.WriteLine(separator + string.Format("All tweets posted by users that \"{0}\" follows:", author_id) + Environment.NewLine);
+            Trace.TraceInformation(separator + string.Format("All tweets posted by users that \"{0}\" follows:", author_id) + Environment.NewLine);
 
             // At first we will check if specified above author_id is present in database:
             Author specifiedAuthor = (from aut in AuthorsTable where aut.author_id == author_id select aut).FirstOrDefault().Execute();
@@ -177,10 +163,10 @@ namespace Cassandra.IntegrationTests.Linq
                     foreach (FollowedTweet foloTwt in followedTweets)
                         foloTwt.display();
                 else
-                    Console.WriteLine("There is no tweets from users that {0} follows.", author_id);
+                    Trace.TraceInformation("There is no tweets from users that {0} follows.", author_id);
             }
             else
-                Console.WriteLine("Nothing to display because specified author: \"{0}\" does not exist!", author_id);
+                Trace.TraceInformation("Nothing to display because specified author: \"{0}\" does not exist!", author_id);
 
 
             //Let's check all of authors punctuation in their tweets, or at least, if they end their tweets with full stop, exclamation or question mark:
@@ -197,7 +183,7 @@ namespace Cassandra.IntegrationTests.Linq
             {
                 // Now we can check how many of all authors have this problem..            
                 float proportion = (float) authorsWithPunctuationProblems.Count()/AuthorsTable.Count().Execute()*100;
-                Console.WriteLine(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion) +
+                Trace.TraceInformation(separator + string.Format("{0}% of all authors doesn't end tweet with punctuation mark!", proportion) +
                                   Environment.NewLine);
 
                 // This time I will help them, and update these tweets with a full stop..            
@@ -212,7 +198,7 @@ namespace Cassandra.IntegrationTests.Linq
 
 
             //Statistics before deletion of tweets:
-            Console.WriteLine(separator + "Before deletion of all tweets our \"Statistics\" table looks like:" + Environment.NewLine);
+            Trace.TraceInformation(separator + "Before deletion of all tweets our \"Statistics\" table looks like:" + Environment.NewLine);
             StatisticsTable.DisplayTable();
 
 
@@ -228,15 +214,8 @@ namespace Cassandra.IntegrationTests.Linq
             twitterContext.SaveChanges(SaveChangesMode.Batch);
 
             //Statistics after deletion of tweets:
-            Console.WriteLine("After deletion of all tweets our \"Statistics\" table looks like:");
+            Trace.TraceInformation("After deletion of all tweets our \"Statistics\" table looks like:");
             StatisticsTable.DisplayTable();
-
-            //Logs:
-            Console.WriteLine(separator + "Number of received logs: " + LogWriter.LogsTable.Count().Execute());
-            foreach (CassandraLog log in LogWriter.LogsTable.Execute())
-                log.display();
-
-            LogWriter.StopWritingToDB();
         }
     }
 }

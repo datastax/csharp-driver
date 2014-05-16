@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) =>
             {
-                Console.Write("o");
+                Trace.TraceInformation("o");
                 Thread.Sleep((int)ev.DelayMs);
             };
             this.Builder.WithLoadBalancingPolicy(rp);
@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.Core
 
             for (int KK = 0; KK < 1; KK++)
             {
-                Console.Write("Try no:" + KK);
+                Trace.TraceInformation("Try no:" + KK);
 
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
@@ -84,8 +84,7 @@ namespace Cassandra.IntegrationTests.Core
                 var threads = new List<Thread>();
                 var monit = new object();
                 int readyCnt = 0;
-                Console.WriteLine();
-                Console.WriteLine("Preparing...");
+                Trace.TraceInformation("Preparing...");
 
                 for (int idx = 0; idx < RowsNo; idx++)
                 {
@@ -94,7 +93,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         try
                         {
-                            Console.Write("+");
+                            Trace.TraceInformation("+");
                             lock (monit)
                             {
                                 readyCnt++;
@@ -109,7 +108,7 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch
                         {
-                            Console.Write("@");
+                            Trace.TraceInformation("@");
                         }
                     }));
                 }
@@ -137,8 +136,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Start!");
+                Trace.TraceInformation("Start!");
 
                 var done = new HashSet<int>();
                 while (done.Count < RowsNo)
@@ -156,17 +154,16 @@ namespace Cassandra.IntegrationTests.Core
                                 }
                                 catch
                                 {
-                                    Console.Write("!");
+                                    Trace.TraceInformation("!");
                                 }
                                 done.Add(i);
-                                Console.Write("-");
+                                Trace.TraceInformation("-");
                             }
                         }
                     }
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Inserted... now we are checking the count");
+                Trace.TraceInformation("Inserted... now we are checking the count");
 
                 var ret = localSession.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
                 Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
@@ -194,7 +191,7 @@ namespace Cassandra.IntegrationTests.Core
 
             for (int KK = 0; KK < 1; KK++)
             {
-                Console.Write("Try no:" + KK);
+                Trace.TraceInformation("Try no:" + KK);
 
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
@@ -218,19 +215,18 @@ namespace Cassandra.IntegrationTests.Core
 
                 var errorInjector = new Thread(() =>
                 {
-                    Console.Write("#");
+                    Trace.TraceInformation("#");
                     localSession.SimulateSingleConnectionDown();
 
                     for (int i = 0; i < 50; i++)
                     {
                         Thread.Sleep(100);
-                        Console.Write("#");
+                        Trace.TraceInformation("#");
                         localSession.SimulateSingleConnectionDown();
                     }
                 });
 
-                Console.WriteLine();
-                Console.WriteLine("Preparing...");
+                Trace.TraceInformation("Preparing...");
 
                 for (int idx = 0; idx < RowsNo; idx++)
                 {
@@ -239,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         try
                         {
-                            Console.Write("+");
+                            Trace.TraceInformation("+");
                             var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
                             localSession.Execute(query, ConsistencyLevel.One);
                             ar[i] = true;
@@ -247,8 +243,8 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex.Message);
-                            Console.WriteLine(ex.StackTrace);
+                            Trace.TraceInformation(ex.Message);
+                            Trace.TraceInformation(ex.StackTrace);
                             ar[i] = true;
                             Thread.MemoryBarrier();
                         }
@@ -262,8 +258,7 @@ namespace Cassandra.IntegrationTests.Core
                     threads[idx].Start();
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Start!");
+                Trace.TraceInformation("Start!");
 
                 var done = new HashSet<int>();
                 while (done.Count < RowsNo)
@@ -274,7 +269,7 @@ namespace Cassandra.IntegrationTests.Core
                         if (!done.Contains(i) && ar[i])
                         {
                             done.Add(i);
-                            Console.Write("-");
+                            Trace.TraceInformation("-");
                         }
                     }
                 }
@@ -286,8 +281,7 @@ namespace Cassandra.IntegrationTests.Core
                     threads[idx].Join(500);
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Inserted... now we are checking the count");
+                Trace.TraceInformation("Inserted... now we are checking the count");
 
                 var ret = localSession.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
                 Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
@@ -309,9 +303,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InsertFireAndForget()
         {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-            Trace.Listeners.Add(new ConsoleTraceListener());
-
             var keyspaceName = "test_" + Guid.NewGuid().ToString("N").ToLower();
             var localSession = Cluster.Connect();
             localSession.CreateKeyspaceIfNotExists(keyspaceName);
@@ -375,7 +366,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 for (int i = 0; i < RowsNo; i++)
                 {
-                    Console.Write("+");
+                    Trace.TraceInformation("+");
                     int tmpi = i;
                     localSession.BeginExecute(string.Format(@"INSERT INTO {0} (
              tweet_id,
@@ -402,15 +393,14 @@ namespace Cassandra.IntegrationTests.Core
                     if (!done.Contains(i) && ar[i])
                     {
                         done.Add(i);
-                        Console.Write("-");
+                        Trace.TraceInformation("-");
                     }
                 }
             }
 
             thr.Join();
 
-            Console.WriteLine();
-            Console.WriteLine("Inserted... now we are checking the count");
+            Trace.TraceInformation("Inserted... now we are checking the count");
 
             var ret = localSession.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
             Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
@@ -470,7 +460,7 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch (ObjectDisposedException)
                         {
-                            Console.Write("*");
+                            Trace.TraceInformation("*");
                         }
                         finally
                         {
@@ -481,7 +471,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (ObjectDisposedException)
                 {
-                    Console.Write("!");
+                    Trace.TraceInformation("!");
                     break;
                 }
             }

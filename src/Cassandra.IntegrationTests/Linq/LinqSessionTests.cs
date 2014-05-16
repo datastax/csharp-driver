@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -175,11 +176,9 @@ namespace Cassandra.IntegrationTests.Linq
         {
             foreach (NerdMovie resMovie in result)
             {
-                Console.WriteLine("Movie={0} Director={1} MainActor={2}, Year={3}",
+                Trace.TraceInformation("Movie={0} Director={1} MainActor={2}, Year={3}",
                                   resMovie.Movie, resMovie.Director, resMovie.MainActor, resMovie.Year);
             }
-            Console.WriteLine();
-            Console.WriteLine();
         }
 
         public class ExtMovie

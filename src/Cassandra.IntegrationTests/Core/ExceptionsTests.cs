@@ -23,7 +23,7 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("long")]
     public class ExceptionsTests
     {
         public ExceptionsTests()
@@ -479,9 +479,10 @@ namespace Cassandra.IntegrationTests.Core
                 localSession.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
                 localSession.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
                 var rs = localSession.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
-                if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
+                if (Options.Default.CassandraVersion.Major < 2)
                 {
                     //Paging should be ignored in 1.x
+                    //But setting the page size should work
                     Assert.AreEqual(2, rs.InnerQueueCount);
                     return;
                 }

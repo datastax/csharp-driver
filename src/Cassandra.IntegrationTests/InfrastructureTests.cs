@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -23,12 +24,12 @@ namespace Cassandra.IntegrationTests
             var output = TestUtils.ExecutePythonCommand("-V");
             if (output.ExitCode == 0)
             {
-                Console.WriteLine("Python version: " + output.OutputText.ToString());
+                Trace.TraceInformation("Python version: " + output.OutputText.ToString());
             }
             else
             {
-                Console.WriteLine("Python not found");
-                Console.WriteLine(output);
+                Trace.TraceError("Python not found");
+                Trace.TraceError(output.ToString());
             }
         }
 
@@ -42,12 +43,12 @@ namespace Cassandra.IntegrationTests
             var output = TestUtils.ExecuteLocalCcm("list", ccmConfigDir);
             if (output.ExitCode == 0)
             {
-                Console.WriteLine("Ccm executed correctly: " + output.OutputText.ToString());
+                Trace.TraceInformation("Ccm executed correctly: " + output.OutputText.ToString());
             }
             else
             {
-                Console.WriteLine("Ccm not found");
-                Console.WriteLine(output);
+                Trace.TraceError("Ccm not found");
+                Trace.TraceError(output.ToString());
             }
         }
 
@@ -61,12 +62,12 @@ namespace Cassandra.IntegrationTests
             var output = TestUtils.ExecuteLocalCcmClusterStart(ccmConfigDir, "2.0.6");
             if (output.ExitCode == 0)
             {
-                Console.WriteLine("Ccm started correctly: " + output.OutputText.ToString());
+                Trace.TraceInformation("Ccm started correctly: " + output.OutputText.ToString());
             }
             else
             {
-                Console.WriteLine("Ccm start failed:");
-                Console.WriteLine(output);
+                Trace.TraceError("Ccm start failed:");
+                Trace.TraceError(output.ToString());
             }
 
             TestUtils.ExecuteLocalCcmClusterRemove(ccmConfigDir);

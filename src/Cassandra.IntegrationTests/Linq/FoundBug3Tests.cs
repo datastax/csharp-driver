@@ -21,6 +21,7 @@ using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Linq
 {
@@ -33,7 +34,6 @@ namespace Cassandra.IntegrationTests.Linq
         //Create table causes InvalidOperationException
         public void Bug_CSHARP_42()
         {
-            Console.WriteLine("Hello World!");
             Table<SalesOrder> table = Session.GetTable<SalesOrder>();
             table.CreateIfNotExists();
 
@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.Linq
 
             List<SalesOrder> lst = (from x in table select x).Execute().ToList();
 
-            Console.WriteLine("done!");
+            Trace.TraceInformation("done!");
         }
     }
 }

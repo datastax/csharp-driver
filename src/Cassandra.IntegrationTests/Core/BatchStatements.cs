@@ -77,13 +77,9 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchSimpleStatementSingleBinded()
         {
-            if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
-            {
-                //Ignore: There is no binded simple statement support in Cassandra 1.x
-                return;
-            }
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
 
             CreateTable(tableName);
@@ -163,14 +159,9 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchMixedStatements()
         {
-            if (Options.Default.CASSANDRA_VERSION.StartsWith("1."))
-            {
-                //Ignore: There is no binded simple statement support in Cassandra 1.x
-                return;
-            }
-
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             CreateTable(tableName);
 
@@ -187,14 +178,9 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchMixedDMLStatementTypesTest()
         {
-            if (Options.Default.CASSANDRA_VERSION.StartsWith("-v 1."))
-            {
-                //Ignore: There is no binded simple statement support in Cassandra 1.x
-                return;
-            }
-            
             string tableName = "table" + Guid.NewGuid().ToString("N");
             CreateTable(tableName);
 

@@ -214,47 +214,6 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
-        public void createSecondaryIndexTest()
-        {
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            string columns = "tweet_id uuid, name text, surname text";
-
-            try
-            {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         {1},
-PRIMARY KEY(tweet_id)
-         );", tableName, columns))
-                    );
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-
-            var row1 = new object[3] {Guid.NewGuid(), "Adam", "Małysz"};
-            var row2 = new object[3] {Guid.NewGuid(), "Adam", "Miałczyński"};
-
-            var toReturn = new List<object[]>(2) {row1, row2};
-            var toInsert = new List<object[]>(2) {row1, row2};
-
-            QueryTools.ExecuteSyncNonQuery(Session,
-                                           string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName,
-                                                         toInsert[0][0], toInsert[0][1], toInsert[0][2]), null, ConsistencyLevel.Quorum);
-            QueryTools.ExecuteSyncNonQuery(Session,
-                                           string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName,
-                                                         toInsert[1][0], toInsert[1][1], toInsert[1][2]), null, ConsistencyLevel.Quorum);
-
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName), null, ConsistencyLevel.Quorum)
-                );
-
-            Thread.Sleep(2000);
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), ConsistencyLevel.Quorum, toReturn);
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
-        }
-
-
         public void BigInsertTest(int RowsNo = 5000)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -298,19 +257,16 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryBinding()
         {
-            //There is no support for query binding in protocol v1 
-            if (!Options.Default.CASSANDRA_VERSION.StartsWith("1."))
-            {
-                return;
-            }
             string tableName = CreateSimpleTableAndInsert(0);
             var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label, number) VALUES(?, ?, ?)", tableName));
             Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void PagingOnSimpleStatementTest()
         {
             var pageSize = 10;
@@ -325,7 +281,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             var rs = Session.Execute(statementWithPaging);
 
             var rsWithoutPaging = Session.Execute(statementWithoutPaging);
-            
+
 
             //Check that the internal list of items count is pageSize
             Assert.True(rs.InnerQueueCount == pageSize);
@@ -337,6 +293,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryPaging()
         {
             var pageSize = 10;
@@ -359,6 +316,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryPagingParallel()
         {
             var pageSize = 25;
@@ -389,12 +347,6 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         public void BigInsert()
         {
             BigInsertTest(1000);
-        }
-
-        [Test]
-        public void creatingSecondaryIndex()
-        {
-            createSecondaryIndexTest();
         }
 
         [Test]

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace Cassandra.IntegrationTests
 {
@@ -13,7 +14,7 @@ namespace Cassandra.IntegrationTests
     /// Represents a set of tests that reuse an test cluster of n node
     /// </summary>
     [TestFixture]
-    public class MultipleNodesClusterTest
+    public abstract class MultipleNodesClusterTest
     {
         /// <summary>
         /// Gets or sets the Cluster builder for this test
@@ -39,6 +40,11 @@ namespace Cassandra.IntegrationTests
             }
         }
 
+        private MultipleNodesClusterTest()
+        {
+
+        }
+
         /// <summary>
         /// Creates a new instance of MultipleNodeCluster Test
         /// </summary>
@@ -51,6 +57,10 @@ namespace Cassandra.IntegrationTests
         [TestFixtureSetUp]
         public virtual void TestFixtureSetUp()
         {
+            if (this.NodeLength == 0)
+            {
+                return;
+            }
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             this.CcmClusterInfo = TestUtils.CcmSetup(NodeLength, Builder, "tester");
             this.Cluster = this.CcmClusterInfo.Cluster;
@@ -60,6 +70,10 @@ namespace Cassandra.IntegrationTests
         [TestFixtureTearDown]
         public virtual void TestFixtureTearDown()
         {
+            if (this.NodeLength == 0)
+            {
+                return;
+            }
             try
             {
                 //Try to close the connections
@@ -70,6 +84,42 @@ namespace Cassandra.IntegrationTests
 
             }
             TestUtils.CcmRemove(this.CcmClusterInfo);
+        }
+
+        [SetUp]
+        public virtual void SetUp()
+        {
+            var test = TestContext.CurrentContext.Test;
+            var methodFullName = TestContext.CurrentContext.Test.FullName;
+            var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
+            var type = Assembly.GetExecutingAssembly().GetType(typeName);
+            if (type == null)
+            {
+                return;
+            }
+            var methodAttr = type.GetMethod(test.Name)
+                .GetCustomAttributes(true)
+                .Select(a => (Attribute) a)
+                .FirstOrDefault((a) => a is TestCassandraVersion);
+            var attr = Attribute.GetCustomAttributes(type).FirstOrDefault((a) => a is TestCassandraVersion);
+            if (attr == null && methodAttr == null)
+            {
+                //It does not contain the attribute, move on.
+                return;
+            }
+            if (methodAttr != null)
+            {
+                attr = methodAttr;
+            }
+            var minimalVersion = (TestCassandraVersion)attr;
+            var currentVersion = Options.Default.CassandraVersion;
+            //If we are running previous version 
+            if ((minimalVersion.Major > currentVersion.Major) ||
+                (minimalVersion.Major == currentVersion.Major && minimalVersion.Minor > currentVersion.Minor)
+                )
+            {
+                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1} or above.", minimalVersion.Major, minimalVersion.Minor));
+            }
         }
     }
 }

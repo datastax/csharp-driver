@@ -16,11 +16,12 @@
 
 using NUnit.Framework;
 using System;
+using System.Linq;
 using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("long")]
     public class FoundBugTests
     {
         [Test]
@@ -67,14 +68,7 @@ namespace Cassandra.IntegrationTests.Core
                 var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
                 {
                     var result = Session.Execute(query);
-                    foreach (Row resKeyspace in result.GetRows())
-                    {
-                        Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                            resKeyspace.GetValue<bool>("durable_writes"),
-                                            resKeyspace.GetValue<string>("keyspace_name"),
-                                            resKeyspace.GetValue<string>("strategy_class"),
-                                            resKeyspace.GetValue<string>("strategy_options"));
-                    }
+                    Assert.True(result.Count() > 0, "It should return rows");
                 }
 
                 TestUtils.CcmStopForce(clusterInfo, 1);
@@ -85,10 +79,7 @@ namespace Cassandra.IntegrationTests.Core
                 try
                 {
                     var result = Session.Execute(query);
-                    foreach (Row resKeyspace in result.GetRows())
-                    {
-                        Console.WriteLine(resKeyspace.GetValue<string>("keyspace_name"));
-                    }
+                    Assert.True(result.Count() > 0, "It should return rows");
                 }
                 catch (Exception)
                 {
@@ -101,15 +92,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 {
                     RowSet result = Session.Execute(query);
-
-                    foreach (Row resKeyspace in result)
-                    {
-                        Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                          resKeyspace.GetValue<bool>("durable_writes"),
-                                          resKeyspace.GetValue<string>("keyspace_name"),
-                                          resKeyspace.GetValue<string>("strategy_class"),
-                                          resKeyspace.GetValue<string>("strategy_options"));
-                    }
+                    Assert.True(result.Count() > 0, "It should return rows");
                 }
             }
             finally

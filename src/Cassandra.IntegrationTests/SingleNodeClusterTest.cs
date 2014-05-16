@@ -12,7 +12,7 @@ namespace Cassandra.IntegrationTests
     /// <summary>
     /// Represents a set of tests that reuse an test cluster of 1 node
     /// </summary>
-    public class SingleNodeClusterTest : MultipleNodesClusterTest
+    public abstract class SingleNodeClusterTest : MultipleNodesClusterTest
     {
         public SingleNodeClusterTest() 
             : base(1)

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
+    [TestCassandraVersion(2, 0)]
     public class ParameterizedStatementsTests : SingleNodeClusterTest
     {
         [Test]
@@ -146,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
 
             if (testAsync)
             {
-                Session.ExecuteAsync(statement);
+                Session.ExecuteAsync(statement).Wait(500);
             }
             else
             {
