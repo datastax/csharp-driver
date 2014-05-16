@@ -63,11 +63,23 @@ namespace Cassandra
             this.SocketOptions = socketOptions;
         }
 
-        protected virtual void CancelPending(SocketError error)
+        /// <summary>
+        /// It callbacks all operations already sent / or to be written, that do not have a response.
+        /// </summary>
+        protected virtual void CancelPending(Exception ex, SocketError? socketError = null)
         {
+            if (ex == null && socketError == null)
+            {
+                throw new ArgumentException("An exception or a socket error that caused the cancelations must be provided");
+            }
             if (_pendingOperations.Count > 0)
             {
                 //TODO: Callback every pending operation
+                throw new NotImplementedException();
+            }
+            if (_writeQueue.Count > 0)
+            {
+                //TODO: Callback all the items in the writequeue
                 throw new NotImplementedException();
             }
         }
@@ -115,22 +127,20 @@ namespace Cassandra
 
             //Connect
             var connectResult = _socket.BeginConnect(IPEndPoint, null, null);
-            connectResult.AsyncWaitHandle.WaitOne(SocketOptions.ConnectTimeoutMillis);
+            var connectSignaled = connectResult.AsyncWaitHandle.WaitOne(SocketOptions.ConnectTimeoutMillis);
 
-            if (!_socket.Connected)
+            if (!connectSignaled)
             {
                 //It timed out: Close the socket and throw the exception
                 _socket.Close();
                 throw new SocketException((int)SocketError.TimedOut);
             }
+            //End the connect process
+            //It will throw exceptions in case there was a problem
+            _socket.EndConnect(connectResult);
 
             //Start receiving
-            //TODO: Catch possible exceptions
-            var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
-            if (!willRaiseEvent)
-            {
-                OnReceiveCompleted(this, _receiveSocketEvent);
-            }
+            ReceiveAsync();
         }
 
         protected virtual void InitSocket()
@@ -165,38 +175,34 @@ namespace Cassandra
             if(e.SocketError != SocketError.Success || e.BytesTransferred == 0)
             {
                 //There was a socket error or the connection is being closed.
-                CancelPending(e.SocketError);
+                CancelPending(null, e.SocketError);
             }
             //MAYBE: Possible improve by deferring copy
             var buffer = new byte[e.BytesTransferred];
             Buffer.BlockCopy(e.Buffer, 0, buffer, 0, e.BytesTransferred);
+            
             //Parse the data received
-            ReceiveParse(buffer);
-            //TODO: Determine if there are new streams ids available
-            //If so, call SendQueueNext();
-                
-            //Receive the next bytes
-            //TODO: Catch possible exceptions
-            var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
-            if (!willRaiseEvent)
+            var streamIdAvailable = ReceiveParse(buffer);
+            if (streamIdAvailable)
             {
-                OnReceiveCompleted(this, _receiveSocketEvent);
+                //Process a next item in the queue if possible.
+                //Maybe there are there items in the write queue that were waiting on a fresh streamId
+                SendQueueNext();
             }
+            ReceiveAsync();
         }
 
         protected internal virtual void OnSendCompleted(object sender, SocketAsyncEventArgs e)
         {
-             if (e.SocketError == SocketError.Success)
+             if (e.SocketError != SocketError.Success)
              {
-                 //There is no need to lock
-                 //Only 1 thread can be here at the same time.
-                 _canWriteNext = true;
-                 SendQueueNext();
+
+                 CancelPending(null, e.SocketError);
              }
-             else
-             {
-                 CancelPending(e.SocketError);
-             }
+            //There is no need to lock
+            //Only 1 thread can be here at the same time.
+            _canWriteNext = true;
+            SendQueueNext();
         }
 
         protected internal virtual Task<object> Query()
@@ -208,7 +214,30 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Begins an asynchronous request to receive data from a connected Socket object.
+        /// It handles the exceptions in case there is one.
+        /// </summary>
+        protected virtual void ReceiveAsync()
+        {
+            //Receive the next bytes
+            bool willRaiseEvent = true;
+            try
+            {
+                willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
+            }
+            catch (Exception ex)
+            {
+                CancelPending(ex);
+            }
+            if (!willRaiseEvent)
+            {
+                OnReceiveCompleted(this, _receiveSocketEvent);
+            }
+        }
+
+        /// <summary>
         /// Parses the bytes received into a frame. Uses the internal operation state to do the callbacks.
+        /// Returns true if a full operation (streamId) has been processed and there is one available.
         /// </summary>
         /// <returns>True if a full operation (streamId) has been processed.</returns>
         private bool ReceiveParse(byte[] buffer)
@@ -349,11 +378,22 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Sends data asynchronously
+        /// </summary>
         protected internal virtual void Write(SocketAsyncEventArgs sendEvent, byte[] buffer)
         {
             sendEvent.SetBuffer(buffer, 0, buffer.Length);
-            //TODO: Catch possible exceptions
-            var willRaiseEvent  = _socket.SendAsync(sendEvent);
+
+            bool willRaiseEvent = false;
+            try
+            {
+                willRaiseEvent = _socket.SendAsync(sendEvent);
+            }
+            catch (Exception ex)
+            {
+                CancelPending(ex);
+            }
             if (!willRaiseEvent)
             {
                 OnSendCompleted(this, sendEvent);

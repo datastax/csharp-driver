@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,7 +92,7 @@ namespace Cassandra.IntegrationTests.Core
                 Task.WaitAll(taskList.ToArray(), 2000);
                 Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
                 //Run the query a lot more times
-                for (var i = 0; i < 512; i++)
+                for (var i = 0; i < 2048; i++)
                 {
                     taskList.Add(connection.Query());
                 }
@@ -123,6 +124,38 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        public void InitOnWrongIpThrowsException()
+        {
+            var socketOptions = new SocketOptions();
+            socketOptions.SetConnectTimeoutMillis(1000);
+            try
+            {
+                using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), new ProtocolOptions(), socketOptions))
+                {
+                    connection.Init();
+                    Assert.Fail("It must throw an exception");
+                }
+            }
+            catch (SocketException ex)
+            {
+                //It should have timed out
+                Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
+            }
+            try
+            {
+                using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), new ProtocolOptions(), socketOptions))
+                {
+                    connection.Init();
+                    Assert.Fail("It must throw an exception");
+                }
+            }
+            catch (SocketException)
+            {
+                //Socket exception is just fine.
+            }
+        }
+
         /// <summary>
         /// Basic unit test for the append buffer
         /// </summary>
@@ -138,6 +171,12 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         public void SendConcurrentTest()
+        {
+            throw new NotImplementedException();
+        }
+
+        [Test]
+        public void ConnectionCloseFaultsAllPendingTasks()
         {
             throw new NotImplementedException();
         }
