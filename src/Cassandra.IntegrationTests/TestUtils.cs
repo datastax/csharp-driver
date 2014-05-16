@@ -472,7 +472,7 @@ namespace Cassandra.IntegrationTests
         /// <returns></returns>
         public static string CreateTempDirectory()
         {
-            string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            string tempDirectory = Path.Combine(Path.GetTempPath(), "ccm-" + Path.GetRandomFileName());
             Directory.CreateDirectory(tempDirectory);
             return tempDirectory;
         }
