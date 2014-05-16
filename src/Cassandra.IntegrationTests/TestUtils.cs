@@ -375,7 +375,7 @@ namespace Cassandra.IntegrationTests
                 if (Regex.Matches(statusOutput.OutputText.ToString(), "UP", RegexOptions.Multiline).Count == totalNodeLength)
                 {
                     //All nodes are up
-                    for (int x = 1; x < totalNodeLength; x++)
+                    for (int x = 1; x <= totalNodeLength; x++)
                     {
                         var foundText = false;
                         var sw = new Stopwatch();

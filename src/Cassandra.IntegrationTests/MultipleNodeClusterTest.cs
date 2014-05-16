@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace Cassandra.IntegrationTests
 {
@@ -83,6 +84,42 @@ namespace Cassandra.IntegrationTests
 
             }
             TestUtils.CcmRemove(this.CcmClusterInfo);
+        }
+
+        [SetUp]
+        public virtual void SetUp()
+        {
+            var test = TestContext.CurrentContext.Test;
+            var methodFullName = TestContext.CurrentContext.Test.FullName;
+            var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
+            var type = Assembly.GetExecutingAssembly().GetType(typeName);
+            if (type == null)
+            {
+                return;
+            }
+            var methodAttr = type.GetMethod(test.Name)
+                .GetCustomAttributes(true)
+                .Select(a => (Attribute) a)
+                .FirstOrDefault((a) => a is TestCassandraVersion);
+            var attr = Attribute.GetCustomAttributes(type).FirstOrDefault((a) => a is TestCassandraVersion);
+            if (attr == null && methodAttr == null)
+            {
+                //It does not contain the attribute, move on.
+                return;
+            }
+            if (methodAttr != null)
+            {
+                attr = methodAttr;
+            }
+            var minimalVersion = (TestCassandraVersion)attr;
+            var currentVersion = Options.Default.CassandraVersion;
+            //If we are running previous version 
+            if ((minimalVersion.Major > currentVersion.Major) ||
+                (minimalVersion.Major == currentVersion.Major && minimalVersion.Minor > currentVersion.Minor)
+                )
+            {
+                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1} or above.", minimalVersion.Major, minimalVersion.Minor));
+            }
         }
     }
 }

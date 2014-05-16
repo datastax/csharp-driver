@@ -84,6 +84,7 @@
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
     <Compile Include="MultipleNodeClusterTest.cs" />
+    <Compile Include="TestCassandraVersion.cs" />
     <Compile Include="TestInfrastructureException.cs" />
     <Compile Include="Linq\LinqContextBasicTests.cs" />
     <Compile Include="Linq\LinqContextComplexTests.cs" />

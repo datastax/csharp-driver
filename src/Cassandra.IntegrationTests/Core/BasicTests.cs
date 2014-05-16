@@ -298,19 +298,16 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryBinding()
         {
-            //There is no support for query binding in protocol v1 
-            if (!Options.Default.CASSANDRA_VERSION.StartsWith("1."))
-            {
-                return;
-            }
             string tableName = CreateSimpleTableAndInsert(0);
             var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label, number) VALUES(?, ?, ?)", tableName));
             Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void PagingOnSimpleStatementTest()
         {
             var pageSize = 10;
@@ -337,6 +334,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryPaging()
         {
             var pageSize = 10;
@@ -359,6 +357,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryPagingParallel()
         {
             var pageSize = 25;
