@@ -28,7 +28,16 @@ namespace Cassandra
         private ConcurrentDictionary<int, OperationState> _pendingOperations;
         private SocketAsyncEventArgs _receiveSocketEvent = new SocketAsyncEventArgs();
         private SocketAsyncEventArgs _sendSocketEvent = new SocketAsyncEventArgs();
-        private int _outgoing = 0;
+        /// <summary>
+        /// It determines if the write queue can process the next (if it is not in-flight).
+        /// It has to be volatile as it can not be cached by the thread.
+        /// </summary>
+        private volatile bool _canWriteNext = true;
+        /// <summary>
+        /// Its for processing the next item in the write queue.
+        /// It can not be replaced by a Interlocked Increment as it must allow rollbacks (when there are no stream ids left).
+        /// </summary>
+        private object _writeQueueLock = new object();
         private ConcurrentQueue<OperationState> _writeQueue;
         private OperationState _receivingOperation;
         private byte[] _minimalBuffer;
@@ -69,17 +78,29 @@ namespace Cassandra
             {
                 return;
             }
-            _socket.Close();
+            try
+            {
+                //Try to close it.
+                //Some operations could make the socket to dispose itself
+                //We should not mind if the socket shutdown or close throws an exception
+                _socket.Shutdown(SocketShutdown.Both);
+                _socket.Close(); 
+            }
+            catch
+            {
+
+            }
         }
 
         /// <summary>
-        /// Initializes the connection
+        /// Initializes the connection. Thread safe.
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be stablished with the host</exception>
         public virtual void Init()
         {
             if (!_isInitialized.TryTake())
             {
+                //MAYBE: If really necessary, we can Wait on the BeginConnect result.
                 return;
             }
             //Cassandra supports up to 128 concurrent requests
@@ -104,6 +125,7 @@ namespace Cassandra
             }
 
             //Start receiving
+            //TODO: Catch possible exceptions
             var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
             if (!willRaiseEvent)
             {
@@ -140,25 +162,25 @@ namespace Cassandra
 
         protected virtual void OnReceiveCompleted(object sender, SocketAsyncEventArgs e)
         {
-            if(e.SocketError == SocketError.Success)
+            if(e.SocketError != SocketError.Success || e.BytesTransferred == 0)
             {
-                //Possible improve by deferring copy
-                var buffer = new byte[e.BytesTransferred];
-                Buffer.BlockCopy(e.Buffer, 0, buffer, 0, e.BytesTransferred);
-                //Parse the data received
-                ReceiveParse(buffer);
-                
-                //Receive the next bytes
-                var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
-                if (!willRaiseEvent)
-                {
-                    OnReceiveCompleted(this, _receiveSocketEvent);
-                }
-            }
-            else
-            {
-                //We could not receive a stream from the wire.
+                //There was a socket error or the connection is being closed.
                 CancelPending(e.SocketError);
+            }
+            //MAYBE: Possible improve by deferring copy
+            var buffer = new byte[e.BytesTransferred];
+            Buffer.BlockCopy(e.Buffer, 0, buffer, 0, e.BytesTransferred);
+            //Parse the data received
+            ReceiveParse(buffer);
+            //TODO: Determine if there are new streams ids available
+            //If so, call SendQueueNext();
+                
+            //Receive the next bytes
+            //TODO: Catch possible exceptions
+            var willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
+            if (!willRaiseEvent)
+            {
+                OnReceiveCompleted(this, _receiveSocketEvent);
             }
         }
 
@@ -166,11 +188,10 @@ namespace Cassandra
         {
              if (e.SocketError == SocketError.Success)
              {
-                 if (Interlocked.Decrement(ref _outgoing) > 0)
-                 {
-                     //There are still items in the Writequeue
-                     SendQueueProcess();
-                 }
+                 //There is no need to lock
+                 //Only 1 thread can be here at the same time.
+                 _canWriteNext = true;
+                 SendQueueNext();
              }
              else
              {
@@ -189,7 +210,8 @@ namespace Cassandra
         /// <summary>
         /// Parses the bytes received into a frame. Uses the internal operation state to do the callbacks.
         /// </summary>
-        private void ReceiveParse(byte[] buffer)
+        /// <returns>True if a full operation (streamId) has been processed.</returns>
+        private bool ReceiveParse(byte[] buffer)
         {
             OperationState state = _receivingOperation;
             if (state == null)
@@ -199,7 +221,7 @@ namespace Cassandra
                 {
                     //There is not enough data to read the header
                     _minimalBuffer = buffer;
-                    return;
+                    return false;
                 }
                 _minimalBuffer = null;
                 var header = FrameHeader.Parse(buffer);
@@ -227,14 +249,30 @@ namespace Cassandra
                     var nextFrameBuffer = Utils.SliceBuffer(state.ReadBuffer, state.Header.TotalFrameLength, nextBufferSize);
                     ReceiveParse(nextFrameBuffer);
                 }
+                return true;
             }
             else
             {
                 //There isn't enough data to read the whole frame.
                 //It is already buffered, carry on.
             }
+            return false;
         }
 
+        /// <summary>
+        /// Sends a protocol startup message
+        /// </summary>
+        protected internal virtual Task<object> Startup()
+        {
+            var request = new StartupRequest(new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
+            var tcs = new TaskCompletionSource<object>();
+            Send(request, tcs);
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Sends a new request if possible. If it is not possible it queues it up.
+        /// </summary>
         protected internal virtual void Send(IRequest request, TaskCompletionSource<object> tcs)
         {
             //thread safe write queue
@@ -244,56 +282,77 @@ namespace Cassandra
                 TaskCompletionSource = tcs
             };
             //Queue it
-            _writeQueue.Enqueue(state);
-            if (Interlocked.Increment(ref _outgoing) == 1)
-            {
-                //Start sending
-                SendQueueProcess();
-            }
+            SendQueueProcess(state);
         }
 
         /// <summary>
-        /// Processes the write queue: dequeues one item and sends it.
+        /// Try to write the item provided. Thread safe.
         /// </summary>
-        protected internal virtual void SendQueueProcess()
+        private void SendQueueProcess(OperationState state)
         {
-            //Pop an element
-            OperationState state = null;
-            if (!_writeQueue.TryDequeue(out state))
+            if (!_canWriteNext)
             {
-                //Allow extra calls to StartSendQueue
-                //There is nothing to do
-                return;
-            }
-
-            int streamId = -1;
-            if (!_freeOperations.TryPop(out streamId))
-            {
-                //TODO: MAYBE Throw a BusyException
+                //Double-checked locking for best performance
                 _writeQueue.Enqueue(state);
                 return;
             }
+            int streamId = -1;
+            lock (_writeQueueLock)
+            {
+                if (!_canWriteNext)
+                {
+                    //We have to recheck as the world can change since the last instruction
+                    _writeQueue.Enqueue(state);
+                    return;
+                }
+                //Check if Cassandra can process a new operation
+                if (!_freeOperations.TryPop(out streamId))
+                {
+                    //Queue it up for later.
+                    //When receiving the next complete message, we can process it.
+                    _writeQueue.Enqueue(state);
+                    //MAYBE: We could BusyException
+                    return;
+                }
+                //Prevent the next to process
+                _canWriteNext = false;
+            }
+            
+            //At this point:
+            //We have a valid stream id
+            //Only 1 thread at a time can be here.
             _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
 
+            //TODO: Catch exceptions of GetFrame and rollback it.
+            //TODO: Remove memory tributary
             var buffer = state.Request.GetFrame((byte)streamId, 1).Buffer.ToArray();
             //We will not use the request, stop reference it.
             state.Request = null;
             //In case there is a send problem, we could recover the streamId from the UserToken
             _sendSocketEvent.UserToken = streamId;
+            //Start sending it
             Write(_sendSocketEvent, buffer);
         }
 
-        protected internal virtual Task<object> Startup()
+        /// <summary>
+        /// Try to write the next item in the write queue. Thread safe.
+        /// </summary>
+        protected virtual void SendQueueNext()
         {
-            var request = new StartupRequest(new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
-            var tcs = new TaskCompletionSource<object>();
-            Send(request, tcs);
-            return tcs.Task;
+            if (_canWriteNext)
+            {
+                OperationState state;
+                if (_writeQueue.TryDequeue(out state))
+                {
+                    SendQueueProcess(state);
+                }
+            }
         }
 
         protected internal virtual void Write(SocketAsyncEventArgs sendEvent, byte[] buffer)
         {
             sendEvent.SetBuffer(buffer, 0, buffer.Length);
+            //TODO: Catch possible exceptions
             var willRaiseEvent  = _socket.SendAsync(sendEvent);
             if (!willRaiseEvent)
             {

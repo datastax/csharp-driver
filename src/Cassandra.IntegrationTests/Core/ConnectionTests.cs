@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Timeout(10000)]
+        [Test]
         public void QueryMultipleAsyncConsumeAllStreamIdsTest()
         {
             using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.Core
                 Task.WaitAll(taskList.ToArray(), 2000);
                 Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
                 //Run the query a lot more times
-                for (var i = 0; i < 1024; i++)
+                for (var i = 0; i < 512; i++)
                 {
                     taskList.Add(connection.Query());
                 }
