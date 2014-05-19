@@ -49,7 +49,7 @@ namespace Cassandra.IntegrationTests.Core
         public void ParallelInsertTest()
         {
             var localSession = Cluster.Connect();
-            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+            string keyspaceName = "kp_pi1";
 
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
@@ -183,7 +183,7 @@ namespace Cassandra.IntegrationTests.Core
         public void ErrorInjectionInParallelInsertTest()
         {
             var localSession = (Session) Cluster.Connect();
-            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+            string keyspaceName = "kp_eipi";
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
                     string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName)));
@@ -303,7 +303,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InsertFireAndForget()
         {
-            var keyspaceName = "test_" + Guid.NewGuid().ToString("N").ToLower();
+            var keyspaceName = "kp_ifaf";
             var localSession = Cluster.Connect();
             localSession.CreateKeyspaceIfNotExists(keyspaceName);
             localSession.ChangeKeyspace(keyspaceName);
@@ -335,7 +335,7 @@ namespace Cassandra.IntegrationTests.Core
         public void MassiveAsyncTest()
         {
             var localSession = Cluster.Connect();
-            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+            string keyspaceName = "kp_mat";
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
                     string.Format(@"CREATE KEYSPACE {0} 
