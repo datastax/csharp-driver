@@ -290,6 +290,7 @@
     <Compile Include="TableColumn.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TableOptions.cs" />
+    <Compile Include="TcpSocket.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="TokenMap.cs" />
     <Compile Include="TopologyChangeEventArgs.cs" />
