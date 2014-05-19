@@ -123,7 +123,8 @@ namespace Cassandra
 
         public void Skip(int count)
         {
-            _stream.Skip(count);
+            var buffer = new byte[count];
+            _stream.Read(buffer, 0, count);
         }
     }
 }

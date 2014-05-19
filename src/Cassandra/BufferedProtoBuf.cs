@@ -84,15 +84,5 @@ namespace Cassandra
                 _readPos += count;
             }
         }
-
-        public void Skip(int count)
-        {
-            lock (_guard)
-            {
-                if (_writePos == -1) throw new CassandraConnectionIOException();
-
-                _readPos += count;
-            }
-        }
     }
 }

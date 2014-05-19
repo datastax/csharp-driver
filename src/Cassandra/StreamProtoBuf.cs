@@ -89,34 +89,5 @@ namespace Cassandra
                 }
             }
         }
-
-        public void Skip(int count)
-        {
-            if (_ioError) return;
-
-            int curOffset = 0;
-            while (true)
-            {
-                try
-                {
-                    int redl = _stream.Read(_trashBuf, curOffset, count - curOffset);
-                    if (redl == 0)
-                    {
-                        throw new CassandraConnectionIOException();
-                    }
-                    if (redl == count - curOffset)
-                    {
-                        return;
-                    }
-                    curOffset += redl;
-                }
-                catch (IOException ex)
-                {
-                    _logger.Error("Skipping in StreamProtoBuf failed: ", ex);
-                    _ioError = true;
-                    throw new CassandraConnectionIOException(ex);
-                }
-            }
-        }
     }
 }
