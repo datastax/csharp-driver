@@ -2,9 +2,10 @@
 namespace Cassandra
 {
     /// <summary>
-    ///  An executable query. <p> This represents either a <link>Statement</link> or a
-    ///  <link>BoundStatement</link> along with the query options (consistency level,
-    ///  whether to trace the query, ...).</p>
+    ///  An executable query.
+    ///  This represents either a <see cref="SimpleStatement"/>, a <see cref="BoundStatement"/> or a
+    ///  <see cref="BoundStatement"/> along with the query options (consistency level,
+    ///  whether to trace the query, ...).
     /// </summary>
     public interface IStatement
     {

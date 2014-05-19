@@ -20,8 +20,7 @@ using System.Collections.Generic;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <code>Statement</code> implementation built directly from a query
-    ///  string.
+    /// A statement that groups a number of <see cref="BoundStatement" /> and / or <see cref="SimpleStatement" /> so they get executed as a batch.
     /// </summary>
     public class BatchStatement : Statement
     {

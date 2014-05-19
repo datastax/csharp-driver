@@ -24,7 +24,9 @@ using Cassandra.RequestHandlers;
 
 namespace Cassandra
 {
-
+    /// <summary>
+    /// Implementation of <see cref="ISession"/>.
+    /// </summary>
     public class Session : ISession
     {
         internal Guid Guid;

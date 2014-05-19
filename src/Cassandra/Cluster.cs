@@ -22,6 +22,9 @@ using System.Threading;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Implementation of <see cref="ICluster"/>
+    /// </summary>
     public class Cluster : ICluster
     {
         /// <summary>

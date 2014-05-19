@@ -18,6 +18,9 @@ using System;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Base class for statements that contains the options.
+    /// </summary>
     public abstract class Statement : IStatement
     {
         private ConsistencyLevel? _consistency;

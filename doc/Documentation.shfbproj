@@ -20,14 +20,14 @@
     <HtmlHelpName>Documentation</HtmlHelpName>
     <Language>en-US</Language>
     <DocumentationSources>
-      <DocumentationSource sourceFile="..\Cassandra\bin\Release\Cassandra.dll" />
-      <DocumentationSource sourceFile="..\Cassandra\bin\Release\Cassandra.xml" />
-      <DocumentationSource sourceFile="..\Cassandra.Data\bin\Release\Cassandra.Data.dll" />
-      <DocumentationSource sourceFile="..\Cassandra.Data\bin\Release\Cassandra.Data.xml" />
-      <DocumentationSource sourceFile="..\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.dll" />
-      <DocumentationSource sourceFile="..\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.xml" />
-      <DocumentationSource sourceFile="..\Cassandra.DSE\bin\Release\Cassandra.DSE.dll" />
-      <DocumentationSource sourceFile="..\Cassandra.DSE\bin\Release\Cassandra.DSE.xml" />
+      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\Cassandra.dll" />
+      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\Cassandra.xml" />
+      <DocumentationSource sourceFile="..\src\Cassandra.Data\bin\Release\Cassandra.Data.dll" />
+      <DocumentationSource sourceFile="..\src\Cassandra.Data\bin\Release\Cassandra.Data.xml" />
+      <DocumentationSource sourceFile="..\src\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.dll" />
+      <DocumentationSource sourceFile="..\src\Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.xml" />
+      <DocumentationSource sourceFile="..\src\Cassandra.DSE\bin\Release\Cassandra.DSE.dll" />
+      <DocumentationSource sourceFile="..\src\Cassandra.DSE\bin\Release\Cassandra.DSE.xml" />
     </DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
@@ -41,10 +41,10 @@
     </ComponentConfigurations>
     <PlugInConfigurations>
     </PlugInConfigurations>
-    <SyntaxFilters>CSharp, VisualBasic</SyntaxFilters>
+    <SyntaxFilters>C#</SyntaxFilters>
     <SdkLinkTarget>Blank</SdkLinkTarget>
     <RootNamespaceContainer>False</RootNamespaceContainer>
-    <PresentationStyle>VS2010</PresentationStyle>
+    <PresentationStyle>VS2013</PresentationStyle>
     <Preliminary>False</Preliminary>
     <NamingMethod>Guid</NamingMethod>
     <HelpTitle>A C# client driver for Apache Cassandra</HelpTitle>
@@ -67,24 +67,48 @@ CQL3.</NamespaceSummaryItem>
 the Cassandra Query Language version 3 %28CQL3%29 and Cassandra&amp;#39%3bs binary protocol.</ProjectSummary>
     <ApiFilter>
       <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
-        <Filter entryType="Class" fullName="Cassandra.Cluster" filterName="Cluster" isExposed="True">
-          <Filter entryType="Method" fullName="Cassandra.Cluster.WaitForSchemaAgreement" filterName="WaitForSchemaAgreement" isExposed="False" />
-        </Filter>
-        <Filter entryType="Class" fullName="Cassandra.DynamicCompositeTypeAdapter" filterName="DynamicCompositeTypeAdapter" isExposed="False" />
-        <Filter entryType="Class" fullName="Cassandra.Session" filterName="Session" isExposed="True">
-          <Filter entryType="Method" fullName="Cassandra.Session.GetTag" filterName="GetTag" isExposed="False" />
-          <Filter entryType="Method" fullName="Cassandra.Session.SimulateAllConnectionsDown" filterName="SimulateAllConnectionsDown" isExposed="False" />
-          <Filter entryType="Method" fullName="Cassandra.Session.SimulateSingleConnectionDown" filterName="SimulateSingleConnectionDown" isExposed="False" />
-        </Filter>
-      </Filter>
+  <Filter entryType="Class" fullName="Cassandra.BigIntegerTypeAdapter" filterName="BigIntegerTypeAdapter" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.CassandraConnectionStringBuilder" filterName="CassandraConnectionStringBuilder" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.CassandraEventArgs" filterName="CassandraEventArgs" isExposed="False" />
+  <Filter entryType="Delegate" fullName="Cassandra.CassandraEventHandler" filterName="CassandraEventHandler" isExposed="False" />
+  <Filter entryType="Enumeration" fullName="Cassandra.CassandraEventType" filterName="CassandraEventType" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.ColumnDesc" filterName="ColumnDesc" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.CqlColumn" filterName="CqlColumn" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.CustomColumnInfo" filterName="CustomColumnInfo" isExposed="False" />
+  <Filter entryType="Interface" fullName="Cassandra.IColumnInfo" filterName="IColumnInfo" isExposed="False" />
+  <Filter entryType="Enumeration" fullName="Cassandra.KeyType" filterName="KeyType" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.ListColumnInfo" filterName="ListColumnInfo" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.Logger" filterName="Logger" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.MapColumnInfo" filterName="MapColumnInfo" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.NullTypeAdapter" filterName="NullTypeAdapter" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.QueryProtocolOptions" filterName="QueryProtocolOptions" isExposed="False" />
+  <Filter entryType="Enumeration" fullName="Cassandra.QueryProtocolOptions.QueryFlags" filterName="QueryProtocolOptions.QueryFlags" isExposed="True" />
+  <Filter entryType="Enumeration" fullName="Cassandra.SchemaChangedEventArgs.Kind" filterName="SchemaChangedEventArgs.Kind" isExposed="False" />
+  <Filter entryType="Delegate" fullName="Cassandra.SchemaChangedEventHandler" filterName="SchemaChangedEventHandler" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.SchemaChangeEventArgs" filterName="SchemaChangeEventArgs" isExposed="False" />
+  <Filter entryType="Enumeration" fullName="Cassandra.SchemaChangeEventArgs.Reason" filterName="SchemaChangeEventArgs.Reason" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.TableColumn" filterName="TableColumn" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.TableMetadata" filterName="TableMetadata" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.TableOptions" filterName="TableOptions" isExposed="False" />
+  <Filter entryType="Class" fullName="Cassandra.ToManyConnectionsPerHost" filterName="ToManyConnectionsPerHost" isExposed="False" />
+</Filter>
     </ApiFilter>
-    <VisibleItems>InheritedMembers, InheritedFrameworkMembers, Protected, SealedProtected</VisibleItems>
+    <VisibleItems>None</VisibleItems>
     <HelpAttributes />
     <BuildLogFile />
     <HtmlHelp1xCompilerPath />
     <HtmlHelp2xCompilerPath />
     <WorkingPath />
     <ComponentPath />
+    <MaximumGroupParts>2</MaximumGroupParts>
+    <NamespaceGrouping>False</NamespaceGrouping>
+    <FeedbackEMailLinkText>Contact Us</FeedbackEMailLinkText>
+    <FeedbackEMailAddress>info%40datastax.com</FeedbackEMailAddress>
+    <CopyrightText>&amp;#169%3b 2014 DataStax, All rights reserved.</CopyrightText>
+    <WebsiteSdkLinkType>None</WebsiteSdkLinkType>
+    <HtmlSdkLinkType>None</HtmlSdkLinkType>
+    <IncludeFavorites>False</IncludeFavorites>
+    <BinaryTOC>True</BinaryTOC>
   </PropertyGroup>
   <!-- There are no properties for these groups.  AnyCPU needs to appear in
        order for Visual Studio to perform the build.  The others are optional
