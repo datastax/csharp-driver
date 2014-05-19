@@ -11,9 +11,9 @@ We used the opportunity of a major version bump to incorporate your feedback, im
 1. Created the interface `IStatement` which `SimpleStatement`, `BoundStatement` and `BatchStatement` implement.
 The main `Session.Execute` and `Session.ExecuteAsync` methods use `IStatement` as parameter.
 
-1. `RowSet` uses a queue internally and it dequeues items as you iterate through the rows (similarly to the [Java driver](1)).
+1. `RowSet` uses a queue internally and it dequeues items as you iterate through the rows (similarly to the [Java driver][1]).
 This behaviour enables to have a stable memory use when paging through a large result.
-If you still want to consume the `RowSet` as a list, you can use [.NET Enumerable.ToList](2) extension method, for example: `var rowList = rs.ToList();`.
+If you still want to consume the `RowSet` as a list, you can use [.NET Enumerable.ToList][2] extension method, for example: `var rowList = rs.ToList();`.
 
 1. `Session` implements `ISession` interface, to make unit test and mocking easier. `Cluster.Connect` now returns a `ISession` (it will still be a `Session` instance).
 
@@ -29,9 +29,9 @@ This would only affect you only if you implemented a custom Policy.
 
 1. Paging results: SELECT queries are now "paged" under the hood. In other words, if a query yields a very large result, only an initial amount of rows will be fetched (according to the page size), the rest of the rows will be fetched "on-demand" as you iterate through it.
 
-_If you have any question or comment, [post it on the mailing list](3)._
+_If you have any question or comment, please [post it on the mailing list][3]._
 
 
-[1]: https://github.com/datastax/java-driver
-[2]: http://msdn.microsoft.com/en-us/library/vstudio/bb342261(v=vs.100).aspx "Enumerable.ToList<TSource> Method"
-[3]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user "DataStax C# driver for Cassandra mailing list" 
+  [1]: https://github.com/datastax/java-driver
+  [2]: http://msdn.microsoft.com/en-us/library/vstudio/bb342261(v=vs.100).aspx "Enumerable.ToList<TSource> Method"
+  [3]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user "DataStax C# driver for Cassandra mailing list" 
