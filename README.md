@@ -68,11 +68,15 @@ task.ContinueWith((t) =>
 
 You can use the project [Mailing list](https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user) or create a ticket on the [Jira issue tracker](https://datastax-oss.atlassian.net/browse/CSHARP).
 
+## Upgrading from 1.x branch
+
+If you are upgrading from the 1.x branch of the driver, be sure to have a look at [the upgrade guide](https://github.com/datastax/csharp-driver/blob/2.0/doc/upgrade-guide-2.0.md).
+
 ## Building and running the tests
 
 You can use Visual Studio or msbuild to build the solution. 
 
-[Check the documentation for more info](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
+[Check the documentation for driver developers and testers](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
 Copyright 2013, DataStax
