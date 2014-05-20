@@ -25,6 +25,7 @@ namespace Cassandra
     /// <summary>
     /// Implementation of <see cref="ICluster"/>
     /// </summary>
+    /// <inheritdoc />
     public class Cluster : ICluster
     {
         /// <summary>
@@ -119,16 +120,19 @@ namespace Cassandra
             _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
         }
 
+        /// <inheritdoc />
         public ICollection<Host> AllHosts()
         {
             return Metadata.AllHosts();
         }
 
+        /// <inheritdoc />
         public ISession Connect()
         {
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
 
+        /// <inheritdoc />
         public ISession Connect(string keyspace)
         {
             var scs = new Session(this, _configuration.Policies,
@@ -170,11 +174,13 @@ namespace Cassandra
             Shutdown();
         }
 
+        /// <inheritdoc />
         public Host GetHost(IPAddress address)
         {
             return Metadata.GetHost(address);
         }
 
+        /// <inheritdoc />
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
             return Metadata.GetReplicas(partitionKey);
@@ -185,6 +191,7 @@ namespace Cassandra
             return _metadata.RefreshSchema(keyspace, table);
         }
 
+        /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
             foreach (KeyValuePair<Guid, Session> kv in _connectedSessions)
