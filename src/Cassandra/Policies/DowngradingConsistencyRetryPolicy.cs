@@ -22,7 +22,7 @@ namespace Cassandra
     ///  using a lower consistency level than the one initially requested. By doing
     ///  so, it may break consistency guarantees. In other words, if you use this
     ///  retry policy, there is cases (documented below) where a read at
-    ///  <c>Quorum</c> <b>may not</b> see a preceding write at
+    ///  <c>Quorum</c> may not see a preceding write at
     ///  <c>Quorum</c>. Do not use this policy unless you have understood the
     ///  cases where this can happen and are OK with that. It is also highly
     ///  recommended to always wrap this policy into <see cref="LoggingRetryPolicy"/>
@@ -32,7 +32,7 @@ namespace Cassandra
     ///  number of replica that responded is greater than one but lower than is
     ///  required by the requested consistency level, the operation is retried at a
     ///  lower consistency level.</li> <li>On a write timeout: if the operation is an
-    ///  <c>* WriteType.UNLOGGED_BATCH</c> and at least one replica acknowledged
+    ///  <c>WriteType.UNLOGGED_BATCH</c> and at least one replica acknowledged
     ///  the write, the operation is retried at a lower consistency level.
     ///  Furthermore, for other operation, if at least one replica acknowledged the
     ///  write, the timeout is ignored.</li> <li>On an unavailable exception: if at
