@@ -67,7 +67,7 @@ namespace Cassandra
                         break;
                     case 7:
                         TmpFrameHeader.Len[3] = b;
-                        TmpFrame = TmpFrameHeader.MakeFrame(new StreamProtoBuf(stream, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
+                        TmpFrame = TmpFrameHeader.MakeFrame(new StreamProtoBuf(stream, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null).AsStream());
                         yield return TmpFrame;
                         break;
                     default:

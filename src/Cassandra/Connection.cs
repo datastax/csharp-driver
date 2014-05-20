@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace Cassandra
 {
     /// <summary>
-    /// Represents a tcp connection to a Cassandra Node
+    /// Represents a TCP connection to a Cassandra Node
     /// </summary>
     public class Connection : IDisposable
     {
@@ -24,7 +24,7 @@ namespace Cassandra
         /// </summary>
         private ConcurrentStack<int> _freeOperations;
         /// <summary>
-        /// Contains the requests that were sent through the wire and that hasnt been received yet.
+        /// Contains the requests that were sent through the wire and that hasn't been received yet.
         /// </summary>
         private ConcurrentDictionary<int, OperationState> _pendingOperations;
         /// <summary>
@@ -62,7 +62,7 @@ namespace Cassandra
             }
             if (_writeQueue.Count > 0)
             {
-                //TODO: Callback all the items in the writequeue
+                //TODO: Callback all the items in the write queue
                 throw new NotImplementedException();
             }
         }
@@ -101,12 +101,12 @@ namespace Cassandra
             _tcpSocket.Connect();
         }
 
-        protected internal virtual void WriteCompletedHandler()
+        internal virtual Task<AbstractResponse> Query()
         {
-            //There is no need to lock
-            //Only 1 thread can be here at the same time.
-            _canWriteNext = true;
-            SendQueueNext();
+            var request = new QueryRequest("SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default, null);
+            var tcs = new TaskCompletionSource<AbstractResponse>();
+            Send(request, tcs);
+            return tcs.Task;
         }
 
         protected internal virtual void ReadHandler(byte[] buffer, int bytesReceived)
@@ -123,14 +123,6 @@ namespace Cassandra
                 //Maybe there are there items in the write queue that were waiting on a fresh streamId
                 SendQueueNext();
             }
-        }
-
-        protected internal virtual Task<object> Query()
-        {
-            var request = new QueryRequest("SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default, null);
-            var tcs = new TaskCompletionSource<object>();
-            Send(request, tcs);
-            return tcs.Task;
         }
 
         /// <summary>
@@ -193,22 +185,21 @@ namespace Cassandra
             return false;
         }
 
-        private object ReadParseResponse(FrameHeader header, byte[] buffer)
+        private AbstractResponse ReadParseResponse(FrameHeader header, byte[] buffer)
         {
-            //Go for the new BEBinaryReader
-            //var stream = new MemoryStream(buffer, 0, header.BodyLength, false);
-            //new BEBinaryReader(stream)
-            //TODO: Read
-            return buffer;
+            var stream = new MemoryStream(buffer, 8, header.BodyLength, false);
+            var frame = new ResponseFrame(header, stream);
+            var response = FrameParser.Parse(frame);
+            return response;
         }
 
         /// <summary>
         /// Sends a protocol startup message
         /// </summary>
-        protected internal virtual Task<object> Startup()
+        internal virtual Task<AbstractResponse> Startup()
         {
             var request = new StartupRequest(new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
-            var tcs = new TaskCompletionSource<object>();
+            var tcs = new TaskCompletionSource<AbstractResponse>();
             Send(request, tcs);
             return tcs.Task;
         }
@@ -216,7 +207,7 @@ namespace Cassandra
         /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
-        protected internal virtual void Send(IRequest request, TaskCompletionSource<object> tcs)
+        internal virtual void Send(IRequest request, TaskCompletionSource<AbstractResponse> tcs)
         {
             //thread safe write queue
             var state = new OperationState
@@ -286,6 +277,17 @@ namespace Cassandra
                     SendQueueProcess(state);
                 }
             }
+        }
+
+        /// <summary>
+        /// Method that gets executed when a write request has been completed.
+        /// </summary>
+        protected internal virtual void WriteCompletedHandler()
+        {
+            //There is no need to lock
+            //Only 1 thread can be here at the same time.
+            _canWriteNext = true;
+            SendQueueNext();
         }
     }
 }

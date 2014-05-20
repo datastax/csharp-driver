@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.IO;
 
 namespace Cassandra
@@ -88,6 +89,12 @@ namespace Cassandra
                     throw new CassandraConnectionIOException(ex);
                 }
             }
+        }
+
+        //TODO: REMOVE
+        public Stream AsStream()
+        {
+            return _stream;
         }
     }
 }

@@ -49,7 +49,7 @@ namespace Cassandra
 
         public IRequest Request { get; set; }
 
-        public TaskCompletionSource<object> TaskCompletionSource { get; set; }
+        public TaskCompletionSource<AbstractResponse> TaskCompletionSource { get; set; }
 
         public void AddBuffer(byte[] value)
         {

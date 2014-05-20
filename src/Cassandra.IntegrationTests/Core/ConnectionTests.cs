@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.Core
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 //Ready status from Cassandra
-                Assert.AreEqual(2, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ReadyResponse>(task.Result);
             }
         }
 
@@ -37,13 +37,14 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Startup();
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                //Ready status from Cassandra
-                Assert.AreEqual(2, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ReadyResponse>(task.Result);
+
+                //Start a query
                 task = connection.Query();
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 //Result status from Cassandra
-                Assert.AreEqual(8, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ResultResponse>(task.Result);
             }
         }
 
@@ -56,8 +57,7 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Startup();
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                //Ready status from Cassandra
-                Assert.AreEqual(2, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ReadyResponse>(task.Result);
                 var taskList = new List<Task>();
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
@@ -81,8 +81,7 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Startup();
                 task.Wait(500);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                //Ready status from Cassandra
-                Assert.AreEqual(2, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ReadyResponse>(task.Result);
                 var taskList = new List<Task>();
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
@@ -110,8 +109,7 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Startup();
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                //Ready status from Cassandra
-                Assert.AreEqual(2, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ReadyResponse>(task.Result);
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
@@ -120,7 +118,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 }
                 //Result status from Cassandra
-                Assert.AreEqual(8, ((byte[])task.Result)[3]);
+                Assert.IsInstanceOf<ResultResponse>(task.Result);
             }
         }
 

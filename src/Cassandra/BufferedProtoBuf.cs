@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 
 namespace Cassandra
@@ -83,6 +84,12 @@ namespace Cassandra
 
                 _readPos += count;
             }
+        }
+
+        //TODO: REMOVE
+        public MemoryStream AsStream()
+        {
+            return new MemoryStream(_buffer);
         }
     }
 }

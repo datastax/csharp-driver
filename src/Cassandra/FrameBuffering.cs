@@ -60,7 +60,7 @@ namespace Cassandra
                         TmpFrameHeader.Len[3] = b;
                         _bodyLen = TypeInterpreter.BytesToInt32(TmpFrameHeader.Len, 0);
                         TmpFrame =
-                            TmpFrameHeader.MakeFrame(new BufferedProtoBuf(_bodyLen, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null));
+                            TmpFrameHeader.MakeFrame(new BufferedProtoBuf(_bodyLen, ((TmpFrameHeader.Flags & 0x01) == 0x01) ? compressor : null).AsStream());
                         yield return TmpFrame;
                         break;
                     default:

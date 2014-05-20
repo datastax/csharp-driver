@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 using System;
+using System.IO;
 using System.Linq;
 
 namespace Cassandra
@@ -70,14 +71,14 @@ namespace Cassandra
             };
         }
 
-        public ResponseFrame MakeFrame(IProtoBuf stream)
+        //TODO: Remove method
+        public ResponseFrame MakeFrame(Stream stream)
         {
             int bodyLen = TypeInterpreter.BytesToInt32(Len, 0);
 
             if (MaxFrameSize - 8 < bodyLen) throw new DriverInternalError("Frame length mismatch");
 
-            var frame = new ResponseFrame {FrameHeader = this, RawStream = stream};
-            return frame;
+            return new ResponseFrame(this, stream);
         }
     }
 }

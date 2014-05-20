@@ -40,7 +40,7 @@ namespace Cassandra
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(BeBinaryReader, frame.RawStream is BufferedProtoBuf, TraceId);
+                    Output = new OutputRows(BeBinaryReader, true, TraceId);
                     break;
                 case ResultResponseKind.SetKeyspace:
                     Output = new OutputSetKeyspace(BeBinaryReader.ReadString());

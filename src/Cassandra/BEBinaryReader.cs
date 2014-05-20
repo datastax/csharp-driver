@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -24,11 +25,11 @@ namespace Cassandra
     {
         private readonly byte[] _buffer = new byte[4];
         private readonly byte[] _longBuffer = new byte[16];
-        private readonly IProtoBuf _stream;
+        private readonly Stream _stream;
 
-        public BEBinaryReader(ResponseFrame input)
+        public BEBinaryReader(Stream stream)
         {
-            _stream = input.RawStream;
+            _stream = stream;
         }
 
         public byte ReadByte()

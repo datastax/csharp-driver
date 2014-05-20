@@ -20,12 +20,18 @@ namespace Cassandra
 {
     internal class AbstractResponse
     {
-        protected readonly BEBinaryReader BeBinaryReader;
-        protected Guid? TraceId;
+        /// <summary>
+        /// Big-endian binary reader of the response frame
+        /// </summary>
+        protected BEBinaryReader BeBinaryReader { get; set; }
+        /// <summary>
+        /// Identifier of the Cassandra trace 
+        /// </summary>
+        protected Guid? TraceId { get; set; }
 
         internal AbstractResponse(ResponseFrame frame)
         {
-            BeBinaryReader = new BEBinaryReader(frame);
+            BeBinaryReader = new BEBinaryReader(frame.RawStream);
 
             if ((frame.FrameHeader.Flags & 0x02) == 0x02)
             {
