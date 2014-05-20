@@ -47,7 +47,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  A new schedule that uses a constant <code>ConstantDelayMs</code> delay between reconnection attempt. 
+        ///  A new schedule that uses a constant <c>ConstantDelayMs</c> delay between reconnection attempt. 
         /// </summary>
         /// 
         /// <returns>the newly created schedule.</returns>

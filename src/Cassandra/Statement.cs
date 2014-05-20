@@ -78,7 +78,7 @@ namespace Cassandra
         /// <summary>
         ///  The routing key (in binary raw form) to use for token aware routing of this
         ///  query. <p> The routing key is optional in the sense that implementers are
-        ///  free to return <code>null</code>. The routing key is an hint used for token
+        ///  free to return <c>null</c>. The routing key is an hint used for token
         ///  aware routing (see
         ///  <link>TokenAwarePolicy</link>), and if
         ///  provided should correspond to the binary value for the query partition key.
@@ -86,7 +86,7 @@ namespace Cassandra
         ///  load balancing policy used is not token aware, then the routing key can be
         ///  safely ignored.</p>
         /// </summary>
-        /// <returns>the routing key for this query or <code>null</code>.</returns>
+        /// <returns>the routing key for this query or <c>null</c>.</returns>
         public abstract RoutingKey RoutingKey { get; }
 
 
@@ -113,11 +113,11 @@ namespace Cassandra
 
         /// <summary>
         ///  Bound values to the variables of this statement. This method provides a
-        ///  convenience to bound all the variables of the <code>BoundStatement</code> in
+        ///  convenience to bound all the variables of the <c>BoundStatement</c> in
         ///  one call.
         /// </summary>
         /// <param name="values"> the values to bind to the variables of the newly
-        ///  created BoundStatement. The first element of <code>values</code> will 
+        ///  created BoundStatement. The first element of <c>values</c> will 
         ///  be bound to the first bind variable,
         ///  etc.. It is legal to provide less values than the statement has bound
         ///  variables. In that case, the remaining variable need to be bound before
@@ -143,7 +143,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="consistency"> the consistency level to set. </param>
         /// 
-        /// <returns>this <code>Query</code> object.</returns>
+        /// <returns>this <c>Query</c> object.</returns>
         public IStatement SetConsistencyLevel(ConsistencyLevel? consistency)
         {
             _consistency = consistency;
@@ -165,7 +165,7 @@ namespace Cassandra
         /// <param name="serialConsistency">Can be set only to ConsistencyLevel.Serial or 
         /// ConsistencyLevel.LocalSerial. Setting it to ConsistencyLevel.Serial guarantees full 
         /// linearizability while ConsistencyLevel.LocalSerial guarantees it only in the local datacenter. </param>
-        /// <returns>this <code>Query</code> object.</returns>
+        /// <returns>this <c>Query</c> object.</returns>
         public IStatement SetSerialConsistencyLevel(ConsistencyLevel serialConsistency)
         {
             if (serialConsistency != Cassandra.ConsistencyLevel.Serial && serialConsistency != Cassandra.ConsistencyLevel.LocalSerial)
@@ -180,7 +180,7 @@ namespace Cassandra
         ///  tracing is not enabled.
         /// </summary>
         /// 
-        /// <returns>this <code>Query</code> object.</returns>
+        /// <returns>this <c>Query</c> object.</returns>
         public IStatement EnableTracing(bool enable = true)
         {
             _traceQuery = enable;
@@ -203,7 +203,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="policy"> the retry policy to use for this query. </param>
         /// 
-        /// <returns>this <code>Query</code> object.</returns>
+        /// <returns>this <c>Query</c> object.</returns>
         public IStatement SetRetryPolicy(IRetryPolicy policy)
         {
             _retryPolicy = policy;
@@ -236,7 +236,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="pageSize">the page size to use. If set to 0 or less, the default value will be used.
         /// To disable paging of the result set, use int.MaxValue</param>
-        /// <returns>this <code>Query</code> object.</returns>
+        /// <returns>this <c>Query</c> object.</returns>
         public IStatement SetPageSize(int pageSize)
         {
             _pageSize = pageSize;

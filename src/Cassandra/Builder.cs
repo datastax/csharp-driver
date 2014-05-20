@@ -65,7 +65,7 @@ namespace Cassandra
         ///  The configuration that will be used for the new cluster. <p> You <b>should
         ///  not</b> modify this object directly as change made to the returned object may
         ///  not be used by the cluster build. Instead, you should use the other methods
-        ///  of this <code>Builder</code></p>.
+        ///  of this <c>Builder</c></p>.
         /// </summary>
         /// 
         /// <returns>the configuration to use for the new cluster.</returns>
@@ -146,7 +146,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Add contact points. See <link>Builder#addContactPoint</link> for more details
+        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
         ///  on contact points.
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point
@@ -161,13 +161,13 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Add contact points. See <link>Builder#addContactPoint</link> for more details
+        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
         ///  on contact points.
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point
         ///  </param>
         /// 
-        /// <returns>this Builder <see>Builder#addContactPoint</see></returns>
+        /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPAddress[] addresses)
         {
             foreach (IPAddress address in addresses)
@@ -178,7 +178,7 @@ namespace Cassandra
         /// <summary>
         ///  Configure the load balancing policy to use for the new cluster. <p> If no
         ///  load balancing policy is set through this method,
-        ///  <link>Policies#DefaultLoadBalancingPolicy</link> will be used instead.</p>
+        ///  <link>Policies.DefaultLoadBalancingPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the load balancing policy to use </param>
         /// 
@@ -192,7 +192,7 @@ namespace Cassandra
         /// <summary>
         ///  Configure the reconnection policy to use for the new cluster. <p> If no
         ///  reconnection policy is set through this method,
-        ///  <link>Policies#DefaultReconnectionPolicy</link> will be used instead.</p>
+        ///  <link>Policies.DefaultReconnectionPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the reconnection policy to use </param>
         /// 
@@ -205,7 +205,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Configure the retry policy to use for the new cluster. <p> If no retry policy
-        ///  is set through this method, <link>Policies#DefaultRetryPolicy</link> will
+        ///  is set through this method, <link>Policies.DefaultRetryPolicy</link> will
         ///  be used instead.</p>
         /// </summary>
         /// <param name="policy"> the retry policy to use </param>
@@ -232,10 +232,10 @@ namespace Cassandra
         /// <summary>
         ///  Uses the provided credentials when connecting to Cassandra hosts. <p> This
         ///  should be used if the Cassandra cluster has been configured to use the
-        ///  <code>PasswordAuthenticator</code>. If the the default <code>*
-        ///  AllowAllAuthenticator</code> is used instead, using this method has no effect.</p>
+        ///  <c>PasswordAuthenticator</c>. If the the default <c>*
+        ///  AllowAllAuthenticator</c> is used instead, using this method has no effect.</p>
         /// </summary>
-        /// <param name="username"> the username to use to login to Cassandra hosts.</param>
+        /// <param name="username"> the user name to use to login to Cassandra hosts.</param>
         /// <param name="password"> the password corresponding to </param>
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
@@ -250,7 +250,7 @@ namespace Cassandra
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
         ///  call both this method and {@code withCredentials}' on the same
-        ///  <code>Builder</code> instance as one will supercede the other</p>
+        ///  <c>Builder</c> instance as one will supercede the other</p>
         /// </summary>
         /// <param name="authProvider"> the <link>AuthProvider"></link> to use to login to Cassandra hosts.</param>
         /// <returns>this Builder</returns>
@@ -276,7 +276,7 @@ namespace Cassandra
         /// <summary>
         ///  Sets the timeout for a single query within created cluster.
         ///  After the expiry of the timeout, query will be aborted.
-        ///  Default timeout value is set to <code>Infinity</code>
+        ///  Default timeout value is set to <c>Infinity</c>
         /// </summary>
         /// <param name="queryAbortTimeout">Timeout specified in milliseconds.</param>
         /// <returns>this builder</returns>
@@ -332,7 +332,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and
-        ///  policies. This is a shorthand for <code>Cluster.buildFrom(this)</code>.
+        ///  policies. This is a shorthand for <c>Cluster.buildFrom(this)</c>.
         /// </summary>
         /// 
         /// <returns>the newly build Cluster instance. </returns>

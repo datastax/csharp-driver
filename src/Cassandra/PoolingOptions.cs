@@ -33,9 +33,9 @@ namespace Cassandra
     ///  than core connections have been created, connections in excess are reclaimed
     ///  if the utilisation of opened connections drops below the configured threshold
     ///  (<link>PoolingOptions#getMinSimultaneousRequestsPerConnectionTreshold</link>).
-    ///  </p><p> Each of these parameters can be separately set for <code>Local</code> and
-    ///  <code>Remote</code> hosts (<link>HostDistance</link>). For
-    ///  <code>Ignored</code> hosts, the default for all those settings is 0 and
+    ///  </p><p> Each of these parameters can be separately set for <c>Local</c> and
+    ///  <c>Remote</c> hosts (<link>HostDistance</link>). For
+    ///  <c>Ignored</c> hosts, the default for all those settings is 0 and
     ///  cannot be changed.</p>
     /// </summary>
     public class PoolingOptions
@@ -64,12 +64,12 @@ namespace Cassandra
         /// <summary>
         ///  Number of simultaneous requests on a connection below which connections in
         ///  excess are reclaimed. <p> If an opened connection to an host at distance
-        ///  <code>distance</code> handles less than this number of simultaneous requests
+        ///  <c>distance</c> handles less than this number of simultaneous requests
         ///  and there is more than <link>#GetCoreConnectionsPerHost</link> connections
         ///  open to this host, the connection is closed. </p><p> The default value for this
-        ///  option is 25 for <code>Local</code> and <code>Remote</code> hosts.</p>
+        ///  option is 25 for <c>Local</c> and <c>Remote</c> hosts.</p>
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.</param>
+        /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.</param>
         /// <returns>the configured threshold, or the default one if none have been set.</returns>
         public int GetMinSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
@@ -88,11 +88,11 @@ namespace Cassandra
         ///  Sets the number of simultaneous requests on a connection below which
         ///  connections in excess are reclaimed.
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to configure this
+        /// <param name="distance"> the <c>HostDistance</c> for which to configure this
         ///  threshold. </param>
         /// <param name="minSimultaneousRequests"> the value to set. </param>
         /// 
-        /// <returns>this <code>PoolingOptions</code>. </returns>
+        /// <returns>this <c>PoolingOptions</c>. </returns>
         public PoolingOptions SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance distance, int minSimultaneousRequests)
         {
             switch (distance)
@@ -112,14 +112,14 @@ namespace Cassandra
         /// <summary>
         ///  Number of simultaneous requests on all connections to an host after which
         ///  more connections are created. <p> If all the connections opened to an host at
-        ///  distance <code>* distance</code> connection are handling more than this
+        ///  distance <c>* distance</c> connection are handling more than this
         ///  number of simultaneous requests and there is less than
         ///  <link>#getMaxConnectionPerHost</link> connections open to this host, a new
         ///  connection is open. </p><p> Note that a given connection cannot handle more than
         ///  128 simultaneous requests (protocol limitation). </p><p> The default value for
-        ///  this option is 100 for <code>Local</code> and <code>Remote</code> hosts.</p>
+        ///  this option is 100 for <c>Local</c> and <c>Remote</c> hosts.</p>
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.</param>
+        /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.</param>
         /// <returns>the configured threshold, or the default one if none have been set.</returns>
         public int GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
@@ -138,12 +138,12 @@ namespace Cassandra
         ///  Sets number of simultaneous requests on all connections to an host after
         ///  which more connections are created.
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to configure this
+        /// <param name="distance"> the <c>HostDistance</c> for which to configure this
         ///  threshold. </param>
         /// <param name="maxSimultaneousRequests"> the value to set. </param>
         /// 
-        /// <returns>this <code>PoolingOptions</code>. </returns>
-        /// <throws name="IllegalArgumentException"> if <code>distance == HostDistance.Ignore</code>.</throws>
+        /// <returns>this <c>PoolingOptions</c>. </returns>
+        /// <throws name="IllegalArgumentException"> if <c>distance == HostDistance.Ignore</c>.</throws>
         public PoolingOptions SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance, int maxSimultaneousRequests)
         {
             switch (distance)
@@ -162,14 +162,14 @@ namespace Cassandra
 
         /// <summary>
         ///  The core number of connections per host. <p> For the provided
-        ///  <code>distance</code>, this correspond to the number of connections initially
+        ///  <c>distance</c>, this correspond to the number of connections initially
         ///  created and kept open to each host of that distance.</p>
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
+        /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.
         ///  </param>
         /// 
         /// <returns>the core number of connections per host at distance
-        ///  <code>distance</code>.</returns>
+        ///  <c>distance</c>.</returns>
         public int GetCoreConnectionsPerHost(HostDistance distance)
         {
             switch (distance)
@@ -186,12 +186,12 @@ namespace Cassandra
         /// <summary>
         ///  Sets the core number of connections per host.
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to set this threshold.
+        /// <param name="distance"> the <c>HostDistance</c> for which to set this threshold.
         ///  </param>
         /// <param name="coreConnections"> the value to set </param>
         /// 
-        /// <returns>this <code>PoolingOptions</code>. </returns>
-        /// <throws name="IllegalArgumentException"> if <code>distance == HostDistance.Ignored</code>.</throws>
+        /// <returns>this <c>PoolingOptions</c>. </returns>
+        /// <throws name="IllegalArgumentException"> if <c>distance == HostDistance.Ignored</c>.</throws>
         public PoolingOptions SetCoreConnectionsPerHost(HostDistance distance, int coreConnections)
         {
             switch (distance)
@@ -210,14 +210,14 @@ namespace Cassandra
 
         /// <summary>
         ///  The maximum number of connections per host. <p> For the provided
-        ///  <code>distance</code>, this correspond to the maximum number of connections
+        ///  <c>distance</c>, this correspond to the maximum number of connections
         ///  that can be created per host at that distance.</p>
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to return this threshold.
+        /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.
         ///  </param>
         /// 
         /// <returns>the maximum number of connections per host at distance
-        ///  <code>distance</code>.</returns>
+        ///  <c>distance</c>.</returns>
         public int GetMaxConnectionPerHost(HostDistance distance)
         {
             switch (distance)
@@ -234,11 +234,11 @@ namespace Cassandra
         /// <summary>
         ///  Sets the maximum number of connections per host.
         /// </summary>
-        /// <param name="distance"> the <code>HostDistance</code> for which to set this threshold.
+        /// <param name="distance"> the <c>HostDistance</c> for which to set this threshold.
         ///  </param>
         /// <param name="maxConnections"> the value to set </param>
         /// 
-        /// <returns>this <code>PoolingOptions</code>. </returns>
+        /// <returns>this <c>PoolingOptions</c>. </returns>
         public PoolingOptions SetMaxConnectionsPerHost(HostDistance distance, int maxConnections)
         {
             switch (distance)

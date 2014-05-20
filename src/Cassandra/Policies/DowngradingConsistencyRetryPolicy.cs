@@ -22,24 +22,24 @@ namespace Cassandra
     ///  using a lower consistency level than the one initially requested. By doing
     ///  so, it may break consistency guarantees. In other words, if you use this
     ///  retry policy, there is cases (documented below) where a read at
-    ///  <code>Quorum</code> <b>may not</b> see a preceding write at
-    ///  <code>Quorum</code>. Do not use this policy unless you have understood the
-    ///  cases where this can happen and are ok with that. It is also highly
-    ///  recommended to always wrap this policy into <link>LoggingRetryPolicy</link>
-    ///  to log the occurences of such consistency break. </p><p> This policy : the same
+    ///  <c>Quorum</c> <b>may not</b> see a preceding write at
+    ///  <c>Quorum</c>. Do not use this policy unless you have understood the
+    ///  cases where this can happen and are OK with that. It is also highly
+    ///  recommended to always wrap this policy into <see cref="LoggingRetryPolicy"/>
+    ///  to log the occurrences of such consistency break. </p><p> This policy : the same
     ///  retries than the <link>DefaultRetryPolicy</link> policy. But on top of that,
     ///  it also retries in the following cases: <ul> <li>On a read timeout: if the
     ///  number of replica that responded is greater than one but lower than is
     ///  required by the requested consistency level, the operation is retried at a
-    ///  lower concistency level.</li> <li>On a write timeout: if the operation is an
-    ///  <code>* WriteType.UNLOGGED_BATCH</code> and at least one replica acknowleged
+    ///  lower consistency level.</li> <li>On a write timeout: if the operation is an
+    ///  <c>* WriteType.UNLOGGED_BATCH</c> and at least one replica acknowledged
     ///  the write, the operation is retried at a lower consistency level.
-    ///  Furthermore, for other operation, if at least one replica acknowleged the
+    ///  Furthermore, for other operation, if at least one replica acknowledged the
     ///  write, the timeout is ignored.</li> <li>On an unavailable exception: if at
     ///  least one replica is alive, the operation is retried at a lower consistency
-    ///  level.</li> </ul> </p><p> The reasoning behing this retry policy is the following
+    ///  level.</li> </ul> </p><p> The reasoning behind this retry policy is the following
     ///  one. If, based on the information the Cassandra coordinator node returns,
-    ///  retrying the operation with the initally requested consistency has a change
+    ///  retrying the operation with the initially requested consistency has a change
     ///  to succeed, do it. Otherwise, if based on these informations we know <b>the
     ///  initially requested consistency level cannot be achieve currently</b>, then:
     ///  <ul> <li>For writes, ignore the exception (thus silently failing the
@@ -97,13 +97,13 @@ namespace Cassandra
 
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a write timeout.
-        ///  <p> This method triggers a maximum of one retry. If <code>writeType ==
-        ///  WriteType.BATCH_LOG</code>, the write is retried with the initial consistency
-        ///  level. If <code>writeType == WriteType.UNLOGGED_BATCH</code> and at least one
+        ///  <p> This method triggers a maximum of one retry. If <c>writeType ==
+        ///  WriteType.BATCH_LOG</c>, the write is retried with the initial consistency
+        ///  level. If <c>writeType == WriteType.UNLOGGED_BATCH</c> and at least one
         ///  replica acknowleged, the write is retried with a lower consistency level
         ///  (with unlogged batch, a write timeout can <b>always</b> mean that part of the
-        ///  batch haven't been persisted at' all, even if <code>receivedAcks > 0</code>).
-        ///  For other <code>writeType</code>, if we know the write has been persisted on
+        ///  batch haven't been persisted at' all, even if <c>receivedAcks > 0</c>).
+        ///  For other <c>writeType</c>, if we know the write has been persisted on
         ///  at least one replica, we ignore the exception. Otherwise, an exception is
         ///  thrown.</p>
         /// </summary>

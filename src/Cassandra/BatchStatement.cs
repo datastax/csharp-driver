@@ -52,7 +52,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the routing key for the query. <p> Note that unless the routing key has been
         ///  explicitly set through <link>#setRoutingKey</link>, this will method will
-        ///  return <code>null</code> (to avoid having to parse the query string to
+        ///  return <c>null</c> (to avoid having to parse the query string to
         ///  retrieve the partition key).</p>
         /// </summary>
         public override RoutingKey RoutingKey
@@ -69,7 +69,7 @@ namespace Cassandra
         ///  routing key.</p>
         /// </summary>
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to obtain the routing key.</param>
-        /// <returns>this <code>BatchStatement</code> object. <see>Query#getRoutingKey</see></returns>
+        /// <returns>this <c>BatchStatement</c> object.</returns>
         public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);

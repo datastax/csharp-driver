@@ -46,7 +46,7 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
@@ -67,7 +67,7 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
             return RetryDecision.Rethrow();
@@ -87,7 +87,7 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();

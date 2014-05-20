@@ -58,7 +58,7 @@ namespace Cassandra
         ///  Gets the name of the datacenter this host is part of. The returned
         ///  datacenter name is the one as known by Cassandra. Also note that it is
         ///  possible for this information to not be available. In that case this method
-        ///  returns <code>null</code> and caller should always expect that possibility.
+        ///  returns <c>null</c> and caller should always expect that possibility.
         /// </summary>
         public string Datacenter
         {
@@ -69,7 +69,7 @@ namespace Cassandra
         ///  Gets the name of the rack this host is part of. The returned rack name is
         ///  the one as known by Cassandra. Also note that it is possible for this
         ///  information to not be available. In that case this method returns
-        ///  <code>null</code> and caller should always expect that possibility.
+        ///  <c>null</c> and caller should always expect that possibility.
         /// </summary>
         public string Rack
         {

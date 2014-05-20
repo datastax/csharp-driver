@@ -38,7 +38,7 @@ namespace Cassandra
         /// <summary>
         ///  The routing key (in binary raw form) to use for token aware routing of this
         ///  query. <p> The routing key is optional in the sense that implementers are
-        ///  free to return <code>null</code>. The routing key is an hint used for token
+        ///  free to return <c>null</c>. The routing key is an hint used for token
         ///  aware routing (see
         ///  <link>TokenAwarePolicy</link>), and if
         ///  provided should correspond to the binary value for the query partition key.
