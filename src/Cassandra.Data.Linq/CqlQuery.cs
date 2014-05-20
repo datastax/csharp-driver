@@ -22,6 +22,9 @@ using System.Linq.Expressions;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Represents a Linq query that gets evaluated as a CQL statement.
+    /// </summary>
     public class CqlQuery<TEntity> : CqlQueryBase<TEntity>, IQueryable, IQueryable<TEntity>, IOrderedQueryable
     {
         internal CqlQuery()
@@ -81,6 +84,9 @@ namespace Cassandra.Data.Linq
             return visitor.GetSelect(out _, false);
         }
 
+        /// <summary>
+        /// Evaluates the Linq query, executes the cql statement and adapts the results.
+        /// </summary>
         public IEnumerable<TEntity> Execute()
         {
             return EndExecute(BeginExecute(null, null));

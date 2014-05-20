@@ -43,6 +43,9 @@ namespace Cassandra.Data.Linq
             _session = cp._session;
         }
 
+        /// <summary>
+        /// Creates a <see cref="CqlQuery&lt;T&gt;"/>
+        /// </summary>
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
         {
             return new CqlQuery<TElement>(expression, this);

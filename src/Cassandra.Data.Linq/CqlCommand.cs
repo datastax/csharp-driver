@@ -11,6 +11,7 @@ namespace Cassandra.Data.Linq
         protected DateTimeOffset? _timestamp = null;
         protected int? _ttl = null;
 
+        /// <inheritdoc />
         public override string QueryString
         {
             get
@@ -21,6 +22,7 @@ namespace Cassandra.Data.Linq
             }
         }
 
+        /// <inheritdoc />
         public override object[] QueryValues
         {
             get
@@ -109,11 +111,17 @@ namespace Cassandra.Data.Linq
             return rowSet;
         }
 
+        /// <summary>
+        /// Starts executing the statement async
+        /// </summary>
         public virtual IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
             return InternalBeginExecute(callback, state);
         }
 
+        /// <summary>
+        /// Starts the async executing of the statement
+        /// </summary>
         public virtual void EndExecute(IAsyncResult ar)
         {
             InternalEndExecute(ar);
