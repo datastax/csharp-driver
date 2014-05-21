@@ -31,3 +31,4 @@ _ReSharper*/
 [Tt]est[Rr]esult*
 #Ignore packages from sample projects
 src/samples/packages
+src/other/**/packages
