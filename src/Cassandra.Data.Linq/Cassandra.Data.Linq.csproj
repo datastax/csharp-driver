@@ -49,10 +49,6 @@
     <Compile Include="ClusteringKeyAttribute.cs" />
     <Compile Include="ColumnAttribute.cs" />
     <Compile Include="CompactStorageAttribute.cs" />
-    <Compile Include="Context.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="ContextTable.cs" />
     <Compile Include="CounterAttribute.cs" />
     <Compile Include="CqlArgumentException.cs" />
     <Compile Include="CqlCommand.cs" />
@@ -73,11 +69,7 @@
     <Compile Include="CqlUpdate.cs" />
     <Compile Include="EntityTrackingMode.cs" />
     <Compile Include="EntityUpdateMode.cs" />
-    <Compile Include="IMutationTracker.cs" />
     <Compile Include="ITable.cs" />
-    <Compile Include="MutationTracker.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="ParsePhase.cs" />
     <Compile Include="PartitionKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
