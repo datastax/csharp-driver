@@ -61,8 +61,8 @@ task.ContinueWith((t) =>
 
 ## Documentation
 
-- [Documentation index for v1](http://www.datastax.com/documentation/developer/csharp-driver/1.0/webhelp/index.html).
-- [API docs for v1](http://www.datastax.com/drivers/csharp/apidocs/).
+- [API docs](http://www.datastax.com/drivers/csharp/2.0/)
+- [Documentation index (v1)](http://www.datastax.com/documentation/developer/csharp-driver/1.0/webhelp/index.html)
 
 ## Getting Help
 
