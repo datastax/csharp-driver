@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests.Core
             BatchStatement batch = new BatchStatement();
             foreach (object[] val in expectedValues)
             {
-                batch.AddQuery(ps.Bind(val));
+                batch.Add(ps.Bind(val));
             }
             Session.Execute(batch);
 
@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Core
             BatchStatement batch = new BatchStatement();
             foreach (object[] val in expectedValues)
             {
-                batch.AddQuery(ps.Bind(val));
+                batch.Add(ps.Bind(val));
             }
             var task = Session.ExecuteAsync(batch);
             var rs = task.Result;
@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests.Core
             var batch = new BatchStatement();
 
             var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label 1", 10));
-            batch.AddQuery(simpleStatement);
+            batch.Add(simpleStatement);
             Session.Execute(batch);
 
             //Verify Results
@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             var batch = new BatchStatement();
 
             var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
-            batch.AddQuery(simpleStatement.Bind(100, "label 100", 10000));
+            batch.Add(simpleStatement.Bind(100, "label 100", 10000));
             Session.Execute(batch);
 
             //Verify Results
@@ -110,16 +110,15 @@ namespace Cassandra.IntegrationTests.Core
 
             for(var x = 1; x <= 5; x++)
             {
-                simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0}(id, label, number) VALUES ({1}, '{2}', {3})", tableName, x, "label" + x, x * x));
+                simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, x, "label" + x, x * x));
                 expectedValues.Add(new object[] { x, "label" + x, x * x });
-                batch.AddQuery(simpleStatement);
+                batch.Add(simpleStatement);
             }
             Session.Execute(batch);
 
-            //Verify Results
-            RowSet rs = Session.Execute("SELECT * FROM " + tableName);
+            var rs = Session.Execute("SELECT * FROM " + tableName);
 
-            VerifyData(rs, expectedValues);
+            VerifyData(rs.OrderBy(r => r.GetValue<int>("id")), expectedValues);
         }
 
         [Test]
@@ -130,8 +129,8 @@ namespace Cassandra.IntegrationTests.Core
 
             CreateTwoTableTestEnv("table1", "table2");
 
-            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO table1 (id, label, number) VALUES ({0}, '{1}', {2})", 1, "label1", 1)));
-            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
+            batch.Add(new SimpleStatement(String.Format(@"INSERT INTO table1 (id, label, number) VALUES ({0}, '{1}', {2})", 1, "label1", 1)));
+            batch.Add(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
 
             Session.Execute(batch);
 
@@ -151,8 +150,8 @@ namespace Cassandra.IntegrationTests.Core
 
             CreateTable(tableName);
 
-            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label1", 1)));
-            batch.AddQuery(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
+            batch.Add(new SimpleStatement(String.Format(@"INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label1", 1)));
+            batch.Add(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
 
             Assert.Throws<InvalidQueryException>(
                 delegate { Session.Execute(batch); }, "expected InvalidQueryException, but did not get one");
@@ -170,38 +169,11 @@ namespace Cassandra.IntegrationTests.Core
             var batchStatement = new BatchStatement();
             var expectedValues = new List<object[]> { new object[] { 1, "label", 2 }, new object[] { 1, "test", 2 } };
 
-            batchStatement.AddQuery(ps.Bind(new object[] { 1, "test", 2 }));
-            batchStatement.AddQuery(simpleStatement);
+            batchStatement.Add(ps.Bind(new object[] { 1, "test", 2 }));
+            batchStatement.Add(simpleStatement);
 
             var rs = Session.Execute("SELECT * FROM " + tableName);
             VerifyData(rs, expectedValues);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void BatchMixedDMLStatementTypesTest()
-        {
-            string tableName = "table" + Guid.NewGuid().ToString("N");
-            CreateTable(tableName);
-
-            var batch = new BatchStatement();
-            var ps = Session.Prepare(String.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
-            var simpleUpdate = new SimpleStatement(String.Format("UPDATE {0} SET label = 'new_label' WHERE id = 1", tableName));
-            var simpleDelete = new SimpleStatement(String.Format("DELETE FROM {0} WHERE id = 2", tableName));
-
-            batch.AddQuery(ps.Bind(new object[] { 1, "test", 2 }));
-            batch.AddQuery(ps.Bind(new object[] { 2, "test", 4 }));
-            batch.AddQuery(simpleUpdate);
-            batch.AddQuery(simpleDelete);
-            batch.SetConsistencyLevel(ConsistencyLevel.Quorum);
-            Session.Execute(batch);
-
-            //Verify that row count = 1 (indicating that the DELETE worked.) Verify that label = 'new_label' (indicating that the UPDATE worked.)
-            var rs = Session.Execute("SELECT * FROM " + tableName);
-            var row = rs.First();
-            Assert.True(row != null, "There should be a row stored.");
-            Assert.True(row.SequenceEqual(new object[] { 1, "new_label", 2 }), "Stored values dont match");
-
         }
 
         [Test]
@@ -227,7 +199,7 @@ namespace Cassandra.IntegrationTests.Core
             for (var x = 1; x <= numberOfPreparedStatements; x++)
             {
                 expectedValues.Add(new object[] { x, "value" + x, x });
-                batch.AddQuery(ps.Bind(new object[] { x, "value" +1 , x }));
+                batch.Add(ps.Bind(new object[] { x, "value" +1 , x }));
             }
             
             Session.Execute(batch);
@@ -238,10 +210,10 @@ namespace Cassandra.IntegrationTests.Core
             VerifyData(rs, expectedValues);
         }
 
-        private static void VerifyData(RowSet rowSet, List<object[]> expectedValues)
+        private static void VerifyData(IEnumerable<Row> rowSet, List<object[]> expectedValues)
         {
             int x = 0;
-            foreach (Row row in rowSet.GetRows())
+            foreach (Row row in rowSet)
             {
                 int y = 0;
                 object[] objArr = expectedValues[x];

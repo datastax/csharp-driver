@@ -111,7 +111,7 @@ namespace Cassandra.Data.Linq
                 else
                     continue;
                 if (cql != null)
-                    batchScript.AddQuery(new SimpleStatement(cql).BindObjects(values));
+                    batchScript.Add(new SimpleStatement(cql).BindObjects(values));
             }
             return enableTracing;
         }

@@ -44,7 +44,7 @@ namespace Cassandra
             get { return _queries.Count == 0; }
         }
 
-        public List<Statement> Queries
+        internal List<Statement> Queries
         {
             get { return _queries; }
         }
@@ -76,12 +76,23 @@ namespace Cassandra
             return this;
         }
 
-        public BatchStatement AddQuery(Statement query)
+        /// <summary>
+        /// Adds a new statement to this batch.
+        /// Note that statement can be any <c>Statement</c>. It is allowed to mix <see cref="SimpleStatement"/> and <see cref="BoundStatement"/> in the same <c>BatchStatement</c> in particular.
+        /// Please note that the options of the added <c>Statement</c> (all those defined directly by the Statement class: consistency level, fetch size, tracing, ...) will be ignored for the purpose of the execution of the Batch. Instead, the options used are the one of this <c>BatchStatement</c> object.
+        /// </summary>
+        /// <param name="statement">Statement to add to the batch</param>
+        /// <returns>The Batch statement</returns>
+        public BatchStatement Add(Statement statement)
         {
-            _queries.Add(query);
+            _queries.Add(statement);
             return this;
         }
 
+        /// <summary>
+        /// Sets the <see cref="BatchType"/>
+        /// </summary>
+        /// <returns></returns>
         public BatchStatement SetBatchType(BatchType batchType)
         {
             _batchType = batchType;
@@ -90,7 +101,7 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            throw new InvalidOperationException("Batches cannot be included recursivelly");
+            throw new InvalidOperationException("Batches cannot be included recursively");
         }
     }
 }

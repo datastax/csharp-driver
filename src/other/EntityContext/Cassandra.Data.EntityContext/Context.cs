@@ -253,7 +253,7 @@ namespace Cassandra.Data.Linq
                 foreach (CqlCommand additional in _additionalCommands)
                     if (tableTypes[additional.GetTable().GetQuotedTableName()] == TableType.Counter)
                     {
-                        counterBatchScript.AddQuery(additional);
+                        counterBatchScript.Add(additional);
                         enableTracing |= additional.IsTracing;
                     }
                     else if (tableType == TableType.Counter)
@@ -282,7 +282,7 @@ namespace Cassandra.Data.Linq
                     if (tableTypes[additional.GetTable().GetQuotedTableName()] == TableType.Standard)
                     {
                         enableTracing |= additional.IsTracing;
-                        batchScript.AddQuery(additional);
+                        batchScript.Add(additional);
                     }
                     else if (tableType == TableType.Standard)
                         newAdditionalCommands.Add(additional);
