@@ -256,5 +256,69 @@ namespace Cassandra.MSTest
         {
             checkKSMetadata();
         }
+
+        [TestMethod]
+        public void CompositePartitionKeyMetadata()
+        {
+            CCMCluster = CCMBridge.CCMCluster.Create(1, Cluster.Builder());
+            try
+            {
+                Session = CCMCluster.Session;
+                Cluster = CCMCluster.Cluster;
+                string cql = @"
+                    CREATE TABLE sample_composite_partition1 (
+                    a text,
+                    b int,
+                    c int,
+                    d int,
+                    PRIMARY KEY ((a, b), c))";
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+                Session.WaitForSchemaAgreement(Session.Execute(cql));
+
+                Session.Execute("INSERT INTO sample_composite_partition1 (a, b, c, d) VALUES ('1', 2, 3, 4)");
+                var rs = Session.Execute("select * from sample_composite_partition1");
+                Assert.True(rs.GetRows().Count() == 1);
+
+                var table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata("sample_composite_partition1");
+                Assert.True(table.TableColumns.Count() == 4);
+
+
+                cql = @"
+                    CREATE TABLE sample_composite_partition2 (
+                    a text,
+                    b text,
+                    c int,
+                    d int,
+                    PRIMARY KEY ((a, b, c)))";
+                Session.WaitForSchemaAgreement(Session.Execute(cql));
+
+                table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata("sample_composite_partition2");
+                Assert.True(table.TableColumns.Count() == 4);
+
+
+                cql = @"
+                    CREATE TABLE sample_composite_clusteringkey (
+                    a text,
+                    b text,
+                    c timestamp,
+                    d int,
+                    PRIMARY KEY (a, b, c))";
+                Session.WaitForSchemaAgreement(Session.Execute(cql));
+
+                table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata("sample_composite_clusteringkey");
+                Assert.True(table.TableColumns.Count() == 4);
+            }
+            finally
+            {
+                CCMCluster.Discard();
+            }
+        }
     }
 }
