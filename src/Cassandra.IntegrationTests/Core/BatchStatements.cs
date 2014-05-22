@@ -204,7 +204,6 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Ignore]
         [Test]
         public void LargeBatchPreparedStatement()
         {
@@ -221,7 +220,7 @@ namespace Cassandra.IntegrationTests.Core
             for (var x = 1; x <= numberOfPreparedStatements; x++)
             {
                 expectedValues.Add(new object[] { x, "value" + x, x });
-                batch.Add(ps.Bind(new object[] { x, "value" +1 , x }));
+                batch.Add(ps.Bind(new object[] { x, "value" + x , x }));
             }
             
             Session.Execute(batch);
@@ -229,7 +228,7 @@ namespace Cassandra.IntegrationTests.Core
             // Verify correct values
             RowSet rs = Session.Execute("SELECT * FROM " + tableName);
 
-            VerifyData(rs, expectedValues);
+            VerifyData(rs.OrderBy(r => r.GetValue<int>("id")), expectedValues);
         }
 
         private static void VerifyData(IEnumerable<Row> rowSet, List<object[]> expectedValues)

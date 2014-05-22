@@ -261,8 +261,8 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         public void QueryBinding()
         {
             string tableName = CreateSimpleTableAndInsert(0);
-            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label, number) VALUES(?, ?, ?)", tableName));
-            Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
+            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label) VALUES(?, ?)", tableName));
+            Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label"}));
         }
 
         [Test]
