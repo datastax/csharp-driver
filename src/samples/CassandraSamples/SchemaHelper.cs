@@ -22,6 +22,7 @@ namespace CassandraSamples
             var session = cluster.Connect();
             CreateKeyspace(session);
             CreateTimeSeriesTable(session);
+            CreateForumTables(session);
         }
 
         private static void CreateKeyspace(ISession session)
@@ -32,6 +33,8 @@ namespace CassandraSamples
 
         private static void CreateTimeSeriesTable(ISession session)
         {
+            //These are not the codez you are looking for ...
+            //Boring code just intended to create the schema
             var createCql = @"
                 CREATE TABLE driver_samples_kp.temperature_by_day (
                    weatherstation_id text,
@@ -41,6 +44,26 @@ namespace CassandraSamples
                    PRIMARY KEY ((weatherstation_id,date),event_time)
                 )";
             session.Execute(createCql);
+        }
+
+        public static void CreateForumTables(ISession session)
+        {
+            var createTopicCql = @"
+                CREATE TABLE driver_samples_kp.topics (
+                    topic_id uuid PRIMARY KEY,
+                    topic_title text,
+                    topic_date timestamp
+                )";
+            session.Execute(createTopicCql);
+
+            var createMessageCql = @"
+                CREATE TABLE driver_samples_kp.messages (
+                    topic_id uuid,
+                    message_date timestamp,
+                    message_body text,
+                    PRIMARY KEY (topic_id, message_date)
+                )";
+            session.Execute(createMessageCql);
         }
     }
 }

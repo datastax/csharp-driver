@@ -30,12 +30,15 @@ namespace CassandraSamples
 
             TimeSeriesExampleAsync();
 
+            ForumExample();
+
             Console.WriteLine("Press enter to exit...");
             Console.ReadLine();
         }
 
+
         /// <summary>
-        /// Inserts a few records and then retrieves some of them
+        /// Using a time series schema, it inserts a few records and then retrieves some of them 
         /// </summary>
         public static void TimeSeriesExample()
         {
@@ -72,7 +75,9 @@ namespace CassandraSamples
             }
         }
 
-        /// Inserts a few records and then retrieves some of them
+        /// <summary>
+        /// Using a time series schema, it async inserts a few records and then retrieves some of them 
+        /// </summary>
         public static void TimeSeriesExampleAsync()
         {
             Console.WriteLine("--------------------");
@@ -80,7 +85,7 @@ namespace CassandraSamples
 
             var repository = new TemperatureRepository(_session);
             //Insert some data
-            var weatherStation = "station1";
+            var weatherStation = "station2";
             //Trying to simulate the insertion of several rows
             //with temperature measures
             //We will not wait for the insertion to try to insert the next
@@ -116,6 +121,22 @@ namespace CassandraSamples
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Using a typical topic/message schema, it inserts a topic, messages and retrieves them.
+        /// </summary>
+        public static void ForumExample()
+        {
+            Console.WriteLine("--------------------");
+            Console.WriteLine("Executing forum sample");
+
+            var repository = new ForumRepository(_session);
+            //Add a topic
+            //It will insert 2 rows in a batch
+            repository.AddTopic(Guid.NewGuid(), "Sample forum thread", "This is the first message and body of the topic");
+
+            //TODO: rest of the sample
         }
     }
 }
