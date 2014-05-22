@@ -466,7 +466,7 @@ namespace Cassandra
 
         public static object ConvertFromTimestamp(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (cSharpType == null || cSharpType.Equals(typeof (DateTimeOffset)))
+            if (cSharpType == null || cSharpType.Equals(typeof(object)) || cSharpType.Equals(typeof(DateTimeOffset)))
                 return BytesToDateTimeOffset(value, 0);
             return BytesToDateTimeOffset(value, 0).DateTime;
         }
