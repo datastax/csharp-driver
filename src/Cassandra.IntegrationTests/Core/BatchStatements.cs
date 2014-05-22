@@ -14,6 +14,7 @@ namespace Cassandra.IntegrationTests.Core
     public class BatchStatements : SingleNodeClusterTest
     {
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchPreparedStatementTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -36,6 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchPreparedStatementBasicAsyncTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -57,6 +59,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchSimpleStatementSingle()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -98,6 +101,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchSimpleStatementMultiple()
         {
             SimpleStatement simpleStatement = null;
@@ -122,6 +126,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchStatementTwoTablesTest()
         {
             var expectedValues = new List<object[]>();
@@ -143,6 +148,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void BatchStatementOnTwoTablesWithOneInvalidTableTest()
         {
             var batch = new BatchStatement();
@@ -177,9 +183,25 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void SimpleUpdateTest()
+        [TestCassandraVersion(1, 9, Comparison.LessThan)]
+        public void BatchPreparedStatementsNotSupportedInC1_2()
         {
+            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            CreateTable(tableName);
 
+            var ps = Session.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
+            BatchStatement batch = new BatchStatement();
+            batch.Add(ps.Bind(new object[] { 1, "label1", 1 }));
+            try
+            {
+                Session.Execute(batch);
+                Assert.Fail("Cassandra version below 2.0, should not execute batches of prepared statements");
+            }
+            catch (NotSupportedException ex)
+            {
+                //This is OK
+                Assert.True(ex.Message.ToLower().Contains("batch"));
+            }
         }
 
         [Ignore]
