@@ -36,17 +36,17 @@ namespace Cassandra
         /// <summary>
         ///  Returns the distance assigned by this policy to the provided host. <p> The
         ///  distance of an host influence how much connections are kept to the node (see
-        ///  <link>HostDistance</link>). A policy should assign a <code>* LOCAL</code>
+        ///  <link>HostDistance</link>). A policy should assign a <c>* LOCAL</c>
         ///  distance to nodes that are susceptible to be returned first by
-        ///  <code>newQueryPlan</code> and it is useless for <code>newQueryPlan</code> to
-        ///  return hosts to which it assigns an <code>IGNORED</code> distance. </p><p> The
+        ///  <c>newQueryPlan</c> and it is useless for <c>newQueryPlan</c> to
+        ///  return hosts to which it assigns an <c>IGNORED</c> distance. </p><p> The
         ///  host distance is primarily used to prevent keeping too many connections to
         ///  host in remote datacenters when the policy itself always picks host in the
         ///  local datacenter first.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
-        /// <returns>the HostDistance to <code>host</code>.</returns>
+        /// <returns>the HostDistance to <c>host</c>.</returns>
         HostDistance Distance(Host host);
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace Cassandra
         ///  method. The first host in the result will then be used to perform the query.
         ///  In the event of a connection problem (the queried host is down or appear to
         ///  be so), the next host will be used. If all hosts of the returned
-        ///  <code>Iterator</code> are down, the query will fail.</p>
+        ///  <c>Iterator</c> are down, the query will fail.</p>
         /// </summary>
         /// <param name="query"> the query for which to build a plan. </param>
         /// 

@@ -16,6 +16,7 @@
 
 using System;
 using Cassandra.Data.Linq;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
@@ -29,7 +30,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public void display()
         {
-            Console.WriteLine(category + "\n " + date.ToString("MM/dd/yyyy H:mm:ss.fff zzz") + "\n " + message
+            Trace.TraceInformation(category + "\n " + date.ToString("MM/dd/yyyy H:mm:ss.fff zzz") + "\n " + message
                               + Environment.NewLine);
         }
     }

@@ -27,26 +27,9 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    public class BasicTests
+    [Category("short")]
+    public class BasicTests : SingleNodeClusterTest
     {
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
         /// <summary>
         /// Creates a table and inserts a number of records synchronously.
         /// </summary>
@@ -54,18 +37,17 @@ namespace Cassandra.IntegrationTests.Core
         private string CreateSimpleTableAndInsert(int rowsInTable)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-                    id uuid PRIMARY KEY,
-                    label text,        
-                    );", tableName)));
+            Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
+                CREATE TABLE {0}(
+                id uuid PRIMARY KEY,
+                label text);", tableName)));
             for (int i = 0; i < rowsInTable; i++)
             {
-                Session.Execute(string.Format("INSERT INTO {2}(id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
+                Session.Execute(string.Format("INSERT INTO {2} (id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
             }
 
             return tableName;
         }
-
 
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
@@ -232,47 +214,6 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
         }
 
-        public void createSecondaryIndexTest()
-        {
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            string columns = "tweet_id uuid, name text, surname text";
-
-            try
-            {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         {1},
-PRIMARY KEY(tweet_id)
-         );", tableName, columns))
-                    );
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-
-            var row1 = new object[3] {Guid.NewGuid(), "Adam", "Małysz"};
-            var row2 = new object[3] {Guid.NewGuid(), "Adam", "Miałczyński"};
-
-            var toReturn = new List<object[]>(2) {row1, row2};
-            var toInsert = new List<object[]>(2) {row1, row2};
-
-            QueryTools.ExecuteSyncNonQuery(Session,
-                                           string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName,
-                                                         toInsert[0][0], toInsert[0][1], toInsert[0][2]), null, ConsistencyLevel.Quorum);
-            QueryTools.ExecuteSyncNonQuery(Session,
-                                           string.Format("INSERT INTO {0}(tweet_id, name, surname) VALUES({1},'{2}','{3}');", tableName,
-                                                         toInsert[1][0], toInsert[1][1], toInsert[1][2]), null, ConsistencyLevel.Quorum);
-
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format("CREATE INDEX ON {0}(name);", tableName), null, ConsistencyLevel.Quorum)
-                );
-
-            Thread.Sleep(2000);
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0} WHERE name = 'Adam';", tableName), ConsistencyLevel.Quorum, toReturn);
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
-        }
-
-
         public void BigInsertTest(int RowsNo = 5000)
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -315,20 +256,17 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"DROP TABLE {0};", tableName));
         }
 
-        [TestMethod]
+        [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryBinding()
         {
-            //There is no support for query binding in protocol v1 
-            if (!Options.Default.CASSANDRA_VERSION.StartsWith("1."))
-            {
-                return;
-            }
             string tableName = CreateSimpleTableAndInsert(0);
             var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label, number) VALUES(?, ?, ?)", tableName));
             Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label", 1 }));
         }
 
-        [TestMethod]
+        [Test]
+        [TestCassandraVersion(2, 0)]
         public void PagingOnSimpleStatementTest()
         {
             var pageSize = 10;
@@ -343,7 +281,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             var rs = Session.Execute(statementWithPaging);
 
             var rsWithoutPaging = Session.Execute(statementWithoutPaging);
-            
+
 
             //Check that the internal list of items count is pageSize
             Assert.True(rs.InnerQueueCount == pageSize);
@@ -354,7 +292,8 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
-        [TestMethod]
+        [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryPaging()
         {
             var pageSize = 10;
@@ -376,7 +315,8 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
-        [TestMethod]
+        [Test]
+        [TestCassandraVersion(2, 0)]
         public void QueryPagingParallel()
         {
             var pageSize = 25;
@@ -403,144 +343,144 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Assert.AreEqual(totalRowLength, counterList.Sum());
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void BigInsert()
         {
             BigInsertTest(1000);
         }
 
-        [TestMethod]
-        [WorksForMe]
-        public void creatingSecondaryIndex()
-        {
-            createSecondaryIndexTest();
-        }
-
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testCounter()
         {
             testCounters();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testBlob()
         {
             insertingSingleValue(typeof (byte));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testASCII()
         {
             insertingSingleValue(typeof (Char));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testDecimal()
         {
             insertingSingleValue(typeof (Decimal));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testVarInt()
         {
             insertingSingleValue(typeof (BigInteger));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testBigInt()
         {
             insertingSingleValue(typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testDouble()
         {
             insertingSingleValue(typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testFloat()
         {
             insertingSingleValue(typeof (Single));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testInt()
         {
             insertingSingleValue(typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testBoolean()
         {
             insertingSingleValue(typeof (Boolean));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testUUID()
         {
             insertingSingleValue(typeof (Guid));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void testTimestamp()
         {
             TimestampTest();
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_INT()
         {
             ExceedingCassandraType(typeof (Int32), typeof (Int32));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_BIGINT()
         {
             ExceedingCassandraType(typeof (Int64), typeof (Int64));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_FLOAT()
         {
             ExceedingCassandraType(typeof (Single), typeof (Single));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void MaxingBoundsOf_DOUBLE()
         {
             ExceedingCassandraType(typeof (Double), typeof (Double));
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void ExceedingCassandra_INT()
         {
             ExceedingCassandraType(typeof (Int32), typeof (Int64), false);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void ExceedingCassandra_FLOAT()
         {
             ExceedingCassandraType(typeof (Single), typeof (Double), false);
+        }
+
+        [Test]
+        public void SerialConsistencyTest()
+        {
+            var tableName = "all_types_table_serial";
+            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, tableName)));
+
+            //You can not specify local serial consistency as a valid read one.
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                Session.Execute("SELECT * FROM " + tableName, ConsistencyLevel.LocalSerial);
+            });
+
+            //It should work
+            var statement = new SimpleStatement("SELECT * FROM " + tableName)
+                .SetConsistencyLevel(ConsistencyLevel.Quorum)
+                .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+            //Read consistency specified and write consistency specified
+            Session.Execute(statement);
+
+            //You can not specify serial consistency as a valid read one.
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                Session.Execute("SELECT * FROM " + tableName, ConsistencyLevel.Serial);
+            });
         }
     }
 }

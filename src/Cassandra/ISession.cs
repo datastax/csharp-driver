@@ -82,8 +82,8 @@ namespace Cassandra
         /// <param name="replication">Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
-        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 1</code></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        /// <p>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 1</c></p></param>
+        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true);
         /// <summary>
         ///  Creates new keyspace in current cluster.
@@ -93,8 +93,8 @@ namespace Cassandra
         /// <param name="replication">Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
-        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        /// <p>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 2</c></p></param>
+        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true);
         /// <summary>
         ///  Deletes specified keyspace from current cluster.

@@ -13,8 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
-using Assert = NUnit.Framework.Assert;
 using System;
 using System.Data.Common;
 using System.Globalization;
@@ -22,57 +20,50 @@ using System.Text;
 using System.Threading;
 using Cassandra.Data;
 using NUnit.Framework;
+using System.Configuration;
 
 namespace Cassandra.IntegrationTests.Data
 {
-    [TestFixture]
-    public class AdoBasicTests
+    [TestFixture, Category("short")]
+    public class AdoBasicTests : SingleNodeClusterTest
     {
-        private CqlConnection connection;
-        private ISession session;
+        private CqlConnection _connection;
 
-        [SetUp]
-        public void SetFixture()
+        public override void TestFixtureSetUp()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            session = CCMBridge.ReusableCCMCluster.Connect("tester");
+            base.TestFixtureSetUp();
 
+            var host = "127.0.0.1";
+            if (TestUtils.UseRemoteCcm)
+            {
+                host = Options.Default.IP_PREFIX + "1";
+            }
             var cb = new CassandraConnectionStringBuilder();
-            cb.ContactPoints = new[] {Options.Default.IP_PREFIX + "1"};
+            cb.ContactPoints = new[] { host};
             cb.Port = 9042;
-            connection = new CqlConnection(cb.ToString());
+            _connection = new CqlConnection(cb.ToString());
         }
 
-        [TearDown]
-        public void Dispose()
+        [Test]
+        public void ExecuteNonQueryInsertAndSelectTest()
         {
-            connection.Dispose();
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
+            _connection.Open();
+            var cmd = _connection.CreateCommand();
 
-        public void createObjectsInsertAndSelect()
-        {
-            connection.Open();
-            var cmd = connection.CreateCommand();
-
-            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-
-            cmd.CommandText = string.Format(@"CREATE KEYSPACE {0} 
-                     WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                                            , keyspaceName);
+            string keyspaceName = "keyspace_ado_1";
+            cmd.CommandText = string.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspaceName, 3);
             cmd.ExecuteNonQuery();
 
-            connection.ChangeDatabase(keyspaceName);
+            _connection.ChangeDatabase(keyspaceName);
 
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            cmd.CommandText = string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid,
-         author text,
-         body text,
-         isok boolean,
-         PRIMARY KEY(tweet_id))", tableName);
+            string tableName = "table_ado_1";
+            cmd.CommandText = string.Format(@"
+                CREATE TABLE {0}(
+                tweet_id uuid,
+                author text,
+                body text,
+                isok boolean,
+                PRIMARY KEY(tweet_id))", tableName);
             cmd.ExecuteNonQuery();
 
 
@@ -82,12 +73,9 @@ namespace Cassandra.IntegrationTests.Data
             int RowsNo = 300;
             for (int i = 0; i < RowsNo; i++)
             {
-                longQ.AppendFormat(@"INSERT INTO {0} (
-         tweet_id,
-         author,
-         isok,
-         body)
-         VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
+                longQ.AppendFormat(@"
+                INSERT INTO {0} (tweet_id, author, isok, body)
+                VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
             }
             longQ.AppendLine("APPLY BATCH;");
             cmd.CommandText = longQ.ToString();
@@ -117,10 +105,10 @@ namespace Cassandra.IntegrationTests.Data
         [Test]
         public void ExecuteScalarReturnsFirstColumn()
         {
-            connection.Open();
-            var cmd1 = connection.CreateCommand();
-            var cmd2 = connection.CreateCommand();
-            var cmd3 = connection.CreateCommand();
+            _connection.Open();
+            var cmd1 = _connection.CreateCommand();
+            var cmd2 = _connection.CreateCommand();
+            var cmd3 = _connection.CreateCommand();
 
             cmd1.CommandText = "SELECT keyspace_name, durable_writes FROM system.schema_keyspaces";
             cmd2.CommandText = "SELECT durable_writes, keyspace_name FROM system.schema_keyspaces";
@@ -128,12 +116,6 @@ namespace Cassandra.IntegrationTests.Data
             Assert.IsInstanceOf<string>(cmd1.ExecuteScalar());
             Assert.IsInstanceOf<bool>(cmd2.ExecuteScalar());
             Assert.IsNull(cmd3.ExecuteScalar());
-        }
-
-        [Test]
-        public void ExecuteNonQueryTest()
-        {
-            createObjectsInsertAndSelect();
         }
     }
 }

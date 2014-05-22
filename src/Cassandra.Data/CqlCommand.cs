@@ -25,6 +25,9 @@ using System.Threading;
 
 namespace Cassandra.Data
 {
+    /// <summary>
+    /// Represents an CQL statement to execute against Cassandra
+    /// </summary>
     public sealed class CqlCommand : DbCommand
     {
         internal CqlConnection CqlConnection;
@@ -39,6 +42,7 @@ namespace Cassandra.Data
         {
         }
 
+        /// <inheritdoc />
         public override string CommandText
         {
             get

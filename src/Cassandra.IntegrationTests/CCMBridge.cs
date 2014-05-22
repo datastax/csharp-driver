@@ -169,7 +169,7 @@ namespace Cassandra
 
         private void ExecuteCCM(string args, bool useAlreadyExisting = false)
         {
-            Console.WriteLine("CCM>"+args);
+            Trace.TraceInformation("CCM>"+args);
             if (_ssh_shellStream.DataAvailable)
                 _ssh_shellStream.Read();
             _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
@@ -206,7 +206,7 @@ namespace Cassandra
 
         private void ExecuteCCMAndPrint(string args)
         {
-            Console.WriteLine("CCM>"+args);
+            Trace.TraceInformation("CCM>"+args);
             _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
             var outp = new StringBuilder();
             while (true)
@@ -235,7 +235,7 @@ namespace Cassandra
 
         private void PureExecute(string args)
         {
-            Console.WriteLine("SHELL>" + args);
+            Trace.TraceInformation("SHELL>" + args);
             _ssh_shellStream.WriteLine(args);
             var outp = new StringBuilder();
             while (true)
@@ -276,12 +276,12 @@ namespace Cassandra
                     if (Options.Default.USE_COMPRESSION)
                     {
                         builder.WithCompression(CompressionType.Snappy);
-                        Console.WriteLine("Using Compression");
+                        Trace.TraceInformation("Using Compression");
                     }
                     if (Options.Default.USE_NOBUFFERING)
                     {
                         builder.WithoutRowSetBuffering();
-                        Console.WriteLine("No buffering");
+                        Trace.TraceInformation("No buffering");
                     }
 
                     cluster = builder.Build();
@@ -381,7 +381,7 @@ namespace Cassandra
                 {
                     if (nbNodesDC1 != NbNodesDC1)
                     {
-                        Console.WriteLine("Cassandra:" + Options.Default.CASSANDRA_VERSION);
+                        Trace.TraceInformation("Cassandra:" + Options.Default.CASSANDRA_VERSION);
                         CCMBridge = CCMBridge.Create("test", nbNodesDC1, useAlreadyExisting);
                         NbNodesDC1 = nbNodesDC1;
                         NbNodesDC2 = 0;
@@ -401,20 +401,21 @@ namespace Cassandra
             static Cluster Cluster;
             static ISession Session;
 
-            public static void Build(Builder builder)
+            public static Cluster Build(Builder builder)
             {
                 if (Options.Default.USE_COMPRESSION)
                 {
                     builder.WithCompression(CompressionType.Snappy);
-                    Console.WriteLine("Using Compression");
+                    Trace.TraceInformation("Using Compression");
                 }
                 if (Options.Default.USE_NOBUFFERING)
                 {
                     builder.WithoutRowSetBuffering();
-                    Console.WriteLine("No buffering");
+                    Trace.TraceInformation("No buffering");
                 }
 
                 Cluster = builder.AddContactPoints(Options.Default.IP_PREFIX + "1").Build();
+                return Cluster;
             }
 
             public static ISession Connect(string keyspace = null)
@@ -435,7 +436,7 @@ namespace Cassandra
                 {
                     if (tryNo < 10)
                     {
-                        Console.WriteLine("CannotConnect to CCM node - give another try");
+                        Trace.TraceInformation("CannotConnect to CCM node - give another try");
                         tryNo++;
                         Thread.Sleep(1000);
                         goto RETRY;
@@ -501,12 +502,12 @@ namespace Cassandra
                 if (Options.Default.USE_COMPRESSION)
                 {
                     builder.WithCompression(CompressionType.Snappy);
-                    Console.WriteLine("Using Compression");
+                    Trace.TraceInformation("Using Compression");
                 }
                 if (Options.Default.USE_NOBUFFERING)
                 {
                     builder.WithoutRowSetBuffering();
-                    Console.WriteLine("No buffering");
+                    Trace.TraceInformation("No buffering");
                 }
 
                 this.Cluster = builder.Build();
@@ -522,7 +523,7 @@ namespace Cassandra
                 {
                     if (tryNo < 10)
                     {
-                        Console.WriteLine("CannotConnect to CCM node - give another try");
+                        Trace.TraceInformation("CannotConnect to CCM node - give another try");
                         tryNo++;
                         Thread.Sleep(1000);
                         goto RETRY;

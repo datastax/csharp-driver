@@ -21,15 +21,16 @@ namespace Cassandra
     /// <summary>
     ///  A prepared statement with values bound to the bind variables. <p> Once a
     ///  BoundStatement has values for all the variables of the
-    ///  <link>PreparedStatement</link> it has been created from, it can executed
-    ///  (through <link>Session#execute</link>). </p><p> The values of a BoundStatement
+    ///  <see cref="PreparedStatement"/> it has been created from, it can executed
+    ///  (through <see cref="ISession.Execute(IStatement)"/>). </p><p> The values of a BoundStatement
     ///  can be set by either index or name. When setting them by name, names follow
     ///  the case insensitivity rules explained in <link>ColumnDefinitions</link>.
-    ///  Noteworthily, if multiple bind variables correspond to the same column (as
-    ///  would be the case if you prepare <code>SELECT * FROM t WHERE x &gt; ? AND x &lt; ?</code>), 
-    ///  you will have to set values by indexes (or the <link>#bind</link>
+    ///  Note-worthily, if multiple bind variables correspond to the same column (as
+    ///  would be the case if you prepare <c>SELECT * FROM t WHERE x &gt; ? AND x &lt; ?</c>), 
+    ///  you will have to set values by indexes (or the <c>PreparedStatement.Bind(object[])</c>
     ///  method) as the methods to set by name only allows to set the first prepared
     ///  occurrence of the column.</p>
+    /// <seealso cref="Cassandra.PreparedStatement"/>
     /// </summary>
     public class BoundStatement : Statement
     {
@@ -46,14 +47,14 @@ namespace Cassandra
 
         /// <summary>
         ///  Gets the routing key for this bound query. <p> This method will return a
-        ///  non-<code>null</code> value if: <ul> <li>either all the TableColumns composing the
-        ///  partition key are bound variables of this <code>BoundStatement</code>. The
+        ///  non-<c>null</c> value if: <ul> <li>either all the TableColumns composing the
+        ///  partition key are bound variables of this <c>BoundStatement</c>. The
         ///  routing key will then be built using the values provided for these partition
         ///  key TableColumns.</li> <li>or the routing key has been set through
-        ///  <link>PreparedStatement#setRoutingKey</link> for the
-        ///  <code>PreparedStatement</code> this statement has been built from.</li> </ul>
-        ///  Otherwise, <code>null</code> is returned.</p> <p> Note that if the routing key
-        ///  has been set through <link>PreparedStatement#setRoutingKey</link>, that value
+        ///  <c>PreparedStatement.SetRoutingKey</c> for the
+        ///  <see cref="PreparedStatement"/> this statement has been built from.</li> </ul>
+        ///  Otherwise, <c>null</c> is returned.</p> <p> Note that if the routing key
+        ///  has been set through <link>PreparedStatement.SetRoutingKey</link>, that value
         ///  takes precedence even if the partition key is part of the bound variables.</p>
         /// </summary>
         public override RoutingKey RoutingKey
@@ -68,10 +69,10 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new <code>BoundStatement</code> from the provided prepared
+        ///  Creates a new <c>BoundStatement</c> from the provided prepared
         ///  statement.
         /// </summary>
-        /// <param name="statement"> the prepared statement from which to create a <code>BoundStatement</code>.</param>
+        /// <param name="statement"> the prepared statement from which to create a <c>BoundStatement</c>.</param>
         public BoundStatement(PreparedStatement statement)
         {
             _statement = statement;

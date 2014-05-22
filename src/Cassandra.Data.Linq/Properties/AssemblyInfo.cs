@@ -11,3 +11,4 @@ using System.Runtime.InteropServices;
 // Make internals visible to the Tests project(s)
 [assembly: InternalsVisibleTo("Cassandra.IntegrationTests")]
 [assembly: InternalsVisibleTo("Cassandra.Tests")]
+[assembly: InternalsVisibleTo("Cassandra.Data.EntityContext")]

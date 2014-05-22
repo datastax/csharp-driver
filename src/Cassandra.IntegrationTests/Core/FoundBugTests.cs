@@ -16,14 +16,15 @@
 
 using NUnit.Framework;
 using System;
+using System.Linq;
+using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class FoundBugTests
     {
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void Jira_CSHARP_80_82()
         {
             try
@@ -52,15 +53,14 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void Jira_CSHARP_40()
             //During reconnect the tablespace name becomes invalid
         {
-            CCMBridge.CCMCluster CCMCluster = CCMBridge.CCMCluster.Create(2, Cluster.Builder());
+            var clusterInfo = TestUtils.CcmSetup(2);
             try
             {
-                var Session = CCMCluster.Session;
+                var Session = clusterInfo.Session;
                 string Keyspace = "Excelsior";
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
@@ -68,52 +68,36 @@ namespace Cassandra.IntegrationTests.Core
                 var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
                 {
                     var result = Session.Execute(query);
-                    foreach (Row resKeyspace in result.GetRows())
-                    {
-                        Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                            resKeyspace.GetValue<bool>("durable_writes"),
-                                            resKeyspace.GetValue<string>("keyspace_name"),
-                                            resKeyspace.GetValue<string>("strategy_class"),
-                                            resKeyspace.GetValue<string>("strategy_options"));
-                    }
+                    Assert.True(result.Count() > 0, "It should return rows");
                 }
 
-                CCMCluster.CCMBridge.ForceStop(1);
-                CCMCluster.CCMBridge.ForceStop(2);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", CCMCluster.Cluster, 40);
-                TestUtils.waitForDown(Options.Default.IP_PREFIX + "2", CCMCluster.Cluster, 40);
+                TestUtils.CcmStopForce(clusterInfo, 1);
+                TestUtils.CcmStopForce(clusterInfo, 2);
+                TestUtils.waitForDown("127.0.0.1", clusterInfo.Cluster, 40);
+                TestUtils.waitForDown("127.0.0.2", clusterInfo.Cluster, 40);
 
                 try
                 {
                     var result = Session.Execute(query);
-                    foreach (Row resKeyspace in result.GetRows())
-                    {
-                        Console.WriteLine(resKeyspace.GetValue<string>("keyspace_name"));
-                    }
+                    Assert.True(result.Count() > 0, "It should return rows");
                 }
                 catch (Exception)
                 {
                 }
 
-                CCMCluster.CCMBridge.Start(1);
-                TestUtils.waitFor(Options.Default.IP_PREFIX + "1", CCMCluster.Cluster, 60);
+
+                TestUtils.CcmStart(clusterInfo, 1);
+                Thread.Sleep(35000);
+                TestUtils.waitFor("127.0.0.1", clusterInfo.Cluster, 60);
 
                 {
                     RowSet result = Session.Execute(query);
-
-                    foreach (Row resKeyspace in result.GetRows())
-                    {
-                        Console.WriteLine("durable_writes={0} keyspace_name={1} strategy_Class={2} strategy_options={3}",
-                                          resKeyspace.GetValue<bool>("durable_writes"),
-                                          resKeyspace.GetValue<string>("keyspace_name"),
-                                          resKeyspace.GetValue<string>("strategy_class"),
-                                          resKeyspace.GetValue<string>("strategy_options"));
-                    }
+                    Assert.True(result.Count() > 0, "It should return rows");
                 }
             }
             finally
             {
-                CCMCluster.Discard();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
     }

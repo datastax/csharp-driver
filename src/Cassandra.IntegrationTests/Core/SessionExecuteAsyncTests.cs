@@ -24,26 +24,16 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
-    public class SessionExecuteAsyncTests
+    [Category("short")]
+    public class SessionExecuteAsyncTests : SingleNodeClusterTest
     {
-        ISession Session;
-
-        [SetUp]
-        public void SetFixture()
-        {
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
             var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_keyspaces"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
-            Assert.True(rowset.GetRows().Count() > 0, "Returned result set of keyspaces should be greater than zero.");
+            Assert.True(rowset.Count() > 0, "Returned result set of keyspaces should be greater than zero.");
         }
 
         [Test]
@@ -53,7 +43,7 @@ namespace Cassandra.IntegrationTests.Core
             var task = Session.ExecuteAsync(statement.Bind("system"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
-            Assert.True(rowset.GetRows().Count() > 0, "Returned result set of keyspaces should be greater than zero.");
+            Assert.True(rowset.Count() > 0, "Returned result set of keyspaces should be greater than zero.");
         }
 
         [Test]
@@ -93,15 +83,9 @@ namespace Cassandra.IntegrationTests.Core
             var task3 = Session.ExecuteAsync(new SimpleStatement("select column_name from system.schema_columns"));
             //forcing the calling thread to wait for all the parallel task to finish
             Task.WaitAll(new[] { task1, task2, task3 });
-            Assert.True(task1.Result.GetRows().First().GetValue<string>("keyspace_name") != null, "Returned result set of keyspaces should be greater than zero.");
-            Assert.True(task2.Result.GetRows().First().GetValue<string>("cluster_name") != null, "Returned result set of local cluster table should be greater than zero.");
-            Assert.True(task3.Result.GetRows().First().GetValue<string>("column_name") != null, "Returned result set of columns should be greater than zero.");
-        }
-
-        [TearDown]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
+            Assert.True(task1.Result.First().GetValue<string>("keyspace_name") != null, "Returned result set of keyspaces should be greater than zero.");
+            Assert.True(task2.Result.First().GetValue<string>("cluster_name") != null, "Returned result set of local cluster table should be greater than zero.");
+            Assert.True(task3.Result.First().GetValue<string>("column_name") != null, "Returned result set of columns should be greater than zero.");
         }
     }
 }

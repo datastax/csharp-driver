@@ -28,11 +28,11 @@ namespace Cassandra
         private readonly IRetryPolicy _policy;
 
         /// <summary>
-        ///  Creates a new <code>RetryPolicy</code> that logs the decision of
-        ///  <code>policy</code>.
+        ///  Creates a new <c>RetryPolicy</c> that logs the decision of
+        ///  <c>policy</c>.
         /// </summary>
         /// <param name="policy"> the policy to wrap. The policy created by this
-        ///  constructor will return the same decision than <code>policy</code> but will log them.</param>
+        ///  constructor will return the same decision than <c>policy</c> but will log them.</param>
         public LoggingRetryPolicy(IRetryPolicy policy)
         {
             _policy = policy;

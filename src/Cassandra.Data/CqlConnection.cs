@@ -23,6 +23,7 @@ namespace Cassandra.Data
     /// <summary>
     /// Represents a CQL connection.
     /// </summary>
+    /// <inheritdoc />
     public class CqlConnection : DbConnection, ICloneable
     {
         private CassandraConnectionStringBuilder _connectionStringBuilder;
@@ -54,6 +55,7 @@ namespace Cassandra.Data
             _currentTransaction = null;
         }
 
+        /// <inheritdoc />
         protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
         {
             if (_currentTransaction != null)
@@ -63,12 +65,14 @@ namespace Cassandra.Data
             return _currentTransaction;
         }
 
+        /// <inheritdoc />
         public override void ChangeDatabase(string databaseName)
         {
             if (ManagedConnection != null)
                 ManagedConnection.ChangeKeyspace(databaseName);
         }
 
+        /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
             if (_connectionState == ConnectionState.Open)
@@ -76,6 +80,7 @@ namespace Cassandra.Data
             base.Dispose(disposing);
         }
 
+        /// <inheritdoc />
         public override void Close()
         {
             _connectionState = System.Data.ConnectionState.Closed;
@@ -87,6 +92,7 @@ namespace Cassandra.Data
             _managedCluster = null;
         }
 
+        /// <inheritdoc />
         public override string ConnectionString
         {
             get
@@ -99,6 +105,7 @@ namespace Cassandra.Data
             }
         }
 
+        /// <inheritdoc />
         protected override DbCommand CreateDbCommand()
         {
             var cmd = new CqlCommand() { CqlConnection = this };
@@ -107,11 +114,15 @@ namespace Cassandra.Data
             return cmd;
         }
 
+        /// <inheritdoc />
         public override string DataSource
         {
             get { return _connectionStringBuilder.ClusterName; }
         }
 
+        /// <summary>
+        /// Returns the Keyspace
+        /// </summary>
         public override string Database
         {
             get { return ManagedConnection == null ? null : ManagedConnection.Keyspace; }
@@ -119,6 +130,7 @@ namespace Cassandra.Data
 
         protected override DbProviderFactory DbProviderFactory { get { return CqlProviderFactory.Instance; } }
 
+        /// <inheritdoc />
         public override void Open()
         {
             _connectionState = System.Data.ConnectionState.Connecting;
@@ -128,7 +140,7 @@ namespace Cassandra.Data
         }
 
         /// <summary>
-        /// To be overriden in child classes to change the default <see cref="Builder"/> settings
+        /// To be overridden in child classes to change the default <see cref="Builder"/> settings
         /// for building a <see cref="Cluster"/>.
         /// 
         /// For example, some clients might want to specify the <see cref="DCAwareRoundRobinPolicy"/>
@@ -183,7 +195,7 @@ namespace Cassandra.Data
         /// To be called by CqlCommand to creates a <see cref="PreparedStatement"/>
         /// from <see cref="ManagedConnection"/>.
         /// 
-        /// To be overriden in child classes if want to cache the <see cref="PreparedStatement"/> created.
+        /// To be overridden in child classes if want to cache the <see cref="PreparedStatement"/> created.
         /// </summary>
         /// <param name="cqlQuery">The CQL query string.</param>
         /// <returns>Returns the created <see cref="PreparedStatement"/>.</returns>
@@ -196,11 +208,13 @@ namespace Cassandra.Data
             return ManagedConnection.Prepare(cqlQuery);
         }
 
+        /// <inheritdoc />
         public override string ServerVersion
         {
             get { return "2.0"; }
         }
 
+        /// <inheritdoc />
         public override ConnectionState State
         {
             get { return _connectionState; }

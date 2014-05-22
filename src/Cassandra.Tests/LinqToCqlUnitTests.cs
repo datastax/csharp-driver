@@ -180,6 +180,32 @@ APPLY BATCH".Replace("\r", ""));
         }
 
         [Test]
+        public void LinqGeneratedUpdateStatementTest()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            string query;
+            string expectedQuery;
+
+            query = table
+                .Where(r => r.StringValue == "key")
+                .Select(r => new AllTypesEntity() { IntValue = 1 })
+                .Update()
+                .ToString();
+            expectedQuery = "UPDATE \"AllTypesEntity\" SET \"IntValue\" = 1 WHERE \"StringValue\" = 'key'";
+            Assert.AreEqual(expectedQuery, query);
+
+            Assert.Throws<CqlArgumentException>(() =>
+            {
+                //Update without a set statement
+                //Must include SELECT to project to a new form
+                query = table
+                    .Where(r => r.StringValue == "key")
+                    .Update()
+                    .ToString();
+            });
+        }
+
+        [Test]
         public void TestCqlFromLinqPaxosSupport()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
@@ -244,11 +270,7 @@ APPLY BATCH".Replace("\r", ""));
             var sessionMock = new Mock<ISession>();
             var session = sessionMock.Object;
 
-            var ctx = new Context(session);
-            var entity = new AllTypesEntity();
-
-            ctx.AddTable<AllTypesEntity>();
-            ContextTable<AllTypesEntity> table = ctx.GetTable<AllTypesEntity>();
+            var table = session.GetTable<AllTypesEntity>();
             var date = new DateTime(1975, 1, 1);
             var linqQueries = new List<CqlQuery<AllTypesEntity>>()
             {

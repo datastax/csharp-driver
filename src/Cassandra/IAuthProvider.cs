@@ -27,7 +27,7 @@ namespace Cassandra
     public interface IAuthProvider
     {
         /// <summary>
-        ///  The <code>Authenticator</code> to use when connecting to <code>host</code>
+        ///  The <c>Authenticator</c> to use when connecting to <c>host</c>
         /// </summary>
         /// <param name="host"> the Cassandra host to connect to. </param>
         /// <returns>The authentication implmentation to use.</returns>

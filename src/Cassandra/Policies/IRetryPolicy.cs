@@ -10,8 +10,8 @@
     {
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a read timeout.
-        ///  <p> Note that this method may be called even if <code>requiredResponses >=
-        ///  receivedResponses</code> if <code>dataPresent</code> is <code>false</code>
+        ///  <p> Note that this method may be called even if <c>requiredResponses >=
+        ///  receivedResponses</c> if <c>dataPresent</c> is <c>false</c>
         ///  (see <link>com.datastax.driver.core.exceptions.ReadTimeoutException#WasDataRetrieved</link>).</p>
         /// </summary>
         /// <param name="query"> the original query that timeouted. </param>
@@ -26,7 +26,7 @@
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns>the retry decision. If <code>RetryDecision.Rethrow</code> is
+        /// <returns>the retry decision. If <c>RetryDecision.Rethrow</c> is
         ///  returned, a
         ///  <link>com.datastax.driver.core.exceptions.ReadTimeoutException</link> will be
         ///  thrown for the operation.</returns>
@@ -46,7 +46,7 @@
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns>the retry decision. If <code>RetryDecision.Rethrow</code> is
+        /// <returns>the retry decision. If <c>RetryDecision.Rethrow</c> is
         ///  returned, a
         ///  <link>com.datastax.driver.core.exceptions.WriteTimeoutException</link> will
         ///  be thrown for the operation.</returns>
@@ -66,7 +66,7 @@
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns>the retry decision. If <code>RetryDecision.Rethrow</code> is
+        /// <returns>the retry decision. If <c>RetryDecision.Rethrow</c> is
         ///  returned, an
         ///  <link>com.datastax.driver.core.exceptions.UnavailableException</link> will be
         ///  thrown for the operation.</returns>

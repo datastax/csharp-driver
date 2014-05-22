@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
@@ -30,9 +31,9 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             if (followers != null)
                 foreach (string follower in followers)
-                    Console.Write(follower + "  ");
+                    Trace.TraceInformation(follower + "  ");
             else
-                Console.WriteLine("Nobody!");
+                Trace.TraceInformation("Nobody!");
         }
     }
 }

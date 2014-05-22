@@ -33,83 +33,11 @@ namespace Cassandra.IntegrationTests.Core
 
         internal static void ExecuteSyncQuery(ISession session, string query, ConsistencyLevel consistency, List<object[]> expectedValues = null,
                                               string messageInstead = null)
-        {
-            if (messageInstead != null)
-                Console.WriteLine("CQL<\t" + messageInstead);
-            else
-                Console.WriteLine("CQL< Query:\t" + query);
-            
+        {   
             var ret = session.Execute(query, consistency);
             if (expectedValues != null)
             {
                 valueComparator(ret, expectedValues);
-            }
-
-            PrintResult(ret, Console.Out, cellEncoder: CellEncoder);
-
-            Console.WriteLine("CQL> Done.");
-        }
-
-        private static void PrintResult(
-            RowSet ret,
-            TextWriter stream,
-            string delim = "\t|",
-            string rowDelim = "\r\n",
-            bool printHeader = true,
-            bool printFooter = true,
-            string separ = "-------------------------------------------------------------------------------",
-            string lasLFrm = "Returned {0} rows.",
-            Func<object, string> cellEncoder = null
-            )
-        {
-            if (printHeader)
-            {
-                bool first = true;
-                foreach (CqlColumn column in ret.Columns)
-                {
-                    if (first) first = false;
-                    else
-                        stream.Write(delim);
-
-                    stream.Write(column.Name);
-                }
-                stream.Write(rowDelim);
-                stream.Write(separ);
-                stream.Write(rowDelim);
-            }
-            int i = 0;
-            foreach (Row row in ret.GetRows())
-            {
-                bool first = true;
-                for (int j = 0; j < ret.Columns.Length; j++)
-                {
-                    if (first) first = false;
-                    else
-                        stream.Write(delim);
-
-                    if (row[j] is Array || (row[j].GetType().IsGenericType && row[j] is IEnumerable))
-                        cellEncoder = delegate(object collection)
-                        {
-                            string result = "<Collection>";
-                            if (collection.GetType() == typeof(byte[]))
-                                result += CqlQueryTools.ToHex((byte[])collection);
-                            else
-                                foreach (object val in (collection as IEnumerable))
-                                    result += val + ",";
-                            return result.Substring(0, result.Length - 1) + "</Collection>";
-                        };
-
-                    stream.Write(cellEncoder == null ? row[j] : cellEncoder(row[j]));
-                }
-                stream.Write(rowDelim);
-                i++;
-            }
-            if (printFooter)
-            {
-                stream.Write(separ);
-                stream.Write(rowDelim);
-                stream.Write(lasLFrm, i);
-                stream.Write(rowDelim);
             }
         }
 
@@ -148,46 +76,26 @@ namespace Cassandra.IntegrationTests.Core
         internal static IPAddress ExecuteSyncNonQuery(ISession session, string query, string messageInstead = null,
                                                       ConsistencyLevel? consistency = null)
         {
-            if (messageInstead != null)
-                Console.WriteLine("CQL<\t" + messageInstead);
-            else
-                Console.WriteLine("CQL< Query:\t" + query);
             RowSet ret = session.Execute(query, consistency ?? session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            Console.WriteLine("CQL> (OK).");
             return ret.Info.QueriedHost;
         }
 
 
         internal static PreparedStatement PrepareQuery(ISession session, string query, string messageInstead = null)
         {
-            if (messageInstead != null)
-                Console.WriteLine("CQL<\t" + messageInstead);
-            else
-                Console.WriteLine("CQL< Prepared Query:\t" + query);
             PreparedStatement ret = session.Prepare(query);
-            Console.WriteLine("CQL> (OK).");
             return ret;
         }
 
         internal static IPAddress ExecutePreparedQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
-            if (messageInstead != null)
-                Console.WriteLine("CQL<\t" + messageInstead);
-            else
-                Console.WriteLine("CQL< Executing Prepared Query:\t");
             RowSet ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()));
-            Console.WriteLine("CQL> (OK).");
             return ret.Info.QueriedHost;
         }
 
         internal static RowSet ExecutePreparedSelectQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
-            if (messageInstead != null)
-                Console.WriteLine("CQL<\t" + messageInstead);
-            else
-                Console.WriteLine("CQL< Executing Prepared Query:\t");
             RowSet ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()));
-            Console.WriteLine("CQL> (OK).");
             return ret;
         }
 

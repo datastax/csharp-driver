@@ -20,26 +20,9 @@ using System.Collections.Generic;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
-    public class CustomTypeTests
+    [Category("short")]
+    public class CustomTypeTests : SingleNodeClusterTest
     {
-        private ISession Session;
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect("tester");
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
-
         private byte[] serializeForDynamicType(params object[] vals)
         {
             var elt = new BEBinaryWriter();
@@ -68,8 +51,7 @@ namespace Cassandra.IntegrationTests.Core
             return ret;
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void DynamicCompositeTypeTest()
         {
             string tabledef = "CREATE TABLE test ("

@@ -104,7 +104,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new <code>Policies</code> object using the provided policies.
+        ///  Creates a new <c>Policies</c> object using the provided policies.
         /// </summary>
         /// <param name="loadBalancingPolicy"> the load balancing policy to use. </param>
         /// <param name="reconnectionPolicy"> the reconnection policy to use. </param>

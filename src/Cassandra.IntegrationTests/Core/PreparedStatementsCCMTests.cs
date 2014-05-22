@@ -17,23 +17,20 @@
 using NUnit.Framework;
 using System;
 using System.Linq;
+using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestClass]
+    [TestFixture, Category("long")]
     public class PreparedStatementsCCMTests
     {
-        private ISession Session;
-
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void reprepareOnNewlyUpNodeTestCCM()
         {
             reprepareOnNewlyUpNodeTest(true);
         }
 
-        [TestMethod]
-        [WorksForMe]
+        [Test]
         public void reprepareOnNewlyUpNodeNoKeyspaceTestCCM()
         {
             // This is the same test than reprepareOnNewlyUpNodeTest, except that the
@@ -41,67 +38,57 @@ namespace Cassandra.IntegrationTests.Core
             reprepareOnNewlyUpNodeTest(false);
         }
 
-
-        [TestInitialize]
-        public void SetFixture()
-        {
-            CCMBridge.ReusableCCMCluster.Setup(2);
-            CCMBridge.ReusableCCMCluster.Build(Cluster.Builder());
-            Session = CCMBridge.ReusableCCMCluster.Connect();
-        }
-
-        [TestCleanup]
-        public void Dispose()
-        {
-            CCMBridge.ReusableCCMCluster.Drop();
-        }
-
         private void reprepareOnNewlyUpNodeTest(bool useKeyspace)
         {
             string keyspace = "tester";
-            Session.CreateKeyspaceIfNotExists(keyspace);
-            string modifiedKs = "";
-
-            if (useKeyspace)
-                Session.ChangeKeyspace(keyspace);
-            else
-                modifiedKs = keyspace + ".";
-
+            var clusterInfo = TestUtils.CcmSetup(2, null, keyspace);
+            var cluster = clusterInfo.Cluster;
+            var session = clusterInfo.Session;
             try
             {
-                Session.WaitForSchemaAgreement(
-                    Session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)")
-                    );
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-            Session.Execute("INSERT INTO " + modifiedKs + "test (k, i) VALUES ('123', 17)");
-            Session.Execute("INSERT INTO " + modifiedKs + "test (k, i) VALUES ('124', 18)");
+                string modifiedKs = "";
 
-            PreparedStatement ps = Session.Prepare("SELECT * FROM " + modifiedKs + "test WHERE k = ?");
+                if (useKeyspace)
+                    session.ChangeKeyspace(keyspace);
+                else
+                    modifiedKs = keyspace + ".";
 
-            var rs = Session.Execute(ps.Bind("123"));
-            {
-                Assert.AreEqual(rs.GetRows().First().GetValue<int>("i"), 17); // ERROR
-            }
-            CCMBridge.ReusableCCMCluster.CCMBridge.Stop();
-            TestUtils.waitForDown(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
-
-            CCMBridge.ReusableCCMCluster.CCMBridge.Start();
-            TestUtils.waitFor(Options.Default.IP_PREFIX + "1", Session.Cluster, 30);
-
-            try
-            {
-                var rowset = Session.Execute(ps.Bind("124"));
+                try
                 {
-                    Assert.AreEqual(rowset.GetRows().First().GetValue<int>("i"), 18);
+                    session.WaitForSchemaAgreement(
+                        session.Execute("CREATE TABLE " + modifiedKs + "test(k text PRIMARY KEY, i int)")
+                        );
+                }
+                catch (AlreadyExistsException)
+                {
+                }
+                session.Execute("INSERT INTO " + modifiedKs + "test (k, i) VALUES ('123', 17)");
+                session.Execute("INSERT INTO " + modifiedKs + "test (k, i) VALUES ('124', 18)");
+
+                PreparedStatement ps = session.Prepare("SELECT * FROM " + modifiedKs + "test WHERE k = ?");
+
+                var rs = session.Execute(ps.Bind("123"));
+                Assert.AreEqual(rs.First().GetValue<int>("i"), 17);
+
+                TestUtils.CcmStopNode(clusterInfo, 1);
+
+                Thread.Sleep(3000);
+
+                TestUtils.CcmStart(clusterInfo, 1);
+                Thread.Sleep(40000);
+
+                TestUtils.CcmStopNode(clusterInfo, 2);
+
+                Assert.True(session.Cluster.AllHosts().Select(h => h.IsUp).Count() > 0, "There should be one node up");
+                for (var i = 0; i < 10; i++)
+                {
+                    var rowset = session.Execute(ps.Bind("124"));
+                    Assert.AreEqual(rowset.First().GetValue<int>("i"), 18);
                 }
             }
-            catch (NoHostAvailableException e)
+            finally
             {
-                System.Diagnostics.Debug.WriteLine(">> " + e.Errors);
-                throw e;
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
     }

@@ -5,10 +5,10 @@ namespace Cassandra
 {
     /// <summary>
     ///  Initializer for <link>Cluster</link> instances. <p> If you want to create a
-    ///  new <code>Cluster</code> instance programmatically, then it is advised to use
+    ///  new <c>Cluster</c> instance programmatically, then it is advised to use
     ///  <link>Cluster.Builder</link> (obtained through the
     ///  <link>Cluster#builder</link> method).</p> <p> But it is also possible to
-    ///  implement a custom <code>Initializer</code> that retrieve initialization from
+    ///  implement a custom <c>Initializer</c> that retrieve initialization from
     ///  a web-service or from a configuration file for instance.</p>
     /// </summary>
     public interface IInitializer

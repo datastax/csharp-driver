@@ -24,7 +24,10 @@ using Cassandra.RequestHandlers;
 
 namespace Cassandra
 {
-
+    /// <summary>
+    /// Implementation of <see cref="ISession"/>.
+    /// </summary>
+    /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : ISession
     {
         internal Guid Guid;
@@ -441,19 +444,30 @@ namespace Cassandra
         internal void InternalDispose()
         {
             if (!_alreadyDisposed.TryTake())
+            {
                 return;
+            }
 
-            _trashcanCleaner.Change(Timeout.Infinite, Timeout.Infinite);
+            if (_trashcanCleaner != null)
+            {
+                _trashcanCleaner.Change(Timeout.Infinite, Timeout.Infinite);
+            }
 
             foreach (var kv in _connectionPool)
+            {
                 foreach (var kvv in kv.Value)
                 {
                     var conn = kvv.Value;
                     FreeConnection(conn);
                 }
+            }
             foreach (var kv in _trashcan)
+            {
                 foreach (var ckv in kv.Value)
+                {
                     FreeConnection(ckv.Value);
+                }
+            }
         }
 
         public void Dispose()
@@ -462,9 +476,20 @@ namespace Cassandra
             Cluster.SessionDisposed(this);
         }
 
+        /// <summary>
+        /// Finalizer
+        /// </summary>
         ~Session()
         {
-            Dispose();
+            try
+            {
+                Dispose(); 
+            }
+            catch
+            {
+                //Finalizers are called in their own specific threads.
+                //There is no point in throwing an exception
+            }
         }
 
         public bool IsDisposed
@@ -476,6 +501,7 @@ namespace Cassandra
 
         private ConcurrentDictionary<long, IAsyncResult> _startedActons = new ConcurrentDictionary<long, IAsyncResult>();
 
+        /// <inheritdoc />
         public IAsyncResult BeginExecute(IStatement statement, object tag, AsyncCallback callback, object state)
         {
             if (statement == null)
@@ -499,16 +525,19 @@ namespace Cassandra
             throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }
 
+        /// <inheritdoc />
         public IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state)
         {
             return BeginExecute(statement, null, callback, state);
         }
 
+        /// <inheritdoc />
         public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state)
         {
             return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), tag, callback, state);
         }
 
+        /// <inheritdoc />
         public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
         {
             return BeginExecute(cqlQuery, consistency, null, callback, state);
@@ -520,6 +549,7 @@ namespace Cassandra
             return longActionAc.Tag;
         }
 
+        /// <inheritdoc />
         public RowSet EndExecute(IAsyncResult ar)
         {
             var longActionAc = ar as AsyncResult<RowSet>;
@@ -553,41 +583,36 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
+
+        /// <inheritdoc />
         public RowSet Execute(IStatement query)
         {
             return EndExecute(BeginExecute(query, null, null));
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
+
+        /// <inheritdoc />
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
+
+        /// <inheritdoc />
         public RowSet Execute(string cqlQuery, int pageSize)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
         }
 
-        /// <summary>
-        /// Executes the provided query.
-        /// </summary>
+
+        /// <inheritdoc />
         public RowSet Execute(string cqlQuery)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(_cluster.Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(_cluster.Configuration.QueryOptions.GetPageSize()));
         }
 
-        /// <summary>
-        /// Executes a query asynchronously
-        /// </summary>
+
+        /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement query)
         {
             return Task.Factory.FromAsync<IStatement, RowSet>(BeginExecute, EndExecute, query, null);
@@ -596,6 +621,7 @@ namespace Cassandra
 
         #region Prepare
 
+        /// <inheritdoc />
         public IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state)
         {
             var ar = BeginPrepareQuery(cqlQuery, callback, state) as AsyncResultNoResult;
@@ -603,6 +629,7 @@ namespace Cassandra
             return ar;
         }
 
+        /// <inheritdoc />
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             IAsyncResult oar;
@@ -612,6 +639,7 @@ namespace Cassandra
             return new PreparedStatement(metadata, id.Item1, id.Item2, id.Item3);
         }
 
+        /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery)
         {
             return EndPrepare(BeginPrepare(cqlQuery, null, null));
@@ -870,6 +898,7 @@ namespace Cassandra
             return longActionAc;
         }
 
+        /// <inheritdoc />
         internal RowSet EndBatch(IAsyncResult ar)
         {
             return AsyncResult<RowSet>.End(ar, this, "SessionBatch");

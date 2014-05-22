@@ -21,6 +21,10 @@ using System.Security.Permissions;
 
 namespace Cassandra.Data
 {
+    /// <summary>
+    /// Represents a set of methods for creating instances of a CQL ADO.NET implementation
+    /// of the data source classes.
+    /// </summary>
     public class CqlProviderFactory : DbProviderFactory
     {
         public static readonly CqlProviderFactory Instance = new CqlProviderFactory();

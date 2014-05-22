@@ -123,6 +123,14 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// The number of rows available in this row set that can be retrieved without blocking to fetch.
+        /// </summary>
+        public int GetAvailableWithoutFetching()
+        {
+            return RowQueue.Count;
+        }
+
+        /// <summary>
         /// For backward compatibility: It is possible to iterate using the RowSet as it is enumerable.
         /// </summary>
         /// <returns></returns>

@@ -49,9 +49,9 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Gets the consistency level for a retry decision or <code>null</code> if
-        ///  this retry decision is an <code>Ignore</code> or a
-        ///  <code>Rethrow</code>.</summary>
+        ///  Gets the consistency level for a retry decision or <c>null</c> if
+        ///  this retry decision is an <c>Ignore</c> or a
+        ///  <c>Rethrow</c>.</summary>
         public ConsistencyLevel? RetryConsistencyLevel
         {
             get { return _retryCl; }
@@ -79,7 +79,7 @@ namespace Cassandra
         /// <param name="consistency"> the consistency level to use for the retry.
         ///  </param>
         /// 
-        /// <returns>a Retry with consistency level <code>consistency</code> retry
+        /// <returns>a Retry with consistency level <c>consistency</c> retry
         ///  decision.</returns>
         public static RetryDecision Retry(ConsistencyLevel? consistency)
         {

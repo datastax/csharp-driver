@@ -20,7 +20,7 @@ using System.Net;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <code>AuthInfoProvider</code> implementation. <p> This provider
+    ///  A simple <c>AuthInfoProvider</c> implementation. <p> This provider
     ///  allows to programmatically define authentication information that will then
     ///  apply to all hosts. </p><p> Note that it is <b>not</b> safe to add new info to
     ///  this provider once a Cluster instance has been created using this provider.</p>
@@ -38,7 +38,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Creates a new simple authentication info provider with the informations
-        ///  contained in <code>properties</code>.
+        ///  contained in <c>properties</c>.
         /// </summary>
         /// <param name="properties"> a map of authentication information to use.</param>
         public SimpleAuthInfoProvider(Dictionary<string, string> properties)
@@ -55,9 +55,9 @@ namespace Cassandra
         ///  Adds a new property to the authentication info returned by this provider.
         /// </summary>
         /// <param name="property"> the name of the property to add. For example "username","password" etc. </param>
-        /// <param name="value"> the value to add for <code>property</code>. </param>
+        /// <param name="value"> the value to add for <c>property</c>. </param>
         /// 
-        /// <returns><code>this</code> object.</returns>
+        /// <returns><c>this</c> object.</returns>
         public SimpleAuthInfoProvider Add(string property, string value)
         {
             _credentials.Add(property, value);
@@ -70,7 +70,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="properties"> a map of authentication information to add. </param>
         /// 
-        /// <returns><code>this</code> object.</returns>
+        /// <returns><c>this</c> object.</returns>
         public SimpleAuthInfoProvider AddAll(Dictionary<string, string> properties)
         {
             foreach (KeyValuePair<string, string> kv in properties)

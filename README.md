@@ -61,16 +61,22 @@ task.ContinueWith((t) =>
 
 ## Documentation
 
-- [Documentation index for v1](http://www.datastax.com/documentation/developer/csharp-driver/1.0/webhelp/index.html).
-- [API docs for v1](http://www.datastax.com/drivers/csharp/apidocs/).
+- [API docs](http://www.datastax.com/drivers/csharp/2.0/)
+- [Documentation index (v1)](http://www.datastax.com/documentation/developer/csharp-driver/1.0/webhelp/index.html)
 
 ## Getting Help
 
 You can use the project [Mailing list](https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user) or create a ticket on the [Jira issue tracker](https://datastax-oss.atlassian.net/browse/CSHARP).
 
-## Running the tests
+## Upgrading from 1.x branch
 
-Use [NUnit](http://nunit.org/?p=download) to run the test in the solution Cassandra.Tests (unit tests) and Cassandra.IntegrationTests (integration tests).
+If you are upgrading from the 1.x branch of the driver, be sure to have a look at the [upgrade guide](https://github.com/datastax/csharp-driver/blob/2.0/doc/upgrade-guide-2.0.md).
+
+## Building and running the tests
+
+You can use Visual Studio or msbuild to build the solution. 
+
+[Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
 Copyright 2013, DataStax

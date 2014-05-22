@@ -22,17 +22,20 @@ using System.Threading;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Implementation of <see cref="ICluster"/>
+    /// </summary>
+    /// <inheritdoc />
     public class Cluster : ICluster
     {
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
         ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
         ///  verbose shortcut with <link>NewBuilder#Build</link>. </p><p> Also note that that all
-        ///  the contact points provided by <code>* initializer</code> must share the same
+        ///  the contact points provided by <c>initializer</c> must share the same
         ///  port.</p>
         /// </summary>
-        /// <param name="initializer"> the Cluster.Initializer to use </param>
-        /// 
+        /// <param name="initializer">the Cluster.Initializer to use</param>
         /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
@@ -45,7 +48,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Creates a new <link>Cluster.NewBuilder</link> instance. <p> This is a shortcut
-        ///  for <code>new Cluster.NewBuilder()</code></p>.
+        ///  for <c>new Cluster.NewBuilder()</c></p>.
         /// </summary>
         /// <returns>the new cluster builder.</returns>
         public static Builder Builder()
@@ -117,16 +120,19 @@ namespace Cassandra
             _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
         }
 
+        /// <inheritdoc />
         public ICollection<Host> AllHosts()
         {
             return Metadata.AllHosts();
         }
 
+        /// <inheritdoc />
         public ISession Connect()
         {
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
 
+        /// <inheritdoc />
         public ISession Connect(string keyspace)
         {
             var scs = new Session(this, _configuration.Policies,
@@ -148,12 +154,12 @@ namespace Cassandra
         /// <summary>
         /// Creates new session on this cluster, and sets it to default keyspace. 
         /// If default keyspace does not exist then it will be created and session will be set to it.
-        /// Name of default keyspace can be specified during creation of cluster object with <code>Cluster.Builder().WithDefaultKeyspace("keyspace_name")</code> method.
+        /// Name of default keyspace can be specified during creation of cluster object with <c>Cluster.Builder().WithDefaultKeyspace("keyspace_name")</c> method.
         /// </summary>
         /// <param name="replication">Replication property for this keyspace. To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
-        /// <p>Default value is <code>'SimpleStrategy'</code> with <code>'replication_factor' = 2</code></p></param>
-        /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <code>true</code>.</param>
+        /// <p>Default value is <c>SimpleStrategy</c> with <c>'replication_factor' = 2</c></p></param>
+        /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         /// <returns>a new session on this cluster set to default keyspace.</returns>
         public ISession ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durableWrites = true)
         {
@@ -168,11 +174,13 @@ namespace Cassandra
             Shutdown();
         }
 
+        /// <inheritdoc />
         public Host GetHost(IPAddress address)
         {
             return Metadata.GetHost(address);
         }
 
+        /// <inheritdoc />
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
             return Metadata.GetReplicas(partitionKey);
@@ -183,6 +191,7 @@ namespace Cassandra
             return _metadata.RefreshSchema(keyspace, table);
         }
 
+        /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
             foreach (KeyValuePair<Guid, Session> kv in _connectedSessions)

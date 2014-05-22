@@ -21,7 +21,7 @@ using System.Text;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <code>AuthProvider</code> implementation. <p> This provider allows
+    ///  A simple <c>AuthProvider</c> implementation. <p> This provider allows
     ///  to programmatically define authentication information that will then apply to
     ///  all hosts. The PlainTextAuthenticator instances it returns support SASL
     ///  authentication using the PLAIN mechanism for version 2 of the CQL __native__
