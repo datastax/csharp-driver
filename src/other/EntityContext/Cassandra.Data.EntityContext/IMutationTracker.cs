@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Data.EntityContext
 {
     public interface IMutationTracker
     {

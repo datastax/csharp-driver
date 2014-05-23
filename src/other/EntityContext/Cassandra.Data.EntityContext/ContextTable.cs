@@ -1,6 +1,8 @@
+using System;
+using Cassandra.Data.Linq;
 using System.Collections.Generic;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Data.EntityContext
 {
     public class ContextTable<TEntity> : Table<TEntity>
     {

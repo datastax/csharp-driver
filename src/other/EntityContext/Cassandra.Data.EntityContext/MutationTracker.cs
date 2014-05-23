@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Cassandra.Data.Linq;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Data.EntityContext
 {
     internal class MutationTracker<TEntity> : IMutationTracker
     {

@@ -1,10 +1,11 @@
+using Cassandra.Data.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Data.EntityContext
 {
     public class Context
     {
