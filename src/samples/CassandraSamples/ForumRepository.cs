@@ -26,7 +26,7 @@ namespace CassandraSamples
 
         public void AddTopic(Guid topicId, string title, string body)
         {
-            //We will be inserting 2 rows:
+            //We will be inserting 2 rows in 2 column families.
             //One for the topic and other for the first message (the topic body).
             var insertTopicCql = "INSERT INTO topics (topic_id, topic_title, topic_date) VALUES (?, ?, ?)";
             var insertMessageCql = "INSERT INTO messages (topic_id, message_date, message_body) VALUES (?, ?, ?)";
@@ -54,14 +54,38 @@ namespace CassandraSamples
             Session.Execute(batch);
         }
 
-        public void AddMessage()
+        public void AddMessage(Guid topicId, string body)
         {
+            //We will add 1 row using a prepared statement.
+            var insertMessageCql = "INSERT INTO messages (topic_id, message_date, message_body) VALUES (?, ?, ?)";
+            //Prepare the insert message statement
+            var insertStatement = Session
+                .Prepare(insertMessageCql)
+                .Bind(topicId, DateTime.Now, body);
 
+            //We can specify execution options for the statement
+            insertStatement.SetConsistencyLevel(ConsistencyLevel.Quorum);
+
+            //Execute the prepared statement
+            Session.Execute(insertStatement);
         }
 
-        public void GetMessages(Guid topicId)
+        public RowSet GetMessages(Guid topicId, int pageSize)
         {
+            //We will add 1 row using a prepared statement.
+            var selectCql = "SELECT * FROM messages WHERE topic_id = ?";
+            //Prepare the insert message statement and bind the parameters
+            var statement = Session
+                .Prepare(selectCql)
+                .Bind(topicId);
 
+            //We can specify execution options, like page size and consistency
+            statement
+                .SetPageSize(pageSize)
+                .SetConsistencyLevel(ConsistencyLevel.One);
+
+            //Execute the prepared statement
+            return Session.Execute(statement);
         }
     }
 }

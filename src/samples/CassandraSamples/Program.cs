@@ -28,8 +28,12 @@ namespace CassandraSamples
 
             TimeSeriesExample();
 
+            Console.WriteLine("...Press enter for next sample...");
+            Console.ReadLine();
             TimeSeriesExampleAsync();
 
+            Console.WriteLine("...Press enter for next sample...");
+            Console.ReadLine();
             ForumExample();
 
             Console.WriteLine("Press enter to exit...");
@@ -134,9 +138,25 @@ namespace CassandraSamples
             var repository = new ForumRepository(_session);
             //Add a topic
             //It will insert 2 rows in a batch
-            repository.AddTopic(Guid.NewGuid(), "Sample forum thread", "This is the first message and body of the topic");
+            var topicId = Guid.NewGuid();
+            repository.AddTopic(topicId, "Sample forum thread", "This is the first message and body of the topic");
 
-            //TODO: rest of the sample
+            //Insert some messages
+            for (var i = 1; i < 250; i++)
+            {
+                repository.AddMessage(topicId, "Message " + (i + 1));
+            }
+
+            //Now lets retrieve the messages by topic with a page size of 20.
+            var rs = repository.GetMessages(topicId, 100);
+            //At this point only 100 rows are loaded into the RowSet.
+            Console.WriteLine("Printing all the rows paginating with a page size of 100");
+            foreach (var row in rs)
+            {
+                //While we iterate though the RowSet
+                //We will paginate through all the rows
+                Console.WriteLine(row.GetValue<string>("message_body"));
+            }
         }
     }
 }
