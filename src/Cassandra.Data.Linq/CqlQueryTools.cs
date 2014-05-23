@@ -322,14 +322,11 @@ namespace Cassandra.Data.Linq
                         rk.Name = memName;
                         clusteringKeys.Add(idx, rk);
                     }
-                    else
-                    {
-                        var si = prop.GetCustomAttributes(typeof (SecondaryIndexAttribute), true).FirstOrDefault() as SecondaryIndexAttribute;
-                        if (si != null)
-                        {
-                            commands.Add(crtIndex + memName.QuoteIdentifier() + ");");
-                        }
-                    }
+                }
+                var si = prop.GetCustomAttributes(typeof (SecondaryIndexAttribute), true).FirstOrDefault() as SecondaryIndexAttribute;
+                if (si != null)
+                {
+                    commands.Add(crtIndex + memName.QuoteIdentifier() + ");");
                 }
             }
 
