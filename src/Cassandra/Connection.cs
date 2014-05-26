@@ -14,7 +14,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a TCP connection to a Cassandra Node
     /// </summary>
-    public class Connection : IDisposable
+    internal class Connection : IDisposable
     {
         private TcpSocket _tcpSocket;
         private BoolSwitch _isDisposed = new BoolSwitch();
@@ -105,10 +105,10 @@ namespace Cassandra
             _tcpSocket.Connect();
         }
 
-        internal virtual Task<RowSet> Query()
+        public virtual Task<AbstractResponse> Query()
         {
             var request = new QueryRequest("SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default, null);
-            var responseSource = new ResponseSource<RowSet>();
+            var responseSource = new ResponseSource<AbstractResponse>();
             Send(request, responseSource);
             return responseSource.Task;
         }

@@ -87,68 +87,8 @@ namespace Cassandra.RequestHandlers
                 {
                     owner.SetKeyspace((outp as OutputSetKeyspace).Value);
                 }
-                else if (outp is OutputRows)
-                {
-                    ProcessRows(rs, (OutputRows)outp, owner);
-                }
                 return rs;
             }
-        }
-
-        /// <summary>
-        /// Process rows and sets the paging event handler
-        /// </summary>
-        internal virtual void ProcessRows(RowSet rs, OutputRows outputRows, Session session)
-        {
-            if (outputRows.Metadata != null)
-            {
-                rs.Columns = outputRows.Metadata.Columns;
-                rs.PagingState = outputRows.Metadata.PagingState;
-                if (rs.PagingState != null)
-                {
-                    rs.FetchNextPage = (pagingState) =>
-                    {
-                        if (session.IsDisposed)
-                        {
-                            _logger.Warning("Trying to page results using a Session already disposed.");
-                            return new RowSet();
-                        }
-                        Statement.SetPagingState(pagingState);
-                        return session.Execute(Statement);
-                    };
-                }
-            }
-            for (var i = 0; i < outputRows.Rows; i++)
-            {
-                rs.AddRow(ProcessRowItem(outputRows));
-            }
-        }
-
-        internal virtual Row ProcessRowItem(OutputRows outputRows)
-        {
-            var valuesList = new List<byte[]>();
-            int i = 0;
-            foreach (int len in outputRows.GetRawColumnLengths())
-            {
-                if (len < 0)
-                {
-                    valuesList.Add(null);
-                }
-                else
-                {
-                    var buffer = new byte[len];
-                    outputRows.ReadRawColumnValue(buffer, 0, len);
-                    valuesList.Add(buffer);
-                }
-
-                i++;
-                if (i >= outputRows.Metadata.Columns.Length)
-                {
-                    break;
-                }
-            }
-
-            return new Row(valuesList.ToArray(), outputRows.Metadata.Columns, outputRows.Metadata.ColumnIndexes);
         }
 
         abstract public void Begin(Session owner, int steamId);

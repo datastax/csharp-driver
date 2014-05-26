@@ -20,18 +20,16 @@ using System.Threading;
 
 namespace Cassandra
 {
-    internal class OutputRows : IOutput, IWaitableForDispose
+    internal class OutputRows : IOutput
     {
-        public readonly int Rows;
-        private readonly bool _buffered;
-        private readonly ManualResetEventSlim _disposedEvent;
-
-        private readonly BEBinaryReader _reader;
+        public readonly int RowLength;
         private readonly Guid? _traceId;
+        private RowSetMetadata _metadata;
 
-        private int _curentIter;
-        
-        public RowSetMetadata Metadata { get; internal set; }
+        /// <summary>
+        /// Gets or sets the RowSet parsed from the response
+        /// </summary>
+        public RowSet RowSet { get; set; }
 
         public Guid? TraceId
         {
@@ -40,47 +38,53 @@ namespace Cassandra
 
         internal OutputRows(BEBinaryReader reader, bool buffered, Guid? traceId)
         {
-            _buffered = buffered;
-            _reader = reader;
-            Metadata = new RowSetMetadata(reader);
-            Rows = reader.ReadInt32();
-            if (!buffered)
-                _disposedEvent = new ManualResetEventSlim(buffered);
+            _metadata = new RowSetMetadata(reader);
+            RowLength = reader.ReadInt32();
             _traceId = traceId;
+            RowSet = new RowSet();
+            ProcessRows(RowSet, reader);
+        }
+
+        /// <summary>
+        /// Process rows and sets the paging event handler
+        /// </summary>
+        internal virtual void ProcessRows(RowSet rs, BEBinaryReader reader)
+        {
+            if (this._metadata != null)
+            {
+                rs.Columns = _metadata.Columns;
+                rs.PagingState = _metadata.PagingState;
+            }
+            for (var i = 0; i < this.RowLength; i++)
+            {
+                rs.AddRow(ProcessRowItem(reader));
+            }
+        }
+
+        internal virtual Row ProcessRowItem(BEBinaryReader reader)
+        {
+            var valuesList = new List<byte[]>();
+            for (var i = 0; i < _metadata.Columns.Length; i++ )
+            {
+                int length = reader.ReadInt32();
+                if (length < 0)
+                {
+                    valuesList.Add(null);
+                }
+                else
+                {
+                    var buffer = new byte[length];
+                    reader.Read(buffer, 0, length);
+                    valuesList.Add(buffer);
+                }
+            }
+
+            return new Row(valuesList.ToArray(), _metadata.Columns, _metadata.ColumnIndexes);
         }
 
         public void Dispose()
         {
-            if (!_buffered)
-            {
-                foreach (int rawLength in GetRawColumnLengths())
-                    _reader.Skip(rawLength);
-                _disposedEvent.Set();
-            }
-        }
 
-        public void WaitForDispose()
-        {
-            if (!_buffered)
-            {
-                _disposedEvent.Wait(Timeout.Infinite);
-                _disposedEvent.Dispose();
-            }
-        }
-
-        public void ReadRawColumnValue(byte[] buffer, int offset, int rawLength)
-        {
-            _reader.Read(buffer, offset, rawLength);
-        }
-
-        public IEnumerable<int> GetRawColumnLengths()
-        {
-            for (; _curentIter < Rows*Metadata.Columns.Length;)
-            {
-                int len = _reader.ReadInt32();
-                _curentIter++;
-                yield return len;
-            }
         }
     }
 }

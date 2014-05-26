@@ -41,7 +41,11 @@ namespace Cassandra.IntegrationTests.Core
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 //Result status from Cassandra
-                Assert.NotNull(task.Result);
+                Assert.IsInstanceOf<ResultResponse>(task.Result);
+                var result = (ResultResponse)task.Result;
+                Assert.IsInstanceOf<OutputRows>(result.Output);
+                var rs = ((OutputRows)result.Output).RowSet;
+                Assert.Greater(rs.Count(), 0);
             }
         }
 
@@ -54,7 +58,7 @@ namespace Cassandra.IntegrationTests.Core
                 var startupTask = connection.Startup();
                 startupTask.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
-                var taskList = new List<Task<RowSet>>();
+                var taskList = new List<Task<AbstractResponse>>();
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
@@ -87,7 +91,7 @@ namespace Cassandra.IntegrationTests.Core
                 Task.WaitAll(taskList.ToArray(), 2000);
                 Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
                 //Run the query a lot more times
-                for (var i = 0; i < 2048; i++)
+                for (var i = 0; i < 1024; i++)
                 {
                     taskList.Add(connection.Query());
                 }
