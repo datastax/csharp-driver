@@ -10,10 +10,11 @@ namespace Cassandra
 
         public Stream RawStream { get; set; }
 
-        public ResponseFrame(FrameHeader header, Stream stream)
+        public ResponseFrame(FrameHeader header, Stream body)
         {
             FrameHeader = header;
-            RawStream = stream;
+            //TODO: RENAME
+            RawStream = body;
         }
     }
 }

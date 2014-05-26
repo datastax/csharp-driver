@@ -22,6 +22,9 @@ namespace Cassandra
     internal class FrameHeader
     {
         public const int MaxFrameSize = 256*1024*1024;
+        /// <summary>
+        /// The size of the protocol header
+        /// </summary>
         public const int Size = 8;
 
         /// <summary>
@@ -59,15 +62,15 @@ namespace Cassandra
         /// <summary>
         /// Parses the first 8 bytes and returns a FrameHeader
         /// </summary>
-        public static FrameHeader Parse(byte[] buffer)
+        public static FrameHeader Parse(byte[] buffer, int offset)
         {
             return new FrameHeader()
             {
-                Version = buffer[0],
-                Flags = buffer[1],
-                StreamId = buffer[2],
-                Opcode = buffer[3],
-                Len = buffer.Skip(4).Take(4).ToArray()
+                Version = buffer[offset + 0],
+                Flags = buffer[offset + 1],
+                StreamId = buffer[offset + 2],
+                Opcode = buffer[offset + 3],
+                Len = buffer.Skip(offset + 4).Take(4).ToArray()
             };
         }
 

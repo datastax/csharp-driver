@@ -39,6 +39,10 @@ namespace Cassandra
         private object _writeQueueLock = new object();
         private ConcurrentQueue<OperationState> _writeQueue;
         private OperationState _receivingOperation;
+        /// <summary>
+        /// Small buffer (less than 8 bytes) that is used when the next received message is smaller than 8 bytes, 
+        /// and it is not possible to read the header.
+        /// </summary>
         private byte[] _minimalBuffer;
 
         protected virtual ProtocolOptions Options { get; set; }
@@ -79,7 +83,7 @@ namespace Cassandra
         /// <summary>
         /// Initializes the connection. Thread safe.
         /// </summary>
-        /// <exception cref="SocketException">Throws a SocketException when the connection could not be stablished with the host</exception>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         public virtual void Init()
         {
             if (!_isInitialized.TryTake())
@@ -101,22 +105,18 @@ namespace Cassandra
             _tcpSocket.Connect();
         }
 
-        internal virtual Task<AbstractResponse> Query()
+        internal virtual Task<RowSet> Query()
         {
             var request = new QueryRequest("SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default, null);
-            var tcs = new TaskCompletionSource<AbstractResponse>();
-            Send(request, tcs);
-            return tcs.Task;
+            var responseSource = new ResponseSource<RowSet>();
+            Send(request, responseSource);
+            return responseSource.Task;
         }
 
         protected internal virtual void ReadHandler(byte[] buffer, int bytesReceived)
         {
-            //TODO: Defer copy
-            var newBuffer = new byte[bytesReceived];
-            Buffer.BlockCopy(buffer, 0, newBuffer, 0, bytesReceived);
-
             //Parse the data received
-            var streamIdAvailable = ReadParse(newBuffer);
+            var streamIdAvailable = ReadParse(buffer, 0, bytesReceived);
             if (streamIdAvailable)
             {
                 //Process a next item in the queue if possible.
@@ -129,26 +129,36 @@ namespace Cassandra
         /// Parses the bytes received into a frame. Uses the internal operation state to do the callbacks.
         /// Returns true if a full operation (streamId) has been processed and there is one available.
         /// </summary>
+        /// <param name="buffer">Byte buffer to read</param>
+        /// <param name="offset">Offset within the buffer</param>
+        /// <param name="count">Length of bytes to be read from the buffer</param>
         /// <returns>True if a full operation (streamId) has been processed.</returns>
-        protected virtual bool ReadParse(byte[] buffer)
+        protected virtual bool ReadParse(byte[] buffer, int offset, int count)
         {
             OperationState state = _receivingOperation;
             if (state == null)
             {
-                buffer = Utils.JoinBuffers(_minimalBuffer, buffer);
-                if (buffer.Length < 8)
+                if (_minimalBuffer != null)
+                {
+                    buffer = Utils.JoinBuffers(_minimalBuffer, 0, _minimalBuffer.Length, buffer, offset, count);
+                    offset = 0;
+                    count = buffer.Length;
+                }
+                if (count < 8)
                 {
                     //There is not enough data to read the header
                     _minimalBuffer = buffer;
                     return false;
                 }
                 _minimalBuffer = null;
-                var header = FrameHeader.Parse(buffer);
+                var header = FrameHeader.Parse(buffer, offset);
+                offset += FrameHeader.Size;
+                count -= FrameHeader.Size;
                 state = _pendingOperations[header.StreamId];
                 state.Header = header;
                 _receivingOperation = state;
             }
-            state.AddBuffer(buffer);
+            var countAdded = state.AppendBody(buffer, offset, count);
 
             if (state.IsBodyComplete)
             {
@@ -160,20 +170,18 @@ namespace Cassandra
                 _freeOperations.Push(state.Header.StreamId);
                 try
                 {
-                    var response = ReadParseResponse(state.Header, state.ReadBuffer);
-                    state.TaskCompletionSource.TrySetResult(response);
+                    var response = ReadParseResponse(state.Header, state.BodyStream);
+                    state.ResponseSource.SetResponse(response);
                 }
                 catch (Exception ex)
                 {
-                    state.TaskCompletionSource.TrySetException(ex);
+                    state.ResponseSource.SetException(ex);
                 }
 
-                if (state.ReadBuffer.Length > state.Header.TotalFrameLength)
+                if (countAdded < count)
                 {
                     //There is more data, from the next frame
-                    int nextBufferSize = state.ReadBuffer.Length - state.Header.TotalFrameLength;
-                    var nextFrameBuffer = Utils.SliceBuffer(state.ReadBuffer, state.Header.TotalFrameLength, nextBufferSize);
-                    ReadParse(nextFrameBuffer);
+                    ReadParse(buffer, offset + countAdded, count - countAdded);
                 }
                 return true;
             }
@@ -185,10 +193,10 @@ namespace Cassandra
             return false;
         }
 
-        private AbstractResponse ReadParseResponse(FrameHeader header, byte[] buffer)
+        private AbstractResponse ReadParseResponse(FrameHeader header, Stream body)
         {
-            var stream = new MemoryStream(buffer, 8, header.BodyLength, false);
-            var frame = new ResponseFrame(header, stream);
+            //TODO: Compression
+            var frame = new ResponseFrame(header, body);
             var response = FrameParser.Parse(frame);
             return response;
         }
@@ -196,24 +204,24 @@ namespace Cassandra
         /// <summary>
         /// Sends a protocol startup message
         /// </summary>
-        internal virtual Task<AbstractResponse> Startup()
+        internal virtual Task Startup()
         {
             var request = new StartupRequest(new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
-            var tcs = new TaskCompletionSource<AbstractResponse>();
-            Send(request, tcs);
-            return tcs.Task;
+            var responseSource = new ResponseSource();
+            Send(request, responseSource);
+            return responseSource.Task;
         }
 
         /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
-        internal virtual void Send(IRequest request, TaskCompletionSource<AbstractResponse> tcs)
+        internal virtual void Send(IRequest request, IResponseSource responseSource)
         {
             //thread safe write queue
             var state = new OperationState
             {
                 Request = request,
-                TaskCompletionSource = tcs
+                ResponseSource = responseSource
             };
             SendQueueProcess(state);
         }

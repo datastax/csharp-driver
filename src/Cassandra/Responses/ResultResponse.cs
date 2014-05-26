@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+using System;
 
 namespace Cassandra
 {
@@ -54,6 +55,11 @@ namespace Cassandra
                 default:
                     throw new DriverInternalError("Unknown ResultResponseKind Type");
             }
+        }
+
+        public RowSet ToRowSet()
+        {
+            return new RowSet();
         }
 
         internal static ResultResponse Create(ResponseFrame frame)

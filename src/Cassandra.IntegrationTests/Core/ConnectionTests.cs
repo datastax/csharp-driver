@@ -23,8 +23,6 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Startup();
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                //Ready status from Cassandra
-                Assert.IsInstanceOf<ReadyResponse>(task.Result);
             }
         }
 
@@ -34,17 +32,16 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
             {
                 connection.Init();
-                var task = connection.Startup();
-                task.Wait(1000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                Assert.IsInstanceOf<ReadyResponse>(task.Result);
+                var startupTask = connection.Startup();
+                startupTask.Wait(1000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
-                task = connection.Query();
+                var task = connection.Query();
                 task.Wait(1000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 //Result status from Cassandra
-                Assert.IsInstanceOf<ResultResponse>(task.Result);
+                Assert.NotNull(task.Result);
             }
         }
 
@@ -54,11 +51,10 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
             {
                 connection.Init();
-                var task = connection.Startup();
-                task.Wait(1000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                Assert.IsInstanceOf<ReadyResponse>(task.Result);
-                var taskList = new List<Task>();
+                var startupTask = connection.Startup();
+                startupTask.Wait(1000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
+                var taskList = new List<Task<RowSet>>();
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
@@ -68,6 +64,7 @@ namespace Cassandra.IntegrationTests.Core
                 foreach (var t in taskList)
                 {
                     Assert.AreEqual(TaskStatus.RanToCompletion, t.Status);
+                    Assert.NotNull(t.Result);
                 }
             }
         }
@@ -81,7 +78,6 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Startup();
                 task.Wait(500);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                Assert.IsInstanceOf<ReadyResponse>(task.Result);
                 var taskList = new List<Task>();
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
@@ -106,19 +102,17 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
             {
                 connection.Init();
-                var task = connection.Startup();
-                task.Wait(1000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                Assert.IsInstanceOf<ReadyResponse>(task.Result);
+                var startupTask = connection.Startup();
+                startupTask.Wait(1000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
-                    task = connection.Query();
+                    var task = connection.Query();
                     task.Wait(1000);
                     Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+                    Assert.NotNull(task.Result);
                 }
-                //Result status from Cassandra
-                Assert.IsInstanceOf<ResultResponse>(task.Result);
             }
         }
 
@@ -152,19 +146,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 //Socket exception is just fine.
             }
-        }
-
-        /// <summary>
-        /// Basic unit test for the append buffer
-        /// </summary>
-        [Test]
-        public void OperationStateAppendsReadBuffer()
-        {
-            var operationState = new OperationState();
-            operationState.AddBuffer(new byte[] { 1, 2, 3, 4, 5 });
-            Assert.AreEqual(new byte[] { 1, 2, 3, 4, 5 }, operationState.ReadBuffer);
-            operationState.AddBuffer(new byte[] { 6, 7, 8, 9, 10, 11, 12});
-            Assert.AreEqual(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, operationState.ReadBuffer);
         }
 
         [Test]
