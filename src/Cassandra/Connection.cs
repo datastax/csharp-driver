@@ -16,6 +16,7 @@ namespace Cassandra
     /// </summary>
     internal class Connection : IDisposable
     {
+        private Logger _logger = new Logger(typeof(Connection));
         private TcpSocket _tcpSocket;
         private BoolSwitch _isDisposed = new BoolSwitch();
         private BoolSwitch _isInitialized = new BoolSwitch();
@@ -59,6 +60,7 @@ namespace Cassandra
         protected virtual void CancelPending(Exception ex, SocketError? socketError = null)
         {
             //TODO: Make it thread safe.
+            _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
             if (_pendingOperations.Count > 0)
             {
                 //TODO: Callback every pending operation
@@ -147,11 +149,16 @@ namespace Cassandra
                 if (count < 8)
                 {
                     //There is not enough data to read the header
-                    _minimalBuffer = buffer;
+                    _minimalBuffer = Utils.SliceBuffer(buffer, offset, count);
                     return false;
                 }
                 _minimalBuffer = null;
-                var header = FrameHeader.Parse(buffer, offset);
+                var header = FrameHeader.ParseResponseHeader(buffer, offset);
+                //Check if its a response
+                if (header.Version >> 9 != 1 && (header.Version & 0x07) == 0)
+                {
+                    _logger.Error("Not a response header");
+                }
                 offset += FrameHeader.Size;
                 count -= FrameHeader.Size;
                 state = _pendingOperations[header.StreamId];
@@ -162,6 +169,7 @@ namespace Cassandra
 
             if (state.IsBodyComplete)
             {
+                _logger.Verbose("Read #" + state.Header.StreamId);
                 //Stop reference it as the current receiving operation
                 _receivingOperation = null;
                 //Remove from pending
@@ -185,17 +193,13 @@ namespace Cassandra
                 }
                 return true;
             }
-            else
-            {
-                //There isn't enough data to read the whole frame.
-                //It is already buffered, carry on.
-            }
+            //There isn't enough data to read the whole frame.
+            //It is already buffered, carry on.
             return false;
         }
 
         private AbstractResponse ReadParseResponse(FrameHeader header, Stream body)
         {
-            //TODO: Compression
             var frame = new ResponseFrame(header, body);
             var response = FrameParser.Parse(frame);
             return response;
@@ -252,7 +256,7 @@ namespace Cassandra
                     //Queue it up for later.
                     //When receiving the next complete message, we can process it.
                     _writeQueue.Enqueue(state);
-                    //MAYBE: We could BusyException
+                    _logger.Verbose("Enqueued: " + _writeQueue.Count);
                     return;
                 }
                 //Prevent the next to process

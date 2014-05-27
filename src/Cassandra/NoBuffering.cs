@@ -86,7 +86,7 @@ namespace Cassandra
         public virtual void Close()
         {
             if (TmpFrame != null)
-                TmpFrame.RawStream.Write(null, 0, 0);
+                TmpFrame.Body.Write(null, 0, 0);
         }
 
         public void Reset()

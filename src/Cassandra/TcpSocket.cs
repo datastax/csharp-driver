@@ -80,7 +80,7 @@ namespace Cassandra
                 _socket.NoDelay = Options.TcpNoDelay.Value;
             }
             _receiveSocketEvent = new SocketAsyncEventArgs();
-            _receiveSocketEvent.SetBuffer(new byte[10240], 0, 10240);
+            _receiveSocketEvent.SetBuffer(new byte[_socket.ReceiveBufferSize], 0, _socket.ReceiveBufferSize);
             _receiveSocketEvent.Completed += OnReceiveCompleted;
             _sendSocketEvent = new SocketAsyncEventArgs();
             _sendSocketEvent.Completed += OnSendCompleted;
@@ -89,7 +89,7 @@ namespace Cassandra
         /// <summary>
         /// Connects synchronously to the host and starts reading
         /// </summary>
-        /// <exception cref="SocketException">Throws a SocketException when the connection could not be stablished with the host</exception>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         public void Connect()
         {
             var connectResult = _socket.BeginConnect(IPEndPoint, null, null);

@@ -47,7 +47,7 @@ namespace Cassandra
                     Output = new OutputSetKeyspace(BeBinaryReader.ReadString());
                     break;
                 case ResultResponseKind.Prepared:
-                    Output = new OutputPrepared(BeBinaryReader, frame.FrameHeader.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
+                    Output = new OutputPrepared(BeBinaryReader, frame.Header.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
                     break;
                 case ResultResponseKind.SchemaChange:
                     Output = new OutputSchemaChange(BeBinaryReader, TraceId);

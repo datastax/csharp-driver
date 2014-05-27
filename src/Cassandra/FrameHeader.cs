@@ -62,7 +62,7 @@ namespace Cassandra
         /// <summary>
         /// Parses the first 8 bytes and returns a FrameHeader
         /// </summary>
-        public static FrameHeader Parse(byte[] buffer, int offset)
+        public static FrameHeader ParseResponseHeader(byte[] buffer, int offset)
         {
             return new FrameHeader()
             {

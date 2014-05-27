@@ -65,7 +65,7 @@ namespace Cassandra
                         break;
                     default:
                     {
-                        TmpFrame.RawStream.WriteByte(b);
+                        TmpFrame.Body.WriteByte(b);
                     }
                         break;
                 }
@@ -82,7 +82,7 @@ namespace Cassandra
         public override void Close()
         {
             if (TmpFrame != null)
-                TmpFrame.RawStream.Write(null, 0, 0);
+                TmpFrame.Body.Write(null, 0, 0);
         }
 
         public override int PreferedBufferSize()

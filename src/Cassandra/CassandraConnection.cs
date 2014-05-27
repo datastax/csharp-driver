@@ -451,19 +451,19 @@ namespace Cassandra
                         {
                             foreach (ResponseFrame frame in _bufferingMode.Process(_buffer[_bufNo], bytesReadCount, _socketStream, _compressor))
                             {
-                                if (frame.FrameHeader.Version != _binaryProtocolResponseVersionByte)
+                                if (frame.Header.Version != _binaryProtocolResponseVersionByte)
                                     throw new CassandraConnectionBadProtocolVersionException();
 
                                 Action<ResponseFrame> act = null;
-                                if (frame.FrameHeader.StreamId == 0xFF)
+                                if (frame.Header.StreamId == 0xFF)
                                     act = _frameEventCallback.Value;
-                                else if (frame.FrameHeader.StreamId <= sbyte.MaxValue)
+                                else if (frame.Header.StreamId <= sbyte.MaxValue)
                                 {
-                                    if (_frameReadTimers[frame.FrameHeader.StreamId] != null)
-                                        _frameReadTimers[frame.FrameHeader.StreamId].Change(Timeout.Infinite,
+                                    if (_frameReadTimers[frame.Header.StreamId] != null)
+                                        _frameReadTimers[frame.Header.StreamId].Change(Timeout.Infinite,
                                                                                             Timeout.Infinite);
-                                    act = _frameReadCallback[frame.FrameHeader.StreamId];
-                                    _frameReadCallback[frame.FrameHeader.StreamId] = null;
+                                    act = _frameReadCallback[frame.Header.StreamId];
+                                    _frameReadCallback[frame.Header.StreamId] = null;
                                 }
 
                                 if (act == null)

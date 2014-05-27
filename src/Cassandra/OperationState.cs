@@ -30,7 +30,7 @@ namespace Cassandra
                 }
                 if (BodyStream is ListBackedStream)
                 {
-                    return ((ListBackedStream)BodyStream).TotalLength == Header.BodyLength;
+                    return BodyStream.Length == Header.BodyLength;
                 }
                 return false;
             }
@@ -55,14 +55,14 @@ namespace Cassandra
             {
                 throw new DriverInternalError("To add a response body you must specify the header");
             }
-            if (Header.BodyLength <= count)
-            {
-                //There is no need to copy the buffer: Use the inner buffer
-                BodyStream = new MemoryStream(value, offset, this.Header.BodyLength, false, false);
-                return this.Header.BodyLength;
-            }
             if (BodyStream == null)
             {
+                if (Header.BodyLength <= count)
+                {
+                    //There is no need to copy the buffer: Use the inner buffer
+                    BodyStream = new MemoryStream(value, offset, this.Header.BodyLength, false, false);
+                    return this.Header.BodyLength;
+                }
                 BodyStream = new ListBackedStream();
             }
             if (BodyStream.Position + count > Header.BodyLength)

@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -14,6 +15,20 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture]
     public class ConnectionTests
     {
+        private TraceLevel _originalTraceLevel;
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
+        {
+            _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Error;
+        }
+
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = _originalTraceLevel;
+        }
+
         [Test]
         public void StartupTest()
         {
@@ -80,7 +95,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Init();
                 var task = connection.Startup();
-                task.Wait(500);
+                task.Wait(5000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 var taskList = new List<Task>();
                 //Run the query multiple times
@@ -88,15 +103,15 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     taskList.Add(connection.Query());
                 }
-                Task.WaitAll(taskList.ToArray(), 1000);
+                Task.WaitAll(taskList.ToArray(), 120000);
                 Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
                 //Run the query a lot more times
                 for (var i = 0; i < 1024; i++)
                 {
                     taskList.Add(connection.Query());
                 }
-                Task.WaitAll(taskList.ToArray(), 5000);
-                Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
+                Task.WaitAll(taskList.ToArray(), 360000);
+                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
             }
         }
 
@@ -150,12 +165,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 //Socket exception is just fine.
             }
-        }
-
-        [Test]
-        public void SendConcurrentTest()
-        {
-            throw new NotImplementedException();
         }
 
         [Test]

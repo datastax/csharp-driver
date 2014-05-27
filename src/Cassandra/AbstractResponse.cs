@@ -31,9 +31,9 @@ namespace Cassandra
 
         internal AbstractResponse(ResponseFrame frame)
         {
-            BeBinaryReader = new BEBinaryReader(frame.RawStream);
+            BeBinaryReader = new BEBinaryReader(frame.Body);
 
-            if ((frame.FrameHeader.Flags & 0x02) == 0x02)
+            if ((frame.Header.Flags & 0x02) == 0x02)
             {
                 var buffer = new byte[16];
                 BeBinaryReader.Read(buffer, 0, 16);

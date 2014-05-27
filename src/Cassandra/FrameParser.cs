@@ -44,7 +44,7 @@ namespace Cassandra
         /// </summary>
         public static AbstractResponse Parse(ResponseFrame frame)
         {
-            byte opcode = frame.FrameHeader.Opcode;
+            byte opcode = frame.Header.Opcode;
             if (!_responseHandlerFactory.ContainsKey(opcode))
             {
                 throw new DriverInternalError("Unknown Response Frame type " + opcode);
