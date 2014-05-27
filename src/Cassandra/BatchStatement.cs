@@ -20,8 +20,7 @@ using System.Collections.Generic;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <code>Statement</code> implementation built directly from a query
-    ///  string.
+    /// A statement that groups a number of <see cref="BoundStatement" /> and / or <see cref="SimpleStatement" /> so they get executed as a batch.
     /// </summary>
     public class BatchStatement : Statement
     {
@@ -45,7 +44,7 @@ namespace Cassandra
             get { return _queries.Count == 0; }
         }
 
-        public List<Statement> Queries
+        internal List<Statement> Queries
         {
             get { return _queries; }
         }
@@ -53,7 +52,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the routing key for the query. <p> Note that unless the routing key has been
         ///  explicitly set through <link>#setRoutingKey</link>, this will method will
-        ///  return <code>null</code> (to avoid having to parse the query string to
+        ///  return <c>null</c> (to avoid having to parse the query string to
         ///  retrieve the partition key).</p>
         /// </summary>
         public override RoutingKey RoutingKey
@@ -70,19 +69,30 @@ namespace Cassandra
         ///  routing key.</p>
         /// </summary>
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to obtain the routing key.</param>
-        /// <returns>this <code>BatchStatement</code> object. <see>Query#getRoutingKey</see></returns>
+        /// <returns>this <c>BatchStatement</c> object.</returns>
         public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);
             return this;
         }
 
-        public BatchStatement AddQuery(Statement query)
+        /// <summary>
+        /// Adds a new statement to this batch.
+        /// Note that statement can be any <c>Statement</c>. It is allowed to mix <see cref="SimpleStatement"/> and <see cref="BoundStatement"/> in the same <c>BatchStatement</c> in particular.
+        /// Please note that the options of the added <c>Statement</c> (all those defined directly by the Statement class: consistency level, fetch size, tracing, ...) will be ignored for the purpose of the execution of the Batch. Instead, the options used are the one of this <c>BatchStatement</c> object.
+        /// </summary>
+        /// <param name="statement">Statement to add to the batch</param>
+        /// <returns>The Batch statement</returns>
+        public BatchStatement Add(Statement statement)
         {
-            _queries.Add(query);
+            _queries.Add(statement);
             return this;
         }
 
+        /// <summary>
+        /// Sets the <see cref="BatchType"/>
+        /// </summary>
+        /// <returns></returns>
         public BatchStatement SetBatchType(BatchType batchType)
         {
             _batchType = batchType;
@@ -91,7 +101,7 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest()
         {
-            throw new InvalidOperationException("Batches cannot be included recursivelly");
+            throw new InvalidOperationException("Batches cannot be included recursively");
         }
     }
 }

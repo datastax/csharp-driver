@@ -38,8 +38,8 @@ namespace Cassandra
         ///  Gets a value indicating whether durable writes are set on this keyspace.
         /// </summary>
         /// 
-        /// <returns><code>true</code> if durable writes are set on this keyspace
-        ///  , <code>false</code> otherwise.</returns>
+        /// <returns><c>true</c> if durable writes are set on this keyspace
+        ///  , <c>false</c> otherwise.</returns>
         public bool DurableWrites { get; private set; }
 
         /// <summary>
@@ -72,8 +72,8 @@ namespace Cassandra
         /// </summary>
         /// <param name="tableName"> the name of table to retrieve </param>
         /// 
-        /// <returns>the metadata for table <code>tableName</code> in this keyspace if it
-        ///  exists, <code>null</code> otherwise.</returns>
+        /// <returns>the metadata for table <c>tableName</c> in this keyspace if it
+        ///  exists, <c>null</c> otherwise.</returns>
         public TableMetadata GetTableMetadata(string tableName)
         {
             return _cc.GetTable(Name, tableName);
@@ -105,7 +105,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Return a <code>String</code> containing CQL queries representing this
+        ///  Return a <c>String</c> containing CQL queries representing this
         ///  name and the table it contains. In other words, this method returns the
         ///  queries that would allow to recreate the schema of this name, along with
         ///  all its table. Note that the returned String is formatted to be human

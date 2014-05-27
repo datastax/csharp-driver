@@ -44,21 +44,19 @@ namespace Cassandra.IntegrationTests.Data
             _connection = new CqlConnection(cb.ToString());
         }
 
-        public void createObjectsInsertAndSelect()
+        [Test]
+        public void ExecuteNonQueryInsertAndSelectTest()
         {
             _connection.Open();
             var cmd = _connection.CreateCommand();
 
-            string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-
-            cmd.CommandText = string.Format(@"CREATE KEYSPACE {0} 
-                     WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }};"
-                                            , keyspaceName);
+            string keyspaceName = "keyspace_ado_1";
+            cmd.CommandText = string.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspaceName, 3);
             cmd.ExecuteNonQuery();
 
             _connection.ChangeDatabase(keyspaceName);
 
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = "table_ado_1";
             cmd.CommandText = string.Format(@"
                 CREATE TABLE {0}(
                 tweet_id uuid,
@@ -99,12 +97,6 @@ namespace Cassandra.IntegrationTests.Data
 
             cmd.CommandText = string.Format(@"DROP KEYSPACE {0};", keyspaceName);
             cmd.ExecuteNonQuery();
-        }
-
-        [Test]
-        public void ExecuteNonQueryTest()
-        {
-            createObjectsInsertAndSelect();
         }
 
         /// <summary>

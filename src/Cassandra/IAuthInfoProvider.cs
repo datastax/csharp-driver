@@ -30,7 +30,7 @@ namespace Cassandra
         // only for protocol V1 Credentials support
     {
         /// <summary>
-        ///  The authentication informations to use to connect to <code>host</code>.
+        ///  The authentication informations to use to connect to <c>host</c>.
         ///  Please note that if authentication is required, this method will be called to
         ///  initialize each new connection created by the driver. It is thus a good idea
         ///  to make sure this method returns relatively quickly.

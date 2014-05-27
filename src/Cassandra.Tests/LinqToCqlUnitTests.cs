@@ -270,11 +270,7 @@ APPLY BATCH".Replace("\r", ""));
             var sessionMock = new Mock<ISession>();
             var session = sessionMock.Object;
 
-            var ctx = new Context(session);
-            var entity = new AllTypesEntity();
-
-            ctx.AddTable<AllTypesEntity>();
-            ContextTable<AllTypesEntity> table = ctx.GetTable<AllTypesEntity>();
+            var table = session.GetTable<AllTypesEntity>();
             var date = new DateTime(1975, 1, 1);
             var linqQueries = new List<CqlQuery<AllTypesEntity>>()
             {

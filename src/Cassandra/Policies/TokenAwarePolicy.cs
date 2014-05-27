@@ -22,17 +22,17 @@ namespace Cassandra
     /// <summary>
     ///  A wrapper load balancing policy that add token awareness to a child policy.
     ///  <p> This policy encapsulates another policy. The resulting policy works in
-    ///  the following way: <ul> <li>the <code>distance</code> method is inherited
+    ///  the following way: <ul> <li>the <c>distance</c> method is inherited
     ///  from the child policy.</li> <li>the iterator return by the
-    ///  <code>newQueryPlan</code> method will first return the <code>LOCAL</code>
+    ///  <c>newQueryPlan</c> method will first return the <c>LOCAL</c>
     ///  replicas for the query (based on <link>Query#getRoutingKey</link>) <i>if
-    ///  possible</i> (i.e. if the query <code>getRoutingKey</code> method doesn't
+    ///  possible</i> (i.e. if the query <c>getRoutingKey</c> method doesn't
     ///  return {@code null} and if {@link Metadata#getReplicas}' returns a non empty
     ///  set of replicas for that partition key). If no local replica can be either
     ///  found or successfully contacted, the rest of the query plan will fallback to
     ///  one of the child policy.</li> </ul> </p><p> Do note that only replica for which
-    ///  the child policy <code>distance</code> method returns
-    ///  <code>HostDistance.Local</code> will be considered having priority. For
+    ///  the child policy <c>distance</c> method returns
+    ///  <c>HostDistance.Local</c> will be considered having priority. For
     ///  example, if you wrap <link>DCAwareRoundRobinPolicy</link> with this token
     ///  aware policy, replicas from remote data centers may only be returned after
     ///  all the host of the local data center.</p>
@@ -43,7 +43,7 @@ namespace Cassandra
         private ICluster _cluster;
 
         /// <summary>
-        ///  Creates a new <code>TokenAware</code> policy that wraps the provided child
+        ///  Creates a new <c>TokenAware</c> policy that wraps the provided child
         ///  load balancing policy.
         /// </summary>
         /// <param name="childPolicy"> the load balancing policy to wrap with token
@@ -65,7 +65,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
-        /// <returns>the HostDistance to <code>host</code> as returned by the wrapped
+        /// <returns>the HostDistance to <c>host</c> as returned by the wrapped
         ///  policy.</returns>
         public HostDistance Distance(Host host)
         {
@@ -74,9 +74,9 @@ namespace Cassandra
 
         /// <summary>
         ///  Returns the hosts to use for a new query. <p> The returned plan will first
-        ///  return replicas (whose <code>HostDistance</code> for the child policy is
-        ///  <code>Local</code>) for the query if it can determine them (i.e. mainly if
-        ///  <code>query.getRoutingKey()</code> is not <code>null</code>). Following what
+        ///  return replicas (whose <c>HostDistance</c> for the child policy is
+        ///  <c>Local</c>) for the query if it can determine them (i.e. mainly if
+        ///  <c>query.getRoutingKey()</c> is not <c>null</c>). Following what
         ///  it will return the plan of the child policy.</p>
         /// </summary>
         /// <param name="query"> the query for which to build the plan. </param>

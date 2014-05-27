@@ -31,9 +31,9 @@ namespace Cassandra
         /// <summary>
         ///  Creates a new session on this cluster and sets a keyspace to use.
         /// </summary>
-        /// <param name="keyspace"> The name of the keyspace to use for the created <code>ISession</code>. </param>
+        /// <param name="keyspace"> The name of the keyspace to use for the created <c>ISession</c>. </param>
         /// <returns>a new session on this cluster set to keyspace: 
-        ///  <code>keyspaceName</code>. </returns>
+        ///  <c>keyspaceName</c>. </returns>
         ISession Connect(string keyspace);
         /// <summary>
         /// Get the host instance for a given Ip address.
@@ -49,7 +49,7 @@ namespace Cassandra
         ICollection<IPAddress> GetReplicas(byte[] partitionKey);
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
-        ///  sessions of this <code>* Cluster</code> instance and reclaim all resources
+        ///  sessions of this <c>* Cluster</c> instance and reclaim all resources
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
         /// </summary>
         void Shutdown(int timeoutMs = System.Threading.Timeout.Infinite);

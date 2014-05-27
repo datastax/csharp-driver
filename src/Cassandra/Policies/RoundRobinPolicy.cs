@@ -55,7 +55,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
-        /// <returns>the HostDistance to <code>host</code>.</returns>
+        /// <returns>the HostDistance to <c>host</c>.</returns>
         public HostDistance Distance(Host host)
         {
             return HostDistance.Local;

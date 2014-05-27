@@ -14,13 +14,14 @@
 //   limitations under the License.
 //
 
-using Cassandra.RequestHandlers;
 using System;
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Cassandra.RequestHandlers;
 
 namespace Cassandra
 {
@@ -744,7 +745,7 @@ namespace Cassandra
         public TableMetadata GetTableMetadata(string tableName, string keyspaceName)
         {
             object[] collectionValuesTypes;
-            var cols = new List<TableColumn>();
+            var cols = new Dictionary<string, TableColumn>();
             TableOptions options = null;
             {
                 int streamId = _activeConnection.Value.AllocateStreamId();
@@ -790,7 +791,7 @@ namespace Cassandra
                             KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                         };
 
-                    cols.Add(dsc);
+                    cols.Add(dsc.Name, dsc);
                 }
             }
             {
@@ -858,7 +859,7 @@ namespace Cassandra
                                 {
                                     KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                                 };
-                            cols.Add(dsc);
+                            cols[dsc.Name] = dsc;
                             i++;
                         }
 
@@ -877,22 +878,33 @@ namespace Cassandra
                                 (SortedDictionary<string, string>) Utils.ConvertStringToMap(row.GetValue<string>("compression_parameters"))
                         };
                     }
-                    cols.Add(new TableColumn
+                    //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
+                    //But you can get it from system.schema_columnfamilies
+                    var keys = row.GetValue<string>("key_aliases")
+                        .Replace("[", "")
+                        .Replace("]", "")
+                        .Split(',');
+                    var keyTypes = row.GetValue<string>("key_validator")
+                        .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
+                        .Replace("(", "")
+                        .Replace(")", "")
+                        .Split(',');
+                    for (var i = 0; i < keys.Length; i++)
                     {
-                        Name =
-                            row.GetValue<string>("key_aliases")
-                                .Replace("[\"", "")
-                                .Replace("\"]", "")
-                                .Replace("\"\"", "\""),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode =
-                            ConvertToColumnTypeCode(row.GetValue<string>("key_validator"), out collectionValuesTypes),
-                        KeyType = KeyType.Partition
-                    });
+                        var name = keys[i].Replace("\"", "").Trim();
+                        var typeName = keyTypes[i].Trim();
+                        cols[name] = new TableColumn()
+                        {
+                            Name = name,
+                            Keyspace = row.GetValue<string>("keyspace_name"),
+                            Table = row.GetValue<string>("columnfamily_name"),
+                            TypeCode = ConvertToColumnTypeCode(typeName, out collectionValuesTypes),
+                            KeyType = KeyType.Partition
+                        };
+                    }
                 }
             }
-            return new TableMetadata(tableName, cols.ToArray(), options);
+            return new TableMetadata(tableName, cols.Values.ToArray(), options);
         }
 
 

@@ -52,7 +52,7 @@ namespace Cassandra
 
         /// <summary>
         ///  Returns the compression used by the protocol. <p> The default compression is
-        ///  <code>Compression.SNAPPY</code>.</p>
+        ///  <c>Compression.SNAPPY</c>.</p>
         /// </summary>
         /// <returns>the compression used.</returns>
         public CompressionType Compression
@@ -61,8 +61,8 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new <code>ProtocolOptions</code> instance using the
-        ///  <code>DEFAULT_PORT</code>.
+        ///  Creates a new <c>ProtocolOptions</c> instance using the
+        ///  <c>DEFAULT_PORT</c>.
         /// </summary>
         public ProtocolOptions()
             : this(DefaultPort)
@@ -70,7 +70,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new <code>ProtocolOptions</code> instance using the provided port.
+        ///  Creates a new <c>ProtocolOptions</c> instance using the provided port.
         /// </summary>
         /// <param name="port"> the port to use for the binary protocol.</param>
         public ProtocolOptions(int port)
@@ -94,10 +94,10 @@ namespace Cassandra
         ///  Sets the compression to use. <p> Note that while this setting can be changed
         ///  at any time, it will only apply to newly created connections.</p>
         /// </summary>
-        /// <param name="compression"> the compression algorithm to use (or <code>Compression.NONE</code> to disable compression).
+        /// <param name="compression"> the compression algorithm to use (or <c>Compression.NONE</c> to disable compression).
         ///  </param>
         /// 
-        /// <returns>this <code>ProtocolOptions</code> object.</returns>
+        /// <returns>this <c>ProtocolOptions</c> object.</returns>
         public ProtocolOptions SetCompression(CompressionType compression)
         {
             _compression = compression;

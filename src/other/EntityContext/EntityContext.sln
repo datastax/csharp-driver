@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Driver", "Driver", "{214E3FC4-E2ED-4FE9-946F-D720592E31C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra", "..\..\Cassandra\Cassandra.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data.Linq", "..\..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj", "{7FD62B8B-365D-48D6-8C21-2EF215294F64}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data.EntityContext", "Cassandra.Data.EntityContext\Cassandra.Data.EntityContext.csproj", "{06114170-7265-4FB4-B3FD-34696F5E1321}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{06FF986A-3F47-4AC9-AC27-830AACE664AF}"
+	ProjectSection(SolutionItems) = preProject
+		build\build.proj = build\build.proj
+		build\CassandraEntityContext.nuspec = build\CassandraEntityContext.nuspec
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06114170-7265-4FB4-B3FD-34696F5E1321}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06114170-7265-4FB4-B3FD-34696F5E1321}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06114170-7265-4FB4-B3FD-34696F5E1321}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06114170-7265-4FB4-B3FD-34696F5E1321}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6E8C45DA-D958-4C75-98C3-B54C883299A2} = {214E3FC4-E2ED-4FE9-946F-D720592E31C6}
+		{7FD62B8B-365D-48D6-8C21-2EF215294F64} = {214E3FC4-E2ED-4FE9-946F-D720592E31C6}
+	EndGlobalSection
+EndGlobal

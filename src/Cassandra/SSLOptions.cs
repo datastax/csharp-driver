@@ -4,6 +4,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Defines the SSL/TLS options to connect to a ssl enabled Cassandra host
+    /// </summary>
     public class SSLOptions
     {
         private readonly Logger _logger = new Logger(typeof (SSLOptions));

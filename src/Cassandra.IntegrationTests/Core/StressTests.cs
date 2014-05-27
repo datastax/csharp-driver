@@ -45,7 +45,13 @@ namespace Cassandra.IntegrationTests.Core
                 var selectQuery = String.Format("SELECT * FROM {0} LIMIT 10000", tableName);
 
                 var rowsPerId = 100;
-                var actionInsert = GetInsertAction(session, new SimpleStatement(insertQuery), ConsistencyLevel.Quorum, rowsPerId);
+                object insertQueryStatement = new SimpleStatement(insertQuery);
+                if (Options.Default.CassandraVersion.Major < 2)
+                {
+                    //Use prepared statements all the way as it is not possible to bind on a simplestatement with C* 1.2
+                    insertQueryStatement = session.Prepare(insertQuery);
+                }
+                var actionInsert = GetInsertAction(session, insertQueryStatement, ConsistencyLevel.Quorum, rowsPerId);
                 var actionInsertPrepared = GetInsertAction(session, insertQueryPrepared, ConsistencyLevel.Quorum, rowsPerId);
                 var actionSelect = GetSelectAction(session, selectQuery, ConsistencyLevel.Quorum, 10);
 
@@ -79,6 +85,7 @@ namespace Cassandra.IntegrationTests.Core
         /// In parallel it inserts some records and selects them using Session.Execute sync methods.
         /// </summary>
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void ParallelInsertAndSelectSyncWithNodesFailing()
         {
             var builder = Cluster.Builder()

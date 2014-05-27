@@ -19,7 +19,7 @@ namespace Cassandra
     /// <summary>
     ///  Handles SASL authentication with Cassandra servers. A server which requires
     ///  authentication responds to a startup message with an challenge in the form of
-    ///  an <code>AuthenticateMessage</code>. Authenticator implementations should be
+    ///  an <c>AuthenticateMessage</c>. Authenticator implementations should be
     ///  able to respond to that challenge and perform whatever authentication
     ///  negotiation is required by the server. The exact nature of that negotiation
     ///  is specific to the configuration of the server.

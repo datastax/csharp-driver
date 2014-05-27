@@ -54,9 +54,9 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><code>RetryDecision.retry(cl)</code> if no retry attempt has yet
-        ///  been tried and <code>receivedResponses >= requiredResponses &amp;&amp;
-        ///  !dataRetrieved</code>, <code>RetryDecision.rethrow()</code>
+        /// <returns><c>RetryDecision.retry(cl)</c> if no retry attempt has yet
+        ///  been tried and <c>receivedResponses >= requiredResponses &amp;&amp;
+        ///  !dataRetrieved</c>, <c>RetryDecision.rethrow()</c>
         ///  otherwise.</returns>
         public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,
                                            bool dataRetrieved, int nbRetry)
@@ -72,7 +72,7 @@ namespace Cassandra
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a write timeout.
         ///  <p> This method triggers a maximum of one retry, and only in the case of a
-        ///  <code>WriteType.BATCH_LOG</code> write. The reasoning for the retry in that
+        ///  <c>WriteType.BATCH_LOG</c> write. The reasoning for the retry in that
         ///  case is that write to the distributed batch log is tried by the coordinator
         ///  of the write against a small subset of all the node alive in the local
         ///  datacenter. Hence, a timeout usually means that none of the nodes in that
@@ -91,9 +91,9 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><code>RetryDecision.retry(cl)</code> if no retry attempt has yet
-        ///  been tried and <code>writeType == WriteType.BATCH_LOG</code>,
-        ///  <code>RetryDecision.rethrow()</code> otherwise.</returns>
+        /// <returns><c>RetryDecision.retry(cl)</c> if no retry attempt has yet
+        ///  been tried and <c>writeType == WriteType.BATCH_LOG</c>,
+        ///  <c>RetryDecision.rethrow()</c> otherwise.</returns>
         public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
                                             int nbRetry)
         {
@@ -119,7 +119,7 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><code>RetryDecision.rethrow()</code>.</returns>
+        /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();

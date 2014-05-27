@@ -111,15 +111,27 @@ namespace Cassandra.IntegrationTests
             {
                 attr = methodAttr;
             }
-            var minimalVersion = (TestCassandraVersion)attr;
-            var currentVersion = Options.Default.CassandraVersion;
+            var versionAttr = (TestCassandraVersion)attr;
+            var executingVersion = Options.Default.CassandraVersion;
             //If we are running previous version 
-            if ((minimalVersion.Major > currentVersion.Major) ||
-                (minimalVersion.Major == currentVersion.Major && minimalVersion.Minor > currentVersion.Minor)
-                )
+            if (!VersionMatch(versionAttr, executingVersion))
             {
-                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1} or above.", minimalVersion.Major, minimalVersion.Minor));
+                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1} {2}", versionAttr.Major, versionAttr.Minor, versionAttr.Comparison >= 0 ? "or above" : "or below"));
             }
+        }
+
+        private bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
+        {
+            //Compare them as integers
+            var expectedVersion = versionAttr.Major * 10000 + versionAttr.Minor;
+            var actualVersion = executingVersion.Major * 10000 + executingVersion.Minor;
+            var comparison = (Comparison) actualVersion.CompareTo(expectedVersion);
+
+            if (comparison >= Comparison.Equal && versionAttr.Comparison >= Comparison.Equal)
+            {
+                return true;
+            }
+            return comparison == versionAttr.Comparison;
         }
     }
 }

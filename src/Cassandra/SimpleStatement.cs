@@ -19,7 +19,7 @@ using System;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <code>Statement</code> implementation built directly from a query
+    ///  A simple <c>Statement</c> implementation built directly from a query
     ///  string.
     /// </summary>
     public class SimpleStatement : RegularStatement
@@ -38,7 +38,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the routing key for the query. <p> Note that unless the routing key has been
         ///  explicitly set through <link>#setRoutingKey</link>, this will method will
-        ///  return <code>null</code> (to avoid having to parse the query string to
+        ///  return <c>null</c> (to avoid having to parse the query string to
         ///  retrieve the partition key).</p>
         /// </summary>
         public override RoutingKey RoutingKey
@@ -51,7 +51,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new <code>SimpleStatement</code> with the provided query string.
+        ///  Creates a new <c>SimpleStatement</c> with the provided query string.
         /// </summary>
         /// <param name="query"> the query string.</param>
         public SimpleStatement(string query)
@@ -80,7 +80,7 @@ namespace Cassandra
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to
         ///  obtain the routing key.
         ///  </param>
-        /// <returns>this <code>SimpleStatement</code> object.  <see>Query#getRoutingKey</see></returns>
+        /// <returns>this <c>SimpleStatement</c> object.  <see>Query#getRoutingKey</see></returns>
         public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);

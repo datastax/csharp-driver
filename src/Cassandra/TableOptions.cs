@@ -28,10 +28,10 @@ namespace Cassandra
         internal bool replicateOnWrite;
 
         /// <summary>
-        ///  Whether the table uses the <code>COMPACT STORAGE</code> option.
+        ///  Whether the table uses the <c>COMPACT STORAGE</c> option.
         /// </summary>
         /// 
-        /// <returns>whether the table uses the <code>COMPACT STORAGE</code>
+        /// <returns>whether the table uses the <c>COMPACT STORAGE</c>
         ///  option.</returns>
         public bool IsCompactStorage
         {
@@ -42,7 +42,7 @@ namespace Cassandra
         ///  The commentary set for this table.
         /// </summary>
         /// 
-        /// <returns>the commentary set for this table, or <code>null</code> if noe has
+        /// <returns>the commentary set for this table, or <c>null</c> if noe has
         ///  been set.</returns>
         public string Comment
         {

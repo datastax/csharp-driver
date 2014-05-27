@@ -27,9 +27,9 @@ namespace Cassandra
     ///  other words, this policy guarantees that no host in a remote datacenter will
     ///  be queried unless no host in the local datacenter can be reached. </p><p> If used
     ///  with a single datacenter, this policy is equivalent to the
-    ///  <code>LoadBalancingPolicy.RoundRobin</code> policy, but its DC awareness
-    ///  incurs a slight overhead so the <code>LoadBalancingPolicy.RoundRobin</code>
-    ///  policy could be prefered to this policy in that case.</p>
+    ///  <see cref="RoundRobinPolicy"/> policy, but its DC awareness
+    ///  incurs a slight overhead so the <see cref="RoundRobinPolicy"/>
+    ///  policy could be preferred to this policy in that case.</p>
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
@@ -44,7 +44,7 @@ namespace Cassandra
         ///  datacenter. <p> The name of the local datacenter provided must be the local
         ///  datacenter name as known by Cassandra. </p><p> The policy created will ignore all
         ///  remote hosts. In other words, this is equivalent to 
-        ///  <code>new DCAwareRoundRobinPolicy(localDc, 0)</code>.</p>
+        ///  <c>new DCAwareRoundRobinPolicy(localDc, 0)</c>.</p>
         /// </summary>
         /// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
         public DCAwareRoundRobinPolicy(string localDc)
@@ -64,9 +64,9 @@ namespace Cassandra
         /// Cassandra).</param>
         /// <param name="usedHostsPerRemoteDc"> the number of host per remote
         /// datacenter that policies created by the returned factory should
-        /// consider. Created policies <code>distance</code> method will return a
-        /// <code>HostDistance.Remote</code> distance for only <code>
-        /// usedHostsPerRemoteDc</code> hosts per remote datacenter. Other hosts
+        /// consider. Created policies <c>distance</c> method will return a
+        /// <c>HostDistance.Remote</c> distance for only <c>
+        /// usedHostsPerRemoteDc</c> hosts per remote datacenter. Other hosts
         /// of the remote datacenters will be ignored (and thus no
         /// connections to them will be maintained).</param>
         public DCAwareRoundRobinPolicy(string localDc, int usedHostsPerRemoteDc)
@@ -90,14 +90,14 @@ namespace Cassandra
 
         /// <summary>
         ///  Return the HostDistance for the provided host. <p> This policy consider nodes
-        ///  in the local datacenter as <code>Local</code>. For each remote datacenter, it
-        ///  considers a configurable number of hosts as <code>Remote</code> and the rest
-        ///  is <code>Ignored</code>. </p><p> To configure how many host in each remote
-        ///  datacenter is considered <code>Remote</code>, see
+        ///  in the local datacenter as <c>Local</c>. For each remote datacenter, it
+        ///  considers a configurable number of hosts as <c>Remote</c> and the rest
+        ///  is <c>Ignored</c>. </p><p> To configure how many host in each remote
+        ///  datacenter is considered <c>Remote</c>, see
         ///  <link>#DCAwareRoundRobinPolicy(String, int)</link>.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
-        /// <returns>the HostDistance to <code>host</code>.</returns>
+        /// <returns>the HostDistance to <c>host</c>.</returns>
         public HostDistance Distance(Host host)
         {
             string dc = DC(host);
