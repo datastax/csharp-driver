@@ -88,7 +88,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     taskList.Add(connection.Query());
                 }
-                Task.WaitAll(taskList.ToArray(), 2000);
+                Task.WaitAll(taskList.ToArray(), 1000);
                 Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
                 //Run the query a lot more times
                 for (var i = 0; i < 1024; i++)

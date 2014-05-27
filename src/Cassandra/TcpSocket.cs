@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -183,8 +184,14 @@ namespace Cassandra
         /// <summary>
         /// Sends data asynchronously
         /// </summary>
-        public virtual void Write(byte[] buffer)
+        public virtual void Write(Stream stream)
         {
+            //This can result in OOM
+            //A neat improvement would be to write this sync in small buffers when buffer.length > X
+            var buffer = new byte[stream.Length];
+            stream.Position = 0;
+            stream.Read(buffer, 0, buffer.Length);
+
             _sendSocketEvent.SetBuffer(buffer, 0, buffer.Length);
 
             bool willRaiseEvent = false;

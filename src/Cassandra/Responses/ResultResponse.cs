@@ -57,11 +57,6 @@ namespace Cassandra
             }
         }
 
-        public RowSet ToRowSet()
-        {
-            return new RowSet();
-        }
-
         internal static ResultResponse Create(ResponseFrame frame)
         {
             return new ResultResponse(frame);

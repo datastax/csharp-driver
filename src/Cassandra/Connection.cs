@@ -264,12 +264,11 @@ namespace Cassandra
             //Only 1 thread at a time can be here.
             _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
 
-            //TODO: Remove memory tributary
-            var buffer = state.Request.GetFrame((byte)streamId, 1).Buffer.ToArray();
+            var frameStream = state.Request.GetFrame((byte)streamId, 1).Stream;
             //We will not use the request, stop reference it.
             state.Request = null;
             //Start sending it
-            _tcpSocket.Write(buffer);
+            _tcpSocket.Write(frameStream);
         }
 
         /// <summary>

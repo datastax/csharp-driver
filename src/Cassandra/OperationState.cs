@@ -63,7 +63,7 @@ namespace Cassandra
             }
             if (BodyStream == null)
             {
-                BodyStream = new ListBackedStream(Header.BodyLength);
+                BodyStream = new ListBackedStream();
             }
             if (BodyStream.Position + count > Header.BodyLength)
             {

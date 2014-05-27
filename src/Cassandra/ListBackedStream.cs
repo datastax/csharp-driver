@@ -13,7 +13,6 @@ namespace Cassandra
     /// </summary>
     internal class ListBackedStream : Stream
     {
-        private long _length;
         private ushort _listIndexPosition;
         private int _listBytePosition;
         private long _position;
@@ -37,8 +36,13 @@ namespace Cassandra
 
         public override long Length
         {
-            get { return _length; }
+            get { return TotalLength; }
         }
+
+        /// <summary>
+        /// Determines that when writing, the buffer is kept by reference. 
+        /// </summary>
+        public bool KeepReferences { get; set; }
 
         /// <summary>
         /// Returns the length of the sum of the inner byte[] list
@@ -62,9 +66,8 @@ namespace Cassandra
             }
         }
 
-        public ListBackedStream(int capacity)
+        public ListBackedStream()
         {
-            SetLength(capacity);
             Buffers = new List<byte[]>();
         }
 
@@ -111,12 +114,20 @@ namespace Cassandra
 
         public override void SetLength(long value)
         {
-            _length = value;
+            TotalLength = value;
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            Buffers.Add(Utils.SliceBuffer(buffer, offset, count));
+            if (KeepReferences && offset == 0 && count == buffer.Length)
+            {
+                //Keep the reference to the original buffer
+                Buffers.Add(buffer);
+            }
+            else
+            {
+                Buffers.Add(Utils.SliceBuffer(buffer, offset, count));
+            }
             TotalLength += count;
             this._position = TotalLength;
         }

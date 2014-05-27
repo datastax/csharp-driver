@@ -16,7 +16,7 @@
 
 namespace Cassandra
 {
-    public interface IRequest
+    internal interface IRequest
     {
         RequestFrame GetFrame(byte streamId, byte protocolVersionByte);
     }
