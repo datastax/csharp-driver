@@ -54,10 +54,13 @@ foreach (var row in rs)
 
 ### Prepared statements
 
+Prepare your query **once** and bind different parameters to obtain the better performance.
+
 ```csharp
-//Prepare a statement
+//Prepare a statement once
 var ps = session.Prepare("UPDATE user_profiles SET birth=? WHERE key=?");
-//Bind query parameters
+
+//...bind different parameters every time you need to execute
 var statement = ps.Bind(new DateTime(1942, 11, 27), "hendrix");
 //Execute the bound statement with the provided parameters
 session.Execute(statement);
@@ -68,10 +71,11 @@ session.Execute(statement);
 You can execute multiple statements (prepared or unprepared) in a batch to update/insert several rows atomically even in different column families.
 
 ```csharp
-//Prepare the statements involved in a profile update
+//Prepare the statements involved in a profile update once
 var profileStmt = session.Prepare("UPDATE user_profiles SET email=? WHERE key=?");
 var userTrackStmt = session.Prepare("INSERT INTO user_track (key, text, date) VALUES (?, ?, ?)");
-//Add the bound statements to the batch
+//...you should reuse the prepared statement
+//Bind the parameters and add the statement to the batch batch
 var batch = new BatchStatement()
   .Add(profileStmt.Bind(emailAddress, "hendrix"))
   .Add(userTrackStmt.Bind("hendrix", "You changed your email", DateTime.Now));
