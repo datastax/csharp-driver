@@ -20,7 +20,7 @@ If you still want to consume the `RowSet` as a list, you can use [.NET Enumerabl
 1. Policies (load balancing and retry policies) depend on `IStatement` and `ICluster` interfaces instead of solid classes.
 This would only affect you only if you implemented a custom Policy.
 
-1. `Context` class, the implementation of the Entity Framework [ObjectContext][context] that used to be under the `Cassandra.Data.Linq` namespace is now moved to the `Cassandra.Data.EntityContext` namespace and it is published in a separate Nuget package, named [EntityContext][entitynuget].
+1. `Context` class, the implementation of the Entity Framework [ObjectContext][context] that used to be under the `Cassandra.Data.Linq` namespace is now moved to the `Cassandra.Data.EntityContext` namespace and it is published in a separate Nuget package, named [CassandraEntityContext][entitynuget].
 
 
 ## Other API changes (non - breaking)
@@ -38,4 +38,4 @@ _If you have any question or comment, please [post it on the mailing list][3]._
   [2]: http://msdn.microsoft.com/en-us/library/vstudio/bb342261(v=vs.100).aspx "Enumerable.ToList<TSource> Method"
   [3]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user "DataStax C# driver for Cassandra mailing list" 
   [context]: http://msdn.microsoft.com/en-us/library/system.data.objects.objectcontext(v=vs.110).aspx
-  [entitynuget]: http://www.nuget.org/packages/EntityContext/
+  [entitynuget]: http://www.nuget.org/packages/CassandraEntityContext/
