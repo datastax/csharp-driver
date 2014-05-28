@@ -1,21 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
-        <id>CassandraEntityContext</id>
+        <id>EntityContext</id>
         <!-- It will be overriden by the nuget command if -version is specified -->
         <version>0.0.0</version>
-        <title>Cassandra EntityContext</title>
+        <title>DataStax C# Driver EntityContext</title>
         <authors>DataStax</authors>
         <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
         <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <description>Similar to Entity Framework ObjectContext, this is an implementation of the Entity Framework for Apache Cassandra. For the latest Cassandra features and the best performance, use the core C# driver for Apache Cassandra.</description>
+        <description>Similar to ObjectContext, this is an implementation of the Entity Framework for Apache Cassandra.</description>
         <releaseNotes />
         <copyright>Copyright (C) 2014 DataStax Inc.</copyright>
         <tags>database driver</tags>
         <dependencies>
           <dependency id="lz4net" version="1.0.3.93" />
-          <dependency id="CassandraCSharpDriver" version="2.0.2" />
+          <dependency id="CassandraCSharpDriver" version="2.0" />
         </dependencies>
     </metadata>
     <files>

@@ -2,8 +2,8 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>CassandraCSharpDriver</id>
-        <!-- It will be overriden by the nuget command if -version is specified -->
-        <version>2.0.0</version>
+        <!-- It will be overridden by the nuget command if -version is specified -->
+        <version>0.0.0</version>
         <title>Datastax C# Driver for Apache Cassandra</title>
         <authors>Datastax</authors>
         <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
@@ -11,7 +11,7 @@
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
         <description>A C# client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.</description>
         <releaseNotes />
-        <copyright>Copyright (C) 2013 DataStax Inc.</copyright>
+        <copyright>Copyright (C) 2014 DataStax Inc.</copyright>
         <tags>cassandra apache datastax driver database nosql</tags>
         <dependencies>
             <dependency id="lz4net" version="1.0.3.93" />
