@@ -14,6 +14,10 @@ namespace CassandraSamples
     /// </summary>
     public class ForumRepository
     {
+        //Prepared statements that will get prepared once and executed multiple times with different bind variables
+        PreparedStatement _insertTopicStatement;
+        PreparedStatement _insertMessageStatement;
+
         protected ISession Session { get; set; }
 
         /// <summary>
@@ -22,31 +26,22 @@ namespace CassandraSamples
         public ForumRepository(ISession session)
         {
             this.Session = session;
+
+            _insertTopicStatement = Session.Prepare("INSERT INTO topics (topic_id, topic_title, topic_date) VALUES (?, ?, ?)");
+            _insertMessageStatement = Session.Prepare("INSERT INTO messages (topic_id, message_date, message_body) VALUES (?, ?, ?)");
         }
 
         public void AddTopic(Guid topicId, string title, string body)
         {
+            
             //We will be inserting 2 rows in 2 column families.
             //One for the topic and other for the first message (the topic body).
-            var insertTopicCql = "INSERT INTO topics (topic_id, topic_title, topic_date) VALUES (?, ?, ?)";
-            var insertMessageCql = "INSERT INTO messages (topic_id, message_date, message_body) VALUES (?, ?, ?)";
-
             //We will do it in a batch, this way we can ensure that the 2 rows are inserted in the same atomic operation.
             var batch = new BatchStatement();
 
-            //Prepare the insert topic statement and bind the parameters
-            var insertTopicStatement = Session
-                .Prepare(insertTopicCql)
-                .Bind(topicId, title, DateTime.Now);
-
-            //Prepare the insert message statement
-            var insertMessageStatement = Session
-                .Prepare(insertMessageCql)
-                .Bind(topicId, DateTime.Now, body);
-
-            //Add the statements to the batch
-            batch.Add(insertTopicStatement);
-            batch.Add(insertMessageStatement);
+            //bind the parameters on each statement and add them to the batch
+            batch.Add(_insertTopicStatement.Bind(topicId, title, DateTime.Now));
+            batch.Add(_insertMessageStatement.Bind(topicId, DateTime.Now, body));
 
             //You can set other options of the batch execution, for example the consistency level.
             batch.SetConsistencyLevel(ConsistencyLevel.Quorum);
@@ -57,17 +52,11 @@ namespace CassandraSamples
         public void AddMessage(Guid topicId, string body)
         {
             //We will add 1 row using a prepared statement.
-            var insertMessageCql = "INSERT INTO messages (topic_id, message_date, message_body) VALUES (?, ?, ?)";
-            //Prepare the insert message statement
-            var insertStatement = Session
-                .Prepare(insertMessageCql)
-                .Bind(topicId, DateTime.Now, body);
-
+            var boundStatement = _insertMessageStatement.Bind(topicId, DateTime.Now, body);
             //We can specify execution options for the statement
-            insertStatement.SetConsistencyLevel(ConsistencyLevel.Quorum);
-
-            //Execute the prepared statement
-            Session.Execute(insertStatement);
+            boundStatement.SetConsistencyLevel(ConsistencyLevel.Quorum);
+            //Execute the bound statement
+            Session.Execute(boundStatement);
         }
 
         public RowSet GetMessages(Guid topicId, int pageSize)
