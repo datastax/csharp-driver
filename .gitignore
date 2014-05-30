@@ -32,3 +32,4 @@ _ReSharper*/
 #Ignore packages from sample projects
 src/samples/packages
 src/other/**/packages
+src/packages/*/

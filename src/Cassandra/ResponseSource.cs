@@ -17,7 +17,7 @@ namespace Cassandra
     /// <summary>
     /// Creates a task for the response
     /// </summary>
-    /// <typeparam name="TResponse">Type for the Task Result</typeparam>
+    /// <typeparam name="TOutput">Type for the Task Result</typeparam>
     internal class ResponseSource<TOutput> : IResponseSource
     {
         private TaskCompletionSource<TOutput> _tcs;
