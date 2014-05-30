@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture]
+    [Timeout(600000)]
     public class ConnectionTests
     {
         private TraceLevel _originalTraceLevel;
@@ -36,8 +37,42 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Init();
                 var task = connection.Startup();
-                task.Wait(1000);
+                task.Wait(3000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+            }
+        }
+
+        [Test]
+        public void PrepareQuery()
+        {
+            using (var connection = CreateConnection())
+            {
+                connection.Init();
+                var startupTask = connection.Startup();
+                startupTask.Wait();
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
+                var task = connection.Prepare("SELECT * FROM system.schema_keyspaces");
+                task.Wait();
+                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+                Assert.IsInstanceOf<OutputPrepared>(task.Result.Output);
+            }
+        }
+
+        [Test]
+        public void PrepareResponseErrorFaultsTask()
+        {
+            using (var connection = CreateConnection())
+            {
+                connection.Init();
+                var startupTask = connection.Startup();
+                startupTask.Wait();
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
+                var task = connection.Prepare("SELECT WILL FAIL");
+                task.ContinueWith(t =>
+                {
+                    Assert.AreEqual(TaskStatus.Faulted, t.Status);
+                    Assert.IsInstanceOf<SyntaxError>(t.Exception.InnerException);
+                }, TaskContinuationOptions.ExecuteSynchronously).Wait();
             }
         }
 
@@ -52,14 +87,12 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
-                var task = connection.Query();
-                task.Wait(1000);
+                var task = connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
+                task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 //Result status from Cassandra
-                Assert.IsInstanceOf<ResultResponse>(task.Result);
-                var result = (ResultResponse)task.Result;
-                Assert.IsInstanceOf<OutputRows>(result.Output);
-                var rs = ((OutputRows)result.Output).RowSet;
+                Assert.IsInstanceOf<OutputRows>(task.Result.Output);
+                var rs = ((OutputRows)task.Result.Output).RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
                 Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
@@ -79,12 +112,10 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
-                var task = connection.Query();
+                var task = connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
                 task.Wait(360000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                Assert.IsInstanceOf<ResultResponse>(task.Result);
-                var result = (ResultResponse)task.Result;
-                var rs = ((OutputRows)result.Output).RowSet;
+                var rs = ((OutputRows)task.Result.Output).RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
                 Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
@@ -103,15 +134,36 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
-                var task = connection.Query();
+                var task = connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
                 task.Wait(360000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                Assert.IsInstanceOf<ResultResponse>(task.Result);
-                var result = (ResultResponse)task.Result;
-                var rs = ((OutputRows)result.Output).RowSet;
+                var rs = ((OutputRows)task.Result.Output).RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
                 Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
+            }
+        }
+
+        /// <summary>
+        /// Test that a Response error from Cassandra results in a faulted task
+        /// </summary>
+        [Test]
+        public void QueryResponseErrorFaultsTask()
+        {
+            using (var connection = CreateConnection())
+            {
+                connection.Init();
+                var startupTask = connection.Startup();
+                startupTask.Wait();
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
+
+                //Start a query
+                var task = connection.Query("SELECT WILL FAIL", QueryProtocolOptions.Default);
+                task.ContinueWith(t =>
+                {
+                    Assert.AreEqual(TaskStatus.Faulted, t.Status);
+                    Assert.IsInstanceOf<SyntaxError>(t.Exception.InnerException);
+                }, TaskContinuationOptions.ExecuteSynchronously).Wait();
             }
         }
 
@@ -124,15 +176,16 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Init();
                 var startupTask = connection.Startup();
-                startupTask.Wait(1000);
+                startupTask.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
-                var taskList = new List<Task<AbstractResponse>>();
+                var taskList = new List<Task<ResultResponse>>();
                 //Run a query multiple times
                 for (var i = 0; i < 16; i++)
                 {
-                    taskList.Add(connection.Query());
+                    //schema_columns
+                    taskList.Add(connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
                 }
-                Task.WaitAll(taskList.ToArray(), 3000);
+                Task.WaitAll(taskList.ToArray());
                 foreach (var t in taskList)
                 {
                     Assert.AreEqual(TaskStatus.RanToCompletion, t.Status);
@@ -154,16 +207,16 @@ namespace Cassandra.IntegrationTests.Core
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
                 {
-                    taskList.Add(connection.Query());
+                    taskList.Add(connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
                 }
-                Task.WaitAll(taskList.ToArray(), 120000);
-                Assert.AreEqual(taskList.Count, taskList.Select(t => t.Status == TaskStatus.RanToCompletion).Count());
+                Task.WaitAll(taskList.ToArray());
+                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
                 //Run the query a lot more times
                 for (var i = 0; i < 1024; i++)
                 {
-                    taskList.Add(connection.Query());
+                    taskList.Add(connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
                 }
-                Task.WaitAll(taskList.ToArray(), 360000);
+                Task.WaitAll(taskList.ToArray());
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
             }
         }
@@ -180,7 +233,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
-                    var task = connection.Query();
+                    var task = connection.Query("SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
                     task.Wait(1000);
                     Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                     Assert.NotNull(task.Result);

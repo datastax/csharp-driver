@@ -29,8 +29,16 @@ namespace Cassandra
         };
 
         public const byte OpCode = 0x08;
-        public ResultResponseKind Kind;
-        public IOutput Output;
+
+        /// <summary>
+        /// Cassandra result kind
+        /// </summary>
+        public ResultResponseKind Kind { get; private set; }
+
+        /// <summary>
+        /// Output of the result response based on the kind of result
+        /// </summary>
+        public IOutput Output { get; private set; }
 
         internal ResultResponse(ResponseFrame frame) : base(frame)
         {

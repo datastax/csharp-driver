@@ -122,10 +122,24 @@ namespace Cassandra
             _tcpSocket.Connect();
         }
 
-        public virtual Task<AbstractResponse> Query()
+        /// <summary>
+        /// Sends a protocol Prepare message
+        /// </summary>
+        public virtual Task<ResultResponse> Prepare(string query)
         {
-            var request = new QueryRequest("SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default, null);
-            var responseSource = new ResponseSource<AbstractResponse>();
+            var request = new PrepareRequest(query);
+            var responseSource = new ResponseSource<ResultResponse>();
+            Send(request, responseSource);
+            return responseSource.Task;
+        }
+
+        /// <summary>
+        /// Sends a protocol Query message
+        /// </summary>
+        public virtual Task<ResultResponse> Query(string query, QueryProtocolOptions queryOptions, bool tracing = false, ConsistencyLevel? consistency = null)
+        {
+            var request = new QueryRequest(query, tracing, queryOptions, consistency);
+            var responseSource = new ResponseSource<ResultResponse>();
             Send(request, responseSource);
             return responseSource.Task;
         }
@@ -223,8 +237,6 @@ namespace Cassandra
             }
             var frame = new ResponseFrame(header, body);
             var response = FrameParser.Parse(frame);
-            //TODO: Stream as the decoders might need it.
-            //body.Close();
             return response;
         }
 
