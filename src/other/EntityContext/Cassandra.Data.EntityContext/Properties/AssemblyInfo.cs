@@ -9,11 +9,11 @@
 //------------------------------------------------------------------------------
 
 [assembly: System.Reflection.AssemblyCompany("DataStax")]
-[assembly: System.Reflection.AssemblyProduct("Cassandra .NET EntityContext Driver")]
+[assembly: System.Reflection.AssemblyProduct("DataStax C# Driver EntityContext")]
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2014 by DataStax")]
-[assembly: System.Reflection.AssemblyVersion("0.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("0.1.0 (git 68dd8ce)")]
-[assembly: System.Reflection.AssemblyFileVersion("0.1.0.0100")]
+[assembly: System.Reflection.AssemblyVersion("2.0.2")]
+[assembly: System.Reflection.AssemblyInformationalVersion("2.0.2 (git 0f9167c)")]
+[assembly: System.Reflection.AssemblyFileVersion("2.0.2.0")]
 
 

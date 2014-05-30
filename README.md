@@ -5,7 +5,7 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.
 
 ## Installation
 
-[Get it on Nuget](https://nuget.org/packages/CassandraCSharpDriver/)
+[Get it on Nuget][nuget]
 ```bash
 PM> Install-Package CassandraCSharpDriver
 ```
@@ -22,12 +22,12 @@ PM> Install-Package CassandraCSharpDriver
 
 ## Documentation
 
-- [API docs](http://www.datastax.com/drivers/csharp/2.0/)
-- [Documentation index (v1)](http://www.datastax.com/documentation/developer/csharp-driver/1.0/webhelp/index.html)
+- [API docs][apidocs]
+- [Documentation index][docindex]
 
 ## Getting Help
 
-You can use the project [Mailing list](https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user) or create a ticket on the [Jira issue tracker](https://datastax-oss.atlassian.net/browse/CSHARP).
+You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira].
 
 ## Upgrading from 1.x branch
 
@@ -54,10 +54,13 @@ foreach (var row in rs)
 
 ### Prepared statements
 
+Prepare your query **once** and bind different parameters to obtain the better performance.
+
 ```csharp
-//Prepare an statement
+//Prepare a statement once
 var ps = session.Prepare("UPDATE user_profiles SET birth=? WHERE key=?");
-//Bind query parameters
+
+//...bind different parameters every time you need to execute
 var statement = ps.Bind(new DateTime(1942, 11, 27), "hendrix");
 //Execute the bound statement with the provided parameters
 session.Execute(statement);
@@ -68,28 +71,24 @@ session.Execute(statement);
 You can execute multiple statements (prepared or unprepared) in a batch to update/insert several rows atomically even in different column families.
 
 ```csharp
-//Prepare an statement to update the user and bind the parameters
-var userStatement = session
-  .Prepare("UPDATE user_profiles SET email=? WHERE key=?")
-  .Bind(emailAddress, "hendrix");
-//Prepare an statement to track the user change (if its already prepared just bind the params)
-var userTrackingStatement = session
-  .Prepare("INSERT INTO user_tracking (key, status_text, date) VALUES (?, ?)")
-  .Bind("hendrix", "You changed your email", DateTime.Now);
-//Add the statements to the batch
+//Prepare the statements involved in a profile update once
+var profileStmt = session.Prepare("UPDATE user_profiles SET email=? WHERE key=?");
+var userTrackStmt = session.Prepare("INSERT INTO user_track (key, text, date) VALUES (?, ?, ?)");
+//...you should reuse the prepared statement
+//Bind the parameters and add the statement to the batch batch
 var batch = new BatchStatement()
-  .Add(userStatement)
-  .Add(userTrackingStatement);
+  .Add(profileStmt.Bind(emailAddress, "hendrix"))
+  .Add(userTrackStmt.Bind("hendrix", "You changed your email", DateTime.Now));
 //Execute the batch
 session.Execute(batch);
 ```
 
 ### Asynchronous API
 
-Session allows asynchronous execution of statements (for any type of statement: simple, bound or batch) by calling the `ExecuteAsync` method.
+Session allows asynchronous execution of statements (for any type of statement: simple, bound or batch) by exposing the `ExecuteAsync` method.
 
 ```csharp
-//Execute an statement on asynchronously using TPL
+//Execute a statement on asynchronously using TPL
 var task = session.ExecuteAsync(statement);
 //The task can waited, awaited, continued, ...
 task.ContinueWith((t) =>
@@ -98,7 +97,7 @@ task.ContinueWith((t) =>
   //Iterate through the rows
   foreach (var row in rs)
   {
-    //Get the values from the rows
+    //Get the values from each row
   }
 }, TaskContinuationOptions.OnlyOnRanToCompletion);
 ```
@@ -114,8 +113,8 @@ statement.SetPageSize(1000);
 var rs = session.Execute(statement);
 foreach (var row in rs)
 {
-  //The enumerator will iterate through all the rows from Cassandra
-  //Retrieving them in blocks of 1000.
+  //The enumerator will yield all the rows from Cassandra
+  //Retrieving them in the back in blocks of 1000.
 }
 ```
 
@@ -145,7 +144,7 @@ You can use Visual Studio or msbuild to build the solution.
 [Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
-Copyright 2013, DataStax
+Copyright 2014, DataStax
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -158,3 +157,9 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+  [apidocs]: http://www.datastax.com/drivers/csharp/2.0/
+  [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/2.0/
+  [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
+  [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+  [jira]: https://datastax-oss.atlassian.net/browse/CSHARP
