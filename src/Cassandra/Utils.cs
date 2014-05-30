@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -151,6 +152,17 @@ namespace Cassandra
                 return null;
             }
             return SliceBuffer(buffer, 0, buffer.Length);
+        }
+
+        /// <summary>
+        /// Reads all the bytes in the stream from a given position
+        /// </summary>
+        public static byte[] ReadAllBytes(Stream stream, int position)
+        {
+            var buffer = new byte[stream.Length - position];
+            stream.Position = position;
+            stream.Read(buffer, position, buffer.Length - position);
+            return buffer;
         }
     }
 }

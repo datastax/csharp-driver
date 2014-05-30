@@ -30,9 +30,9 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void StartupTest()
+        public void BasicStartupTest()
         {
-            using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
+            using (var connection = CreateConnection())
             {
                 connection.Init();
                 var task = connection.Startup();
@@ -42,9 +42,9 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void QueryTest()
+        public void QueryBasicTest()
         {
-            using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
+            using (var connection = CreateConnection())
             {
                 connection.Init();
                 var startupTask = connection.Startup();
@@ -60,14 +60,67 @@ namespace Cassandra.IntegrationTests.Core
                 var result = (ResultResponse)task.Result;
                 Assert.IsInstanceOf<OutputRows>(result.Output);
                 var rs = ((OutputRows)result.Output).RowSet;
-                Assert.Greater(rs.Count(), 0);
+                var rows = rs.ToList();
+                Assert.Greater(rows.Count, 0);
+                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void QueryCompressionLZ4Test()
+        {
+            var protocolOptions = new ProtocolOptions().SetCompression(CompressionType.LZ4);
+            using (var connection = CreateConnection(protocolOptions))
+            {
+                connection.Init();
+                var startupTask = connection.Startup();
+                startupTask.Wait(360000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
+
+                //Start a query
+                var task = connection.Query();
+                task.Wait(360000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+                Assert.IsInstanceOf<ResultResponse>(task.Result);
+                var result = (ResultResponse)task.Result;
+                var rs = ((OutputRows)result.Output).RowSet;
+                var rows = rs.ToList();
+                Assert.Greater(rows.Count, 0);
+                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
+            }
+        }
+
+        [Test]
+        public void QueryCompressionSnappyTest()
+        {
+            var protocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy);
+            using (var connection = CreateConnection(protocolOptions))
+            {
+                connection.Init();
+                var startupTask = connection.Startup();
+                startupTask.Wait(360000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
+
+                //Start a query
+                var task = connection.Query();
+                task.Wait(360000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+                Assert.IsInstanceOf<ResultResponse>(task.Result);
+                var result = (ResultResponse)task.Result;
+                var rs = ((OutputRows)result.Output).RowSet;
+                var rows = rs.ToList();
+                Assert.Greater(rows.Count, 0);
+                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
             }
         }
 
         [Test]
         public void QueryMultipleAsyncTest()
         {
-            using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
+            //Try to fragment the message
+            var socketOptions = new SocketOptions().SetReceiveBufferSize(128);
+            using (var connection = CreateConnection(null, socketOptions))
             {
                 connection.Init();
                 var startupTask = connection.Startup();
@@ -75,7 +128,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
                 var taskList = new List<Task<AbstractResponse>>();
                 //Run a query multiple times
-                for (var i = 0; i < 8; i++)
+                for (var i = 0; i < 16; i++)
                 {
                     taskList.Add(connection.Query());
                 }
@@ -91,7 +144,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void QueryMultipleAsyncConsumeAllStreamIdsTest()
         {
-            using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
+            using (var connection = CreateConnection())
             {
                 connection.Init();
                 var task = connection.Startup();
@@ -118,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void QueryMultipleSyncTest()
         {
-            using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), new ProtocolOptions(), new SocketOptions()))
+            using (var connection = CreateConnection())
             {
                 connection.Init();
                 var startupTask = connection.Startup();
@@ -142,7 +195,7 @@ namespace Cassandra.IntegrationTests.Core
             socketOptions.SetConnectTimeoutMillis(1000);
             try
             {
-                using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), new ProtocolOptions(), socketOptions))
+                using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), new ProtocolOptions(), socketOptions))
                 {
                     connection.Init();
                     Assert.Fail("It must throw an exception");
@@ -155,7 +208,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             try
             {
-                using (var connection = new Connection(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), new ProtocolOptions(), socketOptions))
+                using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), new ProtocolOptions(), socketOptions))
                 {
                     connection.Init();
                     Assert.Fail("It must throw an exception");
@@ -171,6 +224,24 @@ namespace Cassandra.IntegrationTests.Core
         public void ConnectionCloseFaultsAllPendingTasks()
         {
             throw new NotImplementedException();
+        }
+
+        private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null)
+        {
+            var protocolVersion = (byte) Options.Default.CassandraVersion.Major;
+            if (protocolVersion > 2)
+            {
+                protocolVersion = 2;
+            }
+            if (socketOptions == null)
+            {
+                socketOptions = new SocketOptions();
+            }
+            if (protocolOptions == null)
+            {
+                protocolOptions = new ProtocolOptions();
+            }
+            return new Connection(protocolVersion, new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), protocolOptions, socketOptions);
         }
     }
 }

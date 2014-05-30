@@ -32,7 +32,7 @@ namespace Cassandra
         private byte[] _tempBuffer;
         private int _tempSize;
 
-        public virtual IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IProtoBufComporessor compressor)
+        public virtual IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IFrameCompressor compressor)
         {
             Init(buffer, size);
 

@@ -7,13 +7,13 @@ namespace Cassandra
     internal class BufferedProtoBuf : IProtoBuf
     {
         private readonly byte[] _buffer;
-        private readonly IProtoBufComporessor _compressor;
+        private readonly IFrameCompressor _compressor;
         private readonly object _guard = new object();
         private byte[] _decompressedBuffer;
         private int _readPos;
         private int _writePos;
 
-        public BufferedProtoBuf(int bufferLength, IProtoBufComporessor compressor)
+        public BufferedProtoBuf(int bufferLength, IFrameCompressor compressor)
         {
             _compressor = compressor;
             _buffer = new byte[bufferLength];
@@ -65,7 +65,7 @@ namespace Cassandra
                     if (_writePos == -1) throw new CassandraConnectionIOException();
 
                     if (_decompressedBuffer == null)
-                        _decompressedBuffer = _compressor.Decompress(_buffer);
+                        _decompressedBuffer = Utils.ReadAllBytes(_compressor.Decompress(new MemoryStream(_buffer, false)), 0);
 
                     if (count > _decompressedBuffer.Length - _readPos)
                         throw new DriverInternalError("Invalid decompression state");

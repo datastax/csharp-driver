@@ -46,10 +46,15 @@ namespace Cassandra
         /// </summary>
         private byte[] _minimalBuffer;
 
+        public IFrameCompressor Compressor { get; set; }
+
         protected virtual ProtocolOptions Options { get; set; }
 
-        public Connection(IPEndPoint endpoint, ProtocolOptions options, SocketOptions socketOptions)
+        public byte ProtocolVersion { get; set; }
+
+        public Connection(byte protocolVersion, IPEndPoint endpoint, ProtocolOptions options, SocketOptions socketOptions)
         {
+            this.ProtocolVersion = protocolVersion;
             this.Options = options;
             _tcpSocket = new TcpSocket(endpoint, socketOptions);
         }
@@ -97,6 +102,16 @@ namespace Cassandra
             _freeOperations = new ConcurrentStack<int>(Enumerable.Range(0, 128));
             _pendingOperations = new ConcurrentDictionary<int, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
+
+            //MAYBE: Allow the possibility to provide a custom provider
+            if (Options.Compression == CompressionType.LZ4)
+            {
+                Compressor = new LZ4Compressor();
+            }
+            else if (Options.Compression == CompressionType.Snappy)
+            {
+                Compressor = new SnappyCompressor();
+            }
 
             //Init TcpSocket
             _tcpSocket.Init();
@@ -200,8 +215,16 @@ namespace Cassandra
 
         private AbstractResponse ReadParseResponse(FrameHeader header, Stream body)
         {
+            //Start at the first byte
+            body.Position = 0;
+            if ((header.Flags & 0x01) > 0)
+            {
+                body = Compressor.Decompress(body);
+            }
             var frame = new ResponseFrame(header, body);
             var response = FrameParser.Parse(frame);
+            //TODO: Stream as the decoders might need it.
+            //body.Close();
             return response;
         }
 
@@ -210,7 +233,17 @@ namespace Cassandra
         /// </summary>
         internal virtual Task Startup()
         {
-            var request = new StartupRequest(new Dictionary<string, string>() { { "CQL_VERSION", "3.0.0" } });
+            var startupOptions = new Dictionary<string, string>();
+            startupOptions.Add("CQL_VERSION", "3.0.0");
+            if (Options.Compression == CompressionType.LZ4)
+            {
+                startupOptions.Add("COMPRESSION", "lz4");
+            }
+            else if (Options.Compression == CompressionType.Snappy)
+            {
+                startupOptions.Add("COMPRESSION", "snappy");
+            }
+            var request = new StartupRequest(startupOptions);
             var responseSource = new ResponseSource();
             Send(request, responseSource);
             return responseSource.Task;
@@ -268,7 +301,7 @@ namespace Cassandra
             //Only 1 thread at a time can be here.
             _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
 
-            var frameStream = state.Request.GetFrame((byte)streamId, 1).Stream;
+            var frameStream = state.Request.GetFrame((byte)streamId, ProtocolVersion).Stream;
             //We will not use the request, stop reference it.
             state.Request = null;
             //Start sending it

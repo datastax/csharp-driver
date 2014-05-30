@@ -13,11 +13,20 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace Cassandra
 {
-    internal interface IProtoBufComporessor
+    internal class SnappyCompressor : IFrameCompressor
     {
-        byte[] Decompress(byte[] buffer);
+        public Stream Decompress(Stream stream)
+        {
+            var buffer = Snappy.SnappyCodec.Uncompress(Utils.ReadAllBytes(stream, 0));
+            return new MemoryStream(buffer, 0, buffer.Length, false, true);
+        }
     }
 }

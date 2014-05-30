@@ -20,8 +20,6 @@ namespace Cassandra
         {
             Header = header;
             Body = body;
-            //Start at the first byte
-            Body.Position = 0;
         }
     }
 }

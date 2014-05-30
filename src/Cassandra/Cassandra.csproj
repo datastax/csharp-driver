@@ -47,8 +47,15 @@
     </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LZ4, Version=1.0.3.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
-      <HintPath>..\packages\lz4net.1.0.3.93\lib\net40-client\LZ4.dll</HintPath>
+    <Reference Include="Crc32C.NET">
+      <HintPath>..\packages\Crc32C.NET.1.0.5.0\lib\net20\Crc32C.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="LZ4, Version=1.0.5.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\lz4net.1.0.5.93\lib\net40-client\LZ4.dll</HintPath>
+    </Reference>
+    <Reference Include="Snappy.NET">
+      <HintPath>..\packages\Snappy.NET.1.1.1.8\lib\net20\Snappy.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -109,7 +116,7 @@
     <Compile Include="IWaitableForDispose.cs" />
     <Compile Include="KeyType.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="LZ4ProtoBufCompressor.cs" />
+    <Compile Include="LZ4Compressor.cs" />
     <Compile Include="M3PToken.cs" />
     <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
@@ -164,7 +171,7 @@
     <Compile Include="FrameBuffering.cs" />
     <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />
-    <Compile Include="IProtoBufComporessor.cs" />
+    <Compile Include="IFrameCompressor.cs" />
     <Compile Include="Murmur\MurmurHash.cs" />
     <Compile Include="NoBuffering.cs" />
     <Compile Include="NoneAuthProvider.cs" />
@@ -279,12 +286,7 @@
     <Compile Include="Session.cs" />
     <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SimpleStatement.cs" />
-    <Compile Include="SnappyProtoBufCompressor.cs" />
-    <Compile Include="Snappy\CorruptionException.cs" />
-    <Compile Include="Snappy\Memory.cs" />
-    <Compile Include="Snappy\SlowMemory.cs" />
-    <Compile Include="Snappy\SnappyDecompressor.cs" />
-    <Compile Include="Snappy\SnappyInternalUtils.cs" />
+    <Compile Include="SnappyCompressor.cs" />
     <Compile Include="SocketOptions.cs" />
     <Compile Include="SSLOptions.cs" />
     <Compile Include="RegularStatement.cs" />
@@ -304,7 +306,6 @@
     <None Include="packages.config" />
     <None Include="README.rst" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

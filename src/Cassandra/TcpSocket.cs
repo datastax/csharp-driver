@@ -188,9 +188,7 @@ namespace Cassandra
         {
             //This can result in OOM
             //A neat improvement would be to write this sync in small buffers when buffer.length > X
-            var buffer = new byte[stream.Length];
-            stream.Position = 0;
-            stream.Read(buffer, 0, buffer.Length);
+            var buffer = Utils.ReadAllBytes(stream, 0);
 
             _sendSocketEvent.SetBuffer(buffer, 0, buffer.Length);
 

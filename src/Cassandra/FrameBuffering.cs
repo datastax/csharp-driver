@@ -23,7 +23,7 @@ namespace Cassandra
     {
         private int _bodyLen = int.MaxValue;
 
-        public override IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IProtoBufComporessor compressor)
+        public override IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IFrameCompressor compressor)
         {
             Init(buffer, size);
 

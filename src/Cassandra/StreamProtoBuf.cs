@@ -24,10 +24,10 @@ namespace Cassandra
         private readonly Logger _logger = new Logger(typeof (StreamProtoBuf));
         private readonly Stream _stream;
         private readonly byte[] _trashBuf = new byte[10*1024];
-        private IProtoBufComporessor _compressor;
+        private IFrameCompressor _compressor;
         private bool _ioError;
 
-        public StreamProtoBuf(Stream stream, IProtoBufComporessor compressor)
+        public StreamProtoBuf(Stream stream, IFrameCompressor compressor)
         {
             _stream = stream;
             _compressor = compressor;

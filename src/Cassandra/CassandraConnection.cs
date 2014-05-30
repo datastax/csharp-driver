@@ -35,7 +35,7 @@ namespace Cassandra
         private readonly IAuthProvider _authProvider;
         private readonly byte[][] _buffer;
         private readonly IBuffering _bufferingMode;
-        private readonly IProtoBufComporessor _compressor;
+        private readonly IFrameCompressor _compressor;
 
         private readonly AtomicValue<Action<ResponseFrame>> _frameEventCallback = new AtomicValue<Action<ResponseFrame>>(null);
         private readonly AtomicArray<AsyncResult<IOutput>> _frameReadAsyncResult = new AtomicArray<AsyncResult<IOutput>>(sbyte.MaxValue + 1);
@@ -110,12 +110,12 @@ namespace Cassandra
             if (protocolOptions.Compression == CompressionType.Snappy)
             {
                 _startupOptions.Add("COMPRESSION", "snappy");
-                _compressor = new SnappyProtoBufCompressor();
+                _compressor = new SnappyCompressor();
             }
             else if (protocolOptions.Compression == CompressionType.LZ4)
             {
                 _startupOptions.Add("COMPRESSION", "lz4");
-                _compressor = new LZ4ProtoBufCompressor();
+                _compressor = new LZ4Compressor();
             }
 
             _serverAddress = serverAddress;

@@ -13,20 +13,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using System;
-using LZ4;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace Cassandra
 {
-    internal class LZ4ProtoBufCompressor : IProtoBufComporessor
+    /// <summary>
+    /// Defines the methods for frame compression and decompression
+    /// </summary>
+    public interface IFrameCompressor
     {
-        public byte[] Decompress(byte[] buffer)
-        {
-            var outpLength = new byte[4];
-            Buffer.BlockCopy(buffer, 0, outpLength, 0, 4);
-            Array.Reverse(outpLength);
-            return LZ4Codec.Decode(buffer, 4, buffer.Length - 4, BitConverter.ToInt32(outpLength, 0));
-        }
+        /// <summary>
+        /// Creates and returns stream (clear text) using the provided compressed <c>stream</c> as input.
+        /// </summary>
+        Stream Decompress(Stream stream);
     }
 }

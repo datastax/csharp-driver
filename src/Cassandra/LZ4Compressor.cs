@@ -13,18 +13,26 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text;
 
 namespace Cassandra
 {
-    internal interface IBuffering
+    internal class LZ4Compressor : IFrameCompressor
     {
-        int PreferedBufferSize();
-        void Reset();
-        IEnumerable<ResponseFrame> Process(byte[] buffer, int size, Stream stream, IFrameCompressor compressor);
-        bool AllowSyncCompletion();
-        void Close();
+        public Stream Decompress(Stream stream)
+        {
+            var buffer = Utils.ReadAllBytes(stream, 0);
+            var outputLengthBytes = new byte[4];
+            Buffer.BlockCopy(buffer, 0, outputLengthBytes, 0, 4);
+            Array.Reverse(outputLengthBytes);
+            var outputLength = BitConverter.ToInt32(outputLengthBytes, 0);
+            var decompressStream = new MemoryStream(LZ4.LZ4Codec.Decode(buffer, 4, buffer.Length - 4, outputLength), 0, outputLength, false, true);
+            return decompressStream;
+        }
     }
 }
