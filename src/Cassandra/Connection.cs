@@ -45,10 +45,37 @@ namespace Cassandra
         /// and it is not possible to read the header.
         /// </summary>
         private byte[] _minimalBuffer;
+        private volatile string _keyspace;
 
         public IFrameCompressor Compressor { get; set; }
 
-        protected virtual ProtocolOptions Options { get; set; }
+        /// <summary>
+        /// Gets or sets the keyspace.
+        /// When setting the keyspace, it will issue a Query Request and wait to complete.
+        /// </summary>
+        public string Keyspace
+        {
+            get
+            {
+                return this._keyspace;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    return;
+                }
+                if (this._keyspace != null && value == this._keyspace)
+                {
+                    return;
+                }
+                this._keyspace = value;
+                var timeout = _tcpSocket.Options.ConnectTimeoutMillis;
+                TaskHelper.WaitToComplete(this.Query("USE " + value, QueryProtocolOptions.Default), timeout);
+            }
+        }
+
+        public ProtocolOptions Options { get; set; }
 
         public byte ProtocolVersion { get; set; }
 
@@ -123,7 +150,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sends a protocol Prepare message
+        /// Sends a protocol PREPARE message
         /// </summary>
         public virtual Task<ResultResponse> Prepare(string query)
         {
@@ -134,11 +161,22 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sends a protocol Query message
+        /// Sends a protocol QUERY message
         /// </summary>
         public virtual Task<ResultResponse> Query(string query, QueryProtocolOptions queryOptions, bool tracing = false, ConsistencyLevel? consistency = null)
         {
             var request = new QueryRequest(query, tracing, queryOptions, consistency);
+            var responseSource = new ResponseSource<ResultResponse>();
+            Send(request, responseSource);
+            return responseSource.Task;
+        }
+
+        /// <summary>
+        /// Sends a protocol EXECUTE message of a previously prepared query
+        /// </summary>
+        public virtual Task<ResultResponse> Execute(byte[] queryId, QueryProtocolOptions queryOptions, bool tracing = false, ConsistencyLevel? consistency = null)
+        {
+            var request = new ExecuteRequest(queryId, null, tracing, queryOptions, consistency);
             var responseSource = new ResponseSource<ResultResponse>();
             Send(request, responseSource);
             return responseSource.Task;
@@ -241,7 +279,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sends a protocol startup message
+        /// Sends a protocol STARTUP message
         /// </summary>
         internal virtual Task Startup()
         {

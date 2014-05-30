@@ -71,6 +71,7 @@ namespace Cassandra
                 Flags |= QueryFlags.WithSerialConsistency;
         }
 
+        //TODO: Move to ExecuteRequest and QueryRequest
         internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency, byte protocolVersion)
         {
             //protocol v1: <id><n><value_1>....<value_n><consistency>

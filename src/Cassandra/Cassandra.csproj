@@ -297,6 +297,7 @@
     <Compile Include="TableColumn.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TableOptions.cs" />
+    <Compile Include="TaskHelper.cs" />
     <Compile Include="TcpSocket.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="TokenMap.cs" />

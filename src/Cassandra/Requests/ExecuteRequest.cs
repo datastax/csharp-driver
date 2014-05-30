@@ -31,15 +31,18 @@ namespace Cassandra
         public ExecuteRequest(byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions,
                               ConsistencyLevel? consistency = null)
         {
-            if (queryProtocolOptions.Values.Length != metadata.Columns.Length)
+            if (metadata != null && queryProtocolOptions.Values.Length != metadata.Columns.Length)
+            {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
-
+            }
             _consistency = consistency;
             _id = id;
             _metadata = metadata;
             _queryProtocolOptions = queryProtocolOptions;
             if (tracingEnabled)
+            {
                 _flags = 0x02;
+            }
         }
 
         public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
