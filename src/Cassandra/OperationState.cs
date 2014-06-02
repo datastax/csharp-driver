@@ -12,6 +12,7 @@ namespace Cassandra
     /// </summary>
     internal class OperationState
     {
+        private static Logger _logger = new Logger(typeof(OperationState));
         /// <summary>
         /// Gets a readable stream representing the body
         /// </summary>
@@ -43,7 +44,7 @@ namespace Cassandra
 
         public IRequest Request { get; set; }
 
-        public IResponseSource ResponseSource { get; set; }
+        public Action<Exception, AbstractResponse> Callback { get; set; }
 
         /// <summary>
         /// Appends to the body stream
@@ -71,6 +72,21 @@ namespace Cassandra
             }
             BodyStream.Write(value, offset, count);
             return count;
+        }
+
+        public void InvokeCallback(Exception ex, AbstractResponse response = null)
+        {
+            if (response is ErrorResponse)
+            {
+                InvokeCallback(((ErrorResponse)response).Output.CreateException());
+                return;
+            }
+            if (this.Callback == null)
+            {
+                _logger.Error("No callback for response");
+                return;
+            }
+            this.Callback(ex, response);
         }
     }
 }

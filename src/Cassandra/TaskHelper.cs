@@ -34,5 +34,20 @@ namespace Cassandra
                 throw new TimeoutException("The task didn't complete before timeout.");
             }
         }
+
+        /// <summary>
+        /// Attempts to transition the underlying Task to RanToCompletion or Faulted state.
+        /// </summary>
+        public static void TrySet<T>(this TaskCompletionSource<T> tcs, Exception ex, T result)
+        {
+            if (ex != null)
+            {
+                tcs.TrySetException(ex);
+            }
+            else
+            {
+                tcs.TrySetResult(result);
+            }
+        }
     }
 }

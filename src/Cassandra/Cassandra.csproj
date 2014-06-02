@@ -68,7 +68,6 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="IResponseSource.cs" />
     <Compile Include="ListBackedStream.cs" />
     <Compile Include="AsyncResult.cs" />
     <Compile Include="AsyncResultNoResult.cs" />
@@ -237,7 +236,6 @@
     <Compile Include="RequestHandlers\PrepareRequestHandler.cs" />
     <Compile Include="RequestHandlers\QueryRequestHandler.cs" />
     <Compile Include="RequestHandlers\RequestHandler.cs" />
-    <Compile Include="ResponseSource.cs" />
     <Compile Include="StreamProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Statement.cs" />

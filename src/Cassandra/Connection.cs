@@ -71,7 +71,8 @@ namespace Cassandra
                 }
                 this._keyspace = value;
                 var timeout = _tcpSocket.Options.ConnectTimeoutMillis;
-                TaskHelper.WaitToComplete(this.Query("USE " + value, QueryProtocolOptions.Default), timeout);
+                var request = new QueryRequest("USE " + value, false, QueryProtocolOptions.Default);
+                TaskHelper.WaitToComplete(this.Send(request), timeout);
             }
         }
 
@@ -149,39 +150,6 @@ namespace Cassandra
             _tcpSocket.Connect();
         }
 
-        /// <summary>
-        /// Sends a protocol PREPARE message
-        /// </summary>
-        public virtual Task<ResultResponse> Prepare(string query)
-        {
-            var request = new PrepareRequest(query);
-            var responseSource = new ResponseSource<ResultResponse>();
-            Send(request, responseSource);
-            return responseSource.Task;
-        }
-
-        /// <summary>
-        /// Sends a protocol QUERY message
-        /// </summary>
-        public virtual Task<ResultResponse> Query(string query, QueryProtocolOptions queryOptions, bool tracing = false, ConsistencyLevel? consistency = null)
-        {
-            var request = new QueryRequest(query, tracing, queryOptions, consistency);
-            var responseSource = new ResponseSource<ResultResponse>();
-            Send(request, responseSource);
-            return responseSource.Task;
-        }
-
-        /// <summary>
-        /// Sends a protocol EXECUTE message of a previously prepared query
-        /// </summary>
-        public virtual Task<ResultResponse> Execute(byte[] queryId, QueryProtocolOptions queryOptions, bool tracing = false, ConsistencyLevel? consistency = null)
-        {
-            var request = new ExecuteRequest(queryId, null, tracing, queryOptions, consistency);
-            var responseSource = new ResponseSource<ResultResponse>();
-            Send(request, responseSource);
-            return responseSource.Task;
-        }
-
         protected internal virtual void ReadHandler(byte[] buffer, int bytesReceived)
         {
             //Parse the data received
@@ -246,11 +214,11 @@ namespace Cassandra
                 try
                 {
                     var response = ReadParseResponse(state.Header, state.BodyStream);
-                    state.ResponseSource.SetResponse(response);
+                    state.InvokeCallback(null, response);
                 }
                 catch (Exception ex)
                 {
-                    state.ResponseSource.SetException(ex);
+                    state.InvokeCallback(ex);
                 }
 
                 if (countAdded < count)
@@ -294,21 +262,31 @@ namespace Cassandra
                 startupOptions.Add("COMPRESSION", "snappy");
             }
             var request = new StartupRequest(startupOptions);
-            var responseSource = new ResponseSource();
-            Send(request, responseSource);
-            return responseSource.Task;
+            var tcs = new TaskCompletionSource<AbstractResponse>();
+            Send(request, tcs.TrySet);
+            return tcs.Task;
         }
 
         /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
-        internal virtual void Send(IRequest request, IResponseSource responseSource)
+        public Task<AbstractResponse> Send(IRequest request)
+        {
+            var tcs = new TaskCompletionSource<AbstractResponse>();
+            this.Send(request, (ex, r) => tcs.TrySet(ex, r));
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
+        /// </summary>
+        public void Send(IRequest request, Action<Exception, AbstractResponse> callback)
         {
             //thread safe write queue
             var state = new OperationState
             {
                 Request = request,
-                ResponseSource = responseSource
+                Callback = callback
             };
             SendQueueProcess(state);
         }
