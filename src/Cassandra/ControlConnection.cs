@@ -27,6 +27,7 @@ namespace Cassandra
 {
     internal class ControlConnection : IDisposable
     {
+        internal const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
 
         private const string SelectLocal =
@@ -70,8 +71,19 @@ namespace Cassandra
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
-            _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, authInfoProvider, "", binaryProtocolVersion);
+            var config = new Configuration
+            (
+                policies,
+                protocolOptions,
+                poolingOptions,
+                socketOptions,
+                clientOptions,
+                authProvider,
+                authInfoProvider,
+                new QueryOptions()
+            );
+
+            _session = new Session(cluster, config, "", binaryProtocolVersion);
         }
 
         public void Dispose()
@@ -119,7 +131,7 @@ namespace Cassandra
                     _activeConnection.Value.FreeStreamId(_lockingStreamId);
 
                 _session.WaitForAllPendingActions(timeoutMs);
-                _session.InternalDispose();
+                _session.Dispose();
             }
         }
 
@@ -441,7 +453,7 @@ namespace Cassandra
         {
             DateTimeOffset start = DateTimeOffset.Now;
             long elapsed = 0;
-            while (elapsed < Session.MaxSchemaAgreementWaitMs)
+            while (elapsed < MaxSchemaAgreementWaitMs)
             {
                 var versions = new HashSet<Guid>();
                 {

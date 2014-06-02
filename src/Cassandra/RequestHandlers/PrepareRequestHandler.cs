@@ -47,7 +47,7 @@ namespace Cassandra.RequestHandlers
             {
                 var kv = (KeyValuePair<RowSetMetadata, Tuple<byte[], string, RowSetMetadata>>)value;
                 ar.SetResult(kv);
-                owner.AddPreparedQuery(kv.Value.Item1, kv.Value.Item2);
+                //owner.AddPreparedQuery(kv.Value.Item1, kv.Value.Item2);
                 ar.Complete();
             }
         }

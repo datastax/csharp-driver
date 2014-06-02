@@ -135,15 +135,7 @@ namespace Cassandra
         /// <inheritdoc />
         public ISession Connect(string keyspace)
         {
-            var scs = new Session(this, _configuration.Policies,
-                                  _configuration.ProtocolOptions,
-                                  _configuration.PoolingOptions,
-                                  _configuration.SocketOptions,
-                                  _configuration.ClientOptions,
-                                  _configuration.AuthProvider,
-                                  _configuration.AuthInfoProvider,
-                                  keyspace,
-                                  _binaryProtocolVersion);
+            var scs = new Session(this, _configuration, keyspace, _binaryProtocolVersion);
             scs.Init();
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
@@ -200,7 +192,7 @@ namespace Cassandra
                 if (_connectedSessions.TryRemove(kv.Key, out ses))
                 {
                     ses.WaitForAllPendingActions(timeoutMs);
-                    ses.InternalDispose();
+                    ses.Dispose();
                 }
             }
             _metadata.ShutDown(timeoutMs);

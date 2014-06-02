@@ -35,7 +35,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  The default reconnection policy. <p> The default reconnetion policy is an
+        ///  The default reconnection policy. <p> The default reconnection policy is an
         ///  <link>ExponentialReconnectionPolicy</link> where the base delay is 1 second
         ///  and the max delay is 10 minutes;</p>
         /// </summary>

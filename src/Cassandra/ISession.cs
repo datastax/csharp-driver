@@ -51,11 +51,11 @@ namespace Cassandra
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
-        IAsyncResult BeginExecute(IStatement query, AsyncCallback callback, object state);
+        IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state);
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
-        IAsyncResult BeginExecute(IStatement query, object tag, AsyncCallback callback, object state);
+        IAsyncResult BeginExecute(IStatement statement, object tag, AsyncCallback callback, object state);
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
@@ -72,19 +72,19 @@ namespace Cassandra
         /// <summary>
         ///  Switches to the specified keyspace.
         /// </summary>
-        /// <param name="keyspace_name">Name of keyspace that is to be used.</param>
-        void ChangeKeyspace(string keyspace_name);
+        /// <param name="keyspaceName">Name of keyspace that is to be used.</param>
+        void ChangeKeyspace(string keyspaceName);
 
         /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be created.</param>
+        /// <param name="keyspaceName">Name of keyspace to be created.</param>
         /// <param name="replication">Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
         /// <p>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 1</c></p></param>
         /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
-        void CreateKeyspace(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true);
+        void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durable_writes = true);
         /// <summary>
         ///  Creates new keyspace in current cluster.
         ///  If keyspace with specified name already exists, then this method does nothing.
@@ -106,8 +106,8 @@ namespace Cassandra
         ///  Deletes specified keyspace from current cluster.
         ///  If keyspace with specified name does not exist, then this method does nothing.
         /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
-        void DeleteKeyspaceIfExists(string keyspace_name);
+        /// <param name="keyspaceName">Name of keyspace to be deleted.</param>
+        void DeleteKeyspaceIfExists(string keyspaceName);
         /// <summary>
         /// Ends asynchronous execute operation
         /// </summary>
@@ -121,7 +121,7 @@ namespace Cassandra
         /// <summary>
         /// Executes the provided query.
         /// </summary>
-        RowSet Execute(IStatement query);
+        RowSet Execute(IStatement statement);
         /// <summary>
         /// Executes the provided query.
         /// </summary>
@@ -137,9 +137,9 @@ namespace Cassandra
         /// <summary>
         /// Executes a query asynchronously
         /// </summary>
-        /// <param name="query">The query to execute</param>
+        /// <param name="statement">The statement to execute (simple, bound or batch statement)</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task<RowSet> ExecuteAsync(IStatement query);
+        Task<RowSet> ExecuteAsync(IStatement statement);
         /// <summary>
         /// Prepares the provided query string.
         /// </summary>

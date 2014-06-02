@@ -2,12 +2,52 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cassandra
 {
     internal static class TaskHelper
     {
+        /// <summary>
+        /// Returns an AsyncResult according to the .net async programming model (Begin)
+        /// </summary>
+        public static Task<TResult> ToApm<TResult>(this Task<TResult> task, AsyncCallback callback, object state)
+        {
+            if (task.AsyncState == state)
+            {
+                if (callback != null)
+                {
+                    task.ContinueWith((t) => callback(t), TaskContinuationOptions.ExecuteSynchronously);
+                }
+                return task;
+            }
+
+            var tcs = new TaskCompletionSource<TResult>(state);
+            task.ContinueWith(delegate
+            {
+                if (task.IsFaulted)
+                {
+                    tcs.TrySetException(task.Exception.InnerExceptions);
+                }
+                else if (task.IsCanceled)
+                {
+                    tcs.TrySetCanceled();
+                }
+                else
+                {
+                    tcs.TrySetResult(task.Result);
+                }
+
+                if (callback != null)
+                {
+                    callback(tcs.Task);
+                }
+
+            }, TaskContinuationOptions.ExecuteSynchronously);
+            return tcs.Task;
+        }
+
         /// <summary>
         /// Returns a faulted task with the provided exception
         /// </summary>
