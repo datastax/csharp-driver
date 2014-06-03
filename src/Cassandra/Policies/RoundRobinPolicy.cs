@@ -78,17 +78,18 @@ namespace Cassandra
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
                 int idxSeed = Interlocked.Increment(ref _index);
-
-                // Overflow protection; not theoretically thread safe but should be good enough
+                //Overflow protection
                 if (idxSeed > int.MaxValue - 10000)
                 {
-                    Thread.VolatileWrite(ref _index, 0);
+                    Interlocked.Exchange(ref _index, 0);
                 }
 
                 var h = copyOfHosts[idxSeed % copyOfHosts.Length];
 
                 if (h.IsConsiderablyUp)
+                {
                     yield return h;
+                }
             }
         }
     }

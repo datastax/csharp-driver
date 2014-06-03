@@ -21,6 +21,7 @@ using System.Diagnostics;
 ﻿using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Cassandra.RequestHandlers;
+using System.Net.Sockets;
 
 namespace Cassandra
 {
@@ -30,6 +31,7 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : ISession
     {
+        private static Logger _logger = new Logger(typeof(Session));
         internal static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
 
         public int BinaryProtocolVersion { get; protected set; }
@@ -103,13 +105,21 @@ namespace Cassandra
         /// <inheritdoc />
         public void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            throw new NotImplementedException();
+            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspaceName, replication, durable_writes, false)));
+            _logger.Info("Keyspace [" + keyspaceName + "] has been successfully CREATED.");
         }
 
         /// <inheritdoc />
-        public void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true)
+        public void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            throw new NotImplementedException();
+            try
+            {
+                CreateKeyspace(keyspaceName, replication, durable_writes);
+            }
+            catch (AlreadyExistsException)
+            {
+                _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
+            }
         }
 
         /// <inheritdoc />
@@ -164,9 +174,50 @@ namespace Cassandra
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
         }
 
+        /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var connection = GetNextConnection(statement);
+                var tcs = new TaskCompletionSource<RowSet>();
+                connection.Send(GetRequest(statement), (ex, response) =>
+                {
+                    if (ex != null)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                    else
+                    {
+                        var rs = ((OutputRows)((ResultResponse)response).Output).RowSet;
+                        tcs.TrySetResult(rs);
+                    }
+                });
+                return tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                return TaskHelper.FromException<RowSet>(ex);
+            }
+        }
+
+        private IRequest GetRequest(IStatement statement)
+        {
+            if (statement is RegularStatement)
+            {
+                var s = (RegularStatement)statement;
+                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions.GetConsistencyLevel());
+                return new QueryRequest(s.QueryString, s.IsTracing, options);
+            }
+            //if (statement is BoundStatement)
+            //{
+            //
+            //}
+            //if (statement is BatchStatement)
+            //{
+            //
+            //}
+            throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }
 
         public PreparedStatement Prepare(string cqlQuery)
@@ -176,12 +227,12 @@ namespace Cassandra
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-            throw new NotImplementedException();
+
         }
 
         public bool WaitForSchemaAgreement(IPAddress forHost)
         {
-            throw new NotImplementedException();
+            return true;
         }
 
         public void Dispose()
@@ -201,18 +252,57 @@ namespace Cassandra
 
         internal void Init(bool allocate = false)
         {
-            throw new NotImplementedException();
-        }
-
-        internal void HostIsDown(IPAddress address)
-        {
-            throw new NotImplementedException();
+            Policies.LoadBalancingPolicy.Initialize(Cluster);
         }
 
         //TODO: Remove and replace by another
         internal CassandraConnection Connect(IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
         {
             throw new NotImplementedException();
+        }
+
+
+        readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool = new ConcurrentDictionary<IPAddress,HostConnectionPool>();
+
+        internal Connection GetNextConnection(IStatement statement)
+        {
+            var triedHosts = new Dictionary<IPAddress, List<Exception>>();
+            var hostEnumerable = Policies.LoadBalancingPolicy.NewQueryPlan(statement);
+            //hostEnumerable GetEnumerator will return a NEW enumerator, making this call thread safe
+            foreach (var host in hostEnumerable)
+            {
+                if (!host.IsConsiderablyUp)
+                {
+                    continue;
+                }
+                var distance = Policies.LoadBalancingPolicy.Distance(host);
+                var hostPool = _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, (byte)BinaryProtocolVersion, Configuration));
+                try
+                {
+                    var connection = hostPool.BorrowConnection(this.Keyspace);
+                    return connection;
+                }
+                catch (SocketException ex)
+                {
+                    SetHostDown(host);
+                    triedHosts.Add(host.Address, new List<Exception> {ex});
+                }
+                catch (Exception ex)
+                {
+                    triedHosts.Add(host.Address, new List<Exception> { ex });
+                }
+            }
+            //TODO: Remove list of exceptions per host
+            throw new NoHostAvailableException(triedHosts);
+        }
+
+        internal void SetHostDown(Host host)
+        {
+            //TODO: 
+            if (Cluster.Metadata != null)
+            {
+                Cluster.Metadata.SetDownHost(host.Address, this);
+            }
         }
 
         //TODO: Remove
@@ -226,6 +316,7 @@ namespace Cassandra
             throw new NotImplementedException();
         }
 
+        //TODO: Remove
         internal static object GetTag(IAsyncResult ar)
         {
             throw new NotImplementedException();

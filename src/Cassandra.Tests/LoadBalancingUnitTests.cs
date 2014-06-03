@@ -29,7 +29,8 @@ namespace Cassandra.Tests
             var balancedHosts = policy.NewQueryPlan(new SimpleStatement());
 
             //Take a list of hosts of 4, it should get 1 of every one in a cyclic order.
-            var firstRound = balancedHosts.Take(hostLength).ToList();
+            var firstRound = balancedHosts.ToList();
+            Assert.AreEqual(hostLength, firstRound.Count);
             foreach (var host in hostList)
             {
                 //Check that each host appears only once

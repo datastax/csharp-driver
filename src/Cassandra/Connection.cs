@@ -17,13 +17,14 @@ namespace Cassandra
     internal class Connection : IDisposable
     {
         private Logger _logger = new Logger(typeof(Connection));
+        private const byte _maxConcurrentRequests = 128;
         private TcpSocket _tcpSocket;
         private BoolSwitch _isDisposed = new BoolSwitch();
         private BoolSwitch _isInitialized = new BoolSwitch();
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
-        private ConcurrentStack<int> _freeOperations;
+        private ConcurrentStack<byte> _freeOperations;
         /// <summary>
         /// Contains the requests that were sent through the wire and that hasn't been received yet.
         /// </summary>
@@ -48,6 +49,17 @@ namespace Cassandra
         private volatile string _keyspace;
 
         public IFrameCompressor Compressor { get; set; }
+
+        /// <summary>
+        /// Determines the amount of operations that are not finished.
+        /// </summary>
+        public int InFlight
+        { 
+            get
+            {
+                return _pendingOperations.Count;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the keyspace.
@@ -127,7 +139,7 @@ namespace Cassandra
                 return;
             }
             //Cassandra supports up to 128 concurrent requests
-            _freeOperations = new ConcurrentStack<int>(Enumerable.Range(0, 128));
+            _freeOperations = new ConcurrentStack<byte>(Enumerable.Range(0, _maxConcurrentRequests).Select(s => (byte)s));
             _pendingOperations = new ConcurrentDictionary<int, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
 
@@ -302,7 +314,7 @@ namespace Cassandra
                 _writeQueue.Enqueue(state);
                 return;
             }
-            int streamId = -1;
+            byte streamId = 255;
             lock (_writeQueueLock)
             {
                 if (!_canWriteNext)
@@ -329,7 +341,7 @@ namespace Cassandra
             //Only 1 thread at a time can be here.
             _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
 
-            var frameStream = state.Request.GetFrame((byte)streamId, ProtocolVersion).Stream;
+            var frameStream = state.Request.GetFrame(streamId, ProtocolVersion).Stream;
             //We will not use the request, stop reference it.
             state.Request = null;
             //Start sending it

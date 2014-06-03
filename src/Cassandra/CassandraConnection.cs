@@ -231,7 +231,7 @@ namespace Cassandra
         {
             if (_owner is Session)
             {
-                ((Session)_owner).HostIsDown(_serverAddress);
+                //((Session)_owner).HostIsDown(_serverAddress);
             }
         }
 
