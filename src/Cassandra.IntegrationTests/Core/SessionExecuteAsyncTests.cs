@@ -27,17 +27,6 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class SessionExecuteAsyncTests : SingleNodeClusterTest
     {
-        public override void TestFixtureSetUp()
-        {
-            Cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
-            Session = Cluster.Connect();
-        }
-
-        public override void TestFixtureTearDown()
-        {
-            
-        }
-
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {

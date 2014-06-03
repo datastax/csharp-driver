@@ -31,6 +31,7 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : ISession
     {
+        readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
         private static Logger _logger = new Logger(typeof(Session));
         internal static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
 
@@ -177,50 +178,59 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            try
-            {
-                var connection = GetNextConnection(statement);
-                var tcs = new TaskCompletionSource<RowSet>();
-                connection.Send(GetRequest(statement), (ex, response) =>
-                {
-                    if (ex != null)
-                    {
-                        tcs.TrySetException(ex);
-                    }
-                    else
-                    {
-                        var rs = ((OutputRows)((ResultResponse)response).Output).RowSet;
-                        tcs.TrySetResult(rs);
-                    }
-                });
-                return tcs.Task;
-            }
-            catch (Exception ex)
-            {
-                return TaskHelper.FromException<RowSet>(ex);
-            }
+            return new RequestHandler<RowSet>(this, GetRequest(statement), statement).Send();
         }
 
+        /// <summary>
+        /// Gets the connection pool for a given host
+        /// </summary>
+        internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
+        {
+            return _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, (byte)BinaryProtocolVersion, Configuration));
+        }
+
+        /// <summary>
+        /// Gets the Request to send to a cassandra node based on the statement type
+        /// </summary>
         private IRequest GetRequest(IStatement statement)
         {
+            var defaultConsistency = Configuration.QueryOptions.GetConsistencyLevel();
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions.GetConsistencyLevel());
+                var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
                 return new QueryRequest(s.QueryString, s.IsTracing, options);
             }
-            //if (statement is BoundStatement)
-            //{
-            //
-            //}
-            //if (statement is BatchStatement)
-            //{
-            //
-            //}
+            if (statement is BoundStatement)
+            {
+                var s = (BoundStatement)statement;
+                var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
+                return new ExecuteRequest(s.PreparedStatement.Id, null, s.IsTracing, options);
+            }
+            if (statement is BatchStatement)
+            {
+                var s = (BatchStatement)statement;
+                var consistency = defaultConsistency;
+                if (s.ConsistencyLevel != null)
+                {
+                    consistency = s.ConsistencyLevel.Value;
+                }
+                var subRequests = new List<IQueryRequest>();
+                foreach (Statement q in s.Queries)
+                {
+                    subRequests.Add(q.CreateBatchRequest());
+                }
+                return new BatchRequest(s.BatchType, subRequests, consistency, s.IsTracing);
+            }
             throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }
 
         public PreparedStatement Prepare(string cqlQuery)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<PreparedStatement> PrepareAsync(string query)
         {
             throw new NotImplementedException();
         }
@@ -237,12 +247,13 @@ namespace Cassandra
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            //TODO: Cancel all pending operations and dispose every connection 
         }
 
         internal void WaitForAllPendingActions(int timeoutMs)
         {
-            throw new NotImplementedException();
+            //TODO: Implement gracefully wait for all pending operations
+            //WaitHandle.WaitAll()
         }
 
         internal void SetKeyspace(string keyspace)
@@ -259,41 +270,6 @@ namespace Cassandra
         internal CassandraConnection Connect(IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
         {
             throw new NotImplementedException();
-        }
-
-
-        readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool = new ConcurrentDictionary<IPAddress,HostConnectionPool>();
-
-        internal Connection GetNextConnection(IStatement statement)
-        {
-            var triedHosts = new Dictionary<IPAddress, List<Exception>>();
-            var hostEnumerable = Policies.LoadBalancingPolicy.NewQueryPlan(statement);
-            //hostEnumerable GetEnumerator will return a NEW enumerator, making this call thread safe
-            foreach (var host in hostEnumerable)
-            {
-                if (!host.IsConsiderablyUp)
-                {
-                    continue;
-                }
-                var distance = Policies.LoadBalancingPolicy.Distance(host);
-                var hostPool = _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, (byte)BinaryProtocolVersion, Configuration));
-                try
-                {
-                    var connection = hostPool.BorrowConnection(this.Keyspace);
-                    return connection;
-                }
-                catch (SocketException ex)
-                {
-                    SetHostDown(host);
-                    triedHosts.Add(host.Address, new List<Exception> {ex});
-                }
-                catch (Exception ex)
-                {
-                    triedHosts.Add(host.Address, new List<Exception> { ex });
-                }
-            }
-            //TODO: Remove list of exceptions per host
-            throw new NoHostAvailableException(triedHosts);
         }
 
         internal void SetHostDown(Host host)

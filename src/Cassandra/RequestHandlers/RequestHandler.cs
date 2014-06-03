@@ -18,10 +18,140 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Cassandra.RequestHandlers
 {
+    /// <summary>
+    /// Handles a request to cassandra, dealing with host failover and retries on error
+    /// </summary>
+    internal class RequestHandler<T>
+    {
+        private static Logger _logger = new Logger(typeof(RequestHandler<object>));
+        private TaskCompletionSource<T> _tcs;
+        private Session _session;
+        private IRequest _request;
+        private IStatement _statement;
+
+        public RequestHandler(Session session, IRequest request, IStatement statement)
+        {
+            _tcs = new TaskCompletionSource<T>();
+            _session = session;
+            _request = request;
+            _statement = statement;
+        }
+
+        internal Connection GetNextConnection(IStatement statement)
+        {
+            var triedHosts = new Dictionary<IPAddress, List<Exception>>();
+            var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);
+            //hostEnumerable GetEnumerator will return a NEW enumerator, making this call thread safe
+            foreach (var host in hostEnumerable)
+            {
+                if (!host.IsConsiderablyUp)
+                {
+                    continue;
+                }
+                var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
+                var hostPool = _session.GetConnectionPool(host, distance);
+                try
+                {
+                    var connection = hostPool.BorrowConnection(_session.Keyspace);
+                    return connection;
+                }
+                catch (SocketException ex)
+                {
+                    _session.SetHostDown(host);
+                    triedHosts.Add(host.Address, new List<Exception> { ex });
+                }
+                catch (Exception ex)
+                {
+                    triedHosts.Add(host.Address, new List<Exception> { ex });
+                }
+            }
+            //TODO: Remove list of exceptions per host
+            throw new NoHostAvailableException(triedHosts);
+        }
+
+        public void HandleResult(Exception ex, AbstractResponse response)
+        {
+            if (typeof(T) == typeof(RowSet))
+            {
+                HandleRowSetResult(ex, response);
+            }
+        }
+
+        private void HandleRowSetResult(Exception exception, AbstractResponse response)
+        {
+            if (exception != null)
+            {
+                _tcs.TrySetException(exception);
+                return;
+            }
+            try
+            {
+                if (response == null)
+                {
+                    throw new DriverInternalError("Response can not be null");
+                }
+                if (!(response is ResultResponse))
+                {
+                    throw new DriverInternalError("Excepted ResultResponse, obtained " + response.GetType().FullName);
+                }
+                var output = ((ResultResponse)response).Output;
+                RowSet rs;
+                if (output is OutputRows)
+                {
+                    rs = ((OutputRows)output).RowSet;
+                }
+                else
+                {
+                    rs = new RowSet();
+                }
+                if (output.TraceId != null)
+                {
+                    rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
+                }
+                //Info.SetTriedHosts(TriedHosts);
+                //rowset.Info.SetAchievedConsistency
+                if (rs.PagingState != null)
+                {
+                    rs.FetchNextPage = (pagingState) =>
+                    {
+                        if (_session.IsDisposed)
+                        {
+                            _logger.Warning("Trying to page results using a Session already disposed.");
+                            return new RowSet();
+                        }
+                        _statement.SetPagingState(pagingState);
+                        return _session.Execute(_statement);
+                    };
+                }
+                _tcs.TrySetResult((T)(object)rs);
+            }
+            catch (Exception ex)
+            {
+                _tcs.TrySetException(ex);
+            }
+        }
+
+        public Task<T> Send()
+        {
+            try
+            {
+                var connection = GetNextConnection(_statement);
+                connection.Send(_request, HandleResult);
+            }
+            catch (Exception ex)
+            {
+                _tcs.TrySetException(ex);
+            }
+            return _tcs.Task;
+        }
+    }
+
     /// <summary>
     /// Represents a handler that can get an available connection, send a request and parses the response when received.
     /// </summary>
