@@ -35,10 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var connection = CreateConnection())
             {
-                connection.Init();
-                var task = connection.Startup();
-                task.Wait(3000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+                Assert.DoesNotThrow(connection.Init);
             }
         }
 
@@ -48,10 +45,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait(1000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
-
                 //Start a query
                 var request = new QueryRequest("SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default);
                 var task = connection.Send(request);
@@ -72,7 +65,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                connection.Startup().Wait();
                 var request = new PrepareRequest("SELECT * FROM system.schema_keyspaces");
                 var task = connection.Send(request);
                 task.Wait();
@@ -87,7 +79,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                connection.Startup().Wait();
                 var request = new PrepareRequest("SELECT WILL FAIL");
                 var task = connection.Send(request);
                 task.ContinueWith(t =>
@@ -104,9 +95,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait(1000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Prepare a query
                 var prepareRequest = new PrepareRequest("SELECT * FROM system.schema_keyspaces");
@@ -130,7 +118,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                connection.Startup().Wait();
 
                 var prepareRequest = new PrepareRequest("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?");
                 var task = connection.Send(prepareRequest);
@@ -156,9 +143,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection(protocolOptions))
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait(360000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
                 var task = Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
@@ -179,9 +163,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection(protocolOptions))
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait(360000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
                 var task = Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
@@ -204,9 +185,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait();
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
 
                 //Start a query
                 var task = Query(connection, "SELECT WILL FAIL", QueryProtocolOptions.Default);
@@ -226,9 +204,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection(null, socketOptions))
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait();
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
                 var taskList = new List<Task<AbstractResponse>>();
                 //Run a query multiple times
                 for (var i = 0; i < 16; i++)
@@ -251,9 +226,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                var task = connection.Startup();
-                task.Wait(5000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 var taskList = new List<Task>();
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
@@ -278,9 +250,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                var startupTask = connection.Startup();
-                startupTask.Wait(1000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, startupTask.Status);
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
@@ -300,8 +269,6 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
-                var task = connection.Startup();
-                TaskHelper.WaitToComplete(task);
                 Assert.Null(connection.Keyspace);
                 connection.Keyspace = "system";
                 //If it was executed correctly, it should be set

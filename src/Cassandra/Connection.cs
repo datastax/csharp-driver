@@ -160,6 +160,10 @@ namespace Cassandra
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             _tcpSocket.Connect();
+
+            TaskHelper.WaitToComplete(Startup(), _tcpSocket.Options.ConnectTimeoutMillis);
+
+            //TODO: Authentication
         }
 
         protected internal virtual void ReadHandler(byte[] buffer, int bytesReceived)
@@ -261,7 +265,7 @@ namespace Cassandra
         /// <summary>
         /// Sends a protocol STARTUP message
         /// </summary>
-        internal virtual Task Startup()
+        private Task Startup()
         {
             var startupOptions = new Dictionary<string, string>();
             startupOptions.Add("CQL_VERSION", "3.0.0");
