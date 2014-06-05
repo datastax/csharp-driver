@@ -145,6 +145,11 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         PreparedStatement Prepare(string cqlQuery);
+        /// <summary>
+        /// Prepares the provided query string asynchronously.
+        /// </summary>
+        /// <param name="cqlQuery">cql query to prepare</param>
+        Task<PreparedStatement> PrepareAsync(string cqlQuery);
         void WaitForSchemaAgreement(RowSet rs);
         bool WaitForSchemaAgreement(System.Net.IPAddress forHost);
     }

@@ -88,7 +88,11 @@ namespace Cassandra
         public RetryDecision GetRetryDecision(Exception ex)
         {
             RetryDecision decision = RetryDecision.Rethrow();
-            if (ex is ReadTimeoutException)
+            if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
+            {
+                decision = RetryDecision.Retry(null);
+            }
+            else if (ex is ReadTimeoutException)
             {
                 var e = ex as ReadTimeoutException;
                 decision = _retryPolicy.OnReadTimeout(_statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, _retryCount);
@@ -116,6 +120,10 @@ namespace Cassandra
             if (typeof(T) == typeof(RowSet))
             {
                 HandleRowSetResult(response);
+            }
+            else if (typeof(T) == typeof(PreparedStatement))
+            {
+                HandlePreparedResult(response);
             }
         }
 
@@ -147,18 +155,35 @@ namespace Cassandra
             }
         }
 
+        private void HandlePreparedResult(AbstractResponse response)
+        {
+            try
+            {
+                ValidateResult(response);
+                var output = ((ResultResponse)response).Output;
+                if (!(output is OutputPrepared))
+                {
+                    throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
+                }
+                if (!(_request is PrepareRequest))
+                {
+                    throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
+                }
+                var prepared = (OutputPrepared)output;
+                var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, prepared.ResultMetadata);
+                _tcs.TrySetResult((T)(object)statement);
+            }
+            catch (Exception ex)
+            {
+                _tcs.TrySetException(ex);
+            }
+        }
+
         private void HandleRowSetResult(AbstractResponse response)
         {
             try
             {
-                if (response == null)
-                {
-                    throw new DriverInternalError("Response can not be null");
-                }
-                if (!(response is ResultResponse))
-                {
-                    throw new DriverInternalError("Excepted ResultResponse, obtained " + response.GetType().FullName);
-                }
+                ValidateResult(response);
                 var output = ((ResultResponse)response).Output;
                 RowSet rs;
                 if (output is OutputRows)
@@ -220,6 +245,18 @@ namespace Cassandra
                 _tcs.TrySetException(ex);
             }
             return _tcs.Task;
+        }
+
+        private void ValidateResult(AbstractResponse response)
+        {
+            if (response == null)
+            {
+                throw new DriverInternalError("Response can not be null");
+            }
+            if (!(response is ResultResponse))
+            {
+                throw new DriverInternalError("Excepted ResultResponse, obtained " + response.GetType().FullName);
+            }
         }
     }
 }

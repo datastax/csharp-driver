@@ -19,19 +19,21 @@ namespace Cassandra
     internal class PrepareRequest : IRequest
     {
         public const byte OpCode = 0x09;
-
-        private readonly string _cqlQuery;
+        /// <summary>
+        /// The CQL string to be prepared
+        /// </summary>
+        public string Query { get; set; }
 
         public PrepareRequest(string cqlQuery)
         {
-            _cqlQuery = cqlQuery;
+            Query = cqlQuery;
         }
 
         public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
-            wb.WriteLongString(_cqlQuery);
+            wb.WriteLongString(Query);
             return wb.GetFrame();
         }
     }

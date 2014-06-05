@@ -229,12 +229,15 @@ namespace Cassandra
 
         public PreparedStatement Prepare(string cqlQuery)
         {
-            throw new NotImplementedException();
+            var task = PrepareAsync(cqlQuery);
+            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            return task.Result;
         }
 
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            throw new NotImplementedException();
+            var request = new PrepareRequest(query);
+            return new RequestHandler<PreparedStatement>(this, request, null).Send();
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

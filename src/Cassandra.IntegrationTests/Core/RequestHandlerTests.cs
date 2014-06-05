@@ -7,7 +7,6 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
     public class RequestHandlerTests : SingleNodeClusterTest
     {
         private new Session Session
@@ -26,7 +25,7 @@ namespace Cassandra.IntegrationTests.Core
             var request = Session.GetRequest(statement);
             var requestHandler = new RequestHandler<RowSet>(Session, request, statement);
 
-            //Using default retry policy the decision will always be to rethrow
+            //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;
             var decision = requestHandler.GetRetryDecision(new ReadTimeoutException(ConsistencyLevel.Quorum, 1, 2, true));
             Assert.AreEqual(expected, decision.DecisionType);
@@ -38,6 +37,15 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(expected, decision.DecisionType);
 
             decision = requestHandler.GetRetryDecision(new Exception());
+            Assert.AreEqual(expected, decision.DecisionType);
+
+            //Expecting to retry when a Cassandra node is Bootstrapping/overloaded
+            expected = RetryDecision.RetryDecisionType.Retry;
+            decision = requestHandler.GetRetryDecision(new OverloadedException(null));
+            Assert.AreEqual(expected, decision.DecisionType);
+            decision = requestHandler.GetRetryDecision(new IsBootstrappingException(null));
+            Assert.AreEqual(expected, decision.DecisionType);
+            decision = requestHandler.GetRetryDecision(new TruncateException(null));
             Assert.AreEqual(expected, decision.DecisionType);
         }
 
