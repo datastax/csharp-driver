@@ -30,10 +30,13 @@ namespace Cassandra.RequestHandlers
     internal class RequestHandler<T>
     {
         private static Logger _logger = new Logger(typeof(RequestHandler<object>));
+        private static IRetryPolicy DefaultRetryPolicy = new DefaultRetryPolicy();
         private TaskCompletionSource<T> _tcs;
         private Session _session;
         private IRequest _request;
         private IStatement _statement;
+        private IRetryPolicy _retryPolicy;
+        private int _retryCount = 0;
 
         public RequestHandler(Session session, IRequest request, IStatement statement)
         {
@@ -41,6 +44,11 @@ namespace Cassandra.RequestHandlers
             _session = session;
             _request = request;
             _statement = statement;
+            _retryPolicy = DefaultRetryPolicy;
+            if (statement != null)
+            {
+                _retryPolicy = statement.RetryPolicy;
+            }
         }
 
         internal Connection GetNextConnection(IStatement statement)
@@ -75,21 +83,73 @@ namespace Cassandra.RequestHandlers
             throw new NoHostAvailableException(triedHosts);
         }
 
+        /// <summary>
+        /// Gets the retry decision based on the exception from Cassandra
+        /// </summary>
+        public RetryDecision GetRetryDecision(Exception ex)
+        {
+            RetryDecision decision = RetryDecision.Rethrow();
+            if (ex is ReadTimeoutException)
+            {
+                var e = ex as ReadTimeoutException;
+                decision = _retryPolicy.OnReadTimeout(_statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, _retryCount);
+            }
+            else if (ex is WriteTimeoutException)
+            {
+                var e = ex as WriteTimeoutException;
+                decision = _retryPolicy.OnWriteTimeout(_statement, e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, _retryCount);
+            }
+            else if (ex is UnavailableException)
+            {
+                var e = ex as UnavailableException;
+                decision = _retryPolicy.OnUnavailable(_statement, e.Consistency, e.RequiredReplicas, e.AliveReplicas, _retryCount);
+            }
+            return decision;
+        }
+
         public void HandleResult(Exception ex, AbstractResponse response)
         {
+            if (ex != null)
+            {
+                HandleException(ex);
+                return;
+            }
             if (typeof(T) == typeof(RowSet))
             {
-                HandleRowSetResult(ex, response);
+                HandleRowSetResult(response);
             }
         }
 
-        private void HandleRowSetResult(Exception exception, AbstractResponse response)
+        /// <summary>
+        /// Checks if the exception is either a Cassandra response error or a socket exception to retry or failover if necessary.
+        /// </summary>
+        private void HandleException(Exception ex)
         {
-            if (exception != null)
+            //TODO: Failover
+            var decision = GetRetryDecision(ex);
+            switch (decision.DecisionType)
             {
-                _tcs.TrySetException(exception);
-                return;
+                case RetryDecision.RetryDecisionType.Rethrow:
+                    _tcs.TrySetException(ex);
+                    break;
+                case RetryDecision.RetryDecisionType.Ignore:
+                    if (typeof(T).IsAssignableFrom(typeof(RowSet)))
+                    {
+                        _tcs.TrySetResult((T) (object) new RowSet());
+                    }
+                    else
+                    {
+                        _tcs.TrySetResult(default(T));
+                    }
+                    break;
+                case RetryDecision.RetryDecisionType.Retry:
+                    Retry(decision.RetryConsistencyLevel);
+                    break;
             }
+        }
+
+        private void HandleRowSetResult(AbstractResponse response)
+        {
             try
             {
                 if (response == null)
@@ -135,6 +195,18 @@ namespace Cassandra.RequestHandlers
             {
                 _tcs.TrySetException(ex);
             }
+        }
+
+        private void Retry(ConsistencyLevel? consistency)
+        {
+            _retryCount++;
+            var connection = GetNextConnection(_statement);
+            if (consistency != null && _request is ICqlRequest)
+            {
+                //Set the new consistency to be used for the new request
+                ((ICqlRequest)_request).Consistency = consistency.Value;
+            }
+            connection.Send(_request, HandleResult);
         }
 
         public Task<T> Send()

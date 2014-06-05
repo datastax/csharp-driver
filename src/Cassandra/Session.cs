@@ -98,16 +98,19 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public void ChangeKeyspace(string keyspaceName)
+        public void ChangeKeyspace(string keyspace)
         {
-            throw new NotImplementedException();
+            if (this.Keyspace != keyspace)
+            {
+                this.Execute(new SimpleStatement("USE " + keyspace));
+            }
         }
 
         /// <inheritdoc />
-        public void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durable_writes = true)
+        public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durable_writes = true)
         {
-            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspaceName, replication, durable_writes, false)));
-            _logger.Info("Keyspace [" + keyspaceName + "] has been successfully CREATED.");
+            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durable_writes, false)));
+            _logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
         }
 
         /// <inheritdoc />

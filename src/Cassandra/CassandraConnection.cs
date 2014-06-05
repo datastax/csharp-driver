@@ -770,7 +770,7 @@ namespace Cassandra
 
             BeginJob(jar, SetupKeyspace(jar, SetupPreparedQuery(jar, id, cql, () =>
             {
-                Evaluate(new ExecuteRequest(id, metadata, isTracing, queryProtocolOptions, consistency), jar.StreamId,
+                Evaluate(new ExecuteRequest(id, metadata, isTracing, queryProtocolOptions), jar.StreamId,
                          frame2 =>
                          {
                              AbstractResponse response = FrameParser.Parse(frame2);
@@ -863,7 +863,7 @@ namespace Cassandra
             AsyncResult<IOutput> jar = SetupJob(streamId, callback, state, owner, "QUERY");
             BeginJob(jar, SetupKeyspace(jar, () =>
             {
-                Evaluate(new QueryRequest(cqlQuery, tracingEnabled, queryPrtclOptions, consistency), jar.StreamId, frame2 =>
+                Evaluate(new QueryRequest(cqlQuery, tracingEnabled, queryPrtclOptions), jar.StreamId, frame2 =>
                 {
                     AbstractResponse response = FrameParser.Parse(frame2);
                     if (response is ResultResponse)

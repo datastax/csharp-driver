@@ -72,19 +72,19 @@ namespace Cassandra
         }
 
         //TODO: Move to ExecuteRequest and QueryRequest
-        internal void Write(BEBinaryWriter wb, ConsistencyLevel? extConsistency, byte protocolVersion)
+        internal void Write(BEBinaryWriter wb, byte protocolVersion)
         {
             //protocol v1: <id><n><value_1>....<value_n><consistency>
             //protocol v2: <id><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
 
-            if ((ushort)(extConsistency ?? Consistency) >= (ushort)ConsistencyLevel.Serial)
+            if (Consistency >= ConsistencyLevel.Serial)
             {
                 throw new InvalidQueryException("Serial consistency specified as a non-serial one.");
             }
 
             if (protocolVersion > 1)
             {
-                wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
+                wb.WriteUInt16((ushort)Consistency);
                 wb.WriteByte((byte)Flags);
             }
 
@@ -101,7 +101,7 @@ namespace Cassandra
 
             if (protocolVersion == 1)
             {
-                wb.WriteUInt16((ushort)(extConsistency ?? Consistency));
+                wb.WriteUInt16((ushort)Consistency);
             }
             else
             {

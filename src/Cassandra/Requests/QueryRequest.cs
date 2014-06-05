@@ -16,20 +16,29 @@
 
 namespace Cassandra
 {
-    internal class QueryRequest : IQueryRequest
+    internal class QueryRequest : IQueryRequest, ICqlRequest
     {
         public const byte OpCode = 0x07;
 
-        private readonly ConsistencyLevel? _consistency;
+        public ConsistencyLevel Consistency
+        {
+            get
+            {
+                return _queryProtocolOptions.Consistency;
+            }
+            set
+            {
+                _queryProtocolOptions.Consistency = value;
+            }
+        }
+
         private readonly string _cqlQuery;
         private readonly byte _headerFlags;
         private readonly QueryProtocolOptions _queryProtocolOptions;
 
-        public QueryRequest(string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions,
-                            ConsistencyLevel? consistency = null)
+        public QueryRequest(string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions)
         {
             _cqlQuery = cqlQuery;
-            _consistency = consistency;
             _queryProtocolOptions = queryPrtclOptions;
             if (tracingEnabled)
                 _headerFlags = 0x02;
@@ -41,7 +50,7 @@ namespace Cassandra
             wb.WriteFrameHeader(protocolVersionByte, _headerFlags, streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
-            _queryProtocolOptions.Write(wb, _consistency, protocolVersionByte);
+            _queryProtocolOptions.Write(wb, protocolVersionByte);
 
             return wb.GetFrame();
         }

@@ -69,6 +69,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="HostConnectionPool.cs" />
+    <Compile Include="ICqlRequest.cs" />
     <Compile Include="ListBackedStream.cs" />
     <Compile Include="AsyncResult.cs" />
     <Compile Include="AsyncResultNoResult.cs" />

@@ -22,7 +22,8 @@ namespace Cassandra
     {
         public const byte OpCode = 0x0D;
 
-        private readonly ConsistencyLevel _consistency;
+        public ConsistencyLevel Consistency { get; set; }
+
         private readonly byte _flags;
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
@@ -31,9 +32,11 @@ namespace Cassandra
         {
             _type = type;
             _requests = requests;
-            _consistency = consistency;
+            Consistency = consistency;
             if (tracingEnabled)
+            {
                 _flags = 0x02;
+            }
         }
 
         public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
@@ -46,7 +49,7 @@ namespace Cassandra
             wb.WriteInt16((short) _requests.Count);
             foreach (IQueryRequest br in _requests)
                 br.WriteToBatch(wb);
-            wb.WriteInt16((short) _consistency);
+            wb.WriteInt16((short) Consistency);
             return wb.GetFrame();
         }
     }
