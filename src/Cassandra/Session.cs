@@ -30,9 +30,11 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : ISession
     {
-        readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
         private static Logger _logger = new Logger(typeof(Session));
         internal static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
+        
+        readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
+        private int _disposed;
 
         public int BinaryProtocolVersion { get; protected set; }
 
@@ -45,7 +47,7 @@ namespace Cassandra
 
         public bool IsDisposed
         {
-            get { throw new NotImplementedException(); }
+            get { return Thread.VolatileRead(ref _disposed) > 0; }
         }
 
         /// <summary>
@@ -102,6 +104,7 @@ namespace Cassandra
             if (this.Keyspace != keyspace)
             {
                 this.Execute(new SimpleStatement("USE " + keyspace));
+                this.Keyspace = keyspace;
             }
         }
 
@@ -252,7 +255,11 @@ namespace Cassandra
 
         public void Dispose()
         {
-            //TODO: Cancel all pending operations and dispose every connection 
+            //Only dispose once
+            if (Interlocked.Increment(ref _disposed) == 1)
+            {
+                //TODO: Cancel all pending operations and dispose every connection
+            }
         }
 
         internal void WaitForAllPendingActions(int timeoutMs)
@@ -271,8 +278,8 @@ namespace Cassandra
             Policies.LoadBalancingPolicy.Initialize(Cluster);
         }
 
-        //TODO: Remove and replace by another
-        internal CassandraConnection Connect(IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, List<Exception>> innerExceptions, out int streamId)
+        //TODO: Remove
+        internal CassandraConnection Connect(IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, Exception> innerExceptions, out int streamId)
         {
             throw new NotImplementedException();
         }

@@ -60,7 +60,9 @@ namespace Cassandra
 
         /// <summary>
         /// Waits the task to transition to RanToComplete.
-        /// It throws the Aggregate exception thrown by the task or a TimeoutException
+        /// It throws the inner exception of the AggregateException in case there is a single exception.
+        /// It throws the Aggregate exception when there is more than 1 inner exception.
+        /// It throws a TimeoutException when the task didn't complete in the expected time.
         /// </summary>
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
@@ -68,7 +70,19 @@ namespace Cassandra
         public static void WaitToComplete(Task task, int timeout = System.Threading.Timeout.Infinite)
         {
             //It should wait and throw any exception
-            task.Wait(timeout);
+            try
+            {
+                task.Wait(timeout);
+            }
+            catch (AggregateException ex)
+            {
+                //throw the actual exception when there was a single exception
+                if (ex.InnerExceptions.Count == 1)
+                {
+                    throw ex.InnerExceptions[0];
+                }
+                throw;
+            }
             if (task.Status != TaskStatus.RanToCompletion)
             {
                 throw new TimeoutException("The task didn't complete before timeout.");

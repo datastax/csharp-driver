@@ -138,13 +138,13 @@ namespace Cassandra
         private void SetupEventListener()
         {
             var triedHosts = new List<IPAddress>();
-            var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
+            var innerExceptions = new Dictionary<IPAddress, Exception>();
 
             IEnumerator<Host> hostsIter = _session.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
 
             if (!hostsIter.MoveNext())
             {
-                var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
+                var ex = new NoHostAvailableException(new Dictionary<IPAddress, Exception>());
                 _logger.Error(ex);
                 throw ex;
             }

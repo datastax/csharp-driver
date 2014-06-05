@@ -36,6 +36,8 @@ namespace Cassandra
         private IStatement _statement;
         private IRetryPolicy _retryPolicy;
         private int _retryCount = 0;
+        private Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
+        private Host _currentHost;
 
         public RequestHandler(Session session, IRequest request, IStatement statement)
         {
@@ -52,7 +54,6 @@ namespace Cassandra
 
         internal Connection GetNextConnection(IStatement statement)
         {
-            var triedHosts = new Dictionary<IPAddress, List<Exception>>();
             var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);
             //hostEnumerable GetEnumerator will return a NEW enumerator, making this call thread safe
             foreach (var host in hostEnumerable)
@@ -61,6 +62,8 @@ namespace Cassandra
                 {
                     continue;
                 }
+                _currentHost = host;
+                _triedHosts.Add(host.Address, null);
                 var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
                 var hostPool = _session.GetConnectionPool(host, distance);
                 try
@@ -71,15 +74,15 @@ namespace Cassandra
                 catch (SocketException ex)
                 {
                     _session.SetHostDown(host);
-                    triedHosts.Add(host.Address, new List<Exception> { ex });
+                    _triedHosts[host.Address] = ex;
                 }
                 catch (Exception ex)
                 {
-                    triedHosts.Add(host.Address, new List<Exception> { ex });
+                    _logger.Error(ex);
+                    _triedHosts[host.Address] = ex;
                 }
             }
-            //TODO: Remove list of exceptions per host
-            throw new NoHostAvailableException(triedHosts);
+            throw new NoHostAvailableException(_triedHosts);
         }
 
         /// <summary>
@@ -88,7 +91,11 @@ namespace Cassandra
         public RetryDecision GetRetryDecision(Exception ex)
         {
             RetryDecision decision = RetryDecision.Rethrow();
-            if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
+            if (ex is SocketException)
+            {
+                decision = RetryDecision.Retry(null);
+            }
+            else if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
             {
                 decision = RetryDecision.Retry(null);
             }
@@ -132,7 +139,10 @@ namespace Cassandra
         /// </summary>
         private void HandleException(Exception ex)
         {
-            //TODO: Failover
+            if (ex is SocketException)
+            {
+                _session.SetHostDown(_currentHost);
+            }
             var decision = GetRetryDecision(ex);
             switch (decision.DecisionType)
             {
@@ -198,8 +208,11 @@ namespace Cassandra
                 {
                     rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
                 }
-                //Info.SetTriedHosts(TriedHosts);
-                //rowset.Info.SetAchievedConsistency
+                rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
+                if (_request is ICqlRequest)
+                {
+                    rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
+                }
                 if (rs.PagingState != null)
                 {
                     rs.FetchNextPage = (pagingState) =>
@@ -224,16 +237,21 @@ namespace Cassandra
         public virtual void Retry(ConsistencyLevel? consistency)
         {
             _retryCount++;
-            var connection = GetNextConnection(_statement);
             if (consistency != null && _request is ICqlRequest)
             {
                 //Set the new consistency to be used for the new request
                 ((ICqlRequest)_request).Consistency = consistency.Value;
             }
-            connection.Send(_request, HandleResult);
+            TrySend();
         }
 
         public Task<T> Send()
+        {
+            TrySend();
+            return _tcs.Task;
+        }
+
+        public void TrySend()
         {
             try
             {
@@ -242,9 +260,10 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
+                //There was an Exception before sending (probably no host is available).
+                //This will mark the Task as faulted.
                 _tcs.TrySetException(ex);
             }
-            return _tcs.Task;
         }
 
         private void ValidateResult(AbstractResponse response)

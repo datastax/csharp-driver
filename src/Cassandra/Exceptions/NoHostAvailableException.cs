@@ -13,8 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 
@@ -33,21 +33,17 @@ namespace Cassandra
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
-        public Dictionary<IPAddress, List<Exception>> Errors { get; private set; }
+        public Dictionary<IPAddress, Exception> Errors { get; private set; }
 
-        public NoHostAvailableException(Dictionary<IPAddress, List<Exception>> errors)
+        public NoHostAvailableException(Dictionary<IPAddress, Exception> errors)
             : base(MakeMessage(errors))
         {
             Errors = errors;
         }
 
-        private static String MakeMessage(Dictionary<IPAddress, List<Exception>> errors)
+        private static String MakeMessage(Dictionary<IPAddress, Exception> errors)
         {
-            var addrs = new List<string>();
-            foreach (IPAddress err in errors.Keys)
-                addrs.Add(err.ToString());
-
-            return string.Format("None of the hosts tried for query are available (tried: {0})", string.Join(",", addrs.ToArray()));
+            return string.Format("None of the hosts tried for query are available (tried: {0})", String.Join(",", errors.Keys.Select((ip) => ip.ToString())));
         }
     }
 }

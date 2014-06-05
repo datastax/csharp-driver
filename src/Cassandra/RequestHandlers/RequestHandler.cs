@@ -38,7 +38,7 @@ namespace Cassandra.RequestHandlers
         public Statement Statement { get; set; }
         private IEnumerator<Host> _hostsIter = null;
         public IAsyncResult LongActionAc;
-        public readonly Dictionary<IPAddress, List<Exception>> InnerExceptions = new Dictionary<IPAddress, List<Exception>>();
+        public readonly Dictionary<IPAddress, Exception> InnerExceptions = new Dictionary<IPAddress, Exception>();
         public readonly List<IPAddress> TriedHosts = new List<IPAddress>();
         public int QueryRetries = 0;
 
@@ -49,7 +49,7 @@ namespace Cassandra.RequestHandlers
                 _hostsIter = owner.Policies.LoadBalancingPolicy.NewQueryPlan(Statement).GetEnumerator();
                 if (!_hostsIter.MoveNext())
                 {
-                    var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
+                    var ex = new NoHostAvailableException(new Dictionary<IPAddress,Exception>());
                     _logger.Error(ex);
                     throw ex;
                 }

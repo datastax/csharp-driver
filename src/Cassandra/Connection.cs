@@ -344,7 +344,6 @@ namespace Cassandra
             //We have a valid stream id
             //Only 1 thread at a time can be here.
             _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-
             var frameStream = state.Request.GetFrame(streamId, ProtocolVersion).Stream;
             //We will not use the request, stop reference it.
             state.Request = null;
