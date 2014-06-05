@@ -233,6 +233,7 @@
     <Compile Include="Policies\TokenAwarePolicy.cs" />
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />
+    <Compile Include="RequestHandler.cs" />
     <Compile Include="RequestHandlers\BatchRequestHandler.cs" />
     <Compile Include="RequestHandlers\ExecuteQueryRequestHandler.cs" />
     <Compile Include="RequestHandlers\PrepareRequestHandler.cs" />
