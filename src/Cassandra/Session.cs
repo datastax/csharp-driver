@@ -194,7 +194,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the Request to send to a cassandra node based on the statement type
         /// </summary>
-        private IRequest GetRequest(IStatement statement)
+        internal IRequest GetRequest(IStatement statement)
         {
             var defaultConsistency = Configuration.QueryOptions.GetConsistencyLevel();
             if (statement is RegularStatement)
@@ -276,7 +276,6 @@ namespace Cassandra
 
         internal void SetHostDown(Host host)
         {
-            //TODO: 
             if (Cluster.Metadata != null)
             {
                 Cluster.Metadata.SetDownHost(host.Address, this);

@@ -44,7 +44,7 @@ namespace Cassandra
             _request = request;
             _statement = statement;
             _retryPolicy = DefaultRetryPolicy;
-            if (statement != null)
+            if (statement != null && statement.RetryPolicy != null)
             {
                 _retryPolicy = statement.RetryPolicy;
             }
@@ -196,7 +196,7 @@ namespace Cassandra
             }
         }
 
-        private void Retry(ConsistencyLevel? consistency)
+        public virtual void Retry(ConsistencyLevel? consistency)
         {
             _retryCount++;
             var connection = GetNextConnection(_statement);
