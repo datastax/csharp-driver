@@ -12,21 +12,21 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
     [Timeout(600000)]
-    public class ConnectionTests
+    public class ConnectionTests : SingleNodeClusterTest
     {
         private TraceLevel _originalTraceLevel;
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+
+        public override void TestFixtureSetUp()
         {
             _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Error;
+            base.TestFixtureSetUp();
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        public override void TestFixtureTearDown()
         {
+            base.TestFixtureTearDown();
             Diagnostics.CassandraTraceSwitch.Level = _originalTraceLevel;
         }
 
@@ -261,7 +261,43 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        public void RegisterForEvents()
+        {
+            var eventHandle = new AutoResetEvent(false);
+            CassandraEventArgs eventArgs = null;
+            using (var connection = CreateConnection())
+            {
+                connection.Init();
+                var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
+                var task = connection.Send(new RegisterForEventRequest(eventTypes));
+                TaskHelper.WaitToComplete(task, 1000);
+                Assert.IsInstanceOf<ReadyResponse>(task.Result);
+                connection.CassandraEventResponse += (o, e) =>
+                {
+                    eventArgs = e;
+                    eventHandle.Set();
+                };
+                //create a keyspace and check if gets received as an event
+                Query(connection, String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, "test_events_kp", 1)).Wait(1000);
+                eventHandle.WaitOne(2000);
+                Assert.IsNotNull(eventArgs);
+                Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
+                Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
+                Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
+                Assert.IsNullOrEmpty((eventArgs as SchemaChangeEventArgs).Table);
 
+                //create a table and check if gets received as an event
+                Query(connection, String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, "test_events_kp.test_table", 1)).Wait(1000);
+                eventHandle.WaitOne(2000);
+                Assert.IsNotNull(eventArgs);
+                Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
+
+                Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
+                Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
+                Assert.AreEqual("test_table", (eventArgs as SchemaChangeEventArgs).Table);
+            }
+        }
 
         [Test]
         public void UseKeyspaceTest()

@@ -47,7 +47,10 @@ namespace Cassandra
         /// </summary>
         private byte[] _minimalBuffer;
         private volatile string _keyspace;
-
+        /// <summary>
+        /// The event that represents a event RESPONSE from a Cassandra node
+        /// </summary>
+        public event CassandraEventHandler CassandraEventResponse;
         public IFrameCompressor Compressor { get; set; }
 
         /// <summary>
@@ -125,6 +128,19 @@ namespace Cassandra
                 return;
             }
             _tcpSocket.Dispose();
+        }
+
+        private void EventHandler(Exception ex, AbstractResponse response)
+        {
+            if (!(response is EventResponse))
+            {
+                _logger.Error("Unexpected response type for event: " + response.GetType().Name);
+                return;
+            }
+            if (this.CassandraEventResponse != null)
+            {
+                this.CassandraEventResponse(this, (response as EventResponse).CassandraEventArgs);
+            }
         }
 
         /// <summary>
@@ -212,7 +228,17 @@ namespace Cassandra
                 }
                 offset += FrameHeader.Size;
                 count -= FrameHeader.Size;
-                state = _pendingOperations[header.StreamId];
+                if (header.Opcode != EventResponse.OpCode)
+                {
+                    //Its a response to a previous request
+                    state = _pendingOperations[header.StreamId];
+                }
+                else
+                {
+                    //Its an event
+                    state = new OperationState();
+                    state.Callback = EventHandler;
+                }
                 state.Header = header;
                 _receivingOperation = state;
             }
@@ -220,13 +246,16 @@ namespace Cassandra
 
             if (state.IsBodyComplete)
             {
-                _logger.Verbose("Read #" + state.Header.StreamId);
+                _logger.Verbose("Read #" + state.Header.StreamId + " for Opcode " + state.Header.Opcode);
                 //Stop reference it as the current receiving operation
                 _receivingOperation = null;
-                //Remove from pending
-                _pendingOperations.TryRemove(state.Header.StreamId, out state);
-                //Release the streamId
-                _freeOperations.Push(state.Header.StreamId);
+                if (state.Header.Opcode != EventResponse.OpCode)
+                {
+                    //Remove from pending
+                    _pendingOperations.TryRemove(state.Header.StreamId, out state);
+                    //Release the streamId
+                    _freeOperations.Push(state.Header.StreamId);
+                }
                 try
                 {
                     var response = ReadParseResponse(state.Header, state.BodyStream);
