@@ -77,11 +77,6 @@ namespace Cassandra
             //protocol v1: <id><n><value_1>....<value_n><consistency>
             //protocol v2: <id><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
 
-            if (Consistency >= ConsistencyLevel.Serial)
-            {
-                throw new InvalidQueryException("Serial consistency specified as a non-serial one.");
-            }
-
             if (protocolVersion > 1)
             {
                 wb.WriteUInt16((ushort)Consistency);
@@ -111,10 +106,6 @@ namespace Cassandra
                     wb.WriteBytes(PagingState);
                 if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
                 {
-                    if ((ushort)(SerialConsistency) < (ushort)ConsistencyLevel.Serial)
-                    {
-                        throw new InvalidQueryException("Non-serial consistency specified as a serial one.");
-                    }
                     wb.WriteUInt16((ushort)SerialConsistency);
                 }
             }

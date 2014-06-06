@@ -53,6 +53,18 @@ namespace Cassandra
             {
                 _flags = 0x02;
             }
+
+            if (this.Consistency >= ConsistencyLevel.Serial)
+            {
+                throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
+            }
+            if (_queryProtocolOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            {
+                if (_queryProtocolOptions.SerialConsistency < ConsistencyLevel.Serial)
+                {
+                    throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
+                }
+            }
         }
 
         public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)

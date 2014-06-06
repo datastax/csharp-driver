@@ -245,12 +245,19 @@ namespace Cassandra
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-
+            WaitForSchemaAgreement(rs.Info.QueriedHost);
         }
 
-        public bool WaitForSchemaAgreement(IPAddress forHost)
+        //TODO: Remove method
+        public bool WaitForSchemaAgreement(IPAddress hostAddress)
         {
-            return true;
+            if (Cluster.Metadata.AllHosts().Count == 1)
+            {
+                return true;
+            }
+            //This is trivial, but there isn't a reliable way to wait for all nodes to have the same schema.
+            Thread.Sleep(1000);
+            return false;
         }
 
         public void Dispose()
@@ -288,6 +295,7 @@ namespace Cassandra
         {
             if (Cluster.Metadata != null)
             {
+                _logger.Warning("Setting host " + host.Address + " as DOWN");
                 Cluster.Metadata.SetDownHost(host.Address, this);
             }
         }

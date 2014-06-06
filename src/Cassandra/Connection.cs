@@ -343,12 +343,26 @@ namespace Cassandra
             //At this point:
             //We have a valid stream id
             //Only 1 thread at a time can be here.
-            _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-            var frameStream = state.Request.GetFrame(streamId, ProtocolVersion).Stream;
-            //We will not use the request, stop reference it.
-            state.Request = null;
-            //Start sending it
-            _tcpSocket.Write(frameStream);
+            try
+            {
+                _logger.Verbose("Sending #" + streamId + " for " + state.Request.GetType().Name);
+                var frameStream = state.Request.GetFrame(streamId, ProtocolVersion).Stream;
+                _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
+                //We will not use the request, stop reference it.
+                state.Request = null;
+                //Start sending it
+                _tcpSocket.Write(frameStream);
+            }
+            catch (Exception ex)
+            {
+                //Prevent dead locking
+                _canWriteNext = true;
+                _logger.Error(ex);
+                //The request was not written
+                _pendingOperations.TryRemove(streamId, out state);
+                _freeOperations.Push(streamId);
+                throw;
+            }
         }
 
         /// <summary>

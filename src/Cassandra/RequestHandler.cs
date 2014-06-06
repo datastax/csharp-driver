@@ -28,7 +28,7 @@ namespace Cassandra
     /// </summary>
     internal class RequestHandler<T>
     {
-        private static Logger _logger = new Logger(typeof(RequestHandler<object>));
+        private static Logger _logger = new Logger(typeof(Session));
         private static IRetryPolicy DefaultRetryPolicy = new DefaultRetryPolicy();
         private TaskCompletionSource<T> _tcs;
         private Session _session;
