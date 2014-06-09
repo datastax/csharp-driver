@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.Core
             //Expect Retry method to be called with a lower consistency level
             mock.Setup(r => r.Retry(It.Is<ConsistencyLevel?>(c => c == ConsistencyLevel.Two))).Verifiable();
             //Fake a Error Result
-            requestHandler.HandleResult(new ReadTimeoutException(ConsistencyLevel.Three, 2, 3, false), null);
+            requestHandler.ResponseHandler(new ReadTimeoutException(ConsistencyLevel.Three, 2, 3, false), null);
 
             mock.Verify();
         }

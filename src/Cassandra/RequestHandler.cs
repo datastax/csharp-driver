@@ -30,14 +30,16 @@ namespace Cassandra
     {
         private static Logger _logger = new Logger(typeof(Session));
         private static IRetryPolicy DefaultRetryPolicy = new DefaultRetryPolicy();
-        private TaskCompletionSource<T> _tcs;
-        private Session _session;
-        private IRequest _request;
-        private IStatement _statement;
-        private IRetryPolicy _retryPolicy;
-        private int _retryCount = 0;
-        private Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
+
+        private Connection _connection;
         private Host _currentHost;
+        private IRequest _request;
+        private IRetryPolicy _retryPolicy;
+        private Session _session;
+        private IStatement _statement;
+        private int _retryCount = 0;
+        private TaskCompletionSource<T> _tcs;
+        private Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
 
         public RequestHandler(Session session, IRequest request, IStatement statement)
         {
@@ -117,28 +119,16 @@ namespace Cassandra
             return decision;
         }
 
-        public void HandleResult(Exception ex, AbstractResponse response)
-        {
-            if (ex != null)
-            {
-                HandleException(ex);
-                return;
-            }
-            if (typeof(T) == typeof(RowSet))
-            {
-                HandleRowSetResult(response);
-            }
-            else if (typeof(T) == typeof(PreparedStatement))
-            {
-                HandlePreparedResult(response);
-            }
-        }
-
         /// <summary>
         /// Checks if the exception is either a Cassandra response error or a socket exception to retry or failover if necessary.
         /// </summary>
         private void HandleException(Exception ex)
         {
+            if (ex is PreparedQueryNotFoundException && (_statement is BoundStatement || _statement is BatchStatement))
+            {
+                PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
+                return;
+            }
             if (ex is SocketException)
             {
                 _session.SetHostDown(_currentHost);
@@ -165,72 +155,139 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Creates the prepared statement and transitions the task to completed
+        /// </summary>
         private void HandlePreparedResult(AbstractResponse response)
+        {
+            ValidateResult(response);
+            var output = ((ResultResponse)response).Output;
+            if (!(output is OutputPrepared))
+            {
+                throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
+            }
+            if (!(_request is PrepareRequest))
+            {
+                throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
+            }
+            var prepared = (OutputPrepared)output;
+            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, prepared.ResultMetadata);
+            _tcs.TrySetResult((T)(object)statement);
+        }
+
+        /// <summary>
+        /// Gets the resulting RowSet and transitions the task to completed.
+        /// </summary>
+        private void HandleRowSetResult(AbstractResponse response)
+        {
+            ValidateResult(response);
+            var output = ((ResultResponse)response).Output;
+            RowSet rs;
+            if (output is OutputRows)
+            {
+                rs = ((OutputRows)output).RowSet;
+            }
+            else
+            {
+                rs = new RowSet();
+            }
+            if (output.TraceId != null)
+            {
+                rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
+            }
+            rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
+            if (_request is ICqlRequest)
+            {
+                rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
+            }
+            if (rs.PagingState != null)
+            {
+                rs.FetchNextPage = (pagingState) =>
+                {
+                    if (_session.IsDisposed)
+                    {
+                        _logger.Warning("Trying to page results using a Session already disposed.");
+                        return new RowSet();
+                    }
+                    _statement.SetPagingState(pagingState);
+                    return _session.Execute(_statement);
+                };
+            }
+            _tcs.TrySetResult((T)(object)rs);
+        }
+
+        private void PrepareAndRetry(byte[] id)
+        {
+            _logger.Info(String.Format("Query {0} is not prepared on {1}, preparing before retrying executing.", id, _currentHost));
+            BoundStatement boundStatement = null;
+            if (_statement is BoundStatement)
+            {
+                boundStatement = (BoundStatement)_statement;
+            }
+            else if (_statement is BatchStatement)
+            {
+                var batch = (BatchStatement)_statement;
+                Func<Statement, bool> search = s => s is BoundStatement && ((BoundStatement)s).PreparedStatement.Id.SequenceEqual(id);
+                boundStatement = (BoundStatement)batch.Queries.FirstOrDefault(search);
+            }
+            if (boundStatement == null)
+            {
+                throw new DriverInternalError("Expected Bound or batch statement");
+            }
+            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
+            _connection.Send(request, ResponseReprepareHandler);
+        }
+
+        /// <summary>
+        /// Generic handler for all the responses
+        /// </summary>
+        public void ResponseHandler(Exception ex, AbstractResponse response)
         {
             try
             {
+                if (ex != null)
+                {
+                    HandleException(ex);
+                    return;
+                }
+                if (typeof(T) == typeof(RowSet))
+                {
+                    HandleRowSetResult(response);
+                }
+                else if (typeof(T) == typeof(PreparedStatement))
+                {
+                    HandlePreparedResult(response);
+                }
+            }
+            catch (Exception handlerException)
+            {
+                _tcs.TrySetException(handlerException);
+            }
+        }
+
+        /// <summary>
+        /// Handles the response of a (re)prepare request and retries to execute on the same connection
+        /// </summary>
+        private void ResponseReprepareHandler(Exception ex, AbstractResponse response)
+        {
+            try
+            {
+                if (ex != null)
+                {
+                    HandleException(ex);
+                    return;
+                }
                 ValidateResult(response);
                 var output = ((ResultResponse)response).Output;
                 if (!(output is OutputPrepared))
                 {
                     throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
                 }
-                if (!(_request is PrepareRequest))
-                {
-                    throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
-                }
-                var prepared = (OutputPrepared)output;
-                var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, prepared.ResultMetadata);
-                _tcs.TrySetResult((T)(object)statement);
+                _connection.Send(_request, ResponseHandler);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                _tcs.TrySetException(ex);
-            }
-        }
-
-        private void HandleRowSetResult(AbstractResponse response)
-        {
-            try
-            {
-                ValidateResult(response);
-                var output = ((ResultResponse)response).Output;
-                RowSet rs;
-                if (output is OutputRows)
-                {
-                    rs = ((OutputRows)output).RowSet;
-                }
-                else
-                {
-                    rs = new RowSet();
-                }
-                if (output.TraceId != null)
-                {
-                    rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
-                }
-                rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
-                if (_request is ICqlRequest)
-                {
-                    rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
-                }
-                if (rs.PagingState != null)
-                {
-                    rs.FetchNextPage = (pagingState) =>
-                    {
-                        if (_session.IsDisposed)
-                        {
-                            _logger.Warning("Trying to page results using a Session already disposed.");
-                            return new RowSet();
-                        }
-                        _statement.SetPagingState(pagingState);
-                        return _session.Execute(_statement);
-                    };
-                }
-                _tcs.TrySetResult((T)(object)rs);
-            }
-            catch (Exception ex)
-            {
-                _tcs.TrySetException(ex);
+                _tcs.TrySetException(exception);
             }
         }
 
@@ -255,8 +312,8 @@ namespace Cassandra
         {
             try
             {
-                var connection = GetNextConnection(_statement);
-                connection.Send(_request, HandleResult);
+                _connection = GetNextConnection(_statement);
+                _connection.Send(_request, ResponseHandler);
             }
             catch (Exception ex)
             {
