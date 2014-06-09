@@ -15,21 +15,6 @@ namespace Cassandra.IntegrationTests.Core
     [Timeout(600000)]
     public class ConnectionTests : SingleNodeClusterTest
     {
-        private TraceLevel _originalTraceLevel;
-
-        public override void TestFixtureSetUp()
-        {
-            _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Error;
-            base.TestFixtureSetUp();
-        }
-
-        public override void TestFixtureTearDown()
-        {
-            base.TestFixtureTearDown();
-            Diagnostics.CassandraTraceSwitch.Level = _originalTraceLevel;
-        }
-
         [Test]
         public void BasicStartupTest()
         {

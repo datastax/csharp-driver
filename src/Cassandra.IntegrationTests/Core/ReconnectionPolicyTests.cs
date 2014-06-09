@@ -142,7 +142,6 @@ namespace Cassandra.IntegrationTests.Core
 
         public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
         {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
             var clusterInfo = TestUtils.CcmSetup(1, builder);
             createSchema(clusterInfo.Session, 1);
 
