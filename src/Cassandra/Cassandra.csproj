@@ -72,19 +72,12 @@
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="ICqlRequest.cs" />
     <Compile Include="ListBackedStream.cs" />
-    <Compile Include="AsyncResult.cs" />
-    <Compile Include="AsyncResultNoResult.cs" />
     <Compile Include="AtomicArray.cs" />
     <Compile Include="AtomicValue.cs" />
     <Compile Include="BigIntegerTypeAdapter.cs" />
     <Compile Include="BoolSwitch.cs" />
     <Compile Include="BoundStatement.cs" />
-    <Compile Include="BufferedProtoBuf.cs" />
-    <Compile Include="BufferingMode.cs" />
     <Compile Include="Builder.cs" />
-    <Compile Include="CassandraConnectionBadProtocolVersionException.cs" />
-    <Compile Include="CassandraConnectionIOException.cs" />
-    <Compile Include="CassandraConnectionTimeoutException.cs" />
     <Compile Include="CassandraEventHandler.cs" />
     <Compile Include="CassandraEventType.cs" />
     <Compile Include="Cluster.cs" />
@@ -100,7 +93,6 @@
     <Compile Include="Exceptions\InvalidTypeException.cs" />
     <Compile Include="Exceptions\ToManyConnectionsPerHost.cs" />
     <Compile Include="Exceptions\TraceRetrievalException.cs" />
-    <Compile Include="Guarded.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="HostDistance.cs" />
     <Compile Include="Hosts.cs" />
@@ -111,7 +103,6 @@
     <Compile Include="IAuthProvider.cs" />
     <Compile Include="ICluster.cs" />
     <Compile Include="IInitializer.cs" />
-    <Compile Include="IProtoBuf.cs" />
     <Compile Include="IQueryRequest.cs" />
     <Compile Include="ISession.cs" />
     <Compile Include="IStatement.cs" />
@@ -122,7 +113,6 @@
     <Compile Include="Logger.cs" />
     <Compile Include="LZ4Compressor.cs" />
     <Compile Include="M3PToken.cs" />
-    <Compile Include="MemoryTributary.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="CassandraEventArgs.cs" />
     <Compile Include="Configuration.cs" />
@@ -172,12 +162,9 @@
     <Compile Include="Exceptions\WriteTimeoutException.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="FrameBuffering.cs" />
-    <Compile Include="IBuffering.cs" />
     <Compile Include="IOutput.cs" />
     <Compile Include="IFrameCompressor.cs" />
     <Compile Include="Murmur\MurmurHash.cs" />
-    <Compile Include="NoBuffering.cs" />
     <Compile Include="NoneAuthProvider.cs" />
     <Compile Include="NullTypeAdapter.cs" />
     <Compile Include="OperationState.cs" />
@@ -235,12 +222,6 @@
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />
     <Compile Include="RequestHandler.cs" />
-    <Compile Include="RequestHandlers\BatchRequestHandler.cs" />
-    <Compile Include="RequestHandlers\ExecuteQueryRequestHandler.cs" />
-    <Compile Include="RequestHandlers\PrepareRequestHandler.cs" />
-    <Compile Include="RequestHandlers\QueryRequestHandler.cs" />
-    <Compile Include="RequestHandlers\RequestHandler.cs" />
-    <Compile Include="StreamProtoBuf.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Statement.cs" />
     <Compile Include="QueryOptions.cs" />
@@ -258,7 +239,6 @@
     <Compile Include="Responses\AuthenticateResponse.cs" />
     <Compile Include="BEBinaryReader.cs" />
     <Compile Include="BEBinaryWriter.cs" />
-    <Compile Include="CassandraConnection.cs" />
     <Compile Include="Requests\PrepareRequest.cs" />
     <Compile Include="Responses\AuthSuccessResponse.cs" />
     <Compile Include="Responses\EventResponse.cs" />

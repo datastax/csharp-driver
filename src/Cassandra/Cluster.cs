@@ -88,7 +88,6 @@ namespace Cassandra
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
             var controlpolicies = new Policies(
-                //new ControlConnectionLoadBalancingPolicy(_configuration.Policies.LoadBalancingPolicy),
                 _configuration.Policies.LoadBalancingPolicy,
                 new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
                 Policies.DefaultRetryPolicy);
@@ -97,11 +96,10 @@ namespace Cassandra
                 Metadata.AddHost(ep);
 
             PoolingOptions poolingOptions = new PoolingOptions()
-                .SetCoreConnectionsPerHost(HostDistance.Local, 0)
+                .SetCoreConnectionsPerHost(HostDistance.Local, 1)
                 .SetMaxConnectionsPerHost(HostDistance.Local, 1)
                 .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
-                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127)
-                ;
+                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127);
 
             var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
                                                           new ProtocolOptions(_configuration.ProtocolOptions.Port,

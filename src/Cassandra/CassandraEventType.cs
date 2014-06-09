@@ -3,7 +3,7 @@ using System;
 namespace Cassandra
 {
     [Flags]
-    public enum CassandraEventType
+    internal enum CassandraEventType
     {
         TopologyChange = 0x01,
         StatusChange = 0x02,

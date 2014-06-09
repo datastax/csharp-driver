@@ -53,6 +53,14 @@ namespace Cassandra
         public event CassandraEventHandler CassandraEventResponse;
         public IFrameCompressor Compressor { get; set; }
 
+        public IPAddress HostAddress
+        {
+            get
+            {
+                return _tcpSocket.IPEndPoint.Address;
+            }
+        }
+
         /// <summary>
         /// Determines the amount of operations that are not finished.
         /// </summary>
@@ -76,7 +84,7 @@ namespace Cassandra
             }
             set
             {
-                if (value == null)
+                if (String.IsNullOrEmpty(value))
                 {
                     return;
                 }

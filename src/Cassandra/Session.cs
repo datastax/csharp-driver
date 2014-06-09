@@ -285,12 +285,6 @@ namespace Cassandra
             Policies.LoadBalancingPolicy.Initialize(Cluster);
         }
 
-        //TODO: Remove
-        internal CassandraConnection Connect(IEnumerator<Host> hostsIter, List<IPAddress> triedHosts, Dictionary<IPAddress, Exception> innerExceptions, out int streamId)
-        {
-            throw new NotImplementedException();
-        }
-
         internal void SetHostDown(Host host)
         {
             if (Cluster.Metadata != null)
