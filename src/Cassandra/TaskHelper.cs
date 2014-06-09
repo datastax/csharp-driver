@@ -81,7 +81,10 @@ namespace Cassandra
                 {
                     throw ex.InnerExceptions[0];
                 }
-                throw;
+                else
+                {
+                    throw;
+                }
             }
             if (task.Status != TaskStatus.RanToCompletion)
             {

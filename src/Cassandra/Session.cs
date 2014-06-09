@@ -95,7 +95,7 @@ namespace Cassandra
         /// <inheritdoc />
         public IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state)
         {
-            throw new NotImplementedException();
+            return PrepareAsync(cqlQuery).ToApm(callback, state);
         }
 
         /// <inheritdoc />
@@ -131,13 +131,20 @@ namespace Cassandra
         /// <inheritdoc />
         public void DeleteKeyspace(string keyspaceName)
         {
-            throw new NotImplementedException();
+            Execute(CqlQueryTools.GetDropKeyspaceCql(keyspaceName, false));
         }
 
         /// <inheritdoc />
         public void DeleteKeyspaceIfExists(string keyspaceName)
         {
-            throw new NotImplementedException();
+            try
+            {
+                DeleteKeyspace(keyspaceName);
+            }
+            catch (InvalidQueryException)
+            {
+                _logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspaceName));
+            }
         }
 
         /// <inheritdoc />
@@ -151,7 +158,9 @@ namespace Cassandra
         /// <inheritdoc />
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
-            throw new NotImplementedException();
+            var task = (Task<PreparedStatement>)ar;
+            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            return task.Result;
         }
 
         /// <inheritdoc />
@@ -275,11 +284,6 @@ namespace Cassandra
             //WaitHandle.WaitAll()
         }
 
-        internal void SetKeyspace(string keyspace)
-        {
-            throw new NotImplementedException();
-        }
-
         internal void Init(bool allocate = false)
         {
             Policies.LoadBalancingPolicy.Initialize(Cluster);
@@ -294,12 +298,6 @@ namespace Cassandra
             }
         }
 
-        //TODO: Remove
-        internal void RequestCallback(IAsyncResult ar)
-        {
-            throw new NotImplementedException();
-        }
-
         internal void SimulateSingleConnectionDown()
         {
             throw new NotImplementedException();
@@ -307,11 +305,6 @@ namespace Cassandra
 
         //TODO: Remove
         internal static object GetTag(IAsyncResult ar)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal static RetryDecision GetRetryDecision(Statement query, QueryValidationException exc, IRetryPolicy policy, int queryRetries)
         {
             throw new NotImplementedException();
         }

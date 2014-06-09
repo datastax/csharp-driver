@@ -218,7 +218,7 @@ namespace Cassandra
 
         private void PrepareAndRetry(byte[] id)
         {
-            _logger.Info(String.Format("Query {0} is not prepared on {1}, preparing before retrying executing.", id, _currentHost));
+            _logger.Info(String.Format("Query {0} is not prepared on {1}, preparing before retrying executing.", BitConverter.ToString(id), _currentHost.Address));
             BoundStatement boundStatement = null;
             if (_statement is BoundStatement)
             {
