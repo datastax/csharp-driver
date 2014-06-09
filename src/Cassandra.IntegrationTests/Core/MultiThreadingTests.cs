@@ -37,7 +37,6 @@ namespace Cassandra.IntegrationTests.Core
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) =>
             {
-                Trace.TraceInformation("o");
                 Thread.Sleep((int)ev.DelayMs);
             };
             this.Builder.WithLoadBalancingPolicy(rp);
@@ -61,7 +60,6 @@ namespace Cassandra.IntegrationTests.Core
 
             for (int KK = 0; KK < 1; KK++)
             {
-                Trace.TraceInformation("Try no:" + KK);
 
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
@@ -93,7 +91,6 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         try
                         {
-                            Trace.TraceInformation("+");
                             lock (monit)
                             {
                                 readyCnt++;
@@ -108,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch
                         {
-                            Trace.TraceInformation("@");
+
                         }
                     }));
                 }
@@ -152,12 +149,11 @@ namespace Cassandra.IntegrationTests.Core
                                 {
                                     localSession.EndExecute(ar[i]);
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
-                                    Trace.TraceInformation("!");
+                                    Trace.TraceError("There was an exception while trying to end the async Execution: " + Environment.NewLine + ex);
                                 }
                                 done.Add(i);
-                                Trace.TraceInformation("-");
                             }
                         }
                     }
@@ -215,13 +211,11 @@ namespace Cassandra.IntegrationTests.Core
 
                 var errorInjector = new Thread(() =>
                 {
-                    Trace.TraceInformation("#");
                     localSession.SimulateSingleConnectionDown();
 
                     for (int i = 0; i < 50; i++)
                     {
                         Thread.Sleep(100);
-                        Trace.TraceInformation("#");
                         localSession.SimulateSingleConnectionDown();
                     }
                 });
@@ -235,7 +229,6 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         try
                         {
-                            Trace.TraceInformation("+");
                             var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
                             localSession.Execute(query, ConsistencyLevel.One);
                             ar[i] = true;
@@ -269,7 +262,6 @@ namespace Cassandra.IntegrationTests.Core
                         if (!done.Contains(i) && ar[i])
                         {
                             done.Add(i);
-                            Trace.TraceInformation("-");
                         }
                     }
                 }
@@ -366,7 +358,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 for (int i = 0; i < RowsNo; i++)
                 {
-                    Trace.TraceInformation("+");
                     int tmpi = i;
                     localSession.BeginExecute(string.Format(@"INSERT INTO {0} (
              tweet_id,
@@ -393,7 +384,6 @@ namespace Cassandra.IntegrationTests.Core
                     if (!done.Contains(i) && ar[i])
                     {
                         done.Add(i);
-                        Trace.TraceInformation("-");
                     }
                 }
             }
@@ -460,7 +450,7 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch (ObjectDisposedException)
                         {
-                            Trace.TraceInformation("*");
+
                         }
                         finally
                         {
@@ -471,7 +461,6 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (ObjectDisposedException)
                 {
-                    Trace.TraceInformation("!");
                     break;
                 }
             }

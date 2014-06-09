@@ -334,7 +334,37 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void ConnectionCloseFaultsAllPendingTasks()
         {
-            throw new NotImplementedException();
+            var connection = CreateConnection();
+            connection.Init();
+            //Queue a lot of read and writes
+            var taskList = new List<Task<AbstractResponse>>();
+            for (var i = 0; i < 1024; i++)
+            {
+                taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces"));
+            }
+            //Wait for the first to finish
+            ValidateResult<OutputRows>(taskList[0].Result);
+            Assert.Greater(connection.InFlight, 0);
+
+            //Close the socket, this would trigger all pending ops to be called back
+            connection.Dispose();
+            try
+            {
+                Task.WaitAll(taskList.ToArray(), 20000);
+            }
+            catch (AggregateException)
+            {
+                //Its alright, it will fail
+            }
+
+            Assert.Greater(taskList.Count(t => t.Status == TaskStatus.RanToCompletion), 0);
+            Assert.Greater(taskList.Count(t => t.Status == TaskStatus.Faulted), 0);
+            Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
+
+            //A new call to write will be called back immediately with an exception
+            var task = Query(connection, "SELECT * FROM system.schema_keyspaces");
+            //It will throw
+            Assert.Throws<AggregateException>(() => task.Wait(50));
         }
 
         private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null)

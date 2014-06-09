@@ -9,7 +9,7 @@ using System.Net;
 namespace Cassandra.Tests
 {
     [TestFixture]
-    public class LoadBalancingUnitTests
+    public class PoliciesUnitTests
     {
         [Test]
         public void RoundRobinIsCyclicTest()
@@ -93,6 +93,32 @@ namespace Cassandra.Tests
             
             //Check that there arent remote nodes.
             Assert.AreEqual(0, followingRounds.Where(h => h.Datacenter != "local").Count());
+        }
+
+        /// <summary>
+        /// Unit test on retry decisions
+        /// </summary>
+        [Test]
+        public void DowngradingConsistencyRetryTest()
+        {
+            var dummyStatement = new SimpleStatement().SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+
+            var handler = new RequestHandler<RowSet>(null, null, dummyStatement);
+            //Retry if 1 of 2 replicas are alive
+            var decision = handler.GetRetryDecision(new UnavailableException(ConsistencyLevel.Two, 2, 1));
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
+
+            //Retry if 2 of 3 replicas are alive
+            decision = handler.GetRetryDecision(new UnavailableException(ConsistencyLevel.Three, 3, 2));
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
+
+            //Throw if 0 replicas are alive
+            decision = handler.GetRetryDecision(new UnavailableException(ConsistencyLevel.Three, 3, 0));
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Rethrow);
+
+            //Retry if 1 of 3 replicas is alive
+            decision = handler.GetRetryDecision(new ReadTimeoutException(ConsistencyLevel.All, 3, 1, false));
+            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
         }
 
         /// <summary>
