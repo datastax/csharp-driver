@@ -20,7 +20,7 @@ namespace Cassandra
         private const byte _maxConcurrentRequests = 128;
         private TcpSocket _tcpSocket;
         private BoolSwitch _isDisposed = new BoolSwitch();
-        private BoolSwitch _isInitialized = new BoolSwitch();
+        private BoolSwitch _isCanceled = new BoolSwitch();
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
@@ -47,6 +47,7 @@ namespace Cassandra
         /// </summary>
         private byte[] _minimalBuffer;
         private volatile string _keyspace;
+        private object _keyspaceLock = new object();
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -92,10 +93,18 @@ namespace Cassandra
                 {
                     return;
                 }
-                this._keyspace = value;
-                var timeout = _tcpSocket.Options.ConnectTimeoutMillis;
-                var request = new QueryRequest("USE " + value, false, QueryProtocolOptions.Default);
-                TaskHelper.WaitToComplete(this.Send(request), timeout);
+                lock (this._keyspaceLock)
+                {
+                    if (value == this._keyspace)
+                    {
+                        return;
+                    }
+                    _logger.Info("Connection to host " + HostAddress + " switching to keyspace " + value);
+                    this._keyspace = value;
+                    var timeout = _tcpSocket.Options.ConnectTimeoutMillis;
+                    var request = new QueryRequest("USE " + value, false, QueryProtocolOptions.Default);
+                    TaskHelper.WaitToComplete(this.Send(request), timeout);
+                }
             }
         }
 
@@ -115,17 +124,44 @@ namespace Cassandra
         /// </summary>
         protected virtual void CancelPending(Exception ex, SocketError? socketError = null)
         {
-            //TODO: Make it thread safe.
+            if (!_isCanceled.TryTake())
+            {
+                return;
+            }
+            if (_pendingOperations.Count == 0 && _writeQueue.Count == 0)
+            {
+                return;
+            }
             _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
+            if (ex == null)
+            {
+                if (socketError != null)
+                {
+                    ex = new SocketException((int)socketError.Value);
+                }
+                else
+                {
+                    //It is closing
+                    ex = new SocketException((int)SocketError.NotConnected);
+                }
+            }
             if (_pendingOperations.Count > 0)
             {
-                //TODO: Callback every pending operation
-                throw new NotImplementedException();
+                //Callback for every pending operation
+                foreach (var item in _pendingOperations)
+                {
+                    item.Value.InvokeCallback(ex);
+                }
+                _pendingOperations.Clear();
             }
             if (_writeQueue.Count > 0)
             {
-                //TODO: Callback all the items in the write queue
-                throw new NotImplementedException();
+                //Callback all the items in the write queue
+                OperationState state = null;
+                while (_writeQueue.TryDequeue(out state))
+                {
+                    state.InvokeCallback(ex);
+                }
             }
         }
 
@@ -157,11 +193,7 @@ namespace Cassandra
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         public virtual void Init()
         {
-            if (!_isInitialized.TryTake())
-            {
-                //MAYBE: If really necessary, we can Wait on the BeginConnect result.
-                return;
-            }
+            //MAYBE: If really necessary, we can Wait on the BeginConnect result.
             //Cassandra supports up to 128 concurrent requests
             _freeOperations = new ConcurrentStack<byte>(Enumerable.Range(0, _maxConcurrentRequests).Select(s => (byte)s));
             _pendingOperations = new ConcurrentDictionary<int, OperationState>();
@@ -335,6 +367,10 @@ namespace Cassandra
         /// </summary>
         public void Send(IRequest request, Action<Exception, AbstractResponse> callback)
         {
+            if (_isCanceled.IsTaken())
+            {
+                callback(new SocketException((int)SocketError.NotConnected), null);
+            }
             //thread safe write queue
             var state = new OperationState
             {
