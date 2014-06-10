@@ -24,7 +24,8 @@ namespace Cassandra
         /// Determines that the connection canceled pending operations.
         /// It could be because its being closed or there was a socket error.
         /// </summary>
-        private BoolSwitch _isCanceled = new BoolSwitch();
+        private volatile bool _isCanceled;
+        private object _cancelLock = new object();
         private AutoResetEvent _pendingWaitHandle;
         /// <summary>
         /// Stores the available stream ids.
@@ -121,7 +122,7 @@ namespace Cassandra
         {
             this.ProtocolVersion = protocolVersion;
             this.Options = options;
-            _tcpSocket = new TcpSocket(endpoint, socketOptions);
+            _tcpSocket = new TcpSocket(endpoint, socketOptions, options.SslOptions);
         }
 
         /// <summary>
@@ -129,43 +130,48 @@ namespace Cassandra
         /// </summary>
         internal void CancelPending(Exception ex, SocketError? socketError = null)
         {
-            if (!_isCanceled.TryTake())
+            //Multiple IO worker threads may been notifying that the socket is closing/in error
+            lock (_cancelLock)
             {
-                return;
-            }
-            if (_pendingOperations.Count == 0 && _writeQueue.Count == 0)
-            {
-                return;
-            }
-            _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
-            if (ex == null)
-            {
-                if (socketError != null)
+                _isCanceled = true;
+                if (_pendingOperations.Count == 0 && _writeQueue.Count == 0)
                 {
-                    ex = new SocketException((int)socketError.Value);
+                    return;
                 }
-                else
+                _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
+                if (ex == null)
                 {
-                    //It is closing
-                    ex = new SocketException((int)SocketError.NotConnected);
+                    if (socketError != null)
+                    {
+                        ex = new SocketException((int)socketError.Value);
+                    }
+                    else
+                    {
+                        //It is closing
+                        ex = new SocketException((int)SocketError.NotConnected);
+                    }
                 }
-            }
-            if (_pendingOperations.Count > 0)
-            {
-                //Callback for every pending operation
-                foreach (var item in _pendingOperations)
+                if (_writeQueue.Count > 0)
                 {
-                    item.Value.InvokeCallback(ex);
+                    //Callback all the items in the write queue
+                    OperationState state = null;
+                    while (_writeQueue.TryDequeue(out state))
+                    {
+                        state.InvokeCallback(ex);
+                    }
                 }
-                _pendingOperations.Clear();
-            }
-            if (_writeQueue.Count > 0)
-            {
-                //Callback all the items in the write queue
-                OperationState state = null;
-                while (_writeQueue.TryDequeue(out state))
+                if (_pendingOperations.Count > 0)
                 {
-                    state.InvokeCallback(ex);
+                    //Callback for every pending operation
+                    foreach (var item in _pendingOperations)
+                    {
+                        item.Value.InvokeCallback(ex);
+                    }
+                    _pendingOperations.Clear();
+                }
+                if (_pendingWaitHandle != null)
+                {
+                    _pendingWaitHandle.Set();
                 }
             }
         }
@@ -229,7 +235,7 @@ namespace Cassandra
 
         private void ReadHandler(byte[] buffer, int bytesReceived)
         {
-            if (_isCanceled.IsTaken())
+            if (_isCanceled)
             {
                 //All pending operations have been canceled, there is no point in reading from the wire.
                 return;
@@ -238,7 +244,7 @@ namespace Cassandra
             var streamIdAvailable = ReadParse(buffer, 0, bytesReceived);
             if (streamIdAvailable)
             {
-                if (_pendingWaitHandle != null && _pendingOperations.Count == 0)
+                if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
                 {
                     _pendingWaitHandle.Set();
                 }
@@ -381,7 +387,7 @@ namespace Cassandra
         /// </summary>
         public void Send(IRequest request, Action<Exception, AbstractResponse> callback)
         {
-            if (_isCanceled.IsTaken())
+            if (_isCanceled)
             {
                 callback(new SocketException((int)SocketError.NotConnected), null);
             }
@@ -484,7 +490,7 @@ namespace Cassandra
             {
                 _pendingWaitHandle = new AutoResetEvent(false);
             }
-            if (_pendingOperations.Count == 0)
+            if (_pendingOperations.Count == 0 && _writeQueue.Count == 0)
             {
                 _pendingWaitHandle.Set();
             }

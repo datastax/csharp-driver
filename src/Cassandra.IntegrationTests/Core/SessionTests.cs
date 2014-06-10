@@ -25,6 +25,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
             //Wait for finish
             Assert.True(localSession.WaitForAllPendingActions(60000), "All handles have received signal");
+            Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "All task should be completed (not pending)");
+            Assert.True(taskList.Any(t => t.Status == TaskStatus.Faulted), "All task should be completed (not faulted)");
             Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "All task should be completed");
             localSession.Dispose();
         }

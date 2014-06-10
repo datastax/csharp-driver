@@ -285,6 +285,29 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void StreamModeReadAndWrite()
+        {
+            var socketOptions = new SocketOptions();
+            using (var connection = CreateConnection(new ProtocolOptions(), new SocketOptions().SetStreamMode(true)))
+            {
+                connection.Init();
+
+                var taskList = new List<Task<AbstractResponse>>();
+                //Run the query multiple times
+                for (var i = 0; i < 129; i++)
+                {
+                    taskList.Add(Query(connection, "SELECT * FROM system.schema_columns", QueryProtocolOptions.Default));
+                }
+                Task.WaitAll(taskList.ToArray());
+                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
+
+                //One last time
+                var task = Query(connection, "SELECT * FROM system.schema_keyspaces");
+                Assert.True(task.Result != null);
+            }
+        }
+
+        [Test]
         public void UseKeyspaceTest()
         {
             using (var connection = CreateConnection())
@@ -350,7 +373,7 @@ namespace Cassandra.IntegrationTests.Core
             connection.Dispose();
             try
             {
-                Task.WaitAll(taskList.ToArray(), 20000);
+                Task.WaitAll(taskList.ToArray());
             }
             catch (AggregateException)
             {

@@ -16,13 +16,19 @@ namespace Cassandra
     /// </summary>
     internal class TcpSocket
     {
+        private static Logger _logger = new Logger(typeof(TcpSocket));
         private Socket _socket;
         private SocketAsyncEventArgs _receiveSocketEvent;
         private SocketAsyncEventArgs _sendSocketEvent;
+        private Stream _socketStream;
+        private byte[] _receiveBuffer;
+        private volatile bool _isClosing = false;
         
         public IPEndPoint IPEndPoint { get; protected set; }
 
         public SocketOptions Options { get; protected set; }
+
+        public SSLOptions SSLOptions { get; set; }
 
         /// <summary>
         /// Event that gets fired when new data is received.
@@ -44,10 +50,11 @@ namespace Cassandra
         /// <summary>
         /// Creates a new instance of TcpSocket using the endpoint and options provided.
         /// </summary>
-        public TcpSocket(IPEndPoint ipEndPoint, SocketOptions options)
+        public TcpSocket(IPEndPoint ipEndPoint, SocketOptions options, SSLOptions sslOptions)
         {
             this.IPEndPoint = ipEndPoint;
             this.Options = options;
+            this.SSLOptions = sslOptions;
         }
 
         /// <summary>
@@ -55,7 +62,6 @@ namespace Cassandra
         /// </summary>
         public void Init()
         {
-
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             if (Options.KeepAlive != null)
             {
@@ -79,11 +85,7 @@ namespace Cassandra
             {
                 _socket.NoDelay = Options.TcpNoDelay.Value;
             }
-            _receiveSocketEvent = new SocketAsyncEventArgs();
-            _receiveSocketEvent.SetBuffer(new byte[_socket.ReceiveBufferSize], 0, _socket.ReceiveBufferSize);
-            _receiveSocketEvent.Completed += OnReceiveCompleted;
-            _sendSocketEvent = new SocketAsyncEventArgs();
-            _sendSocketEvent.Completed += OnSendCompleted;
+            _receiveBuffer = new byte[_socket.ReceiveBufferSize];
         }
 
         /// <summary>
@@ -105,6 +107,25 @@ namespace Cassandra
             //It will throw exceptions in case there was a problem
             _socket.EndConnect(connectResult);
 
+            //Prepare read and write
+            //There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode with APM methods
+            if (SSLOptions == null && !Options.UseStreamMode)
+            {
+                _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
+                //using SocketAsyncEventArgs
+                _receiveSocketEvent = new SocketAsyncEventArgs();
+                _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
+                _receiveSocketEvent.Completed += OnReceiveCompleted;
+                _sendSocketEvent = new SocketAsyncEventArgs();
+                _sendSocketEvent.Completed += OnSendCompleted;
+            }
+            else
+            {
+                _logger.Verbose("Socket connected, start reading using Stream interface");
+                //Stream mode: not the most performant but it has ssl support
+                _socketStream = new NetworkStream(_socket);
+            }
+
             ReceiveAsync();
         }
 
@@ -115,18 +136,26 @@ namespace Cassandra
         protected virtual void ReceiveAsync()
         {
             //Receive the next bytes
-            bool willRaiseEvent = true;
-            try
+            if (_receiveSocketEvent != null)
             {
-                willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
+                bool willRaiseEvent = true;
+                try
+                {
+                    willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
+                }
+                catch (Exception ex)
+                {
+                    OnError(ex);
+                }
+                if (!willRaiseEvent)
+                {
+                    OnReceiveCompleted(this, _receiveSocketEvent);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                OnError(ex);
-            }
-            if (!willRaiseEvent)
-            {
-                OnReceiveCompleted(this, _receiveSocketEvent);
+                //Stream mode
+                _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, new AsyncCallback(OnReceiveStreamCallback), null);
             }
         }
 
@@ -138,18 +167,9 @@ namespace Cassandra
             }
         }
 
-        protected void OnSendCompleted(object sender, SocketAsyncEventArgs e)
-        {
-            if (e.SocketError != SocketError.Success)
-            {
-                OnError(null, e.SocketError);
-            }
-            if (WriteCompleted != null)
-            {
-                WriteCompleted();
-            }
-        }
-
+        /// <summary>
+        /// Handles the receive completed event
+        /// </summary>
         protected void OnReceiveCompleted(object sender, SocketAsyncEventArgs e)
         {
             if (e.SocketError != SocketError.Success)
@@ -173,8 +193,83 @@ namespace Cassandra
             ReceiveAsync();
         }
 
+        /// <summary>
+        /// Handles the callback for BeginRead on Stream mode
+        /// </summary>
+        protected void OnReceiveStreamCallback(IAsyncResult ar)
+        {
+            try
+            {
+                var bytesRead = _socketStream.EndRead(ar);
+                if (bytesRead == 0)
+                {
+                    OnClosing();
+                    return;
+                }
+                //Emit event
+                if (Read != null)
+                {
+                    Read(_receiveBuffer, bytesRead);
+                }
+                ReceiveAsync();
+            }
+            catch (Exception ex)
+            {
+                if (ex is IOException && ex.InnerException is SocketException)
+                {
+                    OnError((SocketException)ex.InnerException);
+                }
+                else
+                {
+                    OnError(ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles the send completed event
+        /// </summary>
+        protected void OnSendCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError != SocketError.Success)
+            {
+                OnError(null, e.SocketError);
+            }
+            if (WriteCompleted != null)
+            {
+                WriteCompleted();
+            }
+        }
+
+        /// <summary>
+        /// Handles the callback for BeginWrite on Stream mode
+        /// </summary>
+        protected void OnSendStreamCallback(IAsyncResult ar)
+        {
+            try
+            {
+                _socketStream.EndWrite(ar);
+            }
+            catch (Exception ex)
+            {
+                if (ex is IOException && ex.InnerException is SocketException)
+                {
+                    OnError((SocketException)ex.InnerException);
+                }
+                else
+                {
+                    OnError(ex);
+                }
+            }
+            if (WriteCompleted != null)
+            {
+                WriteCompleted();
+            }
+        }
+
         protected virtual void OnClosing()
         {
+            _isClosing = true;
             if (Closing != null)
             {
                 Closing();
@@ -186,24 +281,33 @@ namespace Cassandra
         /// </summary>
         public virtual void Write(Stream stream)
         {
+            if (_isClosing)
+            {
+                OnError(new SocketException((int)SocketError.Shutdown));
+            }
             //This can result in OOM
             //A neat improvement would be to write this sync in small buffers when buffer.length > X
             var buffer = Utils.ReadAllBytes(stream, 0);
-
-            _sendSocketEvent.SetBuffer(buffer, 0, buffer.Length);
-
-            bool willRaiseEvent = false;
-            try
+            if (_sendSocketEvent != null)
             {
-                willRaiseEvent = _socket.SendAsync(_sendSocketEvent);
+                _sendSocketEvent.SetBuffer(buffer, 0, buffer.Length);
+                bool willRaiseEvent = false;
+                try
+                {
+                    willRaiseEvent = _socket.SendAsync(_sendSocketEvent);
+                }
+                catch (Exception ex)
+                {
+                    OnError(ex);
+                }
+                if (!willRaiseEvent)
+                {
+                    OnSendCompleted(this, _sendSocketEvent);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                OnError(ex);
-            }
-            if (!willRaiseEvent)
-            {
-                OnSendCompleted(this, _sendSocketEvent);
+                _socketStream.BeginWrite(buffer, 0, buffer.Length, new AsyncCallback(OnSendStreamCallback), null);
             }
         }
 
