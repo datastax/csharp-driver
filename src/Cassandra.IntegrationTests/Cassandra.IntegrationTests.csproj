@@ -84,6 +84,7 @@
     <Compile Include="Core\RequestHandlerTests.cs" />
     <Compile Include="Core\RetryPolicyTests.cs" />
     <Compile Include="Core\SessionExecuteAsyncTests.cs" />
+    <Compile Include="Core\SessionTests.cs" />
     <Compile Include="Core\StressTests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />

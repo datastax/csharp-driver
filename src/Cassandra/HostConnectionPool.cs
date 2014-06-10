@@ -14,15 +14,30 @@ namespace Cassandra
     internal class HostConnectionPool
     {
         public static Logger _logger = new Logger(typeof(HostConnectionPool));
-        public ConcurrentBag<Connection> _connections;
-        public object _poolCreationLock = new object();
+        private ConcurrentBag<Connection> _connections;
+        private object _poolCreationLock = new object();
         private int _creating = 0;
+
+        public Configuration Configuration { get; set; }
+
+        /// <summary>
+        /// Gets a list of connections already opened to the host
+        /// </summary>
+        public IEnumerable<Connection> OpenConnections 
+        { 
+            get
+            {
+                if (_connections == null)
+                {
+                    return new Connection[] { };
+                }
+                return _connections;
+            }
+        }
 
         public Host Host { get; set; }
 
         public HostDistance HostDistance { get; set; }
-
-        public Configuration Configuration { get; set; }
 
         public byte ProtocolVersion { get; set; }
 

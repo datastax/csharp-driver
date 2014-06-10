@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
@@ -66,7 +67,6 @@ namespace Cassandra
             this.Keyspace = keyspace;
             this.BinaryProtocolVersion = binaryProtocolVersion;
             this.Guid = Guid.NewGuid();
-
         }
 
         /// <inheritdoc />
@@ -196,6 +196,29 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets a list of all opened connections to all hosts
+        /// </summary>
+        private List<Connection> GetAllConnections()
+        {
+            var hosts = Cluster.AllHosts();
+            var connections = new List<Connection>();
+            foreach (var host in hosts)
+            {
+                if (!host.IsUp)
+                {
+                    continue;
+                }
+                var distance = this.Policies.LoadBalancingPolicy.Distance(host);
+                var hostPool = this.GetConnectionPool(host, distance);
+                foreach (var c in hostPool.OpenConnections)
+                {
+                    connections.Add(c);
+                }
+            }
+            return connections;
+        }
+
+        /// <summary>
         /// Gets the connection pool for a given host
         /// </summary>
         internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
@@ -257,9 +280,9 @@ namespace Cassandra
             WaitForSchemaAgreement(rs.Info.QueriedHost);
         }
 
-        //TODO: Remove method
         public bool WaitForSchemaAgreement(IPAddress hostAddress)
         {
+            //TODO: Remove method
             if (Cluster.Metadata.AllHosts().Count == 1)
             {
                 return true;
@@ -272,16 +295,37 @@ namespace Cassandra
         public void Dispose()
         {
             //Only dispose once
-            if (Interlocked.Increment(ref _disposed) == 1)
+            if (Interlocked.Increment(ref _disposed) != 1)
             {
-                //TODO: Cancel all pending operations and dispose every connection
+                return;
+            }
+            //Cancel all pending operations and dispose every connection
+            var connections = GetAllConnections();
+            _logger.Info("Disposing session, closing " + connections.Count + " connections.");
+            foreach (var c in connections)
+            {
+                c.CancelPending(null);
+                c.Dispose();
             }
         }
 
-        internal void WaitForAllPendingActions(int timeoutMs)
+        /// <summary>
+        /// Waits for all pending responses to be received on all open connections or until a timeout is reached
+        /// </summary>
+        internal bool WaitForAllPendingActions(int timeout)
         {
-            //TODO: Implement gracefully wait for all pending operations
-            //WaitHandle.WaitAll()
+            if (timeout == Timeout.Infinite)
+            {
+                timeout = Configuration.ClientOptions.QueryAbortTimeout;
+            }
+            var connections = GetAllConnections();
+            if (connections.Count == 0)
+            {
+                return true;
+            }
+            _logger.Info("Waiting for pending operations of " + connections.Count + " connections to complete.");
+            var handles = connections.Select(c => c.WaitPending()).ToArray();
+            return WaitHandle.WaitAll(handles, timeout);
         }
 
         internal void Init(bool allocate = false)
@@ -296,11 +340,6 @@ namespace Cassandra
                 _logger.Warning("Setting host " + host.Address + " as DOWN");
                 Cluster.Metadata.SetDownHost(host.Address, this);
             }
-        }
-
-        internal void SimulateSingleConnectionDown()
-        {
-            throw new NotImplementedException();
         }
 
         //TODO: Remove

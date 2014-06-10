@@ -189,8 +189,11 @@ namespace Cassandra
                 Session ses;
                 if (_connectedSessions.TryRemove(kv.Key, out ses))
                 {
-                    ses.WaitForAllPendingActions(timeoutMs);
-                    ses.Dispose();
+                    if (!ses.IsDisposed)
+                    {
+                        ses.WaitForAllPendingActions(timeoutMs);
+                        ses.Dispose();
+                    }
                 }
             }
             _metadata.ShutDown(timeoutMs);

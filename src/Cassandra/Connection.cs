@@ -21,6 +21,7 @@ namespace Cassandra
         private TcpSocket _tcpSocket;
         private BoolSwitch _isDisposed = new BoolSwitch();
         private BoolSwitch _isCanceled = new BoolSwitch();
+        private AutoResetEvent _pendingWaitHandle;
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
@@ -122,7 +123,7 @@ namespace Cassandra
         /// <summary>
         /// It callbacks all operations already sent / or to be written, that do not have a response.
         /// </summary>
-        protected virtual void CancelPending(Exception ex, SocketError? socketError = null)
+        internal void CancelPending(Exception ex, SocketError? socketError = null)
         {
             if (!_isCanceled.TryTake())
             {
@@ -222,12 +223,21 @@ namespace Cassandra
             //TODO: Authentication
         }
 
-        protected internal virtual void ReadHandler(byte[] buffer, int bytesReceived)
+        private void ReadHandler(byte[] buffer, int bytesReceived)
         {
+            if (_isCanceled.IsTaken())
+            {
+                //All pending operations have been canceled, there is no point in reading from the wire.
+                return;
+            }
             //Parse the data received
             var streamIdAvailable = ReadParse(buffer, 0, bytesReceived);
             if (streamIdAvailable)
             {
+                if (_pendingWaitHandle != null && _pendingOperations.Count == 0)
+                {
+                    _pendingWaitHandle.Set();
+                }
                 //Process a next item in the queue if possible.
                 //Maybe there are there items in the write queue that were waiting on a fresh streamId
                 SendQueueNext();
@@ -462,6 +472,19 @@ namespace Cassandra
             //Only 1 thread can be here at the same time.
             _canWriteNext = true;
             SendQueueNext();
+        }
+
+        internal WaitHandle WaitPending()
+        {
+            if (_pendingWaitHandle == null)
+            {
+                _pendingWaitHandle = new AutoResetEvent(false);
+            }
+            if (_pendingOperations.Count == 0)
+            {
+                _pendingWaitHandle.Set();
+            }
+            return _pendingWaitHandle;
         }
     }
 }
