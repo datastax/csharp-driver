@@ -206,10 +206,5 @@ namespace Cassandra
             Session ses;
             _connectedSessions.TryRemove(s.Guid, out ses);
         }
-
-        ~Cluster()
-        {
-            Shutdown();
-        }
     }
 }

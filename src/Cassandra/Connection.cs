@@ -20,6 +20,10 @@ namespace Cassandra
         private const byte _maxConcurrentRequests = 128;
         private TcpSocket _tcpSocket;
         private BoolSwitch _isDisposed = new BoolSwitch();
+        /// <summary>
+        /// Determines that the connection canceled pending operations.
+        /// It could be because its being closed or there was a socket error.
+        /// </summary>
         private BoolSwitch _isCanceled = new BoolSwitch();
         private AutoResetEvent _pendingWaitHandle;
         /// <summary>
