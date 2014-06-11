@@ -107,22 +107,75 @@ namespace Cassandra
                     }
                     _logger.Info("Connection to host " + HostAddress + " switching to keyspace " + value);
                     this._keyspace = value;
-                    var timeout = _tcpSocket.Options.ConnectTimeoutMillis;
+                    var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
                     var request = new QueryRequest("USE " + value, false, QueryProtocolOptions.Default);
                     TaskHelper.WaitToComplete(this.Send(request), timeout);
                 }
             }
         }
 
-        public ProtocolOptions Options { get; set; }
+        public ProtocolOptions Options { get { return Configuration.ProtocolOptions; } }
 
         public byte ProtocolVersion { get; set; }
 
-        public Connection(byte protocolVersion, IPEndPoint endpoint, ProtocolOptions options, SocketOptions socketOptions)
+        public Configuration Configuration { get; set; }
+
+        public Connection(byte protocolVersion, IPEndPoint endpoint, Configuration configuration)
         {
             this.ProtocolVersion = protocolVersion;
-            this.Options = options;
-            _tcpSocket = new TcpSocket(endpoint, socketOptions, options.SslOptions);
+            this.Configuration = configuration;
+            _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
+        }
+
+        /// <summary>
+        /// Starts the authentication flow
+        /// </summary>
+        /// <exception cref="AuthenticationException" />
+        private void Authenticate()
+        {
+            var provider = Configuration.AuthProvider;
+            if (ProtocolVersion == 1 && provider == NoneAuthProvider.Instance)
+            {
+                //Use protocol v1 authentication flow
+            }
+            else
+            {
+                //Use protocol v2+ authentication flow
+                var authenticator = provider.NewAuthenticator(HostAddress);
+
+                byte[] initialResponse = authenticator.InitialResponse();
+                if (null == initialResponse)
+                {
+                    initialResponse = new byte[0];
+                }
+                Authenticate(initialResponse, authenticator);
+            }
+        }
+
+        /// <exception cref="AuthenticationException" />
+        private void Authenticate(byte[] token, IAuthenticator authenticator)
+        {
+            var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
+            var request = new AuthResponseRequest(token);
+            var response = TaskHelper.WaitToComplete(this.Send(request), timeout);
+            if (response is AuthSuccessResponse)
+            {
+                //It is now authenticated
+                return;
+            }
+            if (response is AuthChallengeResponse)
+            {
+                token = authenticator.EvaluateChallenge((response as AuthChallengeResponse).Token);
+                if (token == null)
+                {
+                    // If we get a null response, then authentication has completed
+                    //return without sending a further response back to the server.
+                    return;
+                }
+                Authenticate(token, authenticator);
+                return;
+            }
+            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
         }
 
         /// <summary>
@@ -202,6 +255,7 @@ namespace Cassandra
         /// Initializes the connection. Thread safe.
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
         public virtual void Init()
         {
             //MAYBE: If really necessary, we can Wait on the BeginConnect result.
@@ -228,9 +282,16 @@ namespace Cassandra
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             _tcpSocket.Connect();
 
-            TaskHelper.WaitToComplete(Startup(), _tcpSocket.Options.ConnectTimeoutMillis);
-
-            //TODO: Authentication
+            var startupTask = Startup();
+            TaskHelper.WaitToComplete(startupTask, _tcpSocket.Options.ConnectTimeoutMillis);
+            if (startupTask.Result is AuthenticateResponse)
+            {
+                Authenticate();
+            }
+            else if (!(startupTask.Result is ReadyResponse))
+            {
+                throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + startupTask.Result.GetType().Name);
+            }
         }
 
         private void ReadHandler(byte[] buffer, int bytesReceived)
@@ -354,7 +415,7 @@ namespace Cassandra
         /// <summary>
         /// Sends a protocol STARTUP message
         /// </summary>
-        private Task Startup()
+        private Task<AbstractResponse> Startup()
         {
             var startupOptions = new Dictionary<string, string>();
             startupOptions.Add("CQL_VERSION", "3.0.0");

@@ -67,7 +67,7 @@ namespace Cassandra
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static void WaitToComplete(Task task, int timeout = System.Threading.Timeout.Infinite)
+        public static T WaitToComplete<T>(Task<T> task, int timeout = System.Threading.Timeout.Infinite)
         {
             //It should wait and throw any exception
             try
@@ -90,6 +90,7 @@ namespace Cassandra
             {
                 throw new TimeoutException("The task didn't complete before timeout.");
             }
+            return task.Result;
         }
 
         /// <summary>

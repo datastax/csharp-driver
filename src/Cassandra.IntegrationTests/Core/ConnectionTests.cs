@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace Cassandra.IntegrationTests.Core
 {
     [Timeout(600000)]
-    public class ConnectionTests : SingleNodeClusterTest
+    public class ConnectionTests
     {
         [Test]
         public void BasicStartupTest()
@@ -310,8 +310,8 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Ignore]
-        public void TestSsl()
+        [Explicit]
+        public void SslTest()
         {
             var certs = new X509CertificateCollection();
             certs.Add(new X509Certificate(@"D:\var\ssl\cassandra_cert2.crt"));
@@ -349,6 +349,44 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(task.Result != null);
             }
         }
+        
+        [Test]
+        [Explicit]
+        public void AuthenticationWithV2Test()
+        {
+            var config = new Configuration(
+                new Cassandra.Policies(),
+                new ProtocolOptions(),
+                new PoolingOptions(),
+                new SocketOptions(),
+                new ClientOptions(),
+                new PlainTextAuthProvider("username", "password"),
+                null,
+                new QueryOptions());
+            using (var connection = CreateConnection(2, config))
+            {
+                //Authentication will happen on init
+                connection.Init();
+                //Try to query
+                var r = TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces"), 60000);
+                Assert.IsInstanceOf<ResultResponse>(r);
+            }
+
+            //Check that it throws an authentication exception when credentials are invalid.
+            config = new Configuration(
+                new Cassandra.Policies(),
+                new ProtocolOptions(),
+                new PoolingOptions(),
+                new SocketOptions(),
+                new ClientOptions(),
+                new PlainTextAuthProvider("WRONGUSERNAME", "password"),
+                null,
+                new QueryOptions());
+            using (var connection = CreateConnection(2, config))
+            {
+                Assert.Throws<AuthenticationException>(connection.Init);
+            }
+        }
 
         [Test]
         public void UseKeyspaceTest()
@@ -370,9 +408,18 @@ namespace Cassandra.IntegrationTests.Core
         {
             var socketOptions = new SocketOptions();
             socketOptions.SetConnectTimeoutMillis(1000);
+            var config = new Configuration(
+                new Cassandra.Policies(), 
+                new ProtocolOptions(), 
+                new PoolingOptions(), 
+                socketOptions, 
+                new ClientOptions(), 
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions());
             try
             {
-                using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), new ProtocolOptions(), socketOptions))
+                using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
                 {
                     connection.Init();
                     Assert.Fail("It must throw an exception");
@@ -385,7 +432,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             try
             {
-                using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), new ProtocolOptions(), socketOptions))
+                using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config))
                 {
                     connection.Init();
                     Assert.Fail("It must throw an exception");
@@ -448,7 +495,21 @@ namespace Cassandra.IntegrationTests.Core
             {
                 protocolOptions = new ProtocolOptions();
             }
-            return new Connection(protocolVersion, new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), protocolOptions, socketOptions);
+            var config = new Configuration(
+                new Cassandra.Policies(),
+                protocolOptions,
+                new PoolingOptions(),
+                socketOptions,
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions());
+            return CreateConnection(protocolVersion, config);
+        }
+
+        private Connection CreateConnection(byte protocolVersion, Configuration config)
+        {
+            return new Connection(protocolVersion, new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config);
         }
 
         private Task<AbstractResponse> Query(Connection connection, string query, QueryProtocolOptions options = null)

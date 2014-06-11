@@ -62,7 +62,7 @@ namespace Cassandra
         {
             _logger.Info("Creating a new connection to the host " + Host.Address.ToString());
             var endpoint = new IPEndPoint(Host.Address, Configuration.ProtocolOptions.Port);
-            var c = new Connection(this.ProtocolVersion, endpoint, Configuration.ProtocolOptions, Configuration.SocketOptions);
+            var c = new Connection(this.ProtocolVersion, endpoint, Configuration);
             c.Init();
             return c;
         }
