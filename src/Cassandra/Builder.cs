@@ -250,7 +250,7 @@ namespace Cassandra
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
         ///  call both this method and {@code withCredentials}' on the same
-        ///  <c>Builder</c> instance as one will supercede the other</p>
+        ///  <c>Builder</c> instance as one will supersede the other</p>
         /// </summary>
         /// <param name="authProvider"> the <link>AuthProvider"></link> to use to login to Cassandra hosts.</param>
         /// <returns>this Builder</returns>

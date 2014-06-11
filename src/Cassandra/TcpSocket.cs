@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace Cassandra
@@ -124,6 +126,20 @@ namespace Cassandra
                 _logger.Verbose("Socket connected, start reading using Stream interface");
                 //Stream mode: not the most performant but it has ssl support
                 _socketStream = new NetworkStream(_socket);
+                if (SSLOptions != null)
+                {
+                    string targetHost = targetHost = IPEndPoint.Address.ToString();
+                    try
+                    {
+                        targetHost = SSLOptions.HostNameResolver(IPEndPoint.Address);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(String.Format("SSL connection: Can not resolve host name for address {0}. Using the IP address instead of the host name. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that the Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.", targetHost), ex);
+                    }
+                    _socketStream = new SslStream(_socketStream, false, SSLOptions.RemoteCertValidationCallback, null);
+                    (_socketStream as SslStream).AuthenticateAsClient(targetHost, SSLOptions.CertificateCollection, SSLOptions.SslProtocol, SSLOptions.CheckCertificateRevocation);
+                }
             }
 
             ReceiveAsync();

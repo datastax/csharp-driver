@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -289,6 +291,47 @@ namespace Cassandra.IntegrationTests.Core
         {
             var socketOptions = new SocketOptions();
             using (var connection = CreateConnection(new ProtocolOptions(), new SocketOptions().SetStreamMode(true)))
+            {
+                connection.Init();
+
+                var taskList = new List<Task<AbstractResponse>>();
+                //Run the query multiple times
+                for (var i = 0; i < 129; i++)
+                {
+                    taskList.Add(Query(connection, "SELECT * FROM system.schema_columns", QueryProtocolOptions.Default));
+                }
+                Task.WaitAll(taskList.ToArray());
+                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
+
+                //One last time
+                var task = Query(connection, "SELECT * FROM system.schema_keyspaces");
+                Assert.True(task.Result != null);
+            }
+        }
+
+        [Test]
+        [Ignore]
+        public void TestSsl()
+        {
+            var certs = new X509CertificateCollection();
+            certs.Add(new X509Certificate(@"D:\var\ssl\cassandra_cert2.crt"));
+            RemoteCertificateValidationCallback callback = (s, cert, chain, policyErrors) =>
+            {
+                if (policyErrors == SslPolicyErrors.None)
+                {
+                    return true; 
+                }
+                else if (policyErrors == SslPolicyErrors.RemoteCertificateChainErrors && 
+                    chain.ChainStatus.Length == 1 && 
+                    chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
+                {
+                    //self issued
+                    return true;
+                }
+                return false;
+            };
+            var sslOptions = new SSLOptions().SetCertificateCollection(certs).SetRemoteCertValidationCallback(callback);
+            using (var connection = CreateConnection(new ProtocolOptions(ProtocolOptions.DefaultPort, sslOptions)))
             {
                 connection.Init();
 
