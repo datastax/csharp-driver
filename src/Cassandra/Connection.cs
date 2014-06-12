@@ -137,6 +137,17 @@ namespace Cassandra
             if (ProtocolVersion == 1 && provider == NoneAuthProvider.Instance)
             {
                 //Use protocol v1 authentication flow
+                var credentialsProvider = Configuration.AuthInfoProvider;
+                var credentials = credentialsProvider.GetAuthInfos(HostAddress);
+                var request = new CredentialsRequest(credentials);
+                var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
+                //If Cassandra replied with a auth response error
+                //The task already is faulted and the exception was already thrown.
+                if (response is ReadyResponse)
+                {
+                    return;
+                }
+                throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
             }
             else
             {
@@ -155,9 +166,8 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         private void Authenticate(byte[] token, IAuthenticator authenticator)
         {
-            var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
             var request = new AuthResponseRequest(token);
-            var response = TaskHelper.WaitToComplete(this.Send(request), timeout);
+            var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
             if (response is AuthSuccessResponse)
             {
                 //It is now authenticated

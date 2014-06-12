@@ -354,6 +354,7 @@ namespace Cassandra.IntegrationTests.Core
         [Explicit]
         public void AuthenticationWithV2Test()
         {
+            byte protocolVersion = 2;
             var config = new Configuration(
                 new Cassandra.Policies(),
                 new ProtocolOptions(),
@@ -363,7 +364,7 @@ namespace Cassandra.IntegrationTests.Core
                 new PlainTextAuthProvider("username", "password"),
                 null,
                 new QueryOptions());
-            using (var connection = CreateConnection(2, config))
+            using (var connection = CreateConnection(protocolVersion, config))
             {
                 //Authentication will happen on init
                 connection.Init();
@@ -382,7 +383,46 @@ namespace Cassandra.IntegrationTests.Core
                 new PlainTextAuthProvider("WRONGUSERNAME", "password"),
                 null,
                 new QueryOptions());
-            using (var connection = CreateConnection(2, config))
+            using (var connection = CreateConnection(protocolVersion, config))
+            {
+                Assert.Throws<AuthenticationException>(connection.Init);
+            }
+        }
+
+        [Test]
+        [Explicit]
+        public void AuthenticationWithV1Test()
+        {
+            byte protocolVersion = 1;
+            var config = new Configuration(
+                new Cassandra.Policies(),
+                new ProtocolOptions(),
+                new PoolingOptions(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                new SimpleAuthInfoProvider(new Dictionary<string, string> { { "username", "username" }, {"password", "password"} }),
+                new QueryOptions());
+            using (var connection = CreateConnection(protocolVersion, config))
+            {
+                //Authentication will happen on init
+                connection.Init();
+                //Try to query
+                var r = TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces"), 60000);
+                Assert.IsInstanceOf<ResultResponse>(r);
+            }
+
+            //Check that it throws an authentication exception when credentials are invalid.
+            config = new Configuration(
+                new Cassandra.Policies(),
+                new ProtocolOptions(),
+                new PoolingOptions(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                new SimpleAuthInfoProvider(new Dictionary<string, string> { { "username", "WRONGUSERNAME" }, { "password", "password" } }),
+                new QueryOptions());
+            using (var connection = CreateConnection(protocolVersion, config))
             {
                 Assert.Throws<AuthenticationException>(connection.Init);
             }
