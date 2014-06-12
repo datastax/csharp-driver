@@ -341,11 +341,5 @@ namespace Cassandra
                 Cluster.Metadata.SetDownHost(host.Address, this);
             }
         }
-
-        //TODO: Remove
-        internal static object GetTag(IAsyncResult ar)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

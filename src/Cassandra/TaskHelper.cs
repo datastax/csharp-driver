@@ -64,6 +64,7 @@ namespace Cassandra
         /// It throws the Aggregate exception when there is more than 1 inner exception.
         /// It throws a TimeoutException when the task didn't complete in the expected time.
         /// </summary>
+        /// <param name="task">the task to wait upon</param>
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
@@ -76,6 +77,7 @@ namespace Cassandra
             }
             catch (AggregateException ex)
             {
+                ex = ex.Flatten();
                 //throw the actual exception when there was a single exception
                 if (ex.InnerExceptions.Count == 1)
                 {

@@ -19,6 +19,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -82,43 +83,6 @@ namespace Cassandra.Data.Linq
             visitor.Evaluate(Expression);
             object[] _;
             return visitor.GetSelect(out _, false);
-        }
-
-        /// <summary>
-        /// Evaluates the Linq query, executes the cql statement and adapts the results.
-        /// </summary>
-        public IEnumerable<TEntity> Execute()
-        {
-            return EndExecute(BeginExecute(null, null));
-        }
-
-        public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
-        {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
-            object[] values;
-            string cql = visitor.GetSelect(out values, withValues);
-
-            return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
-        }
-
-        public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
-        {
-            var outp = InternalEndExecute(ar);
-            QueryTrace = outp.Info.QueryTrace;
-
-            CqlColumn[] cols = outp.Columns;
-            var colToIdx = new Dictionary<string, int>();
-            for (int idx = 0; idx < cols.Length; idx++)
-                colToIdx.Add(cols[idx].Name, idx);
-            IEnumerable<Row> rows = outp.GetRows();
-            var tag = (CqlQueryTag) Session.GetTag(ar);
-            foreach (Row row in rows)
-            {
-                yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
-            }
         }
     }
 }

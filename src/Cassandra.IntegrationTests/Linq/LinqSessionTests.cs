@@ -30,7 +30,49 @@ namespace Cassandra.IntegrationTests.Linq
     public class LinqSessionTests : SingleNodeClusterTest
     {
         [Test]
-        public void LinqBatchInsertAndSelectTest()
+        public void InsertAndSelectExecuteAsync()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            var movie = new NerdMovie
+            {
+                Movie = "Life of Brian",
+                Director = "Terry Jones",
+                MainActor = "Terry Gilliam",
+                Maker = "HandMade Films",
+                Year = 1979
+            };
+            var taskInsert = table.Insert(movie).ExecuteAsync();
+            var rs = taskInsert.Result;
+            Assert.AreEqual(0, rs.Count());
+
+            var taskSelect = table.Where(m => m.Director == "Terry Jones").ExecuteAsync();
+            var movies = taskSelect.Result.ToArray();
+            var count = movies.Length;
+            var resultMovie = movies.First();
+            Assert.AreEqual(movie.Maker, resultMovie.Maker);
+            Assert.AreEqual(movie.Director, resultMovie.Director);
+            Assert.AreEqual(movie.MainActor, resultMovie.MainActor);
+            Assert.AreEqual(movie.Year, resultMovie.Year);
+
+            //Fetch from Cassandra the count
+            var countQueryResult = table
+                .Where(m => m.Director == resultMovie.Director && m.Movie == resultMovie.Movie && m.Maker == resultMovie.Maker)
+                .Count()
+                .ExecuteAsync()
+                .Result;
+
+            Assert.AreEqual(count, countQueryResult);
+
+            var first = table.First(m => m.Director == movie.Director).ExecuteAsync().Result;
+            Assert.AreEqual(movie.Maker, first.Maker);
+            Assert.AreEqual(movie.Director, first.Director);
+            Assert.AreEqual(movie.MainActor, first.MainActor);
+            Assert.AreEqual(movie.Year, first.Year);
+        }
+
+        [Test]
+        public void LinqBatchInsertUpdateSelectTest()
         {
             Table<NerdMovie> table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();

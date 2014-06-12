@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -65,25 +66,23 @@ namespace Cassandra.Data.Linq
             EndExecute(BeginExecute(null, null));
         }
 
-        public abstract IAsyncResult BeginExecute(AsyncCallback callback, object state);
+
+        protected abstract Task<RowSet> InternalExecuteAsync();
+        
+        public Task ExecuteAsync()
+        {
+            return InternalExecuteAsync();
+        }
+
+        public IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            return InternalExecuteAsync().ToApm(callback, state);
+        }
 
         public void EndExecute(IAsyncResult ar)
         {
-            InternalEndExecute(ar);
-        }
-
-        private RowSet InternalEndExecute(IAsyncResult ar)
-        {
-            var tag = (CqlQueryTag) Session.GetTag(ar);
-            var ctx = tag.Session;
-            RowSet outp = ctx.EndExecute(ar);
-            QueryTrace = outp.Info.QueryTrace;
-            return outp;
-        }
-
-        protected struct CqlQueryTag
-        {
-            public ISession Session;
+            var task = (Task)ar;
+            task.Wait();
         }
     }
 }

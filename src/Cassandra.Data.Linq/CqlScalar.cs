@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -11,7 +12,7 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        public TEntity Execute()
+        public new TEntity Execute()
         {
             return EndExecute(BeginExecute(null, null));
         }
@@ -37,7 +38,7 @@ namespace Cassandra.Data.Linq
             return visitor.GetCount(out _, false);
         }
 
-        public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        public new Task<TEntity> ExecuteAsync()
         {
             bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
 
@@ -46,34 +47,26 @@ namespace Cassandra.Data.Linq
 
             object[] values;
             string cql = visitor.GetCount(out values, withValues);
-            return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
+
+            var adaptation =
+                InternalExecuteAsync(cql, values).ContinueWith((t) =>
+                {
+                    var rs = t.Result;
+                    var result = default(TEntity);
+                    var row = rs.FirstOrDefault();
+                    if (row != null)
+                    {
+                        result = (TEntity)row[0];
+                    }
+                    return result;
+                }, TaskContinuationOptions.ExecuteSynchronously);
+            return adaptation;
         }
 
-        public TEntity EndExecute(IAsyncResult ar)
+        public new TEntity EndExecute(IAsyncResult ar)
         {
-            var outp = InternalEndExecute(ar);
-            QueryTrace = outp.Info.QueryTrace;
-
-            CqlColumn[] cols = outp.Columns;
-            if (cols.Length != 1)
-                throw new InvalidOperationException("Single column is expected.");
-
-            IEnumerable<Row> rows = outp.GetRows();
-            bool first = false;
-            TEntity ret = default(TEntity);
-            foreach (Row row in rows)
-            {
-                if (first == false)
-                {
-                    ret = (TEntity) row[0];
-                    first = true;
-                }
-                else
-                    throw new InvalidOperationException("Single row is expected.");
-            }
-            if (!first)
-                throw new InvalidOperationException("Single row is expected.");
-            return ret;
+            var task = (Task<TEntity>)ar;
+            return task.Result;
         }
     }
 }

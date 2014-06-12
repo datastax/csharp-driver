@@ -20,6 +20,7 @@ using NUnit.Framework;
 using System;
 using Moq;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra.Tests
 {
@@ -293,9 +294,9 @@ APPLY BATCH".Replace("\r", ""));
             };
             var actualCqlQueries = new List<IStatement>();
             sessionMock
-                .Setup(s => s.BeginExecute(It.IsAny<IStatement>(), It.IsAny<object>(), It.IsAny<AsyncCallback>(), It.IsAny<object>()))
-                .Callback<IStatement, object, AsyncCallback, object>((stmt2, b, c, d) => actualCqlQueries.Add(stmt2));
-
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(Task<RowSet>.Factory.StartNew(() => new RowSet()))
+                .Callback<IStatement>(stmt2 => actualCqlQueries.Add(stmt2));
 
             //Execute all linq queries
             foreach (var q in linqQueries)

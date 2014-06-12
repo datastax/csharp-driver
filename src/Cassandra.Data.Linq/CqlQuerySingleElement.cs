@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -40,36 +41,21 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        public new Task<TEntity> ExecuteAsync()
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
-            object[] values;
-            string cql = visitor.GetSelect(out values, withValues);
-            return InternalBeginExecute(cql, values, visitor.Mappings, visitor.Alter, callback, state);
+            return base.ExecuteAsync().ContinueWith(t => 
+            {
+                return t.Result.FirstOrDefault();
+            });
         }
 
-        public TEntity EndExecute(IAsyncResult ar)
+        public new TEntity EndExecute(IAsyncResult ar)
         {
-            var rs = InternalEndExecute(ar);
-            Row row = rs.GetRows().FirstOrDefault();
-            if (row == null)
-                if (((MethodCallExpression) Expression).Method.Name == "First")
-                    throw new InvalidOperationException("Sequence contains no elements.");
-                else if (((MethodCallExpression) Expression).Method.Name == "FirstOrDefault")
-                    return default(TEntity);
-
-            CqlColumn[] cols = rs.Columns;
-            var colToIdx = new Dictionary<string, int>();
-            for (int idx = 0; idx < cols.Length; idx++)
-                colToIdx.Add(cols[idx].Name, idx);
-
-            var tag = (CqlQueryTag) Session.GetTag(ar);
-            return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, tag.Mappings, tag.Alter);
+            var task = (Task<TEntity>)ar;
+            return task.Result;
         }
 
-        public TEntity Execute()
+        public new TEntity Execute()
         {
             return EndExecute(BeginExecute(null, null));
         }
