@@ -49,12 +49,11 @@ namespace Cassandra
             this.Configuration = configuration;
         }
 
-        public Connection BorrowConnection(string keyspace)
+        public Connection BorrowConnection()
         {
             MaybeCreateCorePool();
             var connection = _connections.OrderBy(c => c.InFlight).First();
             MaybeSpawnNewConnection(connection.InFlight);
-            connection.Keyspace = keyspace;
             return connection;
         }
 

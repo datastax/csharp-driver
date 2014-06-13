@@ -160,7 +160,6 @@ namespace Cassandra
             _logger.Info("Disposing session, closing " + connections.Count + " connections.");
             foreach (var c in connections)
             {
-                c.CancelPending(null);
                 c.Dispose();
             }
         }
@@ -345,8 +344,15 @@ namespace Cassandra
             return WaitHandle.WaitAll(handles, timeout);
         }
 
-        internal void SetHostDown(Host host)
+        internal void SetHostDown(Host host, Connection connection)
         {
+            if (connection.IsDisposed)
+            {
+                //The connection is being explicitly Disposed
+                //This closes the connection making next calls to the connection to throw socket exceptions.
+                //It does not mean the Host is down, the connection was closed.
+                return;
+            }
             if (Cluster.Metadata != null)
             {
                 _logger.Warning("Setting host " + host.Address + " as DOWN");

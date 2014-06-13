@@ -19,7 +19,7 @@ namespace Cassandra
         private Logger _logger = new Logger(typeof(Connection));
         private const byte _maxConcurrentRequests = 128;
         private TcpSocket _tcpSocket;
-        private BoolSwitch _isDisposed = new BoolSwitch();
+        private int _disposed;
         /// <summary>
         /// Determines that the connection canceled pending operations.
         /// It could be because its being closed or there was a socket error.
@@ -77,6 +77,14 @@ namespace Cassandra
             {
                 return _pendingOperations.Count;
             }
+        }
+
+        /// <summary>
+        /// Determine if the Connection has been explicitly disposed
+        /// </summary>
+        public bool IsDisposed
+        {
+            get { return Thread.VolatileRead(ref _disposed) > 0; }
         }
 
         /// <summary>
@@ -241,8 +249,9 @@ namespace Cassandra
 
         public virtual void Dispose()
         {
-            if (!_isDisposed.TryTake())
+            if (Interlocked.Increment(ref _disposed) != 1)
             {
+                //Only dispose once
                 return;
             }
             _tcpSocket.Dispose();

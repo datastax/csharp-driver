@@ -16,6 +16,7 @@ namespace Cassandra.IntegrationTests
     [TestFixture]
     public abstract class MultipleNodesClusterTest
     {
+        protected static Logger Logger = new Logger(typeof(TestDetails));
         /// <summary>
         /// Gets or sets the Cluster builder for this test
         /// </summary>

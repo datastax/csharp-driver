@@ -73,14 +73,15 @@ namespace Cassandra
                 _triedHosts.Add(host.Address, null);
                 var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
                 var hostPool = _session.GetConnectionPool(host, distance);
+                var connection = hostPool.BorrowConnection();
                 try
                 {
-                    var connection = hostPool.BorrowConnection(_session.Keyspace);
+                    connection.Keyspace = _session.Keyspace;
                     return connection;
                 }
                 catch (SocketException ex)
                 {
-                    _session.SetHostDown(host);
+                    _session.SetHostDown(host, connection);
                     _triedHosts[host.Address] = ex;
                 }
                 catch (Exception ex)
@@ -136,7 +137,7 @@ namespace Cassandra
             }
             if (ex is SocketException)
             {
-                _session.SetHostDown(_currentHost);
+                _session.SetHostDown(_currentHost, _connection);
             }
             var decision = GetRetryDecision(ex);
             switch (decision.DecisionType)
