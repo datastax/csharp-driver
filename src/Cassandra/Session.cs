@@ -148,6 +148,40 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        public void Dispose()
+        {
+            //Only dispose once
+            if (Interlocked.Increment(ref _disposed) != 1)
+            {
+                return;
+            }
+            //Cancel all pending operations and dispose every connection
+            var connections = GetAllConnections();
+            _logger.Info("Disposing session, closing " + connections.Count + " connections.");
+            foreach (var c in connections)
+            {
+                c.CancelPending(null);
+                c.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Initialize the session
+        /// </summary>
+        /// <param name="createConnection">Determine if a connection must be created to test the host</param>
+        internal void Init(bool createConnection)
+        {
+            Policies.LoadBalancingPolicy.Initialize(Cluster);
+
+            if (createConnection)
+            {
+                var handler = new RequestHandler<RowSet>(this, null, null);
+                //Borrow a connection
+                handler.GetNextConnection(null);
+            }
+        }
+
+        /// <inheritdoc />
         public RowSet EndExecute(IAsyncResult ar)
         {
             var task = (Task<RowSet>)ar;
@@ -292,23 +326,6 @@ namespace Cassandra
             return false;
         }
 
-        public void Dispose()
-        {
-            //Only dispose once
-            if (Interlocked.Increment(ref _disposed) != 1)
-            {
-                return;
-            }
-            //Cancel all pending operations and dispose every connection
-            var connections = GetAllConnections();
-            _logger.Info("Disposing session, closing " + connections.Count + " connections.");
-            foreach (var c in connections)
-            {
-                c.CancelPending(null);
-                c.Dispose();
-            }
-        }
-
         /// <summary>
         /// Waits for all pending responses to be received on all open connections or until a timeout is reached
         /// </summary>
@@ -326,11 +343,6 @@ namespace Cassandra
             _logger.Info("Waiting for pending operations of " + connections.Count + " connections to complete.");
             var handles = connections.Select(c => c.WaitPending()).ToArray();
             return WaitHandle.WaitAll(handles, timeout);
-        }
-
-        internal void Init(bool allocate = false)
-        {
-            Policies.LoadBalancingPolicy.Initialize(Cluster);
         }
 
         internal void SetHostDown(Host host)

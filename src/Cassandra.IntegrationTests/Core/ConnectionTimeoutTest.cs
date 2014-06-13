@@ -11,6 +11,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void connectionTimeoutTest()
         {
+            var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             var sw = Stopwatch.StartNew();
             var thrown = false;
             try
@@ -29,8 +31,10 @@ namespace Cassandra.IntegrationTests.Core
 
             sw.Stop();
 
-            Assert.True(thrown);
+            Assert.True(thrown, "Expected exception");
             Assert.True(sw.Elapsed.TotalMilliseconds < 1000, "The connection timeout was not respected");
+
+            Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
         }
     }
 }

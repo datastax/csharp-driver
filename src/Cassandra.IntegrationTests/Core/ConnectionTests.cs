@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace Cassandra.IntegrationTests.Core
 {
     [Timeout(600000)]
-    public class ConnectionTests
+    public class ConnectionTests : SingleNodeClusterTest
     {
         [Test]
         public void BasicStartupTest()

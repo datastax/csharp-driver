@@ -55,6 +55,10 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Gets a connection from the next host according to the load balancing policy
+        /// </summary>
+        /// <exception cref="NoHostAvailableException"></exception>
         internal Connection GetNextConnection(IStatement statement)
         {
             var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);

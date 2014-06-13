@@ -134,7 +134,7 @@ namespace Cassandra
         public ISession Connect(string keyspace)
         {
             var scs = new Session(this, _configuration, keyspace, _binaryProtocolVersion);
-            scs.Init();
+            scs.Init(true);
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
 
