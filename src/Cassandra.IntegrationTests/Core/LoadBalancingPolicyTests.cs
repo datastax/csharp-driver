@@ -13,9 +13,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
-using NUnit.Framework;
 using System;
+using System.Linq;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Net;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -35,9 +37,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             var clusterInfo = TestUtils.CcmSetup(2, builder);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -76,17 +78,24 @@ namespace Cassandra.IntegrationTests.Core
 
             var builder = Cluster.Builder();
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-
-            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", IpPrefix)).Build())
-            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", IpPrefix)).Build())
+            try
             {
-                using (var session1 = (Session) cluster1.Connect())
-                using (var session2 = (Session) cluster2.Connect())
+                using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", IpPrefix)).Build())
+                using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", IpPrefix)).Build())
                 {
-                    Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
-                    Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");
-                    Assert.True(!Object.ReferenceEquals(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy), "Retry policy instances should be different");
+                    using (var session1 = (Session)cluster1.Connect())
+                    using (var session2 = (Session)cluster2.Connect())
+                    {
+                        Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
+                        Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");
+                        Assert.True(!Object.ReferenceEquals(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy), "Retry policy instances should be different");
+                    }
                 }
+            }
+            finally
+            {
+                resetCoordinators();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -95,9 +104,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -132,9 +141,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-            createMultiDCSchema(clusterInfo.Session);
             try
             {
+            createMultiDCSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -156,9 +165,9 @@ namespace Cassandra.IntegrationTests.Core
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             builder.WithQueryTimeout(10000);
             var clusterInfo = TestUtils.CcmSetup(4, builder, null);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
                 resetCoordinators();
@@ -196,9 +205,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-            createMultiDCSchema(clusterInfo.Session);
             try
             {
+                createMultiDCSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -281,6 +290,104 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void TokenAwareTargetsPartitionNoHopsQueryTest()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                createSchema(session, 1);
+                var traces = new List<QueryTrace>();
+                for (var i = 1; i < 10; i++)
+                {
+                    var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
+                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
+                        .Bind(i, i)
+                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
+                        .EnableTracing();
+                    var rs = session.Execute(statement);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there weren't any hops
+                foreach (var t in traces)
+                {
+                    //The coordinator must be the only one executing the query
+                    Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+                }
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void TokenAwareTargetsPartitionNoHopsPrepareTest()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                createSchema(session, 1);
+                var traces = new List<QueryTrace>();
+                var pstmt = session.Prepare("INSERT INTO test (k, i) VALUES (?, ?)");
+                for (var i = 1; i < 10; i++)
+                {
+                    var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
+                    var statement = pstmt
+                        .Bind(i, i)
+                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
+                        .EnableTracing();
+                    var rs = session.Execute(statement);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there weren't any hops
+                foreach (var t in traces)
+                {
+                    //The coordinator must be the only one executing the query
+                    Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+                }
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void TokenAwareTargetsWrongPartitionHopsTest()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            var clusterInfo = TestUtils.CcmSetup(3, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                createSchema(session, 1);
+                var traces = new List<QueryTrace>();
+                for (var i = 1; i < 10; i++)
+                {
+                    var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
+                    //The partition key is wrongly calculated
+                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
+                        .Bind(i, i)
+                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = new byte[] {0, 0, 0, 0} })
+                        .EnableTracing();
+                    var rs = session.Execute(statement);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there were hops
+                var hopsPerQuery = traces.Select(t => t.Events.Any(e => e.Source.ToString() == t.Coordinator.ToString()));
+                Assert.True(hopsPerQuery.Any(v => v));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
@@ -296,9 +403,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(2, builder);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 //clusterInfo.Cluster.RefreshSchema();
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
@@ -361,9 +468,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(2, builder);
-            createSchema(clusterInfo.Session, 2);
             try
             {
+                createSchema(clusterInfo.Session, 2);
 
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);

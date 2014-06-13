@@ -35,6 +35,7 @@ namespace Cassandra
     public class BoundStatement : Statement
     {
         private readonly PreparedStatement _statement;
+        private RoutingKey _routingKey;
 
         /// <summary>
         ///  Gets the prepared statement on which this BoundStatement is based.
@@ -59,13 +60,7 @@ namespace Cassandra
         /// </summary>
         public override RoutingKey RoutingKey
         {
-            get
-            {
-                if (_statement.RoutingKey != null)
-                    return _statement.RoutingKey;
-
-                return null;
-            }
+            get { return _routingKey; }
         }
 
         /// <summary>
@@ -76,6 +71,20 @@ namespace Cassandra
         public BoundStatement(PreparedStatement statement)
         {
             _statement = statement;
+            _routingKey = statement.RoutingKey;
+        }
+        
+        /// <summary>
+        ///  Set the routing key for this query. This method allows to manually
+        ///  provide a routing key for this BoundStatement. It is thus optional since the routing
+        ///  key is only an hint for token aware load balancing policy but is never
+        ///  mandatory.
+        /// </summary>
+        /// <param name="routingKeyComponents"> the raw (binary) values to compose the routing key.</param>
+        public BoundStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
+        {
+            this._routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
         }
 
         internal override IQueryRequest CreateBatchRequest()

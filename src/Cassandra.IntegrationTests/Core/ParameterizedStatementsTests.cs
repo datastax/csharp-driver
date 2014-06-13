@@ -91,17 +91,14 @@ namespace Cassandra.IntegrationTests.Core
             ParameterizedStatementTest(typeof(Int32), true);
         }
 
-        private void ParameterizedStatementTimeStampTest(bool testAsync=false)
+        private void ParameterizedStatementTimeStampTest()
         {
             RowSet rs = null;
             var expectedValues = new List<object[]>(1);
-            var unixtime = new Int64();
-            unixtime = 1398095658;
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             var valuesToTest = new List<object[]> { new object[] { Guid.NewGuid(), new DateTimeOffset(2011, 2, 3, 16, 5, 0, new TimeSpan(0000)) },
-                                                    {new object[] {Guid.NewGuid(), (long)0}},
-                                                    { new object[] { Guid.NewGuid(), unixtime }}};
-            
+                                                    {new object[] {Guid.NewGuid(), (long)0}}};
+
             foreach (var bindValues in valuesToTest)
             {
                 expectedValues.Add(bindValues);
@@ -111,14 +108,7 @@ namespace Cassandra.IntegrationTests.Core
                 SimpleStatement statement = new SimpleStatement(String.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName));
                 statement.Bind(bindValues);
 
-                if (testAsync)
-                {
-                    Session.ExecuteAsync(statement);
-                }
-                else
-                {
-                    Session.Execute(statement);
-                }
+                Session.Execute(statement);
 
                 // Verify results
                 rs = Session.Execute("SELECT * FROM " + tableName);
