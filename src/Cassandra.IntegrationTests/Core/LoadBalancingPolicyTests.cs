@@ -37,9 +37,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             var clusterInfo = TestUtils.CcmSetup(2, builder);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -78,17 +78,24 @@ namespace Cassandra.IntegrationTests.Core
 
             var builder = Cluster.Builder();
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-
-            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", IpPrefix)).Build())
-            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", IpPrefix)).Build())
+            try
             {
-                using (var session1 = (Session) cluster1.Connect())
-                using (var session2 = (Session) cluster2.Connect())
+                using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", IpPrefix)).Build())
+                using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", IpPrefix)).Build())
                 {
-                    Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
-                    Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");
-                    Assert.True(!Object.ReferenceEquals(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy), "Retry policy instances should be different");
+                    using (var session1 = (Session)cluster1.Connect())
+                    using (var session2 = (Session)cluster2.Connect())
+                    {
+                        Assert.True(!Object.ReferenceEquals(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy), "Load balancing policy instances should be different");
+                        Assert.True(!Object.ReferenceEquals(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy), "Reconnection policy instances should be different");
+                        Assert.True(!Object.ReferenceEquals(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy), "Retry policy instances should be different");
+                    }
                 }
+            }
+            finally
+            {
+                resetCoordinators();
+                TestUtils.CcmRemove(clusterInfo);
             }
         }
 
@@ -97,9 +104,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -134,9 +141,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-            createMultiDCSchema(clusterInfo.Session);
             try
             {
+            createMultiDCSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -158,9 +165,9 @@ namespace Cassandra.IntegrationTests.Core
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             builder.WithQueryTimeout(10000);
             var clusterInfo = TestUtils.CcmSetup(4, builder, null);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
                 resetCoordinators();
@@ -198,9 +205,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2", 1));
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
-            createMultiDCSchema(clusterInfo.Session);
             try
             {
+                createMultiDCSchema(clusterInfo.Session);
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
 
@@ -396,9 +403,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(2, builder);
-            createSchema(clusterInfo.Session);
             try
             {
+                createSchema(clusterInfo.Session);
                 //clusterInfo.Cluster.RefreshSchema();
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
@@ -461,9 +468,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(2, builder);
-            createSchema(clusterInfo.Session, 2);
             try
             {
+                createSchema(clusterInfo.Session, 2);
 
                 init(clusterInfo, 12);
                 query(clusterInfo, 12);
