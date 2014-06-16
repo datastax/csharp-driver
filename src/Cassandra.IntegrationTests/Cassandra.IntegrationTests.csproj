@@ -108,7 +108,6 @@
     <Compile Include="Options.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestUtils.cs" />
-    <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TwoNodesClusterTest.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -119,6 +118,10 @@
     <ProjectReference Include="..\Cassandra.Data\Cassandra.Data.csproj">
       <Project>{ee00ce02-f1e6-4f7d-b43c-f6fadce4c72b}</Project>
       <Name>Cassandra.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
+      <Project>{49996688-1380-4854-a32c-048c4014e478}</Project>
+      <Name>Cassandra.Tests</Name>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>

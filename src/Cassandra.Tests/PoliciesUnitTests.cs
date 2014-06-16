@@ -5,6 +5,8 @@ using System.Text;
 using NUnit.Framework;
 using Moq;
 using System.Net;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Cassandra.Tests
 {
@@ -39,7 +41,7 @@ namespace Cassandra.Tests
 
             //test the same but in the following times
             var followingRounds = new List<Host>();
-            for (var i = 0; i < 10; i++ )
+            for (var i = 0; i < 10; i++)
             {
                 followingRounds.AddRange(policy.NewQueryPlan(new SimpleStatement()));
             }
@@ -53,6 +55,51 @@ namespace Cassandra.Tests
                 Assert.AreNotSame(followingRounds[i + 2], followingRounds[i]);
             }
 
+            clusterMock.Verify();
+        }
+
+        [Test]
+        public void RoundRobinIsCyclicTestInParallel()
+        {
+
+            byte hostLength = 4;
+            var hostList = GetHostList(hostLength);
+
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList)
+                .Verifiable();
+
+            //Initialize the balancing policy
+            var policy = new RoundRobinPolicy();
+            policy.Initialize(clusterMock.Object);
+
+            Action action = () =>
+            {
+                var resultingHosts = new List<Host>();
+                var hostEnumerator = policy.NewQueryPlan(new SimpleStatement());
+                foreach (var h in hostEnumerator)
+                {
+                    //Slow down to try to execute it at the same time
+                    Thread.Sleep(50);
+                    resultingHosts.Add(h);
+                }
+                Assert.AreEqual(hostLength, resultingHosts.Count);
+                Assert.AreEqual(hostLength, resultingHosts.Distinct().Count());
+            };
+
+            var actions = new List<Action>();
+            for (var i = 0; i < 100; i++)
+            {
+                actions.Add(action);
+            }
+            
+            var parallelOptions = new ParallelOptions();
+            parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
+            parallelOptions.MaxDegreeOfParallelism = 1000;
+
+            Parallel.Invoke(parallelOptions, actions.ToArray());
             clusterMock.Verify();
         }
 
@@ -91,8 +138,58 @@ namespace Cassandra.Tests
             }
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
             
-            //Check that there arent remote nodes.
+            //Check that there aren't remote nodes.
             Assert.AreEqual(0, followingRounds.Where(h => h.Datacenter != "local").Count());
+        }
+
+        [Test]
+        public void DCAwareRoundRobinPolicyTestInParallel()
+        {
+            byte hostLength = 6;
+            var hostList = new List<Host>();
+            hostList.AddRange(GetHostList(1, 1, "remote1"));
+            hostList.AddRange(GetHostList(1, 1, "remote2"));
+            hostList.AddRange(GetHostList((byte)(hostLength - 3)));
+            hostList.AddRange(GetHostList(1, 2, "remote1"));
+
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList);
+
+            //Initialize the balancing policy
+            var policy = new DCAwareRoundRobinPolicy("local", 1);
+            policy.Initialize(clusterMock.Object);
+
+            Action action = () =>
+            {
+                var resultingHosts = new List<Host>();
+                var hostEnumerator = policy.NewQueryPlan(new SimpleStatement());
+                foreach (var h in hostEnumerator)
+                {
+                    //Slow down to try to execute it at the same time
+                    Thread.Sleep(50);
+                    resultingHosts.Add(h);
+                }
+                //The first hosts should be local
+                Assert.True(resultingHosts.Take(hostLength-3).All(h => h.Datacenter == "local"));
+                //It should return the local hosts first and then 1 per each dc
+                Assert.AreEqual(hostLength - 1, resultingHosts.Count);
+                Assert.AreEqual(hostLength - 1, resultingHosts.Distinct().Count());
+            };
+
+            var actions = new List<Action>();
+            for (var i = 0; i < 100; i++)
+            {
+                actions.Add(action);
+            }
+
+            var parallelOptions = new ParallelOptions();
+            parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
+            parallelOptions.MaxDegreeOfParallelism = 1000;
+
+            Parallel.Invoke(parallelOptions, actions.ToArray());
+            clusterMock.Verify();
         }
 
         /// <summary>

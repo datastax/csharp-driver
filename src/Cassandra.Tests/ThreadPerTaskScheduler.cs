@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra
 {
     public class ThreadPerTaskScheduler : TaskScheduler
     {

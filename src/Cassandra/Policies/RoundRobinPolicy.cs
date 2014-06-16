@@ -74,17 +74,17 @@ namespace Cassandra
         public IEnumerable<Host> NewQueryPlan(IStatement query)
         {
             var copyOfHosts = (from h in _cluster.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            int idxSeed = Interlocked.Increment(ref _index);
+
+            //Overflow protection, not thread safe but it allows 10k concurrent calls, should be enough
+            if (idxSeed > int.MaxValue - 10000)
+            {
+                Interlocked.Exchange(ref _index, 0);
+            }
 
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
-                int idxSeed = Interlocked.Increment(ref _index);
-                //Overflow protection
-                if (idxSeed > int.MaxValue - 10000)
-                {
-                    Interlocked.Exchange(ref _index, 0);
-                }
-
-                var h = copyOfHosts[idxSeed % copyOfHosts.Length];
+                var h = copyOfHosts[(idxSeed + i) % copyOfHosts.Length];
 
                 if (h.IsConsiderablyUp)
                 {
