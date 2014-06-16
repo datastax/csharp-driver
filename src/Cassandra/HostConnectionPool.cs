@@ -49,9 +49,18 @@ namespace Cassandra
             this.Configuration = configuration;
         }
 
+        /// <summary>
+        /// Gets an open connection from the host pool (creating if necessary).
+        /// It returns null if the load balancing policy didn't allow connections to this host.
+        /// </summary>
         public Connection BorrowConnection()
         {
             MaybeCreateCorePool();
+            if (_connections.Count == 0)
+            {
+                //The load balancing policy stated no connections for this host
+                return null;
+            }
             var connection = _connections.OrderBy(c => c.InFlight).First();
             MaybeSpawnNewConnection(connection.InFlight);
             return connection;

@@ -69,11 +69,15 @@ namespace Cassandra
                 {
                     continue;
                 }
-                _currentHost = host;
-                _triedHosts.Add(host.Address, null);
                 var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
                 var hostPool = _session.GetConnectionPool(host, distance);
                 var connection = hostPool.BorrowConnection();
+                if (connection == null)
+                {
+                    continue;
+                }
+                _currentHost = host;
+                _triedHosts.Add(host.Address, null);
                 try
                 {
                     connection.Keyspace = _session.Keyspace;

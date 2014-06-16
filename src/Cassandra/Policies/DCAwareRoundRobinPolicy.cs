@@ -85,7 +85,7 @@ namespace Cassandra
         private string DC(Host host)
         {
             string dc = host.Datacenter;
-            return dc ?? "";
+            return dc ?? this._localDc;
         }
 
         /// <summary>

@@ -18,18 +18,34 @@ using System.Linq;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Net;
+using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("long")]
     public class LoadBalancingPolicyTests : PolicyTestTools
     {
+        protected TraceLevel _originalTraceLevel;
+
         protected virtual string IpPrefix
         {
             get
             {
                 return "127.0.0.";
             }
+        }
+
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
+        {
+            _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+        }
+
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = _originalTraceLevel;
         }
 
         [Test]
@@ -388,6 +404,33 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void DcAwareNeverHitsRemoteDc()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc1"));
+            //create a cluster with 2 nodes on dc1 and another 2 nodes on dc2
+            var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
+            try
+            {
+                var session = clusterInfo.Session;
+                var hosts = new List<IPAddress>();
+                for (var i = 0; i < 50; i++)
+                {
+                    var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                    hosts.Add(rs.Info.QueriedHost);
+                }
+                //Only the ones in the local
+                Assert.True(hosts.Contains(IPAddress.Parse(IpPrefix + "1")), "Only hosts from the local DC should be queried 1");
+                Assert.True(hosts.Contains(IPAddress.Parse(IpPrefix + "2")), "Only hosts from the local DC should be queried 2");
+                Assert.False(hosts.Contains(IPAddress.Parse(IpPrefix + "3")), "Only hosts from the local DC should be queried 3");
+                Assert.False(hosts.Contains(IPAddress.Parse(IpPrefix + "4")), "Only hosts from the local DC should be queried 4");
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
@@ -481,7 +524,6 @@ namespace Cassandra.IntegrationTests.Core
                 assertQueried(IpPrefix + "1", 0);
                 assertQueried(IpPrefix + "2", 12);
                 assertQueried(IpPrefix + "3", 0);
-
             }
             finally
             {
