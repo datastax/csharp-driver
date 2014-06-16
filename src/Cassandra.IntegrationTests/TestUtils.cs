@@ -409,6 +409,11 @@ namespace Cassandra.IntegrationTests
         /// <returns></returns>
         public static ProcessOutput ExecuteLocalCcmClusterRemove(string ccmConfigDir)
         {
+            var output = TestUtils.ExecuteLocalCcm("stop", ccmConfigDir);
+            if (output.ExitCode != 0)
+            {
+                return output;
+            }
             return TestUtils.ExecuteLocalCcm("remove", ccmConfigDir);
         }
 

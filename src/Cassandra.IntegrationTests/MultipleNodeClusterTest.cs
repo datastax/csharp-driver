@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests
             try
             {
                 //Try to close the connections
-                Cluster.Shutdown();
+                Cluster.Shutdown(1000);
             }
             catch
             {
