@@ -13,8 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -24,11 +24,11 @@ namespace Cassandra
     {
         private readonly byte[] _buffer = new byte[4];
         private readonly byte[] _longBuffer = new byte[16];
-        private readonly IProtoBuf _stream;
+        private readonly Stream _stream;
 
-        public BEBinaryReader(ResponseFrame input)
+        public BEBinaryReader(Stream stream)
         {
-            _stream = input.RawStream;
+            _stream = stream;
         }
 
         public byte ReadByte()
@@ -123,7 +123,8 @@ namespace Cassandra
 
         public void Skip(int count)
         {
-            _stream.Skip(count);
+            var buffer = new byte[count];
+            _stream.Read(buffer, 0, count);
         }
     }
 }

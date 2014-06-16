@@ -50,7 +50,7 @@ namespace Cassandra
         /// <summary>
         ///  Return the HostDistance for the provided host. <p> This policy consider all
         ///  nodes as local. This is generally the right thing to do in a single
-        ///  datacenter deployement. If you use multiple datacenter, see
+        ///  datacenter deployment. If you use multiple datacenter, see
         ///  <link>DCAwareRoundRobinPolicy</link> instead.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
@@ -74,21 +74,22 @@ namespace Cassandra
         public IEnumerable<Host> NewQueryPlan(IStatement query)
         {
             var copyOfHosts = (from h in _cluster.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            int idxSeed = Interlocked.Increment(ref _index);
+
+            //Overflow protection, not thread safe but it allows 10k concurrent calls, should be enough
+            if (idxSeed > int.MaxValue - 10000)
+            {
+                Interlocked.Exchange(ref _index, 0);
+            }
 
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
-                int idxSeed = Interlocked.Increment(ref _index);
-
-                // Overflow protection; not theoretically thread safe but should be good enough
-                if (idxSeed > int.MaxValue - 10000)
-                {
-                    Thread.VolatileWrite(ref _index, 0);
-                }
-
-                var h = copyOfHosts[idxSeed % copyOfHosts.Length];
+                var h = copyOfHosts[(idxSeed + i) % copyOfHosts.Length];
 
                 if (h.IsConsiderablyUp)
+                {
                     yield return h;
+                }
             }
         }
     }

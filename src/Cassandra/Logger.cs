@@ -61,19 +61,25 @@ namespace Cassandra
         public void Warning(string msg)
         {
             if (Diagnostics.CassandraTraceSwitch.TraceWarning)
+            {
                 Trace.WriteLine(string.Format("{0} #WARNING: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
+            }
         }
 
         public void Info(string msg)
         {
             if (Diagnostics.CassandraTraceSwitch.TraceInfo)
-                Trace.WriteLine(string.Format("{0} #INFO: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
+            {
+                Trace.WriteLine(string.Format("{0} : {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
+            }
         }
 
         public void Verbose(string msg)
         {
             if (Diagnostics.CassandraTraceSwitch.TraceVerbose)
-                Trace.WriteLine(string.Format("{0} #VERBOSE: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
+            {
+                Trace.WriteLine(string.Format("{0} {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
+            }
         }
     }
 }

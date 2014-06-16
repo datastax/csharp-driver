@@ -24,7 +24,7 @@ namespace Cassandra
     public class ClientOptions
     {
         private readonly string _defaultKeyspace;
-        private readonly int _queryAbortTimeout = Timeout.Infinite;
+        private readonly int _queryAbortTimeout = 60000;
         private readonly bool _withoutRowSetBuffering;
 
         public bool WithoutRowSetBuffering
@@ -43,7 +43,6 @@ namespace Cassandra
         }
 
         public ClientOptions()
-            : this(false, Timeout.Infinite, null)
         {
         }
 

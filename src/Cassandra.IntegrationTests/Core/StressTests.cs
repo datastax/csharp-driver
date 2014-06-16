@@ -25,6 +25,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void ParallelInsertAndSelectSync()
         {
+            var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
             var builder = Cluster.Builder()
                 .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var clusterInfo = TestUtils.CcmSetup(3, builder);
@@ -80,6 +82,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 TestUtils.CcmRemove(clusterInfo);
             }
+            Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
         }
         /// <summary>
         /// In parallel it inserts some records and selects them using Session.Execute sync methods.
@@ -88,6 +91,8 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void ParallelInsertAndSelectSyncWithNodesFailing()
         {
+            var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
             var builder = Cluster.Builder()
                 .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var clusterInfo = TestUtils.CcmSetup(3, builder);
@@ -143,6 +148,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 TestUtils.CcmRemove(clusterInfo);
             }
+            Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
         }
 
         public Action GetInsertAction(ISession session, object bindableStatement, ConsistencyLevel consistency, int rowsPerId)
@@ -180,17 +186,9 @@ namespace Cassandra.IntegrationTests.Core
             {
                 for (var i = 0; i < executeLength; i++)
                 {
-                    try
-                    {
-                        var rs = session.Execute(new SimpleStatement(query).SetPageSize(10).SetConsistencyLevel(consistency));
-                        //Count will iterate through the result set and it will likely to page results
-                        Assert.True(rs.Count() > 0);
-                    }
-                    catch (ReadTimeoutException)
-                    {
-                        //Some node failed in the middle of the query
-                        //It is OK
-                    }
+                    var rs = session.Execute(new SimpleStatement(query).SetPageSize(100).SetConsistencyLevel(consistency).SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
+                    //Count will iterate through the result set and it will likely to page results
+                    Assert.True(rs.Count() > 0);
                 }
             };
             return action;

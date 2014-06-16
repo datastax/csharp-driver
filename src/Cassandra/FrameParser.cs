@@ -15,35 +15,41 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// 
+    /// </summary>
     internal class FrameParser
     {
-        private static readonly Func<ResponseFrame, AbstractResponse>[] ResponseFactoryMethods;
-
-        static FrameParser()
+        /// <summary>
+        /// A factory to get the response handlers 
+        /// </summary>
+        private static readonly Dictionary<byte, Func<ResponseFrame, AbstractResponse>> _responseHandlerFactory = new Dictionary<byte, Func<ResponseFrame, AbstractResponse>>
         {
-            ResponseFactoryMethods = new Func<ResponseFrame, AbstractResponse>[sbyte.MaxValue + 1];
+            {AuthenticateResponse.OpCode, AuthenticateResponse.Create},
+            {ErrorResponse.OpCode, ErrorResponse.Create},
+            {EventResponse.OpCode, EventResponse.Create},
+            {ReadyResponse.OpCode, ReadyResponse.Create},
+            {ResultResponse.OpCode, ResultResponse.Create},
+            {SupportedResponse.OpCode, SupportedResponse.Create},
+            {AuthSuccessResponse.OpCode, AuthSuccessResponse.Create},
+            {AuthChallengeResponse.OpCode, AuthChallengeResponse.Create}
+        };
 
-            // TODO:  Replace with "enhanced enum" pattern?
-            ResponseFactoryMethods[AuthenticateResponse.OpCode] = AuthenticateResponse.Create;
-            ResponseFactoryMethods[ErrorResponse.OpCode] = ErrorResponse.Create;
-            ResponseFactoryMethods[EventResponse.OpCode] = EventResponse.Create;
-            ResponseFactoryMethods[ReadyResponse.OpCode] = ReadyResponse.Create;
-            ResponseFactoryMethods[ResultResponse.OpCode] = ResultResponse.Create;
-            ResponseFactoryMethods[SupportedResponse.OpCode] = SupportedResponse.Create;
-            ResponseFactoryMethods[AuthSuccessResponse.OpCode] = AuthSuccessResponse.Create;
-            ResponseFactoryMethods[AuthChallengeResponse.OpCode] = AuthChallengeResponse.Create;
-        }
-
-        public AbstractResponse Parse(ResponseFrame frame)
+        /// <summary>
+        /// Parses the response frame
+        /// </summary>
+        public static AbstractResponse Parse(ResponseFrame frame)
         {
-            byte opcode = frame.FrameHeader.Opcode;
-            if (ResponseFactoryMethods[opcode] != null)
-                return ResponseFactoryMethods[opcode](frame);
-
-            throw new DriverInternalError("Unknown Response Frame type");
+            byte opcode = frame.Header.Opcode;
+            if (!_responseHandlerFactory.ContainsKey(opcode))
+            {
+                throw new DriverInternalError("Unknown Response Frame type " + opcode);
+            }
+            return _responseHandlerFactory[opcode](frame);
         }
     }
 }

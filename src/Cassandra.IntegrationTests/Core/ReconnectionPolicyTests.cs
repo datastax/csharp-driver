@@ -13,11 +13,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Threading;
+using System.Linq;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -142,7 +144,6 @@ namespace Cassandra.IntegrationTests.Core
 
         public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
         {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
             var clusterInfo = TestUtils.CcmSetup(1, builder);
             createSchema(clusterInfo.Session, 1);
 

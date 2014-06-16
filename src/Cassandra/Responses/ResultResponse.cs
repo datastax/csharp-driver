@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+using System;
 
 namespace Cassandra
 {
@@ -28,8 +29,16 @@ namespace Cassandra
         };
 
         public const byte OpCode = 0x08;
-        public ResultResponseKind Kind;
-        public IOutput Output;
+
+        /// <summary>
+        /// Cassandra result kind
+        /// </summary>
+        public ResultResponseKind Kind { get; private set; }
+
+        /// <summary>
+        /// Output of the result response based on the kind of result
+        /// </summary>
+        public IOutput Output { get; private set; }
 
         internal ResultResponse(ResponseFrame frame) : base(frame)
         {
@@ -40,13 +49,13 @@ namespace Cassandra
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(BeBinaryReader, frame.RawStream is BufferedProtoBuf, TraceId);
+                    Output = new OutputRows(BeBinaryReader, true, TraceId);
                     break;
                 case ResultResponseKind.SetKeyspace:
                     Output = new OutputSetKeyspace(BeBinaryReader.ReadString());
                     break;
                 case ResultResponseKind.Prepared:
-                    Output = new OutputPrepared(BeBinaryReader, frame.FrameHeader.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
+                    Output = new OutputPrepared(BeBinaryReader, frame.Header.Version == ResponseFrame.ProtocolV2ResponseVersionByte);
                     break;
                 case ResultResponseKind.SchemaChange:
                     Output = new OutputSchemaChange(BeBinaryReader, TraceId);

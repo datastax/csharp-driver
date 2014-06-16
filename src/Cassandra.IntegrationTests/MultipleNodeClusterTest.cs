@@ -16,6 +16,7 @@ namespace Cassandra.IntegrationTests
     [TestFixture]
     public abstract class MultipleNodesClusterTest
     {
+        protected static Logger Logger = new Logger(typeof(TestDetails));
         /// <summary>
         /// Gets or sets the Cluster builder for this test
         /// </summary>
@@ -61,6 +62,7 @@ namespace Cassandra.IntegrationTests
             {
                 return;
             }
+            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             this.CcmClusterInfo = TestUtils.CcmSetup(NodeLength, Builder, "tester");
             this.Cluster = this.CcmClusterInfo.Cluster;
@@ -77,7 +79,7 @@ namespace Cassandra.IntegrationTests
             try
             {
                 //Try to close the connections
-                Session.Dispose();
+                Cluster.Shutdown(1000);
             }
             catch
             {

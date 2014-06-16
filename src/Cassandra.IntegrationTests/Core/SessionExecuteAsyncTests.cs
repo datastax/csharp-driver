@@ -25,7 +25,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class SessionExecuteAsyncTests : SingleNodeClusterTest
+    public class SessionExecuteAsyncTests : TwoNodesClusterTest
     {
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()

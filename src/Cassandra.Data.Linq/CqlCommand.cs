@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -95,20 +97,11 @@ namespace Cassandra.Data.Linq
             return (_table as ITable);
         }
 
-        protected IAsyncResult InternalBeginExecute(AsyncCallback callback, object state)
+        public Task<RowSet> ExecuteAsync()
         {
             InitializeStatement();
             var session = GetTable().GetSession();
-            return session.BeginExecute(this, new CqlQueryTag { Session = session }, callback, state);
-        }
-
-        protected RowSet InternalEndExecute(IAsyncResult ar)
-        {
-            var tag = (CqlQueryTag) Session.GetTag(ar);
-            var ctx = tag.Session;
-            RowSet rowSet = ctx.EndExecute(ar);
-            QueryTrace = rowSet.Info.QueryTrace;
-            return rowSet;
+            return session.ExecuteAsync(this);
         }
 
         /// <summary>
@@ -116,7 +109,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public virtual IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            return InternalBeginExecute(callback, state);
+            return ExecuteAsync().ToApm(callback, state);
         }
 
         /// <summary>
@@ -124,12 +117,8 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public virtual void EndExecute(IAsyncResult ar)
         {
-            InternalEndExecute(ar);
-        }
-
-        protected struct CqlQueryTag
-        {
-            public ISession Session;
+            var task = (Task<RowSet>)ar;
+            task.Wait();
         }
     }
 }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -39,6 +40,18 @@ namespace Cassandra.Data.Linq
             _batchScript.Add(cqlCommand);
         }
 
+        protected override Task<RowSet> InternalExecuteAsync()
+        {
+            if (_batchScript.IsEmpty)
+            {
+                return TaskHelper.FromException<RowSet>(new RequestInvalidException("The Batch must contain queries to execute"));
+            }
+            _batchScript.SetBatchType(_batchType);
+            this.CopyQueryPropertiesTo(_batchScript);
+            return _session.ExecuteAsync(_batchScript);
+
+        }
+
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -47,19 +60,6 @@ namespace Cassandra.Data.Linq
                 sb.AppendLine(q + ";");
             sb.Append("APPLY BATCH");
             return sb.ToString();
-        }
-
-        public override IAsyncResult BeginExecute(AsyncCallback callback, object state)
-        {
-            //TODO: Inherit from BatchStatement; replace new instance with this
-            //TODO: Batch to interface
-            if (_batchScript.IsEmpty)
-                throw new ArgumentException("Batch is empty");
-
-            _batchScript.SetBatchType(_batchType);
-            this.CopyQueryPropertiesTo(_batchScript);
-            return _session.BeginExecute(_batchScript,
-                                         new CqlQueryTag {Session = _session}, callback, state);
         }
     }
 }

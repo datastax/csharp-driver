@@ -31,6 +31,7 @@ namespace Cassandra
         private int? _sendBufferSize;
         private int? _soLinger;
         private bool? _tcpNoDelay;
+        private bool _useStreamMode;
 
         public int ConnectTimeoutMillis
         {
@@ -65,6 +66,15 @@ namespace Cassandra
         public int? SendBufferSize
         {
             get { return _sendBufferSize; }
+        }
+
+        /// <summary>
+        /// Determines if the driver should use either .NET NetworkStream interface (true) or SocketEventArgs interface (false, default)
+        /// to handle the reading and writing
+        /// </summary>
+        public bool UseStreamMode
+        {
+            get { return _useStreamMode; }
         }
 
         public SocketOptions SetConnectTimeoutMillis(int connectTimeoutMillis)
@@ -108,7 +118,15 @@ namespace Cassandra
             _sendBufferSize = sendBufferSize;
             return this;
         }
+
+        /// <summary>
+        /// Sets if the driver should use either .NET NetworkStream (true) interface or SocketEventArgs interface (false, default)
+        /// to handle the reading and writing
+        /// </summary>
+        public SocketOptions SetStreamMode(bool useStreamMode)
+        {
+            _useStreamMode = useStreamMode;
+            return this;
+        }
     }
 }
-
-// end namespace

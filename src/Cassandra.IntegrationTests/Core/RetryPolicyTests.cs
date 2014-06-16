@@ -271,28 +271,6 @@ namespace Cassandra.IntegrationTests.Core
             Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
             DowngradingConsistencyRetryPolicyTest(builder);
         }
-        /// <summary>
-        /// Unit test on retry decisions
-        /// </summary>
-        [Test]
-        public void DowngradingConsistencyRetryTest()
-        {
-            //Retry if 1 of 2 replicas are alive
-            var decision = Session.GetRetryDecision(null, new UnavailableException(ConsistencyLevel.Two, 2, 1), DowngradingConsistencyRetryPolicy.Instance, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
-
-            //Retry if 2 of 3 replicas are alive
-            decision = Session.GetRetryDecision(null, new UnavailableException(ConsistencyLevel.Three, 3, 2), DowngradingConsistencyRetryPolicy.Instance, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
-
-            //Throw if 0 replicas are alive
-            decision = Session.GetRetryDecision(null, new UnavailableException(ConsistencyLevel.Three, 3, 0), DowngradingConsistencyRetryPolicy.Instance, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Rethrow);
-
-            //Retry if 1 of 3 replicas is alive
-            decision = Session.GetRetryDecision(null, new ReadTimeoutException(ConsistencyLevel.All, 3, 1, false), DowngradingConsistencyRetryPolicy.Instance, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
-        }
 
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy

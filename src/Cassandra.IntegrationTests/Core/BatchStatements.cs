@@ -11,8 +11,13 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class BatchStatements : SingleNodeClusterTest
+    public class BatchStatements : MultipleNodesClusterTest
     {
+        public BatchStatements() : base(4)
+        {
+
+        }
+
         [Test]
         [TestCassandraVersion(2, 0)]
         public void BatchPreparedStatementTest()

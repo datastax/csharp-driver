@@ -2,17 +2,19 @@ using System.IO;
 
 namespace Cassandra
 {
-    internal struct RequestFrame
+    internal class RequestFrame
     {
-        public const int VersionIdx = 0;
-        public const int FlagsIdx = 1;
-        public const int StreamIdIdx = 2;
-        public const int OpcodeIdIdx = 3;
-        public const int LenIdx = 4;
-        public const int BodyIdx = 8;
-
         public const byte ProtocolV1RequestVersionByte = 0x01;
         public const byte ProtocolV2RequestVersionByte = 0x02;
-        public MemoryTributary Buffer;
+
+        /// <summary>
+        /// Gets or sets the underlying stream that contains the full frame
+        /// </summary>
+        public Stream Stream { get; protected set; }
+
+        public RequestFrame(Stream stream)
+        {
+            this.Stream = stream;
+        }
     }
 }

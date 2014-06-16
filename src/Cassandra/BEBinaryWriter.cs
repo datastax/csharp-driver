@@ -13,97 +13,119 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// It represents a protocol writer
+    /// </summary>
     internal class BEBinaryWriter
     {
-        private readonly BinaryWriter _base;
-        private int _frameSizePos = -1;
-
-        public long Position
-        {
-            get { return _base.BaseStream.Position; }
-        }
+        private readonly ListBackedStream _stream;
+        private byte[] _header;
 
         public long Length
         {
-            get { return _base.BaseStream.Length; }
+            get
+            { 
+                return _stream.Length; 
+            }
+        }
+
+        /// <summary>
+        /// For testing purposes
+        /// </summary>
+        internal byte[] GetBuffer()
+        {
+            var buffer = new byte[_stream.Length];
+            _stream.Position = 0;
+            _stream.Read(buffer, 0, buffer.Length);
+            return buffer;
         }
 
         public BEBinaryWriter()
         {
-            _base = new BinaryWriter(new MemoryTributary());
-        }
-
-        public byte[] GetBuffer()
-        {
-            return (_base.BaseStream as MemoryTributary).ToArray();
+            _stream = new ListBackedStream();
+            _stream.KeepReferences = true;
         }
 
         public void WriteByte(byte value)
         {
-            _base.Write(value);
+            this.Write(new [] {value});
         }
 
+        /// <summary>
+        /// Writes BE uint 16
+        /// </summary>
         public void WriteUInt16(ushort value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
-            Debug.Assert(bytes.Length == 2);
-
-            _base.Write(bytes[1]);
-            _base.Write(bytes[0]);
+            //Invert order
+            this.Write(new[] { bytes[1], bytes[0] });
         }
 
+        /// <summary>
+        /// Writes BE int 16
+        /// </summary>
         public void WriteInt16(short value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
-            Debug.Assert(bytes.Length == 2);
-
-            _base.Write(bytes[1]);
-            _base.Write(bytes[0]);
+            //Invert order
+            this.Write(new[] { bytes[1], bytes[0] });
         }
 
+        /// <summary>
+        /// Writes BE int
+        /// </summary>
         public void WriteInt32(int value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
-            Debug.Assert(bytes.Length == 4);
-
-            _base.Write(bytes[3]);
-            _base.Write(bytes[2]);
-            _base.Write(bytes[1]);
-            _base.Write(bytes[0]);
+            this.Write(bytes.Reverse().ToArray());
         }
 
+        /// <summary>
+        /// Writes protocol <c>string</c> (length + bytes)
+        /// </summary>
         public void WriteString(string str)
         {
             var encoding = new UTF8Encoding();
             byte[] bytes = encoding.GetBytes(str);
             WriteUInt16((ushort) bytes.Length);
-            _base.Write(bytes);
+            this.Write(bytes);
         }
 
+        /// <summary>
+        /// Writes protocol <c>long string</c> (length + bytes)
+        /// </summary>
         public void WriteLongString(string str)
         {
             var encoding = new UTF8Encoding();
             byte[] bytes = encoding.GetBytes(str);
             WriteInt32(bytes.Length);
-            _base.Write(bytes);
+            this.Write(bytes);
         }
 
+        /// <summary>
+        /// Writes protocol <c>string list</c> (length + bytes)
+        /// </summary>
         public void WriteStringList(List<string> l)
         {
             WriteUInt16((ushort) l.Count);
             foreach (string str in l)
+            {
                 WriteString(str);
+            }
         }
 
+        /// <summary>
+        /// Writes protocol <c>bytes</c> (length + bytes)
+        /// </summary>
         public void WriteBytes(byte[] buffer)
         {
             if (buffer == null)
@@ -113,41 +135,49 @@ namespace Cassandra
             else
             {
                 WriteInt32(buffer.Length);
-                _base.Write(buffer);
+                this.Write(buffer);
             }
         }
 
+        /// <summary>
+        /// Writes protocol <c>short bytes</c> (length + bytes)
+        /// </summary>
         public void WriteShortBytes(byte[] buffer)
         {
             WriteInt16((short) buffer.Length);
-            _base.Write(buffer);
-        }
-
-        public void WriteFrameSize()
-        {
-            _frameSizePos = (int) _base.Seek(0, SeekOrigin.Current);
-
-            _base.BaseStream.Seek(4, SeekOrigin.Current); //Reserving space for "length of the frame body" value
-            _base.BaseStream.SetLength(_base.BaseStream.Length + 4);
+            this.Write(buffer);
         }
 
         public void WriteFrameHeader(byte version, byte flags, byte streamId, byte opCode)
         {
-            WriteByte(version);
-            WriteByte(flags);
-            WriteByte(streamId);
-            WriteByte(opCode);
-            WriteFrameSize();
+            _header = new byte[8]
+            {
+                version,
+                flags,
+                streamId,
+                opCode,
+                //Reserved for the body length
+                0, 0, 0, 0
+            };
+            this.Write(_header);
         }
-
 
         public RequestFrame GetFrame()
         {
-            var len = (int) _base.Seek(0, SeekOrigin.Current);
-            Debug.Assert(_frameSizePos != -1);
-            _base.Seek(_frameSizePos, SeekOrigin.Begin);
-            WriteInt32(len - 8);
-            return new RequestFrame {Buffer = (MemoryTributary) _base.BaseStream};
+            //Save the length in the header
+            int bodyLength = (int)_stream.Length - FrameHeader.Size; 
+            byte[] lengthBytes = BitConverter.GetBytes(bodyLength).Reverse().ToArray();
+            //Copy the length bytes into the header, by reference will be used in the stream
+            Buffer.BlockCopy(lengthBytes, 0, _header, 4, 4);
+            return new RequestFrame(_stream);
+        }
+
+        /// <summary>
+        /// Writes the complete buffer to the underlying stream
+        /// </summary>
+        protected void Write(byte[] buffer)
+        {
+            _stream.Write(buffer, 0, buffer.Length);
         }
     }
 }

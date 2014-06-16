@@ -23,18 +23,16 @@ namespace Cassandra
         public const byte OpCode = 0x01;
 
         private readonly IDictionary<string, string> _options;
-        private readonly int _streamId;
 
-        public StartupRequest(int streamId, IDictionary<string, string> options)
+        public StartupRequest(IDictionary<string, string> options)
         {
-            _streamId = streamId;
             _options = options;
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _options.Count);
             foreach (KeyValuePair<string, string> kv in _options)
             {

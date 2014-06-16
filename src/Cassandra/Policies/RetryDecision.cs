@@ -32,8 +32,17 @@ namespace Cassandra
         /// </summary>
         public enum RetryDecisionType
         {
+            /// <summary>
+            /// the operation will be retried. The consistency level of the retry should be specified.
+            /// </summary>
             Retry,
+            /// <summary>
+            /// no retry should be attempted and an exception should be thrown
+            /// </summary>
             Rethrow,
+            /// <summary>
+            /// no retry should be attempted and the exception should be ignored. In that case, the operation that triggered the Cassandra exception will return an empty result set.
+            /// </summary>
             Ignore
         };
 

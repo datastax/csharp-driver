@@ -18,38 +18,61 @@ using System;
 
 namespace Cassandra
 {
-    internal class ExecuteRequest : IQueryRequest
+    internal class ExecuteRequest : IQueryRequest, ICqlRequest
     {
         public const byte OpCode = 0x0A;
-        private readonly ConsistencyLevel? _consistency;
+
+        public ConsistencyLevel Consistency 
+        { 
+            get
+            {
+                return _queryProtocolOptions.Consistency;
+            }
+            set
+            {
+                _queryProtocolOptions.Consistency = value;
+            }
+        }
+
         private readonly byte _flags;
 
         private readonly byte[] _id;
         private readonly RowSetMetadata _metadata;
         private readonly QueryProtocolOptions _queryProtocolOptions;
-        private readonly int _streamId;
 
-        public ExecuteRequest(int streamId, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions,
-                              ConsistencyLevel? consistency = null)
+        public ExecuteRequest(byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions)
         {
-            if (queryProtocolOptions.Values.Length != metadata.Columns.Length)
+            if (metadata != null && queryProtocolOptions.Values.Length != metadata.Columns.Length)
+            {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
-
-            _consistency = consistency;
-            _streamId = streamId;
+            }
             _id = id;
             _metadata = metadata;
             _queryProtocolOptions = queryProtocolOptions;
             if (tracingEnabled)
+            {
                 _flags = 0x02;
+            }
+
+            if (this.Consistency >= ConsistencyLevel.Serial)
+            {
+                throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
+            }
+            if (_queryProtocolOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            {
+                if (_queryProtocolOptions.SerialConsistency < ConsistencyLevel.Serial)
+                {
+                    throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
+                }
+            }
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _flags, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, _flags, streamId, OpCode);
             wb.WriteShortBytes(_id);
-            _queryProtocolOptions.Write(wb, _consistency, protocolVersionByte);
+            _queryProtocolOptions.Write(wb, protocolVersionByte);
 
             return wb.GetFrame();
         }

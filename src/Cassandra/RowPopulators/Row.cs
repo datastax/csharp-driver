@@ -145,7 +145,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the stored value in the colum specified by name
+        /// Gets the stored value in the column specified by name
         /// </summary>
         /// <typeparam name="T">Target type</typeparam>
         /// <param name="name">Name of the column</param>

@@ -37,7 +37,6 @@ namespace Cassandra.IntegrationTests.Core
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) =>
             {
-                Trace.TraceInformation("o");
                 Thread.Sleep((int)ev.DelayMs);
             };
             this.Builder.WithLoadBalancingPolicy(rp);
@@ -61,7 +60,6 @@ namespace Cassandra.IntegrationTests.Core
 
             for (int KK = 0; KK < 1; KK++)
             {
-                Trace.TraceInformation("Try no:" + KK);
 
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
@@ -93,7 +91,6 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         try
                         {
-                            Trace.TraceInformation("+");
                             lock (monit)
                             {
                                 readyCnt++;
@@ -108,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch
                         {
-                            Trace.TraceInformation("@");
+
                         }
                     }));
                 }
@@ -152,12 +149,11 @@ namespace Cassandra.IntegrationTests.Core
                                 {
                                     localSession.EndExecute(ar[i]);
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
-                                    Trace.TraceInformation("!");
+                                    Trace.TraceError("There was an exception while trying to end the async Execution: " + Environment.NewLine + ex);
                                 }
                                 done.Add(i);
-                                Trace.TraceInformation("-");
                             }
                         }
                     }
@@ -177,127 +173,6 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
             localSession.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-        }
-
-        [Test]
-        public void ErrorInjectionInParallelInsertTest()
-        {
-            var localSession = (Session) Cluster.Connect();
-            string keyspaceName = "kp_eipi";
-            localSession.WaitForSchemaAgreement(
-                localSession.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName)));
-            localSession.ChangeKeyspace(keyspaceName);
-
-            for (int KK = 0; KK < 1; KK++)
-            {
-                Trace.TraceInformation("Try no:" + KK);
-
-                string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-                try
-                {
-                    localSession.WaitForSchemaAgreement(
-                        localSession.Execute(string.Format(@"
-                            CREATE TABLE {0}(
-                            tweet_id uuid,
-                            author text,
-                            body text,
-                            isok boolean,
-                            PRIMARY KEY(tweet_id))", tableName)));
-                }
-                catch (AlreadyExistsException)
-                {
-                }
-
-                int RowsNo = 250;
-                var ar = new bool[RowsNo];
-                var threads = new List<Thread>();
-
-                var errorInjector = new Thread(() =>
-                {
-                    Trace.TraceInformation("#");
-                    localSession.SimulateSingleConnectionDown();
-
-                    for (int i = 0; i < 50; i++)
-                    {
-                        Thread.Sleep(100);
-                        Trace.TraceInformation("#");
-                        localSession.SimulateSingleConnectionDown();
-                    }
-                });
-
-                Trace.TraceInformation("Preparing...");
-
-                for (int idx = 0; idx < RowsNo; idx++)
-                {
-                    int i = idx;
-                    threads.Add(new Thread(() =>
-                    {
-                        try
-                        {
-                            Trace.TraceInformation("+");
-                            var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
-                            localSession.Execute(query, ConsistencyLevel.One);
-                            ar[i] = true;
-                            Thread.MemoryBarrier();
-                        }
-                        catch (Exception ex)
-                        {
-                            Trace.TraceInformation(ex.Message);
-                            Trace.TraceInformation(ex.StackTrace);
-                            ar[i] = true;
-                            Thread.MemoryBarrier();
-                        }
-                    }));
-                }
-
-                errorInjector.Start();
-
-                for (int idx = 0; idx < RowsNo; idx++)
-                {
-                    threads[idx].Start();
-                }
-
-                Trace.TraceInformation("Start!");
-
-                var done = new HashSet<int>();
-                while (done.Count < RowsNo)
-                {
-                    for (int i = 0; i < RowsNo; i++)
-                    {
-                        Thread.MemoryBarrier();
-                        if (!done.Contains(i) && ar[i])
-                        {
-                            done.Add(i);
-                            Trace.TraceInformation("-");
-                        }
-                    }
-                }
-
-                errorInjector.Join();
-
-                for (int idx = 0; idx < RowsNo; idx++)
-                {
-                    threads[idx].Join(500);
-                }
-
-                Trace.TraceInformation("Inserted... now we are checking the count");
-
-                var ret = localSession.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
-                Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
-
-                localSession.Execute(string.Format(@"DROP TABLE {0};", tableName));
-            }
-
-
-            try
-            {
-                localSession.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
-            }
-            catch
-            {
-            }
-            localSession.Dispose();
         }
 
         [Test]
@@ -366,7 +241,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 for (int i = 0; i < RowsNo; i++)
                 {
-                    Trace.TraceInformation("+");
                     int tmpi = i;
                     localSession.BeginExecute(string.Format(@"INSERT INTO {0} (
              tweet_id,
@@ -393,7 +267,6 @@ namespace Cassandra.IntegrationTests.Core
                     if (!done.Contains(i) && ar[i])
                     {
                         done.Add(i);
-                        Trace.TraceInformation("-");
                     }
                 }
             }
@@ -460,7 +333,7 @@ namespace Cassandra.IntegrationTests.Core
                         }
                         catch (ObjectDisposedException)
                         {
-                            Trace.TraceInformation("*");
+
                         }
                         finally
                         {
@@ -471,7 +344,6 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (ObjectDisposedException)
                 {
-                    Trace.TraceInformation("!");
                     break;
                 }
             }

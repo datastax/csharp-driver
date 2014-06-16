@@ -23,11 +23,9 @@ namespace Cassandra
         public const byte OpCode = 0x0B;
 
         private readonly List<string> _eventTypes;
-        private readonly int _streamId;
 
-        public RegisterForEventRequest(int streamId, CassandraEventType eventTypes)
+        public RegisterForEventRequest(CassandraEventType eventTypes)
         {
-            _streamId = streamId;
             _eventTypes = new List<string>();
             if ((eventTypes & CassandraEventType.StatusChange) == CassandraEventType.StatusChange)
                 _eventTypes.Add("STATUS_CHANGE");
@@ -37,10 +35,10 @@ namespace Cassandra
                 _eventTypes.Add("SCHEMA_CHANGE");
         }
 
-        public RequestFrame GetFrame(byte protocolVersionByte)
+        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, (byte) _streamId, OpCode);
+            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
             wb.WriteStringList(_eventTypes);
             return wb.GetFrame();
         }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -106,6 +107,62 @@ namespace Cassandra
                     return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Returns a new byte array that is the result of the sum of the 2 byte arrays: [1, 2] + [3, 4] = [1, 2, 3, 4]
+        /// </summary>
+        public static byte[] JoinBuffers(byte[] buffer1, int offset1, int count1, byte[] buffer2, int offset2, int count2)
+        {
+            if (buffer1 == null)
+            {
+                return CopyBuffer(buffer2);
+            }
+            if (buffer2 == null)
+            {
+                return CopyBuffer(buffer1);
+            }
+            var newBuffer = new byte[count1 + count2];
+            Buffer.BlockCopy(buffer1, offset1, newBuffer, 0, count1);
+            Buffer.BlockCopy(buffer2, offset2, newBuffer, count1, count2);
+            return newBuffer;
+        }
+
+        /// <summary>
+        /// Returns a new buffer as a slice of the provided buffer
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="startIndex">zero-based index</param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public static byte[] SliceBuffer(byte[] value, int startIndex, int count)
+        {
+            var newBuffer = new byte[count];
+            Buffer.BlockCopy(value, startIndex, newBuffer, 0, count);
+            return newBuffer;
+        }
+
+        /// <summary>
+        /// Returns a new buffer with the bytes copied from the source buffer
+        /// </summary>
+        public static byte[] CopyBuffer(byte[] buffer)
+        {
+            if (buffer == null)
+            {
+                return null;
+            }
+            return SliceBuffer(buffer, 0, buffer.Length);
+        }
+
+        /// <summary>
+        /// Reads all the bytes in the stream from a given position
+        /// </summary>
+        public static byte[] ReadAllBytes(Stream stream, int position)
+        {
+            var buffer = new byte[stream.Length - position];
+            stream.Position = position;
+            stream.Read(buffer, position, buffer.Length - position);
+            return buffer;
         }
     }
 }

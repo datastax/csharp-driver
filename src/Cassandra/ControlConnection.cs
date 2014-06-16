@@ -21,12 +21,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Cassandra.RequestHandlers;
+using System.Net.Sockets;
 
 namespace Cassandra
 {
     internal class ControlConnection : IDisposable
     {
+        internal const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
 
         private const string SelectLocal =
@@ -35,7 +36,7 @@ namespace Cassandra
         private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
         private const String SelectColumns = "SELECT * FROM system.schema_columns";
-        private readonly AtomicValue<CassandraConnection> _activeConnection = new AtomicValue<CassandraConnection>(null);
+        private readonly AtomicValue<Connection> _activeConnection = new AtomicValue<Connection>(null);
         private readonly Cluster _cluster;
 
         private readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>> _keyspaces =
@@ -48,7 +49,6 @@ namespace Cassandra
         private readonly Session _session;
         private readonly BoolSwitch _shotDown = new BoolSwitch();
         private bool _isDiconnected;
-        private int _lockingStreamId;
 
         internal int BinaryProtocolVersion
         {
@@ -70,8 +70,19 @@ namespace Cassandra
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
 
-            _session = new Session(cluster, policies, protocolOptions, poolingOptions, socketOptions,
-                                   clientOptions, authProvider, authInfoProvider, "", binaryProtocolVersion);
+            var config = new Configuration
+            (
+                policies,
+                protocolOptions,
+                poolingOptions,
+                socketOptions,
+                clientOptions,
+                authProvider,
+                authInfoProvider,
+                new QueryOptions()
+            );
+
+            _session = new Session(cluster, config, "", binaryProtocolVersion);
         }
 
         public void Dispose()
@@ -90,7 +101,7 @@ namespace Cassandra
 
             if (e.What == HostsEventArgs.Kind.Down)
             {
-                if (e.IPAddress.Equals(_activeConnection.Value.GetHostAdress()))
+                if (e.IPAddress.Equals(_activeConnection.Value.HostAddress))
                     act.BeginInvoke(null, ar => { act.EndInvoke(ar); }, null);
             }
             else if (e.What == HostsEventArgs.Kind.Up)
@@ -113,54 +124,23 @@ namespace Cassandra
             if (_shotDown.TryTake())
             {
                 _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
-
-
-                if (_activeConnection.Value != null)
-                    _activeConnection.Value.FreeStreamId(_lockingStreamId);
-
                 _session.WaitForAllPendingActions(timeoutMs);
-                _session.InternalDispose();
+                _session.Dispose();
             }
         }
 
         private void SetupEventListener()
         {
-            var triedHosts = new List<IPAddress>();
-            var innerExceptions = new Dictionary<IPAddress, List<Exception>>();
-
-            IEnumerator<Host> hostsIter = _session.Policies.LoadBalancingPolicy.NewQueryPlan(null).GetEnumerator();
-
-            if (!hostsIter.MoveNext())
+            var handler = new RequestHandler<RowSet>(_session, null, null);
+            var connection = handler.GetNextConnection(null);
+            _activeConnection.Value = connection;
+            _activeConnection.Value.CassandraEventResponse += conn_CassandraEvent;
+            var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
+            var registerTask = _activeConnection.Value.Send(new RegisterForEventRequest(eventTypes));
+            TaskHelper.WaitToComplete(registerTask, 10000);
+            if (!(registerTask.Result is ReadyResponse))
             {
-                var ex = new NoHostAvailableException(new Dictionary<IPAddress, List<Exception>>());
-                _logger.Error(ex);
-                throw ex;
-            }
-
-            _activeConnection.Value = _session.Connect(hostsIter, triedHosts, innerExceptions, out _lockingStreamId);
-
-            int streamId = _activeConnection.Value.AllocateStreamId();
-
-            Exception theExc = null;
-
-            _activeConnection.Value.CassandraEvent += conn_CassandraEvent;
-            using (IOutput ret = _activeConnection.Value.RegisterForCassandraEvent(streamId,
-                                                                                   CassandraEventType.TopologyChange | CassandraEventType.StatusChange |
-                                                                                   CassandraEventType.SchemaChange))
-            {
-                if (!(ret is OutputVoid))
-                {
-                    if (ret is OutputError)
-                        theExc = (ret as OutputError).CreateException();
-                    else
-                        theExc = new DriverInternalError("Expected Error on Output");
-                }
-            }
-
-            if (theExc != null)
-            {
-                _logger.Error(theExc);
-                throw theExc;
+                throw new DriverInternalError("Expected ReadyResponse, obtained " + registerTask.Result.GetType().Name);
             }
         }
 
@@ -180,7 +160,7 @@ namespace Cassandra
                     if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                     {
                         _cluster.Metadata.RemoveHost(tce.Address);
-                        SetupControlConnection(_activeConnection.Value == null ? false : !tce.Address.Equals(_activeConnection.Value.GetHostAdress()));
+                        SetupControlConnection(_activeConnection.Value == null ? false : !tce.Address.Equals(_activeConnection.Value.HostAddress));
                         return;
                     }
                 }
@@ -262,13 +242,13 @@ namespace Cassandra
                     _logger.Error("ControlConnection is lost now.");
                     return false;
                 }
+                catch (SocketException)
+                {
+                    _logger.Error("ControlConnection is lost now.");
+                    return false;
+                }
                 catch (Exception ex)
                 {
-                    if (CassandraConnection.IsStreamRelatedException(ex))
-                    {
-                        _logger.Error("ControlConnection is lost now.");
-                        return false;
-                    }
                     _logger.Error("Unexpected error occurred during forced ControlConnection refresh.", ex);
                     throw;
                 }
@@ -308,22 +288,19 @@ namespace Cassandra
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                     }
                 }
+                catch (SocketException)
+                {
+                    _isDiconnected = true;
+                    if (!_shotDown.IsTaken())
+                    {
+                        _logger.Error("ControlConnection is lost. Retrying..");
+                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                    }
+                }
                 catch (Exception ex)
                 {
                     _isDiconnected = true;
-                    if (CassandraConnection.IsStreamRelatedException(ex))
-                    {
-                        if (!_shotDown.IsTaken())
-                        {
-                            _logger.Error("ControlConnection is lost. Retrying..");
-                            _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                        }
-                    }
-                    else
-                    {
-                        _logger.Error("Unexpected error occurred during ControlConnection refresh.", ex);
-//                        throw;
-                    }
+                    _logger.Error("Unexpected error occurred during ControlConnection refresh.", ex);
                 }
             }
         }
@@ -342,10 +319,7 @@ namespace Cassandra
             var racks = new List<string>();
             var allTokens = new List<HashSet<string>>();
             {
-                int sessionId = _activeConnection.Value.AllocateStreamId();
-                var rowset = ProcessRowset( 
-                    _activeConnection.Value.Query(
-                        sessionId, SelectPeers, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()), SelectPeers);
+                var rowset = Query(SelectPeers);
                 
                 foreach (Row row in rowset.GetRows())
                 {
@@ -378,14 +352,11 @@ namespace Cassandra
                 }
             }
             {
-                int streamId = _activeConnection.Value.AllocateStreamId();
-                Host localhost = _cluster.Metadata.GetHost(_activeConnection.Value.GetHostAdress());
+                Host localhost = _cluster.Metadata.GetHost(_activeConnection.Value.HostAddress);
 
-                var rowset = ProcessRowset(
-                    _activeConnection.Value.Query(
-                        streamId, SelectLocal, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()), SelectLocal);
+                var rowset = Query(SelectLocal);
                 // Update cluster name, DC and rack for the one node we are connected to
-                foreach (Row localRow in rowset.GetRows())
+                foreach (Row localRow in rowset)
                 {
                     var clusterName = localRow.GetValue<string>("cluster_name");
                     if (clusterName != null)
@@ -428,7 +399,7 @@ namespace Cassandra
             // Removes all those that seems to have been removed (since we lost the control connection)
             var foundHostsSet = new HashSet<IPAddress>(foundHosts);
             foreach (IPAddress host in _cluster.Metadata.AllReplicas())
-                if (!host.Equals(_activeConnection.Value.GetHostAdress()) && !foundHostsSet.Contains(host))
+                if (!host.Equals(_activeConnection.Value.HostAddress) && !foundHostsSet.Contains(host))
                     _cluster.Metadata.RemoveHost(host);
 
             if (partitioner != null)
@@ -437,19 +408,27 @@ namespace Cassandra
             _logger.Info("NodeList and TokenMap have been successfully refreshed!");
         }
 
+        private RowSet Query(string cqlQuery)
+        {
+            var request = new QueryRequest(cqlQuery, false, QueryProtocolOptions.Default);
+            var task = _activeConnection.Value.Send(request);
+            TaskHelper.WaitToComplete(task, 10000);
+            if (!(task.Result is ResultResponse) && !(((ResultResponse)task.Result).Output is OutputRows))
+            {
+                throw new DriverInternalError("Expected rows " + task.Result);
+            }
+            return ((task.Result as ResultResponse).Output as OutputRows).RowSet;
+        }
+
         private bool WaitForSchemaAgreement()
         {
             DateTimeOffset start = DateTimeOffset.Now;
             long elapsed = 0;
-            while (elapsed < Session.MaxSchemaAgreementWaitMs)
+            while (elapsed < MaxSchemaAgreementWaitMs)
             {
                 var versions = new HashSet<Guid>();
                 {
-                    int streamId = _activeConnection.Value.AllocateStreamId();
-                    var rowset =
-                            ProcessRowset(
-                                _activeConnection.Value.Query(streamId, CqlQueryTools.SelectSchemaPeers, false, QueryProtocolOptions.Default,
-                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()), CqlQueryTools.SelectSchemaPeers);
+                    var rowset = Query(CqlQueryTools.SelectSchemaPeers);
                     foreach (Row row in rowset.GetRows())
                     {
                         if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
@@ -467,11 +446,7 @@ namespace Cassandra
                 }
 
                 {
-                    int streamId = _activeConnection.Value.AllocateStreamId();
-                    var rowset =
-                            ProcessRowset(
-                                _activeConnection.Value.Query(streamId, CqlQueryTools.SelectSchemaLocal, false, QueryProtocolOptions.Default,
-                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()), CqlQueryTools.SelectSchemaLocal);
+                    var rowset = Query(CqlQueryTools.SelectSchemaLocal);
                     // Update cluster name, DC and rack for the one node we are connected to
                     foreach (Row localRow in rowset.GetRows())
                     {
@@ -495,36 +470,7 @@ namespace Cassandra
             return false;
         }
 
-        private RowSet ProcessRowset(IOutput outp, string originCqlQuery)
-        {
-            using (outp)
-            {
-                if (outp is OutputError)
-                {
-                    DriverException ex = (outp as OutputError).CreateException();
-                    _logger.Error(ex);
-                    throw ex;
-                }
-                else if (outp is OutputVoid)
-                    return null;
-                else if (outp is OutputSchemaChange)
-                    return null;
-                else if (outp is OutputRows)
-                {
-                    var queryHandler = new QueryRequestHandler();
-                    return queryHandler.ProcessResponse(outp, _session);
-                }
-                else
-                {
-                    var ex = new DriverInternalError("Unexpected output kind");
-                    _logger.Error(ex);
-                    throw ex;
-                }
-            }
-        }
-
-
-        internal void SubmitSchemaRefresh(string keyspace, string table, AsyncResultNoResult ar = null)
+        internal void SubmitSchemaRefresh(string keyspace, string table)
         {
             if (keyspace == null)
                 ResetSchema();
@@ -545,11 +491,8 @@ namespace Cassandra
             if (ks == null)
             {
                 var newKeyspaces = new ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>();
-                int streamId = _activeConnection.Value.AllocateStreamId();
-                var rows = ProcessRowset(
-                    _activeConnection.Value.Query(
-                        streamId, SelectKeyspaces, false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()), SelectKeyspaces);
-                foreach (Row row in rows.GetRows())
+                var rows = Query(SelectKeyspaces);
+                foreach (Row row in rows)
                 {
                     var strKsName = row.GetValue<string>("keyspace_name");
                     string strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
@@ -588,13 +531,9 @@ namespace Cassandra
                 KeyspaceMetadata ks = null;
 
                 {
-                    int streamId = _activeConnection.Value.AllocateStreamId();
-                    var rows = ProcessRowset(_activeConnection.Value.Query(streamId, string.Format(
-                        SelectKeyspaces + " WHERE keyspace_name='{0}';",
-                        keyspace), false, QueryProtocolOptions.Default, _cluster.Configuration.QueryOptions.GetConsistencyLevel()), string.Format(
-                            SelectKeyspaces + " WHERE keyspace_name='{0}';",
-                            keyspace));
-                    foreach (Row row in rows.GetRows())
+                    var cqlQuery = String.Format(SelectKeyspaces + " WHERE keyspace_name='{0}';", keyspace);
+                    var rows = Query(cqlQuery);
+                    foreach (Row row in rows)
                     {
                         var strKsName = row.GetValue<string>("keyspace_name");
                         string strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
@@ -608,15 +547,10 @@ namespace Cassandra
                 }
 
                 {
-                    int streamId = _activeConnection.Value.AllocateStreamId();
                     var ktb = new ConcurrentDictionary<string, AtomicValue<TableMetadata>>();
-                    var rows =
-                            ProcessRowset(
-                                _activeConnection.Value.Query(streamId, string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace),
-                                                              false, QueryProtocolOptions.Default,
-                                                              _cluster.Configuration.QueryOptions.GetConsistencyLevel()),
-                                string.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace));
-                    foreach (Row row in rows.GetRows())
+                    var cqlQuery = String.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace);
+                    var rows = Query(cqlQuery);
+                    foreach (Row row in rows)
                     {
                         ktb.TryAdd(row.GetValue<string>("columnfamily_name"), new AtomicValue<TableMetadata>(null));
                     }
@@ -748,16 +682,9 @@ namespace Cassandra
             var cols = new Dictionary<string, TableColumn>();
             TableOptions options = null;
             {
-                int streamId = _activeConnection.Value.AllocateStreamId();
-                var rows = ProcessRowset(_activeConnection.Value.Query(streamId,
-                                                                                 string.Format(
-                                                                                     SelectColumns +
-                                                                                     " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                                                                     tableName, keyspaceName), false, QueryProtocolOptions.Default,
-                                                                                 _cluster.Configuration.QueryOptions.GetConsistencyLevel()),
-                                                   string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                                                 tableName, keyspaceName));
-                foreach (Row row in rows.GetRows())
+                var cqlQuery = string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName);
+                var rows = Query(cqlQuery);
+                foreach (Row row in rows)
                 {
                     ColumnTypeCode tpCode = ConvertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
                     var dsc = new TableColumn
@@ -795,17 +722,9 @@ namespace Cassandra
                 }
             }
             {
-                int streamId = _activeConnection.Value.AllocateStreamId();
-                var rows = ProcessRowset(_activeConnection.Value.Query(streamId,
-                                                                                 string.Format(
-                                                                                     SelectColumnFamilies +
-                                                                                     " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                                                                     tableName, keyspaceName), false, QueryProtocolOptions.Default,
-                                                                                 _cluster.Configuration.QueryOptions.GetConsistencyLevel()),
-                                                   string.Format(
-                                                       SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';",
-                                                       tableName, keyspaceName));
-                foreach (Row row in rows.GetRows()) // There is only one row!
+                var cqlQuery = string.Format(SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName);
+                var rows = Query(cqlQuery);
+                foreach (Row row in rows) // There is only one row!
                 {
                     var colNames = row.GetValue<string>("column_aliases");
                     string[] rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');

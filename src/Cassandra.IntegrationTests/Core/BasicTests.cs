@@ -464,7 +464,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, tableName)));
 
             //You can not specify local serial consistency as a valid read one.
-            Assert.Throws<InvalidQueryException>(() =>
+            Assert.Throws<RequestInvalidException>(() =>
             {
                 Session.Execute("SELECT * FROM " + tableName, ConsistencyLevel.LocalSerial);
             });
@@ -477,7 +477,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             Session.Execute(statement);
 
             //You can not specify serial consistency as a valid read one.
-            Assert.Throws<InvalidQueryException>(() =>
+            Assert.Throws<RequestInvalidException>(() =>
             {
                 Session.Execute("SELECT * FROM " + tableName, ConsistencyLevel.Serial);
             });

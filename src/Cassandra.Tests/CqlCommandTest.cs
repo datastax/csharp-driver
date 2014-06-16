@@ -18,7 +18,7 @@ using System.Data;
 using Cassandra.Data;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Data
+namespace Cassandra.Tests
 {
     [TestFixture]
     public class CqlCommandTest
