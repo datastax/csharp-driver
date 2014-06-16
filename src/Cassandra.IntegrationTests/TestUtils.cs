@@ -559,13 +559,18 @@ namespace Cassandra.IntegrationTests
 
         public static void CcmBootstrapNode(CcmClusterInfo info, int node, string dc = null)
         {
+            ProcessOutput output = null;
             if (dc == null)
             {
-                ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node), info.ConfigDir);
+                output = ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node), info.ConfigDir);
             }
             else
             {
-                ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -d {4}", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node, dc), info.ConfigDir);
+                output = ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -d {4}", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node, dc), info.ConfigDir);
+            }
+            if (output.ExitCode != 0)
+            {
+                throw new TestInfrastructureException("Local ccm could not add node: " + output.ToString());
             }
         }
 

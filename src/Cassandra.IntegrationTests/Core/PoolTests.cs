@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
+    [TestFixture, Category("long")]
     public class PoolTests
     {
         protected TraceLevel _originalTraceLevel;
@@ -19,7 +20,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             get
             {
-                return "127.0.0.";
+                return Options.Default.IP_PREFIX;
             }
         }
 
@@ -165,6 +166,44 @@ namespace Cassandra.IntegrationTests.Core
 
                 //Execute in parallel more than 100 actions
                 Parallel.Invoke(parallelOptions, actions.ToArray());
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        /// <summary>
+        /// Tests that the pool behaves when adding a node and the driver queries the node after is bootstrapped
+        /// </summary>
+        [Test]
+        public void BootstrapNodeTest()
+        {
+            var policy = new ConstantReconnectionPolicy(500);
+            var builder = Cluster.Builder().WithReconnectionPolicy(policy);
+            var clusterInfo = TestUtils.CcmSetup(1, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                for (var i = 0; i < 100; i++)
+                {
+                    if (i == 50)
+                    {
+                        TestUtils.CcmBootstrapNode(clusterInfo, 2);
+                        TestUtils.CcmStart(clusterInfo, 2);
+                    }
+                    session.Execute("SELECT * FROM system.schema_columnfamilies").Count();
+                }
+                //Wait for the join to be online
+                Thread.Sleep(120000);
+                var list = new List<IPAddress>();
+                for (var i = 0; i < 100; i++)
+                {
+                    var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                    rs.Count();
+                    list.Add(rs.Info.QueriedHost);
+                }
+                Assert.True(list.Any(ip => ip.ToString() == IpPrefix + "2"), "The new node should be queried");
             }
             finally
             {
