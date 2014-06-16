@@ -69,17 +69,18 @@ namespace Cassandra
                 {
                     continue;
                 }
-                var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
-                var hostPool = _session.GetConnectionPool(host, distance);
-                var connection = hostPool.BorrowConnection();
-                if (connection == null)
-                {
-                    continue;
-                }
                 _currentHost = host;
                 _triedHosts.Add(host.Address, null);
+                Connection connection = null;
                 try
                 {
+                    var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
+                    var hostPool = _session.GetConnectionPool(host, distance);
+                    connection = hostPool.BorrowConnection();
+                    if (connection == null)
+                    {
+                        continue;
+                    }
                     connection.Keyspace = _session.Keyspace;
                     return connection;
                 }
@@ -94,6 +95,7 @@ namespace Cassandra
                     _triedHosts[host.Address] = ex;
                 }
             }
+            _currentHost = null;
             throw new NoHostAvailableException(_triedHosts);
         }
 
@@ -329,7 +331,7 @@ namespace Cassandra
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                _tcs.TrySetException(ex);
+                this.HandleException(ex);
             }
         }
 

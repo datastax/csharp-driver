@@ -76,6 +76,7 @@
     <Compile Include="Core\Policies\AlwaysIgnoreRetryPolicy.cs" />
     <Compile Include="Core\Policies\AlwaysRetryRetryPolicy.cs" />
     <Compile Include="Core\PolicyTestTools.cs" />
+    <Compile Include="Core\PoolTests.cs" />
     <Compile Include="Core\PreparedStatementsCCMTests.cs" />
     <Compile Include="Core\PreparedStatementsTests.cs" />
     <Compile Include="Core\QueryTools.cs" />

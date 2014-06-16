@@ -80,6 +80,15 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Determine if the Connection is closed
+        /// </summary>
+        public bool IsClosed
+        {
+            //if the connection attempted to cancel pending operations
+            get { return _isCanceled; }
+        }
+
+        /// <summary>
         /// Determine if the Connection has been explicitly disposed
         /// </summary>
         public bool IsDisposed

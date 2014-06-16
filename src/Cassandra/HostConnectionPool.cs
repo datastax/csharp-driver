@@ -81,18 +81,30 @@ namespace Cassandra
         public void MaybeCreateCorePool()
         {
             var coreConnections = Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance);
-            if (_connections == null)
+            if (_connections == null || _connections.All(c => c.IsClosed))
             {
                 lock(_poolCreationLock)
                 {
-                    if (_connections != null)
+                    if (_connections != null && !_connections.All(c => c.IsClosed))
                     {
                         return;
                     }
                     _connections = new ConcurrentBag<Connection>();
                     while (_connections.Count < coreConnections)
                     {
-                        _connections.Add(CreateConnection());
+                        try
+                        {
+                            _connections.Add(CreateConnection());
+                        }
+                        catch
+                        {
+                            if (_connections.Count == 0)
+                            {
+                                //Leave the pool to its previous state
+                                _connections = null;
+                            }
+                            throw;
+                        }
                     }
                 }
             }

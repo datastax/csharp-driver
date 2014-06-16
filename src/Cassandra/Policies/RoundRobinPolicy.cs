@@ -50,7 +50,7 @@ namespace Cassandra
         /// <summary>
         ///  Return the HostDistance for the provided host. <p> This policy consider all
         ///  nodes as local. This is generally the right thing to do in a single
-        ///  datacenter deployement. If you use multiple datacenter, see
+        ///  datacenter deployment. If you use multiple datacenter, see
         ///  <link>DCAwareRoundRobinPolicy</link> instead.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
