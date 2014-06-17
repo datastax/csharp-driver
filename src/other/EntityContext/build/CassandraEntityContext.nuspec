@@ -9,7 +9,11 @@
         <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
         <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <description>Similar to ObjectContext, this is an implementation of the Entity Framework for Apache Cassandra.</description>
+        <description>
+            Similar to ObjectContext, this is an implementation of the Entity Framework for Apache Cassandra. 
+            This package is included to ease the migration from the version 1.0 of the DataStax C# driver, but using the Entity Framework-like pattern with Apache Cassandra is discouraged as it can lead to major performance issues and unexpected behavior. 
+        </description>
+        <summary>This package is included to ease the migration from the version 1.0 of the DataStax C# driver, but using the Entity Framework-like pattern with Cassandra is discouraged.</summary>
         <releaseNotes />
         <copyright>Copyright (C) 2014 DataStax Inc.</copyright>
         <tags>database driver</tags>
