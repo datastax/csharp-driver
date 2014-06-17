@@ -4,8 +4,8 @@
         <id>CassandraCSharpDriver</id>
         <!-- It will be overridden by the nuget command if -version is specified -->
         <version>0.0.0</version>
-        <title>Datastax C# Driver for Apache Cassandra</title>
-        <authors>Datastax</authors>
+        <title>DataStax C# Driver for Apache Cassandra</title>
+        <authors>DataStax</authors>
         <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
         <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
