@@ -206,6 +206,15 @@ namespace Cassandra.Data.Linq
             return ret;
         }
 
+        public static CqlQuery<TSource> AllowFiltering<TSource>(this CqlQuery<TSource> source)
+        {
+            var ret = (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(
+                null, CqlMthHelps.AllowFilteringMi,
+                new[] {source.Expression}));
+            source.CopyQueryPropertiesTo(ret);
+            return ret;
+        }
+
         /// <summary>
         /// Sorts the elements, which are returned from CqlQuery, in ascending order according to a key.
         /// </summary>

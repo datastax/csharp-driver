@@ -316,5 +316,32 @@ APPLY BATCH".Replace("\r", ""));
                     "Expected Cql query and generated CQL query by Linq do not match.");
             }
         }
+
+        [Table]
+        private class AllowFilteringTestTable
+        {
+            [PartitionKey]
+            public int RowKey { get; set; }
+
+            [ClusteringKey(1)]
+            [SecondaryIndex]
+            public string ClusteringKey { get; set; }
+
+            public decimal Value { get; set; }
+        }
+
+        [Test]
+        public void AllowFilteringTest()
+        {
+            var table = SessionExtensions.GetTable<AllowFilteringTestTable>(null);
+
+            var cqlQuery = table
+                .Where(item => item.ClusteringKey == "x" && item.Value == 1M)
+                .AllowFiltering();
+
+            Assert.That(cqlQuery, Is.Not.Null);
+            Assert.That(cqlQuery.ToString(), Is.StringEnding("ALLOW FILTERING"));
+            Console.WriteLine(cqlQuery.ToString());
+        }
     }
 }
