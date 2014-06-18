@@ -21,6 +21,7 @@ namespace Cassandra.Data.Linq
                                                                                                  {typeof (ITable), typeof (int), typeof (object)});
 
         internal static MethodInfo TakeMi = typeof (CqlMthHelps).GetMethod("Take", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo AllowFilteringMi = typeof (CqlMthHelps).GetMethod("AllowFiltering", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo CountMi = typeof (CqlMthHelps).GetMethod("Count", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo OrderByMi = typeof (CqlMthHelps).GetMethod("OrderBy", BindingFlags.NonPublic | BindingFlags.Static);
 
@@ -63,6 +64,11 @@ namespace Cassandra.Data.Linq
         }
 
         internal static object Take(object a, int b)
+        {
+            return null;
+        }
+
+        internal static object AllowFiltering(object a)
         {
             return null;
         }

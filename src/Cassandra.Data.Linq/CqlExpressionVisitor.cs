@@ -443,6 +443,13 @@ namespace Cassandra.Data.Linq
                 currentConditionBuilder.get().Append(cqlTool.AddValue(val));
                 return node;
             }
+            if (node.Method.Name == "AllowFiltering")
+            {
+                Visit(node.Arguments[0]);
+
+                AllowFiltering = true;
+                return node;
+            }
 
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
         }
