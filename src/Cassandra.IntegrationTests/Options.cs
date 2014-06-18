@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests
                         minor = Convert.ToInt32(versionParts[1]);
                         if (versionParts.Length == 3)
                         {
-                            build = Convert.ToInt32(versionParts[2]);
+                            int.TryParse(versionParts[2], out build);
                         }
                     }
                 }

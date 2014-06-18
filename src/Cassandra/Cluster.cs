@@ -95,22 +95,24 @@ namespace Cassandra
             foreach (IPAddress ep in _contactPoints)
                 Metadata.AddHost(ep);
 
-            PoolingOptions poolingOptions = new PoolingOptions()
+            //Use 1 connection per host
+            //The connection will be reused, it wont create a connection per host.
+            var controlPoolingOptions = new PoolingOptions()
                 .SetCoreConnectionsPerHost(HostDistance.Local, 1)
                 .SetMaxConnectionsPerHost(HostDistance.Local, 1)
                 .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127);
 
-            var controlConnection = new ControlConnection(this, new List<IPAddress>(), controlpolicies,
-                                                          new ProtocolOptions(_configuration.ProtocolOptions.Port,
-                                                                              configuration.ProtocolOptions.SslOptions),
-                                                          poolingOptions, _configuration.SocketOptions,
-                                                          new ClientOptions(
-                                                              true,
-                                                              _configuration.ClientOptions.QueryAbortTimeout, null),
-                                                          _configuration.AuthProvider,
-                                                          _configuration.AuthInfoProvider,
-                                                          2 //lets start from protocol version 2
+            var controlConnection = new ControlConnection
+                (this, 
+                new List<IPAddress>(), 
+                controlpolicies,
+                new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
+                controlPoolingOptions, 
+                _configuration.SocketOptions,
+                new ClientOptions(true, _configuration.ClientOptions.QueryAbortTimeout, null),
+                _configuration.AuthProvider,
+                _configuration.AuthInfoProvider
                 );
 
             _metadata.SetupControllConnection(controlConnection);

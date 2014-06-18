@@ -28,10 +28,10 @@ namespace Cassandra
     internal class ControlConnection : IDisposable
     {
         internal const long MaxSchemaAgreementWaitMs = 10000;
+        private const int MaxSupportedBinaryProtocolVersion = 2;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
 
-        private const string SelectLocal =
-            "SELECT cluster_name, data_center, rack, tokens, partitioner FROM system.local WHERE key='local'";
+        private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
 
         private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
@@ -49,10 +49,21 @@ namespace Cassandra
         private readonly Session _session;
         private readonly BoolSwitch _shotDown = new BoolSwitch();
         private bool _isDiconnected;
+        private int _binaryProtocolVersion = 1;
 
-        internal int BinaryProtocolVersion
-        {
-            get { return _session.BinaryProtocolVersion; }
+        /// <summary>
+        /// Gets the binary protocol version used for this cluster.
+        /// </summary>
+        internal int BinaryProtocolVersion 
+        { 
+            get 
+            { 
+                return _binaryProtocolVersion; 
+            }
+            set
+            {
+                _binaryProtocolVersion = value;
+            }
         }
 
         internal ControlConnection(Cluster cluster,
@@ -63,8 +74,7 @@ namespace Cassandra
                                    SocketOptions socketOptions,
                                    ClientOptions clientOptions,
                                    IAuthProvider authProvider,
-                                   IAuthInfoProvider authInfoProvider,
-                                   int binaryProtocolVersion)
+                                   IAuthInfoProvider authInfoProvider)
         {
             _cluster = cluster;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
@@ -82,7 +92,8 @@ namespace Cassandra
                 new QueryOptions()
             );
 
-            _session = new Session(cluster, config, "", binaryProtocolVersion);
+            //Use v1 of the protocol for the control connection
+            _session = new Session(cluster, config, "", 1);
         }
 
         public void Dispose()
@@ -356,29 +367,36 @@ namespace Cassandra
 
                 var rowset = Query(SelectLocal);
                 // Update cluster name, DC and rack for the one node we are connected to
-                foreach (Row localRow in rowset)
+                var localRow = rowset.First();
+                var clusterName = localRow.GetValue<string>("cluster_name");
+                if (clusterName != null)
                 {
-                    var clusterName = localRow.GetValue<string>("cluster_name");
-                    if (clusterName != null)
-                        _cluster.Metadata.ClusterName = clusterName;
-
-                    // In theory host can't be null. However there is no point in risking a NPE in case we
-                    // have a race between a node removal and this.
-                    if (localhost != null)
+                    _cluster.Metadata.ClusterName = clusterName;
+                }
+                int protocolVersion;
+                if (rowset.Columns.Any(c => c.Name == "native_protocol_version") && Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
+                {
+                    //In Cassandra < 2, there is no native protocol version column
+                    if (protocolVersion > MaxSupportedBinaryProtocolVersion)
                     {
-                        localhost.SetLocationInfo(localRow.GetValue<string>("data_center"), localRow.GetValue<string>("rack"));
-
-                        partitioner = localRow.GetValue<string>("partitioner");
-                        var tokens = localRow.GetValue<IList<string>>("tokens");
-                        if (partitioner != null && tokens.Count > 0)
-                        {
-                            if (!tokenMap.ContainsKey(localhost.Address))
-                                tokenMap.Add(localhost.Address, new HashSet<string>());
-                            tokenMap[localhost.Address].UnionWith(tokens);
-                        }
+                        protocolVersion = MaxSupportedBinaryProtocolVersion;
                     }
+                    this.BinaryProtocolVersion = protocolVersion;
+                }
+                // In theory host can't be null. However there is no point in risking a NPE in case we
+                // have a race between a node removal and this.
+                if (localhost != null)
+                {
+                    localhost.SetLocationInfo(localRow.GetValue<string>("data_center"), localRow.GetValue<string>("rack"));
 
-                    break; //fetch only one row
+                    partitioner = localRow.GetValue<string>("partitioner");
+                    var tokens = localRow.GetValue<IList<string>>("tokens");
+                    if (partitioner != null && tokens.Count > 0)
+                    {
+                        if (!tokenMap.ContainsKey(localhost.Address))
+                            tokenMap.Add(localhost.Address, new HashSet<string>());
+                        tokenMap[localhost.Address].UnionWith(tokens);
+                    }
                 }
             }
 

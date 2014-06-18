@@ -508,14 +508,22 @@ namespace Cassandra.IntegrationTests
                 {
                     throw new TestInfrastructureException("Local ccm could not start: " + output.ToString());
                 }
-                clusterInfo.Cluster = builder
-                    .AddContactPoint("127.0.0.1")
-                    .Build();
-                clusterInfo.Session = clusterInfo.Cluster.Connect();
-                if (keyspaceName != null)
+                try
                 {
-                    clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
-                    clusterInfo.Session.ChangeKeyspace(keyspaceName);
+                    clusterInfo.Cluster = builder
+                        .AddContactPoint("127.0.0.1")
+                        .Build();
+                    clusterInfo.Session = clusterInfo.Cluster.Connect();
+                    if (keyspaceName != null)
+                    {
+                        clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                        clusterInfo.Session.ChangeKeyspace(keyspaceName);
+                    }
+                }
+                catch
+                {
+                    CcmRemove(clusterInfo);
+                    throw;
                 }
             }
             return clusterInfo;
