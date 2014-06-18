@@ -2,6 +2,8 @@ using System;
 
 namespace Cassandra
 {
+    using System.Linq;
+
     public class DecimalTypeAdapter : ITypeAdapter
     {
         public Type GetDataType()
@@ -11,19 +13,31 @@ namespace Cassandra
 
         public object ConvertFrom(byte[] decimalBuf)
         {
-            if (decimalBuf.Length > 16)
+            // Although .NET decimals are stored on 16 bytes, 
+            // their corresponding java.Math.BigDecimal objects can be stored on 17 bytes if the sign bit caused an overflow.
+            bool isValidOverflow = decimalBuf.Length == 17 && (decimalBuf[4] == 0 || decimalBuf[4] == 255);
+
+            if (decimalBuf.Length > 16 && !isValidOverflow)
                 throw new ArgumentOutOfRangeException(
                     "this java.math.BigDecimal is too big to fit into System.Decimal. Think about using other TypeAdapter for java.math.BigDecimal (e.g. J#, IKVM,...)");
 
+            bool isNegative = (decimalBuf[4] & 0x80) != 0;
+
+            // drop the overflow byte from the buffer before processing
+            if (isValidOverflow)
+            {
+                var buffer = new byte[16];
+                Array.Copy(decimalBuf, 0, buffer, 0, 4);
+                Array.Copy(decimalBuf, 5, buffer, 4, 12);
+                decimalBuf = buffer;
+            }
+
             var scaleBytes = new byte[4];
-            for (int i = 0; i < 4; i++)
-                scaleBytes[i] = decimalBuf[i];
+            Array.Copy(decimalBuf, 0, scaleBytes, 0, 4);
 
-            var bigIntBytes = new byte[decimalBuf.Length - 4];
-            for (int i = 0; i < bigIntBytes.Length; i++)
-                bigIntBytes[i] = decimalBuf[i + 4];
-
-            bool isNegative = (bigIntBytes[0] & 0x80) != 0;
+            var bufferLength = decimalBuf.Length - 4;
+            var bigIntBytes = new byte[bufferLength];
+            Array.Copy(decimalBuf, 4, bigIntBytes, 0, bufferLength);
 
             var bytes = new byte[12];
             if (isNegative)
@@ -84,9 +98,20 @@ namespace Cassandra
             Array.Copy(highB, 0, bytes, 8, 4);
             Array.Copy(scaleB, 0, bytes, 12, 4);
 
+            // in java.Math.BigDecimal, the role of the bit checked below is to indicate that the number is negative.
+            // if the value overlaps the sign bit, we need to insert a new byte into the array.
+            if ((highB[3] & 0x80) != 0)
+            {
+                var extendedBytes = new byte[17];
+                Array.Copy(bytes, 0, extendedBytes, 0, 12);
+                extendedBytes[12] = 0;
+                Array.Copy(bytes, 12, extendedBytes, 13, 4);
+                bytes = extendedBytes;
+            }
+
             if ((decimal) value < 0)
             {
-                for (int i = 0; i < 12; i++)
+                for (int i = 0; i < bytes.Length-4; i++)
                     bytes[i] = (byte) ~bytes[i];
                 bytes[0] += 1;
             }
