@@ -157,36 +157,39 @@ namespace Cassandra
                 yield return localHosts[idxSeed % localHosts.Count];
             }
 
-            
-            var remoteHosts = new List<Host>();
-            var ixes = new Dictionary<string, int>();
-            for (int i = 0; i < copyOfHosts.Length; i++)
-            {
-                var h = copyOfHosts[i];
-                if (h.IsConsiderablyUp)
-                    if (!_localDc.Equals(DC(h)))
-                        if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
-                        {
-                            remoteHosts.Add(h);
-                            if (!ixes.ContainsKey(DC(h)))
-                                ixes.Add(DC(h), 1);
-                            else
-                                ixes[DC(h)] = ixes[DC(h)] + 1;
-                        }
-            }
+                    
+            if (_usedHostsPerRemoteDc > 0)  // do not analyse the pool of hosts in search of remote hosts if the limit is set to zero.  
+            {                               // Limit zero means do not touch the remote hosts. Try to connect only to local nodes. 
+                var remoteHosts = new List<Host>();
+                var ixes = new Dictionary<string, int>();
 
-
-            for (int i = 0; i < remoteHosts.Count; i++)
-            {
-                int idxSeed = Interlocked.Increment(ref _index);
-
-                // Overflow protection; not theoretically thread safe but should be good enough
-                if (idxSeed > int.MaxValue - 10000)
+                for (int i = 0; i < copyOfHosts.Length; i++)
                 {
-                    Thread.VolatileWrite(ref _index, 0);
+                    var h = copyOfHosts[i];
+                    if (h.IsConsiderablyUp)
+                        if (!_localDc.Equals(DC(h)))
+                            if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
+                            {
+                                remoteHosts.Add(h);
+                                if (!ixes.ContainsKey(DC(h)))
+                                    ixes.Add(DC(h), 1);
+                                else
+                                    ixes[DC(h)] = ixes[DC(h)] + 1;
+                            }
                 }
 
-                yield return remoteHosts[idxSeed % remoteHosts.Count];
+                for (int i = 0; i < remoteHosts.Count; i++)
+                {
+                    int idxSeed = Interlocked.Increment(ref _index);
+
+                    // Overflow protection; not theoretically thread safe but should be good enough
+                    if (idxSeed > int.MaxValue - 10000)
+                    {
+                        Thread.VolatileWrite(ref _index, 0);
+                    }
+
+                    yield return remoteHosts[idxSeed % remoteHosts.Count];
+                }
             }
         }
     }
