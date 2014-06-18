@@ -88,7 +88,14 @@ session.Execute(batch);
 Session allows asynchronous execution of statements (for any type of statement: simple, bound or batch) by exposing the `ExecuteAsync` method.
 
 ```csharp
-//Execute a statement on asynchronously using TPL
+//Execute a statement asynchronously using await
+var rs = await session.ExecuteAsync(statement);
+```
+
+Or if you want to continue or wait for the async task to complete.
+
+```csharp
+//Execute a statement asynchronously using TPL
 var task = session.ExecuteAsync(statement);
 //The task can waited, awaited, continued, ...
 task.ContinueWith((t) =>
