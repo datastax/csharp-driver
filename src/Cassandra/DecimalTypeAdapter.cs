@@ -2,6 +2,9 @@ using System;
 
 namespace Cassandra
 {
+    using System.Linq;
+    using System.Numerics;
+
     public class DecimalTypeAdapter : ITypeAdapter
     {
         public Type GetDataType()
@@ -11,87 +14,58 @@ namespace Cassandra
 
         public object ConvertFrom(byte[] decimalBuf)
         {
-            if (decimalBuf.Length > 16)
-                throw new ArgumentOutOfRangeException(
-                    "this java.math.BigDecimal is too big to fit into System.Decimal. Think about using other TypeAdapter for java.math.BigDecimal (e.g. J#, IKVM,...)");
+            var bigintBytes = new byte[decimalBuf.Length - 4];
+            Array.Copy(decimalBuf, 4, bigintBytes, 0, bigintBytes.Length);
 
-            var scaleBytes = new byte[4];
-            for (int i = 0; i < 4; i++)
-                scaleBytes[i] = decimalBuf[i];
+            var scale = (byte)TypeInterpreter.BytesToInt32(decimalBuf, 0);
 
-            var bigIntBytes = new byte[decimalBuf.Length - 4];
-            for (int i = 0; i < bigIntBytes.Length; i++)
-                bigIntBytes[i] = decimalBuf[i + 4];
+            Array.Reverse(bigintBytes);
+            var bigInteger = new BigInteger(bigintBytes);
+            var isNegative = bigInteger < 0;
 
-            bool isNegative = (bigIntBytes[0] & 0x80) != 0;
-
-            var bytes = new byte[12];
-            if (isNegative)
-                for (int i = 0; i < 12; i++)
-                    bytes[i] = 0xff;
-
-            int offset = 12 - bigIntBytes.Length;
-            for (int i = 0; i < bigIntBytes.Length; i++)
-                bytes[offset + i] = bigIntBytes[i];
-
-            var lowB = new byte[4];
-            var midB = new byte[4];
-            var highB = new byte[4];
-
-            Array.Copy(bytes, 8, lowB, 0, 4);
-            Array.Copy(bytes, 4, midB, 0, 4);
-            Array.Copy(bytes, 0, highB, 0, 4);
-
-            Array.Reverse(lowB);
-            Array.Reverse(midB);
-            Array.Reverse(highB);
-
-            uint low = BitConverter.ToUInt32(lowB, 0);
-            uint mid = BitConverter.ToUInt32(midB, 0);
-            uint high = BitConverter.ToUInt32(highB, 0);
-            var scale = (byte) TypeInterpreter.BytesToInt32(scaleBytes, 0);
-
-            if (isNegative)
+            bigInteger = BigInteger.Abs(bigInteger);
+            bigintBytes = bigInteger.ToByteArray();
+            if (bigintBytes.Length > 13 || (bigintBytes.Length == 13 && bigintBytes[12] != 0))
             {
-                low = ~low;
-                mid = ~mid;
-                high = ~high;
-
-                high += (mid == 0xFFFFFFF && low == 0xFFFFFFF) ? 1u : 0;
-                mid += (low == 0xFFFFFFF) ? 1u : 0;
-                low += 1;
+                throw new ArgumentOutOfRangeException(
+                    "decimalBuf",
+                    "this java.math.BigDecimal is too big to fit into System.Decimal. Think about using other TypeAdapter for java.math.BigDecimal (e.g. J#, IKVM,...)");
             }
-            return new decimal((int) low, (int) mid, (int) high, isNegative, scale);
+
+            var intArray = new int[3];
+            Buffer.BlockCopy(bigintBytes, 0, intArray, 0, Math.Min(12, bigintBytes.Length));
+
+            return new decimal(intArray[0], intArray[1], intArray[2], isNegative, scale);
         }
 
 
         public byte[] ConvertTo(object value)
         {
             TypeInterpreter.CheckArgument<decimal>(value);
-            int[] bits = decimal.GetBits((decimal) value);
-
-            var bytes = new byte[16];
+            var decimalValue = (decimal)value;
+            int[] bits = decimal.GetBits(decimalValue);
 
             int scale = (bits[3] >> 16) & 31;
 
-            byte[] scaleB = BitConverter.GetBytes(scale);
-            byte[] lowB = BitConverter.GetBytes(bits[0]);
-            byte[] midB = BitConverter.GetBytes(bits[1]);
-            byte[] highB = BitConverter.GetBytes(bits[2]);
+            byte[] scaleBytes = BitConverter.GetBytes(scale);
+            Array.Reverse(scaleBytes);
 
-            Array.Copy(lowB, 0, bytes, 0, 4);
-            Array.Copy(midB, 0, bytes, 4, 4);
-            Array.Copy(highB, 0, bytes, 8, 4);
-            Array.Copy(scaleB, 0, bytes, 12, 4);
+            var bigintBytes = new byte[13]; // 13th byte is for making sure that the number is positive
+            Buffer.BlockCopy(bits, 0, bigintBytes, 0, 12);
 
-            if ((decimal) value < 0)
+            var bigInteger = new BigInteger(bigintBytes);
+            if (decimalValue < 0)
             {
-                for (int i = 0; i < 12; i++)
-                    bytes[i] = (byte) ~bytes[i];
-                bytes[0] += 1;
+                bigInteger = -bigInteger;
             }
-            Array.Reverse(bytes);
-            return bytes;
+
+            bigintBytes = bigInteger.ToByteArray();
+            Array.Reverse(bigintBytes);
+
+            var resultBytes = new byte[scaleBytes.Length + bigintBytes.Length];
+            Array.Copy(scaleBytes, resultBytes, scaleBytes.Length);
+            Array.Copy(bigintBytes, 0, resultBytes, scaleBytes.Length, bigintBytes.Length);
+            return resultBytes;
         }
     }
 }

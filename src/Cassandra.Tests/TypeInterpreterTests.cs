@@ -22,6 +22,12 @@ namespace Cassandra.Tests
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1234F, TypeInterpreter.ConvertFromFloat, TypeInterpreter.InvConvertFromFloat),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1.14D, TypeInterpreter.ConvertFromDouble, TypeInterpreter.InvConvertFromDouble),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1.01M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(72.727272727272727272727272727M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-72.727272727272727272727272727M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-256M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(256M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTime(1983, 2, 24), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeInterpreter.ConvertFromInet, TypeInterpreter.InvConvertFromInet),
