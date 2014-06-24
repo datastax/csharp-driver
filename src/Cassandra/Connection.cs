@@ -30,11 +30,11 @@ namespace Cassandra
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
-        private ConcurrentStack<byte> _freeOperations;
+        private ConcurrentStack<short> _freeOperations;
         /// <summary>
         /// Contains the requests that were sent through the wire and that hasn't been received yet.
         /// </summary>
-        private ConcurrentDictionary<int, OperationState> _pendingOperations;
+        private ConcurrentDictionary<short, OperationState> _pendingOperations;
         /// <summary>
         /// It determines if the write queue can process the next (if it is not in-flight).
         /// It has to be volatile as it can not be cached by the thread.
@@ -288,8 +288,8 @@ namespace Cassandra
         {
             //MAYBE: If really necessary, we can Wait on the BeginConnect result.
             //Cassandra supports up to 128 concurrent requests
-            _freeOperations = new ConcurrentStack<byte>(Enumerable.Range(0, _maxConcurrentRequests).Select(s => (byte)s));
-            _pendingOperations = new ConcurrentDictionary<int, OperationState>();
+            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, _maxConcurrentRequests).Select(s => (short)s));
+            _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
 
             //MAYBE: Allow the possibility to provide a custom provider
@@ -370,7 +370,7 @@ namespace Cassandra
                     return false;
                 }
                 _minimalBuffer = null;
-                var header = FrameHeader.ParseResponseHeader(buffer, offset);
+                var header = FrameHeader.ParseResponseHeader(ProtocolVersion, buffer, offset);
                 //Check if its a response
                 if (header.Version >> 9 != 1 && (header.Version & 0x07) == 0)
                 {
@@ -501,7 +501,7 @@ namespace Cassandra
                 _writeQueue.Enqueue(state);
                 return;
             }
-            byte streamId = 255;
+            short streamId = -1;
             lock (_writeQueueLock)
             {
                 if (!_canWriteNext)

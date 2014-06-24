@@ -58,7 +58,7 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(protocolVersionByte, _headerFlags, streamId, OpCode);

@@ -29,7 +29,7 @@ namespace Cassandra
             Query = cqlQuery;
         }
 
-        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
         {
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);

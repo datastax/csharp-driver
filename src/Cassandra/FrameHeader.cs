@@ -40,7 +40,7 @@ namespace Cassandra
         
         public byte Opcode { get; set; }
         
-        public byte StreamId { get; set; }
+        public short StreamId { get; set; }
 
         public byte Version { get; set; }
 
@@ -60,16 +60,26 @@ namespace Cassandra
         /// <summary>
         /// Parses the first 8 bytes and returns a FrameHeader
         /// </summary>
-        public static FrameHeader ParseResponseHeader(byte[] buffer, int offset)
+        public static FrameHeader ParseResponseHeader(byte version, byte[] buffer, int offset)
         {
-            return new FrameHeader()
+            var header = new FrameHeader()
             {
-                Version = buffer[offset + 0],
-                Flags = buffer[offset + 1],
-                StreamId = buffer[offset + 2],
-                Opcode = buffer[offset + 3],
-                Len = buffer.Skip(offset + 4).Take(4).ToArray()
+                Version = buffer[offset++],
+                Flags = buffer[offset++]
             };
+            if (version < 3)
+            {
+                //Stream id is a signed byte in v1 and v2 of the protocol
+                header.StreamId =  (sbyte)buffer[offset++];
+            }
+            else
+            {
+                header.StreamId = BitConverter.ToInt16(new byte[] { buffer[offset + 1], buffer[offset] }, 0);
+                offset += 2;
+            }
+            header.Opcode = buffer[offset++];
+            header.Len = buffer.Skip(offset).Take(4).ToArray();
+            return header;
         }
     }
 }

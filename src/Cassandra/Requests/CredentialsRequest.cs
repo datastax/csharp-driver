@@ -28,7 +28,7 @@ namespace Cassandra
             _credentials = credentials;
         }
 
-        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
         {
             if (protocolVersionByte != RequestFrame.ProtocolV1RequestVersionByte)
                 throw new NotSupportedException("Credentials request is supported in C* <= 1.2.x");

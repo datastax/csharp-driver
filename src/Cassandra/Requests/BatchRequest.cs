@@ -39,7 +39,7 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(byte streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
         {
             if (protocolVersionByte != RequestFrame.ProtocolV2RequestVersionByte)
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
