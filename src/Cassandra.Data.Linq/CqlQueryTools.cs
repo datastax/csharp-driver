@@ -400,8 +400,6 @@ namespace Cassandra.Data.Linq
             bool first = true;
             foreach (MemberInfo prop in props)
             {
-                object val = prop.GetValueFromPropertyOrField(row);
-                if (val == null) continue;
                 if (first) first = false;
                 else sb.Append(", ");
                 string memName = CalculateMemberName(prop);
@@ -412,7 +410,6 @@ namespace Cassandra.Data.Linq
             foreach (MemberInfo prop in props)
             {
                 object val = prop.GetValueFromPropertyOrField(row);
-                if (val == null) continue;
                 if (first) first = false;
                 else sb.Append(", ");
                 sb.Append(cqlTool.AddValue(val));

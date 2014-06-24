@@ -396,5 +396,26 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual("CREATE TABLE \"CounterTestTable1\"(\"RowKey1\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY(\"RowKey1\", \"RowKey2\"));", actualCqlQueries[0]);
             Assert.AreEqual("CREATE TABLE \"CounterTestTable2\"(\"RowKey1\" int, \"RowKey2\" int, \"CKey1\" int, \"Value\" counter, PRIMARY KEY((\"RowKey1\", \"RowKey2\"), \"CKey1\"));", actualCqlQueries[1]);
         }
+
+        [Table]
+        private class InsertNullTable
+        {
+            [PartitionKey]
+            public int Key { get; set; }
+
+            public string Value { get; set; }
+        }
+
+        [Test]
+        public void InsertNullTest()
+        {
+            var table = SessionExtensions.GetTable<InsertNullTable>(null);
+            var row = new InsertNullTable() { Key = 1, Value = null };
+
+            var cqlInsert = table.Insert(row);
+            var cql = cqlInsert.ToString();
+
+            Assert.That(cql, Is.EqualTo("INSERT INTO \"InsertNullTable\"(\"Key\", \"Value\") VALUES (1, null)"));
+        }
     }
 }
