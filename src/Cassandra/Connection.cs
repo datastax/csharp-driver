@@ -362,7 +362,8 @@ namespace Cassandra
                     offset = 0;
                     count = buffer.Length;
                 }
-                if (count < 8)
+                var headerSize = FrameHeader.GetSize(ProtocolVersion);
+                if (count < headerSize)
                 {
                     //There is not enough data to read the header
                     _minimalBuffer = Utils.SliceBuffer(buffer, offset, count);
@@ -375,8 +376,8 @@ namespace Cassandra
                 {
                     _logger.Error("Not a response header");
                 }
-                offset += FrameHeader.Size;
-                count -= FrameHeader.Size;
+                offset += headerSize;
+                count -= headerSize;
                 if (header.Opcode != EventResponse.OpCode)
                 {
                     //Its a response to a previous request

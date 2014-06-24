@@ -22,10 +22,6 @@ namespace Cassandra
     internal class FrameHeader
     {
         public const int MaxFrameSize = 256*1024*1024;
-        /// <summary>
-        /// The size of the protocol header
-        /// </summary>
-        public const int Size = 8;
 
         /// <summary>
         /// Returns the length of the frame body 
@@ -46,18 +42,20 @@ namespace Cassandra
         
         public byte StreamId { get; set; }
 
-        /// <summary>
-        /// Returns the length of the frame body and the header
-        /// </summary>
-        public int TotalFrameLength
-        {
-            get
-            {
-                return this.BodyLength + Size;
-            }
-        }
-
         public byte Version { get; set; }
+
+        /// <summary>
+        /// Gets the size of the protocol header, depending on the version of the protocol
+        /// </summary>
+        /// <param name="version">Version of the protocol used</param>
+        public static byte GetSize(byte version)
+        {
+            if (version >= 3)
+            {
+                return 9;
+            }
+            return 8;
+        }
 
         /// <summary>
         /// Parses the first 8 bytes and returns a FrameHeader
@@ -72,16 +70,6 @@ namespace Cassandra
                 Opcode = buffer[offset + 3],
                 Len = buffer.Skip(offset + 4).Take(4).ToArray()
             };
-        }
-
-        //TODO: Remove method
-        public ResponseFrame MakeFrame(Stream stream)
-        {
-            int bodyLen = TypeInterpreter.BytesToInt32(Len, 0);
-
-            if (MaxFrameSize - 8 < bodyLen) throw new DriverInternalError("Frame length mismatch");
-
-            return new ResponseFrame(this, stream);
         }
     }
 }

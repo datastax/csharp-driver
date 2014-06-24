@@ -29,6 +29,10 @@ namespace Cassandra
     {
         private readonly ListBackedStream _stream;
         private byte[] _header;
+        /// <summary>
+        /// protocol version
+        /// </summary>
+        private byte _version;
 
         public long Length
         {
@@ -148,27 +152,55 @@ namespace Cassandra
             this.Write(buffer);
         }
 
-        public void WriteFrameHeader(byte version, byte flags, byte streamId, byte opCode)
+        public void WriteFrameHeader(byte version, byte flags, short streamId, byte opCode)
         {
-            _header = new byte[8]
+            _version = version;
+            if (_version < 3)
             {
-                version,
-                flags,
-                streamId,
-                opCode,
-                //Reserved for the body length
-                0, 0, 0, 0
-            };
+                if (streamId > 127)
+                {
+                    throw new ArgumentException("StreamId must be smaller than 128 under protocol version " + version);
+                }
+                _header = new byte[8]
+                {
+                    version,
+                    flags,
+                    (byte) streamId,
+                    opCode,
+                    //Reserved for the body length
+                    0, 0, 0, 0
+                };
+            }
+            else
+            {
+                var streamIdBytes = BitConverter.GetBytes(streamId).Reverse().ToArray();
+                _header = new byte[9]
+                {
+                    version,
+                    flags,
+                    streamIdBytes[0],
+                    streamIdBytes[1],
+                    opCode,
+                    //Reserved for the body length
+                    0, 0, 0, 0
+                };
+            }
             this.Write(_header);
         }
 
         public RequestFrame GetFrame()
         {
             //Save the length in the header
-            int bodyLength = (int)_stream.Length - FrameHeader.Size; 
+            int bodyLength = (int)_stream.Length - FrameHeader.GetSize(_version);
             byte[] lengthBytes = BitConverter.GetBytes(bodyLength).Reverse().ToArray();
+            //The length could start at the 4th or 5th position
+            byte lengthOffset = 4;
+            if (_version >= 3)
+            {
+                lengthOffset = 5;
+            }
             //Copy the length bytes into the header, by reference will be used in the stream
-            Buffer.BlockCopy(lengthBytes, 0, _header, 4, 4);
+            Buffer.BlockCopy(lengthBytes, 0, _header, lengthOffset, 4);
             return new RequestFrame(_stream);
         }
 
