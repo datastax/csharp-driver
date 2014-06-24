@@ -283,6 +283,19 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
                 Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
                 Assert.AreEqual("test_table", (eventArgs as SchemaChangeEventArgs).Table);
+
+                if (connection.ProtocolVersion >= 3)
+                {
+                    //create a udt type
+                    Query(connection, "CREATE TYPE test_events_kp.test_type (street text, city text, zip int);").Wait(1000);
+                    eventHandle.WaitOne(2000);
+                    Assert.IsNotNull(eventArgs);
+                    Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
+
+                    Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
+                    Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
+                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);
+                }
             }
         }
 

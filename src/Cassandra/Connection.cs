@@ -371,8 +371,7 @@ namespace Cassandra
                 }
                 _minimalBuffer = null;
                 var header = FrameHeader.ParseResponseHeader(ProtocolVersion, buffer, offset);
-                //Check if its a response
-                if (header.Version >> 9 != 1 && (header.Version & 0x07) == 0)
+                if (!header.IsValidResponse())
                 {
                     _logger.Error("Not a response header");
                 }

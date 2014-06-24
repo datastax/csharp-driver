@@ -2,7 +2,7 @@ using System.Net;
 
 namespace Cassandra
 {
-    public class StatusChangeEventArgs : CassandraEventArgs
+    internal class StatusChangeEventArgs : CassandraEventArgs
     {
         public enum Reason
         {

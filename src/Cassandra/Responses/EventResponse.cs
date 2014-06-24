@@ -20,8 +20,10 @@ namespace Cassandra
     {
         public const byte OpCode = 0x0C;
         private readonly Logger _logger = new Logger(typeof (EventResponse));
-
-        public CassandraEventArgs CassandraEventArgs;
+        /// <summary>
+        /// Information on the actual event
+        /// </summary>
+        public CassandraEventArgs CassandraEventArgs { get; set; }
 
         internal EventResponse(ResponseFrame frame)
             : base(frame)
@@ -49,22 +51,50 @@ namespace Cassandra
             }
             if (eventTypeString == "SCHEMA_CHANGE")
             {
-                var ce = new SchemaChangeEventArgs();
-                string m = BeBinaryReader.ReadString();
-                ce.What = m == "CREATED"
-                              ? SchemaChangeEventArgs.Reason.Created
-                              : (m == "UPDATED"
-                                     ? SchemaChangeEventArgs.Reason.Updated
-                                     : SchemaChangeEventArgs.Reason.Dropped);
-                ce.Keyspace = BeBinaryReader.ReadString();
-                ce.Table = BeBinaryReader.ReadString();
-                CassandraEventArgs = ce;
+                HandleSchemaChange(frame);
                 return;
             }
 
             var ex = new DriverInternalError("Unknown Event Type");
             _logger.Error(ex);
             throw ex;
+        }
+
+        public void HandleSchemaChange(ResponseFrame frame)
+        {
+            var ce = new SchemaChangeEventArgs();
+            string m = BeBinaryReader.ReadString();
+            ce.What = m == "CREATED"
+                          ? SchemaChangeEventArgs.Reason.Created
+                          : (m == "UPDATED"
+                                 ? SchemaChangeEventArgs.Reason.Updated
+                                 : SchemaChangeEventArgs.Reason.Dropped);
+            if (frame.Header.Version < 3)
+            {
+                //protocol v1 and v2: <change_type><keyspace><table>
+                ce.Keyspace = BeBinaryReader.ReadString();
+                ce.Table = BeBinaryReader.ReadString();
+            }
+            else
+            {
+                //protocol v3: <change_type><target><options>
+                var target = BeBinaryReader.ReadString();
+                switch (target)
+                {
+                    case "KEYSPACE":
+                        ce.Keyspace = BeBinaryReader.ReadString();
+                        break;
+                    case "TABLE":
+                        ce.Keyspace = BeBinaryReader.ReadString();
+                        ce.Table = BeBinaryReader.ReadString();
+                        break;
+                    case "TYPE":
+                        ce.Keyspace = BeBinaryReader.ReadString();
+                        ce.Type = BeBinaryReader.ReadString();
+                        break;
+                }
+            }
+            CassandraEventArgs = ce;
         }
 
         internal static EventResponse Create(ResponseFrame frame)

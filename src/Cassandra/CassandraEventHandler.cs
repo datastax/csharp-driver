@@ -1,4 +1,4 @@
 namespace Cassandra
 {
-    public delegate void CassandraEventHandler(object sender, CassandraEventArgs e);
+    internal delegate void CassandraEventHandler(object sender, CassandraEventArgs e);
 }

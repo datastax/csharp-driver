@@ -22,6 +22,10 @@ namespace Cassandra
     internal class FrameHeader
     {
         public const int MaxFrameSize = 256*1024*1024;
+        /// <summary>
+        /// Protocol version byte (in case of responses 0x81, 0x82, ... in case of requests 0x01, 0x02)
+        /// </summary>
+        private byte _versionByte;
 
         /// <summary>
         /// Returns the length of the frame body 
@@ -42,7 +46,24 @@ namespace Cassandra
         
         public short StreamId { get; set; }
 
-        public byte Version { get; set; }
+        /// <summary>
+        /// Protocol version of the protocol (1, 2, 3)
+        /// </summary>
+        public byte Version
+        {
+            get
+            {
+                return (byte)(_versionByte & 0x07);
+            }
+        }
+
+        /// <summary>
+        /// Determines if the response is valid by checking the version byte
+        /// </summary>
+        public bool IsValidResponse()
+        {
+            return this._versionByte >> 7 == 1 && (_versionByte & 0x07) > 0;
+        }
 
         /// <summary>
         /// Gets the size of the protocol header, depending on the version of the protocol
@@ -64,7 +85,7 @@ namespace Cassandra
         {
             var header = new FrameHeader()
             {
-                Version = buffer[offset++],
+                _versionByte = buffer[offset++],
                 Flags = buffer[offset++]
             };
             if (version < 3)

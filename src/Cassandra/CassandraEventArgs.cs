@@ -18,7 +18,7 @@ using System;
 
 namespace Cassandra
 {
-    public class CassandraEventArgs : EventArgs
+    internal class CassandraEventArgs : EventArgs
     {
     }
 }

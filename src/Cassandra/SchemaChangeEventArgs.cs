@@ -1,6 +1,6 @@
 namespace Cassandra
 {
-    public class SchemaChangeEventArgs : CassandraEventArgs
+    internal class SchemaChangeEventArgs : CassandraEventArgs
     {
         public enum Reason
         {
@@ -9,8 +9,18 @@ namespace Cassandra
             Dropped
         };
 
-        public string Keyspace;
-        public string Table;
-        public Reason What;
+        /// <summary>
+        /// The keyspace affected
+        /// </summary>
+        public string Keyspace { get; set; }
+        /// <summary>
+        /// The table affected
+        /// </summary>
+        public string Table { get; set; }
+        public Reason What { get; set; }
+        /// <summary>
+        /// The custom type affected
+        /// </summary>
+        public string Type { get; set; }
     }
 }
