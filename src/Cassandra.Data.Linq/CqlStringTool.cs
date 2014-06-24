@@ -20,7 +20,10 @@ namespace Cassandra.Data.Linq
             {
                 sb.Append(parts[i]);
                 int idx = int.Parse(parts[i + 1]);
-                sb.Append(srcvalues[idx].Encode());
+                var cqlValue = srcvalues[idx] != null
+                    ? srcvalues[idx].Encode()
+                    : "null";
+                sb.Append(cqlValue);
             }
             sb.Append(parts.Last());
             return sb.ToString();
