@@ -27,6 +27,11 @@ namespace Cassandra.Tests
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-72.727272727272727272727272727M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-256M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(256M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(0M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-1.333333M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-256.512M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(Decimal.MaxValue, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(Decimal.MinValue, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
                 
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTime(1983, 2, 24), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
                 new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
@@ -57,6 +62,7 @@ namespace Cassandra.Tests
                 new object[] {44F, ColumnTypeCode.Float},
                 new object[] {-320D, ColumnTypeCode.Double},
                 new object[] {99.89770M, ColumnTypeCode.Decimal},
+                new object[] {Decimal.MaxValue, ColumnTypeCode.Decimal},
                 new object[] {new DateTime(2010, 4, 29), ColumnTypeCode.Timestamp},
                 new object[] {new DateTimeOffset(new DateTime(2010, 4, 29)), ColumnTypeCode.Timestamp},
                 new object[] {new IPAddress(new byte[] { 10, 0, 5, 5}), ColumnTypeCode.Inet},
@@ -85,6 +91,7 @@ namespace Cassandra.Tests
                 new object[] {-144F, ColumnTypeCode.Float},
                 new object[] {1120D, ColumnTypeCode.Double},
                 new object[] {-9999.89770M, ColumnTypeCode.Decimal},
+                new object[] {-256M, ColumnTypeCode.Decimal},
                 new object[] {new DateTimeOffset(new DateTime(2010, 4, 29)), ColumnTypeCode.Timestamp},
                 new object[] {new IPAddress(new byte[] { 10, 0, 5, 5}), ColumnTypeCode.Inet},
                 new object[] {Guid.NewGuid(), ColumnTypeCode.Uuid},
@@ -106,7 +113,7 @@ namespace Cassandra.Tests
             {
                 new object[] {new List<int>(new [] {1, 2, 1000}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Int}},
                 new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
-                new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}}
+                new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}}
             };
             foreach (object[] value in initialValues)
             {
