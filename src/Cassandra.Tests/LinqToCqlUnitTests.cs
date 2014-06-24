@@ -343,5 +343,38 @@ APPLY BATCH".Replace("\r", ""));
             Assert.That(cqlQuery.ToString(), Is.StringEnding("ALLOW FILTERING"));
             Console.WriteLine(cqlQuery.ToString());
         }
+
+        [Table]
+        private class CounterTestTable
+        {
+            [PartitionKey]
+            public int RowKey { get; set; }
+
+            [ClusteringKey(0)]
+            public int RowKey2 { get; set; }
+
+            [Counter]
+            public long Value { get; set; }
+        }
+
+        [Test]
+        public void CreateTableCounterTest()
+        {
+            var actualCqlQueries = new List<string>();
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => actualCqlQueries.Add(q))
+                .Verifiable();
+
+            var session = sessionMock.Object;
+            var table = SessionExtensions.GetTable<CounterTestTable>(session);
+            table.CreateIfNotExists();
+
+            sessionMock.Verify();
+            Assert.Greater(actualCqlQueries.Count, 0);
+            Assert.AreEqual("CREATE TABLE \"CounterTestTable\"(\"RowKey\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY(\"RowKey\", \"RowKey2\"));", actualCqlQueries[0]);
+        }
     }
 }
