@@ -337,9 +337,14 @@ namespace Cassandra.Data.Linq
                 else
                     break;
 
-            if (countersSpotted) // validating if table consists only of counters
-                if (countersCount + clusteringKeys.Count + 1 != props.Count())
+            if (countersSpotted)
+            {
+                // validating if table consists only of counters
+                if (countersCount + clusteringKeys.Count + partitionKeys.Count != props.Count())
+                {
                     throw new InvalidQueryException("Counter table can consist only of counters.");
+                }
+            }
 
             sb.Append("PRIMARY KEY(");
             if (partitionKeys.Count > 1)

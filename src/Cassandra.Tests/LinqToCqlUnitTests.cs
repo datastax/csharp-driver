@@ -345,13 +345,29 @@ APPLY BATCH".Replace("\r", ""));
         }
 
         [Table]
-        private class CounterTestTable
+        private class CounterTestTable1
         {
             [PartitionKey]
-            public int RowKey { get; set; }
+            public int RowKey1 { get; set; }
 
             [ClusteringKey(0)]
             public int RowKey2 { get; set; }
+
+            [Counter]
+            public long Value { get; set; }
+        }
+
+        [Table]
+        public class CounterTestTable2
+        {
+            [PartitionKey(0)]
+            public int RowKey1 { get; set; }
+
+            [PartitionKey(1)]
+            public int RowKey2 { get; set; }
+
+            [ClusteringKey(0)]
+            public int CKey1 { get; set; }
 
             [Counter]
             public long Value { get; set; }
@@ -369,12 +385,16 @@ APPLY BATCH".Replace("\r", ""));
                 .Verifiable();
 
             var session = sessionMock.Object;
-            var table = SessionExtensions.GetTable<CounterTestTable>(session);
-            table.CreateIfNotExists();
+            var table1 = SessionExtensions.GetTable<CounterTestTable1>(session);
+            table1.CreateIfNotExists();
+
+            var table2 = SessionExtensions.GetTable<CounterTestTable2>(session);
+            table2.CreateIfNotExists();
 
             sessionMock.Verify();
             Assert.Greater(actualCqlQueries.Count, 0);
-            Assert.AreEqual("CREATE TABLE \"CounterTestTable\"(\"RowKey\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY(\"RowKey\", \"RowKey2\"));", actualCqlQueries[0]);
+            Assert.AreEqual("CREATE TABLE \"CounterTestTable1\"(\"RowKey1\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY(\"RowKey1\", \"RowKey2\"));", actualCqlQueries[0]);
+            Assert.AreEqual("CREATE TABLE \"CounterTestTable2\"(\"RowKey1\" int, \"RowKey2\" int, \"CKey1\" int, \"Value\" counter, PRIMARY KEY((\"RowKey1\", \"RowKey2\"), \"CKey1\"));", actualCqlQueries[1]);
         }
     }
 }
