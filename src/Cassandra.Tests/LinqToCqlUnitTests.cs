@@ -421,5 +421,15 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.That(cql, Is.EqualTo("INSERT INTO \"InsertNullTable\"(\"Key\", \"Value\") VALUES (1, null)"));
         }
+
+        [Test]
+        public void EmptyListTest()
+        {
+            var table = SessionExtensions.GetTable<TestTable>(null);
+            var keys = new string[0];
+            var query = table.Where(item => keys.Contains(item.pk));
+
+            Console.WriteLine(query.ToString());
+        }
     }
 }

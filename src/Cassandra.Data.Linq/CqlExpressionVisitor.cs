@@ -407,8 +407,6 @@ namespace Cassandra.Data.Linq
                             currentConditionBuilder.get().Append(", ");
                         currentConditionBuilder.get().Append(cqlTool.AddValue(obj));
                     }
-                    if (!first)
-                        throw new CqlArgumentException("Collection " + inp + " is empty.");
                     currentConditionBuilder.get().Append(")");
                     return node;
                 }
