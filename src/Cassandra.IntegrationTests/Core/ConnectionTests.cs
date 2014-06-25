@@ -17,6 +17,20 @@ namespace Cassandra.IntegrationTests.Core
     [Timeout(600000)]
     public class ConnectionTests : SingleNodeClusterTest
     {
+        protected override bool ConnectToCluster
+        {
+            get
+            {
+                //Do not create a session and cluster for the ccm cluster
+                return false;
+            }
+        }
+
+        public ConnectionTests()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+        }
+
         [Test]
         public void BasicStartupTest()
         {
@@ -214,15 +228,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Init();
                 var taskList = new List<Task>();
-                //Run the query multiple times
-                for (var i = 0; i < 129; i++)
-                {
-                    taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
-                }
-                Task.WaitAll(taskList.ToArray());
-                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
-                //Run the query a lot more times
-                for (var i = 0; i < 1024; i++)
+                //Run the query more times than the max allowed
+                for (var i = 0; i < connection.MaxConcurrentRequests * 2; i++)
                 {
                     taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
                 }
@@ -551,7 +558,7 @@ namespace Cassandra.IntegrationTests.Core
             var config = new Configuration(
                 new Cassandra.Policies(),
                 protocolOptions,
-                new PoolingOptions(),
+                null,
                 socketOptions,
                 new ClientOptions(),
                 NoneAuthProvider.Instance,

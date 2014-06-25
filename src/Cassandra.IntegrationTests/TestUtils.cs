@@ -482,7 +482,7 @@ namespace Cassandra.IntegrationTests
             return tempDirectory;
         }
 
-        public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0)
+        public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0, bool connect = true)
         {
             var clusterInfo = new CcmClusterInfo();
             if (builder == null)
@@ -510,14 +510,17 @@ namespace Cassandra.IntegrationTests
                 }
                 try
                 {
-                    clusterInfo.Cluster = builder
-                        .AddContactPoint("127.0.0.1")
-                        .Build();
-                    clusterInfo.Session = clusterInfo.Cluster.Connect();
-                    if (keyspaceName != null)
+                    if (connect)
                     {
-                        clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
-                        clusterInfo.Session.ChangeKeyspace(keyspaceName);
+                        clusterInfo.Cluster = builder
+                            .AddContactPoint("127.0.0.1")
+                            .Build();
+                        clusterInfo.Session = clusterInfo.Cluster.Connect();
+                        if (keyspaceName != null)
+                        {
+                            clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                            clusterInfo.Session.ChangeKeyspace(keyspaceName);
+                        }
                     }
                 }
                 catch

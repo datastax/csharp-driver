@@ -17,7 +17,6 @@ namespace Cassandra
     internal class Connection : IDisposable
     {
         private Logger _logger = new Logger(typeof(Connection));
-        private const byte _maxConcurrentRequests = 128;
         private TcpSocket _tcpSocket;
         private int _disposed;
         /// <summary>
@@ -58,6 +57,7 @@ namespace Cassandra
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
         public event CassandraEventHandler CassandraEventResponse;
+
         public IFrameCompressor Compressor { get; set; }
 
         public IPAddress HostAddress
@@ -128,6 +128,21 @@ namespace Cassandra
                     var request = new QueryRequest("USE " + value, false, QueryProtocolOptions.Default);
                     TaskHelper.WaitToComplete(this.Send(request), timeout);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets the amount of concurrent requests depending on the protocol version
+        /// </summary>
+        public int MaxConcurrentRequests
+        {
+            get
+            {
+                if (ProtocolVersion < 3)
+                {
+                    return 128;
+                }
+                return 32768;
             }
         }
 
@@ -286,9 +301,7 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         public virtual void Init()
         {
-            //MAYBE: If really necessary, we can Wait on the BeginConnect result.
-            //Cassandra supports up to 128 concurrent requests
-            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, _maxConcurrentRequests).Select(s => (short)s));
+            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
 
@@ -302,6 +315,7 @@ namespace Cassandra
                 Compressor = new SnappyCompressor();
             }
 
+            //MAYBE: If really necessary, we can Wait on the BeginConnect result.
             //Init TcpSocket
             _tcpSocket.Init();
             _tcpSocket.Error += CancelPending;
@@ -515,7 +529,7 @@ namespace Cassandra
                     //Queue it up for later.
                     //When receiving the next complete message, we can process it.
                     _writeQueue.Enqueue(state);
-                    _logger.Verbose("Enqueued: " + _writeQueue.Count);
+                    _logger.Info("Enqueued: " + _writeQueue.Count + ", if this message is recurrent consider configuring more connections per host or lower the pressure");
                     return;
                 }
                 //Prevent the next to process

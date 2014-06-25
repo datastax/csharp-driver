@@ -25,13 +25,13 @@ namespace Cassandra
     ///  maintain a relatively small number of connections to each Cassandra host.
     ///  These options allow to control how many connections are kept exactly. </p><p> For
     ///  each host, the driver keeps a core amount of connections open at all time
-    ///  (<link>PoolingOptions#getCoreConnectionsPerHost</link>). If the utilisation
+    ///  (<link>PoolingOptions#getCoreConnectionsPerHost</link>). If the utilization
     ///  of those connections reaches a configurable threshold
     ///  (<link>PoolingOptions#getMaxSimultaneousRequestsPerConnectionTreshold</link>),
     ///  more connections are created up to a configurable maximum number of
     ///  connections (<link>PoolingOptions#getMaxConnectionPerHost</link>). Once more
     ///  than core connections have been created, connections in excess are reclaimed
-    ///  if the utilisation of opened connections drops below the configured threshold
+    ///  if the utilization of opened connections drops below the configured threshold
     ///  (<link>PoolingOptions#getMinSimultaneousRequestsPerConnectionTreshold</link>).
     ///  </p><p> Each of these parameters can be separately set for <c>Local</c> and
     ///  <c>Remote</c> hosts (<link>HostDistance</link>). For
@@ -40,14 +40,11 @@ namespace Cassandra
     /// </summary>
     public class PoolingOptions
     {
-        // Note: we could use an enumMap or similar, but synchronization would
-        // be more costly so let's stick to volatile in for now.
+        //the defaults target small number concurrent requests (protocol 1 and 2) and multiple connections to a host
         private const int DefaultMinRequests = 25;
-        private const int DefaultMaxRequests = 100;
-
+        private const int DefaultMaxRequests = 128;
         private const int DefaultCorePoolLocal = 2;
         private const int DefaultCorePoolRemote = 1;
-
         private const int DefaultMaxPoolLocal = 8;
         private const int DefaultMaxPoolRemote = 2;
 
@@ -253,6 +250,27 @@ namespace Cassandra
                     throw new ArgumentOutOfRangeException("Cannot set max connections per host for " + distance + " hosts");
             }
             return this;
+        }
+
+        /// <summary>
+        /// Gets the default protocol options by protocol version
+        /// </summary>
+        internal static PoolingOptions GetDefault(byte protocolVersion)
+        {
+            if (protocolVersion < 3)
+            {
+                //New instance of pooling options with default values
+                return new PoolingOptions();
+            }
+            else
+            {
+                //New instance of pooling options with default values for high number of concurrent requests
+                return new PoolingOptions()
+                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                    .SetMaxConnectionsPerHost(HostDistance.Local, 2)
+                    .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
+                    .SetMaxConnectionsPerHost(HostDistance.Remote, 1);
+            }
         }
     }
 }

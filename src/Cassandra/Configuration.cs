@@ -29,7 +29,7 @@ namespace Cassandra
         private readonly ClientOptions _clientOptions;
         private readonly Policies _policies;
 
-        private readonly PoolingOptions _poolingOptions;
+        private PoolingOptions _poolingOptions;
         private readonly ProtocolOptions _protocolOptions;
         private readonly QueryOptions _queryOptions;
         private readonly SocketOptions _socketOptions;
@@ -111,7 +111,7 @@ namespace Cassandra
         internal Configuration() :
             this(new Policies(),
                  new ProtocolOptions(),
-                 new PoolingOptions(),
+                 null,
                  new SocketOptions(),
                  new ClientOptions(),
                  NoneAuthProvider.Instance,
@@ -138,7 +138,18 @@ namespace Cassandra
             _authInfoProvider = authInfoProvider;
             _queryOptions = queryOptions;
         }
+
+        /// <summary>
+        /// Gets the pooling options. If not specified, gets the default by protocol version
+        /// </summary>
+        internal PoolingOptions GetPoolingOptions(byte protocolVersion)
+        {
+            if (this._poolingOptions != null)
+            {
+                return this._poolingOptions;
+            }
+            this._poolingOptions = PoolingOptions.GetDefault(protocolVersion);
+            return this._poolingOptions;
+        }
     }
 }
-
-// end namespace

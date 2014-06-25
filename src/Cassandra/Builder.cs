@@ -11,7 +11,7 @@ namespace Cassandra
     public class Builder : IInitializer
     {
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
-        private readonly PoolingOptions _poolingOptions = new PoolingOptions();
+        private readonly PoolingOptions _poolingOptions = null;
         private readonly SocketOptions _socketOptions = new SocketOptions();
         private IAuthInfoProvider _authInfoProvider;
         private IAuthProvider _authProvider = NoneAuthProvider.Instance;

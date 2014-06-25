@@ -47,7 +47,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the stored value in the colum specified by index
+        /// Gets the stored value in the column specified by index
         /// </summary>
         public object this[int index]
         {
@@ -55,7 +55,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the stored value in the colum specified by name
+        /// Gets the stored value in the column specified by name
         /// </summary>
         public object this[string name]
         {
@@ -111,7 +111,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the stored value in the colum specified by index
+        /// Gets the stored value in the column specified by index
         /// </summary>
         /// <param name="tpy">Target type</param>
         /// <param name="index">Index of the column</param>
@@ -122,7 +122,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the stored value in the colum specified by name
+        /// Gets the stored value in the column specified by name
         /// </summary>
         /// <param name="tpy">Target type</param>
         /// <param name="name">Name of the column</param>
@@ -134,7 +134,7 @@ namespace Cassandra
 
 
         /// <summary>
-        /// Gets the stored value in the colum specified by index
+        /// Gets the stored value in the column specified by index
         /// </summary>
         /// <typeparam name="T">Target type</typeparam>
         /// <param name="index">Index of the column</param>
