@@ -29,6 +29,7 @@ namespace Cassandra
         private readonly int _port;
         private readonly SSLOptions _sslOptions;
         private CompressionType _compression = CompressionType.NoCompression;
+        private IFrameCompressor _compressor;
 
         /// <summary>
         ///  The port used to connect to the Cassandra hosts.
@@ -58,6 +59,14 @@ namespace Cassandra
         public CompressionType Compression
         {
             get { return _compression; }
+        }
+
+        /// <summary>
+        ///  Gets the custom compressor specified to be used for the compression type.
+        /// </summary>
+        public IFrameCompressor CustomCompressor
+        {
+            get { return _compressor; }
         }
 
         /// <summary>
@@ -96,14 +105,23 @@ namespace Cassandra
         /// </summary>
         /// <param name="compression"> the compression algorithm to use (or <c>Compression.NONE</c> to disable compression).
         ///  </param>
-        /// 
         /// <returns>this <c>ProtocolOptions</c> object.</returns>
         public ProtocolOptions SetCompression(CompressionType compression)
         {
             _compression = compression;
             return this;
         }
+
+        /// <summary>
+        /// Sets a custom compressor to be used for the compression type.
+        /// If specified, the compression type is mandatory.
+        /// If not specified the driver default compressor will be use for the compression type.
+        /// </summary>
+        /// <param name="compressor">Implementation of IFrameCompressor</param>
+        public ProtocolOptions SetCustomCompressor(IFrameCompressor compressor)
+        {
+            _compressor = compressor;
+            return this;
+        }
     }
 }
-
-// end namespace

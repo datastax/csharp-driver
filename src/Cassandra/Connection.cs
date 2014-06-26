@@ -305,8 +305,11 @@ namespace Cassandra
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
 
-            //MAYBE: Allow the possibility to provide a custom provider
-            if (Options.Compression == CompressionType.LZ4)
+            if (Options.CustomCompressor != null)
+            {
+                Compressor = Options.CustomCompressor;
+            }
+            else if (Options.Compression == CompressionType.LZ4)
             {
                 Compressor = new LZ4Compressor();
             }
