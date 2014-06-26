@@ -64,7 +64,10 @@ namespace Cassandra.IntegrationTests.Core
 
                 var pool = session.GetConnectionPool(new Host(IPAddress.Parse(IpPrefix + "1"), policy), HostDistance.Local);
                 var connections = pool.OpenConnections.ToArray();
-                Assert.AreEqual(clusterInfo.Cluster.Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance.Local), connections.Length);
+                var expectedCoreConnections = clusterInfo.Cluster.Configuration
+                    .GetPoolingOptions(connections.First().ProtocolVersion)
+                    .GetCoreConnectionsPerHost(HostDistance.Local);
+                Assert.AreEqual(expectedCoreConnections, connections.Length);
                 Assert.True(connections.All(c => !c.IsClosed));
             }
             finally

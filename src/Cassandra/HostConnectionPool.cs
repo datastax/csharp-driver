@@ -80,7 +80,7 @@ namespace Cassandra
         /// </summary>
         public void MaybeCreateCorePool()
         {
-            var coreConnections = Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance);
+            var coreConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(HostDistance);
             if (_connections == null || _connections.All(c => c.IsClosed))
             {
                 lock(_poolCreationLock)
@@ -115,8 +115,8 @@ namespace Cassandra
         /// </summary>
         public void MaybeSpawnNewConnection(int inFlight)
         {
-            int maxInFlight = Configuration.PoolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance);
-            int maxConnections = Configuration.PoolingOptions.GetMaxConnectionPerHost(HostDistance);
+            int maxInFlight = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance);
+            int maxConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(HostDistance);
             if (inFlight > maxInFlight)
             {
                 if (_connections.Count >= maxConnections)

@@ -61,9 +61,8 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  The connection pooling configuration.
+        ///  The connection pooling configuration, defaults to null.
         /// </summary>
-        /// 
         /// <returns>the pooling options.</returns>
         public PoolingOptions PoolingOptions
         {
