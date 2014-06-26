@@ -127,15 +127,9 @@ namespace Cassandra.Tests
                 (from ent in table where new[] {10, 30, 40}.Contains(ent.ck2) select ent).ToString(),
                 @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40) ALLOW FILTERING");
 
-            try
-            {
-                Assert.AreEqual(
-                    (from ent in table where new int[] {}.Contains(ent.ck2) select ent).ToString(),
-                    @"?");
-            }
-            catch (CqlArgumentException)
-            {
-            }
+            Assert.AreEqual(
+                @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" IN () ALLOW FILTERING",
+                (from ent in table where new int[] {}.Contains(ent.ck2) select ent).ToString());
 
             Assert.AreEqual(
                (from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete().ToString(),
@@ -429,7 +423,7 @@ APPLY BATCH".Replace("\r", ""));
             var keys = new string[0];
             var query = table.Where(item => keys.Contains(item.pk));
 
-            Console.WriteLine(query.ToString());
+            Assert.True(query.ToString().Contains("\"x_pk\" IN ()"), "The query must contain an empty IN statement");
         }
     }
 }
