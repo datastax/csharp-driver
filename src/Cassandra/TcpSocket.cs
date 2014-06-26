@@ -138,7 +138,15 @@ namespace Cassandra
                         _logger.Error(String.Format("SSL connection: Can not resolve host name for address {0}. Using the IP address instead of the host name. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that the Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.", targetHost), ex);
                     }
                     _socketStream = new SslStream(_socketStream, false, SSLOptions.RemoteCertValidationCallback, null);
-                    (_socketStream as SslStream).AuthenticateAsClient(targetHost, SSLOptions.CertificateCollection, SSLOptions.SslProtocol, SSLOptions.CheckCertificateRevocation);
+                    var sslAuthResult = (_socketStream as SslStream).BeginAuthenticateAsClient(targetHost, SSLOptions.CertificateCollection, SSLOptions.SslProtocol, SSLOptions.CheckCertificateRevocation, null, null);
+                    var sslAuthSignaled = sslAuthResult.AsyncWaitHandle.WaitOne(Options.ConnectTimeoutMillis);
+                    if (!sslAuthSignaled)
+                    {
+                        //It timed out: Close the socket and throw the exception
+                        _socket.Close();
+                        throw new SocketException((int)SocketError.TimedOut);
+                    }
+                    (_socketStream as SslStream).EndAuthenticateAsClient(sslAuthResult);
                 }
             }
 
