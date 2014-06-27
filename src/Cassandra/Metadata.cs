@@ -145,7 +145,7 @@ namespace Cassandra
         /// <param name="keyspace"> the name of the keyspace for which metadata should be
         ///  returned. </param>
         /// 
-        /// <returns>the metadat of the requested keyspace or <c>null</c> if
+        /// <returns>the metadata of the requested keyspace or <c>null</c> if
         ///  <c>* keyspace</c> is not a known keyspace.</returns>
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {

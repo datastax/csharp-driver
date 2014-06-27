@@ -111,6 +111,19 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets a column information by name. Returns null if not found.
+        /// </summary>
+        public CqlColumn GetColumn(string name)
+        {
+            var index = 0;
+            if (!ColumnIndexes.TryGetValue(name, out index))
+            {
+                return null;
+            }
+            return Columns[index];
+        }
+
+        /// <summary>
         /// Gets the stored value in the column specified by index
         /// </summary>
         /// <param name="tpy">Target type</param>
@@ -152,10 +165,14 @@ namespace Cassandra
         /// <returns></returns>
         public T GetValue<T>(string name)
         {
+            if (!ColumnIndexes.ContainsKey(name))
+            {
+                throw new ArgumentException(String.Format("Column {0} not found", name));
+            }
             return GetValue<T>(ColumnIndexes[name]);
         }
 
-        internal object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
+        private object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
         {
             return TypeInterpreter.CqlConvert(buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
         }

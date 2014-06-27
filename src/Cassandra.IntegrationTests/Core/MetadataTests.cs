@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
 
-        public void checkPureMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
+        private void CheckPureMetadata(string tableName = null, string keyspaceName = null, TableOptions tableOptions = null)
         {
             var columns = new Dictionary
                 <string, ColumnTypeCode>
@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.Core
                 //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
             };
 
-            string tablename = TableName ?? "table" + Guid.NewGuid().ToString("N");
+            string tablename = tableName ?? "table" + Guid.NewGuid().ToString("N");
             var sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
 
             foreach (KeyValuePair<string, ColumnTypeCode> col in columns)
@@ -85,20 +85,20 @@ namespace Cassandra.IntegrationTests.Core
                 QueryTools.ExecuteSyncNonQuery(Session, sb.ToString())
                 );
 
-            TableMetadata table = Cluster.Metadata.GetTable(KeyspaceName ?? Keyspace, tablename);
+            TableMetadata table = Cluster.Metadata.GetTable(keyspaceName ?? Keyspace, tablename);
             foreach (TableColumn metaCol in table.TableColumns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.Name));
                 Assert.True(metaCol.TypeCode == columns.First(tpc => tpc.Key == metaCol.Name).Value);
                 Assert.True(metaCol.Table == tablename);
-                Assert.True(metaCol.Keyspace == (KeyspaceName ?? Keyspace));
+                Assert.True(metaCol.Keyspace == (keyspaceName ?? Keyspace));
             }
 
             if (tableOptions != null)
                 Assert.True(tableOptions.Equals(table.Options));
         }
 
-        public void checkMetadata(string TableName = null, string KeyspaceName = null, TableOptions tableOptions = null)
+        private void CheckMetadata(string tableName = null, string keyspaceName = null, TableOptions tableOptions = null)
         {
             var clusterInfo = TestUtils.CcmSetup(2);
             try
@@ -108,7 +108,7 @@ namespace Cassandra.IntegrationTests.Core
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
 
-                checkPureMetadata(TableName, KeyspaceName, tableOptions);
+                CheckPureMetadata(tableName, keyspaceName, tableOptions);
             }
             finally
             {
@@ -116,45 +116,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        public void checkKSMetadata()
-        {
-            var clusterInfo = TestUtils.CcmSetup(2);
-            try
-            {
-                Session = clusterInfo.Session;
-                Cluster = clusterInfo.Cluster;
-                Session.CreateKeyspaceIfNotExists(Keyspace);
-                Session.ChangeKeyspace(Keyspace);
-
-                string keyspacename = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-                bool durableWrites = false;
-                string strgyClass = "SimpleStrategy";
-                short rplctnFactor = 1;
-                Session.WaitForSchemaAgreement(
-                    Session.Execute(
-                        string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
-         AND durable_writes={3};"
-                                      , keyspacename, strgyClass, rplctnFactor, durableWrites))
-                    );
-                Session.ChangeKeyspace(keyspacename);
-
-
-                for (int i = 0; i < 10; i++)
-                    checkPureMetadata("table" + Guid.NewGuid().ToString("N"), keyspacename);
-
-                KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspace(keyspacename);
-                Assert.True(ksmd.DurableWrites == durableWrites);
-                Assert.True(ksmd.Replication.Where(opt => opt.Key == "replication_factor").First().Value == rplctnFactor);
-                Assert.True(ksmd.StrategyClass == strgyClass);
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
-        }
-
-        public void CreateKeyspaceWithPropertiesTest(string strategy_class)
+        private void CreateKeyspaceWithPropertiesTest(string strategyClass)
         {
             var clusterInfo = TestUtils.CcmSetup(2);
             try
@@ -168,7 +130,7 @@ namespace Cassandra.IntegrationTests.Core
                 int? data_centers_count = null;
                 Dictionary<string, int> datacenters_replication_factors = null;
 
-                if (strategy_class == ReplicationStrategies.SimpleStrategy)
+                if (strategyClass == ReplicationStrategies.SimpleStrategy)
                 {
                     replication_factor = Randomm.Instance.Next(1, 21);
                     Session.CreateKeyspaceIfNotExists(Keyspace,
@@ -176,7 +138,7 @@ namespace Cassandra.IntegrationTests.Core
                                                       durable_writes);
                     Session.ChangeKeyspace(Keyspace);
                 }
-                else if (strategy_class == ReplicationStrategies.NetworkTopologyStrategy)
+                else if (strategyClass == ReplicationStrategies.NetworkTopologyStrategy)
                 {
                     data_centers_count = Randomm.Instance.Next(1, 11);
                     datacenters_replication_factors = new Dictionary<string, int>((int) data_centers_count);
@@ -188,7 +150,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 KeyspaceMetadata ksmd = Cluster.Metadata.GetKeyspace(Keyspace);
-                Assert.AreEqual(strategy_class, ksmd.StrategyClass);
+                Assert.AreEqual(strategyClass, ksmd.StrategyClass);
                 Assert.AreEqual(durable_writes, ksmd.DurableWrites);
                 if (replication_factor != null)
                     Assert.AreEqual(replication_factor, ksmd.Replication["replication_factor"]);
@@ -217,13 +179,13 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void CheckTableMetadata()
         {
-            checkMetadata();
+            CheckMetadata();
         }
 
         [Test]
         public void CheckTableMetadataWithOptions()
         {
-            checkMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
+            CheckMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
                                                          new SortedDictionary<string, string>
                                                          {
                                                              {"class", "org.apache.cassandra.db.compaction.LeveledCompactionStrategy"},
@@ -239,7 +201,41 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void CheckKeyspaceMetadata()
         {
-            checkKSMetadata();
+            var clusterInfo = TestUtils.CcmSetup(2);
+            try
+            {
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+
+                var ksName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
+                const string strategyClass = "SimpleStrategy";
+                const bool durableWrites = false;
+                const int replicationFactor = 1;
+                Session.WaitForSchemaAgreement(
+                    Session.Execute(string.Format(@"
+                        CREATE KEYSPACE {0} 
+                        WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
+                        AND durable_writes={3};" , ksName, strategyClass, 1, durableWrites))
+                );
+                Session.ChangeKeyspace(ksName);
+
+
+                for (var i = 0; i < 10; i++)
+                {
+                    CheckPureMetadata("table" + Guid.NewGuid().ToString("N"), ksName);
+                }
+
+                var ksmd = Cluster.Metadata.GetKeyspace(ksName);
+                Assert.True(ksmd.DurableWrites == durableWrites);
+                Assert.True(ksmd.Replication.First(opt => opt.Key == "replication_factor").Value == replicationFactor);
+                Assert.True(ksmd.StrategyClass == strategyClass);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
         }
 
         [Test]

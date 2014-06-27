@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -809,11 +810,14 @@ namespace Cassandra
                             gcGrace = row.GetValue<int>("gc_grace_seconds"),
                             localReadRepair = row.GetValue<double>("local_read_repair_chance"),
                             readRepair = row.GetValue<double>("read_repair_chance"),
-                            replicateOnWrite = row.GetValue<bool>("replicate_on_write"),
                             compactionOptions = getCompactionStrategyOptions(row),
                             compressionParams =
                                 (SortedDictionary<string, string>) Utils.ConvertStringToMap(row.GetValue<string>("compression_parameters"))
                         };
+                        if (row.GetColumn("replicate_on_write") != null)
+                        {
+                            options.replicateOnWrite = row.GetValue<bool>("replicate_on_write");   
+                        }
                     }
                     //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
                     //But you can get it from system.schema_columnfamilies
