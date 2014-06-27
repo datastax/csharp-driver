@@ -20,13 +20,17 @@ using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Linq;
 
 namespace Cassandra
 {
     internal delegate object CqlConvertDelegate(IColumnInfo typeInfo, byte[] buffer, Type cSharpType);
     internal delegate byte[] InvCqlConvertDelegate(IColumnInfo typeInfo, object value);
 
-    internal class TypeInterpreter
+    /// <summary>
+    /// Contains the methods handle the conversion and parsing method to encode and decode from Cassandra
+    /// </summary>
+    internal static class TypeInterpreter
     {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
@@ -112,6 +116,30 @@ namespace Cassandra
             {ColumnTypeCode.Decimal,      GetDefaultTypeFromDecimal},
             {ColumnTypeCode.Varint,       GetDefaultTypeFromVarint}
         };
+
+        private const string ListTypeName = "org.apache.cassandra.db.marshal.ListType";
+        private const string SetTypeName = "org.apache.cassandra.db.marshal.SetType";
+        private const string MapTypeName = "org.apache.cassandra.db.marshal.MapType";
+        private const string UdtTypeName = "org.apache.cassandra.db.marshal.UserType";
+
+        private static readonly Dictionary<string, ColumnTypeCode> SingleTypeNames = new Dictionary<string, ColumnTypeCode>()
+        {
+            {"org.apache.cassandra.db.marshal.UTF8Type", ColumnTypeCode.Varchar},
+            {"org.apache.cassandra.db.marshal.UUIDType", ColumnTypeCode.Uuid},
+            {"org.apache.cassandra.db.marshal.Int32Type", ColumnTypeCode.Int},
+            {"org.apache.cassandra.db.marshal.BytesType", ColumnTypeCode.Blob},
+            {"org.apache.cassandra.db.marshal.FloatType", ColumnTypeCode.Float},
+            {"org.apache.cassandra.db.marshal.DoubleType", ColumnTypeCode.Double},
+            {"org.apache.cassandra.db.marshal.BooleanType", ColumnTypeCode.Boolean},
+            {"org.apache.cassandra.db.marshal.InetAddressType", ColumnTypeCode.Inet},
+            {"org.apache.cassandra.db.marshal.DateType", ColumnTypeCode.Timestamp},
+            {"org.apache.cassandra.db.marshal.TimestampType", ColumnTypeCode.Timestamp},
+            {"org.apache.cassandra.db.marshal.LongType", ColumnTypeCode.Bigint},
+            {"org.apache.cassandra.db.marshal.DecimalType", ColumnTypeCode.Decimal},
+            {"org.apache.cassandra.db.marshal.IntegerType", ColumnTypeCode.Varint}
+        };
+
+        private static readonly int SingleTypeNamesLength = SingleTypeNames.Keys.OrderByDescending(k => k.Length).First().Length;
 
         internal static byte[] GuidShuffle(byte[] b)
         {
@@ -237,31 +265,31 @@ namespace Cassandra
             }
             else
             {
-                if (type.Equals(typeof (string)))
+                if (type == typeof (string))
                     return ColumnTypeCode.Varchar;
-                if (type.Equals(typeof (long)))
+                if (type == typeof (long))
                     return ColumnTypeCode.Bigint;
-                if (type.Equals(typeof (byte[])))
+                if (type == typeof (byte[]))
                     return ColumnTypeCode.Blob;
-                if (type.Equals(typeof (bool)))
+                if (type == typeof (bool))
                     return ColumnTypeCode.Boolean;
-                if (type.Equals(TypeAdapters.DecimalTypeAdapter.GetDataType()))
+                if (type == TypeAdapters.DecimalTypeAdapter.GetDataType())
                     return ColumnTypeCode.Decimal;
-                if (type.Equals(typeof (double)))
+                if (type == typeof (double))
                     return ColumnTypeCode.Double;
-                if (type.Equals(typeof (float)))
+                if (type == typeof (float))
                     return ColumnTypeCode.Float;
-                if (type.Equals(typeof(IPAddress)))
+                if (type == typeof(IPAddress))
                     return ColumnTypeCode.Inet;
-                if (type.Equals(typeof (int)))
+                if (type == typeof (int))
                     return ColumnTypeCode.Int;
-                if (type.Equals(typeof (DateTimeOffset)))
+                if (type == typeof (DateTimeOffset))
                     return ColumnTypeCode.Timestamp;
-                if (type.Equals(typeof (DateTime)))
+                if (type == typeof (DateTime))
                     return ColumnTypeCode.Timestamp;
-                if (type.Equals(typeof (Guid)))
+                if (type == typeof (Guid))
                     return ColumnTypeCode.Uuid;
-                if (type.Equals(TypeAdapters.VarIntTypeAdapter.GetDataType()))
+                if (type == TypeAdapters.VarIntTypeAdapter.GetDataType())
                     return ColumnTypeCode.Varint;
             }
 
@@ -889,6 +917,174 @@ namespace Cassandra
         }
 
         private delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo typeInfo);
+        
+        /// <summary>
+        /// Parses a given Cassandra type name to get the data type information
+        /// </summary>
+        /// <exception cref="ArgumentException" />
+        internal static ColumnDesc ParseDataType(string typeName, int startIndex = 0, int length = 0)
+        {
+            var dataType = new ColumnDesc();
+            if (length == 0)
+            {
+                length = typeName.Length;
+            }
+            //Quick check if its a single type
+            if (length <= SingleTypeNamesLength)
+            {
+                ColumnTypeCode typeCode;
+                if (startIndex > 0)
+                {
+                    typeName = typeName.Substring(startIndex, length);
+                }
+                if (SingleTypeNames.TryGetValue(typeName, out typeCode))
+                {
+                    dataType.TypeCode = typeCode;
+                    return dataType;
+                }
+                throw GetTypeException(typeName);
+            }
+            if (typeName.Substring(startIndex, ListTypeName.Length) == ListTypeName)
+            {
+                //Its a list
+                //org.apache.cassandra.db.marshal.ListType(innerType)
+                //move cursor across the name and bypass the parenthesis
+                startIndex += ListTypeName.Length + 1;
+                length -= ListTypeName.Length + 2;
+                var innerTypes = ParseParams(typeName, startIndex, length);
+                if (innerTypes.Count != 1)
+                {
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeCode = ColumnTypeCode.List;
+                var subType = ParseDataType(innerTypes[0]);
+                dataType.TypeInfo = new ListColumnInfo()
+                {
+                    ValueTypeCode = subType.TypeCode,
+                    ValueTypeInfo = subType.TypeInfo
+                };
+                return dataType;
+            }
+            if (typeName.Substring(startIndex, SetTypeName.Length) == SetTypeName)
+            {
+                //Its a set
+                //org.apache.cassandra.db.marshal.SetType(innerType)
+                //move cursor across the name and bypass the parenthesis
+                startIndex += SetTypeName.Length + 1;
+                length -= SetTypeName.Length + 2;
+                var innerTypes = ParseParams(typeName, startIndex, length);
+                if (innerTypes.Count != 1)
+                {
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeCode = ColumnTypeCode.Set;
+                var subType = ParseDataType(innerTypes[0]);
+                dataType.TypeInfo = new SetColumnInfo()
+                {
+                    KeyTypeCode = subType.TypeCode,
+                    KeyTypeInfo = subType.TypeInfo
+                };
+                return dataType;
+            }
+            if (typeName.Substring(startIndex, MapTypeName.Length) == MapTypeName)
+            {
+                //org.apache.cassandra.db.marshal.MapType(keyType,valueType)
+                //move cursor across the name and bypass the parenthesis
+                startIndex += MapTypeName.Length + 1;
+                length -= MapTypeName.Length + 2;
+                var innerTypes = ParseParams(typeName, startIndex, length);
+                //It should contain the key and value types
+                if (innerTypes.Count != 2)
+                {
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeCode = ColumnTypeCode.Map;
+                var keyType = ParseDataType(innerTypes[0]);
+                var valueType = ParseDataType(innerTypes[1]);
+                dataType.TypeInfo = new MapColumnInfo()
+                {
+                    KeyTypeCode = keyType.TypeCode,
+                    KeyTypeInfo = keyType.TypeInfo,
+                    ValueTypeCode = valueType.TypeCode,
+                    ValueTypeInfo = valueType.TypeInfo
+                };
+                return dataType;
+            }
+            if (typeName.Substring(startIndex, UdtTypeName.Length) == UdtTypeName)
+            {
+                //move cursor across the name and bypass the parenthesis
+                startIndex += UdtTypeName.Length + 1;
+                length -= UdtTypeName.Length + 2;
+                var udtParams = ParseParams(typeName, startIndex, length);
+                if (udtParams.Count < 2)
+                {
+                    //It should contain at least the keyspace, name of the udt and a type
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeCode = ColumnTypeCode.Udt;
+                dataType.Keyspace = udtParams[0];
+                dataType.Name = HexToUtf8(udtParams[1]);
+                var udtInfo = new UdtColumnInfo(dataType.Keyspace + "." + dataType.Name);
+                for (var i = 2; i < udtParams.Count; i++)
+                {
+                    var p = udtParams[i];
+                    var separatorIndex = p.IndexOf(':');
+                    var c = ParseDataType(p, separatorIndex + 1, p.Length - (separatorIndex + 1));
+                    c.Name = HexToUtf8(p.Substring(0, separatorIndex));
+                    udtInfo.Types.Add(c);
+                }
+                dataType.TypeInfo = udtInfo;
+                return dataType;
+            }
+            throw GetTypeException(typeName);
+        }
 
+        /// <summary>
+        /// Converts a hex string to utf8 string
+        /// </summary>
+        private static string HexToUtf8(string hexString)
+        {
+            var bytes = Enumerable.Range(0, hexString.Length)
+                 .Where(x => x % 2 == 0)
+                 .Select(x => Convert.ToByte(hexString.Substring(x, 2), 16))
+                 .ToArray();
+            return Encoding.UTF8.GetString(bytes);
+        }
+
+        /// <summary>
+        /// Parses comma delimited type parameters
+        /// </summary>
+        /// <returns></returns>
+        private static List<string> ParseParams(string value, int startIndex, int length)
+        {
+            var types = new List<string>();
+            var paramStart = startIndex;
+            var level = 0;
+            for (var i = startIndex; i < startIndex + length; i++)
+            {
+                var c = value[i];
+                if (c == '(')
+                {
+                    level++;
+                }
+                if (c == ')')
+                {
+                    level--;
+                }
+                if (level == 0 && c == ',')
+                {
+                    types.Add(value.Substring(paramStart, i - paramStart));
+                    paramStart = i + 1;
+                }
+            }
+            //Add the last one
+            types.Add(value.Substring(paramStart, length - (paramStart - startIndex)));
+            return types;
+        }
+
+        private static Exception GetTypeException(string typeName)
+        {
+            return new ArgumentException(String.Format("Not a valid type {0}", typeName));
+        }
     }
 }

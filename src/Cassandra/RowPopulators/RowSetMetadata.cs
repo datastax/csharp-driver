@@ -65,33 +65,52 @@ namespace Cassandra
 
     public class CustomColumnInfo : IColumnInfo
     {
-        public string CustomTypeName;
+        public string CustomTypeName { get; set; }
     }
 
     public class ListColumnInfo : IColumnInfo
     {
-        public ColumnTypeCode ValueTypeCode;
-        public IColumnInfo ValueTypeInfo;
+        public ColumnTypeCode ValueTypeCode { get; set; }
+        public IColumnInfo ValueTypeInfo { get; set; }
     }
 
     public class SetColumnInfo : IColumnInfo
     {
-        public ColumnTypeCode KeyTypeCode;
-        public IColumnInfo KeyTypeInfo;
+        public ColumnTypeCode KeyTypeCode { get; set; }
+        public IColumnInfo KeyTypeInfo { get; set; }
     }
 
     public class MapColumnInfo : IColumnInfo
     {
-        public ColumnTypeCode KeyTypeCode;
-        public IColumnInfo KeyTypeInfo;
-        public ColumnTypeCode ValueTypeCode;
-        public IColumnInfo ValueTypeInfo;
+        public ColumnTypeCode KeyTypeCode { get; set; }
+        public IColumnInfo KeyTypeInfo { get; set; }
+        public ColumnTypeCode ValueTypeCode { get; set; }
+        public IColumnInfo ValueTypeInfo { get; set; }
+    }
+
+    public class UdtColumnInfo : IColumnInfo
+    {
+        /// <summary>
+        /// Fully qualified type name: keyspace.typeName
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Gets the list of the inner types
+        /// </summary>
+        public List<ColumnDesc> Types { get; set; }
+
+        public UdtColumnInfo(string name)
+        {
+            Name = name;
+            Types = new List<ColumnDesc>();
+        }
     }
 
     /// <summary>
     /// Represents the information for a given data type
     /// </summary>
-    internal class ColumnDesc
+    public class ColumnDesc
     {
         public string Keyspace { get; set; }
         public string Name { get; set; }
