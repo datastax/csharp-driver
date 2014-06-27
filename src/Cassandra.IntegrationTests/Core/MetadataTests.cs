@@ -61,8 +61,8 @@ namespace Cassandra.IntegrationTests.Core
                 //{"q12counter", Metadata.ColumnTypeCode.Counter}, A table that contains a counter can only contain counters
             };
 
-            string tablename = tableName ?? "table" + Guid.NewGuid().ToString("N");
-            var sb = new StringBuilder(@"CREATE TABLE " + tablename + " (");
+            tableName = tableName ?? "table" + Guid.NewGuid().ToString("N");
+            var sb = new StringBuilder(@"CREATE TABLE " + tableName + " (");
 
             foreach (KeyValuePair<string, ColumnTypeCode> col in columns)
                 sb.Append(col.Key + " " + col.Value +
@@ -85,12 +85,13 @@ namespace Cassandra.IntegrationTests.Core
                 QueryTools.ExecuteSyncNonQuery(Session, sb.ToString())
                 );
 
-            TableMetadata table = Cluster.Metadata.GetTable(keyspaceName ?? Keyspace, tablename);
+            var table = Cluster.Metadata.GetTable(keyspaceName ?? Keyspace, tableName);
+            Assert.AreEqual(tableName, table.Name);
             foreach (TableColumn metaCol in table.TableColumns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.Name));
                 Assert.True(metaCol.TypeCode == columns.First(tpc => tpc.Key == metaCol.Name).Value);
-                Assert.True(metaCol.Table == tablename);
+                Assert.True(metaCol.Table == tableName);
                 Assert.True(metaCol.Keyspace == (keyspaceName ?? Keyspace));
             }
 
@@ -231,6 +232,31 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(ksmd.DurableWrites == durableWrites);
                 Assert.True(ksmd.Replication.First(opt => opt.Key == "replication_factor").Value == replicationFactor);
                 Assert.True(ksmd.StrategyClass == strategyClass);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void UdtMetadataTest()
+        {
+            const string cqlType1 = "CREATE TYPE phone (alias text, number text)";
+            const string cqlType2 = "CREATE TYPE address (street text, \"ZIP\" int, phones set<phone>)";
+            const string cqlTable = "CREATE TABLE user (id int PRIMARY KEY, addr address, main_phone phone)";
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+                Session.Execute(cqlType1);
+                Session.Execute(cqlType2);
+                Session.Execute(cqlTable);
+                var phoneDefinition = Cluster.Metadata.GetUdtDefinition(Keyspace, "phone").First();
+                var addressDefinition = Cluster.Metadata.GetUdtDefinition(Keyspace, "address").First();
             }
             finally
             {

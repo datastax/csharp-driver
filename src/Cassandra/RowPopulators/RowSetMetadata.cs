@@ -20,7 +20,7 @@ using System.Collections.Generic;
 namespace Cassandra
 {
     [Flags]
-    internal enum FlagBits
+    internal enum RowSetMetadataFlags
     {
         GlobalTablesSpec = 0x0001,
         HasMorePages = 0x0002,
@@ -48,7 +48,15 @@ namespace Cassandra
         Inet = 0x0010,
         List = 0x0020,
         Map = 0x0021,
-        Set = 0x0022
+        Set = 0x0022,
+        /// <summary>
+        /// User defined type
+        /// </summary>
+        Udt = 0x0030,
+        /// <summary>
+        /// Tuple of n subtypes
+        /// </summary>
+        Tuple = 0x0031
     }
 
     public interface IColumnInfo
@@ -80,13 +88,16 @@ namespace Cassandra
         public IColumnInfo ValueTypeInfo;
     }
 
-    public class ColumnDesc
+    /// <summary>
+    /// Represents the information for a given data type
+    /// </summary>
+    internal class ColumnDesc
     {
-        public string Keyspace;
-        public string Name;
-        public string Table;
-        public ColumnTypeCode TypeCode;
-        public IColumnInfo TypeInfo;
+        public string Keyspace { get; set; }
+        public string Name { get; set; }
+        public string Table { get; set; }
+        public ColumnTypeCode TypeCode { get; set; }
+        public IColumnInfo TypeInfo { get; set; }
     }
 
     public class RowSetMetadata
@@ -110,21 +121,21 @@ namespace Cassandra
         internal RowSetMetadata(BEBinaryReader reader)
         {
             var coldat = new List<ColumnDesc>();
-            var flags = (FlagBits) reader.ReadInt32();
+            var flags = (RowSetMetadataFlags) reader.ReadInt32();
             int numberOfcolumns = reader.ReadInt32();
 
             _rawColumns = new ColumnDesc[numberOfcolumns];
             string gKsname = null;
             string gTablename = null;
 
-            if ((flags & FlagBits.HasMorePages) == FlagBits.HasMorePages)
+            if ((flags & RowSetMetadataFlags.HasMorePages) == RowSetMetadataFlags.HasMorePages)
                 PagingState = reader.ReadBytes();
             else
                 PagingState = null;
 
-            if ((flags & FlagBits.NoMetadata) != FlagBits.NoMetadata)
+            if ((flags & RowSetMetadataFlags.NoMetadata) != RowSetMetadataFlags.NoMetadata)
             {
-                if ((flags & FlagBits.GlobalTablesSpec) == FlagBits.GlobalTablesSpec)
+                if ((flags & RowSetMetadataFlags.GlobalTablesSpec) == RowSetMetadataFlags.GlobalTablesSpec)
                 {
                     gKsname = reader.ReadString();
                     gTablename = reader.ReadString();
@@ -133,7 +144,7 @@ namespace Cassandra
                 for (int i = 0; i < numberOfcolumns; i++)
                 {
                     var col = new ColumnDesc();
-                    if ((flags & FlagBits.GlobalTablesSpec) != FlagBits.GlobalTablesSpec)
+                    if ((flags & RowSetMetadataFlags.GlobalTablesSpec) != RowSetMetadataFlags.GlobalTablesSpec)
                     {
                         col.Keyspace = reader.ReadString();
                         col.Table = reader.ReadString();

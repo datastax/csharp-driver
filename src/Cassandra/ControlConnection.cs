@@ -37,6 +37,7 @@ namespace Cassandra
         private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
         private const String SelectColumns = "SELECT * FROM system.schema_columns";
+        private const String SelectUdts = "SELECT * FROM system.schema_usertypes";
         private readonly AtomicValue<Connection> _activeConnection = new AtomicValue<Connection>(null);
         private readonly Cluster _cluster;
 
@@ -674,6 +675,15 @@ namespace Cassandra
             return SetupTable(keyspace, table);
         }
 
+        /// <summary>
+        /// Gets the definition of a User defined type
+        /// </summary>
+        public RowSet GetUdtDefinition(string keyspace, string typeName)
+        {
+            var cqlQuery = String.Format(SelectUdts + " WHERE keyspace_name='{0}' AND type_name = '{1}';", keyspace, typeName);
+            return Query(cqlQuery);
+        }
+
         public string GetStrategyClass(string strClass)
         {
             if (strClass != null)
@@ -682,7 +692,9 @@ namespace Cassandra
                     strClass = strClass.Replace("org.apache.cassandra.locator.", "");
             }
             else
-                throw new ArgumentNullException("Cannot retrieve informations about strategy class!");
+            {
+                throw new ArgumentNullException("strClass");
+            }
 
             return strClass;
         }
@@ -782,21 +794,27 @@ namespace Cassandra
                                 KeyType = KeyType.Clustering,
                             };
                             if (tpCode == ColumnTypeCode.List)
+                            {
                                 dsc.TypeInfo = new ListColumnInfo
                                 {
                                     ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                                 };
+                            }
                             else if (tpCode == ColumnTypeCode.Map)
+                            {
                                 dsc.TypeInfo = new MapColumnInfo
                                 {
                                     KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0],
                                     ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[1]
                                 };
+                            }
                             else if (tpCode == ColumnTypeCode.Set)
+                            {
                                 dsc.TypeInfo = new SetColumnInfo
                                 {
                                     KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
                                 };
+                            }
                             cols[dsc.Name] = dsc;
                             i++;
                         }
@@ -848,7 +866,6 @@ namespace Cassandra
             return new TableMetadata(tableName, cols.Values.ToArray(), options);
         }
 
-
         private ColumnTypeCode ConvertToColumnTypeCode(string type, out object[] collectionValueTp)
         {
             object[] obj;
@@ -863,7 +880,6 @@ namespace Cassandra
                 collectionValueTp[0] = ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
                 return ColumnTypeCode.Set;
             }
-
             if (type.StartsWith("org.apache.cassandra.db.marshal.MapType"))
             {
                 collectionValueTp[0] =
@@ -871,6 +887,10 @@ namespace Cassandra
                 collectionValueTp[1] =
                     ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj);
                 return ColumnTypeCode.Map;
+            }
+            if (type.StartsWith("org.apache.cassara.db.marshal.UserType"))
+            {
+                return ColumnTypeCode.Udt;
             }
 
             collectionValueTp = null;
