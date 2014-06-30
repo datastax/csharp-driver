@@ -25,7 +25,7 @@ namespace Cassandra
         public const int DefaultConnectTimeoutMillis = 5000;
 
         private int _connectTimeoutMillis = DefaultConnectTimeoutMillis;
-        private bool? _keepAlive;
+        private bool? _keepAlive = true;
         private int? _receiveBufferSize;
         private bool? _reuseAddress;
         private int? _sendBufferSize;
@@ -110,5 +110,3 @@ namespace Cassandra
         }
     }
 }
-
-// end namespace

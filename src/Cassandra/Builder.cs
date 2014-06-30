@@ -11,8 +11,8 @@ namespace Cassandra
     public class Builder : IInitializer
     {
         private readonly List<IPAddress> _addresses = new List<IPAddress>();
-        private readonly PoolingOptions _poolingOptions = new PoolingOptions();
-        private readonly SocketOptions _socketOptions = new SocketOptions();
+        private PoolingOptions _poolingOptions = new PoolingOptions();
+        private SocketOptions _socketOptions = new SocketOptions();
         private IAuthInfoProvider _authInfoProvider;
         private IAuthProvider _authProvider = NoneAuthProvider.Instance;
         private CompressionType _compression = CompressionType.NoCompression;
@@ -294,6 +294,21 @@ namespace Cassandra
         public Builder WithDefaultKeyspace(string defaultKeyspace)
         {
             _defaultKeyspace = defaultKeyspace;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the socket options that are going to be used to create the connections to the hosts.
+        /// </summary>
+        public Builder WithSocketOptions(SocketOptions value)
+        {
+            _socketOptions = value;
+            return this;
+        }
+
+        public Builder WithPoolingOptions(PoolingOptions value)
+        {
+            _poolingOptions = value;
             return this;
         }
 
