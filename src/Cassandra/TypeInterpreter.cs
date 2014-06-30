@@ -1082,6 +1082,53 @@ namespace Cassandra
             return types;
         }
 
+        /// <summary>
+        /// Parses a JSON Array of strings from an string.
+        /// </summary>
+        public static List<string> ParseJsonArrayOfStrings(string value)
+        {
+            //Implement it manually to avoid another dependency (JSON.NET) just for this task
+            if (String.IsNullOrWhiteSpace(value))
+            {
+                return new List<string>(0);
+            }
+            value = value.Trim();
+            if (value[0] != '[' && value[value.Length - 1] != ']')
+            {
+                throw new ArgumentException("value is not a JSON array");
+            }
+            var startIndex = -1;
+            var list = new List<string>();
+            var quoteChar = '\0';
+            for (var i = 1; i < value.Length - 1; i++)
+            {
+                var c = value[i];
+                if (c != '\'' && c != '"')
+                {
+                    continue;
+                }
+                if (quoteChar == '\0')
+                {
+                    quoteChar = c;
+                }
+                else if (c != quoteChar)
+                {
+                    continue;
+                }
+                if (startIndex < 0)
+                {
+                    //first occurrence of string quote
+                    startIndex = i + 1;
+                }
+                else
+                {
+                    list.Add(value.Substring(startIndex, i - startIndex));
+                    startIndex = -1;
+                }
+            }
+            return list;
+        }
+
         private static Exception GetTypeException(string typeName)
         {
             return new ArgumentException(String.Format("Not a valid type {0}", typeName));

@@ -228,5 +228,22 @@ namespace Cassandra.Tests
             Assert.AreEqual("alias", phonesSubType.Types[0].Name);
             Assert.AreEqual("number", phonesSubType.Types[1].Name);
         }
+
+        [Test]
+        public void ParseJsonArrayOfStrings()
+        {
+            var result = TypeInterpreter.ParseJsonArrayOfStrings("[]");
+            Assert.AreEqual(0, result.Count);
+            result = TypeInterpreter.ParseJsonArrayOfStrings("");
+            Assert.AreEqual(0, result.Count);
+            result = TypeInterpreter.ParseJsonArrayOfStrings(null);
+            Assert.AreEqual(0, result.Count);
+            result = TypeInterpreter.ParseJsonArrayOfStrings("['one', 'TWO', 'three']");
+            Assert.AreEqual(3, result.Count);
+            Assert.AreEqual("one, TWO, three", String.Join(", ", result));
+            result = TypeInterpreter.ParseJsonArrayOfStrings("[\"What's\", \"happening\", \" Peter \"]");
+            Assert.AreEqual(3, result.Count);
+            Assert.AreEqual("What's|happening| Peter ", String.Join("|", result));
+        }
     }
 }
