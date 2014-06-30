@@ -15,6 +15,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //For different threads
             Trace.AutoFlush = true;
         }
@@ -149,6 +150,25 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmRemove(clusterInfo);
             }
             Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
+        }
+
+        [Test]
+        public void TestInactivity()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                var rs = clusterInfo.Session.Execute("SELECT * FROM system.schema_keyspaces");
+                Assert.Greater(rs.Count(), 0);
+                Thread.Sleep(5 * 60 * 1000);
+
+                rs = clusterInfo.Session.Execute("SELECT * FROM system.schema_keyspaces");
+                Assert.Greater(rs.Count(), 0);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
         }
 
         public Action GetInsertAction(ISession session, object bindableStatement, ConsistencyLevel consistency, int rowsPerId)
