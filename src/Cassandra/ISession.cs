@@ -49,6 +49,10 @@ namespace Cassandra
         /// </summary>
         string Keyspace { get; }
         /// <summary>
+        /// Gets the user defined type mappings
+        /// </summary>
+        UdtMappingDefinitions UserDefinedTypes { get; }
+        /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
         IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state);

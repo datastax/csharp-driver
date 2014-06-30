@@ -57,16 +57,19 @@ namespace Cassandra
         internal Guid Guid { get; private set; }
 
         public string Keyspace { get; protected set; }
+        /// <inheritdoc />
+        public UdtMappingDefinitions UserDefinedTypes { get; protected set; }
 
         public Policies Policies { get { return Configuration.Policies; } }
 
         internal Session(Cluster cluster, Configuration configuration, string keyspace, int binaryProtocolVersion)
         {
-            this.Cluster = cluster;
-            this.Configuration = configuration;
-            this.Keyspace = keyspace;
-            this.BinaryProtocolVersion = binaryProtocolVersion;
-            this.Guid = Guid.NewGuid();
+            Cluster = cluster;
+            Configuration = configuration;
+            Keyspace = keyspace;
+            BinaryProtocolVersion = binaryProtocolVersion;
+            Guid = Guid.NewGuid();
+            UserDefinedTypes = new UdtMappingDefinitions(cluster);
         }
 
         /// <inheritdoc />

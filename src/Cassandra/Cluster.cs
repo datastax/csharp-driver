@@ -71,11 +71,7 @@ namespace Cassandra
             get { return _configuration; }
         }
 
-        /// <summary>
-        ///  Gets read-only metadata on the connected cluster. <p> This includes the
-        ///  know nodes (with their status as seen by the driver) as well as the schema
-        ///  definitions.</p>
-        /// </summary>
+        /// <inheritdoc />
         public Metadata Metadata
         {
             get { return _metadata; }

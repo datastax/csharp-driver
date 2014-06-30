@@ -20,6 +20,13 @@ namespace Cassandra
     public interface ICluster : IDisposable
     {
         /// <summary>
+        ///  Gets read-only metadata on the connected cluster. <p> This includes the
+        ///  know nodes (with their status as seen by the driver) as well as the schema
+        ///  definitions.</p>
+        /// </summary>
+        Metadata Metadata { get; }
+
+        /// <summary>
         ///  Returns all known hosts of this cluster.
         /// </summary>
         ICollection<Host> AllHosts();
