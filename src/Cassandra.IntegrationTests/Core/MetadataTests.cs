@@ -257,6 +257,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [TestCassandraVersion(2, 1)]
         [Test]
         public void UdtMetadataTest()
         {

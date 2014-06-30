@@ -87,6 +87,7 @@
     <Compile Include="Core\SessionExecuteAsyncTests.cs" />
     <Compile Include="Core\SessionTests.cs" />
     <Compile Include="Core\StressTests.cs" />
+    <Compile Include="Core\UdtMappingsTests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
     <Compile Include="MultipleNodeClusterTest.cs" />
@@ -129,7 +130,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

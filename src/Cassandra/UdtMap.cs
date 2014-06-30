@@ -41,6 +41,12 @@ namespace Cassandra
             // Allow chaining
             return this;
         }
+
+        public virtual UdtMap<T> SetIgnoreCase(bool value)
+        {
+            IgnoreCase = value;
+            return this;
+        }
     }
 
     /// <summary>
@@ -57,6 +63,8 @@ namespace Cassandra
 
         protected internal string UdtName { get; protected set; }
 
+        protected internal bool IgnoreCase { get; set; }
+
         protected UdtMap(Type netType, string udtName)
         {
             if (netType == null)
@@ -65,6 +73,7 @@ namespace Cassandra
             }
             NetType = netType;
             UdtName = string.IsNullOrWhiteSpace(udtName) ? NetType.Name : udtName;
+            IgnoreCase = true;
 
             _fieldNameToProperty = new Dictionary<string, PropertyInfo>();
             _propertyToFieldName = new Dictionary<PropertyInfo, string>();

@@ -310,9 +310,13 @@ namespace Cassandra
         internal static void CheckArgument(Type t, object value)
         {
             if (value == null)
+            {
                 throw new ArgumentNullException();
+            }
             if (!t.IsInstanceOfType(value))
+            {
                 throw new InvalidTypeException("value", value.GetType().FullName, new object[] {t.FullName});
+            }
         }
 
         internal static void CheckArgument<T>(object value)

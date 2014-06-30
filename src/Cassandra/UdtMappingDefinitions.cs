@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Cassandra
@@ -8,14 +9,14 @@ namespace Cassandra
     /// </summary>
     public class UdtMappingDefinitions
     {
-        private readonly Dictionary<string, UdtMap> _udtByName;
-        private readonly Dictionary<Type, UdtMap> _udtByNetType;
+        private readonly ConcurrentDictionary<string, UdtMap> _udtByName;
+        private readonly ConcurrentDictionary<Type, UdtMap> _udtByNetType;
         private readonly ICluster _cluster;
 
         internal UdtMappingDefinitions(ICluster cluster)
         {
-            _udtByName = new Dictionary<string, UdtMap>();
-            _udtByNetType = new Dictionary<Type, UdtMap>();
+            _udtByName = new ConcurrentDictionary<string, UdtMap>();
+            _udtByNetType = new ConcurrentDictionary<Type, UdtMap>();
             _cluster = cluster;
         }
 
@@ -27,18 +28,53 @@ namespace Cassandra
             if (udtMaps == null) throw new ArgumentNullException("udtMaps");
 
             // Add types to both indexes
-            foreach (UdtMap map in udtMaps)
+            foreach (var map in udtMaps)
             {
-                var udtDefition = GetDefinition(keyspace, map);
-                _udtByName.Add(map.UdtName, map);
-                _udtByNetType.Add(map.NetType, map);
+                UdtMap mapStored;
+                //Try to save the round trip and the validation
+                if (!_udtByNetType.TryGetValue(map.NetType, out mapStored))
+                {
+                    var udtDefition = GetDefinition(keyspace, map);
+                    _udtByName.AddOrUpdate(udtDefition.Name, map, (k, oldValue) => oldValue);
+                    _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => oldValue);
+                }
             }
         }
 
         private UdtColumnInfo GetDefinition(string keyspace, UdtMap map)
         {
-            var udtDefinition = _cluster.Metadata.GetUdtDefinition(keyspace, map.UdtName);
-            //TODO: Validate
+            var caseSensitiveUdtName = map.UdtName;
+            if (map.IgnoreCase)
+            {
+                //identifiers are lower cased in Cassandra
+                caseSensitiveUdtName = caseSensitiveUdtName.ToLower();
+            }
+            var udtDefinition = _cluster.Metadata.GetUdtDefinition(keyspace, caseSensitiveUdtName);
+            if (udtDefinition == null)
+            {
+                throw new InvalidTypeException(caseSensitiveUdtName + " UDT not found on keyspace " + keyspace);
+            }
+            foreach (var field in udtDefinition.Fields)
+            {
+                if (field.TypeCode == ColumnTypeCode.Udt)
+                {
+                    //We deal with nested UDTs later
+                    continue;
+                }
+                var prop = map.GetPropertyForUdtField(field.Name);
+                if (prop == null)
+                {
+                    //No mapping defined
+                    //MAYBE: throw an exception
+                    continue;
+                }
+                //Check if its assignable to and from
+                var fieldTargetType = TypeInterpreter.GetDefaultTypeFromCqlType(field.TypeCode, field.TypeInfo);
+                if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
+                {
+                    throw new InvalidTypeException(field.Name + " type is not assignable to " + prop.PropertyType.Name);
+                }
+            }
             return udtDefinition;
         }
 
