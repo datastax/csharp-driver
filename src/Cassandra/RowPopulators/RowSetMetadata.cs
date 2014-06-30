@@ -93,17 +93,17 @@ namespace Cassandra
         /// <summary>
         /// Fully qualified type name: keyspace.typeName
         /// </summary>
-        public string Name { get; set; }
+        public string Name { get; private set; }
 
         /// <summary>
-        /// Gets the list of the inner types
+        /// Gets the list of the inner fields contained in the UDT definition
         /// </summary>
-        public List<ColumnDesc> Types { get; set; }
+        public List<ColumnDesc> Fields { get; private set; }
 
         public UdtColumnInfo(string name)
         {
             Name = name;
-            Types = new List<ColumnDesc>();
+            Fields = new List<ColumnDesc>();
         }
     }
 

@@ -176,7 +176,7 @@ namespace Cassandra
             return _controlConnection.GetTable(keyspace, tableName);
         }
 
-        public RowSet GetUdtDefinition(string keyspace, string typeName)
+        public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
             return _controlConnection.GetUdtDefinition(keyspace, typeName);
         }

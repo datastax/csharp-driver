@@ -185,7 +185,7 @@ namespace Cassandra.Tests
             //Udt name
             Assert.AreEqual("phone", dataType.Name);
             Assert.IsInstanceOf<UdtColumnInfo>(dataType.TypeInfo);
-            var subTypes = (dataType.TypeInfo as UdtColumnInfo).Types;
+            var subTypes = (dataType.TypeInfo as UdtColumnInfo).Fields;
             Assert.AreEqual(2, subTypes.Count);
             Assert.AreEqual("alias", subTypes[0].Name);
             Assert.AreEqual(ColumnTypeCode.Varchar, subTypes[0].TypeCode);
@@ -214,7 +214,7 @@ namespace Cassandra.Tests
             Assert.IsInstanceOf<UdtColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual("address", dataType.Name);
             Assert.AreEqual("tester.address", (dataType.TypeInfo as UdtColumnInfo).Name);
-            var subTypes = (dataType.TypeInfo as UdtColumnInfo).Types;
+            var subTypes = (dataType.TypeInfo as UdtColumnInfo).Fields;
             Assert.AreEqual(3, subTypes.Count);
             Assert.AreEqual("street,ZIP,phones", String.Join(",", subTypes.Select(s => s.Name)));
             Assert.AreEqual(ColumnTypeCode.Varchar, subTypes[0].TypeCode);
@@ -224,26 +224,9 @@ namespace Cassandra.Tests
 
             var phonesSubType = (UdtColumnInfo)((SetColumnInfo)subTypes[2].TypeInfo).KeyTypeInfo;
             Assert.AreEqual("tester.phone", phonesSubType.Name);
-            Assert.AreEqual(2, phonesSubType.Types.Count);
-            Assert.AreEqual("alias", phonesSubType.Types[0].Name);
-            Assert.AreEqual("number", phonesSubType.Types[1].Name);
-        }
-
-        [Test]
-        public void ParseJsonArrayOfStrings()
-        {
-            var result = TypeInterpreter.ParseJsonArrayOfStrings("[]");
-            Assert.AreEqual(0, result.Count);
-            result = TypeInterpreter.ParseJsonArrayOfStrings("");
-            Assert.AreEqual(0, result.Count);
-            result = TypeInterpreter.ParseJsonArrayOfStrings(null);
-            Assert.AreEqual(0, result.Count);
-            result = TypeInterpreter.ParseJsonArrayOfStrings("['one', 'TWO', 'three']");
-            Assert.AreEqual(3, result.Count);
-            Assert.AreEqual("one, TWO, three", String.Join(", ", result));
-            result = TypeInterpreter.ParseJsonArrayOfStrings("[\"What's\", \"happening\", \" Peter \"]");
-            Assert.AreEqual(3, result.Count);
-            Assert.AreEqual("What's|happening| Peter ", String.Join("|", result));
+            Assert.AreEqual(2, phonesSubType.Fields.Count);
+            Assert.AreEqual("alias", phonesSubType.Fields[0].Name);
+            Assert.AreEqual("number", phonesSubType.Fields[1].Name);
         }
     }
 }

@@ -678,10 +678,30 @@ namespace Cassandra
         /// <summary>
         /// Gets the definition of a User defined type
         /// </summary>
-        public RowSet GetUdtDefinition(string keyspace, string typeName)
+        public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            var cqlQuery = String.Format(SelectUdts + " WHERE keyspace_name='{0}' AND type_name = '{1}';", keyspace, typeName);
-            return Query(cqlQuery);
+            var rs = Query(String.Format(SelectUdts + " WHERE keyspace_name='{0}' AND type_name = '{1}';", keyspace, typeName));
+            var row = rs.FirstOrDefault();
+            if (row == null)
+            {
+                return null;
+            }
+            var udt = new UdtColumnInfo(row.GetValue<string>("keyspace_name") + "." + row.GetValue<string>("type_name"));
+            var fieldNames = row.GetValue<List<string>>("field_names");
+            var fieldTypes = row.GetValue<List<string>>("field_types");
+            if (fieldNames.Count != fieldTypes.Count)
+            {
+                var ex = new DriverInternalError("Field names and types for UDT do not match");
+                _logger.Error(ex);
+                throw ex;
+            }
+            for (var i = 0; i < fieldNames.Count; i++)
+            {
+                var field = TypeInterpreter.ParseDataType(fieldTypes[i]);
+                field.Name = fieldNames[i];
+                udt.Fields.Add(field);
+            }
+            return udt;
         }
 
         public string GetStrategyClass(string strClass)
@@ -709,21 +729,21 @@ namespace Cassandra
 
         public TableMetadata GetTableMetadata(string tableName, string keyspaceName)
         {
-            object[] collectionValuesTypes;
             var cols = new Dictionary<string, TableColumn>();
             TableOptions options = null;
             {
                 var cqlQuery = string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName);
                 var rows = Query(cqlQuery);
-                foreach (Row row in rows)
+                foreach (var row in rows)
                 {
-                    ColumnTypeCode tpCode = ConvertToColumnTypeCode(row.GetValue<string>("validator"), out collectionValuesTypes);
+                    var dataType = TypeInterpreter.ParseDataType(row.GetValue<string>("validator"));
                     var dsc = new TableColumn
                     {
                         Name = row.GetValue<string>("column_name"),
                         Keyspace = row.GetValue<string>("keyspace_name"),
                         Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = tpCode,
+                        TypeCode = dataType.TypeCode,
+                        TypeInfo = dataType.TypeInfo,
                         SecondaryIndexName = row.GetValue<string>("index_name"),
                         SecondaryIndexType = row.GetValue<string>("index_type"),
                         KeyType =
@@ -732,200 +752,99 @@ namespace Cassandra
                                 : KeyType.None,
                     };
 
-                    if (tpCode == ColumnTypeCode.List)
-                        dsc.TypeInfo = new ListColumnInfo
-                        {
-                            ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
-                        };
-                    else if (tpCode == ColumnTypeCode.Map)
-                        dsc.TypeInfo = new MapColumnInfo
-                        {
-                            KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0],
-                            ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[1]
-                        };
-                    else if (tpCode == ColumnTypeCode.Set)
-                        dsc.TypeInfo = new SetColumnInfo
-                        {
-                            KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
-                        };
-
                     cols.Add(dsc.Name, dsc);
                 }
             }
             {
                 var cqlQuery = string.Format(SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName);
                 var rows = Query(cqlQuery);
-                foreach (Row row in rows) // There is only one row!
+                var row = rows.First();
+                var colNames = row.GetValue<string>("column_aliases");
+                var rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');
+                for (var i = 0; i < rowKeys.Length; i++)
                 {
-                    var colNames = row.GetValue<string>("column_aliases");
-                    string[] rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');
-                    for (int i = 0; i < rowKeys.Length; i++)
+                    if (rowKeys[i].StartsWith("\""))
                     {
-                        if (rowKeys[i].StartsWith("\""))
-                        {
-                            rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
-                        }
+                        rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
+                    }
+                }
+
+                if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
+                {
+                    bool isCompact = true;
+                    var comparator = row.GetValue<string>("comparator");
+                    if (comparator.StartsWith("org.apache.cassandra.db.marshal.CompositeType"))
+                    {
+                        comparator = comparator.Replace("org.apache.cassandra.db.marshal.CompositeType", "");
+                        isCompact = false;
                     }
 
-                    if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
+                    var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");
+                    MatchCollection rowKeysTypes = rg.Matches(comparator);
+
+                    int i = 0;
+                    foreach (var keyName in rowKeys)
                     {
-                        bool isCompact = true;
-                        var comparator = row.GetValue<string>("comparator");
-                        if (comparator.StartsWith("org.apache.cassandra.db.marshal.CompositeType"))
+                        var dataType = TypeInterpreter.ParseDataType(rowKeysTypes[i].ToString());
+                        var dsc = new TableColumn
                         {
-                            comparator = comparator.Replace("org.apache.cassandra.db.marshal.CompositeType", "");
-                            isCompact = false;
-                        }
-
-                        var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");
-                        MatchCollection rowKeysTypes = rg.Matches(comparator);
-
-                        int i = 0;
-                        foreach (string keyName in rowKeys)
-                        {
-                            ColumnTypeCode tpCode = ConvertToColumnTypeCode(rowKeysTypes[i].ToString(),
-                                                                                out collectionValuesTypes);
-                            var dsc = new TableColumn
-                            {
-                                Name = keyName,
-                                Keyspace = row.GetValue<string>("keyspace_name"),
-                                Table = row.GetValue<string>("columnfamily_name"),
-                                TypeCode = tpCode,
-                                KeyType = KeyType.Clustering,
-                            };
-                            if (tpCode == ColumnTypeCode.List)
-                            {
-                                dsc.TypeInfo = new ListColumnInfo
-                                {
-                                    ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
-                                };
-                            }
-                            else if (tpCode == ColumnTypeCode.Map)
-                            {
-                                dsc.TypeInfo = new MapColumnInfo
-                                {
-                                    KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0],
-                                    ValueTypeCode = (ColumnTypeCode) collectionValuesTypes[1]
-                                };
-                            }
-                            else if (tpCode == ColumnTypeCode.Set)
-                            {
-                                dsc.TypeInfo = new SetColumnInfo
-                                {
-                                    KeyTypeCode = (ColumnTypeCode) collectionValuesTypes[0]
-                                };
-                            }
-                            cols[dsc.Name] = dsc;
-                            i++;
-                        }
-
-                        options = new TableOptions
-                        {
-                            isCompactStorage = isCompact,
-                            bfFpChance = row.GetValue<double>("bloom_filter_fp_chance"),
-                            caching = row.GetValue<string>("caching"),
-                            comment = row.GetValue<string>("comment"),
-                            gcGrace = row.GetValue<int>("gc_grace_seconds"),
-                            localReadRepair = row.GetValue<double>("local_read_repair_chance"),
-                            readRepair = row.GetValue<double>("read_repair_chance"),
-                            compactionOptions = getCompactionStrategyOptions(row),
-                            compressionParams =
-                                (SortedDictionary<string, string>) Utils.ConvertStringToMap(row.GetValue<string>("compression_parameters"))
-                        };
-                        if (row.GetColumn("replicate_on_write") != null)
-                        {
-                            options.replicateOnWrite = row.GetValue<bool>("replicate_on_write");   
-                        }
-                    }
-                    //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
-                    //But you can get it from system.schema_columnfamilies
-                    var keys = row.GetValue<string>("key_aliases")
-                        .Replace("[", "")
-                        .Replace("]", "")
-                        .Split(',');
-                    var keyTypes = row.GetValue<string>("key_validator")
-                        .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
-                        .Replace("(", "")
-                        .Replace(")", "")
-                        .Split(',');
-                    for (var i = 0; i < keys.Length; i++)
-                    {
-                        var name = keys[i].Replace("\"", "").Trim();
-                        var typeName = keyTypes[i].Trim();
-                        cols[name] = new TableColumn()
-                        {
-                            Name = name,
+                            Name = keyName,
                             Keyspace = row.GetValue<string>("keyspace_name"),
                             Table = row.GetValue<string>("columnfamily_name"),
-                            TypeCode = ConvertToColumnTypeCode(typeName, out collectionValuesTypes),
-                            KeyType = KeyType.Partition
+                            TypeCode = dataType.TypeCode,
+                            TypeInfo = dataType.TypeInfo,
+                            KeyType = KeyType.Clustering,
                         };
+                        cols[dsc.Name] = dsc;
+                        i++;
                     }
+
+                    options = new TableOptions
+                    {
+                        isCompactStorage = isCompact,
+                        bfFpChance = row.GetValue<double>("bloom_filter_fp_chance"),
+                        caching = row.GetValue<string>("caching"),
+                        comment = row.GetValue<string>("comment"),
+                        gcGrace = row.GetValue<int>("gc_grace_seconds"),
+                        localReadRepair = row.GetValue<double>("local_read_repair_chance"),
+                        readRepair = row.GetValue<double>("read_repair_chance"),
+                        compactionOptions = getCompactionStrategyOptions(row),
+                        compressionParams =
+                            (SortedDictionary<string, string>) Utils.ConvertStringToMap(row.GetValue<string>("compression_parameters"))
+                    };
+                    //replicate_on_write column not present in C* >= 2.1
+                    if (row.GetColumn("replicate_on_write") != null)
+                    {
+                        options.replicateOnWrite = row.GetValue<bool>("replicate_on_write");
+                    }
+                }
+                //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
+                //But you can get it from system.schema_columnfamilies
+                var keys = row.GetValue<string>("key_aliases")
+                              .Replace("[", "")
+                              .Replace("]", "")
+                              .Split(',');
+                var keyTypes = row.GetValue<string>("key_validator")
+                                  .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
+                                  .Replace("(", "")
+                                  .Replace(")", "")
+                                  .Split(',');
+                for (var i = 0; i < keys.Length; i++)
+                {
+                    var name = keys[i].Replace("\"", "").Trim();
+                    var dataType = TypeInterpreter.ParseDataType(keyTypes[i].Trim());
+                    cols[name] = new TableColumn()
+                    {
+                        Name = name,
+                        Keyspace = row.GetValue<string>("keyspace_name"),
+                        Table = row.GetValue<string>("columnfamily_name"),
+                        TypeCode = dataType.TypeCode,
+                        TypeInfo = dataType.TypeInfo,
+                        KeyType = KeyType.Partition
+                    };
                 }
             }
             return new TableMetadata(tableName, cols.Values.ToArray(), options);
-        }
-
-        private ColumnTypeCode ConvertToColumnTypeCode(string type, out object[] collectionValueTp)
-        {
-            object[] obj;
-            collectionValueTp = new object[2];
-            if (type.StartsWith("org.apache.cassandra.db.marshal.ListType"))
-            {
-                collectionValueTp[0] = ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.ListType(", "").Replace(")", ""), out obj);
-                return ColumnTypeCode.List;
-            }
-            if (type.StartsWith("org.apache.cassandra.db.marshal.SetType"))
-            {
-                collectionValueTp[0] = ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.SetType(", "").Replace(")", ""), out obj);
-                return ColumnTypeCode.Set;
-            }
-            if (type.StartsWith("org.apache.cassandra.db.marshal.MapType"))
-            {
-                collectionValueTp[0] =
-                    ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[0], out obj);
-                collectionValueTp[1] =
-                    ConvertToColumnTypeCode(type.Replace("org.apache.cassandra.db.marshal.MapType(", "").Replace(")", "").Split(',')[1], out obj);
-                return ColumnTypeCode.Map;
-            }
-            if (type.StartsWith("org.apache.cassara.db.marshal.UserType"))
-            {
-                return ColumnTypeCode.Udt;
-            }
-
-            collectionValueTp = null;
-            switch (type)
-            {
-                case "org.apache.cassandra.db.marshal.UTF8Type":
-                    return ColumnTypeCode.Varchar;
-                case "org.apache.cassandra.db.marshal.UUIDType":
-                    return ColumnTypeCode.Uuid;
-                case "org.apache.cassandra.db.marshal.Int32Type":
-                    return ColumnTypeCode.Int;
-                case "org.apache.cassandra.db.marshal.BytesType":
-                    return ColumnTypeCode.Blob;
-                case "org.apache.cassandra.db.marshal.FloatType":
-                    return ColumnTypeCode.Float;
-                case "org.apache.cassandra.db.marshal.DoubleType":
-                    return ColumnTypeCode.Double;
-                case "org.apache.cassandra.db.marshal.BooleanType":
-                    return ColumnTypeCode.Boolean;
-                case "org.apache.cassandra.db.marshal.InetAddressType":
-                    return ColumnTypeCode.Inet;
-                case "org.apache.cassandra.db.marshal.DateType":
-                case "org.apache.cassandra.db.marshal.TimestampType":
-                    return ColumnTypeCode.Timestamp;
-                case "org.apache.cassandra.db.marshal.LongType":
-                    return ColumnTypeCode.Bigint;
-                case "org.apache.cassandra.db.marshal.DecimalType":
-                    return ColumnTypeCode.Decimal;
-                case "org.apache.cassandra.db.marshal.IntegerType":
-                    return ColumnTypeCode.Varint;
-                default:
-                    var ex = new DriverInternalError("Unsupported data type:" + type);
-                    _logger.Error(string.Format("Unsupported data type: {0}", type), ex);
-                    throw ex;
-            }
         }
     }
 }

@@ -96,7 +96,25 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             if (tableOptions != null)
-                Assert.True(tableOptions.Equals(table.Options));
+            {
+                Assert.AreEqual(tableOptions.Comment, table.Options.Comment);
+                Assert.AreEqual(tableOptions.ReadRepairChance, table.Options.ReadRepairChance);
+                Assert.AreEqual(tableOptions.LocalReadRepairChance, table.Options.LocalReadRepairChance);
+                Assert.AreEqual(tableOptions.ReplicateOnWrite, table.Options.replicateOnWrite);
+                Assert.AreEqual(tableOptions.GcGraceSeconds, table.Options.GcGraceSeconds);
+                Assert.AreEqual(tableOptions.bfFpChance, table.Options.bfFpChance);
+                if (tableOptions.Caching == "ALL")
+                {
+                    //The string returned can be more complete than the provided
+                    Assert.That(table.Options.Caching == "ALL" || table.Options.Caching.Contains("ALL"), "Caching returned does not match");
+                }
+                else
+                {
+                    Assert.AreEqual(tableOptions.Caching, table.Options.Caching);
+                }
+                Assert.AreEqual(tableOptions.CompactionOptions, table.Options.CompactionOptions);
+                Assert.AreEqual(tableOptions.CompressionParams, table.Options.CompressionParams);
+            }
         }
 
         private void CheckMetadata(string tableName = null, string keyspaceName = null, TableOptions tableOptions = null)
@@ -186,7 +204,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void CheckTableMetadataWithOptions()
         {
-            CheckMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, true, 42, 0.01, "ALL",
+            CheckMetadata(tableOptions: new TableOptions("Comment", 0.5, 0.6, false, 42, 0.01, "ALL",
                                                          new SortedDictionary<string, string>
                                                          {
                                                              {"class", "org.apache.cassandra.db.compaction.LeveledCompactionStrategy"},
@@ -255,8 +273,28 @@ namespace Cassandra.IntegrationTests.Core
                 Session.Execute(cqlType1);
                 Session.Execute(cqlType2);
                 Session.Execute(cqlTable);
-                var phoneDefinition = Cluster.Metadata.GetUdtDefinition(Keyspace, "phone").First();
-                var addressDefinition = Cluster.Metadata.GetUdtDefinition(Keyspace, "address").First();
+                var table = Cluster.Metadata.GetTable(Keyspace, "user");
+                Assert.AreEqual(3, table.TableColumns.Length);
+                var udtColumn = table.TableColumns.First(c => c.Name == "addr");
+                Assert.AreEqual(ColumnTypeCode.Udt, udtColumn.TypeCode);
+                Assert.IsInstanceOf<UdtColumnInfo>(udtColumn.TypeInfo);
+                var udtInfo = (UdtColumnInfo)udtColumn.TypeInfo;
+                Assert.AreEqual(3, udtInfo.Fields.Count);
+                Assert.AreEqual(Keyspace + ".address", udtInfo.Name);
+
+                var phoneDefinition = Cluster.Metadata.GetUdtDefinition(Keyspace, "phone");
+                Assert.AreEqual(Keyspace + ".phone", phoneDefinition.Name);
+                Assert.AreEqual(2, phoneDefinition.Fields.Count);
+
+                var addressDefinition = Cluster.Metadata.GetUdtDefinition(Keyspace, "address");
+                Assert.AreEqual(Keyspace + ".address", addressDefinition.Name);
+                Assert.AreEqual("street,ZIP,phones", String.Join(",", addressDefinition.Fields.Select(f => f.Name)));
+                Assert.AreEqual(ColumnTypeCode.Int, addressDefinition.Fields.First(f => f.Name == "ZIP").TypeCode);
+                var phoneSet = addressDefinition.Fields.First(f => f.Name == "phones");
+                Assert.AreEqual(ColumnTypeCode.Set, phoneSet.TypeCode);
+                var phoneSetSubType = (SetColumnInfo)phoneSet.TypeInfo;
+                Assert.AreEqual(ColumnTypeCode.Udt, phoneSetSubType.KeyTypeCode);
+                Assert.AreEqual(2, ((UdtColumnInfo)phoneSetSubType.KeyTypeInfo).Fields.Count);
             }
             finally
             {
