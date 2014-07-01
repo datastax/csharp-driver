@@ -18,6 +18,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -888,7 +889,27 @@ namespace Cassandra
             {
                 return value;
             }
-            return map.Decode(value);
+            var valuesList = new List<object>();
+            var stream = new MemoryStream(value, false);
+            var reader = new BEBinaryReader(stream);
+            foreach (var field in map.Definition.Fields)
+            {
+                if (stream.Position < value.Length - 1)
+                {
+                    int length = reader.ReadInt32();
+                    if (length < 0)
+                    {
+                        valuesList.Add(null);
+                    }
+                    else
+                    {
+                        var buffer = new byte[length];
+                        reader.Read(buffer, 0, length);
+                        valuesList.Add(CqlConvert(buffer, field.TypeCode, field.TypeInfo));
+                    }
+                }
+            }
+            return map.ToObject(valuesList);
         }
 
         public static Type GetDefaultTypeFromCustom(IColumnInfo typeInfo)
@@ -1112,6 +1133,7 @@ namespace Cassandra
         /// Sets a Udt map for a given Udt name
         /// </summary>
         /// <param name="name">Fully qualified udt name case sensitive (keyspace.udtName)</param>
+        /// <param name="map"></param>
         public static void SetUdtMap(string name, UdtMap map)
         {
             _udtMaps.AddOrUpdate(name, map, (k, oldValue) => map);

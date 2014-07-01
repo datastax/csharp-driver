@@ -65,6 +65,8 @@ namespace Cassandra
 
         protected internal bool IgnoreCase { get; set; }
 
+        internal UdtColumnInfo Definition { get; set; }
+
         protected UdtMap(Type netType, string udtName)
         {
             if (netType == null)
@@ -150,9 +152,9 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Deserializes a byte array into a object of type defined in the map
+        /// Creates a new instance of the mapped object and sets the values
         /// </summary>
-        public virtual object Decode(byte[] value)
+        internal object ToObject(List<object> valuesList)
         {
             throw new NotImplementedException();
         }
