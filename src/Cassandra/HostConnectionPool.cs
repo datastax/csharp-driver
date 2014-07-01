@@ -13,12 +13,12 @@ namespace Cassandra
     /// </summary>
     internal class HostConnectionPool
     {
-        public static Logger _logger = new Logger(typeof(HostConnectionPool));
+        private readonly static Logger _logger = new Logger(typeof(HostConnectionPool));
         private ConcurrentBag<Connection> _connections;
-        private object _poolCreationLock = new object();
+        private readonly object _poolCreationLock = new object();
         private int _creating = 0;
 
-        public Configuration Configuration { get; set; }
+        private Configuration Configuration { get; set; }
 
         /// <summary>
         /// Gets a list of connections already opened to the host
@@ -35,11 +35,11 @@ namespace Cassandra
             }
         }
 
-        public Host Host { get; set; }
+        private Host Host { get; set; }
 
-        public HostDistance HostDistance { get; set; }
+        private HostDistance HostDistance { get; set; }
 
-        public byte ProtocolVersion { get; set; }
+        private byte ProtocolVersion { get; set; }
 
         public HostConnectionPool(Host host, HostDistance hostDistance, byte protocolVersion, Configuration configuration)
         {
@@ -66,7 +66,7 @@ namespace Cassandra
             return connection;
         }
 
-        public Connection CreateConnection()
+        private Connection CreateConnection()
         {
             _logger.Info("Creating a new connection to the host " + Host.Address.ToString());
             var endpoint = new IPEndPoint(Host.Address, Configuration.ProtocolOptions.Port);
@@ -78,7 +78,7 @@ namespace Cassandra
         /// <summary>
         /// Create the min amount of connections, if the pool is empty
         /// </summary>
-        public void MaybeCreateCorePool()
+        private void MaybeCreateCorePool()
         {
             var coreConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(HostDistance);
             if (_connections == null || _connections.All(c => c.IsClosed))
@@ -113,7 +113,7 @@ namespace Cassandra
         /// <summary>
         /// Creates a new connection, if the conditions apply
         /// </summary>
-        public void MaybeSpawnNewConnection(int inFlight)
+        private void MaybeSpawnNewConnection(int inFlight)
         {
             int maxInFlight = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance);
             int maxConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(HostDistance);

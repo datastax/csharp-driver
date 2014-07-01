@@ -229,11 +229,11 @@ namespace Cassandra
             lock (_cancelLock)
             {
                 _isCanceled = true;
+                _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
                 if (_pendingOperations.Count == 0 && _writeQueue.Count == 0)
                 {
                     return;
                 }
-                _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
                 if (ex == null)
                 {
                     if (socketError != null)

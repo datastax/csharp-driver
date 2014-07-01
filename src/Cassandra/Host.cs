@@ -47,6 +47,11 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Determines if the host, due to the connection error can be resurrected if no other host is alive.
+        /// </summary>
+        public bool Resurrect { get; set; }
+
+        /// <summary>
         ///  Gets the node address.
         /// </summary>
         public IPAddress Address

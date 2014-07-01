@@ -29,18 +29,18 @@ namespace Cassandra
     /// </summary>
     internal class RequestHandler<T>
     {
-        private static Logger _logger = new Logger(typeof(Session));
-        private static IRetryPolicy DefaultRetryPolicy = new DefaultRetryPolicy();
+        private readonly static Logger _logger = new Logger(typeof(Session));
+        private readonly static IRetryPolicy DefaultRetryPolicy = new DefaultRetryPolicy();
 
         private Connection _connection;
         private Host _currentHost;
-        private IRequest _request;
-        private IRetryPolicy _retryPolicy;
-        private Session _session;
-        private IStatement _statement;
+        private readonly IRequest _request;
+        private readonly IRetryPolicy _retryPolicy;
+        private readonly Session _session;
+        private readonly IStatement _statement;
         private int _retryCount = 0;
-        private TaskCompletionSource<T> _tcs;
-        private Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
+        private readonly TaskCompletionSource<T> _tcs;
+        private readonly Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
 
         public RequestHandler(Session session, IRequest request, IStatement statement)
         {
@@ -56,21 +56,51 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Determines if the host, due to the connection error can be resurrected if no other host is alive.
+        /// </summary>
+        private static bool CanBeResurrected(SocketException ex, Connection connection)
+        {
+            if (connection == null || connection.IsDisposed)
+            {
+                //It was never connected or the connection is being disposed manually
+                return false;
+            }
+            var isNetworkReset = false;
+            switch (ex.SocketErrorCode)
+            {
+                case SocketError.ConnectionRefused:
+                case SocketError.TimedOut:
+                case SocketError.ConnectionReset:
+                case SocketError.ConnectionAborted:
+                case SocketError.Fault:
+                case SocketError.Interrupted:
+                    isNetworkReset = true;
+                    break;
+            }
+            return isNetworkReset;
+        }
+
+        /// <summary>
         /// Gets a connection from the next host according to the load balancing policy
         /// </summary>
         /// <exception cref="NoHostAvailableException"></exception>
-        internal Connection GetNextConnection(IStatement statement)
+        internal Connection GetNextConnection(IStatement statement, bool isLastChance = false)
         {
             var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);
+            Host lastChanceHost = null;
             //hostEnumerable GetEnumerator will return a NEW enumerator, making this call thread safe
             foreach (var host in hostEnumerable)
             {
                 if (!host.IsConsiderablyUp)
                 {
+                    if (!isLastChance && host.Resurrect)
+                    {
+                        lastChanceHost = host;
+                    }
                     continue;
                 }
                 _currentHost = host;
-                _triedHosts.Add(host.Address, null);
+                _triedHosts[host.Address] = null;
                 Connection connection = null;
                 try
                 {
@@ -88,6 +118,11 @@ namespace Cassandra
                 {
                     _session.SetHostDown(host, connection);
                     _triedHosts[host.Address] = ex;
+                    host.Resurrect = CanBeResurrected(ex, connection);
+                    if (!isLastChance && host.Resurrect)
+                    {
+                        lastChanceHost = host;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -96,6 +131,14 @@ namespace Cassandra
                 }
             }
             _currentHost = null;
+            if (lastChanceHost != null)
+            {
+                //There are no host available and some of them are due to network events.
+                //Probably there was a network event that reset all connections and it does not mean the connection
+                _logger.Warning("Suspected network reset. Getting one host up and retrying for a last chance");
+                lastChanceHost.BringUpIfDown();
+                return GetNextConnection(statement, true);
+            }
             throw new NoHostAvailableException(_triedHosts);
         }
 
@@ -144,6 +187,10 @@ namespace Cassandra
             if (ex is SocketException)
             {
                 _session.SetHostDown(_currentHost, _connection);
+                if (!_currentHost.IsUp)
+                {
+                    _currentHost.Resurrect = CanBeResurrected((SocketException)ex, _connection);   
+                }
             }
             var decision = GetRetryDecision(ex);
             switch (decision.DecisionType)
@@ -320,7 +367,7 @@ namespace Cassandra
             return _tcs.Task;
         }
 
-        public void TrySend()
+        private void TrySend()
         {
             try
             {

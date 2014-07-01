@@ -126,9 +126,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void FailoverReconnectTest()
         {
-            var parallelOptions = new ParallelOptions();
-            parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
-            parallelOptions.MaxDegreeOfParallelism = 1000;
+            var parallelOptions = new ParallelOptions
+            {
+                TaskScheduler = new ThreadPerTaskScheduler(), 
+                MaxDegreeOfParallelism = 1000
+            };
 
             var policy = new ConstantReconnectionPolicy(1000);
             var builder = Cluster.Builder().WithReconnectionPolicy(policy);
@@ -207,6 +209,41 @@ namespace Cassandra.IntegrationTests.Core
                     list.Add(rs.Info.QueriedHost);
                 }
                 Assert.True(list.Any(ip => ip.ToString() == IpPrefix + "2"), "The new node should be queried");
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void DroppingConnectionsTest()
+        {
+            var parallelOptions = new ParallelOptions
+            {
+                TaskScheduler = new ThreadPerTaskScheduler(),
+                MaxDegreeOfParallelism = 1000
+            };
+            var clusterInfo = TestUtils.CcmSetup(1);
+            var session = clusterInfo.Session;
+            //For a node to be back up could take up to 60 seconds
+            const int bringUpNodeMilliseconds = 60000;
+            try
+            {
+                Action dropConnections = () =>
+                {
+                    session.Execute("SELECT * FROM system.schema_keyspaces");
+                    TestUtils.CcmStopForce(clusterInfo, 1);
+                    Thread.Sleep(2000);
+                    TestUtils.CcmStart(clusterInfo, 1);
+                };
+                Action query = () =>
+                {
+                    Thread.Sleep(bringUpNodeMilliseconds);
+                    //All the nodes should be up but the socket connections are not valid
+                    session.Execute("SELECT * FROM system.schema_keyspaces");
+                };
+                Parallel.Invoke(parallelOptions, dropConnections, query);
             }
             finally
             {
