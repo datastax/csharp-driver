@@ -69,7 +69,7 @@ namespace Cassandra
             Keyspace = keyspace;
             BinaryProtocolVersion = binaryProtocolVersion;
             Guid = Guid.NewGuid();
-            UserDefinedTypes = new UdtMappingDefinitions(cluster);
+            UserDefinedTypes = new UdtMappingDefinitions(this);
         }
 
         /// <inheritdoc />

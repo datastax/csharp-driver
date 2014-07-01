@@ -9,24 +9,32 @@ namespace Cassandra
     /// </summary>
     public class UdtMappingDefinitions
     {
-        private readonly ConcurrentDictionary<string, UdtMap> _udtByName;
         private readonly ConcurrentDictionary<Type, UdtMap> _udtByNetType;
         private readonly ICluster _cluster;
+        private readonly ISession _session;
 
-        internal UdtMappingDefinitions(ICluster cluster)
+        internal UdtMappingDefinitions(ISession session)
         {
-            _udtByName = new ConcurrentDictionary<string, UdtMap>();
             _udtByNetType = new ConcurrentDictionary<Type, UdtMap>();
-            _cluster = cluster;
+            _cluster = session.Cluster;
+            _session = session;
         }
 
         /// <summary>
         /// Add mapping definition(s) for UDTs, specifying how UDTs should be mapped to .NET types and vice versa.
         /// </summary>
-        public void Define(string keyspace, params UdtMap[] udtMaps)
+        /// <exception cref="ArgumentException" />
+        public void Define(params UdtMap[] udtMaps)
         {
-            if (udtMaps == null) throw new ArgumentNullException("udtMaps");
-
+            if (udtMaps == null)
+            {
+                throw new ArgumentNullException("udtMaps");
+            }
+            var keyspace = _session.Keyspace;
+            if (String.IsNullOrEmpty(keyspace))
+            {
+                throw new ArgumentException("It is not possible to define a mapping when no keyspace is specified.");
+            }
             // Add types to both indexes
             foreach (var map in udtMaps)
             {
@@ -35,7 +43,7 @@ namespace Cassandra
                 if (!_udtByNetType.TryGetValue(map.NetType, out mapStored))
                 {
                     var udtDefition = GetDefinition(keyspace, map);
-                    _udtByName.AddOrUpdate(udtDefition.Name, map, (k, oldValue) => oldValue);
+                    TypeInterpreter.SetUdtMap(udtDefition.Name, map);
                     _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => oldValue);
                 }
             }
@@ -87,12 +95,6 @@ namespace Cassandra
         {
             UdtMap map;
             return _udtByNetType.TryGetValue(netType, out map) ? map : null;
-        }
-
-        internal UdtMap GetUdtMap(string keyspace, string udtName)
-        {
-            UdtMap map;
-            return _udtByName.TryGetValue(udtName, out map) ? map : null;
         }
     }
 }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
@@ -33,6 +34,7 @@ namespace Cassandra
     internal static class TypeInterpreter
     {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+        private static readonly ConcurrentDictionary<string, UdtMap> _udtMaps = new ConcurrentDictionary<string, UdtMap>();
 
         private static readonly Dictionary<Type, byte> MapTypeToCode = new Dictionary<Type, byte>();
 
@@ -867,22 +869,37 @@ namespace Cassandra
 
         public static object ConvertFromCustom(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
+            if (typeInfo is CustomColumnInfo)
+            {
+                var customInfo = (CustomColumnInfo) typeInfo;
+                if (customInfo.CustomTypeName != null && customInfo.CustomTypeName.StartsWith(UdtTypeName))
+                {
+                    return ConvertFromCustomUdtMap(customInfo.CustomTypeName, value);
+                }
+            }
             return value;
-//            return Encoding.UTF8.GetString((byte[])value);
+        }
+
+        private static object ConvertFromCustomUdtMap(string customName, byte[] value)
+        {
+            var dataType = ParseDataType(customName);
+            var map = GetUdtMap(dataType.Keyspace + "." + dataType.Name);
+            if (map == null)
+            {
+                return value;
+            }
+            return map.Decode(value);
         }
 
         public static Type GetDefaultTypeFromCustom(IColumnInfo typeInfo)
         {
             return typeof (byte[]);
-//            return typeof(string);
         }
 
         public static byte[] InvConvertFromCustom(IColumnInfo typeInfo, object value)
         {
             CheckArgument<byte[]>(value);
             return (byte[]) value;
-//            CheckArgument<string>(value);
-//            return Encoding.UTF8.GetBytes((string)value);
         }
 
         public static object ConvertFromBoolean(IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
@@ -1089,6 +1106,26 @@ namespace Cassandra
         private static Exception GetTypeException(string typeName)
         {
             return new ArgumentException(String.Format("Not a valid type {0}", typeName));
+        }
+
+        /// <summary>
+        /// Sets a Udt map for a given Udt name
+        /// </summary>
+        /// <param name="name">Fully qualified udt name case sensitive (keyspace.udtName)</param>
+        public static void SetUdtMap(string name, UdtMap map)
+        {
+            _udtMaps.AddOrUpdate(name, map, (k, oldValue) => map);
+        }
+
+        /// <summary>
+        /// Gets a UdtMap by fully qualified name
+        /// </summary>
+        /// <param name="name">keyspace.udtName</param>
+        public static UdtMap GetUdtMap(string name)
+        {
+            UdtMap map;
+            _udtMaps.TryGetValue(name, out map);
+            return map;
         }
     }
 }

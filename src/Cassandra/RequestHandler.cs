@@ -186,10 +186,11 @@ namespace Cassandra
             }
             if (ex is SocketException)
             {
+                _logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
                 _session.SetHostDown(_currentHost, _connection);
                 if (!_currentHost.IsUp)
                 {
-                    _currentHost.Resurrect = CanBeResurrected((SocketException)ex, _connection);   
+                    _currentHost.Resurrect = CanBeResurrected((SocketException)ex, _connection);
                 }
             }
             var decision = GetRetryDecision(ex);

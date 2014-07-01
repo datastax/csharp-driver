@@ -148,5 +148,13 @@ namespace Cassandra
         {
             return new UdtMap<T>(udtName);
         }
+
+        /// <summary>
+        /// Deserializes a byte array into a object of type defined in the map
+        /// </summary>
+        public virtual object Decode(byte[] value)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
