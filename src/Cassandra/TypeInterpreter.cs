@@ -96,7 +96,7 @@ namespace Cassandra
         /// <summary>
         /// Default CLR type by type code
         /// </summary>
-        private static readonly Dictionary<ColumnTypeCode, GetDefaultTypeFromCqlTypeDel> DefaultTypes = new Dictionary<ColumnTypeCode, GetDefaultTypeFromCqlTypeDel>()
+        private static readonly Dictionary<ColumnTypeCode, DefaultTypeFromCqlTypeDelegate> DefaultTypes = new Dictionary<ColumnTypeCode, DefaultTypeFromCqlTypeDelegate>()
         {
             {ColumnTypeCode.Ascii,        GetDefaultTypeFromAscii},
             {ColumnTypeCode.Bigint,       GetDefaultTypeFromBigint},
@@ -117,7 +117,8 @@ namespace Cassandra
             {ColumnTypeCode.Map,          GetDefaultTypeFromMap},
             {ColumnTypeCode.Set,          GetDefaultTypeFromSet},
             {ColumnTypeCode.Decimal,      GetDefaultTypeFromDecimal},
-            {ColumnTypeCode.Varint,       GetDefaultTypeFromVarint}
+            {ColumnTypeCode.Varint,       GetDefaultTypeFromVarint},
+            {ColumnTypeCode.Udt,          GetDefaultTypeFromUdt}
         };
 
         private const string ListTypeName = "org.apache.cassandra.db.marshal.ListType";
@@ -222,9 +223,15 @@ namespace Cassandra
             return Decoders[typeCode](typeInfo, buffer, cSharpType);
         }
 
+        /// <exception cref="ArgumentException" />
         public static Type GetDefaultTypeFromCqlType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
-            return DefaultTypes[typeCode](typeInfo);
+            DefaultTypeFromCqlTypeDelegate clrTypeHandler;
+            if (!DefaultTypes.TryGetValue(typeCode, out clrTypeHandler))
+            {
+                throw new ArgumentException("No handler defined for type " + typeCode);
+            }
+            return clrTypeHandler(typeInfo);
         }
 
         public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo typeInfo)
@@ -875,16 +882,35 @@ namespace Cassandra
                 var customInfo = (CustomColumnInfo) typeInfo;
                 if (customInfo.CustomTypeName != null && customInfo.CustomTypeName.StartsWith(UdtTypeName))
                 {
-                    return ConvertFromCustomUdtMap(customInfo.CustomTypeName, value);
+                    var dataType = ParseDataType(customInfo.CustomTypeName);
+                    return ConvertFromUdtMapping(dataType.Keyspace + "." + dataType.Name, value);
                 }
             }
             return value;
         }
 
-        private static object ConvertFromCustomUdtMap(string customName, byte[] value)
+        /// <exception cref="ArgumentException" />
+        public static Type GetDefaultTypeFromUdt(IColumnInfo typeInfo)
         {
-            var dataType = ParseDataType(customName);
-            var map = GetUdtMap(dataType.Keyspace + "." + dataType.Name);
+            if (typeInfo == null)
+            {
+                throw new ArgumentNullException("typeInfo");
+            }
+            if (!(typeInfo is UdtColumnInfo))
+            {
+                throw new ArgumentException("Expected UdtColumn typeInfo, obtained " + typeInfo.GetType());
+            }
+            var map = GetUdtMap(((UdtColumnInfo) typeInfo).Name);
+            if (map == null)
+            {
+                throw new InvalidTypeException("No mapping defined for udt type " + ((UdtColumnInfo)typeInfo).Name);
+            }
+            return map.NetType;
+        }
+
+        private static object ConvertFromUdtMapping(string udtName, byte[] value)
+        {
+            var map = GetUdtMap(udtName);
             if (map == null)
             {
                 return value;
@@ -918,7 +944,27 @@ namespace Cassandra
 
         public static Type GetDefaultTypeFromCustom(IColumnInfo typeInfo)
         {
-            return typeof (byte[]);
+            if (typeInfo == null)
+            {
+                throw new ArgumentNullException("typeInfo");
+            }
+            if (!(typeInfo is CustomColumnInfo))
+            {
+                throw new ArgumentException("Expected CustomColumnInfo typeInfo, obtained " + typeInfo.GetType());
+            }
+
+            var customName = ((CustomColumnInfo) typeInfo).CustomTypeName;
+            if (customName == null || !customName.StartsWith(UdtTypeName))
+            {
+                return typeof (byte[]);
+            }
+            var dataType = ParseDataType(customName);
+            var map = GetUdtMap(dataType.Keyspace + "." + dataType.Name);
+            if (map == null)
+            {
+                throw new InvalidTypeException("No mapping defined for udt type " + customName);
+            }
+            return map.NetType;
         }
 
         public static byte[] InvConvertFromCustom(IColumnInfo typeInfo, object value)
@@ -962,7 +1008,7 @@ namespace Cassandra
             return ret;
         }
 
-        private delegate Type GetDefaultTypeFromCqlTypeDel(IColumnInfo typeInfo);
+        private delegate Type DefaultTypeFromCqlTypeDelegate(IColumnInfo typeInfo);
         
         /// <summary>
         /// Parses a given Cassandra type name to get the data type information

@@ -50,6 +50,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("home phone", value.Alias);
             Assert.AreEqual("123", value.Number);
             Assert.AreEqual(34, value.CountryCode);
+            localCluster.Dispose();
         }
 
         [TestCassandraVersion(2, 1)]
@@ -65,9 +66,9 @@ namespace Cassandra.IntegrationTests.Core
                     .Map(v => v.CountryCode, "country_code")
                     .Map(v => v.Number, "number")
             );
+            //Some fields are null
             localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'empty phone'})");
-            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
-            var row = rs.First();
+            var row = localSession.Execute("SELECT * FROM users WHERE id = 1").First();
             var value = row.GetValue<Phone>("main_phone");
             Assert.NotNull(value);
             Assert.AreEqual("empty phone", value.Alias);
@@ -75,6 +76,12 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsNull(value.Number);
             //Default
             Assert.AreEqual(0, value.CountryCode);
+
+            //column value is null
+            localSession.Execute("INSERT INTO users (id, main_phone) values (2, null)");
+            row = localSession.Execute("SELECT * FROM users WHERE id = 2").First();
+            Assert.IsNull(row.GetValue<Phone>("main_phone"));
+            localCluster.Dispose();
         }
 
         [TestCassandraVersion(2, 1)]
@@ -96,13 +103,29 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("123", value.Number);
             //The property and the field names don't match
             Assert.AreEqual(0, value.CountryCode);
+            localCluster.Dispose();
         }
 
         [TestCassandraVersion(2, 1)]
         [Test]
         public void MappingNestedTypeTest()
         {
-            throw new NotImplementedException();
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>(),
+                UdtMap.For<Contact>()
+            );
+            var contactsJson = 
+                "[" +
+                "{first_name: 'Alice', last_name: 'Smith', phones: {{alias: 'home', number: '123456'}}}" +
+                "]";
+            localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
+            var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
+            var row = rs.First();
+
+            var value = row.GetValue<List<Contact>>("contacts");
+            localCluster.Dispose();
         }
 
         [TestCassandraVersion(2, 1)]
@@ -122,9 +145,9 @@ namespace Cassandra.IntegrationTests.Core
 
             public string NotMappedProp { get; set; }
 
-            public List<Phone> Phones { get; set; }
+            public IEnumerable<Phone> Phones { get; set; }
 
-            public List<string> Emails { get; set; }
+            public IEnumerable<string> Emails { get; set; }
         }
 
         private class Phone
