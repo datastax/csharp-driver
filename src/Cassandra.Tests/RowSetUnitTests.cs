@@ -297,7 +297,7 @@ namespace Cassandra.Tests
                     var value = valueModifier + "row_" + j + "_col_" + c.Index;
                     rowValues.Add(Encoding.UTF8.GetBytes(value));
                 }
-                rs.AddRow(new Row(rowValues.ToArray(), columns.ToArray(), columnIndexes));
+                rs.AddRow(new Row(1, rowValues.ToArray(), columns.ToArray(), columnIndexes));
             }
             return rs;
         }

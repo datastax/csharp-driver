@@ -34,7 +34,7 @@ namespace Cassandra
         {
             get
             {
-                return TypeInterpreter.BytesToInt32(Len, 0);
+                return TypeCodec.BytesToInt32(Len, 0);
             }
         }
         

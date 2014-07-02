@@ -17,7 +17,7 @@ namespace Cassandra
 
         public byte[] ConvertTo(object value)
         {
-            TypeInterpreter.CheckArgument<BigInteger>(value);
+            TypeCodec.CheckArgument<BigInteger>(value);
             return ((BigInteger) value).ToByteArray();
         }
     }

@@ -17,7 +17,7 @@ namespace Cassandra
             var bigintBytes = new byte[decimalBuf.Length - 4];
             Array.Copy(decimalBuf, 4, bigintBytes, 0, bigintBytes.Length);
 
-            var scale = (byte)TypeInterpreter.BytesToInt32(decimalBuf, 0);
+            var scale = (byte)TypeCodec.BytesToInt32(decimalBuf, 0);
 
             Array.Reverse(bigintBytes);
             var bigInteger = new BigInteger(bigintBytes);
@@ -41,7 +41,7 @@ namespace Cassandra
 
         public byte[] ConvertTo(object value)
         {
-            TypeInterpreter.CheckArgument<decimal>(value);
+            TypeCodec.CheckArgument<decimal>(value);
             var decimalValue = (decimal)value;
             int[] bits = decimal.GetBits(decimalValue);
 

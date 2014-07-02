@@ -37,7 +37,7 @@ namespace Cassandra
             {
                 var buffer = new byte[16];
                 BeBinaryReader.Read(buffer, 0, 16);
-                TraceId = new Guid(TypeInterpreter.GuidShuffle(buffer));
+                TraceId = new Guid(TypeCodec.GuidShuffle(buffer));
             }
         }
     }

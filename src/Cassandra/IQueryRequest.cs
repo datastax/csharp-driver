@@ -2,6 +2,6 @@ namespace Cassandra
 {
     internal interface IQueryRequest : IRequest
     {
-        void WriteToBatch(BEBinaryWriter writer);
+        void WriteToBatch(byte protocolVersion, BEBinaryWriter writer);
     }
 }

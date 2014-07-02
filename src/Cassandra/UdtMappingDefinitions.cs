@@ -44,7 +44,7 @@ namespace Cassandra
                 {
                     var udtDefition = GetDefinition(keyspace, map);
                     map.Build(udtDefition);
-                    TypeInterpreter.SetUdtMap(udtDefition.Name, map);
+                    TypeCodec.SetUdtMap(udtDefition.Name, map);
                     _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => oldValue);
                 }
             }
@@ -78,7 +78,7 @@ namespace Cassandra
                     continue;
                 }
                 //Check if its assignable to and from
-                var fieldTargetType = TypeInterpreter.GetDefaultTypeFromCqlType(field.TypeCode, field.TypeInfo);
+                var fieldTargetType = TypeCodec.GetDefaultTypeFromCqlType(field.TypeCode, field.TypeInfo);
                 if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
                 {
                     throw new InvalidTypeException(field.Name + " type is not assignable to " + prop.PropertyType.Name);

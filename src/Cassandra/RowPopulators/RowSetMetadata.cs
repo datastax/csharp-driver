@@ -189,7 +189,7 @@ namespace Cassandra
                         Name = _rawColumns[i].Name,
                         Keyspace = _rawColumns[i].Keyspace,
                         Table = _rawColumns[i].Table,
-                        Type = TypeInterpreter.GetDefaultTypeFromCqlType(
+                        Type = TypeCodec.GetDefaultTypeFromCqlType(
                             _rawColumns[i].TypeCode,
                             _rawColumns[i].TypeInfo),
                         TypeCode = _rawColumns[i].TypeCode,

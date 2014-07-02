@@ -16,7 +16,7 @@ namespace Cassandra
 
         public byte[] ConvertTo(object value)
         {
-            TypeInterpreter.CheckArgument<byte[]>(value);
+            TypeCodec.CheckArgument<byte[]>(value);
             return (byte[]) value;
         }
     }

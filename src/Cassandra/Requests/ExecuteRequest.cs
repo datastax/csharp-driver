@@ -77,14 +77,14 @@ namespace Cassandra
             return wb.GetFrame();
         }
 
-        public void WriteToBatch(BEBinaryWriter wb)
+        public void WriteToBatch(byte protocolVersion, BEBinaryWriter wb)
         {
             wb.WriteByte(1); //prepared query
             wb.WriteShortBytes(_id);
             wb.WriteUInt16((ushort) _queryProtocolOptions.Values.Length);
             for (int i = 0; i < _metadata.Columns.Length; i++)
             {
-                byte[] bytes = TypeInterpreter.InvCqlConvert(_queryProtocolOptions.Values[i]);
+                byte[] bytes = TypeCodec.Encode(protocolVersion, _queryProtocolOptions.Values[i]);
                 wb.WriteBytes(bytes);
             }
         }

@@ -262,7 +262,7 @@
     <Compile Include="RowPopulators\RowSet.cs" />
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
-    <Compile Include="TypeInterpreter.cs" />
+    <Compile Include="TypeCodec.cs" />
     <Compile Include="RPToken.cs" />
     <Compile Include="SchemaChangedEventArgs.cs" />
     <Compile Include="SchemaChangedEventHandler.cs" />

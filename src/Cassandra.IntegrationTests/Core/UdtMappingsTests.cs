@@ -115,16 +115,28 @@ namespace Cassandra.IntegrationTests.Core
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>(),
                 UdtMap.For<Contact>()
+                    .Map(c => c.FirstName, "first_name")
+                    .Map(c => c.LastName, "last_name")
+                    .Map(c => c.Phones, "phones")
             );
-            var contactsJson = 
+            var contactsJson =
                 "[" +
-                "{first_name: 'Alice', last_name: 'Smith', phones: {{alias: 'home', number: '123456'}}}" +
+                "{first_name: 'Jules', last_name: 'Winnfield', phones: {{alias: 'home', number: '123456'}}}," +
+                "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}}}" +
                 "]";
             localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
             var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
             var row = rs.First();
 
-            var value = row.GetValue<List<Contact>>("contacts");
+            var contacts = row.GetValue<List<Contact>>("contacts");
+            Assert.NotNull(contacts);
+            Assert.AreEqual(2, contacts.Count);
+            var julesContact = contacts[0];
+            Assert.AreEqual("Jules", julesContact.FirstName);
+            Assert.AreEqual("Winnfield", julesContact.LastName);
+            Assert.IsNotNull(julesContact.Phones);
+            Assert.AreEqual(1, julesContact.Phones.Count());
+            var miaContact = contacts[1];
             localCluster.Dispose();
         }
 

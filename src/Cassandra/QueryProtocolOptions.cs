@@ -88,7 +88,7 @@ namespace Cassandra
                 wb.WriteUInt16((ushort)Values.Length);
                 for (int i = 0; i < Values.Length; i++)
                 {
-                    var bytes = TypeInterpreter.InvCqlConvert(Values[i]);
+                    var bytes = TypeCodec.Encode(protocolVersion, Values[i]);
                     wb.WriteBytes(bytes);
                 }
             }

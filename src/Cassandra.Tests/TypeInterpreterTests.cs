@@ -10,43 +10,47 @@ namespace Cassandra.Tests
     [TestFixture]
     public class TypeInterpreterTests
     {
+        private readonly byte[] _protocolVersions = new byte[] {1, 2, 3};
+
         [Test]
         public void EncodeDecodeSingleValuesTest()
         {
             var initialValues = new []
             {
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>("utf8 text mañana", TypeInterpreter.ConvertFromText, TypeInterpreter.InvConvertFromText),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>("ascii text", TypeInterpreter.ConvertFromAscii, TypeInterpreter.InvConvertFromAscii),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1234, TypeInterpreter.ConvertFromInt, TypeInterpreter.InvConvertFromInt),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>((long)3129, TypeInterpreter.ConvertFromBigint, TypeInterpreter.InvConvertFromBigint),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1234F, TypeInterpreter.ConvertFromFloat, TypeInterpreter.InvConvertFromFloat),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1.14D, TypeInterpreter.ConvertFromDouble, TypeInterpreter.InvConvertFromDouble),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(1.01M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>("utf8 text mañana", TypeCodec.DecodeText, TypeCodec.EncodeText),
+                new Tuple<object, DecodeHandler, EncodeDelegate>("ascii text", TypeCodec.DecodeAscii, TypeCodec.EncodeAscii),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(1234, TypeCodec.DecodeInt, TypeCodec.EncodeInt),
+                new Tuple<object, DecodeHandler, EncodeDelegate>((long)3129, TypeCodec.DecodeBigint, TypeCodec.EncodeBigint),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(1234F, TypeCodec.DecodeFloat, TypeCodec.EncodeFloat),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(1.14D, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(1.01M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
                 
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(72.727272727272727272727272727M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-72.727272727272727272727272727M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-256M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(256M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(0M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-1.333333M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(-256.512M, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(Decimal.MaxValue, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(Decimal.MinValue, TypeInterpreter.ConvertFromDecimal, TypeInterpreter.InvConvertFromDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(-72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(-256M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(256M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(0M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(-1.333333M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(-256.512M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(Decimal.MaxValue, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(Decimal.MinValue, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
                 
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTime(1983, 2, 24), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeInterpreter.ConvertFromTimestamp, TypeInterpreter.InvConvertFromTimestamp),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeInterpreter.ConvertFromInet, TypeInterpreter.InvConvertFromInet),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(true, TypeInterpreter.ConvertFromBoolean, TypeInterpreter.InvConvertFromBoolean),
-                new Tuple<object, CqlConvertDelegate, InvCqlConvertDelegate>(new byte[] {16}, TypeInterpreter.ConvertFromBlob, TypeInterpreter.InvConvertFromBlob)
+                new Tuple<object, DecodeHandler, EncodeDelegate>(new DateTime(1983, 2, 24), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeCodec.DecodeInet, TypeCodec.EncodeInet),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(true, TypeCodec.DecodeBoolean, TypeCodec.EncodeBoolean),
+                new Tuple<object, DecodeHandler, EncodeDelegate>(new byte[] {16}, TypeCodec.DecodeBlob, TypeCodec.EncodeBlob)
             };
-
-            foreach (var valueToConvert in initialValues)
+            foreach (var version in _protocolVersions)
             {
-                var value = valueToConvert.Item1;
-                var encoder = valueToConvert.Item3;
-                var decoder = valueToConvert.Item2;
-                byte[] encoded = encoder(null, value);
-                Assert.AreEqual(value, decoder(null, encoded, value.GetType()));
+                foreach (var valueToConvert in initialValues)
+                {
+                    var value = valueToConvert.Item1;
+                    var encoder = valueToConvert.Item3;
+                    var decoder = valueToConvert.Item2;
+                    byte[] encoded = encoder(version, null, value);
+                    Assert.AreEqual(value, decoder(version, null, encoded, value.GetType()));
+                }
             }
         }
 
@@ -70,10 +74,13 @@ namespace Cassandra.Tests
                 new object[] {false, ColumnTypeCode.Boolean},
                 new object[] {new byte [] { 1, 2}, ColumnTypeCode.Blob}
             };
-            foreach (object[] value in initialValues)
+            foreach (var version in _protocolVersions)
             {
-                byte[] encoded = TypeInterpreter.InvCqlConvert(value[0]);
-                Assert.AreEqual(value[0], TypeInterpreter.CqlConvert(encoded, (ColumnTypeCode)value[1], null, value[0].GetType()));
+                foreach (object[] value in initialValues)
+                {
+                    byte[] encoded = TypeCodec.Encode(version, value[0]);
+                    Assert.AreEqual(value[0], TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], null, value[0].GetType()));
+                }
             }
         }
 
@@ -98,11 +105,14 @@ namespace Cassandra.Tests
                 new object[] {true, ColumnTypeCode.Boolean},
                 new object[] {new byte [] { 255, 128, 64, 32, 16, 9, 9}, ColumnTypeCode.Blob}
             };
-            foreach (object[] value in initialValues)
+            foreach (var version in _protocolVersions)
             {
-                byte[] encoded = TypeInterpreter.InvCqlConvert(value[0]);
-                //Set object as the target CSharp type, it should get the default value
-                Assert.AreEqual(value[0], TypeInterpreter.CqlConvert(encoded, (ColumnTypeCode)value[1], null, typeof(object)));
+                foreach (object[] value in initialValues)
+                {
+                    byte[] encoded = TypeCodec.Encode(version, value[0]);
+                    //Set object as the target CSharp type, it should get the default value
+                    Assert.AreEqual(value[0], TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], null, typeof(object)));
+                }   
             }
         }
 
@@ -115,58 +125,62 @@ namespace Cassandra.Tests
                 new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
                 new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}}
             };
-            foreach (object[] value in initialValues)
+            foreach (var version in _protocolVersions)
             {
-                byte[] encoded = TypeInterpreter.InvCqlConvert(value[0]);
-                Assert.AreEqual(value[0], TypeInterpreter.CqlConvert(encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], value[0].GetType()));
+                foreach (object[] value in initialValues)
+                {
+                    byte[] encoded = TypeCodec.Encode(version, value[0]);
+                    Assert.AreEqual(value[0],
+                        TypeCodec.Decode(version, encoded, (ColumnTypeCode) value[1], (IColumnInfo) value[2], value[0].GetType()));
+                }
             }
         }
 
         [Test]
         public void ParseDataTypeNameSingleTest()
         {
-            var dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.Int32Type");
+            var dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.Int32Type");
             Assert.AreEqual(ColumnTypeCode.Int, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.UUIDType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.UUIDType");
             Assert.AreEqual(ColumnTypeCode.Uuid, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.UTF8Type");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.UTF8Type");
             Assert.AreEqual(ColumnTypeCode.Varchar, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.BytesType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.BytesType");
             Assert.AreEqual(ColumnTypeCode.Blob, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.FloatType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.FloatType");
             Assert.AreEqual(ColumnTypeCode.Float, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.DoubleType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.DoubleType");
             Assert.AreEqual(ColumnTypeCode.Double, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.BooleanType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.BooleanType");
             Assert.AreEqual(ColumnTypeCode.Boolean, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.InetAddressType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.InetAddressType");
             Assert.AreEqual(ColumnTypeCode.Inet, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.DateType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.DateType");
             Assert.AreEqual(ColumnTypeCode.Timestamp, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.TimestampType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.TimestampType");
             Assert.AreEqual(ColumnTypeCode.Timestamp, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.LongType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.LongType");
             Assert.AreEqual(ColumnTypeCode.Bigint, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.DecimalType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.DecimalType");
             Assert.AreEqual(ColumnTypeCode.Decimal, dataType.TypeCode);
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.IntegerType");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.IntegerType");
             Assert.AreEqual(ColumnTypeCode.Varint, dataType.TypeCode);
         }
 
         [Test]
         public void ParseDataTypeNameMultipleTest()
         {
-            var dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.Int32Type)");
+            var dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.Int32Type)");
             Assert.AreEqual(ColumnTypeCode.List, dataType.TypeCode);
             Assert.IsInstanceOf<ListColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual(ColumnTypeCode.Int, (dataType.TypeInfo as ListColumnInfo).ValueTypeCode);
 
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UUIDType)");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UUIDType)");
             Assert.AreEqual(ColumnTypeCode.Set, dataType.TypeCode);
             Assert.IsInstanceOf<SetColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual(ColumnTypeCode.Uuid, (dataType.TypeInfo as SetColumnInfo).KeyTypeCode);
 
-            dataType = TypeInterpreter.ParseDataType("org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.LongType)");
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.LongType)");
             Assert.AreEqual(ColumnTypeCode.Map, dataType.TypeCode);
             Assert.IsInstanceOf<MapColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual(ColumnTypeCode.Varchar, (dataType.TypeInfo as MapColumnInfo).KeyTypeCode);
@@ -180,7 +194,7 @@ namespace Cassandra.Tests
                 "org.apache.cassandra.db.marshal.UserType(" +
                     "tester,70686f6e65,616c696173:org.apache.cassandra.db.marshal.UTF8Type,6e756d626572:org.apache.cassandra.db.marshal.UTF8Type" +
                 ")";
-            var dataType = TypeInterpreter.ParseDataType(typeText);
+            var dataType = TypeCodec.ParseDataType(typeText);
             Assert.AreEqual(ColumnTypeCode.Udt, dataType.TypeCode);
             //Udt name
             Assert.AreEqual("phone", dataType.Name);
@@ -209,7 +223,7 @@ namespace Cassandra.Tests
                         "616c696173:org.apache.cassandra.db.marshal.UTF8Type," +
                         "6e756d626572:org.apache.cassandra.db.marshal.UTF8Type))" +
                 ")";
-            var dataType = TypeInterpreter.ParseDataType(typeText);
+            var dataType = TypeCodec.ParseDataType(typeText);
             Assert.AreEqual(ColumnTypeCode.Udt, dataType.TypeCode);
             Assert.IsInstanceOf<UdtColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual("address", dataType.Name);

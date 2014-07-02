@@ -697,7 +697,7 @@ namespace Cassandra
             }
             for (var i = 0; i < fieldNames.Count; i++)
             {
-                var field = TypeInterpreter.ParseDataType(fieldTypes[i]);
+                var field = TypeCodec.ParseDataType(fieldTypes[i]);
                 field.Name = fieldNames[i];
                 udt.Fields.Add(field);
             }
@@ -736,7 +736,7 @@ namespace Cassandra
                 var rows = Query(cqlQuery);
                 foreach (var row in rows)
                 {
-                    var dataType = TypeInterpreter.ParseDataType(row.GetValue<string>("validator"));
+                    var dataType = TypeCodec.ParseDataType(row.GetValue<string>("validator"));
                     var dsc = new TableColumn
                     {
                         Name = row.GetValue<string>("column_name"),
@@ -785,7 +785,7 @@ namespace Cassandra
                     int i = 0;
                     foreach (var keyName in rowKeys)
                     {
-                        var dataType = TypeInterpreter.ParseDataType(rowKeysTypes[i].ToString());
+                        var dataType = TypeCodec.ParseDataType(rowKeysTypes[i].ToString());
                         var dsc = new TableColumn
                         {
                             Name = keyName,
@@ -832,7 +832,7 @@ namespace Cassandra
                 for (var i = 0; i < keys.Length; i++)
                 {
                     var name = keys[i].Replace("\"", "").Trim();
-                    var dataType = TypeInterpreter.ParseDataType(keyTypes[i].Trim());
+                    var dataType = TypeCodec.ParseDataType(keyTypes[i].Trim());
                     cols[name] = new TableColumn()
                     {
                         Name = name,

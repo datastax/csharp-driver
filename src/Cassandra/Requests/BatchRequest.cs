@@ -48,7 +48,9 @@ namespace Cassandra
             wb.WriteByte((byte) _type);
             wb.WriteInt16((short) _requests.Count);
             foreach (IQueryRequest br in _requests)
-                br.WriteToBatch(wb);
+            {
+                br.WriteToBatch(protocolVersionByte, wb);
+            }
             wb.WriteInt16((short) Consistency);
             return wb.GetFrame();
         }

@@ -29,14 +29,16 @@ namespace Cassandra
         /// <summary>
         /// Gets or sets the index of the columns within the row
         /// </summary>
-        protected virtual Dictionary<string, int> ColumnIndexes { get; set; }
+        protected Dictionary<string, int> ColumnIndexes { get; set; }
 
         /// <summary>
         /// Gets or sets the columns information
         /// </summary>
-        protected virtual CqlColumn[] Columns { get; set; }
+        protected CqlColumn[] Columns { get; set; }
 
-        protected virtual byte[][] Values { get; set; }
+        protected byte[][] Values { get; set; }
+
+        protected int ProtocolVersion { get; set; }
 
         /// <summary>
         /// Gets the total amount of values inside the row
@@ -73,8 +75,9 @@ namespace Cassandra
         /// <summary>
         /// Initializes a new instance of the Cassandra.Row class
         /// </summary>
-        public Row(byte[][] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)
+        public Row(int protocolVersion, byte[][] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)
         {
+            ProtocolVersion = protocolVersion;
             Values = values;
             Columns = columns;
             ColumnIndexes = columnIndexes;
@@ -174,7 +177,7 @@ namespace Cassandra
 
         private object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
         {
-            return TypeInterpreter.CqlConvert(buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
+            return TypeCodec.Decode(ProtocolVersion, buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
         }
     }
 }

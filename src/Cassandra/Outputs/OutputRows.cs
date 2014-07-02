@@ -25,6 +25,7 @@ namespace Cassandra
         public readonly int RowLength;
         private readonly Guid? _traceId;
         private RowSetMetadata _metadata;
+        private byte _protocolVersion;
 
         /// <summary>
         /// Gets or sets the RowSet parsed from the response
@@ -36,8 +37,9 @@ namespace Cassandra
             get { return _traceId; }
         }
 
-        internal OutputRows(BEBinaryReader reader, bool buffered, Guid? traceId)
+        internal OutputRows(byte protocolVersion, BEBinaryReader reader, bool buffered, Guid? traceId)
         {
+            _protocolVersion = protocolVersion;
             _metadata = new RowSetMetadata(reader);
             RowLength = reader.ReadInt32();
             _traceId = traceId;
@@ -79,7 +81,7 @@ namespace Cassandra
                 }
             }
 
-            return new Row(valuesList.ToArray(), _metadata.Columns, _metadata.ColumnIndexes);
+            return new Row(_protocolVersion, valuesList.ToArray(), _metadata.Columns, _metadata.ColumnIndexes);
         }
 
         public void Dispose()
