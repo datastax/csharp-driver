@@ -21,6 +21,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using System.Net;
+using System.Collections;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -38,7 +39,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void BoundStatementsAllTypesDifferentValues()
+        public void BoundStatementsAllSingleTypesDifferentValues()
         {
             var insertQuery = String.Format(@"
                 INSERT INTO {0} 
@@ -99,7 +100,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void BoundStatementsAllTypesNullValues()
+        public void BoundStatementsAllSingleTypesNullValues()
         {
             var insertQuery = String.Format(@"
                 INSERT INTO {0} 
@@ -119,8 +120,82 @@ namespace Cassandra.IntegrationTests.Core
             var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
             var row = rs.First();
             Assert.IsNotNull(row);
-            Assert.AreEqual(1, row.Where(v => v != null).Count());
-            Assert.IsTrue(row.Where(v => v == null).Count() > 5, "The rest of the row values must be null");
+            Assert.AreEqual(1, row.Count(v => v != null));
+            Assert.IsTrue(row.Count(v => v == null) > 5, "The rest of the row values must be null");
+        }
+
+        [Test]
+        public void BoundStatementsCollectionTypes()
+        {
+            var insertQuery = String.Format(@"
+                INSERT INTO {0} 
+                (id, map_sample, list_sample, set_sample) 
+                VALUES (?, ?, ?, ?)", AllTypesTableName);
+
+            var preparedStatement = Session.Prepare(insertQuery);
+
+            var firstRowValues = new object[] 
+            { 
+                Guid.NewGuid(), 
+                new Dictionary<string, string> {{"key1", "value1"}, {"key2", "value2"}},
+                new List<string> (new [] {"one", "two", "three", "four", "five"}),
+                new List<string> (new [] {"set_1one", "set_2two", "set_3three", "set_4four", "set_5five"})
+            };
+            var secondRowValues = new object[] 
+            { 
+                Guid.NewGuid(), 
+                new Dictionary<string, string>(),
+                new List<string>(),
+                new List<string>()
+            };
+            var thirdRowValues = new object[] 
+            { 
+                Guid.NewGuid(), 
+                null,
+                null,
+                null
+            };
+
+            Session.Execute(preparedStatement.Bind(firstRowValues));
+            Session.Execute(preparedStatement.Bind(secondRowValues));
+            Session.Execute(preparedStatement.Bind(thirdRowValues));
+
+            var selectQuery = String.Format(@"
+                SELECT
+                    id, map_sample, list_sample, set_sample
+                FROM {0} WHERE id IN ({1}, {2}, {3})", AllTypesTableName, firstRowValues[0], secondRowValues[0], thirdRowValues[0]);
+            var rowList = Session.Execute(selectQuery).ToList();
+            //Check that they were inserted and retrieved
+            Assert.AreEqual(3, rowList.Count);
+
+            //Create a dictionary with the inserted values to compare with the retrieved values
+            var insertedValues = new Dictionary<Guid, object[]>()
+            {
+                {(Guid)firstRowValues[0], firstRowValues},
+                {(Guid)secondRowValues[0], secondRowValues},
+                {(Guid)thirdRowValues[0], thirdRowValues}
+            };
+
+            foreach (var retrievedRow in rowList)
+            {
+                var inserted = insertedValues[retrievedRow.GetValue<Guid>("id")];
+                for (var i = 1; i < inserted.Length; i++)
+                {
+                    var insertedValue = inserted[i];
+                    var retrievedValue = retrievedRow[i];
+                    if (retrievedValue == null)
+                    {
+                        //Empty collections are retrieved as nulls
+                        Assert.True(insertedValue == null || ((ICollection)insertedValue).Count == 0);
+                        continue;
+                    }
+                    if (insertedValue != null)
+                    {
+                        Assert.AreEqual(((ICollection) insertedValue).Count, ((ICollection) retrievedValue).Count);
+                    }
+                    Assert.AreEqual(insertedValue, retrievedValue);
+                }
+            }
         }
 
         [Test]

@@ -54,7 +54,10 @@ namespace Cassandra.IntegrationTests
             blob_sample blob,
             boolean_sample boolean,
             timestamp_sample timestamp,
-            inet_sample inet);
+            inet_sample inet,
+            map_sample map<text, text>,
+            list_sample list<text>,
+            set_sample set<text>);
         ";
         public const string CREATE_TABLE_TIME_SERIES = @"
             create table {0} (

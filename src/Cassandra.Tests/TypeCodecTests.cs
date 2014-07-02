@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System.Collections;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Text;
 namespace Cassandra.Tests
 {
     [TestFixture]
-    public class TypeInterpreterTests
+    public class TypeCodecTests
     {
         private readonly byte[] _protocolVersions = new byte[] {1, 2, 3};
 
@@ -129,9 +130,11 @@ namespace Cassandra.Tests
             {
                 foreach (object[] value in initialValues)
                 {
-                    byte[] encoded = TypeCodec.Encode(version, value[0]);
-                    Assert.AreEqual(value[0],
-                        TypeCodec.Decode(version, encoded, (ColumnTypeCode) value[1], (IColumnInfo) value[2], value[0].GetType()));
+                    var valueToEncode = (IList) value[0];
+                    byte[] encoded = TypeCodec.Encode(version, valueToEncode);
+                    var decoded = (IList) TypeCodec.Decode(version, encoded, (ColumnTypeCode) value[1], (IColumnInfo) value[2], value[0].GetType());
+                    Assert.AreEqual(valueToEncode.Count, decoded.Count);
+                    Assert.AreEqual(valueToEncode, decoded);
                 }
             }
         }
