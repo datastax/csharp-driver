@@ -96,7 +96,6 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(insertedValue, retrievedValue);
                 }
             }
-
         }
 
         [Test]
@@ -196,6 +195,15 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(insertedValue, retrievedValue);
                 }
             }
+        }
+
+        [Test]
+        public void PreparedStatementNoParamsTest()
+        {
+            var preparedStatement = Session.Prepare("SELECT * FROM " + AllTypesTableName);
+            var rs = Session.Execute(preparedStatement.Bind());
+            //Just check that it works
+            Assert.NotNull(rs);
         }
 
         [Test]
