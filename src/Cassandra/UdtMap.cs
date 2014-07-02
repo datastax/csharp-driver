@@ -10,13 +10,22 @@ namespace Cassandra
     /// to Properties on the .NET Type.
     /// </summary>
     /// <typeparam name="T">The .NET Type to map the UDT to.</typeparam>
-    public class UdtMap<T> : UdtMap
+    public class UdtMap<T> : UdtMap where T : new()
     {
         private const string NotPropertyMessage = "The expression '{0}' does not refer to a property.";
 
         internal UdtMap(string udtName)
             : base(typeof(T), udtName)
         {
+        }
+
+        /// <summary>
+        /// Maps properties by name
+        /// </summary>
+        public new virtual UdtMap<T> Automap()
+        {
+            base.Automap();
+            return this;
         }
 
         /// <summary>
@@ -29,16 +38,12 @@ namespace Cassandra
             {
                 throw new ArgumentException(string.Format(NotPropertyMessage, propertyExpression));
             }
-
             var propInfo = prop.Member as PropertyInfo;
             if (propInfo == null)
             {
                 throw new ArgumentException(string.Format(NotPropertyMessage, propertyExpression));
             }
-
             AddPropertyMapping(propInfo, udtFieldName);
-
-            // Allow chaining
             return this;
         }
 
@@ -65,7 +70,7 @@ namespace Cassandra
 
         protected internal bool IgnoreCase { get; set; }
 
-        internal UdtColumnInfo Definition { get; set; }
+        protected internal UdtColumnInfo Definition { get; protected set; }
 
         protected UdtMap(Type netType, string udtName)
         {
@@ -98,8 +103,49 @@ namespace Cassandra
                 throw new ArgumentException(string.Format("Must be able to read and write to property '{0}'.", propInfo.Name));
             }
 
-            _fieldNameToProperty.Add(udtFieldName, propInfo);
-            _propertyToFieldName.Add(propInfo, udtFieldName);
+            _fieldNameToProperty[udtFieldName] = propInfo;
+            _propertyToFieldName[propInfo] = udtFieldName;
+        }
+
+        /// <summary>
+        /// Maps properties and fields by name
+        /// </summary>
+        protected virtual void Automap()
+        {
+            if (Definition == null)
+            {
+                throw new ArgumentException("Udt definition not specified");
+            }
+            //Use auto mapping
+            foreach (var field in Definition.Fields)
+            {
+                var prop = NetType.GetProperty(field.Name, PropertyFlags);
+                if (prop != null)
+                {
+                    AddPropertyMapping(prop, field.Name);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Builds the mapping using the Udt definition.
+        /// In case there isn't any property mapped defined, it auto maps the properties by name
+        /// </summary>
+        protected internal void Build(UdtColumnInfo definition)
+        {
+            Definition = definition;
+            if (_fieldNameToProperty.Count == 0)
+            {
+                Automap();
+            }
+        }
+
+        /// <summary>
+        /// Creates a new instance of the target .NET type
+        /// </summary>
+        protected virtual object CreateInstance()
+        {
+            return Activator.CreateInstance(NetType);
         }
 
         /// <summary>
@@ -146,7 +192,7 @@ namespace Cassandra
         /// <summary>
         /// Creates a new UdtMap for the specified .NET type, optionally mapped to the specified UDT name.
         /// </summary>
-        public static UdtMap<T> For<T>(string udtName = null)
+        public static UdtMap<T> For<T>(string udtName = null) where T : new()
         {
             return new UdtMap<T>(udtName);
         }
@@ -156,7 +202,18 @@ namespace Cassandra
         /// </summary>
         internal object ToObject(List<object> valuesList)
         {
-            throw new NotImplementedException();
+            var obj = CreateInstance();
+            for (var i = 0; i < Definition.Fields.Count && i < valuesList.Count; i++)
+            {
+                var field = Definition.Fields[i];
+                var prop = GetPropertyForUdtField(field.Name);
+                if (prop == null)
+                {
+                    continue;
+                }
+                prop.SetValue(obj, valuesList[i], null);
+            }
+            return obj;
         }
     }
 }

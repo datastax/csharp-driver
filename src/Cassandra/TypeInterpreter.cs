@@ -889,6 +889,10 @@ namespace Cassandra
             {
                 return value;
             }
+            if (map.Definition == null)
+            {
+                throw new ArgumentException("Udt mapping does not contain the Udt definition");
+            }
             var valuesList = new List<object>();
             var stream = new MemoryStream(value, false);
             var reader = new BEBinaryReader(stream);

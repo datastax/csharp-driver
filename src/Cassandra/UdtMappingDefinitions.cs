@@ -43,7 +43,7 @@ namespace Cassandra
                 if (!_udtByNetType.TryGetValue(map.NetType, out mapStored))
                 {
                     var udtDefition = GetDefinition(keyspace, map);
-                    map.Definition = udtDefition;
+                    map.Build(udtDefition);
                     TypeInterpreter.SetUdtMap(udtDefition.Name, map);
                     _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => oldValue);
                 }

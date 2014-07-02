@@ -22,18 +22,94 @@ namespace Cassandra.IntegrationTests.Core
                 Session.Execute(cqlType2);
                 Session.Execute(cqlTable1);
                 Session.Execute(cqlTable2);
+
+                //Nullify Session and cluster to force using local instances
+                Session = null;
+                Cluster = null;
             }
         }
 
         [TestCassandraVersion(2, 1)]
         [Test]
-        public void MappingSimpleTest()
+        public void MappingSimpleExplicitTest()
         {
-            Session.UserDefinedTypes.Define(UdtMap.For<Phone>().Map(v => v.Alias, "alias"));
-            Session.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone'})");
-            var rs = Session.Execute("SELECT * FROM users WHERE id = 1");
+            //Use a local cluster
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
+                    .Map(v => v.Alias, "alias")
+                    .Map(v => v.CountryCode, "country_code")
+                    .Map(v => v.Number, "number")
+            );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
             var row = rs.First();
-            Assert.NotNull(row.GetValue<Phone>("main_phone"));
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("home phone", value.Alias);
+            Assert.AreEqual("123", value.Number);
+            Assert.AreEqual(34, value.CountryCode);
+        }
+
+        [TestCassandraVersion(2, 1)]
+        [Test]
+        public void MappingSimpleExplicitNullsTest()
+        {
+            //Use a local cluster
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
+                    .Map(v => v.Alias, "alias")
+                    .Map(v => v.CountryCode, "country_code")
+                    .Map(v => v.Number, "number")
+            );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'empty phone'})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("empty phone", value.Alias);
+            //Default
+            Assert.IsNull(value.Number);
+            //Default
+            Assert.AreEqual(0, value.CountryCode);
+        }
+
+        [TestCassandraVersion(2, 1)]
+        [Test]
+        public void MappingSimpleImplicitTest()
+        {
+            //Use a local cluster
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>()
+            );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("home phone", value.Alias);
+            Assert.AreEqual("123", value.Number);
+            //The property and the field names don't match
+            Assert.AreEqual(0, value.CountryCode);
+        }
+
+        [TestCassandraVersion(2, 1)]
+        [Test]
+        public void MappingNestedTypeTest()
+        {
+            throw new NotImplementedException();
+        }
+
+        [TestCassandraVersion(2, 1)]
+        [Test]
+        public void MappingCaseSensitiveTest()
+        {
+            throw new NotImplementedException();
         }
 
         private class Contact
