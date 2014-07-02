@@ -14,6 +14,12 @@ namespace Cassandra.IntegrationTests.Core
     public class ParameterizedStatementsTests : SingleNodeClusterTest
     {
         [Test]
+        public void CollectionParamsTests()
+        {
+            throw new NotImplementedException();
+        }
+
+        [Test]
         public void TestText()
         {
             ParameterizedStatementTest(typeof(string));

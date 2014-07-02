@@ -17,10 +17,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Reflection;
 using System.Text;
-using System.Threading;
+using System.Linq;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -28,6 +27,37 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class CollectionsTests : SingleNodeClusterTest
     {
+        private const string AllTypesTableName = "all_types_table_collections";
+
+        public override void TestFixtureSetUp()
+        {
+            base.TestFixtureSetUp();
+
+            //Create a table that can be reused within this test class
+            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, AllTypesTableName)));
+        }
+
+        [Test]
+        public void DecodeCollectionTest()
+        {
+            var id = "c9850ed4-c139-4b75-affe-098649f9de93";
+            var insertQuery = String.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES ({1}, {2}, {3}, {4})", 
+                AllTypesTableName, 
+                id, 
+                "{'fruit': 'apple', 'band': 'Beatles'}", 
+                "['one', 'two']", 
+                "{'set_1one', 'set_2two'}");
+
+            Session.Execute(insertQuery);
+            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
+            var expectedMap = new SortedDictionary<string, string> { { "fruit", "apple" }, { "band", "Beatles" } };
+            var expectedList = new List<string> { "one", "two" };
+            var expectedSet = new List<string> { "set_1one", "set_2two" };
+            Assert.AreEqual(expectedMap, row.GetValue<IDictionary<string, string>>("map_sample"));
+            Assert.AreEqual(expectedList, row.GetValue<List<string>>("list_sample"));
+            Assert.AreEqual(expectedSet, row.GetValue<List<string>>("set_sample"));
+        }
+
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,
                                               string pendingMode = "")
         {

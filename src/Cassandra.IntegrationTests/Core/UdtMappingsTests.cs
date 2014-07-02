@@ -6,6 +6,7 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [TestCassandraVersion(2, 1)]
     public class UdtMappingsTests : SingleNodeClusterTest
     {
         public override void TestFixtureSetUp()
@@ -29,7 +30,6 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestCassandraVersion(2, 1)]
         [Test]
         public void MappingSimpleExplicitTest()
         {
@@ -53,7 +53,6 @@ namespace Cassandra.IntegrationTests.Core
             localCluster.Dispose();
         }
 
-        [TestCassandraVersion(2, 1)]
         [Test]
         public void MappingSimpleExplicitNullsTest()
         {
@@ -84,7 +83,6 @@ namespace Cassandra.IntegrationTests.Core
             localCluster.Dispose();
         }
 
-        [TestCassandraVersion(2, 1)]
         [Test]
         public void MappingSimpleImplicitTest()
         {
@@ -106,7 +104,6 @@ namespace Cassandra.IntegrationTests.Core
             localCluster.Dispose();
         }
 
-        [TestCassandraVersion(2, 1)]
         [Test]
         public void MappingNestedTypeTest()
         {
@@ -140,7 +137,6 @@ namespace Cassandra.IntegrationTests.Core
             localCluster.Dispose();
         }
 
-        [TestCassandraVersion(2, 1)]
         [Test]
         public void MappingCaseSensitiveTest()
         {

@@ -131,7 +131,7 @@ namespace Cassandra.Tests
                 foreach (object[] value in initialValues)
                 {
                     var valueToEncode = (IList) value[0];
-                    byte[] encoded = TypeCodec.Encode(version, valueToEncode);
+                    var encoded = TypeCodec.Encode(version, valueToEncode);
                     var decoded = (IList) TypeCodec.Decode(version, encoded, (ColumnTypeCode) value[1], (IColumnInfo) value[2], value[0].GetType());
                     Assert.AreEqual(valueToEncode.Count, decoded.Count);
                     Assert.AreEqual(valueToEncode, decoded);
