@@ -20,7 +20,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Reflection;
 using System.Text;
 using System.Linq;
 
@@ -430,43 +429,49 @@ namespace Cassandra
 
         public static object ConvertFromSet(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (typeInfo is SetColumnInfo)
+            if (typeInfo == null)
             {
-                ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
-                IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
-                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-                int count = BytesToUInt16(value, 0);
-                int idx = 2;
-                Type openType = typeof (List<>);
-                Type listType = openType.MakeGenericType(valueType);
-                object ret = Activator.CreateInstance(listType);
-                MethodInfo addM = listType.GetMethod("Add");
-                for (int i = 0; i < count; i++)
-                {
-                    var valBufLen = BytesToUInt16(value, idx);
-                    idx += 2;
-                    var valBuf = new byte[valBufLen];
-                    Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
-                    idx += valBufLen;
-                    addM.Invoke(ret, new[] {CqlConvert(valBuf, listTypecode, listTypeinfo)});
-                }
-                return ret;
+                throw new ArgumentNullException("typeInfo");
             }
-            throw new DriverInternalError("Invalid ColumnInfo");
+            if (!(typeInfo is SetColumnInfo))
+            {
+                throw new DriverInternalError("Expected SetColumnInfo, obtained " + typeInfo.GetType());
+            }
+            var listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
+            var listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
+            var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
+            var count = BytesToUInt16(value, 0);
+            var idx = 2;
+            var openType = typeof (List<>);
+            var listType = openType.MakeGenericType(valueType);
+            var result = (IList) Activator.CreateInstance(listType);
+            for (var i = 0; i < count; i++)
+            {
+                var valBufLen = BytesToUInt16(value, idx);
+                idx += 2;
+                var valBuf = new byte[valBufLen];
+                Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
+                idx += valBufLen;
+                result.Add(CqlConvert(valBuf, listTypecode, listTypeinfo));
+            }
+            return result;
         }
 
         public static Type GetDefaultTypeFromSet(IColumnInfo typeInfo)
         {
-            if (typeInfo is SetColumnInfo)
+            if (typeInfo == null)
             {
-                ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
-                IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
-                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-                Type openType = typeof (IEnumerable<>);
-                Type listType = openType.MakeGenericType(valueType);
-                return listType;
+                throw new ArgumentNullException("typeInfo");
             }
-            throw new DriverInternalError("Invalid ColumnInfo");
+            if (!(typeInfo is SetColumnInfo))
+            {
+                throw new InvalidTypeException("Expected SetColumnInfo, obtained " + typeInfo.GetType());
+            }
+            var innerTypeCode = (typeInfo as SetColumnInfo).KeyTypeCode;
+            var innerTypeInfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
+            var valueType = GetDefaultTypeFromCqlType(innerTypeCode, innerTypeInfo);
+            var openType = typeof (IEnumerable<>);
+            return openType.MakeGenericType(valueType);
         }
 
         public static byte[] InvConvertFromSet(IColumnInfo typeInfo, object value)
@@ -476,13 +481,13 @@ namespace Cassandra
             ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
             IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
 
-            var bufs = new List<byte[]>();
+            var bufferList = new List<byte[]>();
             int cnt = 0;
             int bsize = 2;
             foreach (object obj in (value as IEnumerable))
             {
                 byte[] buf = InvCqlConvert(obj);
-                bufs.Add(buf);
+                bufferList.Add(buf);
                 bsize += 2; //size of value
                 bsize += buf.Length;
                 cnt++;
@@ -494,7 +499,7 @@ namespace Cassandra
             int idx = 0;
             Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);
             idx += 2;
-            foreach (byte[] buf in bufs)
+            foreach (var buf in bufferList)
             {
                 byte[] valBufSize = Int16ToBytes((short) buf.Length);
                 Buffer.BlockCopy(valBufSize, 0, ret, idx, 2);
@@ -508,8 +513,10 @@ namespace Cassandra
 
         public static object ConvertFromTimestamp(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (cSharpType == null || cSharpType.Equals(typeof(object)) || cSharpType.Equals(typeof(DateTimeOffset)))
+            if (cSharpType == null || cSharpType == typeof(object) || cSharpType == typeof(DateTimeOffset))
+            {
                 return BytesToDateTimeOffset(value, 0);
+            }
             return BytesToDateTimeOffset(value, 0).DateTime;
         }
 
@@ -550,81 +557,94 @@ namespace Cassandra
 
         public static object ConvertFromMap(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (typeInfo is MapColumnInfo)
+            if (typeInfo == null)
             {
-                ColumnTypeCode keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
-                IColumnInfo keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
-                ColumnTypeCode valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
-                IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
-                Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
-                Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
-                int count = BytesToUInt16(value, 0);
-                int idx = 2;
-                Type openType = typeof (SortedDictionary<,>);
-                Type dicType = openType.MakeGenericType(keyType, valueType);
-                object ret = Activator.CreateInstance(dicType);
-                MethodInfo addM = dicType.GetMethod("Add");
-                for (int i = 0; i < count; i++)
-                {
-                    var keyBufLen = BytesToUInt16(value, idx);
-                    idx += 2;
-                    var keyBuf = new byte[keyBufLen];
-                    Buffer.BlockCopy(value, idx, keyBuf, 0, keyBufLen);
-                    idx += keyBufLen;
-
-                    var valueBufLen = BytesToUInt16(value, idx);
-                    idx += 2;
-                    var valueBuf = new byte[valueBufLen];
-                    Buffer.BlockCopy(value, idx, valueBuf, 0, valueBufLen);
-                    idx += valueBufLen;
-
-                    addM.Invoke(ret, new[]
-                    {
-                        CqlConvert(keyBuf, keyTypecode, keyTypeinfo),
-                        CqlConvert(valueBuf, valueTypecode, valueTypeinfo)
-                    });
-                }
-                return ret;
+                throw new ArgumentNullException("typeInfo");
             }
-            throw new DriverInternalError("Invalid ColumnInfo");
+            if (!(typeInfo is MapColumnInfo))
+            {
+                throw new InvalidTypeException("Expected MapColumnInfo, obtained " + typeInfo.GetType());
+            }
+            var keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
+            var keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
+            var valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
+            var valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
+            var keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
+            var valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
+            var count = BytesToUInt16(value, 0);
+            var idx = 2;
+            var openType = typeof (SortedDictionary<,>);
+            var dicType = openType.MakeGenericType(keyType, valueType);
+            var result = (IDictionary) Activator.CreateInstance(dicType);
+            for (var i = 0; i < count; i++)
+            {
+                var keyBufLen = BytesToUInt16(value, idx);
+                idx += 2;
+                var keyBuf = new byte[keyBufLen];
+                Buffer.BlockCopy(value, idx, keyBuf, 0, keyBufLen);
+                idx += keyBufLen;
+
+                var valueBufLen = BytesToUInt16(value, idx);
+                idx += 2;
+                var valueBuf = new byte[valueBufLen];
+                Buffer.BlockCopy(value, idx, valueBuf, 0, valueBufLen);
+                idx += valueBufLen;
+
+                result.Add(
+                    CqlConvert(keyBuf, keyTypecode, keyTypeinfo),
+                    CqlConvert(valueBuf, valueTypecode, valueTypeinfo)
+                    );
+            }
+            return result;
         }
 
         public static Type GetDefaultTypeFromMap(IColumnInfo typeInfo)
         {
-            if (typeInfo is MapColumnInfo)
+            if (typeInfo == null)
             {
-                ColumnTypeCode keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
-                IColumnInfo keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
-                ColumnTypeCode valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
-                IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
-                Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
-                Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
-
-                Type openType = typeof (IDictionary<,>);
-                Type dicType = openType.MakeGenericType(keyType, valueType);
-                return dicType;
+                throw new ArgumentNullException("typeInfo");
             }
-            throw new DriverInternalError("Invalid ColumnInfo");
+            if (!(typeInfo is MapColumnInfo))
+            {
+                throw new InvalidTypeException("Expected MapColumnInfo, obtained " + typeInfo.GetType());
+            }
+            var keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
+            var keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
+            var valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
+            var valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
+            var keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
+            var valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
+
+            var openType = typeof (IDictionary<,>);
+            return openType.MakeGenericType(keyType, valueType);
         }
 
         public static byte[] InvConvertFromMap(IColumnInfo typeInfo, object value)
         {
-            Type dicType = GetDefaultTypeFromMap(typeInfo);
+            if (typeInfo == null)
+            {
+                throw new ArgumentNullException("typeInfo");
+            }
+            if (!(typeInfo is MapColumnInfo))
+            {
+                throw new InvalidTypeException("Expected MapColumnInfo, obtained " + typeInfo.GetType());
+            }
+            var dicType = GetDefaultTypeFromMap(typeInfo);
             CheckArgument(dicType, value);
-            ColumnTypeCode keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
-            IColumnInfo keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
-            ColumnTypeCode valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
-            IColumnInfo valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
-            Type keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
-            Type valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
+            var keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
+            var keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
+            var valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
+            var valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
+            var keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
+            var valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
 
             var kbufs = new List<byte[]>();
             var vbufs = new List<byte[]>();
             int cnt = 0;
             int bsize = 2;
 
-            PropertyInfo keyProp = dicType.GetProperty("Keys");
-            PropertyInfo valueProp = dicType.GetProperty("Values");
+            var keyProp = dicType.GetProperty("Keys");
+            var valueProp = dicType.GetProperty("Values");
 
             foreach (object obj in keyProp.GetValue(value, new object[] {}) as IEnumerable)
             {
@@ -707,43 +727,49 @@ namespace Cassandra
 
         public static object ConvertFromList(IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            if (typeInfo is ListColumnInfo)
+            if (typeInfo == null)
             {
-                ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
-                IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
-                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-                int count = BytesToUInt16(value, 0);
-                int idx = 2;
-                Type openType = typeof (List<>);
-                Type listType = openType.MakeGenericType(valueType);
-                object ret = Activator.CreateInstance(listType);
-                MethodInfo addM = listType.GetMethod("Add");
-                for (int i = 0; i < count; i++)
-                {
-                    var valBufLen = BytesToUInt16(value, idx);
-                    idx += 2;
-                    var valBuf = new byte[valBufLen];
-                    Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
-                    idx += valBufLen;
-                    addM.Invoke(ret, new[] {CqlConvert(valBuf, listTypecode, listTypeinfo)});
-                }
-                return ret;
+                throw new ArgumentNullException("typeInfo");
             }
-            throw new DriverInternalError("Invalid ColumnInfo");
+            if (!(typeInfo is ListColumnInfo))
+            {
+                throw new InvalidTypeException("Expected ListColumnInfo typeInfo, obtained " + typeInfo.GetType());
+            }
+            var listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
+            var listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
+            var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
+            var count = BytesToUInt16(value, 0);
+            var idx = 2;
+            var openType = typeof (List<>);
+            var listType = openType.MakeGenericType(valueType);
+            var result = (IList) Activator.CreateInstance(listType);
+            for (var i = 0; i < count; i++)
+            {
+                var valBufLen = BytesToUInt16(value, idx);
+                idx += 2;
+                var valueBuffer = new byte[valBufLen];
+                Buffer.BlockCopy(value, idx, valueBuffer, 0, valBufLen);
+                idx += valBufLen;
+                result.Add(CqlConvert(valueBuffer, listTypecode, listTypeinfo));
+            }
+            return result;
         }
 
         public static Type GetDefaultTypeFromList(IColumnInfo typeInfo)
         {
-            if (typeInfo is ListColumnInfo)
+            if (typeInfo == null)
             {
-                ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
-                IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
-                Type valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-                Type openType = typeof (IEnumerable<>);
-                Type listType = openType.MakeGenericType(valueType);
-                return listType;
+                throw new ArgumentNullException("typeInfo");
             }
-            throw new DriverInternalError("Invalid ColumnInfo");
+            if (!(typeInfo is ListColumnInfo))
+            {
+                throw new InvalidTypeException("Expected ListColumnInfo typeInfo, obtained " + typeInfo.GetType());
+            }
+            var listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
+            var listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
+            var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
+            var openType = typeof (IEnumerable<>);
+            return openType.MakeGenericType(valueType);
         }
 
         public static byte[] InvConvertFromList(IColumnInfo typeInfo, object value)
@@ -789,7 +815,7 @@ namespace Cassandra
             {
                 return new IPAddress(value);
             }
-            throw new DriverInternalError("Invalid lenght of Inet Addr");
+            throw new DriverInternalError("Invalid length of Inet Addr");
         }
 
         public static Type GetDefaultTypeFromInet(IColumnInfo typeInfo)

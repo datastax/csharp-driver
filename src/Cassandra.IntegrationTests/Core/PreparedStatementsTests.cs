@@ -48,7 +48,6 @@ namespace Cassandra.IntegrationTests.Core
 
             var preparedStatement = Session.Prepare(insertQuery);
             
-            //TODO: Include inet datatype
             var firstRowValues = new object[] 
             { 
                 Guid.NewGuid(), "first", 10, Int64.MaxValue - 1, 1.999F, 32.002D, 1.101010M, 
