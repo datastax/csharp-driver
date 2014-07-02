@@ -451,19 +451,39 @@ namespace Cassandra
             var listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
             var listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
             var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-            var count = BytesToUInt16(value, 0);
-            var idx = 2;
+            var index = 0;
+            var count = DecodeCollectionLength(protocolVersion, value, ref index);
             var openType = typeof (List<>);
             var listType = openType.MakeGenericType(valueType);
             var result = (IList) Activator.CreateInstance(listType);
             for (var i = 0; i < count; i++)
             {
-                var valBufLen = BytesToUInt16(value, idx);
-                idx += 2;
-                var valBuf = new byte[valBufLen];
-                Buffer.BlockCopy(value, idx, valBuf, 0, valBufLen);
-                idx += valBufLen;
+                var valueBufferLength = DecodeCollectionLength(protocolVersion, value, ref index);
+                var valBuf = new byte[valueBufferLength];
+                Buffer.BlockCopy(value, index, valBuf, 0, valueBufferLength);
+                index += valueBufferLength;
                 result.Add(Decode(protocolVersion, valBuf, listTypecode, listTypeinfo));
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Decodes length for collection types depending on the protocol version
+        /// </summary>
+        private static int DecodeCollectionLength(int protocolVersion, byte[] buffer, ref int index)
+        {
+            var result = 0;
+            if (protocolVersion < 3)
+            {
+                //length is a short
+                result = BytesToUInt16(buffer, index);
+                index += 2;
+            }
+            else
+            {
+                //length is expressed in int
+                result = BytesToInt32(buffer, index);
+                index += 4;
             }
             return result;
         }
@@ -582,24 +602,22 @@ namespace Cassandra
             var valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
             var keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
             var valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
-            var count = BytesToUInt16(value, 0);
-            var idx = 2;
+            var index = 0;
+            var count = DecodeCollectionLength(protocolVersion, value, ref index);
             var openType = typeof (SortedDictionary<,>);
             var dicType = openType.MakeGenericType(keyType, valueType);
             var result = (IDictionary) Activator.CreateInstance(dicType);
             for (var i = 0; i < count; i++)
             {
-                var keyBufLen = BytesToUInt16(value, idx);
-                idx += 2;
+                var keyBufLen = DecodeCollectionLength(protocolVersion, value, ref index);
                 var keyBuf = new byte[keyBufLen];
-                Buffer.BlockCopy(value, idx, keyBuf, 0, keyBufLen);
-                idx += keyBufLen;
+                Buffer.BlockCopy(value, index, keyBuf, 0, keyBufLen);
+                index += keyBufLen;
 
-                var valueBufLen = BytesToUInt16(value, idx);
-                idx += 2;
+                var valueBufLen = DecodeCollectionLength(protocolVersion, value, ref index);
                 var valueBuf = new byte[valueBufLen];
-                Buffer.BlockCopy(value, idx, valueBuf, 0, valueBufLen);
-                idx += valueBufLen;
+                Buffer.BlockCopy(value, index, valueBuf, 0, valueBufLen);
+                index += valueBufLen;
 
                 result.Add(
                     Decode(protocolVersion, keyBuf, keyTypecode, keyTypeinfo),
@@ -749,18 +767,17 @@ namespace Cassandra
             var listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
             var listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
             var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-            var count = BytesToUInt16(value, 0);
-            var idx = 2;
-            var openType = typeof (List<>);
+            var index = 0;
+            var count = DecodeCollectionLength(protocolVersion, value, ref index);
+            var openType = typeof(List<>);
             var listType = openType.MakeGenericType(valueType);
             var result = (IList) Activator.CreateInstance(listType);
             for (var i = 0; i < count; i++)
             {
-                var valBufLen = BytesToUInt16(value, idx);
-                idx += 2;
-                var valueBuffer = new byte[valBufLen];
-                Buffer.BlockCopy(value, idx, valueBuffer, 0, valBufLen);
-                idx += valBufLen;
+                var valueBufferLength = DecodeCollectionLength(protocolVersion, value, ref index);
+                var valueBuffer = new byte[valueBufferLength];
+                Buffer.BlockCopy(value, index, valueBuffer, 0, valueBufferLength);
+                index += valueBufferLength;
                 result.Add(Decode(protocolVersion, valueBuffer, listTypecode, listTypeinfo));
             }
             return result;
@@ -785,15 +802,15 @@ namespace Cassandra
 
         public static byte[] EncodeList(int protocolVersion, IColumnInfo typeInfo, object value)
         {
-            Type listType = GetDefaultTypeFromList(typeInfo);
+            var listType = GetDefaultTypeFromList(typeInfo);
             CheckArgument(listType, value);
-            ColumnTypeCode listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
-            IColumnInfo listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
+            var listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
+            var listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
 
             var bufs = new List<byte[]>();
-            int cnt = 0;
-            int bsize = 2;
-            foreach (object obj in (value as IEnumerable))
+            var cnt = 0;
+            var bsize = 2;
+            foreach (var obj in (value as IEnumerable))
             {
                 byte[] buf = Encode(protocolVersion, obj);
                 bufs.Add(buf);
@@ -805,10 +822,10 @@ namespace Cassandra
 
             byte[] cntbuf = Int16ToBytes((short) cnt);
 
-            int idx = 0;
+            var idx = 0;
             Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);
             idx += 2;
-            foreach (byte[] buf in bufs)
+            foreach (var buf in bufs)
             {
                 byte[] valBufSize = Int16ToBytes((short) buf.Length);
                 Buffer.BlockCopy(valBufSize, 0, ret, idx, 2);
