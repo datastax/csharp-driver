@@ -38,18 +38,17 @@ namespace Cassandra
             // Add types to both indexes
             foreach (var map in udtMaps)
             {
-                UdtMap mapStored;
-                //Try to save the round trip and the validation
-                if (!_udtByNetType.TryGetValue(map.NetType, out mapStored))
-                {
-                    var udtDefition = GetDefinition(keyspace, map);
-                    map.Build(udtDefition);
-                    TypeCodec.SetUdtMap(udtDefition.Name, map);
-                    _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => oldValue);
-                }
+                var udtDefition = GetDefinition(keyspace, map);
+                map.Build(udtDefition);
+                TypeCodec.SetUdtMap(udtDefition.Name, map);
+                _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => map);
             }
         }
 
+        /// <summary>
+        /// Gets the definition and validates the fields
+        /// </summary>
+        /// <exception cref="InvalidTypeException" />
         private UdtColumnInfo GetDefinition(string keyspace, UdtMap map)
         {
             var caseSensitiveUdtName = map.UdtName;
@@ -62,27 +61,6 @@ namespace Cassandra
             if (udtDefinition == null)
             {
                 throw new InvalidTypeException(caseSensitiveUdtName + " UDT not found on keyspace " + keyspace);
-            }
-            foreach (var field in udtDefinition.Fields)
-            {
-                if (field.TypeCode == ColumnTypeCode.Udt)
-                {
-                    //We deal with nested UDTs later
-                    continue;
-                }
-                var prop = map.GetPropertyForUdtField(field.Name);
-                if (prop == null)
-                {
-                    //No mapping defined
-                    //MAYBE: throw an exception
-                    continue;
-                }
-                //Check if its assignable to and from
-                var fieldTargetType = TypeCodec.GetDefaultTypeFromCqlType(field.TypeCode, field.TypeInfo);
-                if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
-                {
-                    throw new InvalidTypeException(field.Name + " type is not assignable to " + prop.PropertyType.Name);
-                }
             }
             return udtDefinition;
         }

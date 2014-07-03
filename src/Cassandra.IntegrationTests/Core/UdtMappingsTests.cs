@@ -136,11 +136,12 @@ namespace Cassandra.IntegrationTests.Core
                           .Map(c => c.FirstName, "first_name")
                           .Map(c => c.LastName, "last_name")
                           .Map(c => c.Phones, "phones")
+                          .Map(c => c.Birth, "birth_date")
                     );
                 const string contactsJson =
                     "[" +
-                    "{first_name: 'Jules', last_name: 'Winnfield', phones: {{alias: 'home', number: '123456'}}}," +
-                    "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}}}" +
+                    "{first_name: 'Jules', last_name: 'Winnfield', birth_date: '1950-02-03 04:05+0000', phones: {{alias: 'home', number: '123456'}}}," +
+                    "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}, {alias: 'office', number: '123'}}}" +
                     "]";
                 localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
                 var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
@@ -152,9 +153,17 @@ namespace Cassandra.IntegrationTests.Core
                 var julesContact = contacts[0];
                 Assert.AreEqual("Jules", julesContact.FirstName);
                 Assert.AreEqual("Winnfield", julesContact.LastName);
+                Assert.AreEqual(new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero), julesContact.Birth);
                 Assert.IsNotNull(julesContact.Phones);
                 Assert.AreEqual(1, julesContact.Phones.Count());
                 var miaContact = contacts[1];
+                Assert.AreEqual("Mia", miaContact.FirstName);
+                Assert.AreEqual("Wallace", miaContact.LastName);
+                Assert.AreEqual(DateTimeOffset.MinValue, miaContact.Birth);
+                Assert.IsNotNull(miaContact.Phones);
+                Assert.AreEqual(2, miaContact.Phones.Count());
+                Assert.AreEqual("mobile", miaContact.Phones.First().Alias);
+                Assert.AreEqual("office", miaContact.Phones.Skip(1).First().Alias);
                 localCluster.Dispose();
             }
         }
@@ -162,7 +171,55 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingCaseSensitiveTest()
         {
-            throw new NotImplementedException();
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                //Cassandra identifiers are lowercased by default
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>("phone")
+                        .SetIgnoreCase(false)
+                        .Map(v => v.Alias, "alias")
+                        .Map(v => v.CountryCode, "country_code")
+                        .Map(v => v.Number, "number")
+                );
+                localSession.Execute("INSERT INTO users (id, main_phone) values (101, {alias: 'home phone', number: '123', country_code: 34})");
+                var rs = localSession.Execute("SELECT * FROM users WHERE id = 101");
+                var row = rs.First();
+                var value = row.GetValue<Phone>("main_phone");
+                Assert.NotNull(value);
+                Assert.AreEqual("home phone", value.Alias);
+                Assert.AreEqual("123", value.Number);
+                Assert.AreEqual(34, value.CountryCode);
+
+                Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
+                    //The name should be forced to be case sensitive
+                    UdtMap.For<Phone>("PhoNe")
+                        .SetIgnoreCase(false)));
+
+                Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>("phone")
+                          .SetIgnoreCase(false)
+                          //the field is called 'alias' it should fail
+                          .Map(v => v.Alias, "Alias")
+                    ));
+
+                localCluster.Dispose();
+            }
+        }
+
+        [Test]
+        public void MappingNotExistingFieldsTest()
+        {
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
+                //there is no field named like this
+                UdtMap.For<Phone>("phone").Map(v => v.Number, "Alias_X_WTF")
+                ));
+            localCluster.Dispose();
         }
 
         private class Contact
@@ -171,7 +228,7 @@ namespace Cassandra.IntegrationTests.Core
 
             public string LastName { get; set; }
 
-            public DateTime Birth { get; set; }
+            public DateTimeOffset Birth { get; set; }
 
             public string NotMappedProp { get; set; }
 

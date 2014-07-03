@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -60,8 +61,8 @@ namespace Cassandra
     /// </summary>
     public abstract class UdtMap
     {
-        private readonly Dictionary<string, PropertyInfo> _fieldNameToProperty;
-        private readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
+        protected readonly Dictionary<string, PropertyInfo> _fieldNameToProperty;
+        protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
         protected const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
         protected internal Type NetType { get; protected set; }
@@ -129,14 +130,50 @@ namespace Cassandra
 
         /// <summary>
         /// Builds the mapping using the Udt definition.
+        /// Sets the definition, validates the fields vs the mapped fields.
         /// In case there isn't any property mapped defined, it auto maps the properties by name
         /// </summary>
-        protected internal void Build(UdtColumnInfo definition)
+        protected internal virtual void Build(UdtColumnInfo definition)
         {
             Definition = definition;
             if (_fieldNameToProperty.Count == 0)
             {
                 Automap();
+            }
+            Validate();
+        }
+
+        private void Validate()
+        {
+            //Check that the field type and the property type matches
+            foreach (var field in Definition.Fields)
+            {
+                if (field.TypeCode == ColumnTypeCode.Udt)
+                {
+                    //We deal with nested UDTs later
+                    continue;
+                }
+                var prop = this.GetPropertyForUdtField(field.Name);
+                if (prop == null)
+                {
+                    //No mapping defined
+                    //MAYBE: throw an exception
+                    continue;
+                }
+                //Check if its assignable to and from
+                var fieldTargetType = TypeCodec.GetDefaultTypeFromCqlType(field.TypeCode, field.TypeInfo);
+                if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
+                {
+                    throw new InvalidTypeException(String.Format("{0} type {1} is not assignable to {2}", field.Name, fieldTargetType.Name, prop.PropertyType.Name));
+                }
+            }
+            //Check that there isn't a map to a non existent field
+            foreach (var fieldName in _fieldNameToProperty.Keys)
+            {
+                if (Definition.Fields.All(f => f.Name != fieldName))
+                {
+                    throw new InvalidTypeException("Mapping defined for not existent field " + fieldName);
+                }
             }
         }
 
