@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void MappingSimpleExplicitTest()
+        public void MappingSingleExplicitTest()
         {
             foreach (var protocolVersion in UdtProtocolVersionSupported)
             {
@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void MappingSimpleExplicitNullsTest()
+        public void MappingSingleExplicitNullsTest()
         {
             foreach (var protocolVersion in UdtProtocolVersionSupported)
             {
@@ -98,7 +98,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void MappingSimpleImplicitTest()
+        public void MappingSingleImplicitTest()
         {
             foreach (var protocolVersion in UdtProtocolVersionSupported)
             {
@@ -135,7 +135,6 @@ namespace Cassandra.IntegrationTests.Core
                     UdtMap.For<Contact>()
                           .Map(c => c.FirstName, "first_name")
                           .Map(c => c.LastName, "last_name")
-                          .Map(c => c.Phones, "phones")
                           .Map(c => c.Birth, "birth_date")
                     );
                 const string contactsJson =
@@ -222,6 +221,89 @@ namespace Cassandra.IntegrationTests.Core
             localCluster.Dispose();
         }
 
+        [Test]
+        public void MappingEncodingSingleTest()
+        {
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                //Use all possible protocol versions
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>("phone")
+                        .Map(v => v.Alias, "alias")
+                        .Map(v => v.CountryCode, "country_code")
+                        .Map(v => v.Number, "number")
+                );
+
+                var insert = new SimpleStatement("INSERT INTO users (id, main_phone) values (?, ?)");
+                
+                //All of the fields null
+                var id = 201;
+                var phone = new Phone();
+                localSession.Execute(insert.Bind(id, phone));
+                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?").Bind(id));
+                Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
+
+                //Some fields null and others with value
+                id = 202;
+                phone = new Phone() {Alias = "Home phone"};
+                localSession.Execute(insert.Bind(id, phone));
+                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?").Bind(id));
+                Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
+
+                //All fields filled in
+                id = 203;
+                phone = new Phone() { Alias = "Mobile phone", CountryCode = 54, Number = "1234567"};
+                localSession.Execute(insert.Bind(id, phone));
+                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?").Bind(id));
+                Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
+            }
+        }
+
+        [Test]
+        public void MappingEncodingNestedTest()
+        {
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                //Use all possible protocol versions
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>(),
+                    UdtMap.For<Contact>()
+                          .Map(c => c.FirstName, "first_name")
+                          .Map(c => c.LastName, "last_name")
+                          .Map(c => c.Birth, "birth_date")
+                    );
+
+                var insert = new SimpleStatement("INSERT INTO users_contacts (id, contacts) values (?, ?)");
+
+                //All of the fields null
+                var id = 301;
+                var contacts = new List<Contact>
+                {
+                    new Contact
+                    {
+                        FirstName = "Vincent", 
+                        LastName = "Vega", 
+                        Phones = new List<Phone>
+                        {
+                            new Phone {Alias = "Wat", Number = "0000000000121220000"},
+                            new Phone {Alias = "Office", Number = "123"}
+                        }
+                    }
+                };
+                localSession.Execute(insert.Bind(id, contacts));
+                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users_contacts WHERE id = ?").Bind(id));
+                Assert.AreEqual(contacts, rs.First().GetValue<List<Contact>>("contacts"));
+            }
+        }
+
         private class Contact
         {
             public string FirstName { get; set; }
@@ -235,6 +317,25 @@ namespace Cassandra.IntegrationTests.Core
             public IEnumerable<Phone> Phones { get; set; }
 
             public IEnumerable<string> Emails { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                if (!(obj is Contact))
+                {
+                    return false;
+                }
+                var value = (Contact)obj;
+                if (value.FirstName == this.FirstName &&
+                    value.LastName == this.LastName &&
+                    value.Birth == this.Birth &&
+                    value.Birth == this.Birth)
+                {
+                    CollectionAssert.AreEqual(this.Emails, value.Emails);
+                    CollectionAssert.AreEqual(this.Phones, value.Phones);
+                    return true;
+                }
+                return false;
+            }
         }
 
         private class Phone
@@ -244,6 +345,22 @@ namespace Cassandra.IntegrationTests.Core
             public string Number { get; set; }
 
             public int CountryCode { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                if (!(obj is Phone))
+                {
+                    return false;
+                }
+                var phoneValue = (Phone)obj;
+                if (phoneValue.Alias == this.Alias &&
+                    phoneValue.Number == this.Number &&
+                    phoneValue.CountryCode == this.CountryCode)
+                {
+                    return true;
+                }
+                return false;
+            }
         }
     }
 }

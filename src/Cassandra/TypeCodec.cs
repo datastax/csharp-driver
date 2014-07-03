@@ -34,7 +34,8 @@ namespace Cassandra
     internal static class TypeCodec
     {
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-        private static readonly ConcurrentDictionary<string, UdtMap> UdtMaps = new ConcurrentDictionary<string, UdtMap>();
+        private static readonly ConcurrentDictionary<string, UdtMap> UdtMapsByName = new ConcurrentDictionary<string, UdtMap>();
+        private static readonly ConcurrentDictionary<Type, UdtMap> UdtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
 
         /// <summary>
         /// Decoders by type code
@@ -60,7 +61,8 @@ namespace Cassandra
             {ColumnTypeCode.Map,          EncodeMap},
             {ColumnTypeCode.Set,          EncodeSet},
             {ColumnTypeCode.Decimal,      EncodeDecimal},
-            {ColumnTypeCode.Varint,       EncodeVarint}
+            {ColumnTypeCode.Varint,       EncodeVarint},
+            {ColumnTypeCode.Udt,          EncodeUdt}
         };
 
         /// <summary>
@@ -246,6 +248,7 @@ namespace Cassandra
         public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo typeInfo)
         {
             typeInfo = null;
+            //TODO: Replace with a factory
             if (type.IsGenericType)
             {
                 if (type.Name.Equals("Nullable`1"))
@@ -282,37 +285,43 @@ namespace Cassandra
                     return ColumnTypeCode.List;
                 }
             }
-            else
+
+            if (type == typeof(string))
+                return ColumnTypeCode.Varchar;
+            if (type == typeof(long))
+                return ColumnTypeCode.Bigint;
+            if (type == typeof(byte[]))
+                return ColumnTypeCode.Blob;
+            if (type == typeof(bool))
+                return ColumnTypeCode.Boolean;
+            if (type == TypeAdapters.DecimalTypeAdapter.GetDataType())
+                return ColumnTypeCode.Decimal;
+            if (type == typeof(double))
+                return ColumnTypeCode.Double;
+            if (type == typeof(float))
+                return ColumnTypeCode.Float;
+            if (type == typeof(IPAddress))
+                return ColumnTypeCode.Inet;
+            if (type == typeof(int))
+                return ColumnTypeCode.Int;
+            if (type == typeof(DateTimeOffset))
+                return ColumnTypeCode.Timestamp;
+            if (type == typeof(DateTime))
+                return ColumnTypeCode.Timestamp;
+            if (type == typeof(Guid))
+                return ColumnTypeCode.Uuid;
+            if (type == TypeAdapters.VarIntTypeAdapter.GetDataType())
+                return ColumnTypeCode.Varint;
+
+            //Determine if its a Udt type
+            var udtMap = GetUdtMap(type);
+            if (udtMap != null)
             {
-                if (type == typeof (string))
-                    return ColumnTypeCode.Varchar;
-                if (type == typeof (long))
-                    return ColumnTypeCode.Bigint;
-                if (type == typeof (byte[]))
-                    return ColumnTypeCode.Blob;
-                if (type == typeof (bool))
-                    return ColumnTypeCode.Boolean;
-                if (type == TypeAdapters.DecimalTypeAdapter.GetDataType())
-                    return ColumnTypeCode.Decimal;
-                if (type == typeof (double))
-                    return ColumnTypeCode.Double;
-                if (type == typeof (float))
-                    return ColumnTypeCode.Float;
-                if (type == typeof(IPAddress))
-                    return ColumnTypeCode.Inet;
-                if (type == typeof (int))
-                    return ColumnTypeCode.Int;
-                if (type == typeof (DateTimeOffset))
-                    return ColumnTypeCode.Timestamp;
-                if (type == typeof (DateTime))
-                    return ColumnTypeCode.Timestamp;
-                if (type == typeof (Guid))
-                    return ColumnTypeCode.Uuid;
-                if (type == TypeAdapters.VarIntTypeAdapter.GetDataType())
-                    return ColumnTypeCode.Varint;
+                typeInfo = udtMap.Definition;
+                return ColumnTypeCode.Udt;
             }
 
-            throw new InvalidOperationException("Unknown type");
+            throw new InvalidTypeException("Unknown Cassandra target type for CLR type " + type.FullName);
         }
 
         /// <summary>
@@ -810,6 +819,53 @@ namespace Cassandra
             return result;
         }
 
+        public static byte[] EncodeUdt(int protocolVersion, IColumnInfo typeInfo, object value)
+        {
+            if (typeInfo == null)
+            {
+                throw new ArgumentNullException("typeInfo");
+            }
+            if (!(typeInfo is UdtColumnInfo))
+            {
+                throw new ArgumentException("Expected UdtColumn typeInfo, obtained " + typeInfo.GetType());
+            }
+            var map = GetUdtMap((typeInfo as UdtColumnInfo).Name);
+            var bufferList = new List<byte[]>();
+            var bufferLength = 0;
+            foreach (var field in map.Definition.Fields)
+            {
+                object fieldValue = null;
+                var prop = map.GetPropertyForUdtField(field.Name);
+                if (prop != null)
+                {
+                    fieldValue = prop.GetValue(value, null);
+                }
+                var itemBuffer = Encode(protocolVersion, fieldValue);
+                bufferList.Add(itemBuffer);
+                if (fieldValue != null)
+                {
+                    bufferLength += itemBuffer.Length;   
+                }
+            }
+            //Add the necessary bytes length per each [bytes]
+            bufferLength += bufferList.Count * 4;
+            var result = new byte[bufferLength];
+            var index = 0;
+            foreach (var buf in bufferList)
+            {
+                var bufferItemLength = Int32ToBytes(buf != null ? buf.Length : -1);
+                Buffer.BlockCopy(bufferItemLength, 0, result, index, bufferItemLength.Length);
+                index += bufferItemLength.Length;
+                if (buf == null)
+                {
+                    continue;
+                }
+                Buffer.BlockCopy(buf, 0, result, index, buf.Length);
+                index += buf.Length;
+            }
+            return result;
+        }
+
         /// <summary>
         /// Uses 2 or 4 bytes to represent the length in bytes
         /// </summary>
@@ -1241,17 +1297,30 @@ namespace Cassandra
         /// <param name="map"></param>
         public static void SetUdtMap(string name, UdtMap map)
         {
-            UdtMaps.AddOrUpdate(name, map, (k, oldValue) => map);
+            UdtMapsByName.AddOrUpdate(name, map, (k, oldValue) => map);
+            UdtMapsByClrType.AddOrUpdate(map.NetType, map, (k, oldValue) => map);
         }
 
         /// <summary>
-        /// Gets a UdtMap by fully qualified name
+        /// Gets a UdtMap by fully qualified name.
         /// </summary>
         /// <param name="name">keyspace.udtName</param>
+        /// <returns>Null if not found</returns>
         public static UdtMap GetUdtMap(string name)
         {
             UdtMap map;
-            UdtMaps.TryGetValue(name, out map);
+            UdtMapsByName.TryGetValue(name, out map);
+            return map;
+        }
+
+        /// <summary>
+        /// Gets a UdtMap by fully qualified name.
+        /// </summary>
+        /// <returns>Null if not found</returns>
+        public static UdtMap GetUdtMap(Type type)
+        {
+            UdtMap map;
+            UdtMapsByClrType.TryGetValue(type, out map);
             return map;
         }
     }
