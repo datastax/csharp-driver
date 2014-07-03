@@ -294,7 +294,7 @@ namespace Cassandra
             {
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
-            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
+            var request = new PrepareRequest(_request.ProtocolVersion, boundStatement.PreparedStatement.Cql);
             _connection.Send(request, ResponseReprepareHandler);
         }
 

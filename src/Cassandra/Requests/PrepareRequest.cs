@@ -24,15 +24,18 @@ namespace Cassandra
         /// </summary>
         public string Query { get; set; }
 
-        public PrepareRequest(string cqlQuery)
+        public int ProtocolVersion { get; set; }
+
+        public PrepareRequest(int protocolVersion, string cqlQuery)
         {
+            ProtocolVersion = protocolVersion;
             Query = cqlQuery;
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteLongString(Query);
             return wb.GetFrame();
         }

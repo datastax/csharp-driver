@@ -21,20 +21,22 @@ namespace Cassandra
     internal class StartupRequest : IRequest
     {
         public const byte OpCode = 0x01;
-
         private readonly IDictionary<string, string> _options;
 
-        public StartupRequest(IDictionary<string, string> options)
+        public int ProtocolVersion { get; set; }
+
+        public StartupRequest(int protocolVersion, IDictionary<string, string> options)
         {
+            ProtocolVersion = protocolVersion;
             _options = options;
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _options.Count);
-            foreach (KeyValuePair<string, string> kv in _options)
+            foreach (var kv in _options)
             {
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);

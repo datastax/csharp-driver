@@ -23,13 +23,19 @@ namespace Cassandra
         public const byte OpCode = 0x0D;
 
         public ConsistencyLevel Consistency { get; set; }
+        public int ProtocolVersion { get; set; }
 
         private readonly byte _flags;
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
 
-        public BatchRequest(BatchType type, ICollection<IQueryRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
+        public BatchRequest(int protocolVersion, BatchType type, ICollection<IQueryRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
         {
+            ProtocolVersion = protocolVersion;
+            if (ProtocolVersion < 2)
+            {
+                throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
+            }
             _type = type;
             _requests = requests;
             Consistency = consistency;
@@ -39,17 +45,15 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
-            if (protocolVersionByte != RequestFrame.ProtocolV2RequestVersionByte)
-                throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _flags, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, _flags, streamId, OpCode);
             wb.WriteByte((byte) _type);
             wb.WriteInt16((short) _requests.Count);
             foreach (IQueryRequest br in _requests)
             {
-                br.WriteToBatch(protocolVersionByte, wb);
+                br.WriteToBatch((byte)ProtocolVersion, wb);
             }
             wb.WriteInt16((short) Consistency);
             return wb.GetFrame();

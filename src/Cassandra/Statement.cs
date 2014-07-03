@@ -210,7 +210,7 @@ namespace Cassandra
             return this;
         }
 
-        internal virtual IQueryRequest CreateBatchRequest()
+        internal virtual IQueryRequest CreateBatchRequest(int protocolVersion)
         {
             throw new InvalidOperationException("Cannot insert this query into the batch");
         }

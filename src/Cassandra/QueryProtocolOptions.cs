@@ -4,6 +4,7 @@ namespace Cassandra
 {
     public class QueryProtocolOptions
     {
+        [Flags]
         public enum QueryFlags
         {
             Values = 0x01,
@@ -92,7 +93,6 @@ namespace Cassandra
                     wb.WriteBytes(bytes);
                 }
             }
-
 
             if (protocolVersion == 1)
             {

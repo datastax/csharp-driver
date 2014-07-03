@@ -122,7 +122,7 @@ namespace Cassandra
                 );
 
             _metadata.SetupControllConnection(controlConnection);
-            _binaryProtocolVersion = controlConnection.BinaryProtocolVersion;
+            _binaryProtocolVersion = controlConnection.ProtocolVersion;
             _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
         }
 

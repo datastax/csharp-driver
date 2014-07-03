@@ -272,13 +272,13 @@ namespace Cassandra
             {
                 var s = (RegularStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
-                return new QueryRequest(s.QueryString, s.IsTracing, options);
+                return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
-                return new ExecuteRequest(s.PreparedStatement.Id, null, s.IsTracing, options);
+                return new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)
             {
@@ -291,9 +291,9 @@ namespace Cassandra
                 var subRequests = new List<IQueryRequest>();
                 foreach (Statement q in s.Queries)
                 {
-                    subRequests.Add(q.CreateBatchRequest());
+                    subRequests.Add(q.CreateBatchRequest(BinaryProtocolVersion));
                 }
-                return new BatchRequest(s.BatchType, subRequests, consistency, s.IsTracing);
+                return new BatchRequest(BinaryProtocolVersion, s.BatchType, subRequests, consistency, s.IsTracing);
             }
             throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }
@@ -307,7 +307,7 @@ namespace Cassandra
 
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            var request = new PrepareRequest(query);
+            var request = new PrepareRequest(this.BinaryProtocolVersion, query);
             return new RequestHandler<PreparedStatement>(this, request, null).Send();
         }
 

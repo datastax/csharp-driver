@@ -21,15 +21,18 @@ namespace Cassandra
         public const byte OpCode = 0x0F;
         private readonly byte[] _token;
 
-        public AuthResponseRequest(byte[] token)
+        public int ProtocolVersion { get; set; }
+
+        public AuthResponseRequest(int protocolVersion, byte[] token)
         {
+            ProtocolVersion = protocolVersion;
             _token = token;
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteBytes(_token);
             return wb.GetFrame();
         }

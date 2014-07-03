@@ -87,11 +87,11 @@ namespace Cassandra
             return this;
         }
 
-        internal override IQueryRequest CreateBatchRequest()
+        internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
-            return new ExecuteRequest(PreparedStatement.Id, PreparedStatement.Metadata, IsTracing,
-                                      QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
-                // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
+            //The consistency of each query will be not used.
+            var options = QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any);
+            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, options);
         }
     }
 }

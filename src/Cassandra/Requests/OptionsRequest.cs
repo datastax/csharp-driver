@@ -20,15 +20,17 @@ namespace Cassandra
     {
         public const byte OpCode = 0x05;
 
-        public OptionsRequest()
-        {
+        public int ProtocolVersion { get; set; }
 
+        public OptionsRequest(int protocolVersion)
+        {
+            ProtocolVersion = protocolVersion;
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             return wb.GetFrame();
         }
     }

@@ -16,15 +16,15 @@ namespace Cassandra
     /// </summary>
     internal class Connection : IDisposable
     {
-        private Logger _logger = new Logger(typeof(Connection));
-        private TcpSocket _tcpSocket;
+        private static readonly Logger _logger = new Logger(typeof(Connection));
+        private readonly TcpSocket _tcpSocket;
         private int _disposed;
         /// <summary>
         /// Determines that the connection canceled pending operations.
         /// It could be because its being closed or there was a socket error.
         /// </summary>
         private volatile bool _isCanceled;
-        private object _cancelLock = new object();
+        private readonly object _cancelLock = new object();
         private AutoResetEvent _pendingWaitHandle;
         /// <summary>
         /// Stores the available stream ids.
@@ -43,7 +43,7 @@ namespace Cassandra
         /// Its for processing the next item in the write queue.
         /// It can not be replaced by a Interlocked Increment as it must allow rollbacks (when there are no stream ids left).
         /// </summary>
-        private object _writeQueueLock = new object();
+        private readonly object _writeQueueLock = new object();
         private ConcurrentQueue<OperationState> _writeQueue;
         private OperationState _receivingOperation;
         /// <summary>
@@ -52,7 +52,7 @@ namespace Cassandra
         /// </summary>
         private byte[] _minimalBuffer;
         private volatile string _keyspace;
-        private object _keyspaceLock = new object();
+        private readonly object _keyspaceLock = new object();
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -125,7 +125,7 @@ namespace Cassandra
                     _logger.Info("Connection to host " + HostAddress + " switching to keyspace " + value);
                     this._keyspace = value;
                     var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
-                    var request = new QueryRequest("USE " + value, false, QueryProtocolOptions.Default);
+                    var request = new QueryRequest(ProtocolVersion, "USE " + value, false, QueryProtocolOptions.Default);
                     TaskHelper.WaitToComplete(this.Send(request), timeout);
                 }
             }
@@ -171,7 +171,7 @@ namespace Cassandra
                 //Use protocol v1 authentication flow
                 var credentialsProvider = Configuration.AuthInfoProvider;
                 var credentials = credentialsProvider.GetAuthInfos(HostAddress);
-                var request = new CredentialsRequest(credentials);
+                var request = new CredentialsRequest(ProtocolVersion, credentials);
                 var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
                 //If Cassandra replied with a auth response error
                 //The task already is faulted and the exception was already thrown.
@@ -198,7 +198,7 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         private void Authenticate(byte[] token, IAuthenticator authenticator)
         {
-            var request = new AuthResponseRequest(token);
+            var request = new AuthResponseRequest(this.ProtocolVersion, token);
             var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
             if (response is AuthSuccessResponse)
             {
@@ -476,7 +476,7 @@ namespace Cassandra
             {
                 startupOptions.Add("COMPRESSION", "snappy");
             }
-            var request = new StartupRequest(startupOptions);
+            var request = new StartupRequest(ProtocolVersion, startupOptions);
             var tcs = new TaskCompletionSource<AbstractResponse>();
             Send(request, tcs.TrySet);
             return tcs.Task;
@@ -488,7 +488,7 @@ namespace Cassandra
         public Task<AbstractResponse> Send(IRequest request)
         {
             var tcs = new TaskCompletionSource<AbstractResponse>();
-            this.Send(request, (ex, r) => tcs.TrySet(ex, r));
+            this.Send(request, tcs.TrySet);
             return tcs.Task;
         }
 
@@ -549,7 +549,7 @@ namespace Cassandra
             try
             {
                 _logger.Verbose("Sending #" + streamId + " for " + state.Request.GetType().Name);
-                var frameStream = state.Request.GetFrame(streamId, ProtocolVersion).Stream;
+                var frameStream = state.Request.GetFrame(streamId).Stream;
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
                 //We will not use the request, stop reference it.
                 state.Request = null;
@@ -573,20 +573,21 @@ namespace Cassandra
         /// </summary>
         protected virtual void SendQueueNext()
         {
-            if (_canWriteNext)
+            if (!_canWriteNext)
             {
-                OperationState state;
-                if (_writeQueue.TryDequeue(out state))
-                {
-                    SendQueueProcess(state);
-                }
+                return;
+            }
+            OperationState state;
+            if (_writeQueue.TryDequeue(out state))
+            {
+                SendQueueProcess(state);
             }
         }
 
         /// <summary>
         /// Method that gets executed when a write request has been completed.
         /// </summary>
-        protected internal virtual void WriteCompletedHandler()
+        protected virtual void WriteCompletedHandler()
         {
             //There is no need to lock
             //Only 1 thread can be here at the same time.

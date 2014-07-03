@@ -21,24 +21,32 @@ namespace Cassandra
     internal class RegisterForEventRequest : IRequest
     {
         public const byte OpCode = 0x0B;
-
         private readonly List<string> _eventTypes;
 
-        public RegisterForEventRequest(CassandraEventType eventTypes)
+        public int ProtocolVersion { get; set; }
+
+        public RegisterForEventRequest(int protocolVersion, CassandraEventType eventTypes)
         {
+            ProtocolVersion = protocolVersion;
             _eventTypes = new List<string>();
             if ((eventTypes & CassandraEventType.StatusChange) == CassandraEventType.StatusChange)
+            {
                 _eventTypes.Add("STATUS_CHANGE");
+            }
             if ((eventTypes & CassandraEventType.TopologyChange) == CassandraEventType.TopologyChange)
+            {
                 _eventTypes.Add("TOPOLOGY_CHANGE");
+            }
             if ((eventTypes & CassandraEventType.SchemaChange) == CassandraEventType.SchemaChange)
+            {
                 _eventTypes.Add("SCHEMA_CHANGE");
+            }
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteStringList(_eventTypes);
             return wb.GetFrame();
         }

@@ -22,21 +22,25 @@ namespace Cassandra
     {
         public const byte OpCode = 0x04;
         private readonly IDictionary<string, string> _credentials;
+        public int ProtocolVersion { get; set; }
 
-        public CredentialsRequest(IDictionary<string, string> credentials)
+        public CredentialsRequest(int protocolVersion, IDictionary<string, string> credentials)
         {
+            ProtocolVersion = protocolVersion;
             _credentials = credentials;
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
-            if (protocolVersionByte != RequestFrame.ProtocolV1RequestVersionByte)
-                throw new NotSupportedException("Credentials request is supported in C* <= 1.2.x");
+            if (ProtocolVersion > 1)
+            {
+                throw new NotSupportedException("Credentials request is only supported in C* = 1.2.x");
+            }
 
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, 0x00, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _credentials.Count);
-            foreach (KeyValuePair<string, string> kv in _credentials)
+            foreach (var kv in _credentials)
             {
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);

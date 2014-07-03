@@ -18,6 +18,13 @@ namespace Cassandra
 {
     internal interface IRequest
     {
-        RequestFrame GetFrame(short streamId, byte protocolVersionByte);
+        /// <summary>
+        /// Gets the version of the protocol that the request is built for
+        /// </summary>
+        int ProtocolVersion { get; }
+        /// <summary>
+        /// Constructs the frame for this request
+        /// </summary>
+        RequestFrame GetFrame(short streamId);
     }
 }

@@ -336,6 +336,11 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 return false;
             }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
         }
 
         private class Phone
@@ -360,6 +365,11 @@ namespace Cassandra.IntegrationTests.Core
                     return true;
                 }
                 return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
             }
         }
     }

@@ -30,13 +30,16 @@ namespace Cassandra
     {
         internal const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
-
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
-
         private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
         private const String SelectColumns = "SELECT * FROM system.schema_columns";
         private const String SelectUdts = "SELECT * FROM system.schema_usertypes";
+        /// <summary>
+        /// Protocol version used by the control connection
+        /// </summary>
+        private const int ControlConnectionProtocolVersion = 1;
+
         private readonly AtomicValue<Connection> _activeConnection = new AtomicValue<Connection>(null);
         private readonly Cluster _cluster;
 
@@ -50,20 +53,20 @@ namespace Cassandra
         private readonly Session _session;
         private readonly BoolSwitch _shotDown = new BoolSwitch();
         private bool _isDiconnected;
-        private int _binaryProtocolVersion = 1;
+        private int _protocolVersion = 1;
 
         /// <summary>
         /// Gets the binary protocol version used for this cluster.
         /// </summary>
-        internal int BinaryProtocolVersion 
+        internal int ProtocolVersion
         { 
             get 
             { 
-                return _binaryProtocolVersion; 
+                return _protocolVersion; 
             }
             set
             {
-                _binaryProtocolVersion = value;
+                _protocolVersion = value;
             }
         }
 
@@ -93,8 +96,7 @@ namespace Cassandra
                 new QueryOptions()
             );
 
-            //Use v1 of the protocol for the control connection
-            _session = new Session(cluster, config, "", 1);
+            _session = new Session(cluster, config, "", ControlConnectionProtocolVersion);
         }
 
         public void Dispose()
@@ -148,7 +150,7 @@ namespace Cassandra
             _activeConnection.Value = connection;
             _activeConnection.Value.CassandraEventResponse += conn_CassandraEvent;
             var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
-            var registerTask = _activeConnection.Value.Send(new RegisterForEventRequest(eventTypes));
+            var registerTask = _activeConnection.Value.Send(new RegisterForEventRequest(ControlConnectionProtocolVersion, eventTypes));
             TaskHelper.WaitToComplete(registerTask, 10000);
             if (!(registerTask.Result is ReadyResponse))
             {
@@ -383,7 +385,7 @@ namespace Cassandra
                     {
                         protocolVersion = Cluster.MaxProtocolVersion;
                     }
-                    this.BinaryProtocolVersion = protocolVersion;
+                    this.ProtocolVersion = protocolVersion;
                 }
                 // In theory host can't be null. However there is no point in risking a NPE in case we
                 // have a race between a node removal and this.
@@ -430,7 +432,7 @@ namespace Cassandra
 
         private RowSet Query(string cqlQuery)
         {
-            var request = new QueryRequest(cqlQuery, false, QueryProtocolOptions.Default);
+            var request = new QueryRequest(ControlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
             var task = _activeConnection.Value.Send(request);
             TaskHelper.WaitToComplete(task, 10000);
             if (!(task.Result is ResultResponse) && !(((ResultResponse)task.Result).Output is OutputRows))

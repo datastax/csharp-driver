@@ -105,9 +105,9 @@ namespace Cassandra
             return this;
         }
 
-        internal override IQueryRequest CreateBatchRequest()
+        internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
-            return new QueryRequest(QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
+            return new QueryRequest(protocolVersion, QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
                 // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
         }
     }

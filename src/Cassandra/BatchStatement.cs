@@ -99,7 +99,7 @@ namespace Cassandra
             return this;
         }
 
-        internal override IQueryRequest CreateBatchRequest()
+        internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
             throw new InvalidOperationException("Batches cannot be included recursively");
         }

@@ -16,6 +16,9 @@
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Represents a protocol QUERY request
+    /// </summary>
     internal class QueryRequest : IQueryRequest, ICqlRequest
     {
         public const byte OpCode = 0x07;
@@ -32,12 +35,15 @@ namespace Cassandra
             }
         }
 
+        public int ProtocolVersion { get; set; }
+
         private readonly string _cqlQuery;
         private readonly byte _headerFlags;
         private readonly QueryProtocolOptions _queryProtocolOptions;
 
-        public QueryRequest(string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions)
+        public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions)
         {
+            ProtocolVersion = protocolVersion;
             _cqlQuery = cqlQuery;
             _queryProtocolOptions = queryPrtclOptions;
             if (tracingEnabled)
@@ -58,13 +64,13 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(short streamId, byte protocolVersionByte)
+        public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader(protocolVersionByte, _headerFlags, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, _headerFlags, streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
-            _queryProtocolOptions.Write(wb, protocolVersionByte);
+            _queryProtocolOptions.Write(wb, (byte)ProtocolVersion);
 
             return wb.GetFrame();
         }
