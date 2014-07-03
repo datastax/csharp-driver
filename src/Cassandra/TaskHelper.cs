@@ -1,14 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Cassandra
 {
     internal static class TaskHelper
     {
+        private static readonly Action<Exception> PreserveStackHandler = (Action<Exception>)Delegate.CreateDelegate(
+            typeof(Action<Exception>),
+            typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic));
+
         /// <summary>
         /// Returns an AsyncResult according to the .net async programming model (Begin)
         /// </summary>
@@ -81,7 +82,7 @@ namespace Cassandra
                 //throw the actual exception when there was a single exception
                 if (ex.InnerExceptions.Count == 1)
                 {
-                    throw ex.InnerExceptions[0];
+                    throw PreserveStackTrace(ex.InnerExceptions[0]);
                 }
                 else
                 {
@@ -108,6 +109,15 @@ namespace Cassandra
             {
                 tcs.TrySetResult(result);
             }
+        }
+
+        /// <summary>
+        /// Required when retrowing exceptions to mantain the stack trace of the original exception
+        /// </summary>
+        private static Exception PreserveStackTrace(Exception ex)
+        {
+            PreserveStackHandler(ex);
+            return ex;
         }
     }
 }
