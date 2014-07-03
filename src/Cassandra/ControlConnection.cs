@@ -29,7 +29,7 @@ namespace Cassandra
     internal class ControlConnection : IDisposable
     {
         internal const long MaxSchemaAgreementWaitMs = 10000;
-        private const int MaxSupportedBinaryProtocolVersion = 2;
+        private const int MaxSupportedBinaryProtocolVersion = 3;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
 
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";

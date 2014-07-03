@@ -1,11 +1,8 @@
-﻿using NUnit.Framework;
+﻿using System.Linq;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Numerics;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -13,10 +10,30 @@ namespace Cassandra.IntegrationTests.Core
     [TestCassandraVersion(2, 0)]
     public class ParameterizedStatementsTests : SingleNodeClusterTest
     {
+        private const string AllTypesTableName = "all_types_table_queryparams";
+
+        public override void TestFixtureSetUp()
+        {
+            base.TestFixtureSetUp();
+
+            //Create a table that can be reused within this test class
+            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, AllTypesTableName)));
+        }
+
         [Test]
         public void CollectionParamsTests()
         {
-            throw new NotImplementedException();
+            var id = Guid.NewGuid();
+            var map = new SortedDictionary<string, string> { { "fruit", "apple" }, { "band", "Beatles" } };
+            var list = new List<string> { "one", "two" };
+            var set = new List<string> { "set_1one", "set_2two" };
+
+            var insertStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES (?, ?, ?, ?)", AllTypesTableName));
+            Session.Execute(insertStatement.Bind(id, map, list, set));
+            var row = Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE id = ?", AllTypesTableName)).Bind(id)).First();
+            CollectionAssert.AreEquivalent(map, row.GetValue<IDictionary<string, string>>("map_sample"));
+            CollectionAssert.AreEquivalent(list, row.GetValue<List<string>>("list_sample"));
+            CollectionAssert.AreEquivalent(set, row.GetValue<List<string>>("set_sample"));
         }
 
         [Test]

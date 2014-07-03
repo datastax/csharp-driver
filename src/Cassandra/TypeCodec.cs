@@ -505,43 +505,6 @@ namespace Cassandra
             return openType.MakeGenericType(valueType);
         }
 
-        public static byte[] EncodeSet(int protocolVersion, IColumnInfo typeInfo, object value)
-        {
-            Type listType = GetDefaultTypeFromSet(typeInfo);
-            CheckArgument(listType, value);
-            ColumnTypeCode listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
-            IColumnInfo listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
-
-            var bufferList = new List<byte[]>();
-            int cnt = 0;
-            int bsize = 2;
-            foreach (object obj in (value as IEnumerable))
-            {
-                byte[] buf = Encode(protocolVersion, obj);
-                bufferList.Add(buf);
-                bsize += 2; //size of value
-                bsize += buf.Length;
-                cnt++;
-            }
-            var ret = new byte[bsize];
-
-            byte[] cntbuf = Int16ToBytes((short) cnt);
-
-            int idx = 0;
-            Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);
-            idx += 2;
-            foreach (var buf in bufferList)
-            {
-                byte[] valBufSize = Int16ToBytes((short) buf.Length);
-                Buffer.BlockCopy(valBufSize, 0, ret, idx, 2);
-                idx += 2;
-                Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
-                idx += buf.Length;
-            }
-
-            return ret;
-        }
-
         public static object DecodeTimestamp(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
             if (cSharpType == null || cSharpType == typeof(object) || cSharpType == typeof(DateTimeOffset))
@@ -650,6 +613,10 @@ namespace Cassandra
 
         public static byte[] EncodeMap(int protocolVersion, IColumnInfo typeInfo, object value)
         {
+            //[n] indicating the size of the map, followed by n entries. 
+            //Each entry is composed of two [bytes] representing the key and the value of the entry map.
+            //The length can be expressed in 2 or 4 bytes depending on the protocol v3
+
             if (typeInfo == null)
             {
                 throw new ArgumentNullException("typeInfo");
@@ -660,66 +627,48 @@ namespace Cassandra
             }
             var dicType = GetDefaultTypeFromMap(typeInfo);
             CheckArgument(dicType, value);
-            var keyTypecode = (typeInfo as MapColumnInfo).KeyTypeCode;
-            var keyTypeinfo = (typeInfo as MapColumnInfo).KeyTypeInfo;
-            var valueTypecode = (typeInfo as MapColumnInfo).ValueTypeCode;
-            var valueTypeinfo = (typeInfo as MapColumnInfo).ValueTypeInfo;
-            var keyType = GetDefaultTypeFromCqlType(keyTypecode, keyTypeinfo);
-            var valueType = GetDefaultTypeFromCqlType(valueTypecode, valueTypeinfo);
 
-            var kbufs = new List<byte[]>();
-            var vbufs = new List<byte[]>();
-            int cnt = 0;
-            int bsize = 2;
-
-            var keyProp = dicType.GetProperty("Keys");
-            var valueProp = dicType.GetProperty("Values");
-
-            foreach (object obj in keyProp.GetValue(value, new object[] {}) as IEnumerable)
+            var dictionary = (IDictionary)value;
+            var keyBuffers = new List<byte[]>(dictionary.Count);
+            var valueBuffers = new List<byte[]>(dictionary.Count);
+            var byteLength = 0;
+            foreach (DictionaryEntry item in dictionary)
             {
-                byte[] buf = Encode(protocolVersion, obj);
-                kbufs.Add(buf);
-                bsize += 2; //size of key
-                bsize += buf.Length;
-                cnt++;
+                var itemKeyBuffer = Encode(protocolVersion, item.Key);
+                var itemValueBuffer = Encode(protocolVersion, item.Value);
+                keyBuffers.Add(itemKeyBuffer);
+                valueBuffers.Add(itemValueBuffer);
+                byteLength += itemKeyBuffer.Length + itemValueBuffer.Length;
             }
 
-            foreach (object obj in valueProp.GetValue(value, new object[] {}) as IEnumerable)
+            var index = 0;
+            var itemsLength = EncodeCollectionLength(protocolVersion, keyBuffers.Count);
+            var collectionLengthSize = itemsLength.Length;
+            byteLength += keyBuffers.Count * collectionLengthSize * 2 + collectionLengthSize;
+            var result = new byte[byteLength];
+
+            Buffer.BlockCopy(itemsLength, 0, result, 0, collectionLengthSize);
+            index += collectionLengthSize;
+            //For each item, encode the length, the key bytes and the value bytes
+            for (var i = 0; i < keyBuffers.Count; i++)
             {
-                byte[] buf = Encode(protocolVersion, obj);
-                vbufs.Add(buf);
-                bsize += 2; //size of value
-                bsize += buf.Length;
+                //write key
+                var itemKeyBuffer = keyBuffers[i];
+                var itemKeyLength = EncodeCollectionLength(protocolVersion, itemKeyBuffer.Length);
+                Buffer.BlockCopy(itemKeyLength, 0, result, index, collectionLengthSize);
+                index += collectionLengthSize;
+                Buffer.BlockCopy(itemKeyBuffer, 0, result, index, itemKeyBuffer.Length);
+                index += itemKeyBuffer.Length;
+
+                //write value
+                var itemValueBuffer = valueBuffers[i];
+                var itemValueLength = EncodeCollectionLength(protocolVersion, itemValueBuffer.Length);
+                Buffer.BlockCopy(itemValueLength, 0, result, index, collectionLengthSize);
+                index += collectionLengthSize;
+                Buffer.BlockCopy(itemValueBuffer, 0, result, index, itemValueBuffer.Length);
+                index += itemValueBuffer.Length;
             }
-
-            var ret = new byte[bsize];
-
-            byte[] cntbuf = Int16ToBytes((short) cnt); // short or ushort ? 
-
-            int idx = 0;
-            Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);
-            idx += 2;
-            for (int i = 0; i < cnt; i++)
-            {
-                {
-                    byte[] buf = kbufs[i];
-                    byte[] keyvalBufSize = Int16ToBytes((short) buf.Length);
-                    Buffer.BlockCopy(keyvalBufSize, 0, ret, idx, 2);
-                    idx += 2;
-                    Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
-                    idx += buf.Length;
-                }
-                {
-                    byte[] buf = vbufs[i];
-                    byte[] keyvalBufSize = Int16ToBytes((short) buf.Length);
-                    Buffer.BlockCopy(keyvalBufSize, 0, ret, idx, 2);
-                    idx += 2;
-                    Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
-                    idx += buf.Length;
-                }
-            }
-
-            return ret;
+            return result;
         }
 
         public static object DecodeText(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
@@ -804,37 +753,65 @@ namespace Cassandra
         {
             var listType = GetDefaultTypeFromList(typeInfo);
             CheckArgument(listType, value);
-            var listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
-            var listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
+            return EncodeCollection(protocolVersion, (IEnumerable)value);
+        }
 
-            var bufs = new List<byte[]>();
-            var cnt = 0;
-            var bsize = 2;
-            foreach (var obj in (value as IEnumerable))
+        public static byte[] EncodeSet(int protocolVersion, IColumnInfo typeInfo, object value)
+        {
+            var setType = GetDefaultTypeFromSet(typeInfo);
+            CheckArgument(setType, value);
+            return EncodeCollection(protocolVersion, (IEnumerable)value);
+        }
+
+        /// <summary>
+        /// Encodes a list or a set into a protocol encoded bytes
+        /// </summary>
+        public static byte[] EncodeCollection(int protocolVersion, IEnumerable value)
+        {
+            //protocol format: [n items][bytes_1][bytes_n]
+            //where the amount of bytes to express the length are 2 or 4 depending on the protocol version
+            var bufferList = new List<byte[]>();
+            var byteLength = 0;
+            foreach (var item in value)
             {
-                byte[] buf = Encode(protocolVersion, obj);
-                bufs.Add(buf);
-                bsize += 2; //size of value
-                bsize += buf.Length;
-                cnt++;
+                var buf = Encode(protocolVersion, item);
+                bufferList.Add(buf);
+                byteLength += buf.Length;
             }
-            var ret = new byte[bsize];
+            var index = 0;
+            var itemsLength = EncodeCollectionLength(protocolVersion, bufferList.Count);
+            var collectionLengthSize = itemsLength.Length;
+            byteLength += (bufferList.Count + 1) * collectionLengthSize;
+            var result = new byte[byteLength];
 
-            byte[] cntbuf = Int16ToBytes((short) cnt);
-
-            var idx = 0;
-            Buffer.BlockCopy(cntbuf, 0, ret, 0, 2);
-            idx += 2;
-            foreach (var buf in bufs)
+            Buffer.BlockCopy(itemsLength, 0, result, 0, collectionLengthSize);
+            index += collectionLengthSize;
+            //For each item, encode the length and the byte value
+            foreach (var buf in bufferList)
             {
-                byte[] valBufSize = Int16ToBytes((short) buf.Length);
-                Buffer.BlockCopy(valBufSize, 0, ret, idx, 2);
-                idx += 2;
-                Buffer.BlockCopy(buf, 0, ret, idx, buf.Length);
-                idx += buf.Length;
-            }
+                var bufferItemLength = EncodeCollectionLength(protocolVersion, buf.Length);
+                Buffer.BlockCopy(bufferItemLength, 0, result, index, collectionLengthSize);
+                index += collectionLengthSize;
 
-            return ret;
+                Buffer.BlockCopy(buf, 0, result, index, buf.Length);
+                index += buf.Length;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Uses 2 or 4 bytes to represent the length in bytes
+        /// </summary>
+        private static byte[] EncodeCollectionLength(int protocolVersion, int value)
+        {
+            if (protocolVersion < 3)
+            {
+                return Int16ToBytes((short) value);
+            }
+            else
+            {
+                return Int32ToBytes(value);
+            }
         }
 
         public static object DecodeInet(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)

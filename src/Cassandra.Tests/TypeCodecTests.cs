@@ -130,11 +130,34 @@ namespace Cassandra.Tests
             {
                 foreach (object[] value in initialValues)
                 {
-                    var valueToEncode = (IList) value[0];
+                    var valueToEncode = (IList)value[0];
                     var encoded = TypeCodec.Encode(version, valueToEncode);
-                    var decoded = (IList) TypeCodec.Decode(version, encoded, (ColumnTypeCode) value[1], (IColumnInfo) value[2], value[0].GetType());
+                    var decoded = (IList)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], value[0].GetType());
                     Assert.AreEqual(valueToEncode.Count, decoded.Count);
                     Assert.AreEqual(valueToEncode, decoded);
+                }
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeMapFactoryTest()
+        {
+            var initialValues = new object[]
+            {
+                new object[] {new SortedDictionary<string, string>(), ColumnTypeCode.Map, new MapColumnInfo() {KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Text}},
+                new object[] {new SortedDictionary<string, string>{{"key100","value100"}}, ColumnTypeCode.Map, new MapColumnInfo() {KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Text}},
+                new object[] {new SortedDictionary<string, string>{{"key1","value1"}, {"key2","value2"}}, ColumnTypeCode.Map, new MapColumnInfo() {KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Text}},
+                new object[] {new SortedDictionary<string, int>{{"key1", 1}, {"key2", 2}}, ColumnTypeCode.Map, new MapColumnInfo() {KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Int}},
+                new object[] {new SortedDictionary<Guid, string>{{Guid.NewGuid(),"value1"}, {Guid.NewGuid(),"value2"}}, ColumnTypeCode.Map, new MapColumnInfo() {KeyTypeCode = ColumnTypeCode.Uuid, ValueTypeCode = ColumnTypeCode.Text}},
+            };
+            foreach (var version in _protocolVersions)
+            {
+                foreach (object[] value in initialValues)
+                {
+                    var valueToEncode = (IDictionary)value[0];
+                    var encoded = TypeCodec.Encode(version, valueToEncode);
+                    var decoded = (IDictionary)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], typeof(IDictionary));
+                    CollectionAssert.AreEquivalent(valueToEncode, decoded);
                 }
             }
         }

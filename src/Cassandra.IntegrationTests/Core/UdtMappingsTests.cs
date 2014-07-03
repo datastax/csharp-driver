@@ -116,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
                     .Map(c => c.LastName, "last_name")
                     .Map(c => c.Phones, "phones")
             );
-            var contactsJson =
+            const string contactsJson =
                 "[" +
                 "{first_name: 'Jules', last_name: 'Winnfield', phones: {{alias: 'home', number: '123456'}}}," +
                 "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}}}" +
