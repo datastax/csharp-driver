@@ -62,6 +62,16 @@ namespace Cassandra
         private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Logger _logger = new Logger(typeof (Cluster));
         private readonly Metadata _metadata;
+        private static int _maxProtocolVersion = 3;
+
+        /// <summary>
+        /// Gets or sets the maximum protocol version used by this driver
+        /// </summary>
+        public static int MaxProtocolVersion
+        {
+            get { return _maxProtocolVersion; }
+            set { _maxProtocolVersion = value; }
+        }
 
         /// <summary>
         ///  Gets the cluster configuration.

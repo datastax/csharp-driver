@@ -29,7 +29,6 @@ namespace Cassandra
     internal class ControlConnection : IDisposable
     {
         internal const long MaxSchemaAgreementWaitMs = 10000;
-        private const int MaxSupportedBinaryProtocolVersion = 3;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
 
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
@@ -379,9 +378,10 @@ namespace Cassandra
                 if (rowset.Columns.Any(c => c.Name == "native_protocol_version") && Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
                 {
                     //In Cassandra < 2, there is no native protocol version column
-                    if (protocolVersion > MaxSupportedBinaryProtocolVersion)
+                    //For Cassandra < 2 it will get the default value
+                    if (protocolVersion > Cluster.MaxProtocolVersion)
                     {
-                        protocolVersion = MaxSupportedBinaryProtocolVersion;
+                        protocolVersion = Cluster.MaxProtocolVersion;
                     }
                     this.BinaryProtocolVersion = protocolVersion;
                 }

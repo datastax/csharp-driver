@@ -9,6 +9,11 @@ namespace Cassandra.IntegrationTests.Core
     [TestCassandraVersion(2, 1)]
     public class UdtMappingsTests : SingleNodeClusterTest
     {
+        /// <summary>
+        /// The protocol versions in which udts are supported
+        /// </summary>
+        private static readonly int[] UdtProtocolVersionSupported = new[] {3};
+
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
@@ -33,108 +38,125 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingSimpleExplicitTest()
         {
-            //Use a local cluster
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
-            localSession.UserDefinedTypes.Define(
-                UdtMap.For<Phone>("phone")
-                    .Map(v => v.Alias, "alias")
-                    .Map(v => v.CountryCode, "country_code")
-                    .Map(v => v.Number, "number")
-            );
-            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
-            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
-            var row = rs.First();
-            var value = row.GetValue<Phone>("main_phone");
-            Assert.NotNull(value);
-            Assert.AreEqual("home phone", value.Alias);
-            Assert.AreEqual("123", value.Number);
-            Assert.AreEqual(34, value.CountryCode);
-            localCluster.Dispose();
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                //Use all possible protocol versions
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>("phone")
+                        .Map(v => v.Alias, "alias")
+                        .Map(v => v.CountryCode, "country_code")
+                        .Map(v => v.Number, "number")
+                );
+                localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+                var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+                var row = rs.First();
+                var value = row.GetValue<Phone>("main_phone");
+                Assert.NotNull(value);
+                Assert.AreEqual("home phone", value.Alias);
+                Assert.AreEqual("123", value.Number);
+                Assert.AreEqual(34, value.CountryCode);
+                localCluster.Dispose();
+            }
         }
 
         [Test]
         public void MappingSimpleExplicitNullsTest()
         {
-            //Use a local cluster
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
-            localSession.UserDefinedTypes.Define(
-                UdtMap.For<Phone>("phone")
-                    .Map(v => v.Alias, "alias")
-                    .Map(v => v.CountryCode, "country_code")
-                    .Map(v => v.Number, "number")
-            );
-            //Some fields are null
-            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'empty phone'})");
-            var row = localSession.Execute("SELECT * FROM users WHERE id = 1").First();
-            var value = row.GetValue<Phone>("main_phone");
-            Assert.NotNull(value);
-            Assert.AreEqual("empty phone", value.Alias);
-            //Default
-            Assert.IsNull(value.Number);
-            //Default
-            Assert.AreEqual(0, value.CountryCode);
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>("phone")
+                          .Map(v => v.Alias, "alias")
+                          .Map(v => v.CountryCode, "country_code")
+                          .Map(v => v.Number, "number")
+                    );
+                //Some fields are null
+                localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'empty phone'})");
+                var row = localSession.Execute("SELECT * FROM users WHERE id = 1").First();
+                var value = row.GetValue<Phone>("main_phone");
+                Assert.NotNull(value);
+                Assert.AreEqual("empty phone", value.Alias);
+                //Default
+                Assert.IsNull(value.Number);
+                //Default
+                Assert.AreEqual(0, value.CountryCode);
 
-            //column value is null
-            localSession.Execute("INSERT INTO users (id, main_phone) values (2, null)");
-            row = localSession.Execute("SELECT * FROM users WHERE id = 2").First();
-            Assert.IsNull(row.GetValue<Phone>("main_phone"));
-            localCluster.Dispose();
+                //column value is null
+                localSession.Execute("INSERT INTO users (id, main_phone) values (2, null)");
+                row = localSession.Execute("SELECT * FROM users WHERE id = 2").First();
+                Assert.IsNull(row.GetValue<Phone>("main_phone"));
+                localCluster.Dispose();
+            }
         }
 
         [Test]
         public void MappingSimpleImplicitTest()
         {
-            //Use a local cluster
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
-            localSession.UserDefinedTypes.Define(
-                UdtMap.For<Phone>()
-            );
-            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
-            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
-            var row = rs.First();
-            var value = row.GetValue<Phone>("main_phone");
-            Assert.NotNull(value);
-            Assert.AreEqual("home phone", value.Alias);
-            Assert.AreEqual("123", value.Number);
-            //The property and the field names don't match
-            Assert.AreEqual(0, value.CountryCode);
-            localCluster.Dispose();
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>()
+                    );
+                localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+                var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+                var row = rs.First();
+                var value = row.GetValue<Phone>("main_phone");
+                Assert.NotNull(value);
+                Assert.AreEqual("home phone", value.Alias);
+                Assert.AreEqual("123", value.Number);
+                //The property and the field names don't match
+                Assert.AreEqual(0, value.CountryCode);
+                localCluster.Dispose();
+            }
         }
 
         [Test]
         public void MappingNestedTypeTest()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
-            localSession.UserDefinedTypes.Define(
-                UdtMap.For<Phone>(),
-                UdtMap.For<Contact>()
-                    .Map(c => c.FirstName, "first_name")
-                    .Map(c => c.LastName, "last_name")
-                    .Map(c => c.Phones, "phones")
-            );
-            const string contactsJson =
-                "[" +
-                "{first_name: 'Jules', last_name: 'Winnfield', phones: {{alias: 'home', number: '123456'}}}," +
-                "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}}}" +
-                "]";
-            localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
-            var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
-            var row = rs.First();
+            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            {
+                Cluster.MaxProtocolVersion = protocolVersion;
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                localSession.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>(),
+                    UdtMap.For<Contact>()
+                          .Map(c => c.FirstName, "first_name")
+                          .Map(c => c.LastName, "last_name")
+                          .Map(c => c.Phones, "phones")
+                    );
+                const string contactsJson =
+                    "[" +
+                    "{first_name: 'Jules', last_name: 'Winnfield', phones: {{alias: 'home', number: '123456'}}}," +
+                    "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}}}" +
+                    "]";
+                localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
+                var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
+                var row = rs.First();
 
-            var contacts = row.GetValue<List<Contact>>("contacts");
-            Assert.NotNull(contacts);
-            Assert.AreEqual(2, contacts.Count);
-            var julesContact = contacts[0];
-            Assert.AreEqual("Jules", julesContact.FirstName);
-            Assert.AreEqual("Winnfield", julesContact.LastName);
-            Assert.IsNotNull(julesContact.Phones);
-            Assert.AreEqual(1, julesContact.Phones.Count());
-            var miaContact = contacts[1];
-            localCluster.Dispose();
+                var contacts = row.GetValue<List<Contact>>("contacts");
+                Assert.NotNull(contacts);
+                Assert.AreEqual(2, contacts.Count);
+                var julesContact = contacts[0];
+                Assert.AreEqual("Jules", julesContact.FirstName);
+                Assert.AreEqual("Winnfield", julesContact.LastName);
+                Assert.IsNotNull(julesContact.Phones);
+                Assert.AreEqual(1, julesContact.Phones.Count());
+                var miaContact = contacts[1];
+                localCluster.Dispose();
+            }
         }
 
         [Test]
