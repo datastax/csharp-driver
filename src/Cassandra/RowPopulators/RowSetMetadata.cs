@@ -208,8 +208,6 @@ namespace Cassandra
             ColumnTypeCode innercode;
             switch (code)
             {
-                case ColumnTypeCode.Custom:
-                    return new CustomColumnInfo {CustomTypeName = reader.ReadString()};
                 case ColumnTypeCode.List:
                     innercode = (ColumnTypeCode) reader.ReadUInt16();
                     return new ListColumnInfo
@@ -236,6 +234,23 @@ namespace Cassandra
                         KeyTypeCode = innercode,
                         KeyTypeInfo = GetColumnInfo(reader, innercode)
                     };
+                case ColumnTypeCode.Custom:
+                    return new CustomColumnInfo { CustomTypeName = reader.ReadString() };
+                case ColumnTypeCode.Udt:
+                    var udtInfo = new UdtColumnInfo(reader.ReadString() + "." + reader.ReadString());
+                    var fieldLength = reader.ReadInt16();
+                    for (var i = 0; i < fieldLength; i++)
+                    {
+                        var dataType = new ColumnDesc
+                        {
+                            Name = reader.ReadString(),
+                            TypeCode = (ColumnTypeCode) reader.ReadUInt16(),
+                        };
+
+                        dataType.TypeInfo = GetColumnInfo(reader, dataType.TypeCode);
+                        udtInfo.Fields.Add(dataType);
+                    }
+                    return udtInfo;
                 default:
                     return null;
             }

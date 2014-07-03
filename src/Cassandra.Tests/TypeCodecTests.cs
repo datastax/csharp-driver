@@ -18,29 +18,29 @@ namespace Cassandra.Tests
         {
             var initialValues = new []
             {
-                new Tuple<object, DecodeHandler, EncodeDelegate>("utf8 text mañana", TypeCodec.DecodeText, TypeCodec.EncodeText),
-                new Tuple<object, DecodeHandler, EncodeDelegate>("ascii text", TypeCodec.DecodeAscii, TypeCodec.EncodeAscii),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(1234, TypeCodec.DecodeInt, TypeCodec.EncodeInt),
-                new Tuple<object, DecodeHandler, EncodeDelegate>((long)3129, TypeCodec.DecodeBigint, TypeCodec.EncodeBigint),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(1234F, TypeCodec.DecodeFloat, TypeCodec.EncodeFloat),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(1.14D, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(1.01M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>("utf8 text mañana", TypeCodec.DecodeText, TypeCodec.EncodeText),
+                new Tuple<object, DecodeHandler, EncodeHandler>("ascii text", TypeCodec.DecodeAscii, TypeCodec.EncodeAscii),
+                new Tuple<object, DecodeHandler, EncodeHandler>(1234, TypeCodec.DecodeInt, TypeCodec.EncodeInt),
+                new Tuple<object, DecodeHandler, EncodeHandler>((long)3129, TypeCodec.DecodeBigint, TypeCodec.EncodeBigint),
+                new Tuple<object, DecodeHandler, EncodeHandler>(1234F, TypeCodec.DecodeFloat, TypeCodec.EncodeFloat),
+                new Tuple<object, DecodeHandler, EncodeHandler>(1.14D, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeHandler>(1.01M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
                 
-                new Tuple<object, DecodeHandler, EncodeDelegate>(72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(-72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(-256M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(256M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(0M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(-1.333333M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(-256.512M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(Decimal.MaxValue, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(Decimal.MinValue, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(-72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(-256M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(256M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(0M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(-1.333333M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(-256.512M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(Decimal.MaxValue, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
+                new Tuple<object, DecodeHandler, EncodeHandler>(Decimal.MinValue, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
                 
-                new Tuple<object, DecodeHandler, EncodeDelegate>(new DateTime(1983, 2, 24), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeCodec.DecodeInet, TypeCodec.EncodeInet),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(true, TypeCodec.DecodeBoolean, TypeCodec.EncodeBoolean),
-                new Tuple<object, DecodeHandler, EncodeDelegate>(new byte[] {16}, TypeCodec.DecodeBlob, TypeCodec.EncodeBlob)
+                new Tuple<object, DecodeHandler, EncodeHandler>(new DateTime(1983, 2, 24), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
+                new Tuple<object, DecodeHandler, EncodeHandler>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
+                new Tuple<object, DecodeHandler, EncodeHandler>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeCodec.DecodeInet, TypeCodec.EncodeInet),
+                new Tuple<object, DecodeHandler, EncodeHandler>(true, TypeCodec.DecodeBoolean, TypeCodec.EncodeBoolean),
+                new Tuple<object, DecodeHandler, EncodeHandler>(new byte[] {16}, TypeCodec.DecodeBlob, TypeCodec.EncodeBlob)
             };
             foreach (var version in _protocolVersions)
             {

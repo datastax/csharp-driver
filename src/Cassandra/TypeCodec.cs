@@ -26,7 +26,7 @@ using System.Linq;
 namespace Cassandra
 {
     internal delegate object DecodeHandler(int protocolVersion, IColumnInfo typeInfo, byte[] buffer, Type cSharpType);
-    internal delegate byte[] EncodeDelegate(int protocolVersion, IColumnInfo typeInfo, object value);
+    internal delegate byte[] EncodeHandler(int protocolVersion, IColumnInfo typeInfo, object value);
 
     /// <summary>
     /// Contains the methods handle serialization and deserialization from Cassandra types to CLR types
@@ -39,7 +39,7 @@ namespace Cassandra
         /// <summary>
         /// Decoders by type code
         /// </summary>
-        private static readonly Dictionary<ColumnTypeCode, EncodeDelegate> Encoders = new Dictionary<ColumnTypeCode, EncodeDelegate>()
+        private static readonly Dictionary<ColumnTypeCode, EncodeHandler> Encoders = new Dictionary<ColumnTypeCode, EncodeHandler>()
         {
             {ColumnTypeCode.Ascii,        EncodeAscii},
             {ColumnTypeCode.Bigint,       EncodeBigint},
@@ -87,7 +87,8 @@ namespace Cassandra
             {ColumnTypeCode.Map,          DecodeMap},
             {ColumnTypeCode.Set,          DecodeSet},
             {ColumnTypeCode.Decimal,      DecodeDecimal},
-            {ColumnTypeCode.Varint,       DecodeVarint}
+            {ColumnTypeCode.Varint,       DecodeVarint},
+            {ColumnTypeCode.Udt,          DecodeUdt}
         };
 
         /// <summary>
@@ -220,7 +221,12 @@ namespace Cassandra
         /// </summary>
         public static object Decode(int protocolVersion, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo, Type cSharpType = null)
         {
-            return Decoders[typeCode](protocolVersion, typeInfo, buffer, cSharpType);
+            DecodeHandler handler = null;
+            if (!Decoders.TryGetValue(typeCode, out handler))
+            {
+                throw new InvalidTypeException("No decoder defined for type code " + typeCode);
+            }
+            return handler(protocolVersion, typeInfo, buffer, cSharpType);
         }
 
         /// <summary>
@@ -319,8 +325,13 @@ namespace Cassandra
                 return null;
             }
             IColumnInfo typeInfo;
-            ColumnTypeCode typeCode = GetColumnTypeCodeInfo(value.GetType(), out typeInfo);
-            return Encoders[typeCode](protocolVersion, typeInfo, value);
+            var typeCode = GetColumnTypeCodeInfo(value.GetType(), out typeInfo);
+            EncodeHandler handler = null;
+            if (!Encoders.TryGetValue(typeCode, out handler))
+            {
+                throw new InvalidTypeException("No encoder defined for type code " + typeCode);
+            }
+            return handler(protocolVersion, typeInfo, value);
         }
 
         internal static void CheckArgument(Type t, object value)
@@ -918,6 +929,19 @@ namespace Cassandra
                 }
             }
             return value;
+        }
+
+        public static object DecodeUdt(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
+        {
+            if (typeInfo == null)
+            {
+                throw new ArgumentNullException("typeInfo");
+            }
+            if (!(typeInfo is UdtColumnInfo))
+            {
+                throw new ArgumentException("Expected UdtColumn typeInfo, obtained " + typeInfo.GetType());
+            }
+            return DecodeUdtMapping(protocolVersion, (typeInfo as UdtColumnInfo).Name, value);
         }
 
         /// <exception cref="ArgumentException" />

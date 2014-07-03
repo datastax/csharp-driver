@@ -112,7 +112,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Required when retrowing exceptions to mantain the stack trace of the original exception
+        /// Required when retrowing exceptions to maintain the stack trace of the original exception
         /// </summary>
         private static Exception PreserveStackTrace(Exception ex)
         {
