@@ -13,6 +13,12 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class BatchStatements : MultipleNodesClusterTest
     {
+        /// <summary>
+        /// The protocol versions in which Batches are supported
+        /// </summary>
+        private static readonly int[] ProtocolVersionSupported = new[] { 2, 3 };
+
+
         public BatchStatements() : base(4)
         {
 
@@ -172,19 +178,93 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void BatchMixedStatements()
         {
+            foreach (var protocolVersion in ProtocolVersionSupported)
+            {
+                //Use all possible protocol versions
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+                var localSession = localCluster.Connect("tester");
+                var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+                CreateTable(tableName);
+
+                var simpleStatement =
+                    new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, {2}, {3})", tableName, 1, "label", 2));
+                var ps = localSession.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
+                var batchStatement = new BatchStatement();
+                var expectedValues = new List<object[]> {new object[] {1, "label", 2}, new object[] {1, "test", 2}};
+
+                batchStatement.Add(ps.Bind(new object[] {1, "test", 2}));
+                batchStatement.Add(simpleStatement);
+
+                var rs = localSession.Execute("SELECT * FROM " + tableName);
+                VerifyData(rs, expectedValues);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void BatchSerialConsistencyTest()
+        {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             CreateTable(tableName);
 
-            var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, {2}, {3})", tableName, 1, "label", 2));
+            var query = new SimpleStatement(String.Format("INSERT INTO {0} (id) values (-99999)", tableName));
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                //You can not specify local serial consistency as a valid read one.
+                var batch = new BatchStatement()
+                    .Add(query)
+                    .SetBatchType(BatchType.Logged)
+                    .SetSerialConsistencyLevel(ConsistencyLevel.Quorum);
+                Session.Execute(batch);
+            });
+
+            //It should work
+            var statement = new BatchStatement()
+                .Add(query)
+                .SetConsistencyLevel(ConsistencyLevel.Quorum)
+                .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+
+            //Read consistency specified and write consistency specified
+            Session.Execute(statement);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void BatchTimestampTest()
+        {
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            CreateTable(tableName);
+
+            var query = new SimpleStatement(String.Format("INSERT INTO {0} (id) values (-99999)", tableName));
+
+
+            Assert.DoesNotThrow(() =>
+            {
+                //It should work
+                var statement = new BatchStatement()
+                    .Add(query)
+                    .SetConsistencyLevel(ConsistencyLevel.Quorum)
+                    .SetTimestamp(DateTime.Now);
+
+                //Read consistency specified and write consistency specified
+                Session.Execute(statement);
+            });
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0, Comparison.Equal)]
+        public void BatchPreparedStatementsNotSupportedInC2_0()
+        {
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            CreateTable(tableName);
+
             var ps = Session.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
-            var batchStatement = new BatchStatement();
-            var expectedValues = new List<object[]> { new object[] { 1, "label", 2 }, new object[] { 1, "test", 2 } };
-
-            batchStatement.Add(ps.Bind(new object[] { 1, "test", 2 }));
-            batchStatement.Add(simpleStatement);
-
-            var rs = Session.Execute("SELECT * FROM " + tableName);
-            VerifyData(rs, expectedValues);
+            var batch = new BatchStatement();
+            batch.Add(ps.Bind(new object[] { 1, "label1", 1 }));
+            Assert.Throws<NotSupportedException>(() => Session.Execute(batch.SetTimestamp(DateTime.Now)));
         }
 
         [Test]

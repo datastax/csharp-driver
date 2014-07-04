@@ -49,7 +49,7 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public Batch SetTimestamp(DateTimeOffset timestamp)
+        public new Batch SetTimestamp(DateTimeOffset timestamp)
         {
             _timestamp = timestamp;
             return this;

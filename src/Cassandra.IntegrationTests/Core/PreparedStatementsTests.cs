@@ -207,6 +207,18 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatementSetTimestamp()
+        {
+            var timestamp = new DateTimeOffset(1999, 12, 31, 1, 2, 3, TimeSpan.Zero);
+            var id = Guid.NewGuid();
+            var insertStatement = Session.Prepare(String.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName));
+            Session.Execute(insertStatement.Bind(id, "sample text").SetTimestamp(timestamp));
+            var row = Session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName)).Bind(id)).First();
+            Assert.NotNull(row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
         public void PreparedSelectOneTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");

@@ -24,51 +24,54 @@ namespace Cassandra
     internal class ExecuteRequest : IQueryRequest, ICqlRequest
     {
         public const byte OpCode = 0x0A;
+        private readonly byte _flags;
+        private readonly byte[] _id;
+        private readonly RowSetMetadata _metadata;
+        private readonly QueryProtocolOptions _queryOptions;
 
         public ConsistencyLevel Consistency 
         { 
             get
             {
-                return _queryProtocolOptions.Consistency;
+                return _queryOptions.Consistency;
             }
             set
             {
-                _queryProtocolOptions.Consistency = value;
+                _queryOptions.Consistency = value;
             }
         }
 
         public int ProtocolVersion { get; set; }
 
-        private readonly byte _flags;
-        private readonly byte[] _id;
-        private readonly RowSetMetadata _metadata;
-        private readonly QueryProtocolOptions _queryProtocolOptions;
-
-        public ExecuteRequest(int protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryProtocolOptions)
+        public ExecuteRequest(int protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
             ProtocolVersion = protocolVersion;
-            if (metadata != null && queryProtocolOptions.Values.Length != metadata.Columns.Length)
+            if (metadata != null && queryOptions.Values.Length != metadata.Columns.Length)
             {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
             }
             _id = id;
             _metadata = metadata;
-            _queryProtocolOptions = queryProtocolOptions;
+            _queryOptions = queryOptions;
             if (tracingEnabled)
             {
                 _flags = 0x02;
             }
 
-            if (this.Consistency >= ConsistencyLevel.Serial)
+            if (Consistency >= ConsistencyLevel.Serial)
             {
                 throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
             }
-            if (_queryProtocolOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            if (_queryOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
             {
-                if (_queryProtocolOptions.SerialConsistency < ConsistencyLevel.Serial)
+                if (_queryOptions.SerialConsistency < ConsistencyLevel.Serial)
                 {
                     throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
                 }
+            }
+            if (queryOptions.Timestamp != null && protocolVersion < 3)
+            {
+                throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }
         }
 
@@ -77,7 +80,7 @@ namespace Cassandra
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader((byte)ProtocolVersion, _flags, streamId, OpCode);
             wb.WriteShortBytes(_id);
-            _queryProtocolOptions.Write(wb, (byte)ProtocolVersion);
+            _queryOptions.Write(wb, (byte)ProtocolVersion);
 
             return wb.GetFrame();
         }
@@ -86,10 +89,10 @@ namespace Cassandra
         {
             wb.WriteByte(1); //prepared query
             wb.WriteShortBytes(_id);
-            wb.WriteUInt16((ushort) _queryProtocolOptions.Values.Length);
+            wb.WriteUInt16((ushort) _queryOptions.Values.Length);
             for (int i = 0; i < _metadata.Columns.Length; i++)
             {
-                byte[] bytes = TypeCodec.Encode(protocolVersion, _queryProtocolOptions.Values[i]);
+                byte[] bytes = TypeCodec.Encode(protocolVersion, _queryOptions.Values[i]);
                 wb.WriteBytes(bytes);
             }
         }

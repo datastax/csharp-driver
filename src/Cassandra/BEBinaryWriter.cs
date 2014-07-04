@@ -94,6 +94,15 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Writes Big Endian long
+        /// </summary>
+        public void WriteLong(long value)
+        {
+            var bytes = BitConverter.GetBytes(value);
+            this.Write(bytes.Reverse().ToArray());
+        }
+
+        /// <summary>
         /// Writes protocol <c>string</c> (length + bytes)
         /// </summary>
         public void WriteString(string str)

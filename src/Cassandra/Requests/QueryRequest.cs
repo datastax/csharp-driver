@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
@@ -27,11 +29,11 @@ namespace Cassandra
         {
             get
             {
-                return _queryProtocolOptions.Consistency;
+                return _queryOptions.Consistency;
             }
             set
             {
-                _queryProtocolOptions.Consistency = value;
+                _queryOptions.Consistency = value;
             }
         }
 
@@ -39,28 +41,36 @@ namespace Cassandra
 
         private readonly string _cqlQuery;
         private readonly byte _headerFlags;
-        private readonly QueryProtocolOptions _queryProtocolOptions;
+        private readonly QueryProtocolOptions _queryOptions;
 
-        public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryPrtclOptions)
+        public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
+            //TODO: Replace constructor parameters with IStatement
             ProtocolVersion = protocolVersion;
             _cqlQuery = cqlQuery;
-            _queryProtocolOptions = queryPrtclOptions;
+            _queryOptions = queryOptions;
             if (tracingEnabled)
             {
                 _headerFlags = 0x02;
             }
-
-            if (this.Consistency >= ConsistencyLevel.Serial)
+            if (queryOptions == null)
+            {
+                throw new ArgumentNullException("queryOptions");
+            }
+            if (Consistency >= ConsistencyLevel.Serial)
             {
                 throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
             }
-            if (_queryProtocolOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            if (queryOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
             {
-                if (_queryProtocolOptions.SerialConsistency < ConsistencyLevel.Serial)
+                if (queryOptions.SerialConsistency < ConsistencyLevel.Serial)
                 {
                     throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
                 }
+            }
+            if (queryOptions.Timestamp != null && protocolVersion < 3)
+            {
+                throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }
         }
 
@@ -70,25 +80,27 @@ namespace Cassandra
             wb.WriteFrameHeader((byte)ProtocolVersion, _headerFlags, streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
-            _queryProtocolOptions.Write(wb, (byte)ProtocolVersion);
+            _queryOptions.Write(wb, (byte)ProtocolVersion);
 
             return wb.GetFrame();
         }
 
         public void WriteToBatch(byte protocolVersion, BEBinaryWriter wb)
         {
-            wb.WriteByte(0); //not a prepared query
+            //not a prepared query
+            wb.WriteByte(0);
             wb.WriteLongString(_cqlQuery);
-            if (_queryProtocolOptions.Values == null || _queryProtocolOptions.Values.Length == 0)
+            if (_queryOptions.Values == null || _queryOptions.Values.Length == 0)
             {
-                wb.WriteInt16(0); //not values
+                //not values
+                wb.WriteInt16(0);
             }
             else
             {
-                wb.WriteUInt16((ushort) _queryProtocolOptions.Values.Length);
-                for (int i = 0; i < _queryProtocolOptions.Values.Length; i++)
+                wb.WriteUInt16((ushort) _queryOptions.Values.Length);
+                for (var i = 0; i < _queryOptions.Values.Length; i++)
                 {
-                    byte[] bytes = TypeCodec.Encode(protocolVersion, _queryProtocolOptions.Values[i]);
+                    var bytes = TypeCodec.Encode(protocolVersion, _queryOptions.Values[i]);
                     wb.WriteBytes(bytes);
                 }
             }

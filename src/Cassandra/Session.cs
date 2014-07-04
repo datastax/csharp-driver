@@ -288,12 +288,7 @@ namespace Cassandra
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                var subRequests = new List<IQueryRequest>();
-                foreach (Statement q in s.Queries)
-                {
-                    subRequests.Add(q.CreateBatchRequest(BinaryProtocolVersion));
-                }
-                return new BatchRequest(BinaryProtocolVersion, s.BatchType, subRequests, consistency, s.IsTracing);
+                return new BatchRequest(BinaryProtocolVersion, s, consistency);
             }
             throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
         }

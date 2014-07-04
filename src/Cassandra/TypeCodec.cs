@@ -218,6 +218,11 @@ namespace Cassandra
             return Int64ToBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
         }
 
+        public static TimeSpan ToUnixTime(DateTimeOffset value)
+        {
+            return value - UnixStart;
+        }
+
         /// <summary>
         /// Takes the raw bytes to reconstruct a CLR object.
         /// </summary>

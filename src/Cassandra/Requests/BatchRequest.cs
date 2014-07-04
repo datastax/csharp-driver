@@ -22,40 +22,86 @@ namespace Cassandra
     {
         public const byte OpCode = 0x0D;
 
+        private readonly byte _headerFlags;
+        private readonly QueryProtocolOptions.QueryFlags _batchFlags = 0;
+        private readonly ICollection<IQueryRequest> _requests;
+        private readonly BatchType _type;
+        private readonly DateTimeOffset? _timestamp;
+        private readonly ConsistencyLevel? _serialConsistency;
+
         public ConsistencyLevel Consistency { get; set; }
         public int ProtocolVersion { get; set; }
 
-        private readonly byte _flags;
-        private readonly ICollection<IQueryRequest> _requests;
-        private readonly BatchType _type;
-
-        public BatchRequest(int protocolVersion, BatchType type, ICollection<IQueryRequest> requests, ConsistencyLevel consistency, bool tracingEnabled)
+        public BatchRequest(int protocolVersion, BatchStatement statement, ConsistencyLevel consistency)
         {
             ProtocolVersion = protocolVersion;
             if (ProtocolVersion < 2)
             {
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             }
-            _type = type;
-            _requests = requests;
-            Consistency = consistency;
-            if (tracingEnabled)
+
+            var subRequests = new List<IQueryRequest>();
+            foreach (var q in statement.Queries)
             {
-                _flags = 0x02;
+                subRequests.Add(q.CreateBatchRequest(ProtocolVersion));
+            }
+            _type = statement.BatchType;
+            _requests = subRequests;
+            Consistency = consistency;
+            _timestamp = statement.Timestamp;
+            if (statement.IsTracing)
+            {
+                _headerFlags = 0x02;
+            }
+            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
+            {
+                if (protocolVersion < 3)
+                {
+                    throw new NotSupportedException("Serial consistency level for BATCH request is supported in Cassandra 2.1 or above.");
+                }
+                if (statement.SerialConsistencyLevel < ConsistencyLevel.Serial)
+                {
+                    throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
+                }
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
+                _serialConsistency = statement.SerialConsistencyLevel;
+            }
+            if (_timestamp != null)
+            {
+                if (protocolVersion < 3)
+                {
+                    throw new NotSupportedException("Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
+                }
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;
             }
         }
 
         public RequestFrame GetFrame(short streamId)
         {
+            //protocol v2: <type><n><query_1>...<query_n><consistency>
+            //protocol v3: <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader((byte)ProtocolVersion, _flags, streamId, OpCode);
+            wb.WriteFrameHeader((byte)ProtocolVersion, _headerFlags, streamId, OpCode);
             wb.WriteByte((byte) _type);
             wb.WriteInt16((short) _requests.Count);
-            foreach (IQueryRequest br in _requests)
+            foreach (var br in _requests)
             {
                 br.WriteToBatch((byte)ProtocolVersion, wb);
             }
             wb.WriteInt16((short) Consistency);
+            if (ProtocolVersion >= 3)
+            {
+                wb.WriteByte((byte)_batchFlags);
+            }
+            if (_serialConsistency != null)
+            {
+                wb.WriteInt16((short)_serialConsistency.Value);
+            }
+            if (_timestamp != null)
+            {
+                //Expressed in microseconds
+                wb.WriteLong(TypeCodec.ToUnixTime(_timestamp.Value).Ticks / 10);
+            }
             return wb.GetFrame();
         }
     }

@@ -78,7 +78,7 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public CqlCommand SetTimestamp(DateTimeOffset timestamp)
+        public new CqlCommand SetTimestamp(DateTimeOffset timestamp)
         {
             _timestamp = timestamp;
             return this;
