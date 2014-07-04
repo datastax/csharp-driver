@@ -107,6 +107,19 @@ namespace Cassandra
         }
     }
 
+    public class TupleColumnInfo : IColumnInfo
+    {
+        /// <summary>
+        /// Gets the list of the inner fields contained in the UDT definition
+        /// </summary>
+        public List<ColumnDesc> Elements { get; private set; }
+
+        public TupleColumnInfo()
+        {
+            Elements = new List<ColumnDesc>();
+        }
+    }
+
     /// <summary>
     /// Represents the information for a given data type
     /// </summary>
@@ -251,6 +264,21 @@ namespace Cassandra
                         udtInfo.Fields.Add(dataType);
                     }
                     return udtInfo;
+                case ColumnTypeCode.Tuple:
+                {
+                    var tupleInfo = new TupleColumnInfo();
+                    var elementLength = reader.ReadInt16();
+                    for (var i = 0; i < elementLength; i++)
+                    {
+                        var dataType = new ColumnDesc
+                        {
+                            TypeCode = (ColumnTypeCode) reader.ReadUInt16(),
+                        };
+                        dataType.TypeInfo = GetColumnInfo(reader, dataType.TypeCode);
+                        tupleInfo.Elements.Add(dataType);
+                    }
+                    return tupleInfo;
+                }
                 default:
                     return null;
             }

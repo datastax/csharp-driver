@@ -20,6 +20,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Linq;
 
@@ -36,6 +37,7 @@ namespace Cassandra
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
         private static readonly ConcurrentDictionary<string, UdtMap> UdtMapsByName = new ConcurrentDictionary<string, UdtMap>();
         private static readonly ConcurrentDictionary<Type, UdtMap> UdtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
+        private static readonly ConcurrentDictionary<string, MethodInfo> TupleGenerators = new ConcurrentDictionary<string, MethodInfo>();
 
         /// <summary>
         /// Decoders by type code
@@ -90,7 +92,8 @@ namespace Cassandra
             {ColumnTypeCode.Set,          DecodeSet},
             {ColumnTypeCode.Decimal,      DecodeDecimal},
             {ColumnTypeCode.Varint,       DecodeVarint},
-            {ColumnTypeCode.Udt,          DecodeUdt}
+            {ColumnTypeCode.Udt,          DecodeUdt},
+            {ColumnTypeCode.Tuple,        DecodeTuple}
         };
 
         /// <summary>
@@ -118,7 +121,8 @@ namespace Cassandra
             {ColumnTypeCode.Set,          GetDefaultTypeFromSet},
             {ColumnTypeCode.Decimal,      GetDefaultTypeFromDecimal},
             {ColumnTypeCode.Varint,       GetDefaultTypeFromVarint},
-            {ColumnTypeCode.Udt,          GetDefaultTypeFromUdt}
+            {ColumnTypeCode.Udt,          GetDefaultTypeFromUdt},
+            {ColumnTypeCode.Tuple,        GetDefaultTypeFromTuple}
         };
 
         private const string ListTypeName = "org.apache.cassandra.db.marshal.ListType";
@@ -1024,6 +1028,12 @@ namespace Cassandra
             return map.NetType;
         }
 
+        /// <exception cref="ArgumentException" />
+        private static Type GetDefaultTypeFromTuple(IColumnInfo typeInfo)
+        {
+            return typeof (Tuple<>);
+        }
+
         private static object DecodeUdtMapping(int protocolVersion, string udtName, byte[] value)
         {
             var map = GetUdtMap(udtName);
@@ -1042,7 +1052,7 @@ namespace Cassandra
             {
                 if (stream.Position < value.Length - 1)
                 {
-                    int length = reader.ReadInt32();
+                    var length = reader.ReadInt32();
                     if (length < 0)
                     {
                         valuesList.Add(null);
@@ -1056,6 +1066,50 @@ namespace Cassandra
                 }
             }
             return map.ToObject(valuesList);
+        }
+
+        public static object DecodeTuple(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
+        {
+            if (typeInfo == null)
+            {
+                throw new ArgumentNullException("typeInfo");
+            }
+            if (!(typeInfo is TupleColumnInfo))
+            {
+                throw new ArgumentException("Expected UdtColumn typeInfo, obtained " + typeInfo.GetType());
+            }
+            var tupleInfo = (TupleColumnInfo) typeInfo;
+            var valuesList = new List<object>();
+            var stream = new MemoryStream(value, false);
+            var reader = new BEBinaryReader(stream);
+            foreach (var element in tupleInfo.Elements)
+            {
+                if (stream.Position < value.Length - 1)
+                {
+                    var length = reader.ReadInt32();
+                    if (length < 0)
+                    {
+                        valuesList.Add(null);
+                    }
+                    else
+                    {
+                        var buffer = new byte[length];
+                        reader.Read(buffer, 0, length);
+                        valuesList.Add(Decode(protocolVersion, buffer, element.TypeCode, element.TypeInfo));
+                    }
+                }
+            }
+            //try to reuse the method
+            var typeNames = String.Join("|", valuesList.Select(v => v.GetType().FullName));
+            MethodInfo method = null;
+            if (!TupleGenerators.TryGetValue(typeNames, out method))
+            {
+                //This will still be racy but don't mind a couple of extra calls
+                var genericMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static).First(m => m.Name == "Create" && m.GetParameters().Count() == valuesList.Count);
+                method = genericMethod.MakeGenericMethod(valuesList.Select(v => v.GetType()).ToArray());
+                TupleGenerators.AddOrUpdate(typeNames, method, (k, oldValue) => method);
+            } 
+            return method.Invoke(null, valuesList.ToArray());
         }
 
         private static Type GetDefaultTypeFromCustom(IColumnInfo typeInfo)

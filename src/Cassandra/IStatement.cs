@@ -75,6 +75,7 @@ namespace Cassandra
         /// <param name="pageSize">the page size to use. If set to 0 or less, the default value will be used.
         /// To disable paging of the result set, use int.MaxValue</param>
         /// <returns>this <c>Query</c> object.</returns>
+        /// </summary>
         IStatement SetPageSize(int pageSize);
         IStatement SetPagingState(byte[] pagingState);
         /// <summary>
