@@ -112,7 +112,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the list of the inner fields contained in the UDT definition
         /// </summary>
-        public List<ColumnDesc> Elements { get; private set; }
+        public List<ColumnDesc> Elements { get; set; }
 
         public TupleColumnInfo()
         {
