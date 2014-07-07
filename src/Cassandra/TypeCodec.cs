@@ -295,6 +295,20 @@ namespace Cassandra
                 }
                 if (typeof(IStructuralComparable).IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
                 {
+                    typeInfo = new TupleColumnInfo
+                    {
+                        Elements = type.GetGenericArguments().Select(t =>
+                        {
+                            IColumnInfo tupleSubTypeInfo;
+                            var dataType = new ColumnDesc
+                            {
+                                TypeCode = GetColumnTypeCodeInfo(t, out tupleSubTypeInfo),
+                                TypeInfo = tupleSubTypeInfo
+                            };
+                            return dataType;
+                        }).ToList()
+                    };
+
                     return ColumnTypeCode.Tuple;
                 }
             }
@@ -860,6 +874,33 @@ namespace Cassandra
                     bufferLength += itemBuffer.Length;   
                 }
             }
+            return EncodeBufferList(bufferList, bufferLength);
+        }
+
+        public static byte[] EncodeTuple(int protocolVersion, IColumnInfo typeInfo, object value)
+        {
+            var tupleType = value.GetType();
+            var subtypes = tupleType.GetGenericArguments();
+            var bufferList = new List<byte[]>();
+            var bufferLength = 0;
+            for (var i = 1; i <= subtypes.Length; i++)
+            {
+                var prop = tupleType.GetProperty("Item" + i);
+                if (prop != null)
+                {
+                    var buffer = Encode(protocolVersion, prop.GetValue(value, null));
+                    bufferList.Add(buffer);
+                    if (buffer != null)
+                    {
+                        bufferLength += buffer.Length;   
+                    }
+                }
+            }
+            return EncodeBufferList(bufferList, bufferLength);
+        }
+
+        private static byte[] EncodeBufferList(List<byte[]> bufferList, int bufferLength)
+        {
             //Add the necessary bytes length per each [bytes]
             bufferLength += bufferList.Count * 4;
             var result = new byte[bufferLength];
@@ -879,22 +920,6 @@ namespace Cassandra
             return result;
         }
 
-        public static byte[] EncodeTuple(int protocolVersion, IColumnInfo typeInfo, object value)
-        {
-            var tupleType = value.GetType();
-            var subtypes = tupleType.GetGenericArguments();
-            var valueList = new List<object>();
-            for (var i = 1; i <= subtypes.Length; i++)
-            {
-                var prop = tupleType.GetProperty("Item" + i);
-                if (prop != null)
-                {
-                    valueList.Add(prop.GetValue(value, null));
-                }
-            }
-            return EncodeCollection(protocolVersion, valueList);
-        }
-
         /// <summary>
         /// Uses 2 or 4 bytes to represent the length in bytes
         /// </summary>
@@ -904,10 +929,7 @@ namespace Cassandra
             {
                 return Int16ToBytes((short) value);
             }
-            else
-            {
-                return Int32ToBytes(value);
-            }
+            return Int32ToBytes(value);
         }
 
         public static object DecodeInet(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
@@ -1059,24 +1081,36 @@ namespace Cassandra
             {
                 throw new ArgumentException("Expected TupleColumnInfo typeInfo, obtained " + typeInfo.GetType());
             }
-            switch ((typeInfo as TupleColumnInfo).Elements.Count)
+            var tupleInfo = (TupleColumnInfo) typeInfo;
+            Type genericTupleType = null;
+            switch (tupleInfo.Elements.Count)
             {
                 case 1:
-                    return typeof(Tuple<>);
+                    genericTupleType = typeof(Tuple<>);
+                    break;
                 case 2:
-                    return typeof(Tuple<,>);
+                    genericTupleType = typeof(Tuple<,>);
+                    break;
                 case 3:
-                    return typeof(Tuple<,,>);
+                    genericTupleType = typeof(Tuple<,,>);
+                    break;
                 case 4:
-                    return typeof(Tuple<,,,>);
+                    genericTupleType = typeof(Tuple<,,,>);
+                    break;
                 case 5:
-                    return typeof(Tuple<,,,,>);
+                    genericTupleType = typeof(Tuple<,,,,>);
+                    break;
                 case 6:
-                    return typeof(Tuple<,,,,,>);
+                    genericTupleType = typeof(Tuple<,,,,,>);
+                    break;
                 case 7:
-                    return typeof(Tuple<,,,,,,>);
+                    genericTupleType = typeof(Tuple<,,,,,,>);
+                    break;
+                default:
+                    return typeof(byte[]);
             }
-            return typeof (byte[]);
+
+            return genericTupleType.MakeGenericType(tupleInfo.Elements.Select(s => GetDefaultTypeFromCqlType(s.TypeCode, s.TypeInfo)).ToArray());
         }
 
         private static object DecodeUdtMapping(int protocolVersion, string udtName, byte[] value)
@@ -1135,13 +1169,12 @@ namespace Cassandra
             var valuesList = new List<object>();
             var stream = new MemoryStream(value, false);
             var reader = new BEBinaryReader(stream);
-            var elementsLength = reader.ReadInt32();
             foreach (var element in tupleInfo.Elements)
             {
-                if (valuesList.Count >= elementsLength)
+                if (stream.Position >= value.Length - 1)
                 {
                     break;
-                } 
+                }
                 var length = reader.ReadInt32();
                 if (length < 0)
                 {
@@ -1157,8 +1190,11 @@ namespace Cassandra
 
             if (tupleType == null)
             {
-                var genericTupleType = GetDefaultTypeFromTuple(tupleInfo);
-                tupleType = genericTupleType.MakeGenericType(tupleInfo.Elements.Select(s => GetDefaultTypeFromCqlType(s.TypeCode, s.TypeInfo)).ToArray());   
+                tupleType = GetDefaultTypeFromTuple(tupleInfo);
+            }
+            else if (tupleType.GetGenericArguments().Length > valuesList.Count)
+            {
+                valuesList.AddRange(Enumerable.Repeat<object>(null, tupleType.GetGenericArguments().Length - valuesList.Count));
             }
             return Activator.CreateInstance(tupleType, valuesList.ToArray());
         }

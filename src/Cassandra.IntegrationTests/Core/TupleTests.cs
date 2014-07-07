@@ -21,7 +21,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void DecodeTupleValuesSingleSample()
+        public void DecodeTupleValuesSingleTest()
         {
             Session.Execute(
                 "INSERT INTO users_tuples (id, phone) values " +
@@ -38,24 +38,33 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void DecodeTupleNullValuesSingleSample()
+        public void DecodeTupleNullValuesSingleTest()
         {
             Session.Execute(
                 "INSERT INTO users_tuples (id, phone) values " +
                 "(11, " +
                 "('MOBILE'))");
             var row = Session.Execute("SELECT * FROM users_tuples WHERE id = 11").First();
-            var phone1 = row.GetValue<Tuple<string, string, int>>("phone");
-            var phone2 = row.GetValue<Tuple<string, string, int>>("phone");
-            Assert.IsNotNull(phone1);
-            Assert.IsNotNull(phone2);
-            Assert.AreEqual("MOBILE", phone1.Item1);
-            Assert.AreEqual(null, phone1.Item2);
-            Assert.AreEqual(0, phone1.Item3);
+            var phone = row.GetValue<Tuple<string, string, int>>("phone");
+            Assert.IsNotNull(phone);
+            Assert.AreEqual("MOBILE", phone.Item1);
+            Assert.AreEqual(null, phone.Item2);
+            Assert.AreEqual(0, phone.Item3);
+
+            Session.Execute(
+                "INSERT INTO users_tuples (id, phone) values " +
+                "(12, " +
+                "(null, '1222345'))");
+            row = Session.Execute("SELECT * FROM users_tuples WHERE id = 12").First();
+            phone = row.GetValue<Tuple<string, string, int>>("phone");
+            Assert.IsNotNull(phone);
+            Assert.AreEqual(null, phone.Item1);
+            Assert.AreEqual("1222345", phone.Item2);
+            Assert.AreEqual(0, phone.Item3);
         }
 
         [Test]
-        public void DecodeTupleAsNestedSample()
+        public void DecodeTupleAsNestedTest()
         {
             Session.Execute(
                 "INSERT INTO users_tuples (id, achievements) values " +

@@ -165,22 +165,46 @@ namespace Cassandra.Tests
         [Test]
         public void EncodeDecodeTupleFactoryTest()
         {
-            Assert.AreEqual(new[] { typeof(string) }, new Tuple<string>("val1").GetType().GetGenericArguments());
-            Assert.True(new Tuple<string>("val1").GetType().GetGenericTypeDefinition() == typeof(Tuple<>));
-            Assert.True(new Tuple<string>("val1").GetType().FullName.StartsWith("System.Tuple"));
-
-
             const int version = 3;
             var initialValues = new object[]
             {
                 new object[] {new Tuple<string>("val1"), ColumnTypeCode.Tuple, new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}}}},
-                new object[] {new Tuple<string, int>("val2", 2), ColumnTypeCode.Tuple, new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}, new ColumnDesc(){TypeCode = ColumnTypeCode.Int}}}}
+                new object[] {new Tuple<string, int>("val2", 2), ColumnTypeCode.Tuple, new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}, new ColumnDesc(){TypeCode = ColumnTypeCode.Int}}}},
+                new object[] {new Tuple<string, int>(null, -1234), ColumnTypeCode.Tuple, new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}, new ColumnDesc(){TypeCode = ColumnTypeCode.Int}}}}
             };
             foreach (object[] value in initialValues)
             {
                 var valueToEncode = (IStructuralEquatable)value[0];
                 var encoded = TypeCodec.Encode(version, valueToEncode);
                 var decoded = (IStructuralEquatable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2]);
+                Assert.AreEqual(valueToEncode, decoded);
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeTupleAsSubtypeFactoryTest()
+        {
+            const int version = 3;
+            var initialValues = new object[]
+            {
+                new object[]
+                {
+                    new List<Tuple<string>>{new Tuple<string>("val1")}, 
+                    ColumnTypeCode.List, 
+                    new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Tuple, ValueTypeInfo = new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}}}}
+                },
+                new object[]
+                {
+                    new List<Tuple<string, int>>{new Tuple<string, int>("val2ZZ", 0)}, 
+                    ColumnTypeCode.List, 
+                    new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Tuple, ValueTypeInfo = new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}, new ColumnDesc(){TypeCode = ColumnTypeCode.Int}}}}
+                }
+            };
+            foreach (object[] value in initialValues)
+            {
+                var valueToEncode = (IList)value[0];
+                var encoded = TypeCodec.Encode(version, valueToEncode);
+                var decoded = (IList)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2]);
                 Assert.AreEqual(valueToEncode, decoded);
             }
         }

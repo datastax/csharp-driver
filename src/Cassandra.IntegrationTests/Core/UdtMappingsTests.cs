@@ -94,6 +94,15 @@ namespace Cassandra.IntegrationTests.Core
                 row = localSession.Execute("SELECT * FROM users WHERE id = 2").First();
                 Assert.IsNull(row.GetValue<Phone>("main_phone"));
                 localCluster.Dispose();
+
+                //first values are null
+                localSession.Execute("INSERT INTO users (id, main_phone) values (3, {country_code: 34})");
+                row = localSession.Execute("SELECT * FROM users WHERE id = 3").First();
+                Assert.IsNotNull(row.GetValue<Phone>("main_phone"));
+                Assert.AreEqual(34, row.GetValue<Phone>("main_phone").CountryCode);
+                Assert.IsNull(row.GetValue<Phone>("main_phone").Alias);
+                Assert.IsNull(row.GetValue<Phone>("main_phone").Number);
+                localCluster.Dispose();
             }
         }
 
