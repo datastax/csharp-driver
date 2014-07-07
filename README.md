@@ -1,4 +1,4 @@
-# Datastax C# Driver for Apache Cassandra
+# DataStax C# Driver for Apache Cassandra
 
 A C# client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.
@@ -22,8 +22,8 @@ PM> Install-Package CassandraCSharpDriver
 
 ## Documentation
 
-- [API docs][apidocs]
 - [Documentation index][docindex]
+- [API docs][apidocs]
 
 ## Getting Help
 
@@ -125,6 +125,48 @@ foreach (var row in rs)
 }
 ```
 
+### User defined types mapping
+
+You can map your [User Defined Types][udt] to your application entities.
+
+For a given udt
+```cql
+CREATE TYPE address (
+  street text,
+  city text,
+  zip_code int,
+  phones set<text>
+);
+```
+For a given class
+```csharp
+public class Address
+{
+  public string Street { get; set; }
+  public string City { get; set; }
+  public int ZipCode { get; set; }
+  public IEnumerable<string> Phones { get; set;}
+}
+```
+
+You can map the properties by name
+```csharp
+//Map the properties by name automatically
+session.UserDefinedTypes.Define(
+  UdtMap.For<Address>()
+);
+```
+You can define the properties manually
+```csharp
+session.UserDefinedTypes.Define(
+  UdtMap.For<Address>()
+    .Map(a => a.Street, "street")
+    .Map(a => a.City, "city")
+    .Map(a => a.ZipCode, "zip_code")
+    .Map(a => a.Phones, "phones")
+);
+```
+
 ### Setting cluster and statement execution options
 
 You can set the options on how the driver connects to the nodes and the execution options.
@@ -170,3 +212,5 @@ limitations under the License.
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
   [jira]: https://datastax-oss.atlassian.net/browse/CSHARP
+  [udt]: https://issues.apache.org/jira/browse/CASSANDRA-5590
+  [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
