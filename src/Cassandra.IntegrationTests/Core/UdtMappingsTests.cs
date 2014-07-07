@@ -6,6 +6,7 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     [TestCassandraVersion(2, 1)]
     public class UdtMappingsTests : SingleNodeClusterTest
     {

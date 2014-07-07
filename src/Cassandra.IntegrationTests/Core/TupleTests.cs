@@ -6,6 +6,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     [TestCassandraVersion(2, 1)]
     public class TupleTests : SingleNodeClusterTest
     {
@@ -74,6 +75,22 @@ namespace Cassandra.IntegrationTests.Core
 
             var achievements = row.GetValue<List<Tuple<string, int>>>("achievements");
             Assert.IsNotNull(achievements);
+        }
+
+        [Test]
+        public void EncodeDecodeTupleAsNestedTest()
+        {
+            var achievements = new List<Tuple<string, int>>
+            {
+                new Tuple<string, int>("What", 1),
+                new Tuple<string, int>(null, 100),
+                new Tuple<string, int>(@"¯\_(ツ)_/¯", 150)
+            };
+            var insert = new SimpleStatement("INSERT INTO users_tuples (id, achievements) values (?, ?)");
+            Session.Execute(insert.Bind(31, achievements));
+            var row = Session.Execute("SELECT * FROM users_tuples WHERE id = 31").First();
+
+            Assert.AreEqual(achievements, row.GetValue<List<Tuple<string, int>>>("achievements"));
         }
     }
 }
