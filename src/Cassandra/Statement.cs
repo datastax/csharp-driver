@@ -177,6 +177,7 @@ namespace Cassandra
             return this;
         }
 
+        /// <inheritdoc />
         public IStatement SetRetryPolicy(IRetryPolicy policy)
         {
             _retryPolicy = policy;
@@ -188,6 +189,7 @@ namespace Cassandra
             throw new InvalidOperationException("Cannot insert this query into the batch");
         }
 
+        /// <inheritdoc />
         public IStatement SetPageSize(int pageSize)
         {
             _pageSize = pageSize;

@@ -47,7 +47,7 @@
     <PresentationStyle>VS2013</PresentationStyle>
     <Preliminary>False</Preliminary>
     <NamingMethod>MemberName</NamingMethod>
-    <HelpTitle>Datastax C# Driver for Apache Cassandra</HelpTitle>
+    <HelpTitle>DataStax C# Driver for Apache Cassandra</HelpTitle>
     <ContentPlacement>AboveNamespaces</ContentPlacement>
     <NamespaceSummaries>
       <NamespaceSummaryItem name="(global)" isDocumented="False">A C# client driver for Apache Cassandra. This driver works exclusively with
@@ -67,38 +67,38 @@ CQL3.</NamespaceSummaryItem>
 the Cassandra Query Language version 3 %28CQL3%29 and Cassandra&amp;#39%3bs binary protocol.</ProjectSummary>
     <ApiFilter>
       <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
-  <Filter entryType="Class" fullName="Cassandra.BigIntegerTypeAdapter" filterName="BigIntegerTypeAdapter" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.CassandraConnectionStringBuilder" filterName="CassandraConnectionStringBuilder" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.CassandraEventArgs" filterName="CassandraEventArgs" isExposed="False" />
-  <Filter entryType="Delegate" fullName="Cassandra.CassandraEventHandler" filterName="CassandraEventHandler" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.CassandraEventType" filterName="CassandraEventType" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.ColumnDesc" filterName="ColumnDesc" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.CqlColumn" filterName="CqlColumn" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.CustomColumnInfo" filterName="CustomColumnInfo" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.HostsEventArgs" filterName="HostsEventArgs" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.HostsEventArgs.Kind" filterName="HostsEventArgs.Kind" isExposed="False" />
-  <Filter entryType="Delegate" fullName="Cassandra.HostsEventHandler" filterName="HostsEventHandler" isExposed="False" />
-  <Filter entryType="Interface" fullName="Cassandra.IColumnInfo" filterName="IColumnInfo" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.KeyType" filterName="KeyType" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.ListColumnInfo" filterName="ListColumnInfo" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.Logger" filterName="Logger" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.MapColumnInfo" filterName="MapColumnInfo" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.NullTypeAdapter" filterName="NullTypeAdapter" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.QueryProtocolOptions" filterName="QueryProtocolOptions" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.QueryProtocolOptions.QueryFlags" filterName="QueryProtocolOptions.QueryFlags" isExposed="True" />
-  <Filter entryType="Enumeration" fullName="Cassandra.SchemaChangedEventArgs.Kind" filterName="SchemaChangedEventArgs.Kind" isExposed="False" />
-  <Filter entryType="Delegate" fullName="Cassandra.SchemaChangedEventHandler" filterName="SchemaChangedEventHandler" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.SchemaChangeEventArgs" filterName="SchemaChangeEventArgs" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.SchemaChangeEventArgs.Reason" filterName="SchemaChangeEventArgs.Reason" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.StatusChangeEventArgs" filterName="StatusChangeEventArgs" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.StatusChangeEventArgs.Reason" filterName="StatusChangeEventArgs.Reason" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.TableColumn" filterName="TableColumn" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.TableMetadata" filterName="TableMetadata" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.TableOptions" filterName="TableOptions" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.ToManyConnectionsPerHost" filterName="ToManyConnectionsPerHost" isExposed="False" />
-  <Filter entryType="Class" fullName="Cassandra.TopologyChangeEventArgs" filterName="TopologyChangeEventArgs" isExposed="False" />
-  <Filter entryType="Enumeration" fullName="Cassandra.TopologyChangeEventArgs.Reason" filterName="TopologyChangeEventArgs.Reason" isExposed="False" />
-</Filter>
+        <Filter entryType="Class" fullName="Cassandra.BigIntegerTypeAdapter" filterName="BigIntegerTypeAdapter" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.CassandraConnectionStringBuilder" filterName="CassandraConnectionStringBuilder" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.CassandraEventArgs" filterName="CassandraEventArgs" isExposed="False" />
+        <Filter entryType="Delegate" fullName="Cassandra.CassandraEventHandler" filterName="CassandraEventHandler" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.CassandraEventType" filterName="CassandraEventType" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.ColumnDesc" filterName="ColumnDesc" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.CqlColumn" filterName="CqlColumn" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.CustomColumnInfo" filterName="CustomColumnInfo" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.HostsEventArgs" filterName="HostsEventArgs" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.HostsEventArgs.Kind" filterName="HostsEventArgs.Kind" isExposed="False" />
+        <Filter entryType="Delegate" fullName="Cassandra.HostsEventHandler" filterName="HostsEventHandler" isExposed="False" />
+        <Filter entryType="Interface" fullName="Cassandra.IColumnInfo" filterName="IColumnInfo" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.KeyType" filterName="KeyType" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.ListColumnInfo" filterName="ListColumnInfo" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.Logger" filterName="Logger" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.MapColumnInfo" filterName="MapColumnInfo" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.NullTypeAdapter" filterName="NullTypeAdapter" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.QueryProtocolOptions" filterName="QueryProtocolOptions" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.QueryProtocolOptions.QueryFlags" filterName="QueryProtocolOptions.QueryFlags" isExposed="True" />
+        <Filter entryType="Enumeration" fullName="Cassandra.SchemaChangedEventArgs.Kind" filterName="SchemaChangedEventArgs.Kind" isExposed="False" />
+        <Filter entryType="Delegate" fullName="Cassandra.SchemaChangedEventHandler" filterName="SchemaChangedEventHandler" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.SchemaChangeEventArgs" filterName="SchemaChangeEventArgs" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.SchemaChangeEventArgs.Reason" filterName="SchemaChangeEventArgs.Reason" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.StatusChangeEventArgs" filterName="StatusChangeEventArgs" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.StatusChangeEventArgs.Reason" filterName="StatusChangeEventArgs.Reason" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.TableColumn" filterName="TableColumn" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.TableMetadata" filterName="TableMetadata" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.TableOptions" filterName="TableOptions" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.ToManyConnectionsPerHost" filterName="ToManyConnectionsPerHost" isExposed="False" />
+        <Filter entryType="Class" fullName="Cassandra.TopologyChangeEventArgs" filterName="TopologyChangeEventArgs" isExposed="False" />
+        <Filter entryType="Enumeration" fullName="Cassandra.TopologyChangeEventArgs.Reason" filterName="TopologyChangeEventArgs.Reason" isExposed="False" />
+      </Filter>
     </ApiFilter>
     <VisibleItems>None</VisibleItems>
     <HelpAttributes />

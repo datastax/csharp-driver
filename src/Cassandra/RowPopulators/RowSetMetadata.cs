@@ -27,6 +27,9 @@ namespace Cassandra
         NoMetadata = 0x0004
     }
 
+    /// <summary>
+    /// Specifies a Cassandra data type of a field
+    /// </summary>
     public enum ColumnTypeCode
     {
         Custom = 0x0000,
@@ -59,6 +62,9 @@ namespace Cassandra
         Tuple = 0x0031
     }
 
+    /// <summary>
+    /// Specifies the type information associated with collections, maps, udts and other Cassandra types
+    /// </summary>
     public interface IColumnInfo
     {
     }
@@ -88,6 +94,9 @@ namespace Cassandra
         public IColumnInfo ValueTypeInfo { get; set; }
     }
 
+    /// <summary>
+    /// Represents the type information associated with a User Defined Type
+    /// </summary>
     public class UdtColumnInfo : IColumnInfo
     {
         /// <summary>
@@ -107,6 +116,9 @@ namespace Cassandra
         }
     }
 
+    /// <summary>
+    /// Represents the information associated with a tuple column.
+    /// </summary>
     public class TupleColumnInfo : IColumnInfo
     {
         /// <summary>
@@ -132,6 +144,9 @@ namespace Cassandra
         public IColumnInfo TypeInfo { get; set; }
     }
 
+    /// <summary>
+    /// Represents the information of columns and other state values associated with a RowSet
+    /// </summary>
     public class RowSetMetadata
     {
         /// <summary>
