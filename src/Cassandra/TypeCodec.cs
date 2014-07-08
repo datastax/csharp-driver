@@ -1065,7 +1065,7 @@ namespace Cassandra
             var map = GetUdtMap(((UdtColumnInfo) typeInfo).Name);
             if (map == null)
             {
-                throw new InvalidTypeException("No mapping defined for udt type " + ((UdtColumnInfo)typeInfo).Name);
+                return typeof (byte[]);
             }
             return map.NetType;
         }

@@ -314,6 +314,40 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// <summary>
+        /// Checks that if no mapping defined, the driver gets out of the way.
+        /// </summary>
+        [Test]
+        public void NoMappingDefinedTest()
+        {
+            const string cqlType = "CREATE TYPE temp_udt (text_sample text, date_sample timestamp)";
+            const string cqlTable = "CREATE TABLE temp_table (id int PRIMARY KEY, sample_udt temp_udt, sample_udt_list list<temp_udt>)";
+            const string cqlInsert = "INSERT INTO temp_table (id, sample_udt, sample_udt_list) VALUES (1, {text_sample: 'one', date_sample: 1}, [{text_sample: 'first'}])";
+
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            localSession.Execute(cqlType);
+            localSession.Execute(cqlTable);
+            localSession.Execute(cqlInsert);
+
+            var row = localSession.Execute("SELECT * from temp_table").First();
+
+            Assert.IsNotNull(row.GetValue<object>("sample_udt"));
+            Assert.IsInstanceOf<byte[]>(row.GetValue<object>("sample_udt"));
+
+            Assert.IsNotNull(row.GetValue<object>("sample_udt_list"));
+            Assert.IsInstanceOf<List<byte[]>>(row.GetValue<object>("sample_udt_list"));
+
+            row = localSession.Execute("SELECT id, sample_udt.text_sample from temp_table").First();
+            Assert.AreEqual("one", row.GetValue<string>("sample_udt.text_sample"));
+
+            //Trying to bind to an unmapped type should throw
+            var statement = new SimpleStatement("INSERT INTO temp_table (id, sample_udt) VALUES (?, ?)");
+            Assert.Throws<InvalidTypeException>(() => localSession.Execute(statement.Bind(2, new DummyClass())));
+
+            localCluster.Dispose();
+        }
+
         private class Contact
         {
             public string FirstName { get; set; }
@@ -381,6 +415,11 @@ namespace Cassandra.IntegrationTests.Core
             {
                 return base.GetHashCode();
             }
+        }
+
+        private class DummyClass
+        {
+            
         }
     }
 }
