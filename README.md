@@ -149,14 +149,14 @@ public class Address
 }
 ```
 
-You can map the properties by name
+You can either map the properties by name
 ```csharp
 //Map the properties by name automatically
 session.UserDefinedTypes.Define(
   UdtMap.For<Address>()
 );
 ```
-You can define the properties manually
+Or you can define the properties manually
 ```csharp
 session.UserDefinedTypes.Define(
   UdtMap.For<Address>()
@@ -166,6 +166,17 @@ session.UserDefinedTypes.Define(
     .Map(a => a.Phones, "phones")
 );
 ```
+
+You should **map your [UDT][udt] to your entity once** and you will be able to use that mapping during all your application lifetime.
+
+```csharp
+var rs = session.Execute("SELECT id, name, address FROM users where id = x");
+var row = rs.First();
+//You can retrieve the field as a value of type Address
+var userAddress = row.GetValue<Address>("address");
+Console.WriteLine("user lives on {0} Street", userAddress.Street);
+```
+
 
 ### Setting cluster and statement execution options
 
