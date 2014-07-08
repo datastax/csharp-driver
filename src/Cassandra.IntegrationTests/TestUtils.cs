@@ -55,6 +55,7 @@ namespace Cassandra.IntegrationTests
             boolean_sample boolean,
             timestamp_sample timestamp,
             inet_sample inet,
+            timeuuid_sample timeuuid,
             map_sample map<text, text>,
             list_sample list<text>,
             set_sample set<text>);

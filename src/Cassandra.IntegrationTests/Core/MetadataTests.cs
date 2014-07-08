@@ -369,5 +369,49 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmRemove(clusterInfo);
             }
         }
+
+        [Test]
+        public void TableMetadataAllTypesTest()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
+
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+
+                const string tableName = "sample_metadata_alltypes";
+
+                Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, tableName));
+
+
+                var table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata(tableName);
+
+                Assert.IsNotNull(table);
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "id"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "text_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "int_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "bigint_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "float_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "double_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "decimal_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "blob_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "boolean_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "timestamp_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "inet_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "timeuuid_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "map_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "list_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "set_sample"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
     }
 }
