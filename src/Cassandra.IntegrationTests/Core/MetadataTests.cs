@@ -257,10 +257,13 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestCassandraVersion(2, 1)]
         [Test]
         public void UdtMetadataTest()
         {
+            if (Options.Default.CassandraVersion < new Version(2, 1))
+            {
+                Assert.Ignore("Test suitable to be run against Cassandra 2.1 or above");
+            }
             const string cqlType1 = "CREATE TYPE phone (alias text, number text)";
             const string cqlType2 = "CREATE TYPE address (street text, \"ZIP\" int, phones set<phone>)";
             const string cqlTable = "CREATE TABLE user (id int PRIMARY KEY, addr address, main_phone phone)";

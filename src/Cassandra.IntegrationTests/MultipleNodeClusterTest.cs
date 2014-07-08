@@ -140,7 +140,7 @@ namespace Cassandra.IntegrationTests
             var actualVersion = executingVersion.Major * 10000 + executingVersion.Minor;
             var comparison = (Comparison) actualVersion.CompareTo(expectedVersion);
 
-            if (comparison >= Comparison.Equal && versionAttr.Comparison >= Comparison.Equal)
+            if (comparison >= Comparison.Equal && versionAttr.Comparison == Comparison.GreaterThanOrEqualsTo)
             {
                 return true;
             }

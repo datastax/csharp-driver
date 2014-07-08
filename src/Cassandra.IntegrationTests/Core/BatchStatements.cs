@@ -290,6 +290,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void LargeBatchPreparedStatement()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");

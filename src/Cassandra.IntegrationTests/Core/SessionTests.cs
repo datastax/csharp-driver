@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
     public class SessionTests : TwoNodesClusterTest
     {
         [Test]
