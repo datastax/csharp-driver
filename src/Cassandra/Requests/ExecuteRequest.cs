@@ -80,7 +80,7 @@ namespace Cassandra
             var wb = new BEBinaryWriter();
             wb.WriteFrameHeader((byte)ProtocolVersion, _flags, streamId, OpCode);
             wb.WriteShortBytes(_id);
-            _queryOptions.Write(wb, (byte)ProtocolVersion);
+            _queryOptions.Write(wb, (byte)ProtocolVersion, true);
 
             return wb.GetFrame();
         }

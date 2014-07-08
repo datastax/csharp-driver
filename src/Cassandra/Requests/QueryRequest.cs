@@ -80,7 +80,7 @@ namespace Cassandra
             wb.WriteFrameHeader((byte)ProtocolVersion, _headerFlags, streamId, OpCode);
             wb.WriteLongString(_cqlQuery);
 
-            _queryOptions.Write(wb, (byte)ProtocolVersion);
+            _queryOptions.Write(wb, (byte)ProtocolVersion, false);
 
             return wb.GetFrame();
         }

@@ -5,7 +5,7 @@ namespace Cassandra
     public class QueryProtocolOptions
     {
         [Flags]
-        public enum QueryFlags : byte
+        public enum QueryFlags
         {
             Values = 0x01,
             SkipMetadata = 0x02,
@@ -99,7 +99,7 @@ namespace Cassandra
         }
 
         //TODO: Move to ExecuteRequest and QueryRequest
-        internal void Write(BEBinaryWriter wb, byte protocolVersion)
+        internal void Write(BEBinaryWriter wb, byte protocolVersion, bool isPrepared)
         {
             //protocol v1: <query><n><value_1>....<value_n><consistency>
             //protocol v2: <query><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
@@ -111,14 +111,20 @@ namespace Cassandra
                 wb.WriteByte((byte)Flags);
             }
 
-            if ((Flags & QueryFlags.Values) == QueryFlags.Values)
+            if (Flags.HasFlag(QueryFlags.Values))
             {
                 wb.WriteUInt16((ushort)Values.Length);
-                for (var i = 0; i < Values.Length; i++)
+                foreach (var v in Values)
                 {
-                    var bytes = TypeCodec.Encode(protocolVersion, Values[i]);
+                    var bytes = TypeCodec.Encode(protocolVersion, v);
                     wb.WriteBytes(bytes);
                 }
+            }
+            else if (protocolVersion == 1 && isPrepared)
+            {
+                //n values is not optional on protocol v1
+                //Write 0 values
+                wb.WriteUInt16(0);
             }
 
             if (protocolVersion == 1)
