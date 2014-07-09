@@ -5,7 +5,7 @@ namespace Cassandra
         public static readonly TokenFactory Factory = new M3PTokenFactory();
         private readonly long _value;
 
-        private M3PToken(long value)
+        internal M3PToken(long value)
         {
             _value = value;
         }
@@ -32,7 +32,12 @@ namespace Cassandra
             return (int) (_value ^ ((long) ((ulong) _value >> 32)));
         }
 
-        private class M3PTokenFactory : TokenFactory
+        public override string ToString()
+        {
+            return _value.ToString();
+        }
+
+        internal class M3PTokenFactory : TokenFactory
         {
             public override IToken Parse(string tokenStr)
             {

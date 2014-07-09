@@ -61,6 +61,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RowSetUnitTests.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
+    <Compile Include="TokenTests.cs" />
     <Compile Include="TypeCodecTests.cs" />
   </ItemGroup>
   <ItemGroup>
