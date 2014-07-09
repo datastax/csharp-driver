@@ -315,7 +315,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session = clusterInfo.Session;
                 createSchema(session, 1);
                 var traces = new List<QueryTrace>();
-                for (var i = 1; i < 10; i++)
+                for (var i = -10; i < 10; i++)
                 {
                     var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
                     var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
