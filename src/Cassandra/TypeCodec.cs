@@ -133,7 +133,9 @@ namespace Cassandra
         private static readonly Dictionary<string, ColumnTypeCode> SingleTypeNames = new Dictionary<string, ColumnTypeCode>()
         {
             {"org.apache.cassandra.db.marshal.UTF8Type", ColumnTypeCode.Varchar},
+            {"org.apache.cassandra.db.marshal.AsciiType", ColumnTypeCode.Ascii},
             {"org.apache.cassandra.db.marshal.UUIDType", ColumnTypeCode.Uuid},
+            {"org.apache.cassandra.db.marshal.TimeUUIDType", ColumnTypeCode.Timeuuid},
             {"org.apache.cassandra.db.marshal.Int32Type", ColumnTypeCode.Int},
             {"org.apache.cassandra.db.marshal.BytesType", ColumnTypeCode.Blob},
             {"org.apache.cassandra.db.marshal.FloatType", ColumnTypeCode.Float},
@@ -144,7 +146,8 @@ namespace Cassandra
             {"org.apache.cassandra.db.marshal.TimestampType", ColumnTypeCode.Timestamp},
             {"org.apache.cassandra.db.marshal.LongType", ColumnTypeCode.Bigint},
             {"org.apache.cassandra.db.marshal.DecimalType", ColumnTypeCode.Decimal},
-            {"org.apache.cassandra.db.marshal.IntegerType", ColumnTypeCode.Varint}
+            {"org.apache.cassandra.db.marshal.IntegerType", ColumnTypeCode.Varint},
+            {"org.apache.cassandra.db.marshal.CounterColumnType", ColumnTypeCode.Counter}
         };
 
         private static readonly int SingleTypeNamesLength = SingleTypeNames.Keys.OrderByDescending(k => k.Length).First().Length;

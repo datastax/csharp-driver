@@ -238,6 +238,12 @@ namespace Cassandra.Tests
             Assert.AreEqual(ColumnTypeCode.Decimal, dataType.TypeCode);
             dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.IntegerType");
             Assert.AreEqual(ColumnTypeCode.Varint, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.CounterColumnType");
+            Assert.AreEqual(ColumnTypeCode.Counter, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.TimeUUIDType");
+            Assert.AreEqual(ColumnTypeCode.Timeuuid, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.AsciiType");
+            Assert.AreEqual(ColumnTypeCode.Ascii, dataType.TypeCode);
         }
 
         [Test]

@@ -45,6 +45,7 @@ namespace Cassandra.IntegrationTests
         public const string CREATE_TABLE_ALL_TYPES = @"
             create table {0} (
             id uuid primary key,
+            ascii_sample ascii,
             text_sample text,
             int_sample int,
             bigint_sample bigint,

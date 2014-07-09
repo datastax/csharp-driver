@@ -393,6 +393,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 Assert.IsNotNull(table);
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "id"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "ascii_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "text_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "int_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "bigint_sample"));
