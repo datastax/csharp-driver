@@ -12,8 +12,8 @@
 [assembly: System.Reflection.AssemblyProduct("Cassandra .NET Driver")]
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2014 by DataStax")]
-[assembly: System.Reflection.AssemblyVersion("2.0.3")]
-[assembly: System.Reflection.AssemblyInformationalVersion("2.0.3 (git 9148b02)")]
-[assembly: System.Reflection.AssemblyFileVersion("2.0.3.0")]
+[assembly: System.Reflection.AssemblyVersion("2.1.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("2.1.0 (git 85f496e)")]
+[assembly: System.Reflection.AssemblyFileVersion("2.1.0.100")]
 
 

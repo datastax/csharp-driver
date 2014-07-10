@@ -11,6 +11,7 @@ namespace Cassandra.Tests
     public class TokenTests
     {
         [Test]
+        [Explicit]
         public void MurmurHashTest()
         {
             //inputs and result values from Cassandra
