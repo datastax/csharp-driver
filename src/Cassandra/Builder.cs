@@ -16,6 +16,7 @@ namespace Cassandra
         private IAuthInfoProvider _authInfoProvider;
         private IAuthProvider _authProvider = NoneAuthProvider.Instance;
         private CompressionType _compression = CompressionType.NoCompression;
+        private IFrameCompressor _customCompressor;
         private string _defaultKeyspace;
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
@@ -78,7 +79,7 @@ namespace Cassandra
                 );
 
             return new Configuration(policies,
-                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression),
+                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression).SetCustomCompressor(_customCompressor),
                                      _poolingOptions,
                                      _socketOptions,
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
@@ -120,11 +121,22 @@ namespace Cassandra
         ///  Sets the compression to use for the transport.
         /// </summary>
         /// <param name="compression"> the compression to set </param>
-        /// 
         /// <returns>this Builder <see>ProtocolOptions.Compression</see></returns>
         public Builder WithCompression(CompressionType compression)
         {
             _compression = compression;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a custom compressor to be used for the compression type.
+        /// If specified, the compression type is mandatory.
+        /// If not specified the driver default compressor will be use for the compression type.
+        /// </summary>
+        /// <param name="compressor">Implementation of IFrameCompressor</param>
+        public Builder WithCustomCompressor(IFrameCompressor compressor)
+        {
+            _customCompressor = compressor;
             return this;
         }
 
