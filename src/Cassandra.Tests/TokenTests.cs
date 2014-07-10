@@ -11,7 +11,6 @@ namespace Cassandra.Tests
     public class TokenTests
     {
         [Test]
-        [Explicit]
         public void MurmurHashTest()
         {
             //inputs and result values from Cassandra
@@ -35,6 +34,8 @@ namespace Cassandra.Tests
                 {new byte[] {0, 255, 255, 255},    new M3PToken(123573637386978882)},
                 {new byte[] {255, 1, 2, 3},    new M3PToken(-2839127690952877842)},
                 {new byte[] {000, 001, 002, 003, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},    new M3PToken(6463632673159404390L)},
+                {new byte[] {226, 231},    new M3PToken(-8582699461035929883L)},
+                {new byte[] {226, 231, 226, 231, 226, 231, 1},    new M3PToken(2222373981930033306)},
             };
             var factory = new M3PToken.M3PTokenFactory();
             foreach (var kv in values)

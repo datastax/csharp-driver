@@ -349,7 +349,7 @@ namespace Cassandra.IntegrationTests.Core
                 createSchema(session, 1);
                 var traces = new List<QueryTrace>();
                 var pstmt = session.Prepare("INSERT INTO test (k, i) VALUES (?, ?)");
-                for (var i = 1; i < 10; i++)
+                for (var i = (int)short.MinValue; i < short.MinValue + 40; i++)
                 {
                     var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
                     var statement = pstmt
