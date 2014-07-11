@@ -15,6 +15,7 @@
 //
 using System;
 using System.Linq;
+using System.Text;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Net;
@@ -321,6 +322,120 @@ namespace Cassandra.IntegrationTests.Core
                     var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
                         .Bind(i, i)
                         .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
+                        .EnableTracing();
+                    var rs = session.Execute(statement);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there weren't any hops
+                foreach (var t in traces)
+                {
+                    //The coordinator must be the only one executing the query
+                    Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+                }
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void TokenAwareTargetsPartitionStringNoHopsQueryTest()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            var clusterInfo = TestUtils.CcmSetup(4, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, 1)));
+                session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
+                session.WaitForSchemaAgreement(session.Execute(String.Format("CREATE TABLE {0} (k text PRIMARY KEY, i int)", TABLE)));
+                var traces = new List<QueryTrace>();
+                string key = "value";
+                for (var i = 100; i < 140; i++)
+                {
+                    key += (char) i;
+                    var partitionKey = Encoding.UTF8.GetBytes(key);
+                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
+                        .Bind(key, i)
+                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
+                        .EnableTracing();
+                    var rs = session.Execute(statement);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there weren't any hops
+                foreach (var t in traces)
+                {
+                    //The coordinator must be the only one executing the query
+                    Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+                }
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void TokenAwareTargetsPartitionGuidNoHopsQueryTest()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            var clusterInfo = TestUtils.CcmSetup(4, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, 1)));
+                session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
+                session.WaitForSchemaAgreement(session.Execute(String.Format("CREATE TABLE {0} (k uuid PRIMARY KEY, i int)", TABLE)));
+                var traces = new List<QueryTrace>();
+                for (var i = 0; i < 10; i++)
+                {
+                    var key = Guid.NewGuid();
+                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
+                        .Bind(key, i)
+                        .SetRoutingKey(
+                            new RoutingKey() { RawRoutingKey = TypeCodec.GuidShuffle(key.ToByteArray()) })
+                        .EnableTracing();
+                    var rs = session.Execute(statement);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there weren't any hops
+                foreach (var t in traces)
+                {
+                    //The coordinator must be the only one executing the query
+                    Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+                }
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void TokenAwareTargetsPartitionCompositeNoHopsQueryTest()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            var clusterInfo = TestUtils.CcmSetup(4, builder);
+            try
+            {
+                var session = clusterInfo.Session;
+                session.WaitForSchemaAgreement(
+                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, 1)));
+                session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
+                session.WaitForSchemaAgreement(session.Execute(String.Format("CREATE TABLE {0} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))", TABLE)));
+                var traces = new List<QueryTrace>();
+                for (var i = 0; i < 10; i++)
+                {
+                    var k1 = i.ToString();
+                    var k2 = i;
+                    var statement = new SimpleStatement("INSERT INTO test (k1, k2, i) VALUES (?, ?, ?)")
+                        .Bind(k1, k2, i)
+                        .SetRoutingKey(
+                            new RoutingKey() { RawRoutingKey = Encoding.UTF8.GetBytes(k1)},
+                            new RoutingKey() { RawRoutingKey = BitConverter.GetBytes(i).Reverse().ToArray() })
                         .EnableTracing();
                     var rs = session.Execute(statement);
                     traces.Add(rs.Info.QueryTrace);
