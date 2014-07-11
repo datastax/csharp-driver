@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Cassandra
@@ -163,6 +165,49 @@ namespace Cassandra
             stream.Position = position;
             stream.Read(buffer, position, buffer.Length - position);
             return buffer;
+        }
+
+        /// <summary>
+        /// Detects if the object is an instance of an anonymous type
+        /// </summary>
+        public static bool IsAnonymousType(object value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            var type = value.GetType();
+
+            return type.IsGenericType
+                   && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
+                   && (type.Name.Contains("AnonymousType") || type.Name.Contains("AnonType"))
+                   && Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false);
+        }
+
+        /// <summary>
+        /// Gets the values of a given object in order given by the property names
+        /// </summary>
+        public static IEnumerable<object> GetValues(IEnumerable<string> propNames, object value)
+        {
+            if (value == null)
+            {
+                return new object[0];
+            }
+            var type = value.GetType();
+            var valueList = new List<object>();
+            const BindingFlags propFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+            foreach (var name in propNames)
+            {
+                var prop = type.GetProperty(name, propFlags);
+                if (prop == null)
+                {
+                    valueList.Add(null);
+                    continue;
+                }
+                valueList.Add(prop.GetValue(value, null));
+            }
+            return valueList;
         }
     }
 }

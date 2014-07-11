@@ -14,6 +14,9 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Linq;
+
 namespace Cassandra
 {
     /// <summary>
@@ -101,8 +104,13 @@ namespace Cassandra
         public BoundStatement Bind(params object[] values)
         {
             var bs = new BoundStatement(this);
+            if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
+            {
+                //Using named params
+                //Reorder the params according the position in the query
+                values = Utils.GetValues(Metadata.Columns.Select(c => c.Name), values[0]).ToArray();
+            }
             bs.SetValues(values);
-
             return bs;
         }
     }

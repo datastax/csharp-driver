@@ -208,7 +208,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 1)]
-        public void SimpleStatementSetTimestamp()
+        public void PreparedStatementSetTimestamp()
         {
             var timestamp = new DateTimeOffset(1999, 12, 31, 1, 2, 3, TimeSpan.Zero);
             var id = Guid.NewGuid();
@@ -216,6 +216,75 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(insertStatement.Bind(id, "sample text").SetTimestamp(timestamp));
             var row = Session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName)).Bind(id)).First();
             Assert.NotNull(row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundNamedParamsOrder()
+        {
+            var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var preparedStatement = Session.Prepare(query);
+            Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
+            Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundStatementsNamedParameters()
+        {
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var preparedStatement = Session.Prepare(insertQuery);
+            Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
+            Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+
+            var id = Guid.NewGuid();
+            Session.Execute(
+                preparedStatement.Bind(
+                    new { my_int = 100, my_bigint = -500L, my_id = id, my_text = "named params ftw!" }));
+
+            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+
+            Assert.AreEqual(100, row.GetValue<int>("int_sample"));
+            Assert.AreEqual(-500L, row.GetValue<long>("bigint_sample"));
+            Assert.AreEqual("named params ftw!", row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundStatementsNamedParametersNulls()
+        {
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var preparedStatement = Session.Prepare(insertQuery);
+
+            var id = Guid.NewGuid();
+            Session.Execute(
+                preparedStatement.Bind(
+                    new {my_bigint = (long?)null,  my_int = 100, my_id = id}));
+
+            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+
+            Assert.AreEqual(100, row.GetValue<int>("int_sample"));
+            Assert.IsNull(row.GetValue<long?>("bigint_sample"));
+            Assert.IsNull(row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundStatementsNamedParametersCaseInsensitive()
+        {
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var preparedStatement = Session.Prepare(insertQuery);
+
+            var id = Guid.NewGuid();
+            Session.Execute(
+                preparedStatement.Bind(
+                    new { MY_int = -100, MY_BigInt = 1511L, MY_id = id, MY_text = "yeah!" }));
+
+            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+
+            Assert.AreEqual(-100, row.GetValue<int>("int_sample"));
+            Assert.AreEqual(1511L, row.GetValue<long>("bigint_sample"));
+            Assert.AreEqual("yeah!", row.GetValue<string>("text_sample"));
         }
 
         [Test]
