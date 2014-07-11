@@ -61,6 +61,8 @@ namespace Cassandra
                 // This is an adapted version of the MurmurHash.hash3_x64_128 from Cassandra used
                 // for M3P. Compared to that methods, there's a few inlining of arguments and we
                 // only return the first 64-bits of the result since that's all M3P uses.
+
+                //Convert to sbyte as in Java byte are signed
                 sbyte[] data = (sbyte[])(Array)bytes;
 
                 int offset = 0;
@@ -71,6 +73,7 @@ namespace Cassandra
                 long h1 = 0;
                 long h2 = 0;
 
+                //Instead of using ulong for constants, use long values representing the same bits
                 //Negated, same bits as ulong: 0x87c37b91114253d5L
                 const long c1 = -0x783C846EEEBDAC2BL;
                 const long c2 = 0x4cf5ad432745937fL;
@@ -170,7 +173,8 @@ namespace Cassandra
                     //----------
                     // finalization
 
-                    h1 ^= length; h2 ^= length;
+                    h1 ^= length; 
+                    h2 ^= length;
 
                     h1 += h2;
                     h2 += h1;
@@ -179,7 +183,6 @@ namespace Cassandra
                     h2 = Fmix(h2);
 
                     h1 += h2;
-                    //h2 += h1;
 
                     return h1;
                 }

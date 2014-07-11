@@ -18,12 +18,19 @@ using System;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Routing key using to determine the node for each partition
+    /// </summary>
     public class RoutingKey
     {
         public static RoutingKey Empty = new RoutingKey();
-        public byte[] RawRoutingKey = null;
 
-        public static RoutingKey Compose(params RoutingKey[] components)
+        /// <summary>
+        /// Byte array representing the partition key (or one of the partition)
+        /// </summary>
+        public byte[] RawRoutingKey { get; set; }
+
+        internal static RoutingKey Compose(params RoutingKey[] components)
         {
             if (components.Length == 0)
                 throw new ArgumentOutOfRangeException();
@@ -32,12 +39,14 @@ namespace Cassandra
                 return components[0];
 
             int totalLength = 0;
-            foreach (RoutingKey bb in components)
+            foreach (var bb in components)
+            {
                 totalLength += 2 + bb.RawRoutingKey.Length + 1;
+            }
 
             var res = new byte[totalLength];
             int idx = 0;
-            foreach (RoutingKey bb in components)
+            foreach (var bb in components)
             {
                 PutShortLength(res, idx, bb.RawRoutingKey.Length);
                 idx += 2;
