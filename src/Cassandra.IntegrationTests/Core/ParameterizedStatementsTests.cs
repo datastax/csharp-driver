@@ -40,12 +40,32 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 1)]
         public void SimpleStatementSetTimestamp()
         {
-            var timestamp = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+            var timestamp = new DateTimeOffset(1999, 12, 31, 1, 2, 3, TimeSpan.Zero);
             var id = Guid.NewGuid();
             var insertStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName));
             Session.Execute(insertStatement.Bind(id, "sample text").SetTimestamp(timestamp));
             var row = Session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName)).Bind(id)).First();
             Assert.NotNull(row.GetValue<string>("text_sample"));
+            Assert.AreEqual(TypeCodec.ToUnixTime(timestamp).Ticks / 10, row.GetValue<object>("writetime(text_sample)"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatementNamedValues()
+        {
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var statement = new SimpleStatement(insertQuery);
+
+            var id = Guid.NewGuid();
+            Session.Execute(
+                statement.Bind(
+                    new { my_int = 100, my_bigint = -500L, my_id = id, my_text = "named params ftw again!" }));
+
+            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+
+            Assert.AreEqual(100, row.GetValue<int>("int_sample"));
+            Assert.AreEqual(-500L, row.GetValue<long>("bigint_sample"));
+            Assert.AreEqual("named params ftw again!", row.GetValue<string>("text_sample"));
         }
 
         [Test]
