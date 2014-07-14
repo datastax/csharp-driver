@@ -73,10 +73,14 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Set the routing key for this query. <p> See
-        ///  <link>#setRoutingKey(ByteBuffer)</link> for more information. This method is
-        ///  a variant for when the query partition key is composite and thus the routing
-        ///  key must be built from multiple values.</p>
+        /// Set the routing key for this query.
+        /// <para>
+        /// The routing key is a hint for token aware load balancing policies but is never mandatory.
+        /// This method allows you to manually provide a routing key for this query.
+        /// </para>
+        /// <para>
+        /// If the partition key is composite, you should provide multiple routing key components.
+        /// </para>
         /// </summary>
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to
         ///  obtain the routing key. </param>
@@ -88,17 +92,19 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new BoundStatement object and bind its variables to the provided
-        ///  values. This method is a shortcut for <c>new
-        ///  BoundStatement(this).Bind(...)</c>. <p> Note that while no more
-        ///  <c>values</c> than bound variables can be provided, it is allowed to
-        ///  provide less <c>values</c> that there is variables. In that case, the
-        ///  remaining variables will have to be bound to values by another mean because
-        ///  the resulting <c>BoundStatement</c> being executable.</p>
+        /// Creates a new BoundStatement object and bind its variables to the provided
+        /// values.
+        /// <para>
+        /// Specify the parameter values by the position of the markers in the query or by name, 
+        /// using a single instance of an anonymous type, with property names as parameter names.
+        /// </para>
+        /// <para>
+        /// Note that while no more <c>values</c> than bound variables can be provided, it is allowed to
+        /// provide less <c>values</c> that there is variables.
+        /// </para>
         /// </summary>
         /// <param name="values"> the values to bind to the variables of the newly
         ///  created BoundStatement. </param>
-        /// 
         /// <returns>the newly created <c>BoundStatement</c> with its variables
         ///  bound to <c>values</c>. </returns>
         public BoundStatement Bind(params object[] values)
