@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -12,20 +13,25 @@ namespace Cassandra
             PageSize = 0x04,
             WithPagingState = 0x08,
             WithSerialConsistency = 0x10,
-            WithDefaultTimestamp = 0x20
+            WithDefaultTimestamp = 0x20,
+            WithNameForValues = 0x40
         }
 
         public static readonly QueryProtocolOptions Default = 
             new QueryProtocolOptions(ConsistencyLevel.One, null, false, QueryOptions.DefaultPageSize, null, ConsistencyLevel.Any);
 
+        private readonly bool _skipMetadata;
+
         public readonly int PageSize;
         public readonly byte[] PagingState;
         public readonly ConsistencyLevel SerialConsistency;
-        public readonly bool SkipMetadata;
-        public readonly object[] Values;
+        public object[] Values { get; private set; }
         public ConsistencyLevel Consistency { get; set; }
-        public QueryFlags Flags { get; set; }
-        public DateTimeOffset? Timestamp { get; set; }
+        public DateTimeOffset? Timestamp { get; private set; }
+        /// <summary>
+        /// Names of the query parameters
+        /// </summary>
+        public IList<string> ValueNames { get; set; }
 
         internal QueryProtocolOptions(ConsistencyLevel consistency,
                                       object[] values,
@@ -36,7 +42,7 @@ namespace Cassandra
         {
             Consistency = consistency;
             Values = values;
-            SkipMetadata = skipMetadata;
+            _skipMetadata = skipMetadata;
             if (pageSize <= 0)
             {
                 PageSize = QueryOptions.DefaultPageSize;
@@ -51,7 +57,6 @@ namespace Cassandra
             }
             PagingState = pagingState;
             SerialConsistency = serialConsistency;
-            AddFlags();
         }
 
         internal static QueryProtocolOptions CreateFromQuery(Statement query, ConsistencyLevel defaultConsistencyLevel)
@@ -70,32 +75,38 @@ namespace Cassandra
             return options;
         }
 
-        private void AddFlags()
+        private QueryFlags GetFlags()
         {
+            QueryFlags flags = 0;
             if (Values != null && Values.Length > 0)
             {
-                Flags |= QueryFlags.Values;
+                flags |= QueryFlags.Values;
             }
-            if (SkipMetadata)
+            if (_skipMetadata)
             {
-                Flags |= QueryFlags.SkipMetadata;
+                flags |= QueryFlags.SkipMetadata;
             }
             if (PageSize != int.MaxValue && PageSize >= 0)
             {
-                Flags |= QueryFlags.PageSize;
+                flags |= QueryFlags.PageSize;
             }
             if (PagingState != null)
             {
-                Flags |= QueryFlags.WithPagingState;
+                flags |= QueryFlags.WithPagingState;
             }
             if (SerialConsistency != ConsistencyLevel.Any)
             {
-                Flags |= QueryFlags.WithSerialConsistency;
+                flags |= QueryFlags.WithSerialConsistency;
             }
             if (Timestamp != null)
             {
-                Flags |= QueryFlags.WithDefaultTimestamp;
+                flags |= QueryFlags.WithDefaultTimestamp;
             }
+            if (ValueNames != null && ValueNames.Count > 0)
+            {
+                flags |= QueryFlags.WithNameForValues;
+            }
+            return flags;
         }
 
         //TODO: Move to ExecuteRequest and QueryRequest
@@ -104,18 +115,25 @@ namespace Cassandra
             //protocol v1: <query><n><value_1>....<value_n><consistency>
             //protocol v2: <query><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
             //protocol v3: <query><consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>][<serial_consistency>][<timestamp>]
+            var flags = GetFlags();
 
             if (protocolVersion > 1)
             {
                 wb.WriteUInt16((ushort)Consistency);
-                wb.WriteByte((byte)Flags);
+                wb.WriteByte((byte)flags);
             }
 
-            if (Flags.HasFlag(QueryFlags.Values))
+            if (flags.HasFlag(QueryFlags.Values))
             {
                 wb.WriteUInt16((ushort)Values.Length);
-                foreach (var v in Values)
+                for (var i = 0; i < Values.Length; i++)
                 {
+                    if (flags.HasFlag(QueryFlags.WithNameForValues))
+                    {
+                        var name = ValueNames[i];
+                        wb.WriteString(name);
+                    }
+                    var v = Values[i];
                     var bytes = TypeCodec.Encode(protocolVersion, v);
                     wb.WriteBytes(bytes);
                 }
@@ -129,27 +147,26 @@ namespace Cassandra
 
             if (protocolVersion == 1)
             {
+                //Protocol v1 ends here
                 wb.WriteUInt16((ushort)Consistency);
+                return;
             }
-            else
+            if ((flags & QueryFlags.PageSize) == QueryFlags.PageSize)
             {
-                if ((Flags & QueryFlags.PageSize) == QueryFlags.PageSize)
-                {
-                    wb.WriteInt32(PageSize);
-                }
-                if ((Flags & QueryFlags.WithPagingState) == QueryFlags.WithPagingState)
-                {
-                    wb.WriteBytes(PagingState);
-                }
-                if ((Flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
-                {
-                    wb.WriteUInt16((ushort)SerialConsistency);
-                }
-                if (Timestamp != null)
-                {
-                    //Expressed in microseconds
-                    wb.WriteLong(TypeCodec.ToUnixTime(Timestamp.Value).Ticks / 10);
-                }
+                wb.WriteInt32(PageSize);
+            }
+            if ((flags & QueryFlags.WithPagingState) == QueryFlags.WithPagingState)
+            {
+                wb.WriteBytes(PagingState);
+            }
+            if ((flags & QueryFlags.WithSerialConsistency) == QueryFlags.WithSerialConsistency)
+            {
+                wb.WriteUInt16((ushort)SerialConsistency);
+            }
+            if (Timestamp != null)
+            {
+                //Expressed in microseconds
+                wb.WriteLong(TypeCodec.ToUnixTime(Timestamp.Value).Ticks / 10);
             }
         }
     }

@@ -62,9 +62,9 @@ namespace Cassandra
             {
                 throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
             }
-            if (_queryOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            if (queryOptions.SerialConsistency != ConsistencyLevel.Any)
             {
-                if (_queryOptions.SerialConsistency < ConsistencyLevel.Serial)
+                if (queryOptions.SerialConsistency < ConsistencyLevel.Serial)
                 {
                     throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
                 }

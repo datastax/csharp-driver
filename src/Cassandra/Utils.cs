@@ -209,5 +209,25 @@ namespace Cassandra
             }
             return valueList;
         }
+
+        /// <summary>
+        /// Gets the properties and values of a given object
+        /// </summary>
+        public static IDictionary<string, object> GetValues(object value)
+        {
+            if (value == null)
+            {
+                return new Dictionary<string, object>(0);
+            }
+            var type = value.GetType();
+            const BindingFlags propFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+            var properties = type.GetProperties(propFlags);
+            var valueMap = new SortedList<string, object>(properties.Length);
+            foreach (var prop in properties)
+            {
+                valueMap.Add(prop.Name, prop.GetValue(value, null));
+            }
+            return valueMap;
+        }
     }
 }

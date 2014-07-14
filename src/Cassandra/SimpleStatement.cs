@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 
 namespace Cassandra
 {
@@ -51,7 +52,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new <c>SimpleStatement</c> with the provided query string.
+        ///  Creates a new instance of <c>SimpleStatement</c> with the provided CQL query.
         /// </summary>
         /// <param name="query"> the query string.</param>
         public SimpleStatement(string query)
@@ -93,16 +94,31 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        /// Sets the parameter values for the query.
+        /// <para>
+        /// The same amount of values must be provided as parameter markers in the query.
+        /// </para>
+        /// <para>
+        /// Specify the parameter values by the position of the markers in the query or by name, 
+        /// using a single instance of an anonymous type, with property names as parameter names.
+        /// </para>
+        /// </summary>
         public SimpleStatement Bind(params object[] values)
         {
+            if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
+            {
+                var keyValues = Utils.GetValues(values[0]);
+                QueryValueNames = keyValues.Keys.ToList();
+                values = keyValues.Values.ToArray();
+            }
             SetValues(values);
             return this;
         }
 
         public SimpleStatement BindObjects(object[] values)
         {
-            SetValues(values);
-            return this;
+            return Bind(values);
         }
 
         internal override IQueryRequest CreateBatchRequest(int protocolVersion)

@@ -14,6 +14,9 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+
 namespace Cassandra
 {
     /// <summary>
@@ -24,6 +27,10 @@ namespace Cassandra
     /// </summary>
     public abstract class RegularStatement : Statement
     {
+        /// <summary>
+        /// Names of the parameters
+        /// </summary>
+        internal IList<string> QueryValueNames { get; set; }
         /// <summary>
         ///  Gets the query string for this statement.
         /// </summary>

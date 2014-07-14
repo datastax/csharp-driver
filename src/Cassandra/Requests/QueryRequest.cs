@@ -61,16 +61,24 @@ namespace Cassandra
             {
                 throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
             }
-            if (queryOptions.Flags.HasFlag(QueryProtocolOptions.QueryFlags.WithSerialConsistency))
+            if (queryOptions.SerialConsistency != ConsistencyLevel.Any)
             {
                 if (queryOptions.SerialConsistency < ConsistencyLevel.Serial)
                 {
                     throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
                 }
             }
-            if (queryOptions.Timestamp != null && protocolVersion < 3)
+            if (protocolVersion < 3)
             {
-                throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
+                //Features supported in protocol v3 and above
+                if (queryOptions.Timestamp != null)
+                {
+                    throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 and above.");
+                }
+                if (queryOptions.ValueNames != null && queryOptions.ValueNames.Count > 0)
+                {
+                    throw new NotSupportedException("Query parameter names feature is supported in Cassandra 2.1 and above.");
+                }
             }
         }
 

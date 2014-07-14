@@ -272,6 +272,7 @@ namespace Cassandra
             {
                 var s = (RegularStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
+                options.ValueNames = s.QueryValueNames;
                 return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
