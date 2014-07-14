@@ -109,7 +109,8 @@ namespace Cassandra
             if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
             {
                 var keyValues = Utils.GetValues(values[0]);
-                QueryValueNames = keyValues.Keys.ToList();
+                //Force named values to lowercase as identifiers are lowercased in Cassandra
+                QueryValueNames = keyValues.Keys.Select(k => k.ToLowerInvariant()).ToList();
                 values = keyValues.Values.ToArray();
             }
             SetValues(values);
