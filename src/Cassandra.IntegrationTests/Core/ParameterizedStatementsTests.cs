@@ -51,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 1)]
-        public void SimpleStatementNamedValues()
+        public void SimpleStatementNamedValuesTest()
         {
             var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var statement = new SimpleStatement(insertQuery);
@@ -66,6 +66,35 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(100, row.GetValue<int>("int_sample"));
             Assert.AreEqual(-500L, row.GetValue<long>("bigint_sample"));
             Assert.AreEqual("named params ftw again!", row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatementNamedValuesCaseInsensitivityTest()
+        {
+            var insertQuery = String.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
+            var statement = new SimpleStatement(insertQuery);
+
+            var id = Guid.NewGuid();
+            Session.Execute(
+                statement.Bind(
+                    new { my_INt = 1, my_TEXT = "WAT1", my_id = id}));
+
+            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            Assert.AreEqual(1, row.GetValue<int>("int_sample"));
+            Assert.AreEqual("WAT1", row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatementNamedValuesNotSpecifiedTest()
+        {
+            var insertQuery = String.Format("INSERT INTO {0} (float_sample, text_sample, bigint_sample, id) VALUES (:MY_float, :my_TexT, :my_BIGint, :id)", AllTypesTableName);
+            var statement = new SimpleStatement(insertQuery);
+
+            Assert.Throws<InvalidQueryException>(() => Session.Execute(
+                statement.Bind(
+                    new {id = Guid.NewGuid(), my_bigint = 1L })));
         }
 
         [Test]

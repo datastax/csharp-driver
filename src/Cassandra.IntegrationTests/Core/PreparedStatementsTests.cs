@@ -230,7 +230,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BoundStatementsNamedParameters()
+        public void BoundStatementsNamedParametersTest()
         {
             var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
@@ -251,7 +251,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BoundStatementsNamedParametersNulls()
+        public void BoundStatementsNamedParametersNullsTest()
         {
             var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
@@ -270,9 +270,9 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BoundStatementsNamedParametersCaseInsensitive()
+        public void BoundStatementsNamedParametersCaseInsensitiveTest()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_TeXt, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
 
             var id = Guid.NewGuid();
