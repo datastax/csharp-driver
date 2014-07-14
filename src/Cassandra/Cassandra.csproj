@@ -201,6 +201,7 @@
     <Compile Include="Outputs\WriteTimeoutInfo.cs" />
     <Compile Include="PlainTextAuthProvider.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
+    <Compile Include="Policies\FixedReconnectionPolicy.cs" />
     <Compile Include="Policies\IReconnectionSchedule.cs" />
     <Compile Include="Policies\IRetryPolicy.cs" />
     <Compile Include="Policies\RetryLoadBalancingPolicy.cs" />

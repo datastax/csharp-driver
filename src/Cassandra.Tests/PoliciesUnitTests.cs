@@ -218,10 +218,28 @@ namespace Cassandra.Tests
             Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
         }
 
+        [Test]
+        public void FixedReconnectionPolicyTests()
+        {
+            var delays = new long[] {0, 2, 100, 200, 500, 1000};
+            var policy = new FixedReconnectionPolicy(delays);
+            var schedule = policy.NewSchedule();
+            const int times = 30;
+            var actualDelays = new List<long>();
+            for (var i = 0; i < times; i++)
+            {
+                actualDelays.Add(schedule.NextDelayMs());
+            }
+            //The last delay will be used for the rest.
+            //Add the n times the last delay (1000)
+            var expectedDelays = delays.Concat(Enumerable.Repeat<long>(1000, times - delays.Length));
+            Assert.AreEqual(expectedDelays, actualDelays);
+        }
+
         /// <summary>
         /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
         /// </summary>
-        private List<Host> GetHostList(byte length, byte thirdPosition = 0, string datacenter = "local")
+        private static List<Host> GetHostList(byte length, byte thirdPosition = 0, string datacenter = "local")
         {
             var list = new List<Host>();
             for (byte i = 0; i < length; i++)
