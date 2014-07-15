@@ -1,9 +1,11 @@
+using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Cassandra;
 
 namespace Cassandra.Data.EntityContext
 {
@@ -81,36 +83,10 @@ namespace Cassandra.Data.EntityContext
             return new ContextTable<TEntity>((Table<TEntity>) _tables[tn], this);
         }
 
-        internal RowSet ExecuteReadQuery(string cqlQuery, ConsistencyLevel consistencyLevel, bool enableTraceing)
-        {
-            return _managedSession.Execute(new SimpleStatement(cqlQuery).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel));
-        }
-
-        internal IAsyncResult BeginExecuteReadQuery(string cqlQuery, ConsistencyLevel consistencyLevel, bool enableTraceing, object tag,
-                                                    AsyncCallback callback, object state)
-        {
-            return _managedSession.BeginExecute(new SimpleStatement(cqlQuery).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel), tag,
-                                                callback, state);
-        }
-
-        internal RowSet EndExecuteReadQuery(IAsyncResult ar)
-        {
-            return _managedSession.EndExecute(ar);
-        }
-
         internal RowSet ExecuteWriteQuery(string cqlQuery, object[] values, ConsistencyLevel consistencyLevel, bool enableTraceing)
         {
             var statement = _managedSession.Prepare(cqlQuery);
             return _managedSession.Execute(statement.Bind(values).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel));
-        }
-
-        internal IAsyncResult BeginExecuteWriteQuery(string cqlQuery, object[] values, ConsistencyLevel consistencyLevel, bool enableTraceing,
-                                                     object tag, AsyncCallback callback, object state)
-        {
-            return
-                _managedSession.BeginExecute(
-                    new SimpleStatement(cqlQuery).BindObjects(values).EnableTracing(enableTraceing).SetConsistencyLevel(consistencyLevel), tag,
-                    callback, state);
         }
 
         internal RowSet EndExecuteWriteQuery(IAsyncResult ar)
@@ -181,10 +157,17 @@ namespace Cassandra.Data.EntityContext
                 if (counterBatchScript.Length != 0)
                 {
                     cql = "BEGIN COUNTER BATCH\r\n" + counterBatchScript + "\r\nAPPLY BATCH";
-                    return BeginExecuteWriteQuery(
-                        cql, null, consistencyLevel, enableTracing,
-                        new CqlSaveTag {TableTypes = tableTypes, TableType = TableType.Counter, NewAdditionalCommands = newAdditionalCommands},
-                        callback, state);
+                    var statement = new SimpleStatement(cql)
+                        .EnableTracing(enableTracing)
+                        .SetConsistencyLevel(consistencyLevel);
+                    var rsTask = _managedSession.ExecuteAsync(statement);
+                    var tag = new CqlSaveTag
+                    {
+                        TableTypes = tableTypes,
+                        TableType = TableType.Counter,
+                        NewAdditionalCommands = newAdditionalCommands
+                    };
+                    return ToApm(ContinueSaveBatch(rsTask, tag), callback, state);
                 }
             }
 
@@ -209,8 +192,17 @@ namespace Cassandra.Data.EntityContext
                 if (batchScript.Length != 0)
                 {
                     cql ="BEGIN BATCH\r\n" + batchScript.ToString() + "APPLY BATCH";
-                    return BeginExecuteWriteQuery(cql, null, consistencyLevel, enableTracing,
-                        new CqlSaveTag() { TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands }, callback, state);
+                    var statement = new SimpleStatement(cql)
+                        .EnableTracing(enableTracing)
+                        .SetConsistencyLevel(consistencyLevel);
+                    var rsTask = _managedSession.ExecuteAsync(statement);
+                    var tag = new CqlSaveTag()
+                    {
+                        TableTypes = tableTypes,
+                        TableType = TableType.Standard,
+                        NewAdditionalCommands = newAdditionalCommands
+                    };
+                    return ToApm(ContinueSaveBatch(rsTask, tag), callback, state);
                 }
             }
 
@@ -262,11 +254,18 @@ namespace Cassandra.Data.EntityContext
 
                 if (!counterBatchScript.IsEmpty)
                 {
-                    return
-                        _managedSession.BeginExecute(
-                            counterBatchScript.SetBatchType(BatchType.Counter).SetConsistencyLevel(consistencyLevel).EnableTracing(enableTracing),
-                            new CqlSaveTag {TableTypes = tableTypes, TableType = TableType.Counter, NewAdditionalCommands = newAdditionalCommands},
-                            callback, state);
+
+                    var rsTask = _managedSession.ExecuteAsync(counterBatchScript
+                        .SetBatchType(BatchType.Counter)
+                        .SetConsistencyLevel(consistencyLevel)
+                        .EnableTracing(enableTracing));
+                    var tag = new CqlSaveTag
+                    {
+                        TableTypes = tableTypes,
+                        TableType = TableType.Counter,
+                        NewAdditionalCommands = newAdditionalCommands
+                    };
+                    return ToApm(ContinueSaveBatch(rsTask, tag), callback, state);
                 }
             }
 
@@ -290,11 +289,17 @@ namespace Cassandra.Data.EntityContext
 
                 if (!batchScript.IsEmpty)
                 {
-                    return
-                        _managedSession.BeginExecute(
-                            batchScript.SetBatchType(BatchType.Logged).SetConsistencyLevel(consistencyLevel).EnableTracing(enableTracing),
-                            new CqlSaveTag {TableTypes = tableTypes, TableType = TableType.Standard, NewAdditionalCommands = newAdditionalCommands},
-                            callback, state);
+                    var rsTask = _managedSession.ExecuteAsync(batchScript
+                        .SetBatchType(BatchType.Logged)
+                        .SetConsistencyLevel(consistencyLevel)
+                        .EnableTracing(enableTracing));
+                    var tag = new CqlSaveTag
+                    {
+                        TableTypes = tableTypes,
+                        TableType = TableType.Standard,
+                        NewAdditionalCommands = newAdditionalCommands
+                    };
+                    return ToApm(ContinueSaveBatch(rsTask, tag), callback, state);
                 }
             }
 
@@ -303,13 +308,25 @@ namespace Cassandra.Data.EntityContext
 
         public void EndSaveChangesBatch(IAsyncResult ar)
         {
-            RowSet res = EndExecuteWriteQuery(ar);
+            var task = (Task<RowSet>)ar;
+            task.Wait();
+        }
 
-            var tag = (CqlSaveTag) Session.GetTag(ar);
-            foreach (KeyValuePair<string, ITable> table in _tables)
-                if (tag.TableTypes[table.Key] == tag.TableType)
-                    _mutationTrackers[table.Key].BatchCompleted(res.Info.QueryTrace);
-            _additionalCommands = tag.NewAdditionalCommands;
+        private Task<RowSet> ContinueSaveBatch(Task<RowSet> rsTask, CqlSaveTag tag)
+        {
+            return rsTask.ContinueWith(t =>
+            {
+                var rs = t.Result;
+                foreach (var table in _tables)
+                {
+                    if (tag.TableTypes[table.Key] == tag.TableType)
+                    {
+                        _mutationTrackers[table.Key].BatchCompleted(rs.Info.QueryTrace);
+                    }
+                }
+                _additionalCommands = tag.NewAdditionalCommands;
+                return rs;
+            }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         public void SaveChanges(ConsistencyLevel consistencyLevel, SaveChangesMode mode = SaveChangesMode.Batch, TableType tableType = TableType.All)
@@ -423,6 +440,42 @@ namespace Cassandra.Data.EntityContext
             public List<CqlCommand> NewAdditionalCommands;
             public TableType TableType;
             public Dictionary<string, TableType> TableTypes;
+        }
+
+        public static Task<TResult> ToApm<TResult>(Task<TResult> task, AsyncCallback callback, object state)
+        {
+            if (task.AsyncState == state)
+            {
+                if (callback != null)
+                {
+                    task.ContinueWith((t) => callback(t), TaskContinuationOptions.ExecuteSynchronously);
+                }
+                return task;
+            }
+
+            var tcs = new TaskCompletionSource<TResult>(state);
+            task.ContinueWith(delegate
+            {
+                if (task.IsFaulted)
+                {
+                    tcs.TrySetException(task.Exception.InnerExceptions);
+                }
+                else if (task.IsCanceled)
+                {
+                    tcs.TrySetCanceled();
+                }
+                else
+                {
+                    tcs.TrySetResult(task.Result);
+                }
+
+                if (callback != null)
+                {
+                    callback(tcs.Task);
+                }
+
+            }, TaskContinuationOptions.ExecuteSynchronously);
+            return tcs.Task;
         }
     }
 }

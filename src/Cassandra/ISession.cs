@@ -59,20 +59,11 @@ namespace Cassandra
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
-        IAsyncResult BeginExecute(IStatement statement, object tag, AsyncCallback callback, object state);
-        /// <summary>
-        /// Begins asynchronous execute operation
-        /// </summary>
         IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state);
-        /// <summary>
-        /// Begins asynchronous execute operation
-        /// </summary>
-        IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state);
         /// <summary>
         /// Begins asynchronous prepare operation
         /// </summary>
         IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state);
-
         /// <summary>
         ///  Switches to the specified keyspace.
         /// </summary>

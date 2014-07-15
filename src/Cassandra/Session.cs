@@ -78,21 +78,10 @@ namespace Cassandra
             return ExecuteAsync(statement).ToApm(callback, state);
         }
 
-        public IAsyncResult BeginExecute(IStatement statement, object tag, AsyncCallback callback, object state)
-        {
-            throw new NotSupportedException();
-        }
-
         /// <inheritdoc />
         public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
         {
             return BeginExecute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency), callback, state);
-        }
-
-        public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, object tag, AsyncCallback callback, object state)
-        {
-            //TODO: Remove method and document
-            throw new NotSupportedException();
         }
 
         /// <inheritdoc />
