@@ -142,7 +142,10 @@ namespace Cassandra
                 {
                     return 128;
                 }
-                return 32768;
+                //Protocol 3 supports up to 32K concurrent request without waiting a response
+                //Allowing larger amounts of concurrent requests will cause large memory consumption
+                //Limit to 2K per connection sounds reasonable.
+                return 2048;
             }
         }
 
