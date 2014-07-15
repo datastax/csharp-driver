@@ -20,15 +20,17 @@ namespace Cassandra
 {
     /// <summary>
     /// A session holds connections to a Cassandra cluster, allowing it to be queried.
-    /// 
+    /// <para>
     /// Each session maintains multiple connections to the cluster nodes,
     /// provides policies to choose which node to use for each query (round-robin on
     /// all nodes of the cluster by default), and handles retries for failed query (when
     /// it makes sense), etc...
-    /// 
+    /// </para>
+    /// <para>
     /// Session instances are thread-safe and usually a single instance is enough
     /// per application. However, a given session can only be set to one keyspace
     /// at a time, so one instance per keyspace is necessary.
+    /// </para>
     /// </summary>
     public interface ISession: IDisposable
     {
@@ -69,34 +71,37 @@ namespace Cassandra
         /// </summary>
         /// <param name="keyspaceName">Name of keyspace that is to be used.</param>
         void ChangeKeyspace(string keyspaceName);
-
         /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>
         /// <param name="keyspaceName">Name of keyspace to be created.</param>
-        /// <param name="replication">Replication property for this keyspace.
+        /// <param name="replication">
+        /// Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
-        /// <p>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 1</c></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
-        void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durable_writes = true);
+        /// <para>Default value is <c>SimpleStrategy</c> with <c>replication_factor = 1</c></para>
+        /// </param>
+        /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
+        void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true);
         /// <summary>
         ///  Creates new keyspace in current cluster.
         ///  If keyspace with specified name already exists, then this method does nothing.
         /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be created.</param>
-        /// <param name="replication">Replication property for this keyspace.
+        /// <param name="keyspaceName">Name of keyspace to be created.</param>
+        /// <param name="replication">
+        /// Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
-        /// <p>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 2</c></p></param>
-        /// <param name="durable_writes">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
-        void CreateKeyspaceIfNotExists(string keyspace_name, Dictionary<string, string> replication = null, bool durable_writes = true);
+        /// <para>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 2</c></para>
+        /// </param>
+        /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
+        void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true);
         /// <summary>
         ///  Deletes specified keyspace from current cluster.
         ///  If keyspace with specified name does not exist, then exception will be thrown.
         /// </summary>
-        /// <param name="keyspace_name">Name of keyspace to be deleted.</param>
-        void DeleteKeyspace(string keyspace_name);
+        /// <param name="keyspaceName">Name of keyspace to be deleted.</param>
+        void DeleteKeyspace(string keyspaceName);
         /// <summary>
         ///  Deletes specified keyspace from current cluster.
         ///  If keyspace with specified name does not exist, then this method does nothing.

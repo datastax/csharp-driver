@@ -76,12 +76,14 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Explicit("Not implemented")]
         public void SessionFaultsTasksAfterDisposed()
         {
             throw new NotImplementedException();
         }
 
         [Test]
+        [Explicit("Not implemented")]
         public void SessionDisposedOnCluster()
         {
             throw new NotImplementedException();
