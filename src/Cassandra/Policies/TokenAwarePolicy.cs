@@ -59,7 +59,6 @@ namespace Cassandra
             _childPolicy.Initialize(cluster);
         }
 
-
         /// <summary>
         ///  Return the HostDistance for the provided host.
         /// </summary>
@@ -87,41 +86,52 @@ namespace Cassandra
             RoutingKey routingKey = query == null ? null : query.RoutingKey;
             if (routingKey == null)
             {
-                foreach (Host iter in _childPolicy.NewQueryPlan(null))
+                foreach (var iter in _childPolicy.NewQueryPlan(null))
+                {
                     yield return iter;
+                }
                 yield break;
             }
 
             ICollection<IPAddress> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
-                foreach (Host iter in _childPolicy.NewQueryPlan(query))
+                foreach (var iter in _childPolicy.NewQueryPlan(query))
+                {
                     yield return iter;
+                }
                 yield break;
             }
 
             IEnumerator<IPAddress> iterator = replicas.GetEnumerator();
             while (iterator.MoveNext())
             {
-                Host host = _cluster.GetHost(iterator.Current);
-                if (host != null && host.IsConsiderablyUp && _childPolicy.Distance(host) == HostDistance.Local)
+                var host = _cluster.GetHost(iterator.Current);
+                if (host != null && _childPolicy.Distance(host) == HostDistance.Local)
+                {
                     yield return host;
+                }
             }
 
             IEnumerable<Host> childIterator = _childPolicy.NewQueryPlan(query);
             var remoteChildren = new HashSet<Host>();
-            foreach (Host host in childIterator)
+            foreach (var host in childIterator)
             {
-                if (!replicas.Contains(host.Address))
+                if (replicas.Contains(host.Address))
                 {
-                    if (_childPolicy.Distance(host) != HostDistance.Local)
-                        remoteChildren.Add(host);
-                    else
-                        yield return host;
+                    continue;
+                }
+                if (_childPolicy.Distance(host) != HostDistance.Local)
+                {
+                    remoteChildren.Add(host);
+                }
+                else
+                {
+                    yield return host;
                 }
             }
 
-            foreach (Host host in remoteChildren)
+            foreach (var host in remoteChildren)
             {
                 yield return host;
             }

@@ -73,7 +73,7 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(IStatement query)
         {
-            var copyOfHosts = (from h in _cluster.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            var copyOfHosts = (from h in _cluster.AllHosts() select h).ToArray();
             int idxSeed = Interlocked.Increment(ref _index);
 
             //Overflow protection, not thread safe but it allows 10k concurrent calls, should be enough
@@ -82,7 +82,7 @@ namespace Cassandra
                 Interlocked.Exchange(ref _index, 0);
             }
 
-            for (int i = 0; i < copyOfHosts.Length; i++)
+            for (var i = 0; i < copyOfHosts.Length; i++)
             {
                 var h = copyOfHosts[(idxSeed + i) % copyOfHosts.Length];
 

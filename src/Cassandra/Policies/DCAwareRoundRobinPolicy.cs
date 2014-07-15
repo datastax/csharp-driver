@@ -132,7 +132,7 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<Host> NewQueryPlan(IStatement query)
         {
-            var copyOfHosts = (from h in _cluster.AllHosts() where h.IsConsiderablyUp select h).ToArray();
+            var copyOfHosts = (from h in _cluster.AllHosts() select h).ToArray();
             int idxSeed = Interlocked.Increment(ref _index);
                 
             // Overflow protection; not theoretically thread safe but should be good enough
@@ -154,24 +154,25 @@ namespace Cassandra
             for (int i = 0; i < copyOfHosts.Length; i++)
             {
                 var h = copyOfHosts[i];
-                if (h.IsConsiderablyUp && !_localDc.Equals(DC(h)))
+                if (_localDc.Equals(DC(h)))
                 {
-                    if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
+                    continue;
+                }
+                if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
+                {
+                    remoteHosts.Add(h);
+                    if (!ixes.ContainsKey(DC(h)))
+                    { 
+                        ixes.Add(DC(h), 1); 
+                    }
+                    else
                     {
-                        remoteHosts.Add(h);
-                        if (!ixes.ContainsKey(DC(h)))
-                        { 
-                            ixes.Add(DC(h), 1); 
-                        }
-                        else
-                        {
-                            ixes[DC(h)] = ixes[DC(h)] + 1;
-                        }
+                        ixes[DC(h)] = ixes[DC(h)] + 1;
                     }
                 }
             }
 
-            for (int i = 0; i < remoteHosts.Count; i++)
+            for (var i = 0; i < remoteHosts.Count; i++)
             {
                 yield return remoteHosts[(idxSeed + i) % remoteHosts.Count];
             }
