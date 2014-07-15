@@ -256,7 +256,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0, Comparison.Equal)]
-        public void BatchPreparedStatementsNotSupportedInC2_0()
+        public void BatchPreparedStatementsFlagsNotSupportedInC2_0()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             CreateTable(tableName);

@@ -217,6 +217,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Explicit("This test needs to be rebuilt, when restarting the Cassandra node on Windows new connections are refused")]
         public void DroppingConnectionsTest()
         {
             var parallelOptions = new ParallelOptions
