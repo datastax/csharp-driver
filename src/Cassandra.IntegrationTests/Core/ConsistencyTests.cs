@@ -822,10 +822,10 @@ namespace Cassandra.IntegrationTests.Core
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var clusterInfo = TestUtils.CcmSetup(3, builder, null, 3);
-            createMultiDCSchema(clusterInfo.Session, 3, 3);
             //clusterInfo.Cluster.RefreshSchema();
             try
             {
+                createMultiDCSchema(clusterInfo.Session, 3, 3);
                 init(clusterInfo, 12, ConsistencyLevel.Two);
                 query(clusterInfo, 12, ConsistencyLevel.Two);
 

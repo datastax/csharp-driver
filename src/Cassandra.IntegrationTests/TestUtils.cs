@@ -113,7 +113,7 @@ namespace Cassandra.IntegrationTests
 
         public static void waitForDownWithWait(String node, Cluster cluster, int waitTime)
         {
-            waitFor(node, cluster, 60, true, false);
+            waitFor(node, cluster, 90, true, false);
 
             // FIXME: Once stop() works, remove this line
             try

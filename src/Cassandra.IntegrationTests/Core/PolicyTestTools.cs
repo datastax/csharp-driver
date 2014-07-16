@@ -124,11 +124,12 @@ namespace Cassandra.IntegrationTests.Core
 
         protected void assertQueriedAtLeast(String host, int n)
         {
-            int queried = coordinators[IPAddress.Parse(host)];
-            if (DEBUG)
-                Debug.WriteLine(String.Format("Expected > {0}\tReceived: {1}", n, queried));
-            else
-                Assert.True(queried >= n, "For " + host);
+            var queried = 0;
+            if (coordinators.ContainsKey(IPAddress.Parse(host)))
+            {
+                queried = coordinators[IPAddress.Parse(host)];   
+            }
+            Assert.GreaterOrEqual(queried, n);
         }
 
         /// <summary>

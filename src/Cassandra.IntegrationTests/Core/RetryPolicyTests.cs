@@ -349,7 +349,7 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmStart(clusterInfo, 2);
                 TestUtils.waitFor(IpPrefix + "2", clusterInfo.Cluster, 30);
 
-                Thread.Sleep(5000);
+                Thread.Sleep(60000);
 
                 // Test successful reads
                 for (int i = 0; i < 10; ++i)
@@ -459,31 +459,14 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmStart(clusterInfo, 2);
                 TestUtils.waitFor(IpPrefix + "2", clusterInfo.Cluster, 30);
 
-                Trace.TraceInformation("MainThread started");
-                Trace.TraceInformation("[");
-                Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
-                Trace.TraceInformation("]");
+                //A node takes at least 60 secs join the ring again
+                Thread.Sleep(60000);
 
                 // Test successful reads
                 for (int i = 0; i < 10; ++i)
                 {
-                    try
-                    {
-                        query(clusterInfo, 12);
-                    }
-                    catch (ThreadInterruptedException)
-                    {
-                        Trace.TraceInformation("Main Thread broke");
-                        Trace.TraceInformation("[");
-                        Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
-                        Trace.TraceInformation("]");
-                    }
+                    query(clusterInfo, 12);
                 }
-
-                Trace.TraceInformation("Main Thread finished");
-                Trace.TraceInformation("[");
-                Trace.TraceInformation(Thread.CurrentThread.ManagedThreadId.ToString());
-                Trace.TraceInformation("]");
 
                 // A weak test to ensure that the nodes were contacted
                 assertQueriedAtLeast(IpPrefix + "1", 1);
