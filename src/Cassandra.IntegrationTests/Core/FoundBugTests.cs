@@ -61,8 +61,9 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var Session = clusterInfo.Session;
-                string Keyspace = "Excelsior";
+                string Keyspace = "excelsior";
                 Session.CreateKeyspaceIfNotExists(Keyspace);
+                Thread.Sleep(1000);
                 Session.ChangeKeyspace(Keyspace);
                 const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
                 var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
