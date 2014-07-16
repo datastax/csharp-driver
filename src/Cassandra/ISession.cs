@@ -70,6 +70,7 @@ namespace Cassandra
         ///  Switches to the specified keyspace.
         /// </summary>
         /// <param name="keyspaceName">Name of keyspace that is to be used.</param>
+        /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
         void ChangeKeyspace(string keyspaceName);
         /// <summary>
         ///  Creates new keyspace in current cluster.        

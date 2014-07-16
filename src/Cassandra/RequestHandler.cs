@@ -84,6 +84,7 @@ namespace Cassandra
         /// Gets a connection from the next host according to the load balancing policy
         /// </summary>
         /// <exception cref="NoHostAvailableException"></exception>
+        /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
         internal Connection GetNextConnection(IStatement statement, bool isLastChance = false)
         {
             var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);
@@ -123,6 +124,11 @@ namespace Cassandra
                     {
                         lastChanceHost = host;
                     }
+                }
+                catch (InvalidQueryException)
+                {
+                    //The keyspace does not exist
+                    throw;
                 }
                 catch (Exception ex)
                 {

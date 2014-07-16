@@ -32,9 +32,8 @@ namespace Cassandra
     public class Session : ISession
     {
         private static Logger _logger = new Logger(typeof(Session));
-        internal static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
         
-        readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
+        private readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool;
         private int _disposed;
 
         public int BinaryProtocolVersion { get; protected set; }
@@ -70,6 +69,7 @@ namespace Cassandra
             BinaryProtocolVersion = binaryProtocolVersion;
             Guid = Guid.NewGuid();
             UserDefinedTypes = new UdtMappingDefinitions(this);
+            _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
         }
 
         /// <inheritdoc />

@@ -28,13 +28,14 @@ namespace Cassandra
 {
     internal class ControlConnection : IDisposable
     {
-        internal const long MaxSchemaAgreementWaitMs = 10000;
+        private const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
         private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
         private const String SelectColumns = "SELECT * FROM system.schema_columns";
         private const String SelectUdts = "SELECT * FROM system.schema_usertypes";
+        private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
         /// <summary>
         /// Protocol version used by the control connection
         /// </summary>
@@ -346,7 +347,7 @@ namespace Cassandra
                             hstip = row.GetValue<IPAddress>("peer");
                         _logger.Error("No rpc_address found for host in peers system table. ");
                     }
-                    else if (hstip.Equals(Session.BindAllAddress))
+                    else if (hstip.Equals(BindAllAddress))
                     {
                         if (!row.IsNull("peer"))
                             hstip = row.GetValue<IPAddress>("peer");
@@ -457,7 +458,7 @@ namespace Cassandra
                             continue;
 
                         IPAddress rpc = row.GetValue<IPAddress>("rpc_address");
-                        if (rpc.Equals(Session.BindAllAddress))
+                        if (rpc.Equals(BindAllAddress))
                             if (!row.IsNull("peer"))
                                 rpc = row.GetValue<IPAddress>("peer");
 

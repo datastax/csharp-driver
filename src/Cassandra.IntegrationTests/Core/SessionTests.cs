@@ -76,6 +76,37 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void SessionKeyspaceDoesNotExistOnConnectThrows()
+        {
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            try
+            {
+                var ex = Assert.Throws<InvalidQueryException>(() => localCluster.Connect("THIS_KEYSPACE_DOES_NOT_EXIST"));
+                Assert.True(ex.Message.ToLower().Contains("keyspace"));
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
+        public void SessionKeyspaceDoesNotExistOnChangeThrows()
+        {
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            try
+            {
+                var localSession = localCluster.Connect();
+                var ex = Assert.Throws<InvalidQueryException>(() => localSession.ChangeKeyspace("THIS_KEYSPACE_DOES_NOT_EXIST_EITHER"));
+                Assert.True(ex.Message.ToLower().Contains("keyspace"));
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
         [Explicit("Not implemented")]
         public void SessionFaultsTasksAfterDisposed()
         {
