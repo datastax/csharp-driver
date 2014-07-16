@@ -18,8 +18,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cassandra
@@ -30,7 +28,6 @@ namespace Cassandra
     internal class RequestHandler<T>
     {
         private readonly static Logger _logger = new Logger(typeof(Session));
-        private readonly static IRetryPolicy DefaultRetryPolicy = new DefaultRetryPolicy();
 
         private Connection _connection;
         private Host _currentHost;
@@ -42,13 +39,21 @@ namespace Cassandra
         private readonly TaskCompletionSource<T> _tcs;
         private readonly Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
 
+        /// <summary>
+        /// Creates a new instance of the RequestHandler that deals with host failover and retries on error
+        /// </summary>
         public RequestHandler(Session session, IRequest request, IStatement statement)
         {
             _tcs = new TaskCompletionSource<T>();
             _session = session;
             _request = request;
             _statement = statement;
-            _retryPolicy = DefaultRetryPolicy;
+            _retryPolicy = Policies.DefaultRetryPolicy;
+            //Don't use Argument null check to allow unit test
+            if (session != null && session.Policies != null && session.Policies.RetryPolicy != null)
+            {
+                _retryPolicy = session.Policies.RetryPolicy;
+            }
             if (statement != null && statement.RetryPolicy != null)
             {
                 _retryPolicy = statement.RetryPolicy;
@@ -78,6 +83,32 @@ namespace Cassandra
                     break;
             }
             return isNetworkReset;
+        }
+
+        /// <summary>
+        /// Fills the common properties of the RowSet
+        /// </summary>
+        private RowSet FillRowSet(RowSet rs)
+        {
+            rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
+            if (_request is ICqlRequest)
+            {
+                rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
+            }
+            if (rs.PagingState != null)
+            {
+                rs.FetchNextPage = (pagingState) =>
+                {
+                    if (_session.IsDisposed)
+                    {
+                        _logger.Warning("Trying to page results using a Session already disposed.");
+                        return new RowSet();
+                    }
+                    _statement.SetPagingState(pagingState);
+                    return _session.Execute(_statement);
+                };
+            }
+            return rs;
         }
 
         /// <summary>
@@ -206,9 +237,12 @@ namespace Cassandra
                     _tcs.TrySetException(ex);
                     break;
                 case RetryDecision.RetryDecisionType.Ignore:
+                    //The error was ignored by the RetryPolicy
+                    //Try to give a decent response
                     if (typeof(T).IsAssignableFrom(typeof(RowSet)))
                     {
-                        _tcs.TrySetResult((T)(object)new RowSet());
+                        var rs = new RowSet();
+                        _tcs.TrySetResult((T)(object) FillRowSet(rs));
                     }
                     else
                     {
@@ -216,6 +250,7 @@ namespace Cassandra
                     }
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
+                    //Retry the Request using the new consistency level
                     Retry(decision.RetryConsistencyLevel);
                     break;
             }
@@ -261,24 +296,7 @@ namespace Cassandra
             {
                 rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
             }
-            rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
-            if (_request is ICqlRequest)
-            {
-                rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
-            }
-            if (rs.PagingState != null)
-            {
-                rs.FetchNextPage = (pagingState) =>
-                {
-                    if (_session.IsDisposed)
-                    {
-                        _logger.Warning("Trying to page results using a Session already disposed.");
-                        return new RowSet();
-                    }
-                    _statement.SetPagingState(pagingState);
-                    return _session.Execute(_statement);
-                };
-            }
+            FillRowSet(rs);
             _tcs.TrySetResult((T)(object)rs);
         }
 
@@ -385,7 +403,7 @@ namespace Cassandra
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                this.HandleException(ex);
+                HandleException(ex);
             }
         }
 

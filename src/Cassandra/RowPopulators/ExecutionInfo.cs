@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 
@@ -15,43 +16,55 @@ namespace Cassandra
     /// </summary>
     public class ExecutionInfo
     {
-        private ConsistencyLevel _achievedConsistency = ConsistencyLevel.Any;
-        private QueryTrace _queryTrace;
-        private List<IPAddress> _tiedHosts;
-
-        public List<IPAddress> TriedHosts
+        public ExecutionInfo()
         {
-            get { return _tiedHosts; }
+            AchievedConsistency = ConsistencyLevel.Any;
         }
 
+        /// <summary>
+        /// Gets the list of host that were queried before getting a valid response, 
+        /// being the last host the one that replied correctly.
+        /// </summary>
+        public IList<IPAddress> TriedHosts { get; private set; }
+        
+        /// <summary>
+        /// Retrieves the coordinator that responded to the request
+        /// </summary>
         public IPAddress QueriedHost
         {
-            get { return _tiedHosts.Count > 0 ? _tiedHosts[_tiedHosts.Count - 1] : null; }
+            get
+            {
+                if (TriedHosts == null)
+                {
+                    throw new NullReferenceException("Tried host is null");
+                }
+                return TriedHosts.Count > 0 ? TriedHosts[TriedHosts.Count - 1] : null;
+            }
         }
 
-        public QueryTrace QueryTrace
-        {
-            get { return _queryTrace; }
-        }
+        /// <summary>
+        /// Gets the trace for the query execution.
+        /// </summary>
+        public QueryTrace QueryTrace { get; private set; }
 
-        public ConsistencyLevel AchievedConsistency
-        {
-            get { return _achievedConsistency; }
-        }
+        /// <summary>
+        /// Gets the final achieved consistency
+        /// </summary>
+        public ConsistencyLevel AchievedConsistency { get; private set; }
 
         internal void SetTriedHosts(List<IPAddress> triedHosts)
         {
-            _tiedHosts = triedHosts;
+            TriedHosts = triedHosts;
         }
 
         internal void SetQueryTrace(QueryTrace queryTrace)
         {
-            _queryTrace = queryTrace;
+            QueryTrace = queryTrace;
         }
 
         internal void SetAchievedConsistency(ConsistencyLevel achievedConsistency)
         {
-            _achievedConsistency = achievedConsistency;
+            AchievedConsistency = achievedConsistency;
         }
     }
 }

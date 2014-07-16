@@ -18,10 +18,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using System.Diagnostics;
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using System.Net.Sockets;
 
 namespace Cassandra
 {
