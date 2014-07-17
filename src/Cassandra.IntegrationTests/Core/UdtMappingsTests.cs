@@ -15,8 +15,12 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         private static readonly int[] UdtProtocolVersionSupported = new[] {3};
 
+        private int _maxProtocolVersion;
+
         public override void TestFixtureSetUp()
         {
+            _maxProtocolVersion = Cluster.MaxProtocolVersion;
+
             base.TestFixtureSetUp();
             if (Options.Default.CassandraVersion >= new Version(2, 1))
             {
@@ -34,6 +38,12 @@ namespace Cassandra.IntegrationTests.Core
                 Session = null;
                 Cluster = null;
             }
+        }
+
+        public override void TestFixtureTearDown()
+        {
+            Cluster.MaxProtocolVersion = _maxProtocolVersion;
+            base.TestFixtureTearDown();
         }
 
         [Test]
@@ -346,6 +356,22 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<InvalidTypeException>(() => localSession.Execute(statement.Bind(2, new DummyClass())));
 
             localCluster.Dispose();
+        }
+
+        [Test]
+        public void MappingOnLowerProtocolVersionTest()
+        {
+            Cluster.MaxProtocolVersion = 2;
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localSession = localCluster.Connect("tester");
+            try
+            {
+                Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));
+            }
+            finally
+            {
+                localCluster.Dispose();
+            }
         }
 
         private class Contact

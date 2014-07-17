@@ -35,6 +35,10 @@ namespace Cassandra
             {
                 throw new ArgumentException("It is not possible to define a mapping when no keyspace is specified.");
             }
+            if (_session.BinaryProtocolVersion < 3)
+            {
+                throw new NotSupportedException("User defined type mapping is supported with C* 2.1+ and protocol version 3+");
+            }
             // Add types to both indexes
             foreach (var map in udtMaps)
             {
