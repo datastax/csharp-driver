@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlPoco", "CqlPoco\CqlPoco.csproj", "{2AA18478-FC01-4A0D-B8F5-A40343B3F358}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1D5668A0-D5F9-4C28-AEA0-A969A799CD6E}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E811B7D8-8C68-4E04-8008-F4E32882F09A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlPoco.IntegrationTests", "CqlPoco.IntegrationTests\CqlPoco.IntegrationTests.csproj", "{EAE767E4-6474-4D7B-8E62-A03C87F34BCA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2AA18478-FC01-4A0D-B8F5-A40343B3F358}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AA18478-FC01-4A0D-B8F5-A40343B3F358}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AA18478-FC01-4A0D-B8F5-A40343B3F358}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AA18478-FC01-4A0D-B8F5-A40343B3F358}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAE767E4-6474-4D7B-8E62-A03C87F34BCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAE767E4-6474-4D7B-8E62-A03C87F34BCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAE767E4-6474-4D7B-8E62-A03C87F34BCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAE767E4-6474-4D7B-8E62-A03C87F34BCA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EAE767E4-6474-4D7B-8E62-A03C87F34BCA} = {E811B7D8-8C68-4E04-8008-F4E32882F09A}
+	EndGlobalSection
+EndGlobal
