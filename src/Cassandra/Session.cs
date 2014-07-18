@@ -93,7 +93,7 @@ namespace Cassandra
         {
             if (this.Keyspace != keyspace)
             {
-                this.Execute(new SimpleStatement("USE " + keyspace));
+                this.Execute(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
                 this.Keyspace = keyspace;
             }
         }

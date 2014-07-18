@@ -107,6 +107,51 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void SessionKeyspaceConnectCaseSensitive()
+        {
+            var localCluster = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .Build();
+            try
+            {
+                Assert.Throws<InvalidQueryException>(() => localCluster.Connect("SYSTEM"));
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
+        public void SessionKeyspaceCreateCaseSensitive()
+        {
+            var localCluster = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .Build();
+            try
+            {
+                var localSession = localCluster.Connect();
+                var ks1 = "UPPER_ks";
+                localSession.CreateKeyspace(ks1);
+                localSession.ChangeKeyspace(ks1);
+                localSession.Execute("CREATE TABLE test1 (k uuid PRIMARY KEY, v text)");
+
+                //Execute multiple times a query on the newly created keyspace
+                Assert.DoesNotThrow(() =>
+                {
+                    for (var i = 0; i < 5; i++)
+                    {
+                        localSession.Execute("SELECT * FROM test1");
+                    }
+                });
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
         [Explicit("Not implemented")]
         public void SessionFaultsTasksAfterDisposed()
         {

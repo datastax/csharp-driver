@@ -125,7 +125,7 @@ namespace Cassandra
                     _logger.Info("Connection to host " + HostAddress + " switching to keyspace " + value);
                     this._keyspace = value;
                     var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
-                    var request = new QueryRequest(ProtocolVersion, "USE " + value, false, QueryProtocolOptions.Default);
+                    var request = new QueryRequest(ProtocolVersion, String.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
                     TaskHelper.WaitToComplete(this.Send(request), timeout);
                 }
             }
