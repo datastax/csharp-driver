@@ -10,7 +10,7 @@ namespace CqlPoco.IntegrationTests
     public class FetchTests : IntegrationTestBase
     {
         [Test]
-        public async void FetchAllCql()
+        public async void FetchAllWithCql()
         {
             List<PlainUser> users = await CqlClient.Fetch<PlainUser>("SELECT * FROM users");
             users.Count.Should().Be(TestDataHelper.Users.Count);

@@ -28,31 +28,82 @@ namespace CqlPoco
 
         public async Task<List<T>> Fetch<T>(string cql, params object[] args)
         {
+            // Get the statement to execute
             PocoData pocoData = PocoData.ForType<T>();
             IStatementWrapper statement = await pocoData.StatementFactory.GetSelect(cql).ConfigureAwait(false);
+
+            // Execute the statement
             RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
+
+            // Map to return type
             Func<Row, T> mapper = pocoData.MapperFactory.GetMapper<T>(statement, rows);
             return rows.Select(mapper).ToList();
         }
         
-        public Task<T> Single<T>(string cql, params object[] args)
+        public async Task<T> Single<T>(string cql, params object[] args)
         {
-            throw new NotImplementedException();
+            // Get statement to execute
+            PocoData pocoData = PocoData.ForType<T>();
+            IStatementWrapper statement = await pocoData.StatementFactory.GetSelect(cql).ConfigureAwait(false);
+
+            // Execute and get single row
+            RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
+            Row row = rows.Single();
+
+            // Map to return type
+            Func<Row, T> mapper = pocoData.MapperFactory.GetMapper<T>(statement, rows);
+            return mapper(row);
+        }
+        
+        public async Task<T> SingleOrDefault<T>(string cql, params object[] args)
+        {
+            // Get statement to execute
+            PocoData pocoData = PocoData.ForType<T>();
+            IStatementWrapper statement = await pocoData.StatementFactory.GetSelect(cql).ConfigureAwait(false);
+
+            // Execute and get single row or default
+            RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
+            Row row = rows.SingleOrDefault();
+
+            // Map to return type or return default
+            if (row == null) 
+                return default(T);
+
+            Func<Row, T> mapper = pocoData.MapperFactory.GetMapper<T>(statement, rows);
+            return mapper(row);
         }
 
-        public Task<T> SingleOrDefault<T>(string cql, params object[] args)
+        public async Task<T> First<T>(string cql, params object[] args)
         {
-            throw new NotImplementedException();
+            // Get statement to execute
+            PocoData pocoData = PocoData.ForType<T>();
+            IStatementWrapper statement = await pocoData.StatementFactory.GetSelect(cql).ConfigureAwait(false);
+
+            // Execute and get single row or default
+            RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
+            Row row = rows.First();
+
+            // Map to return type
+            Func<Row, T> mapper = pocoData.MapperFactory.GetMapper<T>(statement, rows);
+            return mapper(row);
         }
 
-        public Task<T> First<T>(string cql, params object[] args)
+        public async Task<T> FirstOrDefault<T>(string cql, params object[] args)
         {
-            throw new NotImplementedException();
-        }
+            // Get statement to execute
+            PocoData pocoData = PocoData.ForType<T>();
+            IStatementWrapper statement = await pocoData.StatementFactory.GetSelect(cql).ConfigureAwait(false);
 
-        public Task<T> FirstOrDefault<T>(string cql, params object[] args)
-        {
-            throw new NotImplementedException();
+            // Execute and get single row or default
+            RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
+            Row row = rows.FirstOrDefault();
+
+            // Map to return type or return default
+            if (row == null)
+                return default(T);
+
+            Func<Row, T> mapper = pocoData.MapperFactory.GetMapper<T>(statement, rows);
+            return mapper(row);
         }
 
         public Task Insert<T>(T poco)
