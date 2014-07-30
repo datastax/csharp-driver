@@ -109,7 +109,7 @@ namespace CqlPoco
                     {
                         // No converter is available but the types don't match, so attempt to do:
                         //     (TFieldOrProp) row.GetValue<T>(columnIndex);
-                        getColumnValue = Expression.ConvertChecked(getValueT, pocoColumn.MemberInfoType);
+                        getColumnValue = Expression.Convert(getValueT, pocoColumn.MemberInfoType);
                     }
                     else
                     {
@@ -120,14 +120,32 @@ namespace CqlPoco
                         // If the converter's return type doesn't match (because the destination was a nullable type), add a cast:
                         //     (TFieldOrProp) converter(row.GetValue<T>(columnIndex));
                         if (convertToType != pocoColumn.MemberInfoType)
-                            getColumnValue = Expression.ConvertChecked(getColumnValue, pocoColumn.MemberInfoType);
+                            getColumnValue = Expression.Convert(getColumnValue, pocoColumn.MemberInfoType);
                     }
                 }
 
+                // poco.SomeFieldOrProp = ... getColumnValue call ...
+                BinaryExpression ifRowIsNotNull = Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), getColumnValue);
+
+                // Start with an expression that does nothing if the row is null
+                Expression ifRowIsNull = Expression.Empty();
+
+                // Cassandra will return null for empty collections, so make an effort to populate collection properties on the POCO with
+                // empty collections instead of null in those cases
+                Expression createEmptyCollection;
+                if (TryGetCreateEmptyCollectionExpression(dbColumn, pocoColumn, out createEmptyCollection))
+                {
+                    // poco.SomeFieldOrProp = ... createEmptyCollection ...
+                    ifRowIsNull = Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), createEmptyCollection);
+                }
+                    
+                
                 // if (row.IsNull(columnIndex) == false)
-                //     poco.SomeFieldOrProp = ... getColumnValue call ...
-                methodBodyExpressions.Add(Expression.IfThen(Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndex)),
-                                                            Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), getColumnValue)));
+                //     ... ifRowIsNotNull ...
+                // else
+                //     ... ifRowIsNull ...
+                methodBodyExpressions.Add(Expression.IfThenElse(Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndex)), ifRowIsNotNull,
+                                                                ifRowIsNull));
             }
 
             // The last expression in the method body is the return value, so put our new POCO at the end
@@ -138,6 +156,101 @@ namespace CqlPoco
             
             // Return compiled expression
             return Expression.Lambda<Func<Row, T>>(methodBody, row).Compile();
+        }
+
+        /// <summary>
+        /// Tries to get an Expression that will create an empty collection compatible with the POCO column's type if the type coming from
+        /// the database is a collection type.  Returns true if successful, along with the Expression in an out parameter.
+        /// </summary>
+        private static bool TryGetCreateEmptyCollectionExpression(CqlColumn dbColumn, PocoColumn pocoColumn, out Expression createEmptyCollection)
+        {
+            createEmptyCollection = null;
+
+            // If the DB column isn't a collection type, just bail
+            if (dbColumn.TypeCode != ColumnTypeCode.List && dbColumn.TypeCode != ColumnTypeCode.Set && dbColumn.TypeCode != ColumnTypeCode.Map)
+                return false;
+
+            Type pocoColumnType = pocoColumn.MemberInfoType;
+
+            // See if the POCO's type if something we can create an empty collection for
+            if (pocoColumnType.IsInterface == false)
+            {
+                // If an array, we know we have a constructor available
+                if (pocoColumnType.IsArray)
+                {
+                    // new T[] { }
+                    createEmptyCollection = Expression.NewArrayInit(pocoColumnType);
+                    return true;
+                }
+
+                // Is a type implementing ICollection<T>? (this covers types implementing ISet<T>, IDictionary<T> as well)
+                if (ImplementsCollectionInterface(pocoColumnType))
+                {
+                    try
+                    {
+                        // new T();
+                        createEmptyCollection = Expression.New(pocoColumnType);
+                        return true;
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Type does not have an empty constructor, so just bail
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                // See if destination type interface on the POCO is one we can create an empty object for
+                if (pocoColumnType.IsGenericType == false)
+                    return false;
+
+                Type openGenericType = pocoColumnType.GetGenericTypeDefinition();
+
+                // Handle IDictionary<T, U>
+                if (openGenericType == typeof (IDictionary<,>))
+                {
+                    // The driver currently uses SortedDictionary so we will too
+                    Type dictionaryType = typeof (SortedDictionary<,>).MakeGenericType(pocoColumnType.GetGenericArguments());
+
+                    // (IDictionary<T, U>) new SortedDictionary<T, U>();
+                    createEmptyCollection = Expression.Convert(Expression.New(dictionaryType), pocoColumnType);
+                    return true;
+                }
+
+                // Handle ISet<T>
+                if (openGenericType == typeof (ISet<>))
+                {
+                    // The driver uses List (?!) but we'll use a sorted set since that's the CQL semantics
+                    Type setType = typeof (SortedSet<>).MakeGenericType(pocoColumnType.GetGenericArguments());
+
+                    // (ISet<T>) new SortedSet<T>();
+                    createEmptyCollection = Expression.Convert(Expression.New(setType), pocoColumnType);
+                    return true;
+                }
+
+                // Handle ICollection<T>, IList<T>, and IEnumerable<T>
+                if (openGenericType == typeof (ICollection<>) || openGenericType == typeof (IList<>) || openGenericType == typeof (IEnumerable<>))
+                {
+                    // The driver uses List so we'll use that as well
+                    Type listType = typeof (List<>).MakeGenericType(pocoColumnType.GetGenericArguments());
+
+                    // (... IList<T> or ICollection<T> or IEnumerable<T> ...) new List<T>();
+                    createEmptyCollection = Expression.Convert(Expression.New(listType), pocoColumnType);
+                    return true;
+                }
+            }
+
+            // We don't know what to do to create an empty collection or we don't know it's a collection
+            return false;
+        }
+        
+        /// <summary>
+        /// Returns true if the Type implements the ICollection&lt;T&gt; interface.
+        /// </summary>
+        private static bool ImplementsCollectionInterface(Type t)
+        {
+            return t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof (ICollection<>)) != null;
         }
     }
 }

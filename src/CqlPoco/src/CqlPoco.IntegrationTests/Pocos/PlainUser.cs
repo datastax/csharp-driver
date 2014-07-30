@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CqlPoco.IntegrationTests.Pocos
 {
@@ -16,6 +17,11 @@ namespace CqlPoco.IntegrationTests.Pocos
 
         // Nullable types
         public DateTimeOffset? LastLoginDate { get; set; }
+
+        // Collection types
+        public List<DateTimeOffset> LoginHistory { get; set; }
+        public HashSet<int> LuckyNumbers { get; set; }
+        public Dictionary<string, int> ChildrenAges { get; set; }
 
         // Enum and nullable enum properties
         public RainbowColor FavoriteColor { get; set; }
