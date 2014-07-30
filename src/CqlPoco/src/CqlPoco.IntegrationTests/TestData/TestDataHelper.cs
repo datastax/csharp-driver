@@ -41,8 +41,11 @@ namespace CqlPoco.IntegrationTests.TestData
                             "    age int, " +
                             "    createddate timestamp, " +
                             "    isactive boolean, " +
+                            "    lastlogindate timestamp, " +
+                            "    favoritecolor text, " +
                             "    typeofuser text, " +
                             "    preferredcontactmethod int, " +
+                            "    haircolor int, " +
                             "    PRIMARY KEY (userid)" +
                             ")");
         }
@@ -55,20 +58,23 @@ namespace CqlPoco.IntegrationTests.TestData
                 UserId = Guid.NewGuid(),
                 Name = string.Format("Name {0}", idx),
                 Age = idx,
-                CreatedDate = DateTimeOffset.UtcNow.AddDays(-1*idx),
+                CreatedDate = GetDateTimeInPast(idx),
                 IsActive = idx%2 == 0,
+                LastLoginDate = GetNullableDateTimeInPast(idx),
+                FavoriteColor = GetEnumValue<RainbowColor>(idx),
                 TypeOfUser = GetEnumValue<UserType?>(idx),
-                PreferredContactMethod = GetEnumValue<ContactMethod>(idx)
+                PreferredContactMethod = GetEnumValue<ContactMethod>(idx),
+                HairColor = GetEnumValue<HairColor>(idx)
             }).ToList();
 
             
             foreach (TestUser user in users)
             {
                 var insertUser = new SimpleStatement(
-                    "INSERT INTO users (userid, name, age, createddate, isactive, typeofuser, preferredcontactmethod) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)")
-                    .Bind(user.UserId, user.Name, user.Age, user.CreatedDate, user.IsActive,
-                          user.TypeOfUser == null ? null : user.TypeOfUser.ToString(), (int?) user.PreferredContactMethod);
+                    "INSERT INTO users (userid, name, age, createddate, isactive, lastlogindate, favoritecolor, typeofuser, preferredcontactmethod, haircolor) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    .Bind(user.UserId, user.Name, user.Age, user.CreatedDate, user.IsActive, user.LastLoginDate, user.FavoriteColor.ToString(),
+                          user.TypeOfUser == null ? null : user.TypeOfUser.ToString(), (int) user.PreferredContactMethod, (int?) user.HairColor);
 
                 session.Execute(insertUser);
             }
@@ -96,6 +102,20 @@ namespace CqlPoco.IntegrationTests.TestData
                 return (TEnum) enumValues[idx];
 
             return default(TEnum);
+        }
+
+        private static DateTimeOffset GetDateTimeInPast(int index)
+        {
+            return DateTimeOffset.UtcNow.AddDays(-1*index);
+        }
+
+        private static DateTimeOffset? GetNullableDateTimeInPast(int index)
+        {
+            // Just null out every third record
+            if (index%3 == 0)
+                return null;
+
+            return GetDateTimeInPast(index);
         }
 
         private static bool IsNullableType(Type t)

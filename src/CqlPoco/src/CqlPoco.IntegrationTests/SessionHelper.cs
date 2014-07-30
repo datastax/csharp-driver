@@ -31,8 +31,11 @@ namespace CqlPoco.IntegrationTests
             // Create a unique keyspace for each integration test run
             _keyspaceName = string.Format("CqlPoco_{0}", DateTimeOffset.UtcNow.UtcTicks);
             ISession session = cluster.Connect();
-            session.CreateKeyspaceIfNotExists(_keyspaceName);
-            session.ChangeKeyspace(_keyspaceName);
+
+            // Create the keyspace and switch to it
+            session.Execute(string.Format("CREATE KEYSPACE {0} WITH REPLICATION = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }}",
+                                          _keyspaceName));
+            session.Execute(string.Format("USE {0}", _keyspaceName));
 
             Session = session;
         }
@@ -43,7 +46,7 @@ namespace CqlPoco.IntegrationTests
         public static void RemoveKeyspace()
         {
             // Remove the keyspace we created on init
-            Session.DeleteKeyspaceIfExists(_keyspaceName);
+            Session.Execute(string.Format("DROP KEYSPACE IF EXISTS {0}", _keyspaceName));
         }
     }
 }

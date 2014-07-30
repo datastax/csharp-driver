@@ -14,7 +14,13 @@ namespace CqlPoco.IntegrationTests.TestData
         public DateTimeOffset CreatedDate { get; set; }
         public bool IsActive { get; set; }
 
+        // Nullable types
+        public DateTimeOffset? LastLoginDate { get; set; }
+
+        // Some enum/nullable enum properties persisted as string/int
+        public RainbowColor FavoriteColor { get; set; }
         public UserType? TypeOfUser { get; set; }
         public ContactMethod PreferredContactMethod { get; set; }
+        public HairColor? HairColor { get; set; }
     }
 }
