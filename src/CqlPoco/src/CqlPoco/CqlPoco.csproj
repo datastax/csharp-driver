@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;SAVE_POCO_FACTORIES</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -56,6 +56,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CqlClientConfiguration.cs" />
+    <Compile Include="PocoDataFactory.cs" />
+    <Compile Include="TypeConversion\EnumStringMapper.cs" />
     <Compile Include="ICqlClient.cs" />
     <Compile Include="CqlClient.cs" />
     <Compile Include="ICqlQueryClient.cs" />
@@ -67,6 +70,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Statements\SimpleStatementWrapper.cs" />
     <Compile Include="Statements\StatementFactory.cs" />
+    <Compile Include="TypeConversion\DefaultTypeConverterFactory.cs" />
+    <Compile Include="TypeConversion\TypeConverterFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

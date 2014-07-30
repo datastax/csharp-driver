@@ -9,12 +9,8 @@ namespace CqlPoco.Statements
     /// </summary>
     internal class StatementFactory
     {
-        private readonly PocoData _pocoData;
-
-        public StatementFactory(PocoData pocoData)
+        public StatementFactory()
         {
-            if (pocoData == null) throw new ArgumentNullException("pocoData");
-            _pocoData = pocoData;
         }
 
         public Task<IStatementWrapper> GetSelect(string cql)

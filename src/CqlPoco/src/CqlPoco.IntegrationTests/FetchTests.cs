@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using CqlPoco.IntegrationTests.Assertions;
+using CqlPoco.IntegrationTests.Pocos;
 using CqlPoco.IntegrationTests.TestData;
 using FluentAssertions;
 using NUnit.Framework;

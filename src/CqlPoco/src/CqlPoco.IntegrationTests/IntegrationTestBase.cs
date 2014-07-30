@@ -19,7 +19,7 @@ namespace CqlPoco.IntegrationTests
         [SetUp]
         public void Setup()
         {
-            CqlClient = new CqlClient(SessionHelper.Session);
+            CqlClient = CqlClientConfiguration.ForSession(SessionHelper.Session).BuildCqlClient();
         }
     }
 }

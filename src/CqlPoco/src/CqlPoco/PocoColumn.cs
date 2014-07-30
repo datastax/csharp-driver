@@ -3,17 +3,12 @@ using System.Reflection;
 
 namespace CqlPoco
 {
-    public class PocoColumn
+    internal class PocoColumn
     {
         /// <summary>
         /// The name of the column in the database.
         /// </summary>
         public string ColumnName { get; private set; }
-
-        /// <summary>
-        /// The .NET type of the data in the database.
-        /// </summary>
-        public Type ColumnType { get; private set; }
 
         /// <summary>
         /// The MemberInfo for the POCO field/property.
@@ -50,7 +45,6 @@ namespace CqlPoco
             return new PocoColumn
             {
                 ColumnName = memberInfo.Name,
-                ColumnType = memberInfoType,
                 MemberInfo = memberInfo,
                 MemberInfoType = memberInfoType
             };

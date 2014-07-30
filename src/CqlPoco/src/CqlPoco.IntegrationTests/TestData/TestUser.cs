@@ -1,4 +1,5 @@
 ﻿using System;
+using CqlPoco.IntegrationTests.Pocos;
 
 namespace CqlPoco.IntegrationTests.TestData
 {
@@ -12,5 +13,8 @@ namespace CqlPoco.IntegrationTests.TestData
         public int Age { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
         public bool IsActive { get; set; }
+
+        public UserType? TypeOfUser { get; set; }
+        public ContactMethod PreferredContactMethod { get; set; }
     }
 }
