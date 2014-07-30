@@ -10,6 +10,9 @@ using CqlPoco.TypeConversion;
 
 namespace CqlPoco
 {
+    /// <summary>
+    /// Component capable of getting/creating Func&lt;Row, T&gt; functions that create POCOs of type T from a Cassandra Row.
+    /// </summary>
     internal class MapperFactory
     {
         private static readonly Type CassandraRowType = typeof (Row);
@@ -39,10 +42,9 @@ namespace CqlPoco
             return parameters.Length == 1 && parameters[0].ParameterType == typeof (int);
         });
 
-        private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _mapperFuncCache;
-
         private readonly TypeConverterFactory _typeConverter;
         private readonly PocoDataFactory _pocoDataFactory;
+        private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _mapperFuncCache;
 
         public MapperFactory(TypeConverterFactory typeConverter, PocoDataFactory pocoDataFactory)
         {
