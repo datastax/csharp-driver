@@ -43,13 +43,13 @@
     <Reference Include="Cassandra.Data.Linq">
       <HintPath>..\packages\CassandraCSharpDriver.2.0.3\lib\net40\Cassandra.Data.Linq.dll</HintPath>
     </Reference>
-    <Reference Include="FluentAssertions, Version=3.0.107.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+    <Reference Include="FluentAssertions, Version=3.1.229.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\FluentAssertions.3.0.107\lib\net45\FluentAssertions.dll</HintPath>
+      <HintPath>..\packages\FluentAssertions.3.1.229\lib\net45\FluentAssertions.dll</HintPath>
     </Reference>
-    <Reference Include="FluentAssertions.Core, Version=3.0.107.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+    <Reference Include="FluentAssertions.Core, Version=3.1.229.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\FluentAssertions.3.0.107\lib\net45\FluentAssertions.Core.dll</HintPath>
+      <HintPath>..\packages\FluentAssertions.3.1.229\lib\net45\FluentAssertions.Core.dll</HintPath>
     </Reference>
     <Reference Include="LZ4, Version=1.0.3.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -71,6 +71,7 @@
     <Compile Include="Assertions\AssertionExtensions.cs" />
     <Compile Include="Assertions\CassandraDateTimeEquality.cs" />
     <Compile Include="Assertions\CassandraDateTimeOffsetEquality.cs" />
+    <Compile Include="Assertions\DateTimeOffsetExtensions.cs" />
     <Compile Include="FetchTests.cs" />
     <Compile Include="FirstTests.cs" />
     <Compile Include="IntegrationTestBase.cs" />

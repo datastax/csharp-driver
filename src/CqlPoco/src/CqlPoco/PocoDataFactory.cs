@@ -47,7 +47,7 @@ namespace CqlPoco
         /// </summary>
         private static IEnumerable<PropertyInfo> GetPocoProperties(Type t)
         {
-            return t.GetProperties(PublicInstanceBindingFlags);
+            return t.GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite);
         }
     }
 }
