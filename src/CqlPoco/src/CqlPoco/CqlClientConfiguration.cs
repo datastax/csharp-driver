@@ -1,5 +1,6 @@
 ﻿using System;
 using Cassandra;
+using CqlPoco.Mapping;
 using CqlPoco.Statements;
 using CqlPoco.TypeConversion;
 

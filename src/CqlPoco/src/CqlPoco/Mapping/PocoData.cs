@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CqlPoco
+namespace CqlPoco.Mapping
 {
     /// <summary>
     /// Represents data about a POCO and its mapping to Cassandra Rows in a table.

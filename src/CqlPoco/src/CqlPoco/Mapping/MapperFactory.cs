@@ -8,7 +8,7 @@ using Cassandra;
 using CqlPoco.Statements;
 using CqlPoco.TypeConversion;
 
-namespace CqlPoco
+namespace CqlPoco.Mapping
 {
     /// <summary>
     /// Component capable of getting/creating Func&lt;Row, T&gt; functions that create POCOs of type T from a Cassandra Row.

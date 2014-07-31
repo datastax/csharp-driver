@@ -76,6 +76,8 @@
     <Compile Include="FirstTests.cs" />
     <Compile Include="IntegrationTestBase.cs" />
     <Compile Include="Pocos\ContactMethod.cs" />
+    <Compile Include="Pocos\DecoratedUser.cs" />
+    <Compile Include="Pocos\ExplicitColumnsUser.cs" />
     <Compile Include="Pocos\HairColor.cs" />
     <Compile Include="Pocos\PlainUser.cs" />
     <Compile Include="Pocos\RainbowColor.cs" />

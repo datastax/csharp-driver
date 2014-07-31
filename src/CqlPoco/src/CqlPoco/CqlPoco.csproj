@@ -56,16 +56,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ColumnAttribute.cs" />
     <Compile Include="CqlClientConfiguration.cs" />
-    <Compile Include="PocoDataFactory.cs" />
+    <Compile Include="ExplicitColumnsAttribute.cs" />
+    <Compile Include="IgnoreAttribute.cs" />
+    <Compile Include="Mapping\PocoDataFactory.cs" />
+    <Compile Include="TableNameAttribute.cs" />
     <Compile Include="TypeConversion\EnumStringMapper.cs" />
     <Compile Include="ICqlClient.cs" />
     <Compile Include="CqlClient.cs" />
     <Compile Include="ICqlQueryClient.cs" />
-    <Compile Include="PocoColumn.cs" />
+    <Compile Include="Mapping\PocoColumn.cs" />
     <Compile Include="Statements\IStatementWrapper.cs" />
-    <Compile Include="PocoData.cs" />
-    <Compile Include="MapperFactory.cs" />
+    <Compile Include="Mapping\PocoData.cs" />
+    <Compile Include="Mapping\MapperFactory.cs" />
     <Compile Include="Statements\PreparedStatementWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Statements\SimpleStatementWrapper.cs" />

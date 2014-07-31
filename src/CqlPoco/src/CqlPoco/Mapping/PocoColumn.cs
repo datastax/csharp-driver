@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 
-namespace CqlPoco
+namespace CqlPoco.Mapping
 {
     internal class PocoColumn
     {
@@ -42,9 +42,13 @@ namespace CqlPoco
 
         private static PocoColumn FromMemberInfo(MemberInfo memberInfo, Type memberInfoType)
         {
+            // See if the column name was overridden
+            var columnAttribute = memberInfo.GetCustomAttribute<ColumnAttribute>();
+            string columnName = columnAttribute == null || string.IsNullOrEmpty(columnAttribute.Name) ? memberInfo.Name : columnAttribute.Name;
+            
             return new PocoColumn
             {
-                ColumnName = memberInfo.Name,
+                ColumnName = columnName,
                 MemberInfo = memberInfo,
                 MemberInfoType = memberInfoType
             };
