@@ -71,7 +71,7 @@ namespace CqlPoco.Mapping
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
 
             // See if we retrieved only one column and if that column does not exist in the PocoData
-            if (rows.Columns.Length == 1 && pocoData.Columns.ContainsKey(rows.Columns[0].Name) == false)
+            if (rows.Columns.Length == 1 && pocoData.Columns.Contains(rows.Columns[0].Name) == false)
             {
                 // Map the single column value directly to the POCO
                 return CreateMapperForSingleColumnToPoco<T>(rows, pocoData);
@@ -135,7 +135,7 @@ namespace CqlPoco.Mapping
             {
                 // Try to find a corresponding column on the POCO and if not found, don't map that column from the RowSet
                 PocoColumn pocoColumn;
-                if (pocoData.Columns.TryGetValue(dbColumn.Name, out pocoColumn) == false)
+                if (pocoData.Columns.TryGetItem(dbColumn.Name, out pocoColumn) == false)
                     continue;
 
                 // Figure out if we're going to need to do any casting/conversion when we call Row.GetValue<T>(columnIndex)

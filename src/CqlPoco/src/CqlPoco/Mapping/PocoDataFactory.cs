@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CqlPoco.Utils;
 
 namespace CqlPoco.Mapping
 {
@@ -33,7 +34,7 @@ namespace CqlPoco.Mapping
             IEnumerable<PocoColumn> fields = GetMappableFields(pocoType, explicitColumns).Select(PocoColumn.FromField);
             IEnumerable<PocoColumn> properties = GetMappableProperties(pocoType, explicitColumns).Select(PocoColumn.FromProperty);
 
-            Dictionary<string, PocoColumn> columns = fields.Union(properties).ToDictionary(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
+            LookupKeyedCollection<string, PocoColumn> columns = fields.Union(properties).ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
 
             // Figure out the table name
             var tableNameAttribute = pocoType.GetCustomAttributes<TableNameAttribute>(true).FirstOrDefault();

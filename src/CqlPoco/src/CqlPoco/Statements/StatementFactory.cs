@@ -40,7 +40,7 @@ namespace CqlPoco.Statements
 
             // Get the PocoData so we can generate a list of columns
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            string columns = string.Join(", ", pocoData.Columns.Keys);
+            string columns = string.Join(", ", pocoData.Columns.Select(c => c.ColumnName));
 
             // If it's got the from clause, leave FROM intact, otherwise add it
             if (FromRegex.IsMatch(cql))

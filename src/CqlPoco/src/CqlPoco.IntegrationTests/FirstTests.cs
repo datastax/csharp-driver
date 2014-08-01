@@ -48,7 +48,7 @@ namespace CqlPoco.IntegrationTests
         {
             // Get random first created date and make sure it was one from our test data
             var createdDate = await CqlClient.First<DateTimeOffset>("SELECT createddate FROM users");
-            TestDataHelper.Users.Select(u => u.CreatedDate.TruncateToMillisecond()).Should().Contain(createdDate);
+            TestDataHelper.Users.Select(u => u.CreatedDate.ToMillisecondPrecision()).Should().Contain(createdDate);
 
             // Verify getting random first for user that doesn't exist throws
             Func<Task> getUserId = async () =>

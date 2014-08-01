@@ -60,6 +60,8 @@
     <Compile Include="CqlClientConfiguration.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="IgnoreAttribute.cs" />
+    <Compile Include="Utils\EnumerableExtensions.cs" />
+    <Compile Include="Utils\LookupKeyedCollection.cs" />
     <Compile Include="Mapping\PocoDataFactory.cs" />
     <Compile Include="TableNameAttribute.cs" />
     <Compile Include="TypeConversion\EnumStringMapper.cs" />

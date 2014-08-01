@@ -129,7 +129,7 @@ namespace CqlPoco.IntegrationTests
             
             // Try nullable type (truncate to ms to account for C* storing timestamps with ms precision)
             List<DateTimeOffset?> lastLogins = await CqlClient.Fetch<DateTimeOffset?>("SELECT lastlogindate FROM users");
-            lastLogins.Should().BeEquivalentTo(TestDataHelper.Users.Select(u => u.LastLoginDate.TruncateToMillisecond()));
+            lastLogins.Should().BeEquivalentTo(TestDataHelper.Users.Select(u => u.LastLoginDate.ToMillisecondPrecision()));
             
             // Try string -> enum conversion
             List<RainbowColor> faveColors = await CqlClient.Fetch<RainbowColor>("SELECT favoritecolor FROM users");
