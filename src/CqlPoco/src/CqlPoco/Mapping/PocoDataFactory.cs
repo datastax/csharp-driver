@@ -27,7 +27,7 @@ namespace CqlPoco.Mapping
         
         private static PocoData CreatePocoData(Type pocoType)
         {
-            bool explicitColumns = pocoType.GetCustomAttribute<ExplicitColumnsAttribute>() != null;
+            bool explicitColumns = pocoType.GetCustomAttributes<ExplicitColumnsAttribute>(true).FirstOrDefault() != null;
 
             // Find all public instance fields and properties and convert to PocoColumn dictionary keyed by column name
             IEnumerable<PocoColumn> fields = GetMappableFields(pocoType, explicitColumns).Select(PocoColumn.FromField);
@@ -35,7 +35,11 @@ namespace CqlPoco.Mapping
 
             Dictionary<string, PocoColumn> columns = fields.Union(properties).ToDictionary(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
 
-            return new PocoData(pocoType, columns);
+            // Figure out the table name
+            var tableNameAttribute = pocoType.GetCustomAttributes<TableNameAttribute>(true).FirstOrDefault();
+            string tableName = tableNameAttribute == null ? pocoType.Name : tableNameAttribute.Value;
+
+            return new PocoData(pocoType, tableName, columns);
         }
 
         /// <summary>
@@ -57,11 +61,11 @@ namespace CqlPoco.Mapping
         private static bool ShouldMap(MemberInfo propOrField, bool explicitColumns)
         {
             // If explicit columns is turned on, must have a ColumnAttribute to be mapped
-            if (explicitColumns && propOrField.GetCustomAttribute<ColumnAttribute>() == null)
+            if (explicitColumns && propOrField.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault() == null)
                 return false;
 
             // If explicit columns is not on, ignore anything with an IgnoreAttribute
-            if (explicitColumns == false && propOrField.GetCustomAttribute<IgnoreAttribute>() != null)
+            if (explicitColumns == false && propOrField.GetCustomAttributes<IgnoreAttribute>(true).FirstOrDefault() != null)
                 return false;
 
             return true;

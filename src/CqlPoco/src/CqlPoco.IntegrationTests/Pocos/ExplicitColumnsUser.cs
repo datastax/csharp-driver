@@ -6,6 +6,7 @@ namespace CqlPoco.IntegrationTests.Pocos
     /// A user decorated with attributes indicating how it should be mapped, specifically the ExplicitColumnsAttribute.
     /// </summary>
     [ExplicitColumns]
+    [TableName("users")]
     public class ExplicitColumnsUser
     {
         [Column]

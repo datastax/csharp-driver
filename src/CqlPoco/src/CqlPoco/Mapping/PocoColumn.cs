@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace CqlPoco.Mapping
@@ -43,7 +44,7 @@ namespace CqlPoco.Mapping
         private static PocoColumn FromMemberInfo(MemberInfo memberInfo, Type memberInfoType)
         {
             // See if the column name was overridden
-            var columnAttribute = memberInfo.GetCustomAttribute<ColumnAttribute>();
+            var columnAttribute = memberInfo.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
             string columnName = columnAttribute == null || string.IsNullOrEmpty(columnAttribute.Name) ? memberInfo.Name : columnAttribute.Name;
             
             return new PocoColumn

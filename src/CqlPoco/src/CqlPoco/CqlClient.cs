@@ -31,13 +31,14 @@ namespace CqlPoco
 
         public Task<List<T>> Fetch<T>()
         {
-            throw new System.NotImplementedException();
+            // Just pass an empty string for the CQL and let if be auto-generated
+            return Fetch<T>(string.Empty);
         }
 
         public async Task<List<T>> Fetch<T>(string cql, params object[] args)
         {
             // Get the statement to execute and execute it
-            IStatementWrapper statement = await _statementFactory.GetSelect(cql).ConfigureAwait(false);
+            IStatementWrapper statement = await _statementFactory.GetSelect<T>(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
 
             // Map to return type
@@ -48,7 +49,7 @@ namespace CqlPoco
         public async Task<T> Single<T>(string cql, params object[] args)
         {
             // Get statement to execute, execute and get single row
-            IStatementWrapper statement = await _statementFactory.GetSelect(cql).ConfigureAwait(false);
+            IStatementWrapper statement = await _statementFactory.GetSelect<T>(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
             Row row = rows.Single();
 
@@ -60,7 +61,7 @@ namespace CqlPoco
         public async Task<T> SingleOrDefault<T>(string cql, params object[] args)
         {
             // Get statement to execute, execute and get single row or default
-            IStatementWrapper statement = await _statementFactory.GetSelect(cql).ConfigureAwait(false);
+            IStatementWrapper statement = await _statementFactory.GetSelect<T>(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
             Row row = rows.SingleOrDefault();
 
@@ -75,7 +76,7 @@ namespace CqlPoco
         public async Task<T> First<T>(string cql, params object[] args)
         {
             // Get statement to execute, execute and get first row
-            IStatementWrapper statement = await _statementFactory.GetSelect(cql).ConfigureAwait(false);
+            IStatementWrapper statement = await _statementFactory.GetSelect<T>(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
             Row row = rows.First();
 
@@ -87,7 +88,7 @@ namespace CqlPoco
         public async Task<T> FirstOrDefault<T>(string cql, params object[] args)
         {
             // Get statement to execute, execute and get first row
-            IStatementWrapper statement = await _statementFactory.GetSelect(cql).ConfigureAwait(false);
+            IStatementWrapper statement = await _statementFactory.GetSelect<T>(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement.Bind(args)).ConfigureAwait(false);
             Row row = rows.FirstOrDefault();
 

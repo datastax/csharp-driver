@@ -38,7 +38,8 @@ namespace CqlPoco
         /// </summary>
         public ICqlClient BuildCqlClient()
         {
-            return new CqlClient(_session, new MapperFactory(_typeConverterFactory, new PocoDataFactory()), new StatementFactory());
+            var pocoDataFactory = new PocoDataFactory();
+            return new CqlClient(_session, new MapperFactory(_typeConverterFactory, pocoDataFactory), new StatementFactory(pocoDataFactory));
         }
 
         /// <summary>
