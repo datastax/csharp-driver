@@ -11,5 +11,10 @@ namespace CqlPoco.TypeConversion
         {
             return null;
         }
+
+        protected override Func<TPoco, TDatabase> GetUserDefinedToDbConverter<TPoco, TDatabase>()
+        {
+            return null;
+        }
     }
 }

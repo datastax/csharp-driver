@@ -32,6 +32,18 @@ namespace CqlPoco.Statements
             return Task.FromResult<IStatementWrapper>(new SimpleStatementWrapper(new SimpleStatement(cql)));
         }
 
+        public Task<IStatementWrapper> GetInsert<T>()
+        {
+            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
+            string columns = string.Join(", ", pocoData.Columns.Select(c => c.ColumnName));
+            string placeholders = string.Join(", ", Enumerable.Repeat("?", pocoData.Columns.Count));
+
+            string cql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", pocoData.TableName, columns, placeholders);
+
+            // TODO:  Cache/use prepared statements
+            return Task.FromResult<IStatementWrapper>(new SimpleStatementWrapper(new SimpleStatement(cql)));
+        }
+
         private string AddSelectToCql<T>(string cql)
         {
             // If it's already got a SELECT clause, just bail

@@ -16,6 +16,9 @@ namespace CqlPoco.Mapping
     internal class MapperFactory
     {
         private static readonly Type CassandraRowType = typeof (Row);
+        private static readonly Type IntType = typeof (int);
+        private static readonly Type ObjectType = typeof (object);
+
         private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance;
 
         // The Row.GetValue<T>(int column) instance method
@@ -29,7 +32,7 @@ namespace CqlPoco.Mapping
                 return false;
 
             ParameterInfo[] parameters = mi.GetParameters();
-            return parameters.Length == 1 && parameters[0].ParameterType == typeof (int);
+            return parameters.Length == 1 && parameters[0].ParameterType == IntType;
         });
 
         // The Row.IsNull(int column) instance method
@@ -39,12 +42,13 @@ namespace CqlPoco.Mapping
                 return false;
 
             ParameterInfo[] parameters = mi.GetParameters();
-            return parameters.Length == 1 && parameters[0].ParameterType == typeof (int);
+            return parameters.Length == 1 && parameters[0].ParameterType == IntType;
         });
 
         private readonly TypeConverterFactory _typeConverter;
         private readonly PocoDataFactory _pocoDataFactory;
         private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _mapperFuncCache;
+        private readonly ConcurrentDictionary<Type, Delegate> _valueCollectorFuncCache; 
 
         public MapperFactory(TypeConverterFactory typeConverter, PocoDataFactory pocoDataFactory)
         {
@@ -54,6 +58,7 @@ namespace CqlPoco.Mapping
             _pocoDataFactory = pocoDataFactory;
 
             _mapperFuncCache = new ConcurrentDictionary<Tuple<Type, string>, Delegate>();
+            _valueCollectorFuncCache = new ConcurrentDictionary<Type, Delegate>();
         }
 
         /// <summary>
@@ -65,7 +70,20 @@ namespace CqlPoco.Mapping
             Delegate mapperFunc = _mapperFuncCache.GetOrAdd(key, _ => CreateMapper<T>(rows));
             return (Func<Row, T>) mapperFunc;
         }
+
+        /// <summary>
+        /// Gets a Func that can collect all the values on a given POCO T and return an object[] of those values in the same
+        /// order as the PocoColumns for T's PocoData.
+        /// </summary>
+        public Func<T, object[]> GetValueCollector<T>()
+        {
+            Delegate valueCollectorFunc = _valueCollectorFuncCache.GetOrAdd(typeof (T), _ => CreateValueCollector<T>());
+            return (Func<T, object[]>) valueCollectorFunc;
+        }
         
+        /// <summary>
+        /// Creates a mapper Func for going from a C* Row to a POCO, T.
+        /// </summary>
         private Func<Row, T> CreateMapper<T>(RowSet rows)
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
@@ -81,6 +99,64 @@ namespace CqlPoco.Mapping
             return CreateMapperForPoco<T>(rows, pocoData);
         }
 
+        private Func<T, object[]> CreateValueCollector<T>()
+        {
+            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
+
+            // Create list to hold the method body and our input parameter, the POCO of type T
+            var methodBodyExpressions = new List<Expression>();
+            ParameterExpression poco = Expression.Parameter(pocoData.PocoType, "poco");
+
+            // Create a variable to hold our return value, and initialize as an object[] of correct size
+            var values = Expression.Variable(typeof (object[]), "values");
+            methodBodyExpressions.Add(
+                // object[] values = new object[... number of columns on POCO ...];
+                Expression.Assign(values, Expression.NewArrayBounds(ObjectType, Expression.Constant(pocoData.Columns.Count, IntType))));
+
+            for (var idx = 0; idx < pocoData.Columns.Count; idx++)
+            {
+                PocoColumn column = pocoData.Columns[idx];
+                
+                // Start by assuming the database wants the same type that the property is and that we'll just be getting the value from the property:
+                // poco.SomeFieldOrProp
+                Expression getValueFromPoco = Expression.MakeMemberAccess(poco, column.MemberInfo);
+                if (column.MemberInfoType != column.ColumnType)
+                {
+                    // See if there is a converter available for between the two types
+                    Delegate converter = _typeConverter.GetToDbConverter(column.MemberInfoType, column.ColumnType);
+                    if (converter == null)
+                    {
+                        // No converter available, at least try a cast:
+                        // (TColumn) poco.SomeFieldOrProp
+                        getValueFromPoco = Expression.Convert(getValueFromPoco, column.ColumnType);
+                    }
+                    else
+                    {
+                        // Invoke the converter:
+                        // converter(poco.SomeFieldOrProp)
+                        getValueFromPoco = Expression.Call(converter.Target == null ? null : Expression.Constant(converter.Target), converter.Method,
+                                                           getValueFromPoco);
+                    }
+                }
+                
+                // values[columnIndex] = (object) ... getValueFromPoco ...
+                methodBodyExpressions.Add(
+                    Expression.Assign(Expression.ArrayAccess(values, Expression.Constant(idx, IntType)),
+                                      Expression.Convert(getValueFromPoco, ObjectType))
+                    );
+            }
+
+            // Return our values array
+            methodBodyExpressions.Add(values);
+
+            // Construct the method body, then create a compiled Func for the method
+            var methodBody = Expression.Block(new[] {values}, methodBodyExpressions);
+            return Expression.Lambda<Func<T, object[]>>(methodBody, poco).Compile();
+        }
+
+        /// <summary>
+        /// Creates a mapper that flattens a single column's value directly to the "POCO"'s value.  (POCO here most likely being a value type/string/etc.)
+        /// </summary>
         private Func<Row, T> CreateMapperForSingleColumnToPoco<T>(RowSet rows, PocoData pocoData)
         {
             ParameterExpression row = Expression.Parameter(CassandraRowType, "row");
@@ -105,7 +181,7 @@ namespace CqlPoco.Mapping
             //     return ... empty collection or default(TPoco) ...
             var methodBody = Expression.Block(
                 Expression.IfThenElse(
-                    Expression.IsFalse(Expression.Call(row, IsNullMethod, Expression.Constant(0, typeof (int)))), 
+                    Expression.IsFalse(Expression.Call(row, IsNullMethod, Expression.Constant(0, IntType))), 
                     getColumnValue, 
                     ifIsNull),
                 Expression.Label(returnTarget, Expression.Default(pocoData.PocoType)));
@@ -160,7 +236,7 @@ namespace CqlPoco.Mapping
                 //     ... ifRowIsNotNull ...
                 // else
                 //     ... ifRowIsNull ...
-                var columnIndex = Expression.Constant(dbColumn.Index, typeof (int));
+                var columnIndex = Expression.Constant(dbColumn.Index, IntType);
                 methodBodyExpressions.Add(Expression.IfThenElse(Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndex)), ifRowIsNotNull,
                                                                 ifRowIsNull));
             }
@@ -182,7 +258,7 @@ namespace CqlPoco.Mapping
         private Expression GetExpressionToGetColumnValue(ParameterExpression row, CqlColumn dbColumn, Type pocoDestType)
         {
             // Row.GetValue<T>(columnIndex)
-            ConstantExpression columnIndex = Expression.Constant(dbColumn.Index, typeof(int));
+            ConstantExpression columnIndex = Expression.Constant(dbColumn.Index, IntType);
             MethodCallExpression getValueT = Expression.Call(row, GetValueOfTMethod.MakeGenericMethod(dbColumn.Type), columnIndex);
 
             if (pocoDestType == dbColumn.Type)
@@ -190,32 +266,19 @@ namespace CqlPoco.Mapping
                 // No casting/conversion needed since the types match exactly
                 return getValueT;
             }
-            else
+
+            // Check for a converter
+            Delegate converter = _typeConverter.GetFromDbConverter(dbColumn.Type, pocoDestType);
+            if (converter == null)
             {
-                // If the destination type on the POCO is a nullable type, we're going to take care of null (by checking for it) so
-                // we really want to check for a converter to the underlying type
-                Type convertToType = Nullable.GetUnderlyingType(pocoDestType) ?? pocoDestType;
-                Delegate converter = _typeConverter.GetFromDbConverter(dbColumn.Type, convertToType);
-                if (converter == null)
-                {
-                    // No converter is available but the types don't match, so attempt to do:
-                    //     (TFieldOrProp) row.GetValue<T>(columnIndex);
-                    return Expression.Convert(getValueT, pocoDestType);
-                }
-                else
-                {
-                    // Invoke the converter function on getValueT (taking into account whether it's a static method):
-                    //     converter(row.GetValue<T>(columnIndex));
-                    Expression getColumnValue = Expression.Call(converter.Target == null ? null : Expression.Constant(converter.Target), converter.Method, getValueT);
-
-                    // If the converter's return type doesn't match (because the destination was a nullable type), add a cast:
-                    //     (TFieldOrProp) converter(row.GetValue<T>(columnIndex));
-                    if (convertToType != pocoDestType)
-                        getColumnValue = Expression.Convert(getColumnValue, pocoDestType);
-
-                    return getColumnValue;
-                }
+                // No converter is available but the types don't match, so attempt to do:
+                //     (TFieldOrProp) row.GetValue<T>(columnIndex);
+                return Expression.Convert(getValueT, pocoDestType);
             }
+
+            // Invoke the converter function on getValueT (taking into account whether it's a static method):
+            //     converter(row.GetValue<T>(columnIndex));
+            return Expression.Call(converter.Target == null ? null : Expression.Constant(converter.Target), converter.Method, getValueT);
         }
 
         /// <summary>

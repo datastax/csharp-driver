@@ -21,6 +21,13 @@ namespace CqlPoco
         }
 
         /// <summary>
+        /// Used to override the Type of the column in the database for INSERTs/UPDATEs.  The data in the property/field this attribute is 
+        /// applied to will be converted to this Type for INSERTs/UPDATEs.  If null, the same Type of the property/field will be used
+        /// instead.  (NOTE: This does NOT affect the Type when fetching/SELECTing data from the database.)
+        /// </summary>
+        public Type Type { get; set; }
+
+        /// <summary>
         /// Specifies the name of the column in the database to use for this property/field.  If the <see cref="ExplicitColumnsAttribute"/>
         /// is used on the POCO, also tells the mapper that this column should be included when mapping.
         /// </summary>

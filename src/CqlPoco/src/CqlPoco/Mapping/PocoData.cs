@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CqlPoco.Utils;
 
 namespace CqlPoco.Mapping

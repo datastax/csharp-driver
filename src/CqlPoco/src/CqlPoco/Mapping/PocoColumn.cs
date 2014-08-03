@@ -12,6 +12,11 @@ namespace CqlPoco.Mapping
         public string ColumnName { get; private set; }
 
         /// <summary>
+        /// The data type of the column in the database for use when inserting/updating.
+        /// </summary>
+        public Type ColumnType { get; private set; }
+
+        /// <summary>
         /// The MemberInfo for the POCO field/property.
         /// </summary>
         public MemberInfo MemberInfo { get; private set; }
@@ -43,13 +48,15 @@ namespace CqlPoco.Mapping
 
         private static PocoColumn FromMemberInfo(MemberInfo memberInfo, Type memberInfoType)
         {
-            // See if the column name was overridden
+            // See if the column name or type was overridden
             var columnAttribute = memberInfo.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
             string columnName = columnAttribute == null || string.IsNullOrEmpty(columnAttribute.Name) ? memberInfo.Name : columnAttribute.Name;
-            
+            Type columnType = columnAttribute == null || columnAttribute.Type == null ? memberInfoType : columnAttribute.Type;
+
             return new PocoColumn
             {
                 ColumnName = columnName,
+                ColumnType = columnType,
                 MemberInfo = memberInfo,
                 MemberInfoType = memberInfoType
             };

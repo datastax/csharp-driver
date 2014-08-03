@@ -100,9 +100,15 @@ namespace CqlPoco
             return mapper(row);
         }
 
-        public Task Insert<T>(T poco)
+        public async Task Insert<T>(T poco)
         {
-            throw new System.NotImplementedException();
+            // Get statement and bind values from POCO
+            IStatementWrapper statement = await _statementFactory.GetInsert<T>().ConfigureAwait(false);
+            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>();
+            object[] values = getBindValues(poco);
+
+            // Execute the statement
+            await _session.ExecuteAsync(statement.Bind(values)).ConfigureAwait(false);
         }
 
         public Task Update<T>(T poco)

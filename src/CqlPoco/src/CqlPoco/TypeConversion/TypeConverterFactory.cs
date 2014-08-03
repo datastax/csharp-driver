@@ -13,10 +13,11 @@ namespace CqlPoco.TypeConversion
     public abstract class TypeConverterFactory
     {
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
+        private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
-        private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverterFactory).GetMethod("FindFromDbConverter",
-                                                                                                               BindingFlags.NonPublic |
-                                                                                                               BindingFlags.Instance);
+        private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverterFactory).GetMethod("FindFromDbConverter", PrivateInstance);
+
+        private static readonly MethodInfo FindToDbConverterMethod = typeof (TypeConverterFactory).GetMethod("FindToDbConverter", PrivateInstance);
 
         private static readonly MethodInfo ConvertToDictionaryMethod = typeof (TypeConverterFactory).GetMethod("ConvertToDictionary", PrivateStatic);
 
@@ -26,25 +27,32 @@ namespace CqlPoco.TypeConversion
 
         private static readonly MethodInfo ConvertToArrayMethod = typeof (Enumerable).GetMethod("ToArray", BindingFlags.Public | BindingFlags.Static);
 
-        private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _converterCache;
+        private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
+        private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
 
         protected TypeConverterFactory()
         {
-            _converterCache = new ConcurrentDictionary<Tuple<Type, Type>, Delegate>();
+            _fromDbConverterCache = new ConcurrentDictionary<Tuple<Type, Type>, Delegate>();
+            _toDbConverterCache = new ConcurrentDictionary<Tuple<Type, Type>, Delegate>();
         }
 
         /// <summary>
-        /// Gets a Function that can convert a source type value to a destination type value.
+        /// Gets a Function that can convert a source type value from the database to a destination type value on a POCO.
         /// </summary>
-        internal Delegate GetFromDbConverter(Type sourceType, Type destinationType)
+        internal Delegate GetFromDbConverter(Type dbType, Type pocoType)
         {
-            return _converterCache.GetOrAdd(Tuple.Create(sourceType, destinationType), _ => GetFromDbConverterImpl(sourceType, destinationType));
+            return _fromDbConverterCache.GetOrAdd(Tuple.Create(dbType, pocoType),
+                                                  // Invoke the generic method below with our two type parameters
+                                                  _ => (Delegate) FindFromDbConverterMethod.MakeGenericMethod(dbType, pocoType).Invoke(this, null));
         }
 
-        private Delegate GetFromDbConverterImpl(Type sourceType, Type destinationType)
+        /// <summary>
+        /// Gets a Function that can convert a source type value on a POCO to a destination type value for storage in C*.
+        /// </summary>
+        internal Delegate GetToDbConverter(Type pocoType, Type dbType)
         {
-            // Invoke the generic method with our type parameters ()
-            return (Delegate) FindFromDbConverterMethod.MakeGenericMethod(sourceType, destinationType).Invoke(this, null);
+            return _toDbConverterCache.GetOrAdd(Tuple.Create(pocoType, dbType),
+                                                _ => (Delegate) FindToDbConverterMethod.MakeGenericMethod(pocoType, dbType).Invoke(this, null));
         }
 
         /// <summary>
@@ -53,58 +61,103 @@ namespace CqlPoco.TypeConversion
         /// as well make this method generic and invoke it via reflection (it also makes the code for returning the built-in EnumStringMapper func 
         /// simpler since that class is generic).
         /// </summary>
-        // ReSharper disable once UnusedMember.Local
-        private Delegate FindFromDbConverter<TSource, TDest>()
+        // ReSharper disable once UnusedMember.Local (invoked via reflection)
+        private Delegate FindFromDbConverter<TDatabase, TPoco>()
         {
             // Allow for user-defined conversions
-            Delegate converter = GetUserDefinedFromDbConverter<TSource, TDest>();
+            Delegate converter = GetUserDefinedFromDbConverter<TDatabase, TPoco>();
             if (converter != null)
                 return converter;
 
-            Type sourceType = typeof (TSource);
-            Type destType = typeof (TDest);
+            Type dbType = typeof (TDatabase);
+            Type pocoType = typeof (TPoco);
 
-            // Allow strings from the database to be converted to an enum property on a POCO
-            if (sourceType == typeof(string) && destType.IsEnum)
+            // Allow strings from the database to be converted to an enum/nullable enum property on a POCO
+            if (dbType == typeof(string))
             {
-                Func<string, TDest> enumMapper = EnumStringMapper<TDest>.MapStringToEnum;
-                return enumMapper;
+                if (pocoType.IsEnum)
+                {
+                    Func<string, TPoco> enumMapper = EnumStringMapper<TPoco>.MapStringToEnum;
+                    return enumMapper;
+                }
+
+                var underlyingPocoType = Nullable.GetUnderlyingType(pocoType);
+                if (underlyingPocoType != null && underlyingPocoType.IsEnum)
+                {
+                    Func<string, TPoco> enumMapper = NullableEnumStringMapper<TPoco>.MapStringToEnum;
+                    return enumMapper;
+                }
             }
 
-            if (sourceType.IsGenericType && destType.IsGenericType)
+            if (dbType.IsGenericType && pocoType.IsGenericType)
             {
-                Type sourceGenericDefinition = sourceType.GetGenericTypeDefinition();
-                Type[] sourceGenericArgs = sourceType.GetGenericArguments();
+                Type sourceGenericDefinition = dbType.GetGenericTypeDefinition();
+                Type[] sourceGenericArgs = dbType.GetGenericArguments();
 
                 // Allow conversion from IDictionary<,> -> Dictionary<,> since C* driver uses SortedDictionary which can't be cast to Dictionary
-                if (sourceGenericDefinition == typeof (IDictionary<,>) && destType == typeof (Dictionary<,>).MakeGenericType(sourceGenericArgs))
+                if (sourceGenericDefinition == typeof (IDictionary<,>) && pocoType == typeof (Dictionary<,>).MakeGenericType(sourceGenericArgs))
                 {
-                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TSource, TDest>));
+                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
                 }
 
                 // IEnumerable<> could be a Set or a List from Cassandra
                 if (sourceGenericDefinition == typeof (IEnumerable<>))
                 {
                     // For some reason, the driver uses List<> to represent Sets so allow conversion to HashSet<>, SortedSet<>, and ISet<>
-                    if (destType == typeof (HashSet<>).MakeGenericType(sourceGenericArgs))
+                    if (pocoType == typeof (HashSet<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToHashSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TSource, TDest>));
+                        return ConvertToHashSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
                     }
 
-                    if (destType == typeof (SortedSet<>).MakeGenericType(sourceGenericArgs) ||
-                        destType == typeof (ISet<>).MakeGenericType(sourceGenericArgs))
+                    if (pocoType == typeof (SortedSet<>).MakeGenericType(sourceGenericArgs) ||
+                        pocoType == typeof (ISet<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToSortedSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TSource, TDest>));
+                        return ConvertToSortedSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
                     }
 
                     // Allow converting from set/list's IEnumerable<T> to T[]
-                    if (destType == sourceGenericArgs[0].MakeArrayType())
+                    if (pocoType == sourceGenericArgs[0].MakeArrayType())
                     {
-                        return ConvertToArrayMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TSource, TDest>));
+                        return ConvertToArrayMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
                     }
                 }
             }
             
+            return null;
+        }
+
+        /// <summary>
+        /// See note above on why this is generic.
+        /// </summary>
+        // ReSharper disable once UnusedMember.Local (invoked via reflection)
+        private Delegate FindToDbConverter<TPoco, TDatabase>()
+        {
+            // Allow for user-defined conversions
+            Delegate converter = GetUserDefinedToDbConverter<TPoco, TDatabase>();
+            if (converter != null)
+                return converter;
+
+            Type pocoType = typeof (TPoco);
+            Type dbType = typeof (TDatabase);
+
+            // Support enum/nullable enum => string conversion
+            if (dbType == typeof (string))
+            {
+                if (pocoType.IsEnum)
+                {
+                    // Just call ToStirng() on the enum value from the POCO
+                    Func<TPoco, string> enumConverter = prop => prop.ToString();
+                    return enumConverter;
+                }
+
+                Type underlyingPocoType = Nullable.GetUnderlyingType(pocoType);
+                if (underlyingPocoType != null && underlyingPocoType.IsEnum)
+                {
+                    Func<TPoco, string> enumConverter = NullableEnumStringMapper<TPoco>.MapEnumToString;
+                    return enumConverter;
+                }
+            }
+
             return null;
         }
 
@@ -127,12 +180,22 @@ namespace CqlPoco.TypeConversion
         // ReSharper restore UnusedMember.Local
         
         /// <summary>
-        /// Gets any user defined conversion functions that can convert a value of type <see cref="TSource"/> (coming from Cassandra) to a
-        /// type of <see cref="TDest"/> (on a POCO).  Return null if no conversion Func is available.
+        /// Gets any user defined conversion functions that can convert a value of type <see cref="TDatabase"/> (coming from Cassandra) to a
+        /// type of <see cref="TPoco"/> (a field or property on a POCO).  Return null if no conversion Func is available.
         /// </summary>
-        /// <typeparam name="TSource">The Type of the source value from Cassandra to be converted.</typeparam>
-        /// <typeparam name="TDest">The Type of the destination value on the POCO.</typeparam>
+        /// <typeparam name="TDatabase">The Type of the source value from Cassandra to be converted.</typeparam>
+        /// <typeparam name="TPoco">The Type of the destination value on the POCO.</typeparam>
         /// <returns>A Func that can convert between the two types or null if one is not available.</returns>
-        protected abstract Func<TSource, TDest> GetUserDefinedFromDbConverter<TSource, TDest>();
+        protected abstract Func<TDatabase, TPoco> GetUserDefinedFromDbConverter<TDatabase, TPoco>();
+
+        /// <summary>
+        /// Gets any user defined conversion functions that can convert a value of type <see cref="TPoco"/> (coming from a property/field on a
+        /// POCO) to a type of <see cref="TDatabase"/> (the Type expected by Cassandra for the database column).  Return null if no conversion
+        /// Func is available.
+        /// </summary>
+        /// <typeparam name="TPoco">The Type of the source value from the POCO property/field to be converted.</typeparam>
+        /// <typeparam name="TDatabase">The Type expected by C* for the database column.</typeparam>
+        /// <returns>A Func that can converter between the two Types or null if one is not available.</returns>
+        protected abstract Func<TPoco, TDatabase> GetUserDefinedToDbConverter<TPoco, TDatabase>();
     }
 }
