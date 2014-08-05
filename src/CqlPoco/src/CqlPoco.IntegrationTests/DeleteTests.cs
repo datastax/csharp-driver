@@ -41,5 +41,21 @@ namespace CqlPoco.IntegrationTests
 
             deleteUser.ShouldThrow<InvalidOperationException>("no PK was specified and the assumed PK of 'id' is not a column on the POCO");
         }
+
+        [Test]
+        public async void Delete_Poco_WithCql()
+        {
+            // Pick an existing user from the DB and verify they currently exist (sanity check)
+            Guid userId = TestDataHelper.Users[2].UserId;
+            var userToDelete = await CqlClient.Single<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+            userToDelete.Should().NotBeNull();
+
+            // Delete using CQL string (no POCO passed here, just CQL + params)
+            await CqlClient.Delete<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+
+            // Verify user is actually deleted
+            var foundUser = await CqlClient.SingleOrDefault<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+            foundUser.Should().BeNull();
+        }
     }
 }

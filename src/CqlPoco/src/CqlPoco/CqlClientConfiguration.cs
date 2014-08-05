@@ -13,23 +13,23 @@ namespace CqlPoco
     public class CqlClientConfiguration
     {
         private readonly ISession _session;
-        private TypeConverterFactory _typeConverterFactory;
+        private TypeConverter _typeConverter;
 
         private CqlClientConfiguration(ISession session)
         {
             if (session == null) throw new ArgumentNullException("session");
             _session = session;
-            _typeConverterFactory = new DefaultTypeConverterFactory();
+            _typeConverter = new DefaultTypeConverter();
         }
 
         /// <summary>
         /// Configures CqlPoco to use the specified type conversion factory when getting type conversion functions for converting 
         /// between data types in the database and your POCO objects.
         /// </summary>
-        public CqlClientConfiguration ConvertTypesUsing(TypeConverterFactory typeConverterFactory)
+        public CqlClientConfiguration ConvertTypesUsing(TypeConverter typeConverter)
         {
-            if (typeConverterFactory == null) throw new ArgumentNullException("typeConverterFactory");
-            _typeConverterFactory = typeConverterFactory;
+            if (typeConverter == null) throw new ArgumentNullException("typeConverter");
+            _typeConverter = typeConverter;
             return this;
         }
 
@@ -39,7 +39,8 @@ namespace CqlPoco
         public ICqlClient BuildCqlClient()
         {
             var pocoDataFactory = new PocoDataFactory();
-            return new CqlClient(_session, new MapperFactory(_typeConverterFactory, pocoDataFactory), new StatementFactory(pocoDataFactory));
+            return new CqlClient(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(),
+                                 new CqlStringGenerator(pocoDataFactory));
         }
 
         /// <summary>

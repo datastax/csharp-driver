@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CqlPoco.IntegrationTests.Assertions;
 using CqlPoco.IntegrationTests.Pocos;

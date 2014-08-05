@@ -7,7 +7,7 @@ namespace CqlPoco.TypeConversion
     /// <summary>
     /// Static class for mapping between strings and nullable enums.  Uses a cache internally to speed lookups.
     /// </summary>
-    internal static class NullableEnumStringMapper<T>
+    public static class NullableEnumStringMapper<T>
     {
         private static readonly Dictionary<string, T> StringToEnumCache;
 

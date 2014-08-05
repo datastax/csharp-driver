@@ -5,9 +5,9 @@ namespace CqlPoco.TypeConversion
     /// <summary>
     /// A default implementation of TypeConversionFactory that doesn't do any user defined conversions.
     /// </summary>
-    public class DefaultTypeConverterFactory : TypeConverterFactory
+    public class DefaultTypeConverter : TypeConverter
     {
-        protected override Func<TSource, TDest> GetUserDefinedFromDbConverter<TSource, TDest>()
+        protected override Func<TDatabase, TPoco> GetUserDefinedFromDbConverter<TDatabase, TPoco>()
         {
             return null;
         }

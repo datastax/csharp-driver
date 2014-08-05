@@ -8,32 +8,53 @@ namespace CqlPoco.TypeConversion
 {
     /// <summary>
     /// A factory for retrieving Functions capable of converting between two Types.  To use custom Type conversions, inheritors
-    /// should derive from this class and implement the GetUserDefinedFromDbConverter method.
+    /// should derive from this class and implement the <see cref="GetUserDefinedFromDbConverter{TDatabase,TPoco}"/> and
+    /// <see cref="GetUserDefinedToDbConverter{TPoco,TDatabase}"/> methods.
     /// </summary>
-    public abstract class TypeConverterFactory
+    public abstract class TypeConverter
     {
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
-        private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverterFactory).GetMethod("FindFromDbConverter", PrivateInstance);
+        private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverter).GetMethod("FindFromDbConverter", PrivateInstance);
 
-        private static readonly MethodInfo FindToDbConverterMethod = typeof (TypeConverterFactory).GetMethod("FindToDbConverter", PrivateInstance);
+        private static readonly MethodInfo FindToDbConverterMethod = typeof (TypeConverter).GetMethod("FindToDbConverter", PrivateInstance);
 
-        private static readonly MethodInfo ConvertToDictionaryMethod = typeof (TypeConverterFactory).GetMethod("ConvertToDictionary", PrivateStatic);
+        private static readonly MethodInfo ConvertToDictionaryMethod = typeof (TypeConverter).GetMethod("ConvertToDictionary", PrivateStatic);
 
-        private static readonly MethodInfo ConvertToHashSetMethod = typeof(TypeConverterFactory).GetMethod("ConvertToHashSet", PrivateStatic);
+        private static readonly MethodInfo ConvertToHashSetMethod = typeof(TypeConverter).GetMethod("ConvertToHashSet", PrivateStatic);
 
-        private static readonly MethodInfo ConvertToSortedSetMethod = typeof(TypeConverterFactory).GetMethod("ConvertToSortedSet", PrivateStatic);
+        private static readonly MethodInfo ConvertToSortedSetMethod = typeof(TypeConverter).GetMethod("ConvertToSortedSet", PrivateStatic);
 
         private static readonly MethodInfo ConvertToArrayMethod = typeof (Enumerable).GetMethod("ToArray", BindingFlags.Public | BindingFlags.Static);
 
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
 
-        protected TypeConverterFactory()
+        protected TypeConverter()
         {
             _fromDbConverterCache = new ConcurrentDictionary<Tuple<Type, Type>, Delegate>();
             _toDbConverterCache = new ConcurrentDictionary<Tuple<Type, Type>, Delegate>();
+        }
+
+        /// <summary>
+        /// Converts a value of Type <see cref="TValue"/> to a value of Type <see cref="TDatabase"/> using any available converters that would normally be used
+        /// when converting a value for storage in Cassandra.  If no converter is available, wlll throw an InvalidOperationException.
+        /// </summary>
+        /// <typeparam name="TValue">The value's original Type.</typeparam>
+        /// <typeparam name="TDatabase">The Type expected by the database for the parameter.</typeparam>
+        /// <param name="value">The value to be converted.</param>
+        /// <returns>The converted value.</returns>
+        internal TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)
+        {
+            var converter = (Func<TValue, TDatabase>) GetToDbConverter(typeof (TValue), typeof (TDatabase));
+            if (converter == null)
+            {
+                throw new InvalidOperationException(string.Format("No converter is available from Type {0} to Type {1}", typeof(TValue).Name,
+                                                                  typeof(TDatabase).Name));
+            }
+
+            return converter(value);
         }
 
         /// <summary>

@@ -7,7 +7,7 @@ namespace CqlPoco.TypeConversion
     /// <summary>
     /// A class that maps strings to enum values.  Uses a cache internally to speed lookups.
     /// </summary>
-    internal static class EnumStringMapper<T>
+    public static class EnumStringMapper<T>
     {
         private static readonly Dictionary<string, T> StringToEnumCache;
 

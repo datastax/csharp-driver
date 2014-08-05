@@ -61,6 +61,7 @@
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
+    <Compile Include="Statements\CqlStringGenerator.cs" />
     <Compile Include="TypeConversion\NullableEnumStringMapper.cs" />
     <Compile Include="Utils\EnumerableExtensions.cs" />
     <Compile Include="Utils\LookupKeyedCollection.cs" />
@@ -78,8 +79,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Statements\SimpleStatementWrapper.cs" />
     <Compile Include="Statements\StatementFactory.cs" />
-    <Compile Include="TypeConversion\DefaultTypeConverterFactory.cs" />
-    <Compile Include="TypeConversion\TypeConverterFactory.cs" />
+    <Compile Include="TypeConversion\DefaultTypeConverter.cs" />
+    <Compile Include="TypeConversion\TypeConverter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

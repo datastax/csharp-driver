@@ -45,12 +45,17 @@ namespace CqlPoco.Mapping
             return parameters.Length == 1 && parameters[0].ParameterType == IntType;
         });
 
-        private readonly TypeConverterFactory _typeConverter;
+        private readonly TypeConverter _typeConverter;
         private readonly PocoDataFactory _pocoDataFactory;
         private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _mapperFuncCache;
-        private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _valueCollectorFuncCache; 
+        private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _valueCollectorFuncCache;
 
-        public MapperFactory(TypeConverterFactory typeConverter, PocoDataFactory pocoDataFactory)
+        public TypeConverter TypeConverter
+        {
+            get { return _typeConverter; }
+        }
+
+        public MapperFactory(TypeConverter typeConverter, PocoDataFactory pocoDataFactory)
         {
             if (typeConverter == null) throw new ArgumentNullException("typeConverter");
             if (pocoDataFactory == null) throw new ArgumentNullException("pocoDataFactory");
@@ -64,9 +69,9 @@ namespace CqlPoco.Mapping
         /// <summary>
         /// Gets a mapper Func that can map from a C* row to the POCO type T for the given statement.
         /// </summary>
-        public Func<Row, T> GetMapper<T>(IStatementWrapper statement, RowSet rows)
+        public Func<Row, T> GetMapper<T>(string cql, RowSet rows)
         {
-            Tuple<Type, string> key = Tuple.Create(typeof (T), statement.Cql);
+            Tuple<Type, string> key = Tuple.Create(typeof (T), cql);
             Delegate mapperFunc = _mapperFuncCache.GetOrAdd(key, _ => CreateMapper<T>(rows));
             return (Func<Row, T>) mapperFunc;
         }
@@ -75,9 +80,9 @@ namespace CqlPoco.Mapping
         /// Gets a Func that can collect all the values on a given POCO T and return an object[] of those values in the same
         /// order as the PocoColumns for T's PocoData.
         /// </summary>
-        public Func<T, object[]> GetValueCollector<T>(IStatementWrapper statement, bool primaryKeyValuesOnly = false)
+        public Func<T, object[]> GetValueCollector<T>(string cql, bool primaryKeyValuesOnly = false)
         {
-            Tuple<Type, string> key = Tuple.Create(typeof (T), statement.Cql);
+            Tuple<Type, string> key = Tuple.Create(typeof (T), cql);
             Delegate valueCollectorFunc = _valueCollectorFuncCache.GetOrAdd(key, _ => CreateValueCollector<T>(primaryKeyValuesOnly));
             return (Func<T, object[]>) valueCollectorFunc;
         }
@@ -122,9 +127,7 @@ namespace CqlPoco.Mapping
             methodBodyExpressions.Add(
                 // object[] values = new object[... number of columns on POCO ...];
                 Expression.Assign(values, Expression.NewArrayBounds(ObjectType, Expression.Constant(columns.Count, IntType))));
-
             
-
             for (var idx = 0; idx < columns.Count; idx++)
             {
                 PocoColumn column = columns[idx];
