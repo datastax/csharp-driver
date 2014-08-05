@@ -15,7 +15,7 @@ namespace CqlPoco.IntegrationTests
         public async void Insert_Poco()
         {
             // Get a "new" user by using the test data from an existing user and changing the primary key
-            TestUser user = TestDataHelper.Users.Skip(1).Take(1).Single();
+            TestUser user = TestDataHelper.Users.First();
             var newUser = new InsertUser
             {
                 Id = Guid.NewGuid(),

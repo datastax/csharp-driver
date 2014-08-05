@@ -72,12 +72,14 @@
     <Compile Include="Assertions\CassandraDateTimeEquality.cs" />
     <Compile Include="Assertions\CassandraDateTimeOffsetEquality.cs" />
     <Compile Include="Assertions\DateTimeOffsetExtensions.cs" />
+    <Compile Include="DeleteTests.cs" />
     <Compile Include="FetchTests.cs" />
     <Compile Include="FirstTests.cs" />
     <Compile Include="InsertTests.cs" />
     <Compile Include="IntegrationTestBase.cs" />
     <Compile Include="Pocos\ContactMethod.cs" />
     <Compile Include="Pocos\DecoratedUser.cs" />
+    <Compile Include="Pocos\UserWithPrimaryKeyDecoration.cs" />
     <Compile Include="Pocos\ExplicitColumnsUser.cs" />
     <Compile Include="Pocos\HairColor.cs" />
     <Compile Include="Pocos\InsertUser.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="SingleTests.cs" />
     <Compile Include="TestData\TestDataHelper.cs" />
     <Compile Include="TestData\TestUser.cs" />
+    <Compile Include="UpdateTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

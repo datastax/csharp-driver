@@ -28,19 +28,25 @@ namespace CqlPoco.Mapping
         
         private static PocoData CreatePocoData(Type pocoType)
         {
-            bool explicitColumns = pocoType.GetCustomAttributes<ExplicitColumnsAttribute>(true).FirstOrDefault() != null;
+            // Figure out the primary key columns (if not specified, assume a column called "id" is used)
+            var primaryKeyAttribute = pocoType.GetCustomAttributes<PrimaryKeyAttribute>(true).FirstOrDefault();
+            string[] pkColumnNames = primaryKeyAttribute == null ? new[] { "id" } : primaryKeyAttribute.ColumnNames;
+            var primaryKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
 
-            // Find all public instance fields and properties and convert to PocoColumn dictionary keyed by column name
+            // Find all public instance fields and properties that should be mapped
+            bool explicitColumns = pocoType.GetCustomAttributes<ExplicitColumnsAttribute>(true).FirstOrDefault() != null;
             IEnumerable<PocoColumn> fields = GetMappableFields(pocoType, explicitColumns).Select(PocoColumn.FromField);
             IEnumerable<PocoColumn> properties = GetMappableProperties(pocoType, explicitColumns).Select(PocoColumn.FromProperty);
+            
+            // Convert to a Dictionary/Collection hybrid (where ordering is guaranteed to be consistent), ordered such that PK columns are last
+            LookupKeyedCollection<string, PocoColumn> columns = fields.Union(properties).OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
+                                                                      .ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
 
-            LookupKeyedCollection<string, PocoColumn> columns = fields.Union(properties).ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
-
-            // Figure out the table name
+            // Figure out the table name (if not specified, use the POCO class' name)
             var tableNameAttribute = pocoType.GetCustomAttributes<TableNameAttribute>(true).FirstOrDefault();
             string tableName = tableNameAttribute == null ? pocoType.Name : tableNameAttribute.Value;
 
-            return new PocoData(pocoType, tableName, columns);
+            return new PocoData(pocoType, tableName, columns, primaryKeyColumns);
         }
 
         /// <summary>

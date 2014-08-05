@@ -28,5 +28,13 @@ namespace CqlPoco.Utils
 
             return keyedCollection;
         }
+
+        /// <summary>
+        /// Converts an IEnumerable&lt;string&gt; to a comma-delimited string.
+        /// </summary>
+        public static string ToCommaDelimitedString(this IEnumerable<string> values)
+        {
+            return string.Join(",", values);
+        }
     }
 }

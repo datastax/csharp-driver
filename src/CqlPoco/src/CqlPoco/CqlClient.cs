@@ -104,21 +104,33 @@ namespace CqlPoco
         {
             // Get statement and bind values from POCO
             IStatementWrapper statement = await _statementFactory.GetInsert<T>().ConfigureAwait(false);
-            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>();
+            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(statement);
             object[] values = getBindValues(poco);
 
             // Execute the statement
             await _session.ExecuteAsync(statement.Bind(values)).ConfigureAwait(false);
         }
 
-        public Task Update<T>(T poco)
+        public async Task Update<T>(T poco)
         {
-            throw new System.NotImplementedException();
+            // Get statement and bind values from POCO
+            IStatementWrapper statement = await _statementFactory.GetUpdate<T>().ConfigureAwait(false);
+            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(statement);
+            object[] values = getBindValues(poco);
+
+            // Execute
+            await _session.ExecuteAsync(statement.Bind(values)).ConfigureAwait(false);
         }
 
-        public Task Delete<T>(T poco)
+        public async Task Delete<T>(T poco)
         {
-            throw new System.NotImplementedException();
+            // Get the statement and bind values from POCO
+            IStatementWrapper statement = await _statementFactory.GetDelete<T>().ConfigureAwait(false);
+            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(statement, primaryKeyValuesOnly: true);
+            object[] values = getBindValues(poco);
+
+            // Execute
+            await _session.ExecuteAsync(statement.Bind(values)).ConfigureAwait(false);
         }
     }
 }
