@@ -39,7 +39,7 @@ namespace Cassandra
         /// <summary>
         /// Protocol version used by the control connection
         /// </summary>
-        private const int ControlConnectionProtocolVersion = 1;
+        private const int ControlConnectionProtocolVersion = 2;
 
         private readonly AtomicValue<Connection> _activeConnection = new AtomicValue<Connection>(null);
         private readonly Cluster _cluster;
@@ -53,23 +53,14 @@ namespace Cassandra
         private readonly Timer _reconnectionTimer;
         private readonly Session _session;
         private readonly BoolSwitch _shotDown = new BoolSwitch();
-        private bool _isDiconnected;
-        private int _protocolVersion = 1;
+        private bool _isDisconnected;
+        private readonly object _setupLock = new Object();
+        private readonly object _refreshLock = new Object();
 
         /// <summary>
         /// Gets the binary protocol version used for this cluster.
         /// </summary>
-        internal int ProtocolVersion
-        { 
-            get 
-            { 
-                return _protocolVersion; 
-            }
-            set
-            {
-                _protocolVersion = value;
-            }
-        }
+        internal int ProtocolVersion { get; set; }
 
         internal ControlConnection(Cluster cluster,
                                    IEnumerable<IPAddress> clusterEndpoints,
@@ -81,6 +72,7 @@ namespace Cassandra
                                    IAuthProvider authProvider,
                                    IAuthInfoProvider authInfoProvider)
         {
+            ProtocolVersion = 1;
             _cluster = cluster;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
@@ -121,7 +113,7 @@ namespace Cassandra
             }
             else if (e.What == HostsEventArgs.Kind.Up)
             {
-                if (_isDiconnected)
+                if (_isDisconnected)
                     act.BeginInvoke(null, ar => { act.EndInvoke(ar); }, null);
             }
         }
@@ -241,11 +233,11 @@ namespace Cassandra
 
         internal bool RefreshHosts()
         {
-            lock (this)
+            lock (_refreshLock)
             {
                 try
                 {
-                    if (!_isDiconnected)
+                    if (!_isDisconnected)
                     {
                         RefreshNodeListAndTokenMap();
                         return true;
@@ -272,7 +264,7 @@ namespace Cassandra
 
         private void SetupControlConnection(bool refreshOnly = false)
         {
-            lock (this)
+            lock (_setupLock)
             {
                 try
                 {
@@ -280,23 +272,15 @@ namespace Cassandra
                     _logger.Info("Refreshing ControlConnection...");
                     if (!refreshOnly)
                     {
-                        Monitor.Exit(this);
-                        try
-                        {
-                            SetupEventListener();
-                        }
-                        finally
-                        {
-                            Monitor.Enter(this);
-                        }
+                        SetupEventListener();
                     }
                     RefreshNodeListAndTokenMap();
-                    _isDiconnected = false;
+                    _isDisconnected = false;
                     _logger.Info("ControlConnection is fresh!");
                 }
                 catch (NoHostAvailableException)
                 {
-                    _isDiconnected = true;
+                    _isDisconnected = true;
                     if (!_shotDown.IsTaken())
                     {
                         _logger.Error("ControlConnection is lost. Retrying..");
@@ -305,7 +289,7 @@ namespace Cassandra
                 }
                 catch (SocketException)
                 {
-                    _isDiconnected = true;
+                    _isDisconnected = true;
                     if (!_shotDown.IsTaken())
                     {
                         _logger.Error("ControlConnection is lost. Retrying..");
@@ -314,7 +298,7 @@ namespace Cassandra
                 }
                 catch (Exception ex)
                 {
-                    _isDiconnected = true;
+                    _isDisconnected = true;
                     _logger.Error("Unexpected error occurred during ControlConnection refresh.", ex);
                 }
             }
