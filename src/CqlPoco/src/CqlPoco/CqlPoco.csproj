@@ -59,6 +59,9 @@
     <Compile Include="ColumnAttribute.cs" />
     <Compile Include="CqlClientConfiguration.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
+    <Compile Include="ICqlQueryClient.cs" />
+    <Compile Include="ICqlWriteAsyncClient.cs" />
+    <Compile Include="ICqlWriteClient.cs" />
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Statements\CqlStringGenerator.cs" />
@@ -70,7 +73,7 @@
     <Compile Include="TypeConversion\EnumStringMapper.cs" />
     <Compile Include="ICqlClient.cs" />
     <Compile Include="CqlClient.cs" />
-    <Compile Include="ICqlQueryClient.cs" />
+    <Compile Include="ICqlQueryAsyncClient.cs" />
     <Compile Include="Mapping\PocoColumn.cs" />
     <Compile Include="Statements\IStatementWrapper.cs" />
     <Compile Include="Mapping\PocoData.cs" />

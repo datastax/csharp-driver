@@ -8,10 +8,15 @@ namespace CqlPoco.Statements
     /// </summary>
     internal class StatementFactory
     {
-        public Task<IStatement> GetStatement(string cql, params object[] args)
+        public Task<IStatement> GetStatementAsync(string cql, params object[] args)
         {
             // TODO:  Cache/use prepared statements
             return Task.FromResult<IStatement>(new SimpleStatement(cql).Bind(args));
+        }
+
+        public IStatement GetStatement(string cql, params object[] args)
+        {
+            return new SimpleStatement(cql).Bind(args);
         }
     }
 }
