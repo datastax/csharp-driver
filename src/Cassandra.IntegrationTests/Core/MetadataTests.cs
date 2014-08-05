@@ -323,7 +323,7 @@ namespace Cassandra.IntegrationTests.Core
                     PRIMARY KEY ((a, b), c))";
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
-                Session.WaitForSchemaAgreement(Session.Execute(cql));
+                Session.Execute(cql);
 
                 Session.Execute("INSERT INTO sample_composite_partition1 (a, b, c, d) VALUES ('1', 2, 3, 4)");
                 var rs = Session.Execute("select * from sample_composite_partition1");
@@ -357,7 +357,7 @@ namespace Cassandra.IntegrationTests.Core
                     c timestamp,
                     d int,
                     PRIMARY KEY (a, b, c))";
-                Session.WaitForSchemaAgreement(Session.Execute(cql));
+                Session.Execute(cql);
 
                 table = Cluster.Metadata
                     .GetKeyspace(Keyspace)
@@ -393,8 +393,6 @@ namespace Cassandra.IntegrationTests.Core
                 Session.CreateKeyspaceIfNotExists(Keyspace);
                 Session.ChangeKeyspace(Keyspace);
                 Session.Execute(cql);
-                //Wait for schema notification
-                Thread.Sleep(1000);
 
                 Session.Execute("INSERT INTO sample_clustering_order1 (a, b, c, d) VALUES ('1', 2, '3', '4')");
                 var rs = Session.Execute("select * from sample_clustering_order1");
@@ -404,6 +402,48 @@ namespace Cassandra.IntegrationTests.Core
                     .GetKeyspace(Keyspace)
                     .GetTableMetadata("sample_clustering_order1");
                 Assert.True(table.TableColumns.Count() == 7);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void CollectionsSecondaryIndexMetadataTest()
+        {
+            if (Options.Default.CassandraVersion < new Version(2, 1))
+            {
+                Assert.Ignore("Test suitable to be run against Cassandra 2.1 or above");
+            }
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
+
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+
+                var cql = @"
+                CREATE TABLE products (
+                      id int PRIMARY KEY,
+                      description text,
+                      price int,
+                      categories set<text>,
+                      features map<text, text>)";
+                Session.Execute(cql);
+                cql = "CREATE INDEX cat_index ON products(categories)";
+                Session.Execute(cql);
+                cql = "CREATE INDEX feat_key_index ON products(KEYS(features))";
+                Session.Execute(cql);
+
+
+                var table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata("products");
+
+                Assert.AreEqual(5, table.TableColumns.Count());
             }
             finally
             {
