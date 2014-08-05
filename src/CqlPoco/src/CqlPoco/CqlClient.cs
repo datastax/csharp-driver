@@ -43,7 +43,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
             
             // Map to return type
@@ -55,7 +55,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.Single();
@@ -69,7 +69,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.SingleOrDefault();
@@ -86,7 +86,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.First();
@@ -100,7 +100,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.FirstOrDefault();
@@ -121,7 +121,7 @@ namespace CqlPoco
             object[] values = getBindValues(poco);
 
             // Execute the statement
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
         
@@ -133,14 +133,14 @@ namespace CqlPoco
             object[] values = getBindValues(poco);
 
             // Execute
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
         public async Task UpdateAsync<T>(string cql, params object[] args)
         {
             cql = _cqlGenerator.PrependUpdate<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
@@ -152,21 +152,42 @@ namespace CqlPoco
             object[] values = getBindValues(poco);
 
             // Execute
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
         public async Task DeleteAsync<T>(string cql, params object[] args)
         {
             cql = _cqlGenerator.PrependDelete<T>(cql);
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
         public async Task ExecuteAsync(string cql, params object[] args)
         {
-            IStatement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
+        }
+
+        public ICqlBatch CreateBatch()
+        {
+            return new CqlBatch(_mapperFactory, _cqlGenerator);
+        }
+
+        public void Execute(ICqlBatch batch)
+        {
+            if (batch == null) throw new ArgumentNullException("batch");
+
+            BatchStatement batchStatement = _statementFactory.GetBatchStatement(batch.Statements);
+            _session.Execute(batchStatement);
+        }
+
+        public async Task ExecuteAsync(ICqlBatch batch)
+        {
+            if (batch == null) throw new ArgumentNullException("batch");
+
+            BatchStatement batchStatement = await _statementFactory.GetBatchStatementAsync(batch.Statements);
+            await _session.ExecuteAsync(batchStatement);
         }
 
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)
@@ -184,7 +205,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             RowSet rows = _session.Execute(statement);
 
             // Map to return type
@@ -196,7 +217,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.Single();
@@ -210,7 +231,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.SingleOrDefault();
@@ -227,7 +248,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.First();
@@ -241,7 +262,7 @@ namespace CqlPoco
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.FirstOrDefault();
@@ -262,7 +283,7 @@ namespace CqlPoco
             object[] values = getBindValues(poco);
 
             // Execute the statement
-            IStatement statement = _statementFactory.GetStatement(cql, values);
+            Statement statement = _statementFactory.GetStatement(cql, values);
             _session.Execute(statement);
         }
 
@@ -274,14 +295,14 @@ namespace CqlPoco
             object[] values = getBindValues(poco);
 
             // Execute
-            IStatement statement = _statementFactory.GetStatement(cql, values);
+            Statement statement = _statementFactory.GetStatement(cql, values);
             _session.Execute(statement);
         }
 
         public void Update<T>(string cql, params object[] args)
         {
             cql = _cqlGenerator.PrependUpdate<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             _session.Execute(statement);
         }
 
@@ -293,20 +314,20 @@ namespace CqlPoco
             object[] values = getBindValues(poco);
 
             // Execute
-            IStatement statement = _statementFactory.GetStatement(cql, values);
+            Statement statement = _statementFactory.GetStatement(cql, values);
             _session.Execute(statement);
         }
 
         public void Delete<T>(string cql, params object[] args)
         {
             cql = _cqlGenerator.PrependDelete<T>(cql);
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             _session.Execute(statement);
         }
 
         public void Execute(string cql, params object[] args)
         {
-            IStatement statement = _statementFactory.GetStatement(cql, args);
+            Statement statement = _statementFactory.GetStatement(cql, args);
             _session.Execute(statement);
         }
     }

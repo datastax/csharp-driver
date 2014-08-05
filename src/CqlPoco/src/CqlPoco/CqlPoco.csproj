@@ -57,8 +57,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ColumnAttribute.cs" />
+    <Compile Include="Cql.cs" />
+    <Compile Include="CqlBatch.cs" />
     <Compile Include="CqlClientConfiguration.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
+    <Compile Include="ICqlBatch.cs" />
     <Compile Include="ICqlQueryClient.cs" />
     <Compile Include="ICqlWriteAsyncClient.cs" />
     <Compile Include="ICqlWriteClient.cs" />
@@ -75,12 +78,9 @@
     <Compile Include="CqlClient.cs" />
     <Compile Include="ICqlQueryAsyncClient.cs" />
     <Compile Include="Mapping\PocoColumn.cs" />
-    <Compile Include="Statements\IStatementWrapper.cs" />
     <Compile Include="Mapping\PocoData.cs" />
     <Compile Include="Mapping\MapperFactory.cs" />
-    <Compile Include="Statements\PreparedStatementWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Statements\SimpleStatementWrapper.cs" />
     <Compile Include="Statements\StatementFactory.cs" />
     <Compile Include="TypeConversion\DefaultTypeConverter.cs" />
     <Compile Include="TypeConversion\TypeConverter.cs" />

@@ -72,6 +72,7 @@
     <Compile Include="Assertions\CassandraDateTimeEquality.cs" />
     <Compile Include="Assertions\CassandraDateTimeOffsetEquality.cs" />
     <Compile Include="Assertions\DateTimeOffsetExtensions.cs" />
+    <Compile Include="BatchTests.cs" />
     <Compile Include="DeleteTests.cs" />
     <Compile Include="FetchTests.cs" />
     <Compile Include="FirstTests.cs" />
@@ -90,6 +91,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SetupBeforeAnyTests.cs" />
     <Compile Include="SingleTests.cs" />
+    <Compile Include="TestData\TestDataGenerator.cs" />
     <Compile Include="TestData\TestDataHelper.cs" />
     <Compile Include="TestData\TestUser.cs" />
     <Compile Include="UpdateTests.cs" />

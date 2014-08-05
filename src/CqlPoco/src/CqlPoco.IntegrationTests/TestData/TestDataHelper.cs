@@ -12,8 +12,6 @@ namespace CqlPoco.IntegrationTests.TestData
     /// </summary>
     public static class TestDataHelper
     {
-        private static readonly ConcurrentDictionary<Type, object[]> EnumValuesCache = new ConcurrentDictionary<Type, object[]>();
-
         /// <summary>
         /// An in-memory representation of the users test data that should be in C*.
         /// </summary>
@@ -61,16 +59,16 @@ namespace CqlPoco.IntegrationTests.TestData
                 UserId = Guid.NewGuid(),
                 Name = string.Format("Name {0}", idx),
                 Age = idx,
-                CreatedDate = GetDateTimeInPast(idx),
+                CreatedDate = TestDataGenerator.GetDateTimeInPast(idx),
                 IsActive = idx%2 == 0,
-                LastLoginDate = GetNullableDateTimeInPast(idx),
-                LoginHistory = GetList(idx, GetDateTimeInPast),
-                LuckyNumbers = GetSet(idx, i => i),
-                ChildrenAges = GetDictionary(idx, i => string.Format("Child {0}", i), i => i),
-                FavoriteColor = GetEnumValue<RainbowColor>(idx),
-                TypeOfUser = GetEnumValue<UserType?>(idx),
-                PreferredContactMethod = GetEnumValue<ContactMethod>(idx),
-                HairColor = GetEnumValue<HairColor>(idx)
+                LastLoginDate = TestDataGenerator.GetNullableDateTimeInPast(idx),
+                LoginHistory = TestDataGenerator.GetList(idx, TestDataGenerator.GetDateTimeInPast),
+                LuckyNumbers = TestDataGenerator.GetSet(idx, i => i),
+                ChildrenAges = TestDataGenerator.GetDictionary(idx, i => string.Format("Child {0}", i), i => i),
+                FavoriteColor = TestDataGenerator.GetEnumValue<RainbowColor>(idx),
+                TypeOfUser = TestDataGenerator.GetEnumValue<UserType?>(idx),
+                PreferredContactMethod = TestDataGenerator.GetEnumValue<ContactMethod>(idx),
+                HairColor = TestDataGenerator.GetEnumValue<HairColor>(idx)
             }).ToList();
 
             
@@ -88,74 +86,6 @@ namespace CqlPoco.IntegrationTests.TestData
             }
 
             Users = users;
-        }
-
-        private static TEnum GetEnumValue<TEnum>(int index)
-        {
-            bool isNullableEnum = IsNullableType(typeof(TEnum));
-
-            // Get the enum type, taking into account nullable enums
-            Type enumType = isNullableEnum ? Nullable.GetUnderlyingType(typeof(TEnum)) : typeof (TEnum);
-            
-            // Get the available enum values
-            object[] enumValues = EnumValuesCache.GetOrAdd(enumType, t => Enum.GetValues(enumType).Cast<object>().ToArray());
-
-            // If not a nullable enum, use index with mod to pick an available value
-            if (isNullableEnum == false)
-                return (TEnum) enumValues[index % enumValues.Length];
-
-            // If a nullable enum, we want to generate null also so treat an index of length + 1 as null
-            int idx = index % (enumValues.Length + 1);
-            if (idx < enumValues.Length)
-                return (TEnum) enumValues[idx];
-
-            return default(TEnum);
-        }
-
-        private static DateTimeOffset GetDateTimeInPast(int index)
-        {
-            return DateTimeOffset.UtcNow.AddDays(-1*index);
-        }
-
-        private static DateTimeOffset? GetNullableDateTimeInPast(int index)
-        {
-            // Just null out every third record
-            if (index%3 == 0)
-                return null;
-
-            return GetDateTimeInPast(index);
-        }
-
-        private static List<T> GetList<T>(int index, Func<int, T> factory)
-        {
-            int elementsInList = index % 5;
-            if (elementsInList == 0)
-                return new List<T>();
-
-            return Enumerable.Range(0, elementsInList).Select(factory).ToList();
-        }
-
-        private static HashSet<T> GetSet<T>(int index, Func<int, T> factory)
-        {
-            int elementsInSet = index % 3;
-            if (elementsInSet == 0)
-                return new HashSet<T>();
-
-            return new HashSet<T>(Enumerable.Range(0, elementsInSet).Select(factory));
-        }
-
-        private static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int index, Func<int, TKey> keyFactory, Func<int, TValue> valueFactory)
-        {
-            int elementsInDictionary = index % 4;
-            if (elementsInDictionary == 0)
-                return new Dictionary<TKey, TValue>();
-
-            return Enumerable.Range(0, elementsInDictionary).ToDictionary(keyFactory, valueFactory);
-        }
-        
-        private static bool IsNullableType(Type t)
-        {
-            return t.IsGenericType && t.GetGenericTypeDefinition() == typeof (Nullable<>);
         }
     }
 }

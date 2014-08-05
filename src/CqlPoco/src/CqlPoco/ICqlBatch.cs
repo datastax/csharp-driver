@@ -1,26 +1,16 @@
-﻿using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace CqlPoco
 {
     /// <summary>
-    /// A client for creating, updating, deleting, and reading POCOs from a Cassandra cluster.
+    /// Represents a batch of CQL statements.  Use the write methods (Insert, Update, Delete, etc.) to add statements to the batch.
     /// </summary>
-    public interface ICqlClient : ICqlQueryAsyncClient, ICqlWriteAsyncClient, ICqlQueryClient, ICqlWriteClient
+    public interface ICqlBatch : ICqlWriteClient
     {
         /// <summary>
-        /// Creates a new batch.
+        /// The statements in the batch.
         /// </summary>
-        ICqlBatch CreateBatch();
-
-        /// <summary>
-        /// Executes the batch specfied syncronously.
-        /// </summary>
-        void Execute(ICqlBatch batch);
-
-        /// <summary>
-        /// Executes the batch specified asynchronously.
-        /// </summary>
-        Task ExecuteAsync(ICqlBatch batch);
+        IEnumerable<Cql> Statements { get; }
 
         /// <summary>
         /// Allows you to convert an argument/bind variable value being used in a CQL statement using the same converters that are being used by the client
