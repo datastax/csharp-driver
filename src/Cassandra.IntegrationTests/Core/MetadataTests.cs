@@ -307,7 +307,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void CompositePartitionKeyMetadata()
+        public void CompositePartitionKeyMetadataTest()
         {
             var clusterInfo = TestUtils.CcmSetup(1);
             try
@@ -363,6 +363,47 @@ namespace Cassandra.IntegrationTests.Core
                     .GetKeyspace(Keyspace)
                     .GetTableMetadata("sample_composite_clusteringkey");
                 Assert.True(table.TableColumns.Count() == 4);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void ClusteringOrderMetadataTest()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
+                var cql = @"
+                    CREATE TABLE sample_clustering_order1 (
+                    a text,
+                    b int,
+                    c text,
+                    d text,
+                    f text,
+                    g text,
+                    h timestamp,
+                    PRIMARY KEY ((a, b), c, d)
+                    ) WITH CLUSTERING ORDER BY (c ASC, d DESC);
+                ";
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+                Session.Execute(cql);
+                //Wait for schema notification
+                Thread.Sleep(1000);
+
+                Session.Execute("INSERT INTO sample_clustering_order1 (a, b, c, d) VALUES ('1', 2, '3', '4')");
+                var rs = Session.Execute("select * from sample_clustering_order1");
+                Assert.True(rs.GetRows().Count() == 1);
+
+                var table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata("sample_clustering_order1");
+                Assert.True(table.TableColumns.Count() == 7);
             }
             finally
             {

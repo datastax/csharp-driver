@@ -34,6 +34,12 @@ namespace Cassandra
     /// </summary>
     internal static class TypeCodec
     {
+        private const string ListTypeName = "org.apache.cassandra.db.marshal.ListType";
+        private const string SetTypeName = "org.apache.cassandra.db.marshal.SetType";
+        private const string MapTypeName = "org.apache.cassandra.db.marshal.MapType";
+        private const string UdtTypeName = "org.apache.cassandra.db.marshal.UserType";
+        public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
+        public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
         private static readonly ConcurrentDictionary<string, UdtMap> UdtMapsByName = new ConcurrentDictionary<string, UdtMap>();
         private static readonly ConcurrentDictionary<Type, UdtMap> UdtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
@@ -124,11 +130,6 @@ namespace Cassandra
             {ColumnTypeCode.Udt,          GetDefaultTypeFromUdt},
             {ColumnTypeCode.Tuple,        GetDefaultTypeFromTuple}
         };
-
-        private const string ListTypeName = "org.apache.cassandra.db.marshal.ListType";
-        private const string SetTypeName = "org.apache.cassandra.db.marshal.SetType";
-        private const string MapTypeName = "org.apache.cassandra.db.marshal.MapType";
-        private const string UdtTypeName = "org.apache.cassandra.db.marshal.UserType";
 
         private static readonly Dictionary<string, ColumnTypeCode> SingleTypeNames = new Dictionary<string, ColumnTypeCode>()
         {
@@ -1280,6 +1281,12 @@ namespace Cassandra
             if (length == 0)
             {
                 length = typeName.Length;
+            }
+            if (length > ReversedTypeName.Length && typeName.Substring(startIndex, ReversedTypeName.Length) == ReversedTypeName)
+            {
+                //We don't care if the clustering order is reversed
+                startIndex += ReversedTypeName.Length + 1;
+                length -= ReversedTypeName.Length + 2;
             }
             //Quick check if its a single type
             if (length <= SingleTypeNamesLength)

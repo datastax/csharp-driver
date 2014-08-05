@@ -771,14 +771,16 @@ namespace Cassandra
                         rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
                     }
                 }
-
+                //Needs cleanup
                 if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
                 {
                     bool isCompact = true;
                     var comparator = row.GetValue<string>("comparator");
-                    if (comparator.StartsWith("org.apache.cassandra.db.marshal.CompositeType"))
+                    //Remove reversed type
+                    comparator = comparator.Replace(TypeCodec.ReversedTypeName, "");
+                    if (comparator.StartsWith(TypeCodec.CompositeTypeName))
                     {
-                        comparator = comparator.Replace("org.apache.cassandra.db.marshal.CompositeType", "");
+                        comparator = comparator.Replace(TypeCodec.CompositeTypeName, "");
                         isCompact = false;
                     }
 
