@@ -91,6 +91,24 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void SessionKeyspaceEmptyOnConnect()
+        {
+            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            try
+            {
+                Assert.DoesNotThrow(() =>
+                {
+                    var localSession = localCluster.Connect("");
+                    localSession.Execute("SELECT * FROM system.schema_keyspaces");
+                });
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
         public void SessionKeyspaceDoesNotExistOnChangeThrows()
         {
             var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
@@ -123,6 +141,57 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void SessionUseStatementChangesKeyspace()
+        {
+            var localCluster = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .Build();
+            try
+            {
+                var localSession = localCluster.Connect();
+                localSession.Execute("USE system");
+                //The session should be using the system keyspace now
+                Assert.DoesNotThrow(() =>
+                {
+                    for (var i = 0; i < 5; i++)
+                    {
+                        localSession.Execute("select * from schema_keyspaces");
+                    }
+                });
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
+        public void SessionUseStatementChangesKeyspaceCaseInsensitive()
+        {
+            var localCluster = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .Build();
+            try
+            {
+                var localSession = localCluster.Connect();
+                //The statement is case insensitive by default, as no quotes were specified
+                localSession.Execute("USE SyStEm");
+                //The session should be using the system keyspace now
+                Assert.DoesNotThrow(() =>
+                {
+                    for (var i = 0; i < 5; i++)
+                    {
+                        localSession.Execute("select * from schema_keyspaces");
+                    }
+                });
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
         public void SessionKeyspaceCreateCaseSensitive()
         {
             var localCluster = Cluster.Builder()
@@ -131,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var localSession = localCluster.Connect();
-                var ks1 = "UPPER_ks";
+                const string ks1 = "UPPER_ks";
                 localSession.CreateKeyspace(ks1);
                 localSession.ChangeKeyspace(ks1);
                 localSession.Execute("CREATE TABLE test1 (k uuid PRIMARY KEY, v text)");

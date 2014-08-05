@@ -84,10 +84,7 @@ namespace Cassandra
                 {
                     throw PreserveStackTrace(ex.InnerExceptions[0]);
                 }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
             if (task.Status != TaskStatus.RanToCompletion)
             {

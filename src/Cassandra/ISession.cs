@@ -67,15 +67,15 @@ namespace Cassandra
         /// </summary>
         IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state);
         /// <summary>
-        ///  Switches to the specified keyspace.
+        /// Switches to the specified keyspace.
         /// </summary>
-        /// <param name="keyspaceName">Name of keyspace that is to be used.</param>
+        /// <param name="keyspaceName">Case-sensitive name of keyspace to be used.</param>
         /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
         void ChangeKeyspace(string keyspaceName);
         /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>
-        /// <param name="keyspaceName">Name of keyspace to be created.</param>
+        /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
         /// <param name="replication">
         /// Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
@@ -88,7 +88,7 @@ namespace Cassandra
         ///  Creates new keyspace in current cluster.
         ///  If keyspace with specified name already exists, then this method does nothing.
         /// </summary>
-        /// <param name="keyspaceName">Name of keyspace to be created.</param>
+        /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
         /// <param name="replication">
         /// Replication property for this keyspace.
         /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 

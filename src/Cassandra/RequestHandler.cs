@@ -290,6 +290,10 @@ namespace Cassandra
             }
             else
             {
+                if (output is OutputSetKeyspace)
+                {
+                    _session.Keyspace = ((OutputSetKeyspace)output).Value;
+                }
                 rs = new RowSet();
             }
             if (output.TraceId != null)

@@ -34,7 +34,7 @@ namespace Cassandra
         private readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool;
         private int _disposed;
 
-        public int BinaryProtocolVersion { get; protected set; }
+        public int BinaryProtocolVersion { get; private set; }
 
         public Cluster Cluster { get; private set; }
 
@@ -53,9 +53,9 @@ namespace Cassandra
         /// </summary>
         internal Guid Guid { get; private set; }
 
-        public string Keyspace { get; protected set; }
+        public string Keyspace { get; internal set; }
         /// <inheritdoc />
-        public UdtMappingDefinitions UserDefinedTypes { get; protected set; }
+        public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
         public Policies Policies { get { return Configuration.Policies; } }
 
@@ -99,18 +99,18 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durable_writes = true)
+        public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
-            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durable_writes, false)));
+            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)));
             _logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
         }
 
         /// <inheritdoc />
-        public void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durable_writes = true)
+        public void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             try
             {
-                CreateKeyspace(keyspaceName, replication, durable_writes);
+                CreateKeyspace(keyspaceName, replication, durableWrites);
             }
             catch (AlreadyExistsException)
             {

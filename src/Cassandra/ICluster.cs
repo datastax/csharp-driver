@@ -38,9 +38,8 @@ namespace Cassandra
         /// <summary>
         ///  Creates a new session on this cluster and sets a keyspace to use.
         /// </summary>
-        /// <param name="keyspace"> The name of the keyspace to use for the created <c>ISession</c>. </param>
-        /// <returns>a new session on this cluster set to keyspace: 
-        ///  <c>keyspaceName</c>. </returns>
+        /// <param name="keyspace">Case-sensitive keyspace name to use.</param>
+        /// <returns>a new session on this cluster set to keyspace: <c>keyspaceName</c>. </returns>
         ISession Connect(string keyspace);
         /// <summary>
         /// Get the host instance for a given Ip address.

@@ -132,20 +132,24 @@ namespace Cassandra
             return Metadata.AllHosts();
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates a new session on this cluster.
+        /// </summary>
         public ISession Connect()
         {
             return Connect(_configuration.ClientOptions.DefaultKeyspace);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public ISession Connect(string keyspace)
         {
             var scs = new Session(this, _configuration, keyspace, _binaryProtocolVersion);
             scs.Init(true);
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
-
             return scs;
         }
 
