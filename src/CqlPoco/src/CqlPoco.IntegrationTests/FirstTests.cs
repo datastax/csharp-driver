@@ -20,13 +20,13 @@ namespace CqlPoco.IntegrationTests
         public async void GetFirst_Poco_WithCql()
         {
             // Get random first user and verify they are same as the user from test data
-            var user = await CqlClient.First<PlainUser>("SELECT * FROM users");
+            var user = await CqlClient.FirstAsync<PlainUser>("SELECT * FROM users");
             user.ShouldBeEquivalentTo(TestDataHelper.Users.Single(u => u.UserId == user.UserId), opt => opt.AccountForTimestampAccuracy());
 
             // Get first user where user id doesn't exist and verify it throws
             Func<Task> getUser = async () =>
             {
-                var notExistingUser = await CqlClient.First<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty).ConfigureAwait(false);
+                var notExistingUser = await CqlClient.FirstAsync<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty).ConfigureAwait(false);
             };
             getUser.ShouldThrow<InvalidOperationException>();
         }
@@ -35,11 +35,11 @@ namespace CqlPoco.IntegrationTests
         public async void GetFirstOrDefault_Poco_WithCql()
         {
             // Get random first or default user and verify they are same as user from test data
-            var user = await CqlClient.FirstOrDefault<PlainUser>("SELECT * FROM users");
+            var user = await CqlClient.FirstOrDefaultAsync<PlainUser>("SELECT * FROM users");
             user.ShouldBeEquivalentTo(TestDataHelper.Users.Single(u => u.UserId == user.UserId), opt => opt.AccountForTimestampAccuracy());
 
             // Get first or default where user id doesn't exist and make sure we get null
-            var notExistingUser = await CqlClient.FirstOrDefault<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty);
+            var notExistingUser = await CqlClient.FirstOrDefaultAsync<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty);
             notExistingUser.Should().BeNull();
         }
 
@@ -47,13 +47,13 @@ namespace CqlPoco.IntegrationTests
         public async void GetFirst_OneColumnFlattened_WithCql()
         {
             // Get random first created date and make sure it was one from our test data
-            var createdDate = await CqlClient.First<DateTimeOffset>("SELECT createddate FROM users");
+            var createdDate = await CqlClient.FirstAsync<DateTimeOffset>("SELECT createddate FROM users");
             TestDataHelper.Users.Select(u => u.CreatedDate.ToMillisecondPrecision()).Should().Contain(createdDate);
 
             // Verify getting random first for user that doesn't exist throws
             Func<Task> getUserId = async () =>
             {
-                var userId = await CqlClient.First<Guid>("SELECT userid FROM users WHERE userid = ?", Guid.Empty).ConfigureAwait(false);
+                var userId = await CqlClient.FirstAsync<Guid>("SELECT userid FROM users WHERE userid = ?", Guid.Empty).ConfigureAwait(false);
             };
             getUserId.ShouldThrow<InvalidOperationException>();
         }
@@ -62,11 +62,11 @@ namespace CqlPoco.IntegrationTests
         public async void GetFirstOrDefault_OneColumnFlattened_WithCql()
         {
             // Get random first or default name and make sure it was one from our test data
-            var name = await CqlClient.FirstOrDefault<string>("SELECT name FROM users");
+            var name = await CqlClient.FirstOrDefaultAsync<string>("SELECT name FROM users");
             TestDataHelper.Users.Select(u => u.Name).Should().Contain(name);
 
             // Get random first or default login history for user that does not exist and make sure we get null
-            var loginHistory = await CqlClient.FirstOrDefault<List<DateTimeOffset>>("SELECT loginhistory FROM users WHERE userid = ?", Guid.Empty);
+            var loginHistory = await CqlClient.FirstOrDefaultAsync<List<DateTimeOffset>>("SELECT loginhistory FROM users WHERE userid = ?", Guid.Empty);
             loginHistory.Should().BeNull();
         }
     }

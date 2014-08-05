@@ -16,13 +16,13 @@ namespace CqlPoco.IntegrationTests
         public async void GetSingle_Poco_WithCql()
         {
             // Get a user that exists
-            var user = await CqlClient.Single<PlainUser>("SELECT * FROM users WHERE userid = ?", TestDataHelper.Users[0].UserId);
+            var user = await CqlClient.SingleAsync<PlainUser>("SELECT * FROM users WHERE userid = ?", TestDataHelper.Users[0].UserId);
             user.ShouldBeEquivalentTo(TestDataHelper.Users[0], opt => opt.AccountForTimestampAccuracy());
 
             // Get a user that shouldn't exist (using Guid.Empty as the Id)
             Func<Task> getUser = async () =>
             {
-                var notExistingUser = await CqlClient.Single<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty)
+                var notExistingUser = await CqlClient.SingleAsync<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty)
                                                      .ConfigureAwait(false);
             };
             getUser.ShouldThrow<InvalidOperationException>();
@@ -32,11 +32,11 @@ namespace CqlPoco.IntegrationTests
         public async void GetSingleOrDefault_Poco_WithCql()
         {
             // Get a user that exists
-            var user = await CqlClient.SingleOrDefault<PlainUser>("SELECT * FROM users WHERE userid = ?", TestDataHelper.Users[1].UserId);
+            var user = await CqlClient.SingleOrDefaultAsync<PlainUser>("SELECT * FROM users WHERE userid = ?", TestDataHelper.Users[1].UserId);
             user.ShouldBeEquivalentTo(TestDataHelper.Users[1], opt => opt.AccountForTimestampAccuracy());
 
             // Get a user that doesn't exist (using Guid.Empty as the Id)
-            var notExistingUser = await CqlClient.SingleOrDefault<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty);
+            var notExistingUser = await CqlClient.SingleOrDefaultAsync<PlainUser>("SELECT * FROM users WHERE userid = ?", Guid.Empty);
             notExistingUser.Should().BeNull();
         }
 
@@ -44,13 +44,13 @@ namespace CqlPoco.IntegrationTests
         public async void GetSingle_OneColumnFlattened_WithCql()
         {
             // Get the name for a user that exists
-            var name = await CqlClient.Single<string>("SELECT name FROM users WHERE userid = ?", TestDataHelper.Users[2].UserId);
+            var name = await CqlClient.SingleAsync<string>("SELECT name FROM users WHERE userid = ?", TestDataHelper.Users[2].UserId);
             name.Should().Be(TestDataHelper.Users[2].Name);
 
             // Get the type of user for a user that doesn't exist
             Func<Task> getUserType = async () =>
             {
-                var userType = await CqlClient.Single<UserType?>("SELECT typeofuser FROM users WHERE userid = ?", Guid.Empty)
+                var userType = await CqlClient.SingleAsync<UserType?>("SELECT typeofuser FROM users WHERE userid = ?", Guid.Empty)
                                               .ConfigureAwait(false);
             };
             getUserType.ShouldThrow<InvalidOperationException>();
@@ -61,11 +61,11 @@ namespace CqlPoco.IntegrationTests
         {
             // Get the lucky numbers for a user that exists
             var luckyNumbers =
-                await CqlClient.SingleOrDefault<HashSet<int>>("SELECT luckynumbers FROM users WHERE userid = ?", TestDataHelper.Users[1].UserId);
+                await CqlClient.SingleOrDefaultAsync<HashSet<int>>("SELECT luckynumbers FROM users WHERE userid = ?", TestDataHelper.Users[1].UserId);
             luckyNumbers.Should().BeEquivalentTo(TestDataHelper.Users[1].LuckyNumbers);
 
             // Get IsActive for a user that doesn't exist
-            var isActive = await CqlClient.SingleOrDefault<bool?>("SELECT isactive FROM users WHERE userid = ?", Guid.Empty);
+            var isActive = await CqlClient.SingleOrDefaultAsync<bool?>("SELECT isactive FROM users WHERE userid = ?", Guid.Empty);
             isActive.Should().NotHaveValue();
         }
     }

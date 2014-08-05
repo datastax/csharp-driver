@@ -35,10 +35,10 @@ namespace CqlPoco.IntegrationTests
             };
 
             // Insert the new user
-            await CqlClient.Insert(newUser);
+            await CqlClient.InsertAsync(newUser);
 
             // Fetch and verify
-            var foundUser = await CqlClient.Single<InsertUser>("WHERE userid = ?", newUser.Id);
+            var foundUser = await CqlClient.SingleAsync<InsertUser>("WHERE userid = ?", newUser.Id);
             foundUser.ShouldBeEquivalentTo(newUser, opt => opt.AccountForTimestampAccuracy());
         }
     }

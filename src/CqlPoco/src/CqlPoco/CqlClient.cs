@@ -33,13 +33,13 @@ namespace CqlPoco
             _cqlGenerator = cqlGenerator;
         }
 
-        public Task<List<T>> Fetch<T>()
+        public Task<List<T>> FetchAsync<T>()
         {
             // Just pass an empty string for the CQL and let if be auto-generated
-            return Fetch<T>(string.Empty);
+            return FetchAsync<T>(string.Empty);
         }
 
-        public async Task<List<T>> Fetch<T>(string cql, params object[] args)
+        public async Task<List<T>> FetchAsync<T>(string cql, params object[] args)
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
@@ -51,7 +51,7 @@ namespace CqlPoco
             return rows.Select(mapper).ToList();
         }
         
-        public async Task<T> Single<T>(string cql, params object[] args)
+        public async Task<T> SingleAsync<T>(string cql, params object[] args)
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
@@ -65,7 +65,7 @@ namespace CqlPoco
             return mapper(row);
         }
         
-        public async Task<T> SingleOrDefault<T>(string cql, params object[] args)
+        public async Task<T> SingleOrDefaultAsync<T>(string cql, params object[] args)
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
@@ -82,7 +82,7 @@ namespace CqlPoco
             return mapper(row);
         }
 
-        public async Task<T> First<T>(string cql, params object[] args)
+        public async Task<T> FirstAsync<T>(string cql, params object[] args)
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
@@ -96,7 +96,7 @@ namespace CqlPoco
             return mapper(row);
         }
 
-        public async Task<T> FirstOrDefault<T>(string cql, params object[] args)
+        public async Task<T> FirstOrDefaultAsync<T>(string cql, params object[] args)
         {
             // Get the statement to execute and execute it
             cql = _cqlGenerator.AddSelect<T>(cql);
@@ -113,7 +113,7 @@ namespace CqlPoco
             return mapper(row);
         }
         
-        public async Task Insert<T>(T poco)
+        public async Task InsertAsync<T>(T poco)
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateInsert<T>();
@@ -125,7 +125,7 @@ namespace CqlPoco
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
         
-        public async Task Update<T>(T poco)
+        public async Task UpdateAsync<T>(T poco)
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateUpdate<T>();
@@ -137,14 +137,14 @@ namespace CqlPoco
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
-        public async Task Update<T>(string cql, params object[] args)
+        public async Task UpdateAsync<T>(string cql, params object[] args)
         {
             cql = _cqlGenerator.PrependUpdate<T>(cql);
             IStatement statement = await _statementFactory.GetStatement(cql, args).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
-        public async Task Delete<T>(T poco)
+        public async Task DeleteAsync<T>(T poco)
         {
             // Get the statement and bind values from POCO
             string cql = _cqlGenerator.GenerateDelete<T>();
@@ -156,14 +156,14 @@ namespace CqlPoco
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
-        public async Task Delete<T>(string cql, params object[] args)
+        public async Task DeleteAsync<T>(string cql, params object[] args)
         {
             cql = _cqlGenerator.PrependDelete<T>(cql);
             IStatement statement = await _statementFactory.GetStatement(cql, args).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
-        public async Task Execute(string cql, params object[] args)
+        public async Task ExecuteAsync(string cql, params object[] args)
         {
             IStatement statement = await _statementFactory.GetStatement(cql, args).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);

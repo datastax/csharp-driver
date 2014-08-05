@@ -17,7 +17,7 @@ namespace CqlPoco.IntegrationTests
         {
             // Get an existing user from the DB
             Guid userId = TestDataHelper.Users[0].UserId;
-            var userToUpdate = await CqlClient.Single<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+            var userToUpdate = await CqlClient.SingleAsync<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
             userToUpdate.Should().NotBeNull();
 
             // Change some properties
@@ -35,10 +35,10 @@ namespace CqlPoco.IntegrationTests
             userToUpdate.HairColor = userToUpdate.HairColor == null ? HairColor.Black : (HairColor?) null;
 
             // Update
-            await CqlClient.Update(userToUpdate);
+            await CqlClient.UpdateAsync(userToUpdate);
 
             // Fetch and verify
-            var foundUser = await CqlClient.Single<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+            var foundUser = await CqlClient.SingleAsync<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
             foundUser.ShouldBeEquivalentTo(userToUpdate, opt => opt.AccountForTimestampAccuracy());
         }
 
@@ -47,12 +47,12 @@ namespace CqlPoco.IntegrationTests
         {
             // Get an existing user from the DB that doesn't have a PK attribute defined on the POCO (i.e. InsertUser class)
             Guid userId = TestDataHelper.Users[1].UserId;
-            var userToUpdate = await CqlClient.Single<InsertUser>("WHERE userid = ?", userId);
+            var userToUpdate = await CqlClient.SingleAsync<InsertUser>("WHERE userid = ?", userId);
             userToUpdate.Should().NotBeNull();
 
             Func<Task> updateUser = async () =>
             {
-                await CqlClient.Update(userToUpdate);
+                await CqlClient.UpdateAsync(userToUpdate);
             };
 
             updateUser.ShouldThrow<InvalidOperationException>("no PK was specified and the assumed PK of 'id' is not a column on the POCO");
@@ -63,7 +63,7 @@ namespace CqlPoco.IntegrationTests
         {
             // Get a user to update
             Guid userId = TestDataHelper.Users[2].UserId;
-            var userToUpdate = await CqlClient.Single<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+            var userToUpdate = await CqlClient.SingleAsync<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
             userToUpdate.Should().NotBeNull();
 
             // Modify some values on the user (just so we can assert against it)
@@ -72,13 +72,13 @@ namespace CqlPoco.IntegrationTests
             userToUpdate.FavoriteColor = Enum.GetValues(typeof(RainbowColor)).Cast<RainbowColor>().First(v => v != userToUpdate.FavoriteColor);
 
             // Update the user using a CQL string (we aren't passing a POCO here, just CQL + params)
-            await CqlClient.Update<UserWithPrimaryKeyDecoration>("SET name = ?, luckynumbers = ?, favoritecolor = ? WHERE userid = ?",
+            await CqlClient.UpdateAsync<UserWithPrimaryKeyDecoration>("SET name = ?, luckynumbers = ?, favoritecolor = ? WHERE userid = ?",
                                                                  userToUpdate.Name, userToUpdate.LuckyNumbers, 
                                                                  CqlClient.ConvertCqlArgument<RainbowColor, string>(userToUpdate.FavoriteColor), 
                                                                  userId);
 
             // Fetch and validate
-            var foundUser = await CqlClient.Single<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
+            var foundUser = await CqlClient.SingleAsync<UserWithPrimaryKeyDecoration>("WHERE userid = ?", userId);
             foundUser.ShouldBeEquivalentTo(userToUpdate, opt => opt.AccountForTimestampAccuracy());
         }
     }
