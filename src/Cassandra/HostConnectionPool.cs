@@ -39,13 +39,12 @@ namespace Cassandra
 
         private HostDistance HostDistance { get; set; }
 
-        private byte ProtocolVersion { get; set; }
+        public byte ProtocolVersion { get; set; }
 
-        public HostConnectionPool(Host host, HostDistance hostDistance, byte protocolVersion, Configuration configuration)
+        public HostConnectionPool(Host host, HostDistance hostDistance, Configuration configuration)
         {
             this.Host = host;
             this.HostDistance = hostDistance;
-            this.ProtocolVersion = protocolVersion;
             this.Configuration = configuration;
         }
 
@@ -115,8 +114,8 @@ namespace Cassandra
         /// </summary>
         private void MaybeSpawnNewConnection(int inFlight)
         {
-            int maxInFlight = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance);
-            int maxConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(HostDistance);
+            var maxInFlight = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance);
+            var maxConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(HostDistance);
             if (inFlight > maxInFlight)
             {
                 if (_connections.Count >= maxConnections)

@@ -198,6 +198,7 @@
     <Compile Include="Outputs\ReadTimeoutInfo.cs" />
     <Compile Include="Outputs\ServerErrorException.cs" />
     <Compile Include="Outputs\UnavailableInfo.cs" />
+    <Compile Include="Exceptions\UnsupportedProtocolVersionException.cs" />
     <Compile Include="Outputs\WriteTimeoutInfo.cs" />
     <Compile Include="PlainTextAuthProvider.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />

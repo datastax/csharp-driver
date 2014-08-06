@@ -27,13 +27,14 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class MetadataTests
     {
+        private const string Keyspace = "tester";
         private Cluster Cluster;
-        private string Keyspace = "tester";
         private ISession Session;
 
         [TestFixtureSetUp]
         public void SetFixture()
         {
+            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
         }
 

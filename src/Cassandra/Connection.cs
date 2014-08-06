@@ -306,6 +306,7 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public virtual void Init()
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
@@ -335,7 +336,20 @@ namespace Cassandra
             _tcpSocket.Connect();
 
             var startupTask = Startup();
-            TaskHelper.WaitToComplete(startupTask, _tcpSocket.Options.ConnectTimeoutMillis);
+            try
+            {
+                TaskHelper.WaitToComplete(startupTask, _tcpSocket.Options.ConnectTimeoutMillis);
+            }
+            catch (ProtocolErrorException ex)
+            {
+                //As we are starting up, check for protocol version errors
+                //There is no other way than checking the error message from Cassandra
+                if (ex.Message.Contains("Invalid or unsupported protocol version"))
+                {
+                    throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                }
+                throw;
+            }
             if (startupTask.Result is AuthenticateResponse)
             {
                 Authenticate();

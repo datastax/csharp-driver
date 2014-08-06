@@ -39,7 +39,7 @@ namespace Cassandra
         /// <summary>
         /// Protocol version used by the control connection
         /// </summary>
-        private const int ControlConnectionProtocolVersion = 2;
+        private int _controlConnectionProtocolVersion = 2;
 
         private readonly AtomicValue<Connection> _activeConnection = new AtomicValue<Connection>(null);
         private readonly Cluster _cluster;
@@ -47,12 +47,12 @@ namespace Cassandra
         private readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>> _keyspaces =
             new AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>>(null);
 
-        private readonly Logger _logger = new Logger(typeof (ControlConnection));
+        private static readonly Logger _logger = new Logger(typeof (ControlConnection));
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
         private readonly IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private readonly Session _session;
-        private readonly BoolSwitch _shotDown = new BoolSwitch();
+        private readonly BoolSwitch _shutdownSwitch = new BoolSwitch();
         private bool _isDisconnected;
         private readonly object _setupLock = new Object();
         private readonly object _refreshLock = new Object();
@@ -60,7 +60,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the binary protocol version used for this cluster.
         /// </summary>
-        internal int ProtocolVersion { get; set; }
+        internal int ProtocolVersion { get; private set; }
 
         internal ControlConnection(Cluster cluster,
                                    IEnumerable<IPAddress> clusterEndpoints,
@@ -89,7 +89,7 @@ namespace Cassandra
                 new QueryOptions()
             );
 
-            _session = new Session(cluster, config, "", ControlConnectionProtocolVersion);
+            _session = new Session(cluster, config, "", _controlConnectionProtocolVersion);
         }
 
         public void Dispose()
@@ -128,7 +128,7 @@ namespace Cassandra
 
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            if (_shotDown.TryTake())
+            if (_shutdownSwitch.TryTake())
             {
                 _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
                 _session.WaitForAllPendingActions(timeoutMs);
@@ -138,12 +138,28 @@ namespace Cassandra
 
         private void SetupEventListener()
         {
+            _session.BinaryProtocolVersion = _controlConnectionProtocolVersion;
             var handler = new RequestHandler<RowSet>(_session, null, null);
-            var connection = handler.GetNextConnection(null);
+            Connection connection = null;
+            try
+            {
+                connection = handler.GetNextConnection(null);
+            }
+            catch (UnsupportedProtocolVersionException)
+            {
+                _logger.Verbose(String.Format("Unsupported protocol version {0}, trying with a lower version", _controlConnectionProtocolVersion));
+                _controlConnectionProtocolVersion--;
+                if (_controlConnectionProtocolVersion < 1)
+                {
+                    throw new DriverInternalError("Invalid protocol version");
+                }
+                SetupEventListener();
+                return;
+            }
             _activeConnection.Value = connection;
             _activeConnection.Value.CassandraEventResponse += conn_CassandraEvent;
-            var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
-            var registerTask = _activeConnection.Value.Send(new RegisterForEventRequest(ControlConnectionProtocolVersion, eventTypes));
+            const CassandraEventType eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
+            var registerTask = _activeConnection.Value.Send(new RegisterForEventRequest(_controlConnectionProtocolVersion, eventTypes));
             TaskHelper.WaitToComplete(registerTask, 10000);
             if (!(registerTask.Result is ReadyResponse))
             {
@@ -276,12 +292,12 @@ namespace Cassandra
                     }
                     RefreshNodeListAndTokenMap();
                     _isDisconnected = false;
-                    _logger.Info("ControlConnection is fresh!");
+                    _logger.Info("ControlConnection is listening, using binary protocol version " + _controlConnectionProtocolVersion);
                 }
                 catch (NoHostAvailableException)
                 {
                     _isDisconnected = true;
-                    if (!_shotDown.IsTaken())
+                    if (!_shutdownSwitch.IsTaken())
                     {
                         _logger.Error("ControlConnection is lost. Retrying..");
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -290,7 +306,7 @@ namespace Cassandra
                 catch (SocketException)
                 {
                     _isDisconnected = true;
-                    if (!_shotDown.IsTaken())
+                    if (!_shutdownSwitch.IsTaken())
                     {
                         _logger.Error("ControlConnection is lost. Retrying..");
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
@@ -362,7 +378,8 @@ namespace Cassandra
                     _cluster.Metadata.ClusterName = clusterName;
                 }
                 int protocolVersion;
-                if (rowset.Columns.Any(c => c.Name == "native_protocol_version") && Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
+                if (rowset.Columns.Any(c => c.Name == "native_protocol_version") && 
+                    Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
                 {
                     //In Cassandra < 2, there is no native protocol version column
                     //For Cassandra < 2 it will get the default value
@@ -370,7 +387,7 @@ namespace Cassandra
                     {
                         protocolVersion = Cluster.MaxProtocolVersion;
                     }
-                    this.ProtocolVersion = protocolVersion;
+                    ProtocolVersion = protocolVersion;
                 }
                 // In theory host can't be null. However there is no point in risking a NPE in case we
                 // have a race between a node removal and this.
@@ -417,7 +434,7 @@ namespace Cassandra
 
         private RowSet Query(string cqlQuery)
         {
-            var request = new QueryRequest(ControlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
+            var request = new QueryRequest(_controlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
             var task = _activeConnection.Value.Send(request);
             TaskHelper.WaitToComplete(task, 10000);
             if (!(task.Result is ResultResponse) && !(((ResultResponse)task.Result).Output is OutputRows))

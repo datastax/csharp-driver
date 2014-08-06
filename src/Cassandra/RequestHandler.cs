@@ -114,8 +114,9 @@ namespace Cassandra
         /// <summary>
         /// Gets a connection from the next host according to the load balancing policy
         /// </summary>
-        /// <exception cref="NoHostAvailableException"></exception>
+        /// <exception cref="NoHostAvailableException"/>
         /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
+        /// <exception cref="UnsupportedProtocolVersionException"/>
         internal Connection GetNextConnection(IStatement statement, bool isLastChance = false)
         {
             var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);
@@ -159,6 +160,11 @@ namespace Cassandra
                 catch (InvalidQueryException)
                 {
                     //The keyspace does not exist
+                    throw;
+                }
+                catch (UnsupportedProtocolVersionException)
+                {
+                    //The version of the protocol is not supported
                     throw;
                 }
                 catch (Exception ex)

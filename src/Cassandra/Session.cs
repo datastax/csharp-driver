@@ -34,7 +34,7 @@ namespace Cassandra
         private readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool;
         private int _disposed;
 
-        public int BinaryProtocolVersion { get; private set; }
+        public int BinaryProtocolVersion { get; internal set; }
 
         public Cluster Cluster { get; private set; }
 
@@ -246,7 +246,10 @@ namespace Cassandra
         /// </summary>
         internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
         {
-            return _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, (byte)BinaryProtocolVersion, Configuration));
+            var hostPool = _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, Configuration));
+            //It can change from the last time, when trying lower protocol versions
+            hostPool.ProtocolVersion = (byte) BinaryProtocolVersion;
+            return hostPool;
         }
 
         /// <summary>
