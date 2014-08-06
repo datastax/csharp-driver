@@ -168,10 +168,28 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         private void Authenticate()
         {
-            var provider = Configuration.AuthProvider;
-            if (ProtocolVersion == 1 && provider == NoneAuthProvider.Instance)
+            //Determine which authentication flow to use.
+            //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
+            var isPatchedVersion = ProtocolVersion == 1 && !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
+            if (ProtocolVersion >= 2 || isPatchedVersion)
+            {
+                //Use protocol v2+ authentication flow
+
+                //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
+                var authenticator = Configuration.AuthProvider.NewAuthenticator(HostAddress);
+
+                var initialResponse = authenticator.InitialResponse() ?? new byte[0];
+                Authenticate(initialResponse, authenticator);
+            }
+            else
             {
                 //Use protocol v1 authentication flow
+                if (Configuration.AuthInfoProvider == null)
+                {
+                    throw new AuthenticationException(
+                        String.Format("Host {0} requires authentication, but no credentials provided in Cluster configuration", HostAddress),
+                        HostAddress);
+                }
                 var credentialsProvider = Configuration.AuthInfoProvider;
                 var credentials = credentialsProvider.GetAuthInfos(HostAddress);
                 var request = new CredentialsRequest(ProtocolVersion, credentials);
@@ -183,18 +201,6 @@ namespace Cassandra
                     return;
                 }
                 throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
-            }
-            else
-            {
-                //Use protocol v2+ authentication flow
-                var authenticator = provider.NewAuthenticator(HostAddress);
-
-                byte[] initialResponse = authenticator.InitialResponse();
-                if (null == initialResponse)
-                {
-                    initialResponse = new byte[0];
-                }
-                Authenticate(initialResponse, authenticator);
             }
         }
 
