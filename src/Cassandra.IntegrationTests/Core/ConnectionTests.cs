@@ -540,13 +540,22 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<AggregateException>(() => task.Wait(50));
         }
 
+        /// <summary>
+        /// It checks that the connection startup method throws an exception when using a greater protocol version
+        /// </summary>
+        [Test]
+        [TestCassandraVersion(2, 0, IntegrationTests.Comparison.LessThan)]
+        public void StartupGreaterProtocolVersionThrows()
+        {
+            const byte protocolVersion = 2;
+            using (var connection = CreateConnection(protocolVersion, new Configuration()))
+            {
+                Assert.Throws<UnsupportedProtocolVersionException>(connection.Init);
+            }
+        }
+
         private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null)
         {
-            var protocolVersion = (byte) Options.Default.CassandraVersion.Major;
-            if (protocolVersion > 2)
-            {
-                protocolVersion = 2;
-            }
             if (socketOptions == null)
             {
                 socketOptions = new SocketOptions();
@@ -564,11 +573,30 @@ namespace Cassandra.IntegrationTests.Core
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions());
-            return CreateConnection(protocolVersion, config);
+            return CreateConnection(GetLatestProtocolVersion(), config);
+        }
+
+        /// <summary>
+        /// Gets the latest protocol depending on the Cassandra Version running the tests
+        /// </summary>
+        private byte GetLatestProtocolVersion()
+        {
+            var cassandraVersion = Options.Default.CassandraVersion;
+            byte protocolVersion = 1;
+            if (cassandraVersion >= Version.Parse("2.1"))
+            {
+                protocolVersion = 3;
+            }
+            else if (cassandraVersion > Version.Parse("2.0"))
+            {
+                protocolVersion = 2;
+            }
+            return protocolVersion;
         }
 
         private Connection CreateConnection(byte protocolVersion, Configuration config)
         {
+            Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
             return new Connection(protocolVersion, new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config);
         }
 
