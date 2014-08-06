@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -56,11 +55,26 @@ namespace Cassandra
         private bool _isDisconnected;
         private readonly object _setupLock = new Object();
         private readonly object _refreshLock = new Object();
+        private int _protocolVersion;
 
         /// <summary>
-        /// Gets the binary protocol version used for this cluster.
+        /// Gets the recommended binary protocol version to be used for this cluster.
         /// </summary>
-        internal int ProtocolVersion { get; private set; }
+        internal int ProtocolVersion
+        {
+            get
+            {
+                if (_protocolVersion != 0)
+                {
+                    return _protocolVersion;
+                }
+                if (_isDisconnected)
+                {
+                    return _controlConnectionProtocolVersion;
+                }
+                return 1;
+            }
+        }
 
         internal ControlConnection(Cluster cluster,
                                    IEnumerable<IPAddress> clusterEndpoints,
@@ -72,7 +86,6 @@ namespace Cassandra
                                    IAuthProvider authProvider,
                                    IAuthInfoProvider authInfoProvider)
         {
-            ProtocolVersion = 1;
             _cluster = cluster;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectionClb, null, Timeout.Infinite, Timeout.Infinite);
@@ -381,13 +394,9 @@ namespace Cassandra
                 if (rowset.Columns.Any(c => c.Name == "native_protocol_version") && 
                     Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
                 {
-                    //In Cassandra < 2, there is no native protocol version column
-                    //For Cassandra < 2 it will get the default value
-                    if (protocolVersion > Cluster.MaxProtocolVersion)
-                    {
-                        protocolVersion = Cluster.MaxProtocolVersion;
-                    }
-                    ProtocolVersion = protocolVersion;
+                    //In Cassandra < 2
+                    //  there is no native protocol version column, it will get the default value
+                    _protocolVersion = protocolVersion;
                 }
                 // In theory host can't be null. However there is no point in risking a NPE in case we
                 // have a race between a node removal and this.

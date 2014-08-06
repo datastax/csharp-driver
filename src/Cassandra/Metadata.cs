@@ -48,7 +48,7 @@ namespace Cassandra
             ShutDown();
         }
 
-        internal void SetupControllConnection(ControlConnection controlConnection)
+        internal void SetupControlConnection(ControlConnection controlConnection)
         {
             _controlConnection = controlConnection;
             _controlConnection.Init();
@@ -176,6 +176,9 @@ namespace Cassandra
             return _controlConnection.GetTable(keyspace, tableName);
         }
 
+        /// <summary>
+        /// Gets the definition associated with a User Defined Type from Cassandra
+        /// </summary>
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
             return _controlConnection.GetUdtDefinition(keyspace, typeName);

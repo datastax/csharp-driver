@@ -39,11 +39,12 @@ namespace Cassandra
         /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
-            ICollection<IPAddress> contactPoints = initializer.ContactPoints;
-            if (contactPoints.Count == 0)
+            if (initializer.ContactPoints.Count == 0)
+            {
                 throw new ArgumentException("Cannot build a cluster without contact points");
+            }
 
-            return new Cluster(contactPoints, initializer.GetConfiguration());
+            return new Cluster(initializer.ContactPoints, initializer.GetConfiguration());
         }
 
         /// <summary>
@@ -59,7 +60,6 @@ namespace Cassandra
         private readonly int _binaryProtocolVersion;
         private readonly Configuration _configuration;
         private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
-        private readonly IEnumerable<IPAddress> _contactPoints;
         private readonly Logger _logger = new Logger(typeof (Cluster));
         private readonly Metadata _metadata;
         private static int _maxProtocolVersion = 3;
@@ -89,7 +89,6 @@ namespace Cassandra
 
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
-            _contactPoints = contactPoints;
             _configuration = configuration;
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
@@ -98,7 +97,7 @@ namespace Cassandra
                 new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
                 Policies.DefaultRetryPolicy);
 
-            foreach (IPAddress ep in _contactPoints)
+            foreach (IPAddress ep in contactPoints)
                 Metadata.AddHost(ep);
 
             //Use 1 connection per host
@@ -109,8 +108,8 @@ namespace Cassandra
                 .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127);
 
-            var controlConnection = new ControlConnection
-                (this, 
+            var controlConnection = new ControlConnection(
+                this, 
                 new List<IPAddress>(), 
                 controlpolicies,
                 new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
@@ -118,11 +117,14 @@ namespace Cassandra
                 _configuration.SocketOptions,
                 new ClientOptions(true, _configuration.ClientOptions.QueryAbortTimeout, null),
                 _configuration.AuthProvider,
-                _configuration.AuthInfoProvider
-                );
+                _configuration.AuthInfoProvider);
 
-            _metadata.SetupControllConnection(controlConnection);
+            _metadata.SetupControlConnection(controlConnection);
             _binaryProtocolVersion = controlConnection.ProtocolVersion;
+            if (controlConnection.ProtocolVersion > MaxProtocolVersion)
+            {
+                _binaryProtocolVersion = MaxProtocolVersion;
+            }
             _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
         }
 
@@ -179,13 +181,13 @@ namespace Cassandra
         /// <inheritdoc />
         public Host GetHost(IPAddress address)
         {
-            return Metadata.GetHost(address);
+            return _metadata.GetHost(address);
         }
 
         /// <inheritdoc />
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            return Metadata.GetReplicas(partitionKey);
+            return _metadata.GetReplicas(partitionKey);
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)
