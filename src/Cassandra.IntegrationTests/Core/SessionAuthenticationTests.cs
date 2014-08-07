@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Moq;
 using NUnit.Framework;
@@ -52,7 +54,22 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Cassandra20OrAbove_WithCredentials()
+        public void Cassandra20OrAbove_PasswordAuthenticatorWithWrongCredentialsThrows()
+        {
+            using (var cluster = Cluster
+                .Builder()
+                .AddContactPoint(ContactPoint)
+                .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                .Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.AreEqual(1, ex.Errors.Count);
+                Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+            }
+        }
+
+        [Test]
+        public void CassandraAny_WithCredentials()
         {
             using (var cluster = Cluster
                 .Builder()
@@ -67,17 +84,60 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Cassandra20OrAbove_PasswordAuthenticatorThrowsWhenWrongCredentials()
+        public void CassandraAny_WithWrongCredentialsThrows()
         {
             using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(ContactPoint)
-                .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                .WithCredentials("wrong_username", "password")
                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+            }
+        }
+
+        [Test]
+        public void CassandraAny_WithNoAuthenticationThrows()
+        {
+            using (var cluster = Cluster
+                .Builder()
+                .AddContactPoint(ContactPoint)
+                .Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.AreEqual(1, ex.Errors.Count);
+                Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+                Console.WriteLine(ex.Errors.First().Value);
+            }
+        }
+
+        [Test]
+        public void CassandraAny_Ssl()
+        {
+            var sslOptions = new SSLOptions()
+                .SetRemoteCertValidationCallback((s, cert, chain, policyErrors) =>
+                {
+                    if (policyErrors == SslPolicyErrors.RemoteCertificateChainErrors &&
+                        chain.ChainStatus.Length == 1 &&
+                        chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
+                    {
+                        //self issued
+                        return true;
+                    }
+                    return policyErrors == SslPolicyErrors.None;
+                });
+            using (var cluster = Cluster
+                .Builder()
+                .AddContactPoint(ContactPoint)
+                .WithCredentials("username", "password")
+                .WithSSL(sslOptions)
+                .Build())
+            {
+                var session = cluster.Connect();
+                var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
+                Assert.Greater(rs.Count(), 0);
             }
         }
     }

@@ -341,7 +341,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     return true; 
                 }
-                else if (policyErrors == SslPolicyErrors.RemoteCertificateChainErrors && 
+                if (policyErrors == SslPolicyErrors.RemoteCertificateChainErrors && 
                     chain.ChainStatus.Length == 1 && 
                     chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
                 {
