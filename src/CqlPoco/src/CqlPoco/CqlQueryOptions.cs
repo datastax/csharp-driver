@@ -18,6 +18,16 @@ namespace CqlPoco
         private IRetryPolicy _retryPolicy;
         private ConsistencyLevel? _serialConsistencyLevel;
 
+        private bool _noPrepare;
+
+        /// <summary>
+        /// Whether or not to use a PreparedStatement when executing the query.
+        /// </summary>
+        internal bool NoPrepare
+        {
+            get { return _noPrepare; }
+        }
+
         /// <summary>
         /// Sets the consistency level to be used when executing the query.
         /// </summary>
@@ -61,6 +71,15 @@ namespace CqlPoco
         public CqlQueryOptions SetSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
             _serialConsistencyLevel = consistencyLevel;
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies that a PreparedStatement should not be used for executing the query.
+        /// </summary>
+        public CqlQueryOptions DoNotPrepare()
+        {
+            _noPrepare = true;
             return this;
         }
 

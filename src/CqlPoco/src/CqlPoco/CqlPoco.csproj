@@ -85,6 +85,7 @@
     <Compile Include="Statements\StatementFactory.cs" />
     <Compile Include="TypeConversion\DefaultTypeConverter.cs" />
     <Compile Include="TypeConversion\TypeConverter.cs" />
+    <Compile Include="Utils\SessionExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

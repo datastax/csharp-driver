@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra;
+using CqlPoco.Utils;
 
 namespace CqlPoco.Statements
 {
@@ -10,19 +14,38 @@ namespace CqlPoco.Statements
     /// </summary>
     internal class StatementFactory
     {
-        public Task<Statement> GetStatementAsync(Cql cql)
+        private readonly ISession _session;
+
+        private readonly ConcurrentDictionary<string, Task<PreparedStatement>> _statementCache;
+
+        public StatementFactory(ISession session)
         {
-            // TODO:  Cache/use prepared statements
-            var statement = new SimpleStatement(cql.Statement).Bind(cql.Arguments);
-            cql.QueryOptions.CopyOptionsToStatement(statement);
-            return Task.FromResult<Statement>(statement);
+            if (session == null) throw new ArgumentNullException("session");
+            _session = session;
+
+            _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
+        }
+
+        public async Task<Statement> GetStatementAsync(Cql cql)
+        {
+            // Use a SimpleStatement if we're not supposed to prepare
+            if (cql.QueryOptions.NoPrepare)
+            {
+                var statement = new SimpleStatement(cql.Statement).Bind(cql.Arguments);
+                cql.QueryOptions.CopyOptionsToStatement(statement);
+                return statement;
+            }
+
+            PreparedStatement preparedStatement = await _statementCache.GetOrAdd(cql.Statement, _session.PrepareAsync).ConfigureAwait(false);
+            BoundStatement boundStatement = preparedStatement.Bind(cql.Arguments);
+            cql.QueryOptions.CopyOptionsToStatement(boundStatement);
+            return boundStatement;
         }
 
         public Statement GetStatement(Cql cql)
         {
-            var statement = new SimpleStatement(cql.Statement).Bind(cql.Arguments);
-            cql.QueryOptions.CopyOptionsToStatement(statement);
-            return statement;
+            // Just use async version's result
+            return GetStatementAsync(cql).Result;
         }
 
         public async Task<BatchStatement> GetBatchStatementAsync(IEnumerable<Cql> cqlToBatch)
