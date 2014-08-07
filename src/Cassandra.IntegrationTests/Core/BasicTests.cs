@@ -325,6 +325,7 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             var query = new SimpleStatement(String.Format("SELECT * FROM {0} LIMIT 10000", table))
                 .SetPageSize(pageSize);
             var rs = Session.Execute(query);
+            Assert.AreEqual(pageSize, rs.GetAvailableWithoutFetching());
             var counterList = new ConcurrentBag<int>();
             Action iterate = () =>
             {
@@ -341,6 +342,29 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
 
             //Check that the sum of all rows in different threads is the same as total rows
             Assert.AreEqual(totalRowLength, counterList.Sum());
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void QueryPagingMultipleTimesOverTheSameStatement()
+        {
+            var pageSize = 25;
+            var totalRowLength = 300;
+            var times = 10;
+            var table = CreateSimpleTableAndInsert(totalRowLength);
+            
+            var statement = new SimpleStatement(String.Format("SELECT * FROM {0} LIMIT 10000", table))
+                .SetPageSize(pageSize);
+
+            var counter = 0;
+            for (var i = 0; i < times; i++)
+            {
+                var rs = Session.Execute(statement);
+                counter += rs.Count();
+            }
+
+            //Check that the sum of all rows in different threads is the same as total rows
+            Assert.AreEqual(totalRowLength * times, counter);
         }
 
         [Test]
