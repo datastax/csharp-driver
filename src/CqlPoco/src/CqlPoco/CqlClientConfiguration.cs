@@ -40,7 +40,7 @@ namespace CqlPoco
         {
             var pocoDataFactory = new PocoDataFactory();
             return new CqlClient(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(),
-                                 new CqlStringGenerator(pocoDataFactory));
+                                 new CqlGenerator(pocoDataFactory));
         }
 
         /// <summary>

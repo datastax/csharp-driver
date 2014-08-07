@@ -34,7 +34,7 @@ namespace CqlPoco.Utils
         /// </summary>
         public static string ToCommaDelimitedString(this IEnumerable<string> values)
         {
-            return string.Join(",", values);
+            return string.Join(", ", values);
         }
     }
 }

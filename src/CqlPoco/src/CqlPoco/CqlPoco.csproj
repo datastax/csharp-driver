@@ -60,6 +60,7 @@
     <Compile Include="Cql.cs" />
     <Compile Include="CqlBatch.cs" />
     <Compile Include="CqlClientConfiguration.cs" />
+    <Compile Include="CqlQueryOptions.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
     <Compile Include="ICqlBatch.cs" />
     <Compile Include="ICqlQueryClient.cs" />
@@ -67,7 +68,7 @@
     <Compile Include="ICqlWriteClient.cs" />
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
-    <Compile Include="Statements\CqlStringGenerator.cs" />
+    <Compile Include="Statements\CqlGenerator.cs" />
     <Compile Include="TypeConversion\NullableEnumStringMapper.cs" />
     <Compile Include="Utils\EnumerableExtensions.cs" />
     <Compile Include="Utils\LookupKeyedCollection.cs" />

@@ -1,3 +1,5 @@
+using System;
+
 namespace CqlPoco
 {
     /// <summary>
@@ -15,13 +17,42 @@ namespace CqlPoco
         /// </summary>
         public object[] Arguments { get; private set; }
 
-        private Cql()
+        /// <summary>
+        /// Allow you to set options that are available on a per-query basis.
+        /// </summary>
+        public CqlQueryOptions QueryOptions { get; private set; }
+
+        public Cql(string cql, object[] args)
         {
+            Statement = cql;
+            Arguments = args;
+            QueryOptions = new CqlQueryOptions();
         }
 
+        private Cql(string cql, object[] args, CqlQueryOptions queryOptions)
+        {
+            Statement = cql;
+            Arguments = args;
+            QueryOptions = queryOptions;
+        }
+
+
+        internal void SetStatement(string statement)
+        {
+            Statement = statement;
+        }
+
+        /// <summary>
+        /// Creates a new CQL instance from the CQL statement and parameters specified.
+        /// </summary>
         public static Cql New(string cql, params object[] args)
         {
-            return new Cql {Statement = cql, Arguments = args};
+            return new Cql(cql, args);
+        }
+
+        internal static Cql New(string cql, object[] args, CqlQueryOptions queryOptions)
+        {
+            return new Cql(cql, args, queryOptions);
         }
     }
 }

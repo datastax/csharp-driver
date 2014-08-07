@@ -13,7 +13,7 @@ namespace CqlPoco
         ICqlBatch CreateBatch();
 
         /// <summary>
-        /// Executes the batch specfied syncronously.
+        /// Executes the batch specfied synchronously.
         /// </summary>
         void Execute(ICqlBatch batch);
 

@@ -18,9 +18,9 @@ namespace CqlPoco
         private readonly ISession _session;
         private readonly MapperFactory _mapperFactory;
         private readonly StatementFactory _statementFactory;
-        private readonly CqlStringGenerator _cqlGenerator;
+        private readonly CqlGenerator _cqlGenerator;
 
-        public CqlClient(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlStringGenerator cqlGenerator)
+        public CqlClient(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator)
         {
             if (session == null) throw new ArgumentNullException("session");
             if (mapperFactory == null) throw new ArgumentNullException("mapperFactory");
@@ -33,74 +33,98 @@ namespace CqlPoco
             _cqlGenerator = cqlGenerator;
         }
 
-        public Task<List<T>> FetchAsync<T>()
+        public Task<List<T>> FetchAsync<T>(CqlQueryOptions options = null)
         {
-            // Just pass an empty string for the CQL and let if be auto-generated
-            return FetchAsync<T>(string.Empty);
+            return FetchAsync<T>(Cql.New(string.Empty, new object[0], options ?? CqlQueryOptions.None));
         }
 
-        public async Task<List<T>> FetchAsync<T>(string cql, params object[] args)
+        public Task<List<T>> FetchAsync<T>(string cql, params object[] args)
+        {
+            return FetchAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public async Task<List<T>> FetchAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
-            
+
             // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return rows.Select(mapper).ToList();
         }
-        
-        public async Task<T> SingleAsync<T>(string cql, params object[] args)
+
+        public Task<T> SingleAsync<T>(string cql, params object[] args)
+        {
+            return SingleAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public async Task<T> SingleAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.Single();
 
             // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
-        
-        public async Task<T> SingleOrDefaultAsync<T>(string cql, params object[] args)
+
+        public Task<T> SingleOrDefaultAsync<T>(string cql, params object[] args)
+        {
+            return SingleOrDefaultAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public async Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.SingleOrDefault();
 
             // Map to return type or return default
-            if (row == null) 
+            if (row == null)
                 return default(T);
 
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
 
-        public async Task<T> FirstAsync<T>(string cql, params object[] args)
+        public Task<T> FirstAsync<T>(string cql, params object[] args)
+        {
+            return FirstAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public async Task<T> FirstAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.First();
 
             // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
 
-        public async Task<T> FirstOrDefaultAsync<T>(string cql, params object[] args)
+        public Task<T> FirstOrDefaultAsync<T>(string cql, params object[] args)
+        {
+            return FirstOrDefaultAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public async Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
             RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
 
             Row row = rows.FirstOrDefault();
@@ -109,63 +133,71 @@ namespace CqlPoco
             if (row == null)
                 return default(T);
 
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
-        
-        public async Task InsertAsync<T>(T poco)
+
+        public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateInsert<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             object[] values = getBindValues(poco);
 
-            // Execute the statement
-            Statement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
-            await _session.ExecuteAsync(statement).ConfigureAwait(false);
+            return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
-        
-        public async Task UpdateAsync<T>(T poco)
+
+        public Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateUpdate<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             object[] values = getBindValues(poco);
 
-            // Execute
-            Statement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
-            await _session.ExecuteAsync(statement).ConfigureAwait(false);
+            return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 
-        public async Task UpdateAsync<T>(string cql, params object[] args)
+        public Task UpdateAsync<T>(string cql, params object[] args)
         {
-            cql = _cqlGenerator.PrependUpdate<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
-            await _session.ExecuteAsync(statement).ConfigureAwait(false);
+            return UpdateAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task DeleteAsync<T>(T poco)
+        public Task UpdateAsync<T>(Cql cql)
+        {
+            _cqlGenerator.PrependUpdate<T>(cql);
+            return ExecuteAsync(cql);
+        }
+
+        public Task DeleteAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get the statement and bind values from POCO
             string cql = _cqlGenerator.GenerateDelete<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql, primaryKeyValuesOnly: true);
             object[] values = getBindValues(poco);
 
-            // Execute
-            Statement statement = await _statementFactory.GetStatementAsync(cql, values).ConfigureAwait(false);
-            await _session.ExecuteAsync(statement).ConfigureAwait(false);
+            return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
+        }
+        
+        public Task DeleteAsync<T>(string cql, params object[] args)
+        {
+            return DeleteAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task DeleteAsync<T>(string cql, params object[] args)
+        public Task DeleteAsync<T>(Cql cql)
         {
-            cql = _cqlGenerator.PrependDelete<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
-            await _session.ExecuteAsync(statement).ConfigureAwait(false);
+            _cqlGenerator.PrependDelete<T>(cql);
+            return ExecuteAsync(cql);
         }
 
-        public async Task ExecuteAsync(string cql, params object[] args)
+        public Task ExecuteAsync(string cql, params object[] args)
         {
-            Statement statement = await _statementFactory.GetStatementAsync(cql, args).ConfigureAwait(false);
+            return ExecuteAsync(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public async Task ExecuteAsync(Cql cql)
+        {
+            // Execute the statement
+            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
@@ -195,43 +227,58 @@ namespace CqlPoco
             return _mapperFactory.TypeConverter.ConvertCqlArgument<TValue, TDatabase>(value);
         }
 
-        public List<T> Fetch<T>()
+        public List<T> Fetch<T>(CqlQueryOptions queryOptions = null)
         {
             // Just let the SQL be auto-generated
-            return Fetch<T>(string.Empty);
+            return Fetch<T>(Cql.New(string.Empty, new object[0], queryOptions ?? CqlQueryOptions.None));
         }
 
         public List<T> Fetch<T>(string cql, params object[] args)
         {
+            return Fetch<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public List<T> Fetch<T>(Cql cql)
+        {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = _statementFactory.GetStatement(cql);
             RowSet rows = _session.Execute(statement);
 
             // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return rows.Select(mapper).ToList();
         }
 
         public T Single<T>(string cql, params object[] args)
         {
+            return Single<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public T Single<T>(Cql cql)
+        {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = _statementFactory.GetStatement(cql);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.Single();
 
             // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
 
         public T SingleOrDefault<T>(string cql, params object[] args)
         {
+            return SingleOrDefault<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public T SingleOrDefault<T>(Cql cql)
+        {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = _statementFactory.GetStatement(cql);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.SingleOrDefault();
@@ -240,29 +287,39 @@ namespace CqlPoco
             if (row == null)
                 return default(T);
 
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
 
         public T First<T>(string cql, params object[] args)
         {
+            return First<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public T First<T>(Cql cql)
+        {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = _statementFactory.GetStatement(cql);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.First();
 
             // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
 
         public T FirstOrDefault<T>(string cql, params object[] args)
         {
+            return FirstOrDefault<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public T FirstOrDefault<T>(Cql cql)
+        {
             // Get the statement to execute and execute it
-            cql = _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
+            _cqlGenerator.AddSelect<T>(cql);
+            Statement statement = _statementFactory.GetStatement(cql);
             RowSet rows = _session.Execute(statement);
 
             Row row = rows.FirstOrDefault();
@@ -271,63 +328,70 @@ namespace CqlPoco
             if (row == null)
                 return default(T);
 
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql, rows);
+            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
             return mapper(row);
         }
 
-        public void Insert<T>(T poco)
+        public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateInsert<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             object[] values = getBindValues(poco);
 
-            // Execute the statement
-            Statement statement = _statementFactory.GetStatement(cql, values);
-            _session.Execute(statement);
+            Execute(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 
-        public void Update<T>(T poco)
+        public void Update<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateUpdate<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             object[] values = getBindValues(poco);
 
-            // Execute
-            Statement statement = _statementFactory.GetStatement(cql, values);
-            _session.Execute(statement);
+            Execute(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 
         public void Update<T>(string cql, params object[] args)
         {
-            cql = _cqlGenerator.PrependUpdate<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
-            _session.Execute(statement);
+            Update<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public void Delete<T>(T poco)
+        public void Update<T>(Cql cql)
+        {
+            _cqlGenerator.PrependUpdate<T>(cql);
+            Execute(cql);
+        }
+
+        public void Delete<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get the statement and bind values from POCO
             string cql = _cqlGenerator.GenerateDelete<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql, primaryKeyValuesOnly: true);
             object[] values = getBindValues(poco);
 
-            // Execute
-            Statement statement = _statementFactory.GetStatement(cql, values);
-            _session.Execute(statement);
+            Execute(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 
         public void Delete<T>(string cql, params object[] args)
         {
-            cql = _cqlGenerator.PrependDelete<T>(cql);
-            Statement statement = _statementFactory.GetStatement(cql, args);
-            _session.Execute(statement);
+            Delete<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public void Delete<T>(Cql cql)
+        {
+            _cqlGenerator.PrependDelete<T>(cql);
+            Execute(cql);
         }
 
         public void Execute(string cql, params object[] args)
         {
-            Statement statement = _statementFactory.GetStatement(cql, args);
+            Execute(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public void Execute(Cql cql)
+        {
+            Statement statement = _statementFactory.GetStatement(cql);
             _session.Execute(statement);
         }
     }

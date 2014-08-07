@@ -7,9 +7,9 @@ using CqlPoco.Utils;
 namespace CqlPoco.Statements
 {
     /// <summary>
-    /// A utility class capable of generating CQL strings for a POCO.
+    /// A utility class capable of generating CQL statements for a POCO.
     /// </summary>
-    internal class CqlStringGenerator
+    internal class CqlGenerator
     {
         private const string CannotGenerateStatementForPoco = "Cannot create {0} statement for POCO of type {1}";
         private const string NoColumns = CannotGenerateStatementForPoco + " because it has no columns";
@@ -23,31 +23,29 @@ namespace CqlPoco.Statements
 
         private readonly PocoDataFactory _pocoDataFactory;
 
-        public CqlStringGenerator(PocoDataFactory pocoDataFactory)
+        public CqlGenerator(PocoDataFactory pocoDataFactory)
         {
             if (pocoDataFactory == null) throw new ArgumentNullException("pocoDataFactory");
             _pocoDataFactory = pocoDataFactory;
         }
 
         /// <summary>
-        /// Adds "SELECT columnlist" and "FROM tablename" to a CQL string if they don't already exist for a POCO of Type T.  Passing a null/empty 
-        /// string will result in both clauses being generated.
+        /// Adds "SELECT columnlist" and "FROM tablename" to a CQL statement if they don't already exist for a POCO of Type T.
         /// </summary>
-        public string AddSelect<T>(string cql)
+        public void AddSelect<T>(Cql cql)
         {
             // If it's already got a SELECT clause, just bail
-            if (SelectRegex.IsMatch(cql))
-                return cql;
+            if (SelectRegex.IsMatch(cql.Statement))
+                return;
 
             // Get the PocoData so we can generate a list of columns
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
             string allColumns = pocoData.Columns.Select(c => c.ColumnName).ToCommaDelimitedString();
 
             // If it's got the from clause, leave FROM intact, otherwise add it
-            if (FromRegex.IsMatch(cql))
-                return string.Format("SELECT {0} {1}", allColumns, cql);
-
-            return string.Format("SELECT {0} FROM {1} {2}", allColumns, pocoData.TableName, cql);
+            cql.SetStatement(FromRegex.IsMatch(cql.Statement)
+                                 ? string.Format("SELECT {0} {1}", allColumns, cql.Statement)
+                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, pocoData.TableName, cql.Statement));
         }
 
         /// <summary>
@@ -87,12 +85,12 @@ namespace CqlPoco.Statements
         }
 
         /// <summary>
-        /// Prepends the CQL string specified with "UPDATE tablename " for a POCO of Type T.
+        /// Prepends the CQL statement specified with "UPDATE tablename " for a POCO of Type T.
         /// </summary>
-        public string PrependUpdate<T>(string cql)
+        public void PrependUpdate<T>(Cql cql)
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            return string.Format("UPDATE {0} {1}", pocoData.TableName, cql);
+            cql.SetStatement(string.Format("UPDATE {0} {1}", pocoData.TableName, cql.Statement));
         }
 
         /// <summary>
@@ -116,12 +114,12 @@ namespace CqlPoco.Statements
         }
 
         /// <summary>
-        /// Prepends the CQL string specified with "DELETE FROM tablename " for a POCO of Type T.
+        /// Prepends the CQL statement specified with "DELETE FROM tablename " for a POCO of Type T.
         /// </summary>
-        public string PrependDelete<T>(string cql)
+        public void PrependDelete<T>(Cql cql)
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            return string.Format("DELETE FROM {0} {1}", pocoData.TableName, cql);
+            cql.SetStatement(string.Format("DELETE FROM {0} {1}", pocoData.TableName, cql.Statement));
         }
     }
 }
