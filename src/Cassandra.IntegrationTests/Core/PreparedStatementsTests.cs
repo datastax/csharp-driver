@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
@@ -26,9 +27,14 @@ using System.Collections;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class PreparedStatementsTests : TwoNodesClusterTest
+    public class PreparedStatementsTests : MultipleNodesClusterTest
     {
         private const string AllTypesTableName = "all_types_table_prepared";
+
+        public PreparedStatementsTests() : base(4)
+        {
+            
+        }
 
         public override void TestFixtureSetUp()
         {
@@ -285,6 +291,95 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(-100, row.GetValue<int>("int_sample"));
             Assert.AreEqual(1511L, row.GetValue<long>("bigint_sample"));
             Assert.AreEqual("yeah!", row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundStatementsPaging()
+        {
+            var pageSize = 10;
+            var totalRowLength = 1003;
+            var table = "table" + Guid.NewGuid().ToString("N").ToLower();
+            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, table)));
+            for (var i = 0; i < totalRowLength; i++)
+            {
+                Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
+            }
+
+            var rsWithoutPaging = Session.Execute("SELECT * FROM " + table, int.MaxValue);
+            //It should have all the rows already in the inner list
+            Assert.AreEqual(totalRowLength, rsWithoutPaging.InnerQueueCount);
+
+            var ps = Session.Prepare("SELECT * FROM " + table);
+            var rs = Session.Execute(ps.Bind().SetPageSize(pageSize));
+            //Check that the internal list of items count is pageSize
+            Assert.AreEqual(pageSize, rs.InnerQueueCount);
+
+            //Use Linq to iterate through all the rows
+            var allTheRowsPaged = rs.ToList();
+
+            Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundStatementsPagingParallel()
+        {
+            var pageSize = 25;
+            var totalRowLength = 300;
+            var table = "table" + Guid.NewGuid().ToString("N").ToLower();
+            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, table)));
+            for (var i = 0; i < totalRowLength; i++)
+            {
+                Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
+            }
+            var ps = Session.Prepare(String.Format("SELECT * FROM {0} LIMIT 10000", table));
+            var rs = Session.Execute(ps.Bind().SetPageSize(pageSize));
+            Assert.AreEqual(pageSize, rs.GetAvailableWithoutFetching());
+            var counterList = new ConcurrentBag<int>();
+            Action iterate = () =>
+            {
+                var counter = 0;
+                foreach (var row in rs)
+                {
+                    counter++;
+                }
+                counterList.Add(counter);
+            };
+
+            //Iterate in parallel the RowSet
+            Parallel.Invoke(iterate, iterate, iterate, iterate);
+
+            //Check that the sum of all rows in different threads is the same as total rows
+            Assert.AreEqual(totalRowLength, counterList.Sum());
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void BoundStatementsPagingMultipleTimesOverTheSameStatement()
+        {
+            var pageSize = 25;
+            var totalRowLength = 300;
+            var times = 10;
+            var table = "table" + Guid.NewGuid().ToString("N").ToLower();
+            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, table)));
+            for (var i = 0; i < totalRowLength; i++)
+            {
+                Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
+            }
+
+            var ps = Session.Prepare(String.Format("SELECT * FROM {0} LIMIT 10000", table));
+
+            var counter = 0;
+            for (var i = 0; i < times; i++)
+            {
+                var rs = Session.Execute(ps.Bind().SetPageSize(pageSize));
+                Assert.AreEqual(pageSize, rs.InnerQueueCount);
+                counter += rs.Count();
+            }
+
+            //Check that the sum of all rows in different threads is the same as total rows
+            Assert.AreEqual(totalRowLength * times, counter);
         }
 
         [Test]
