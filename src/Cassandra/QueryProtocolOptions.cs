@@ -21,10 +21,10 @@ namespace Cassandra
             new QueryProtocolOptions(ConsistencyLevel.One, null, false, QueryOptions.DefaultPageSize, null, ConsistencyLevel.Any);
 
         private readonly bool _skipMetadata;
-
         public readonly int PageSize;
-        public readonly byte[] PagingState;
         public readonly ConsistencyLevel SerialConsistency;
+
+        public byte[] PagingState { get; set; }
         public object[] Values { get; private set; }
         public ConsistencyLevel Consistency { get; set; }
         public DateTimeOffset? Timestamp { get; private set; }

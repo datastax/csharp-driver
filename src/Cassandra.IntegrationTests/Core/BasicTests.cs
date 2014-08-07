@@ -299,20 +299,18 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
             var pageSize = 10;
             var totalRowLength = 1003;
             var table = CreateSimpleTableAndInsert(totalRowLength);
-            var rs = Session.Execute("SELECT * FROM " + table, pageSize);
-
-            //Check that the internal list of items count is pageSize
-            Assert.True(rs.InnerQueueCount == pageSize);
-
             var rsWithoutPaging = Session.Execute("SELECT * FROM " + table, int.MaxValue);
-
             //It should have all the rows already in the inner list
-            Assert.True(rsWithoutPaging.InnerQueueCount == totalRowLength);
+            Assert.AreEqual(totalRowLength, rsWithoutPaging.InnerQueueCount);
+
+            var rs = Session.Execute("SELECT * FROM " + table, pageSize);
+            //Check that the internal list of items count is pageSize
+            Assert.AreEqual(pageSize, rs.InnerQueueCount);
 
             //Use Linq to iterate through all the rows
             var allTheRowsPaged = rs.ToList();
 
-            Assert.True(allTheRowsPaged.Count == totalRowLength);
+            Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
         }
 
         [Test]

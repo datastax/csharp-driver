@@ -27,14 +27,14 @@ namespace Cassandra
 
         public ConsistencyLevel Consistency
         {
-            get
-            {
-                return _queryOptions.Consistency;
-            }
-            set
-            {
-                _queryOptions.Consistency = value;
-            }
+            get { return _queryOptions.Consistency; }
+            set { _queryOptions.Consistency = value;}
+        }
+
+        public byte[] PagingState
+        {
+            get { return _queryOptions.PagingState; }
+            set { _queryOptions.PagingState = value; }
         }
 
         public int ProtocolVersion { get; set; }

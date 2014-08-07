@@ -95,7 +95,7 @@ namespace Cassandra
             {
                 rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
             }
-            if (rs.PagingState != null)
+            if (rs.PagingState != null && _request is IQueryRequest && typeof(T) == typeof(RowSet))
             {
                 rs.FetchNextPage = (pagingState) =>
                 {
@@ -104,8 +104,10 @@ namespace Cassandra
                         _logger.Warning("Trying to page results using a Session already disposed.");
                         return new RowSet();
                     }
-                    _statement.SetPagingState(pagingState);
-                    return _session.Execute(_statement);
+                    ((IQueryRequest)_request).PagingState = pagingState;
+                    var task = new RequestHandler<RowSet>(_session, _request, _statement).Send();
+                    TaskHelper.WaitToComplete(task, _session.Configuration.ClientOptions.QueryAbortTimeout);
+                    return (RowSet)(object)task.Result;
                 };
             }
             return rs;
