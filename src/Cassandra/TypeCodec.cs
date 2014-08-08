@@ -38,6 +38,7 @@ namespace Cassandra
         private const string SetTypeName = "org.apache.cassandra.db.marshal.SetType";
         private const string MapTypeName = "org.apache.cassandra.db.marshal.MapType";
         private const string UdtTypeName = "org.apache.cassandra.db.marshal.UserType";
+        private const string TupleTypeName = "org.apache.cassandra.db.marshal.TupleType";
         public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
         public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
@@ -1393,6 +1394,26 @@ namespace Cassandra
                     udtInfo.Fields.Add(c);
                 }
                 dataType.TypeInfo = udtInfo;
+                return dataType;
+            }
+            if (typeName.Substring(startIndex, TupleTypeName.Length) == TupleTypeName)
+            {
+                //move cursor across the name and bypass the parenthesis
+                startIndex += TupleTypeName.Length + 1;
+                length -= TupleTypeName.Length + 2;
+                var tupleParams = ParseParams(typeName, startIndex, length);
+                if (tupleParams.Count < 1)
+                {
+                    //It should contain at least the keyspace, name of the udt and a type
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeCode = ColumnTypeCode.Tuple;
+                var tupleInfo = new TupleColumnInfo();
+                foreach (var subTypeName in tupleParams)
+                {
+                    tupleInfo.Elements.Add(ParseDataType(subTypeName));
+                }
+                dataType.TypeInfo = tupleInfo;
                 return dataType;
             }
             throw GetTypeException(typeName);
