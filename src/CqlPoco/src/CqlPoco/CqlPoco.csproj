@@ -67,6 +67,8 @@
     <Compile Include="ICqlWriteAsyncClient.cs" />
     <Compile Include="ICqlWriteClient.cs" />
     <Compile Include="IgnoreAttribute.cs" />
+    <Compile Include="Mapping\AttributeBasedColumnDefinition.cs" />
+    <Compile Include="Mapping\AttributeBasedTypeDefinition.cs" />
     <Compile Include="Mapping\ColumnDefinition.cs" />
     <Compile Include="Mapping\TypeDefinition.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />

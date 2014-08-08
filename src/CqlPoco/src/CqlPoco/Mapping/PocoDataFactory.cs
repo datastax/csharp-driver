@@ -33,7 +33,7 @@ namespace CqlPoco.Mapping
 
             // No fluent mapping defined, so get from attributes
             if (typeDefinition == null)
-                typeDefinition = TypeDefinition.FromAttributes(pocoType);
+                typeDefinition = new AttributeBasedTypeDefinition(pocoType);
 
             // Figure out the table name (if not specified, use the POCO class' name)
             string tableName = typeDefinition.TableName ?? pocoType.Name;
@@ -42,16 +42,12 @@ namespace CqlPoco.Mapping
             string[] pkColumnNames = typeDefinition.PrimaryKeyColumns ?? new[] { "id" };
             var primaryKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
 
-            // Create PocoColumn collection (where ordering is guaranteed to be consistent) from the right set of ColumnDefinitions
-            IEnumerable<ColumnDefinition> columnDefinitions = typeDefinition.ExplicitColumns
-                                        ? typeDefinition.ColumnDefinitions.Values.Where(c => c.IsExplicitlyDefined)
-                                        : typeDefinition.ColumnDefinitions.Values.Where(c => c.Ignore == false);
-
-            // Primary key columns should be LAST
-            LookupKeyedCollection<string, PocoColumn> columns = columnDefinitions.Select(PocoColumn.FromColumnDefinition)
-                                                                                 .OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
-                                                                                 .ToLookupKeyedCollection(pc => pc.ColumnName,
-                                                                                                          StringComparer.OrdinalIgnoreCase);
+            // Create PocoColumn collection (where ordering is guaranteed to be consistent) with PK columns LAST
+            LookupKeyedCollection<string, PocoColumn> columns = typeDefinition.GetColumnDefinitions()
+                                                                              .Select(PocoColumn.FromColumnDefinition)
+                                                                              .OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
+                                                                              .ToLookupKeyedCollection(pc => pc.ColumnName,
+                                                                                                       StringComparer.OrdinalIgnoreCase);
 
             return new PocoData(pocoType, tableName, columns, primaryKeyColumns);
         }
@@ -59,30 +55,17 @@ namespace CqlPoco.Mapping
         /// <summary>
         /// Gets any public instance fields that are settable for the given type.
         /// </summary>
-        private static IEnumerable<FieldInfo> GetMappableFields(Type t, bool explicitColumns)
+        private static IEnumerable<FieldInfo> GetMappableFields(Type t)
         {
-            return t.GetFields(PublicInstanceBindingFlags).Where(field => field.IsInitOnly == false && ShouldMap(field, explicitColumns));
+            return t.GetFields(PublicInstanceBindingFlags).Where(field => field.IsInitOnly == false);
         }
 
         /// <summary>
         /// Gets any public instance properties for the given type.
         /// </summary>
-        private static IEnumerable<PropertyInfo> GetMappableProperties(Type t, bool explicitColumns)
+        private static IEnumerable<PropertyInfo> GetMappableProperties(Type t)
         {
-            return t.GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite && ShouldMap(p, explicitColumns));
-        }
-
-        private static bool ShouldMap(MemberInfo propOrField, bool explicitColumns)
-        {
-            // If explicit columns is turned on, must have a ColumnAttribute to be mapped
-            if (explicitColumns && propOrField.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault() == null)
-                return false;
-
-            // If explicit columns is not on, ignore anything with an IgnoreAttribute
-            if (explicitColumns == false && propOrField.GetCustomAttributes<IgnoreAttribute>(true).FirstOrDefault() != null)
-                return false;
-
-            return true;
+            return t.GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite);
         }
     }
 }
