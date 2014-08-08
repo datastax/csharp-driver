@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Reflection;
 
 namespace CqlPoco.Mapping
@@ -30,7 +29,7 @@ namespace CqlPoco.Mapping
         {
         }
 
-        public static PocoColumn FromColumnDefinition(ColumnDefinition columnDefinition)
+        public static PocoColumn FromColumnDefinition(IColumnDefinition columnDefinition)
         {
             return new PocoColumn
             {

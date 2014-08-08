@@ -7,30 +7,38 @@ namespace CqlPoco.Mapping
     /// <summary>
     /// A type definition that uses attributes on the class to determine its settings.
     /// </summary>
-    public class AttributeBasedTypeDefinition : TypeDefinition
+    public class AttributeBasedTypeDefinition : ITypeDefinition
     {
+        private readonly Type _pocoType;
         private readonly string _tableName;
         private readonly bool _explicitColumns;
         private readonly string[] _primaryKeyColumns;
 
-        protected internal override string TableName
+        Type ITypeDefinition.PocoType
+        {
+            get { return _pocoType; }
+        }
+
+        string ITypeDefinition.TableName
         {
             get { return _tableName; }
         }
 
-        protected internal override bool ExplicitColumns
+        bool ITypeDefinition.ExplicitColumns
         {
             get { return _explicitColumns; }
         }
 
-        protected internal override string[] PrimaryKeyColumns
+        string[] ITypeDefinition.PrimaryKeyColumns
         {
             get { return _primaryKeyColumns; }
         }
 
         public AttributeBasedTypeDefinition(Type pocoType) 
-            : base(pocoType)
         {
+            if (pocoType == null) throw new ArgumentNullException("pocoType");
+            _pocoType = pocoType;
+
             // Look for supported attributes on the Type and set any properties appropriately
             PrimaryKeyAttribute primaryKeyAttribute = pocoType.GetCustomAttributes<PrimaryKeyAttribute>(true).FirstOrDefault();
             if (primaryKeyAttribute != null)
@@ -45,12 +53,12 @@ namespace CqlPoco.Mapping
                 _tableName = tableNameAttribute.Value;
         }
 
-        protected override ColumnDefinition GetColumnDefinition(FieldInfo field)
+        IColumnDefinition ITypeDefinition.GetColumnDefinition(FieldInfo field)
         {
             return new AttributeBasedColumnDefinition(field);
         }
 
-        protected override ColumnDefinition GetColumnDefinition(PropertyInfo property)
+        IColumnDefinition ITypeDefinition.GetColumnDefinition(PropertyInfo property)
         {
             return new AttributeBasedColumnDefinition(property);
         }

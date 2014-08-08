@@ -29,7 +29,7 @@ namespace CqlPoco.Mapping
         private static PocoData CreatePocoData(Type pocoType)
         {
             // TODO:  Allow fluent mappings to be defined
-            TypeDefinition typeDefinition = null;
+            ITypeDefinition typeDefinition = null;
 
             // No fluent mapping defined, so get from attributes
             if (typeDefinition == null)
@@ -42,15 +42,25 @@ namespace CqlPoco.Mapping
             string[] pkColumnNames = typeDefinition.PrimaryKeyColumns ?? new[] { "id" };
             var primaryKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
 
+            // Get column definitions for all mappable fields and properties
+            IEnumerable<IColumnDefinition> fieldsAndProperties = GetMappableFields(typeDefinition.PocoType)
+                .Select(typeDefinition.GetColumnDefinition)
+                .Union(GetMappableProperties(typeDefinition.PocoType).Select(typeDefinition.GetColumnDefinition));
+
+            // If explicit columns, only get column definitions that are explicitly defined, otherwise get all columns that aren't marked as Ignored
+            IEnumerable<IColumnDefinition> columnDefinitions = typeDefinition.ExplicitColumns
+                                                                   ? fieldsAndProperties.Where(c => c.IsExplicitlyDefined)
+                                                                   : fieldsAndProperties.Where(c => c.Ignore == false);
+
             // Create PocoColumn collection (where ordering is guaranteed to be consistent) with PK columns LAST
-            LookupKeyedCollection<string, PocoColumn> columns = typeDefinition.GetColumnDefinitions()
-                                                                              .Select(PocoColumn.FromColumnDefinition)
+            LookupKeyedCollection<string, PocoColumn> columns = columnDefinitions.Select(PocoColumn.FromColumnDefinition)
                                                                               .OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
                                                                               .ToLookupKeyedCollection(pc => pc.ColumnName,
                                                                                                        StringComparer.OrdinalIgnoreCase);
 
             return new PocoData(pocoType, tableName, columns, primaryKeyColumns);
         }
+
 
         /// <summary>
         /// Gets any public instance fields that are settable for the given type.

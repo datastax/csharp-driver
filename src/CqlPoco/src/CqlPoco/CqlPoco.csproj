@@ -69,8 +69,8 @@
     <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="Mapping\AttributeBasedColumnDefinition.cs" />
     <Compile Include="Mapping\AttributeBasedTypeDefinition.cs" />
-    <Compile Include="Mapping\ColumnDefinition.cs" />
-    <Compile Include="Mapping\TypeDefinition.cs" />
+    <Compile Include="Mapping\IColumnDefinition.cs" />
+    <Compile Include="Mapping\ITypeDefinition.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Statements\CqlGenerator.cs" />
     <Compile Include="TypeConversion\NullableEnumStringMapper.cs" />

@@ -7,47 +7,62 @@ namespace CqlPoco.Mapping
     /// <summary>
     /// A column definition that uses attributes on the field/property to get its settings.
     /// </summary>
-    public class AttributeBasedColumnDefinition : ColumnDefinition
+    public class AttributeBasedColumnDefinition : IColumnDefinition
     {
-        private string _columnName;
-        private Type _columnType;
-        private bool _ignore;
-        private bool _isExplicitlyDefined;
+        private readonly MemberInfo _memberInfo;
+        private readonly Type _memberInfoType;
 
-        protected internal override string ColumnName
+        private readonly string _columnName;
+        private readonly Type _columnType;
+        private readonly bool _ignore;
+        private readonly bool _isExplicitlyDefined;
+
+        MemberInfo IColumnDefinition.MemberInfo
+        {
+            get { return _memberInfo; }
+        }
+
+        Type IColumnDefinition.MemberInfoType
+        {
+            get { return _memberInfoType; }
+        }
+
+        string IColumnDefinition.ColumnName
         {
             get { return _columnName; }
         }
 
-        protected internal override Type ColumnType
+        Type IColumnDefinition.ColumnType
         {
             get { return _columnType; }
         }
 
-        protected internal override bool Ignore
+        bool IColumnDefinition.Ignore
         {
             get { return _ignore; }
         }
 
-        protected internal override bool IsExplicitlyDefined
+        bool IColumnDefinition.IsExplicitlyDefined
         {
             get { return _isExplicitlyDefined; }
         }
 
         public AttributeBasedColumnDefinition(FieldInfo fieldInfo) 
-            : base(fieldInfo)
+            : this((MemberInfo) fieldInfo)
         {
-            InitFromAttributes(fieldInfo);
+            _memberInfoType = fieldInfo.FieldType;
         }
 
         public AttributeBasedColumnDefinition(PropertyInfo propertyInfo) 
-            : base(propertyInfo)
+            : this((MemberInfo) propertyInfo)
         {
-            InitFromAttributes(propertyInfo);
+            _memberInfoType = propertyInfo.PropertyType;
         }
 
-        private void InitFromAttributes(MemberInfo memberInfo)
+        private AttributeBasedColumnDefinition(MemberInfo memberInfo)
         {
+            _memberInfo = memberInfo;
+
             ColumnAttribute columnAttribute = memberInfo.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
             if (columnAttribute != null)
             {
