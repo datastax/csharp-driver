@@ -29,36 +29,17 @@ namespace CqlPoco.Mapping
         private PocoColumn()
         {
         }
-        
-        /// <summary>
-        /// Creates a PocoColumn for a field.
-        /// </summary>
-        internal static PocoColumn FromField(FieldInfo fieldInfo)
-        {
-            return FromMemberInfo(fieldInfo, fieldInfo.FieldType);
-        }
 
-        /// <summary>
-        /// Creates a PocoColumn for a property.
-        /// </summary>
-        internal static PocoColumn FromProperty(PropertyInfo propInfo)
+        public static PocoColumn FromColumnDefinition(ColumnDefinition columnDefinition)
         {
-            return FromMemberInfo(propInfo, propInfo.PropertyType);
-        }
-
-        private static PocoColumn FromMemberInfo(MemberInfo memberInfo, Type memberInfoType)
-        {
-            // See if the column name or type was overridden
-            var columnAttribute = memberInfo.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
-            string columnName = columnAttribute == null || string.IsNullOrEmpty(columnAttribute.Name) ? memberInfo.Name : columnAttribute.Name;
-            Type columnType = columnAttribute == null || columnAttribute.Type == null ? memberInfoType : columnAttribute.Type;
-
             return new PocoColumn
             {
-                ColumnName = columnName,
-                ColumnType = columnType,
-                MemberInfo = memberInfo,
-                MemberInfoType = memberInfoType
+                // Default the column name to the prop/field name if not specified
+                ColumnName = columnDefinition.ColumnName ?? columnDefinition.MemberInfo.Name,
+                // Default the column type to the prop/field type if not specified
+                ColumnType = columnDefinition.ColumnType ?? columnDefinition.MemberInfoType,
+                MemberInfo = columnDefinition.MemberInfo,
+                MemberInfoType = columnDefinition.MemberInfoType
             };
         }
     }

@@ -28,23 +28,30 @@ namespace CqlPoco.Mapping
         
         private static PocoData CreatePocoData(Type pocoType)
         {
-            // Figure out the primary key columns (if not specified, assume a column called "id" is used)
-            var primaryKeyAttribute = pocoType.GetCustomAttributes<PrimaryKeyAttribute>(true).FirstOrDefault();
-            string[] pkColumnNames = primaryKeyAttribute == null ? new[] { "id" } : primaryKeyAttribute.ColumnNames;
-            var primaryKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
+            // TODO:  Allow fluent mappings to be defined
+            TypeDefinition typeDefinition = null;
 
-            // Find all public instance fields and properties that should be mapped
-            bool explicitColumns = pocoType.GetCustomAttributes<ExplicitColumnsAttribute>(true).FirstOrDefault() != null;
-            IEnumerable<PocoColumn> fields = GetMappableFields(pocoType, explicitColumns).Select(PocoColumn.FromField);
-            IEnumerable<PocoColumn> properties = GetMappableProperties(pocoType, explicitColumns).Select(PocoColumn.FromProperty);
-            
-            // Convert to a Dictionary/Collection hybrid (where ordering is guaranteed to be consistent), ordered such that PK columns are last
-            LookupKeyedCollection<string, PocoColumn> columns = fields.Union(properties).OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
-                                                                      .ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
+            // No fluent mapping defined, so get from attributes
+            if (typeDefinition == null)
+                typeDefinition = TypeDefinition.FromAttributes(pocoType);
 
             // Figure out the table name (if not specified, use the POCO class' name)
-            var tableNameAttribute = pocoType.GetCustomAttributes<TableNameAttribute>(true).FirstOrDefault();
-            string tableName = tableNameAttribute == null ? pocoType.Name : tableNameAttribute.Value;
+            string tableName = typeDefinition.TableName ?? pocoType.Name;
+
+            // Figure out the primary key columns (if not specified, assume a column called "id" is used)
+            string[] pkColumnNames = typeDefinition.PrimaryKeyColumns ?? new[] { "id" };
+            var primaryKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
+
+            // Create PocoColumn collection (where ordering is guaranteed to be consistent) from the right set of ColumnDefinitions
+            IEnumerable<ColumnDefinition> columnDefinitions = typeDefinition.ExplicitColumns
+                                        ? typeDefinition.ColumnDefinitions.Values.Where(c => c.IsExplicitlyDefined)
+                                        : typeDefinition.ColumnDefinitions.Values.Where(c => c.Ignore == false);
+
+            // Primary key columns should be LAST
+            LookupKeyedCollection<string, PocoColumn> columns = columnDefinitions.Select(PocoColumn.FromColumnDefinition)
+                                                                                 .OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
+                                                                                 .ToLookupKeyedCollection(pc => pc.ColumnName,
+                                                                                                          StringComparer.OrdinalIgnoreCase);
 
             return new PocoData(pocoType, tableName, columns, primaryKeyColumns);
         }
