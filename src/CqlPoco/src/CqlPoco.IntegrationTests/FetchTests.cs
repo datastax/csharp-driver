@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra;
 using CqlPoco.IntegrationTests.Assertions;
 using CqlPoco.IntegrationTests.Pocos;
 using CqlPoco.IntegrationTests.TestData;
@@ -13,16 +14,30 @@ namespace CqlPoco.IntegrationTests
     public class FetchTests : IntegrationTestBase
     {
         [Test]
-        public async void FetchAsyncAll_Pocos_WithCql()
+        public async void FetchAsync_Pocos_WithCql()
         {
             List<PlainUser> users = await CqlClient.FetchAsync<PlainUser>("SELECT * FROM users");
             users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy());
         }
 
         [Test]
-        public void FetchAll_Pocos_WithCql()
+        public async void FetchAsync_Pocos_WithCqlAndOptions()
+        {
+            List<PlainUser> users = await CqlClient.FetchAsync<PlainUser>(Cql.New("SELECT * FROM users").WithOptions(opt => opt.SetConsistencyLevel(ConsistencyLevel.Quorum)));
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy());
+        }
+
+        [Test]
+        public void Fetch_Pocos_WithCql()
         {
             List<PlainUser> users = CqlClient.Fetch<PlainUser>("SELECT * FROM users");
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy());
+        }
+
+        [Test]
+        public void Fetch_Pocos_WithCqlAndOptions()
+        {
+            List<PlainUser> users = CqlClient.Fetch<PlainUser>(Cql.New("SELECT * FROM users").WithOptions(opt => opt.DoNotPrepare()));
             users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy());
         }
 
@@ -61,10 +76,42 @@ namespace CqlPoco.IntegrationTests
         }
 
         [Test]
+        public async void FetchAsyncAll_DecoratedPocos_WithOptions()
+        {
+            // We should be able to get all the decorated POCOs without any CQL (i.e. have it generated for us)
+            List<DecoratedUser> users = await CqlClient.FetchAsync<DecoratedUser>(CqlQueryOptions.New().EnableTracing());
+            foreach (DecoratedUser user in users)
+            {
+                // Match users from UserId -> Id property and test that matching properties are equivalent
+                TestUser testUser = TestDataHelper.Users.SingleOrDefault(u => u.UserId == user.Id);
+                user.ShouldBeEquivalentTo(testUser, opt => opt.ExcludingMissingProperties());
+
+                // Also make sure that ignored property was ignored
+                user.AnUnusedProperty.Should().NotHaveValue();
+            }
+        }
+
+        [Test]
         public void FetchAll_DecoratedPocos()
         {
             // We should be able to get all the decorated POCOs without any CQL (i.e. have it generated for us)
             List<DecoratedUser> users = CqlClient.Fetch<DecoratedUser>();
+            foreach (DecoratedUser user in users)
+            {
+                // Match users from UserId -> Id property and test that matching properties are equivalent
+                TestUser testUser = TestDataHelper.Users.SingleOrDefault(u => u.UserId == user.Id);
+                user.ShouldBeEquivalentTo(testUser, opt => opt.ExcludingMissingProperties());
+
+                // Also make sure that ignored property was ignored
+                user.AnUnusedProperty.Should().NotHaveValue();
+            }
+        }
+
+        [Test]
+        public void FetchAll_DecoratedPocos_WithOptions()
+        {
+            // We should be able to get all the decorated POCOs without any CQL (i.e. have it generated for us)
+            List<DecoratedUser> users = CqlClient.Fetch<DecoratedUser>(CqlQueryOptions.New().DisableTracing());
             foreach (DecoratedUser user in users)
             {
                 // Match users from UserId -> Id property and test that matching properties are equivalent

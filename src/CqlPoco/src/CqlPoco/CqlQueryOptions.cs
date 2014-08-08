@@ -38,11 +38,20 @@ namespace CqlPoco
         }
 
         /// <summary>
-        /// Enables or disables tracing for the query. 
+        /// Enables tracing for the query.
         /// </summary>
-        public CqlQueryOptions SetTracingEnabled(bool tracingEnabled)
+        public CqlQueryOptions EnableTracing()
         {
-            _tracingEnabled = tracingEnabled;
+            _tracingEnabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Disables tracing for the query.
+        /// </summary>
+        public CqlQueryOptions DisableTracing()
+        {
+            _tracingEnabled = false;
             return this;
         }
 
@@ -102,6 +111,14 @@ namespace CqlPoco
 
             if (_serialConsistencyLevel.HasValue)
                 statement.SetSerialConsistencyLevel(_serialConsistencyLevel.Value);
+        }
+
+        /// <summary>
+        /// Creates a new instance of CqlQueryOptions.
+        /// </summary>
+        public static CqlQueryOptions New()
+        {
+            return new CqlQueryOptions();
         }
 
         /// <summary>

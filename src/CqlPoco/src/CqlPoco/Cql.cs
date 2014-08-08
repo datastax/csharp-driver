@@ -18,11 +18,11 @@ namespace CqlPoco
         public object[] Arguments { get; private set; }
 
         /// <summary>
-        /// Allow you to set options that are available on a per-query basis.
+        /// Options that are available on a per-query basis.
         /// </summary>
-        public CqlQueryOptions QueryOptions { get; private set; }
+        internal CqlQueryOptions QueryOptions { get; private set; }
 
-        public Cql(string cql, object[] args)
+        public Cql(string cql, params object[] args)
         {
             Statement = cql;
             Arguments = args;
@@ -36,6 +36,12 @@ namespace CqlPoco
             QueryOptions = queryOptions;
         }
 
+        public Cql WithOptions(Action<CqlQueryOptions> options)
+        {
+            if (options == null) throw new ArgumentNullException("options");
+            options(QueryOptions);
+            return this;
+        }
 
         internal void SetStatement(string statement)
         {
