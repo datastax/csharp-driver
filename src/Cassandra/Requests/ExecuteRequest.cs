@@ -58,16 +58,13 @@ namespace Cassandra
                 _flags = 0x02;
             }
 
-            if (Consistency >= ConsistencyLevel.Serial)
+            if (Consistency.IsSerialConsistencyLevel())
             {
                 throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
             }
-            if (queryOptions.SerialConsistency != ConsistencyLevel.Any)
+            if (queryOptions.SerialConsistency != ConsistencyLevel.Any && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
             {
-                if (queryOptions.SerialConsistency < ConsistencyLevel.Serial)
-                {
-                    throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
-                }
+                throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
             if (queryOptions.Timestamp != null && protocolVersion < 3)
             {

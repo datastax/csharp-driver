@@ -148,7 +148,7 @@ namespace Cassandra
         /// <inheritdoc />
         public IStatement SetSerialConsistencyLevel(ConsistencyLevel serialConsistency)
         {
-            if (serialConsistency != Cassandra.ConsistencyLevel.Serial && serialConsistency != Cassandra.ConsistencyLevel.LocalSerial)
+            if (serialConsistency.IsSerialConsistencyLevel() == false)
             {
                 throw new ArgumentException("The serial consistency can only be set to ConsistencyLevel.LocalSerial or ConsistencyLevel.Serial.");
             }
