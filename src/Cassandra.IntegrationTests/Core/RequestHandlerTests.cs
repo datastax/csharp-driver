@@ -56,7 +56,10 @@ namespace Cassandra.IntegrationTests.Core
             var statement = new SimpleStatement("SELECT WILL FAIL").SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var request = Session.GetRequest(statement);
             //We will need a mock to fake the responses of Cassandra
-            var mock = new Moq.Mock<RequestHandler<RowSet>>(Session, request, statement);
+            var mock = new Moq.Mock<RequestHandler<RowSet>>(Session, request, statement)
+            {
+                CallBase = true
+            };
             var requestHandler = mock.Object;
             //Expect Retry method to be called with a lower consistency level
             mock.Setup(r => r.Retry(It.Is<ConsistencyLevel?>(c => c == ConsistencyLevel.Two))).Verifiable();

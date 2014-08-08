@@ -478,31 +478,5 @@ VALUES ({1},'test{2}',{3},'body{2}',{4},{5});", tableName, Guid.NewGuid(), i, i%
         {
             ExceedingCassandraType(typeof (Single), typeof (Double), false);
         }
-
-        [Test]
-        public void SerialConsistencyTest()
-        {
-            var tableName = "all_types_table_serial";
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, tableName)));
-
-            //You can not specify local serial consistency as a valid read one.
-            Assert.Throws<RequestInvalidException>(() =>
-            {
-                Session.Execute("SELECT * FROM " + tableName, ConsistencyLevel.LocalSerial);
-            });
-
-            //It should work
-            var statement = new SimpleStatement("SELECT * FROM " + tableName)
-                .SetConsistencyLevel(ConsistencyLevel.Quorum)
-                .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
-            //Read consistency specified and write consistency specified
-            Session.Execute(statement);
-
-            //You can not specify serial consistency as a valid read one.
-            Assert.Throws<RequestInvalidException>(() =>
-            {
-                Session.Execute("SELECT * FROM " + tableName, ConsistencyLevel.Serial);
-            });
-        }
     }
 }

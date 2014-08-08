@@ -62,6 +62,7 @@
     <Compile Include="CCMBridge.cs" />
     <Compile Include="Core\ClusterTests.cs" />
     <Compile Include="Core\ConnectionTests.cs" />
+    <Compile Include="Core\ConsistencyShortTests.cs" />
     <Compile Include="Core\MultiThreadingTests.cs" />
     <Compile Include="Core\BasicTests.cs" />
     <Compile Include="Core\BatchStatements.cs" />
