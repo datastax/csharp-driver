@@ -20,9 +20,11 @@ using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Linq;
 
 namespace Cassandra.IntegrationTests
 {
@@ -603,6 +605,33 @@ namespace Cassandra.IntegrationTests
         public static void CcmDecommissionNode(CcmClusterInfo info, int node)
         {
             ExecuteLocalCcm(string.Format("node{0} decommission", node), info.ConfigDir);
+        }
+
+        /// <summary>
+        /// Determines if a connection can be made to a node at port 9042
+        /// </summary>
+        public static bool IsNodeReachable(IPAddress ip)
+        {
+            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                var connectResult = socket.BeginConnect(new IPEndPoint(ip, 9042), null, null);
+                var connectSignaled = connectResult.AsyncWaitHandle.WaitOne(1000);
+
+                if (!connectSignaled)
+                {
+                    //It timed out: Close the socket
+                    return false;
+                }
+                try
+                {
+                    socket.EndConnect(connectResult);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
         }
     }
 

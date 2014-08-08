@@ -88,6 +88,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
+                cluster.Shutdown();
                 TestUtils.CcmRemove(clusterInfo);
             }
         }
