@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Core
             //Local One is a valid read consistency
             Assert.DoesNotThrow(() => Session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.LocalOne));
 
-            Assert.Throws<RequestInvalidException>(() =>
+            Assert.Throws<ArgumentException>(() =>
             {
                 //You can not specify local serial consistency as a valid read one.
                 var statement = new SimpleStatement("SELECT * FROM " + AllTypesTableName)
