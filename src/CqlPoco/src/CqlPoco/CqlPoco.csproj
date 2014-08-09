@@ -62,6 +62,9 @@
     <Compile Include="CqlClientConfiguration.cs" />
     <Compile Include="CqlQueryOptions.cs" />
     <Compile Include="ExplicitColumnsAttribute.cs" />
+    <Compile Include="FluentMapping\ColumnMap.cs" />
+    <Compile Include="FluentMapping\Map.cs" />
+    <Compile Include="FluentMapping\Mappings.cs" />
     <Compile Include="ICqlBatch.cs" />
     <Compile Include="ICqlQueryClient.cs" />
     <Compile Include="ICqlWriteAsyncClient.cs" />
