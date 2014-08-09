@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using Cassandra;
 using CqlPoco.FluentMapping;
 using CqlPoco.Mapping;
@@ -102,7 +103,7 @@ namespace CqlPoco
         /// </summary>
         public ICqlClient BuildCqlClient()
         {
-            var pocoDataFactory = new PocoDataFactory();
+            var pocoDataFactory = new PocoDataFactory(_typeDefinitions);
             return new CqlClient(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(_session),
                                  new CqlGenerator(pocoDataFactory));
         }

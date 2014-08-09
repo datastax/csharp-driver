@@ -1,3 +1,4 @@
+using CqlPoco.IntegrationTests.FluentMappings;
 using CqlPoco.IntegrationTests.TestData;
 using NUnit.Framework;
 
@@ -19,7 +20,9 @@ namespace CqlPoco.IntegrationTests
         [SetUp]
         public void Setup()
         {
-            CqlClient = CqlClientConfiguration.ForSession(SessionHelper.Session).BuildCqlClient();
+            CqlClient = CqlClientConfiguration.ForSession(SessionHelper.Session)
+                                              .UseIndividualMapping<FluentUserMapping>()
+                                              .BuildCqlClient();
         }
     }
 }

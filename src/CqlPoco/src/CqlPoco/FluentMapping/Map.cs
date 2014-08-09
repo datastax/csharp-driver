@@ -133,7 +133,7 @@ namespace CqlPoco.FluentMapping
         /// <summary>
         /// Defines options for mapping the column specified.
         /// </summary>
-        public Map<TPoco> Column(Expression<Func<TPoco, object>> column, Action<ColumnMap> columnConfig)
+        public Map<TPoco> Column<TProp>(Expression<Func<TPoco, TProp>> column, Action<ColumnMap> columnConfig)
         {
             if (column == null) throw new ArgumentNullException("column");
             if (columnConfig == null) throw new ArgumentNullException("columnConfig");
@@ -175,9 +175,16 @@ namespace CqlPoco.FluentMapping
         /// Gets the MemberInfo for the property or field that the expression provided refers to.  Will throw if the Expression does not refer
         /// to a valid property or field on TPoco.
         /// </summary>
-        private MemberInfo GetPropertyOrField(Expression<Func<TPoco, object>> expression)
+        private MemberInfo GetPropertyOrField<TProp>(Expression<Func<TPoco, TProp>> expression)
         {
-            var memberExpression = expression.Body as MemberExpression;
+            // Take the body of the lamdba expression
+            Expression body = expression.Body;
+
+            // We'll get a Convert node for the Func<TPoco, object> where the actual property expression is the operand being converted to object
+            if (body.NodeType == ExpressionType.Convert)
+                body = ((UnaryExpression) body).Operand;
+
+            var memberExpression = body as MemberExpression;
             if (memberExpression == null || IsPropertyOrField(memberExpression.Member) == false)
                 throw new ArgumentOutOfRangeException("expression", string.Format("Expression {0} is not a property or field.", expression));
 

@@ -58,6 +58,76 @@ namespace CqlPoco.IntegrationTests
             List<PlainUser> users = CqlClient.Fetch<PlainUser>("FROM users WHERE userid IN (?, ?)", usersToGet[0].UserId, usersToGet[1].UserId);
             users.ShouldAllBeEquivalentTo(usersToGet, opt => opt.AccountForTimestampAccuracy());
         }
+
+        [Test]
+        public async void FetchAsyncAll_FluentPocos()
+        {
+            List<FluentUser> users = await CqlClient.FetchAsync<FluentUser>();
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public void FetchAll_FluentPocos()
+        {
+            List<FluentUser> users = CqlClient.Fetch<FluentUser>();
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public async void FetchAsyncAll_FluentPocos_WithOptions()
+        {
+            List<FluentUser> users = await CqlClient.FetchAsync<FluentUser>(new CqlQueryOptions().DoNotPrepare());
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public void FetchAll_FluentPocos_WithOptions()
+        {
+            List<FluentUser> users = CqlClient.Fetch<FluentUser>(new CqlQueryOptions().EnableTracing().SetConsistencyLevel(ConsistencyLevel.LocalQuorum));
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public async void FetchAsync_FluentPocos_WithCql()
+        {
+            List<FluentUser> users = await CqlClient.FetchAsync<FluentUser>("SELECT * FROM users");
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public void Fetch_FluentPocos_WithCql()
+        {
+            List<FluentUser> users = CqlClient.Fetch<FluentUser>("SELECT * FROM users");
+            users.ShouldAllBeEquivalentTo(TestDataHelper.Users, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public async void FetchAsync_FluentPocos_WithPredicateOnly()
+        {
+            // Lookup users 3 and 4 with just a WHERE clause
+            TestUser[] usersToGet = TestDataHelper.Users.Skip(2).Take(2).ToArray();
+
+            List<FluentUser> users = await CqlClient.FetchAsync<FluentUser>("WHERE userid IN (?, ?)", usersToGet[0].UserId, usersToGet[1].UserId);
+            users.ShouldAllBeEquivalentTo(usersToGet, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
+
+        [Test]
+        public void Fetch_FluentPocos_WithPredicateOnly()
+        {
+            // Lookup users 3 and 4 with just a WHERE clause
+            TestUser[] usersToGet = TestDataHelper.Users.Skip(2).Take(2).ToArray();
+
+            List<FluentUser> users = CqlClient.Fetch<FluentUser>("WHERE userid IN (?, ?)", usersToGet[0].UserId, usersToGet[1].UserId);
+            users.ShouldAllBeEquivalentTo(usersToGet, opt => opt.AccountForTimestampAccuracy().Using(FluentUserToTestUserMatchingRule.Instance).ExcludingMissingProperties());
+            users.Select(u => u.SomeIgnoredProperty).Should().OnlyContain(p => p == null);
+        }
         
         [Test]
         public async void FetchAsyncAll_DecoratedPocos()
@@ -76,10 +146,10 @@ namespace CqlPoco.IntegrationTests
         }
 
         [Test]
-        public async void FetchAsyncAll_DecoratedPocos_WithOptions()
+        public void FetchAll_DecoratedPocos()
         {
             // We should be able to get all the decorated POCOs without any CQL (i.e. have it generated for us)
-            List<DecoratedUser> users = await CqlClient.FetchAsync<DecoratedUser>(CqlQueryOptions.New().EnableTracing());
+            List<DecoratedUser> users = CqlClient.Fetch<DecoratedUser>();
             foreach (DecoratedUser user in users)
             {
                 // Match users from UserId -> Id property and test that matching properties are equivalent
@@ -92,10 +162,10 @@ namespace CqlPoco.IntegrationTests
         }
 
         [Test]
-        public void FetchAll_DecoratedPocos()
+        public async void FetchAsyncAll_DecoratedPocos_WithOptions()
         {
             // We should be able to get all the decorated POCOs without any CQL (i.e. have it generated for us)
-            List<DecoratedUser> users = CqlClient.Fetch<DecoratedUser>();
+            List<DecoratedUser> users = await CqlClient.FetchAsync<DecoratedUser>(CqlQueryOptions.New().EnableTracing());
             foreach (DecoratedUser user in users)
             {
                 // Match users from UserId -> Id property and test that matching properties are equivalent

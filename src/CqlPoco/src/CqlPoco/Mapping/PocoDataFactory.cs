@@ -14,10 +14,14 @@ namespace CqlPoco.Mapping
     {
         private const BindingFlags PublicInstanceBindingFlags = BindingFlags.Public | BindingFlags.Instance;
 
-        private readonly ConcurrentDictionary<Type, PocoData> _cache; 
+        private readonly LookupKeyedCollection<Type, ITypeDefinition> _predefinedTypeDefinitions;
+        private readonly ConcurrentDictionary<Type, PocoData> _cache;
 
-        public PocoDataFactory()
+        public PocoDataFactory(LookupKeyedCollection<Type, ITypeDefinition> predefinedTypeDefinitions)
         {
+            if (predefinedTypeDefinitions == null) throw new ArgumentNullException("predefinedTypeDefinitions");
+            _predefinedTypeDefinitions = predefinedTypeDefinitions;
+
             _cache = new ConcurrentDictionary<Type, PocoData>();
         }
 
@@ -26,13 +30,11 @@ namespace CqlPoco.Mapping
             return _cache.GetOrAdd(typeof(T), CreatePocoData);
         }
         
-        private static PocoData CreatePocoData(Type pocoType)
+        private PocoData CreatePocoData(Type pocoType)
         {
-            // TODO:  Allow fluent mappings to be defined
-            ITypeDefinition typeDefinition = null;
-
-            // No fluent mapping defined, so get from attributes
-            if (typeDefinition == null)
+            // Try to get mapping from predefined collection, otherwise fallback to using attributes
+            ITypeDefinition typeDefinition;
+            if (_predefinedTypeDefinitions.TryGetItem(pocoType, out typeDefinition) == false)
                 typeDefinition = new AttributeBasedTypeDefinition(pocoType);
 
             // Figure out the table name (if not specified, use the POCO class' name)
