@@ -22,6 +22,9 @@ namespace CqlPoco
         /// </summary>
         internal CqlQueryOptions QueryOptions { get; private set; }
 
+        /// <summary>
+        /// Creates a new Cql instance using the CQL string and bind variable values specified.
+        /// </summary>
         public Cql(string cql, params object[] args)
         {
             Statement = cql;
@@ -36,6 +39,9 @@ namespace CqlPoco
             QueryOptions = queryOptions;
         }
 
+        /// <summary>
+        /// Configures any options for execution of this Cql instance.
+        /// </summary>
         public Cql WithOptions(Action<CqlQueryOptions> options)
         {
             if (options == null) throw new ArgumentNullException("options");

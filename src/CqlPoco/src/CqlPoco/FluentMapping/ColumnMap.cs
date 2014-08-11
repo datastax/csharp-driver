@@ -46,6 +46,9 @@ namespace CqlPoco.FluentMapping
             get { return _isExplicitlyDefined; }
         }
 
+        /// <summary>
+        /// Creates a new ColumnMap for the property/field specified by the MemberInfo.
+        /// </summary>
         public ColumnMap(MemberInfo memberInfo, Type memberInfoType, bool isExplicitlyDefined)
         {
             if (memberInfo == null) throw new ArgumentNullException("memberInfo");

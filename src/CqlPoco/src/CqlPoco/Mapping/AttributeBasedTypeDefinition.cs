@@ -34,6 +34,9 @@ namespace CqlPoco.Mapping
             get { return _primaryKeyColumns; }
         }
 
+        /// <summary>
+        /// Creates a new TypeDefinition for the POCO Type specified using any attributes on the class to determine mappings.
+        /// </summary>
         public AttributeBasedTypeDefinition(Type pocoType) 
         {
             if (pocoType == null) throw new ArgumentNullException("pocoType");

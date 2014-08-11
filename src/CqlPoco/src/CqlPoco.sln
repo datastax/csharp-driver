@@ -16,6 +16,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E811B7D8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlPoco.IntegrationTests", "CqlPoco.IntegrationTests\CqlPoco.IntegrationTests.csproj", "{EAE767E4-6474-4D7B-8E62-A03C87F34BCA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8C1A87CD-1F98-47AE-87F8-83444D2B1B72}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\build.proj = ..\build\build.proj
+		..\build\CqlPoco.nuspec = ..\build\CqlPoco.nuspec
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

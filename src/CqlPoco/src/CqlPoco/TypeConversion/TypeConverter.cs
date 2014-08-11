@@ -31,6 +31,9 @@ namespace CqlPoco.TypeConversion
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
 
+        /// <summary>
+        /// Creates a new TypeConverter instance.
+        /// </summary>
         protected TypeConverter()
         {
             _fromDbConverterCache = new ConcurrentDictionary<Tuple<Type, Type>, Delegate>();
@@ -38,8 +41,8 @@ namespace CqlPoco.TypeConversion
         }
 
         /// <summary>
-        /// Converts a value of Type <see cref="TValue"/> to a value of Type <see cref="TDatabase"/> using any available converters that would normally be used
-        /// when converting a value for storage in Cassandra.  If no converter is available, wlll throw an InvalidOperationException.
+        /// Converts a value of Type <typeparamref name="TValue"/> to a value of Type <typeparamref name="TDatabase"/> using any available converters that would 
+        /// normally be used when converting a value for storage in Cassandra.  If no converter is available, wlll throw an InvalidOperationException.
         /// </summary>
         /// <typeparam name="TValue">The value's original Type.</typeparam>
         /// <typeparam name="TDatabase">The Type expected by the database for the parameter.</typeparam>
@@ -201,8 +204,8 @@ namespace CqlPoco.TypeConversion
         // ReSharper restore UnusedMember.Local
         
         /// <summary>
-        /// Gets any user defined conversion functions that can convert a value of type <see cref="TDatabase"/> (coming from Cassandra) to a
-        /// type of <see cref="TPoco"/> (a field or property on a POCO).  Return null if no conversion Func is available.
+        /// Gets any user defined conversion functions that can convert a value of type <typeparamref name="TDatabase"/> (coming from Cassandra) to a
+        /// type of <typeparamref name="TPoco"/> (a field or property on a POCO).  Return null if no conversion Func is available.
         /// </summary>
         /// <typeparam name="TDatabase">The Type of the source value from Cassandra to be converted.</typeparam>
         /// <typeparam name="TPoco">The Type of the destination value on the POCO.</typeparam>
@@ -210,8 +213,8 @@ namespace CqlPoco.TypeConversion
         protected abstract Func<TDatabase, TPoco> GetUserDefinedFromDbConverter<TDatabase, TPoco>();
 
         /// <summary>
-        /// Gets any user defined conversion functions that can convert a value of type <see cref="TPoco"/> (coming from a property/field on a
-        /// POCO) to a type of <see cref="TDatabase"/> (the Type expected by Cassandra for the database column).  Return null if no conversion
+        /// Gets any user defined conversion functions that can convert a value of type <typeparamref name="TPoco"/> (coming from a property/field on a
+        /// POCO) to a type of <typeparamref name="TDatabase"/> (the Type expected by Cassandra for the database column).  Return null if no conversion
         /// Func is available.
         /// </summary>
         /// <typeparam name="TPoco">The Type of the source value from the POCO property/field to be converted.</typeparam>

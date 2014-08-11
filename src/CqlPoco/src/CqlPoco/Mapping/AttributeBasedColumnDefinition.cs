@@ -47,12 +47,18 @@ namespace CqlPoco.Mapping
             get { return _isExplicitlyDefined; }
         }
 
+        /// <summary>
+        /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
+        /// </summary>
         public AttributeBasedColumnDefinition(FieldInfo fieldInfo) 
             : this((MemberInfo) fieldInfo)
         {
             _memberInfoType = fieldInfo.FieldType;
         }
 
+        /// <summary>
+        /// Creates a new column definition for the property specified using any attributes on the property to determine mapping configuration.
+        /// </summary>
         public AttributeBasedColumnDefinition(PropertyInfo propertyInfo) 
             : this((MemberInfo) propertyInfo)
         {

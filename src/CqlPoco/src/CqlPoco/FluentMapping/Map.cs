@@ -67,6 +67,9 @@ namespace CqlPoco.FluentMapping
             }
         }
 
+        /// <summary>
+        /// Creates a new fluent mapping definition for POCOs of Type TPoco.
+        /// </summary>
         public Map()
         {
             _pocoType = typeof (TPoco);

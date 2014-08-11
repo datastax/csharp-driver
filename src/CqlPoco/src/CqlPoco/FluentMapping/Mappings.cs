@@ -12,11 +12,17 @@ namespace CqlPoco.FluentMapping
     {
         internal LookupKeyedCollection<Type, ITypeDefinition> Definitions;
 
+        /// <summary>
+        /// Creates a new collection of mappings.  Inheritors should define all their mappings in the constructor of the sub-class.
+        /// </summary>
         public Mappings()
         {
             Definitions = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
         }
 
+        /// <summary>
+        /// Adds a mapping for the Poco type specified (TPoco).
+        /// </summary>
         public Map<TPoco> For<TPoco>()
         {
             Type pocoType = typeof (TPoco);

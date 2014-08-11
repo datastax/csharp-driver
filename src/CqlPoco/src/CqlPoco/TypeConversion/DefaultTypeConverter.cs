@@ -7,11 +7,17 @@ namespace CqlPoco.TypeConversion
     /// </summary>
     public class DefaultTypeConverter : TypeConverter
     {
+        /// <summary>
+        /// Always returns null.
+        /// </summary>
         protected override Func<TDatabase, TPoco> GetUserDefinedFromDbConverter<TDatabase, TPoco>()
         {
             return null;
         }
 
+        /// <summary>
+        /// Always returns null.
+        /// </summary>
         protected override Func<TPoco, TDatabase> GetUserDefinedToDbConverter<TPoco, TDatabase>()
         {
             return null;

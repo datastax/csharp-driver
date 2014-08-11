@@ -16,6 +16,9 @@ namespace CqlPoco.TypeConversion
             StringToEnumCache = Enum.GetValues(typeof(T)).Cast<T>().ToDictionary(val => val.ToString());
         }
 
+        /// <summary>
+        /// Converts a string value to an enum of Type T.
+        /// </summary>
         public static T MapStringToEnum(string value)
         {
             return StringToEnumCache[value];
