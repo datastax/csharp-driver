@@ -57,14 +57,17 @@ public class MyMappings : Mappings
 ```
 If you decide to go the fluent interface route, you can tell CqlPoco about your mappings when you configure it.  For example:
 ```csharp
-ICqlClient client = CqlClientConfiguration.ForSession(session).UseMappings<MyMappings>().BuildCqlClient();
+ICqlClient client = CqlClientConfiguration.ForSession(session)
+                                          .UseMappings<MyMappings>()
+                                          .BuildCqlClient();
 ```
 
 ### Some other API examples
 The simple query example is great, but CqlPoco's `ICqlClient` has a lot of other methods for doing things like Inserts, Updates, Deletes, selecting a single record and more.  And all methods come with their `async` counterparts.  Here's a quick sampling.
 
 ```csharp
-// All query methods (Fetch, Single, First, etc.) will auto generate the SELECT and FROM clauses if not specified
+// All query methods (Fetch, Single, First, etc.) will auto generate the SELECT and FROM
+// clauses if not specified
 List<User> users = client.Fetch<User>();
 List<User> users = client.Fetch<User>("FROM users WHERE name = ?", someName);
 List<User> users = client.Fetch<User>("WHERE name = ?", someName);
@@ -77,7 +80,8 @@ var user = client.SingleOrDefault<User>("WHERE userid = ?", userId);
 var user = client.First<User>("SELECT * FROM users");
 var user = client.FirstOrDefault<User>("SELECT * FROM users");
 
-// All query methods also support "flattening" to just the column's value type when selecting a single column
+// All query methods also support "flattening" to just the column's value type when
+// selecting a single column
 Guid userId = client.First<Guid>("SELECT userid FROM users");
 List<string> names = client.Fetch<string>("SELECT name FROM users");
 
