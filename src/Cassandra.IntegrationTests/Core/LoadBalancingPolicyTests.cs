@@ -16,6 +16,7 @@
 using System;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Net;
@@ -319,8 +320,7 @@ namespace Cassandra.IntegrationTests.Core
                 for (var i = -10; i < 10; i++)
                 {
                     var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
-                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
-                        .Bind(i, i)
+                    var statement = new SimpleStatement(String.Format("INSERT INTO test (k, i) VALUES ({0}, {0})", i))
                         .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
                         .EnableTracing();
                     var rs = session.Execute(statement);
@@ -340,8 +340,12 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void TokenAwareTargetsPartitionStringNoHopsQueryTest()
+        public void TokenAwareTargetsPartitionBindStringNoHopsQueryTest()
         {
+            if (Options.Default.CassandraVersion < new Version(2, 0))
+            {
+                Assert.Ignore("Test suitable to be run against Cassandra 2.0 or above");
+            }
             var builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(4, builder);
             try
@@ -385,16 +389,16 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var session = clusterInfo.Session;
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, 1)));
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, 1));
+                Thread.Sleep(3000);
                 session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-                session.WaitForSchemaAgreement(session.Execute(String.Format("CREATE TABLE {0} (k uuid PRIMARY KEY, i int)", TABLE)));
+                Thread.Sleep(3000);
+                session.Execute(String.Format("CREATE TABLE {0} (k uuid PRIMARY KEY, i int)", TABLE));
                 var traces = new List<QueryTrace>();
                 for (var i = 0; i < 10; i++)
                 {
                     var key = Guid.NewGuid();
-                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
-                        .Bind(key, i)
+                    var statement = new SimpleStatement(String.Format("INSERT INTO test (k, i) VALUES ({0}, {1})", key, i))
                         .SetRoutingKey(
                             new RoutingKey() { RawRoutingKey = TypeCodec.GuidShuffle(key.ToByteArray()) })
                         .EnableTracing();
@@ -429,12 +433,9 @@ namespace Cassandra.IntegrationTests.Core
                 var traces = new List<QueryTrace>();
                 for (var i = 0; i < 10; i++)
                 {
-                    var k1 = i.ToString();
-                    var k2 = i;
-                    var statement = new SimpleStatement("INSERT INTO test (k1, k2, i) VALUES (?, ?, ?)")
-                        .Bind(k1, k2, i)
+                    var statement = new SimpleStatement(String.Format("INSERT INTO test (k1, k2, i) VALUES ('{0}', {0}, {0})", i))
                         .SetRoutingKey(
-                            new RoutingKey() { RawRoutingKey = Encoding.UTF8.GetBytes(k1)},
+                            new RoutingKey() { RawRoutingKey = Encoding.UTF8.GetBytes(i.ToString())},
                             new RoutingKey() { RawRoutingKey = BitConverter.GetBytes(i).Reverse().ToArray() })
                         .EnableTracing();
                     var rs = session.Execute(statement);
@@ -501,8 +502,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
                     //The partition key is wrongly calculated
-                    var statement = new SimpleStatement("INSERT INTO test (k, i) VALUES (?, ?)")
-                        .Bind(i, i)
+                    var statement = new SimpleStatement(String.Format("INSERT INTO test (k, i) VALUES ({0}, {0})", i))
                         .SetRoutingKey(new RoutingKey() { RawRoutingKey = new byte[] {0, 0, 0, 0} })
                         .EnableTracing();
                     var rs = session.Execute(statement);
