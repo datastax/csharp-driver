@@ -636,10 +636,14 @@ namespace Cassandra.IntegrationTests
 
         public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
         {
-            var hostsLength = clusterInfo.Cluster.AllHosts().Count;
+            WaitForSchemaAgreement(clusterInfo.Cluster.AllHosts().Count);
+        }
+
+        public static void WaitForSchemaAgreement(int hostsLength)
+        {
             if (hostsLength > 0)
             {
-                Thread.Sleep(hostsLength * 1500);   
+                Thread.Sleep(hostsLength * 1500);
             }
         }
     }
