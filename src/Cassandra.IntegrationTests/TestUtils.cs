@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests
     /// <summary>
     ///  A number of static fields/methods handy for tests.
     /// </summary>
-    public static class TestUtils
+    internal static class TestUtils
     {
         private static readonly Logger logger = new Logger(typeof (TestUtils));
 
@@ -631,6 +631,15 @@ namespace Cassandra.IntegrationTests
                 {
                     return false;
                 }
+            }
+        }
+
+        public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
+        {
+            var hostsLength = clusterInfo.Cluster.AllHosts().Count;
+            if (hostsLength > 0)
+            {
+                Thread.Sleep(hostsLength * 1500);   
             }
         }
     }

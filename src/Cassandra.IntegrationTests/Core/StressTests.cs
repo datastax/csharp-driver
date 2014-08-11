@@ -34,24 +34,26 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var session = clusterInfo.Session;
-                session.WaitForSchemaAgreement(session.Execute(@"
+                session.Execute(@"
                     CREATE KEYSPACE tester
                     WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
-                "));
+                ");
+                TestUtils.WaitForSchemaAgreement(clusterInfo);
                 session.ChangeKeyspace("tester");
 
                 string tableName = "table_" + Guid.NewGuid().ToString("N").ToLower();
-                session.WaitForSchemaAgreement(session.Execute(String.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName)));
+                session.Execute(String.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName));
+                TestUtils.WaitForSchemaAgreement(clusterInfo);
 
                 var insertQuery = String.Format("INSERT INTO {0} (id, event_time, text_sample) VALUES (?, ?, ?)", tableName);
                 var insertQueryPrepared = session.Prepare(insertQuery);
                 var selectQuery = String.Format("SELECT * FROM {0} LIMIT 10000", tableName);
 
-                var rowsPerId = 100;
+                const int rowsPerId = 100;
                 object insertQueryStatement = new SimpleStatement(insertQuery);
                 if (Options.Default.CassandraVersion.Major < 2)
                 {
-                    //Use prepared statements all the way as it is not possible to bind on a simplestatement with C* 1.2
+                    //Use prepared statements all the way as it is not possible to bind on a simple statement with C* 1.2
                     insertQueryStatement = session.Prepare(insertQuery);
                 }
                 var actionInsert = GetInsertAction(session, insertQueryStatement, ConsistencyLevel.Quorum, rowsPerId);
@@ -100,21 +102,29 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var session = clusterInfo.Session;
-                session.WaitForSchemaAgreement(session.Execute(@"
+                session.Execute(@"
                     CREATE KEYSPACE tester
                     WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
-                "));
+                ");
+                TestUtils.WaitForSchemaAgreement(clusterInfo);
                 session.ChangeKeyspace("tester");
 
                 string tableName = "table_" + Guid.NewGuid().ToString("N").ToLower();
-                session.WaitForSchemaAgreement(session.Execute(String.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName)));
+                session.Execute(String.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName));
+                TestUtils.WaitForSchemaAgreement(clusterInfo);
 
                 var insertQuery = String.Format("INSERT INTO {0} (id, event_time, text_sample) VALUES (?, ?, ?)", tableName);
                 var insertQueryPrepared = session.Prepare(insertQuery);
                 var selectQuery = String.Format("SELECT * FROM {0} LIMIT 10000", tableName);
 
-                var rowsPerId = 100;
-                var actionInsert = GetInsertAction(session, new SimpleStatement(insertQuery), ConsistencyLevel.Quorum, rowsPerId);
+                const int rowsPerId = 100;
+                object insertQueryStatement = new SimpleStatement(insertQuery);
+                if (Options.Default.CassandraVersion.Major < 2)
+                {
+                    //Use prepared statements all the way as it is not possible to bind on a simple statement with C* 1.2
+                    insertQueryStatement = session.Prepare(insertQuery);
+                }
+                var actionInsert = GetInsertAction(session, insertQueryStatement, ConsistencyLevel.Quorum, rowsPerId);
                 var actionInsertPrepared = GetInsertAction(session, insertQueryPrepared, ConsistencyLevel.Quorum, rowsPerId);
                 var actionSelect = GetSelectAction(session, selectQuery, ConsistencyLevel.Quorum, 10);
 

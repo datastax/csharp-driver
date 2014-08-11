@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             createSchema(clusterInfo.Session, 3);
 
             // FIXME: Race condition where the nodes are not fully up yet and assertQueried reports slightly different numbers
-            Thread.Sleep(2000);
+            TestUtils.WaitForSchemaAgreement(clusterInfo);
             try
             {
                 init(clusterInfo, 12, ConsistencyLevel.All);
