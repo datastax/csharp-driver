@@ -37,19 +37,19 @@ namespace Cassandra.IntegrationTests.Core
         ///  Catch and test all the exception methods.
         /// </summary>
         [Test]
-        public void AlreadyExistsExceptionCCM()
+        public void AlreadyExistsExceptionCcm()
         {
             var clusterInfo = TestUtils.CcmSetup(1);
             try
             {
                 var session = clusterInfo.Session;
-                String keyspace = "TestKeyspace";
-                String table = "TestTable";
+                const string keyspace = "TestKeyspace";
+                const string table = "TestTable";
 
                 String[] cqlCommands =
                 {
                     String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1),
-                    "USE " + keyspace,
+                    String.Format("USE \"{0}\"", keyspace),
                     String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)
                 };
 
@@ -59,19 +59,10 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(cqlCommands[2]);
 
                 // Try creating the keyspace again
-                try
-                {
-                    session.Execute(cqlCommands[0]);
-                }
-                catch (AlreadyExistsException e)
-                {
-                    String expected = String.Format("Keyspace {0} already exists", keyspace.ToLower());
-
-                    Assert.AreEqual(e.Message, expected);
-                    Assert.AreEqual(e.Keyspace, keyspace.ToLower());
-                    Assert.AreEqual(e.Table, null);
-                    Assert.AreEqual(e.WasTableCreation, false);
-                }
+                var ex = Assert.Throws<AlreadyExistsException>(() => session.Execute(cqlCommands[0]));
+                Assert.AreEqual(ex.Keyspace, keyspace);
+                Assert.AreEqual(ex.Table, null);
+                Assert.AreEqual(ex.WasTableCreation, false);
 
                 session.Execute(cqlCommands[1]);
 
@@ -82,7 +73,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (AlreadyExistsException e)
                 {
-                    Assert.AreEqual(e.Keyspace, keyspace.ToLower());
+                    Assert.AreEqual(e.Keyspace, keyspace);
                     Assert.AreEqual(e.Table, table.ToLower());
                     Assert.AreEqual(e.WasTableCreation, true);
                 }
@@ -99,7 +90,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void DriverInternalError()
         {
-            String errorMessage = "Test Message";
+            var errorMessage = "Test Message";
 
             try
             {
@@ -125,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InvalidConfigurationInQueryExceptionCCM()
         {
-            String errorMessage = "Test Message";
+            var errorMessage = "Test Message";
 
             try
             {
@@ -144,13 +135,13 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void NoHostAvailableExceptionCCM()
         {
-            String ipAddress = "255.255.255.255";
+            var ipAddress = "255.255.255.255";
             var errorsHashMap = new Dictionary<IPAddress, Exception>();
             errorsHashMap.Add(IPAddress.Parse(ipAddress), null);
 
             try
             {
-                Cluster cluster = Cluster.Builder().AddContactPoint("255.255.255.255").Build();
+                var cluster = Cluster.Builder().AddContactPoint("255.255.255.255").Build();
             }
             catch (NoHostAvailableException e)
             {
@@ -165,23 +156,23 @@ namespace Cassandra.IntegrationTests.Core
         ///  the key at CL.ALL. Catch and test all available exception methods.
         /// </summary>
         [Test]
-        public void ReadTimeoutExceptionCCM()
+        public void ReadTimeoutExceptionCcm()
         {
             var clusterInfo = TestUtils.CcmSetup(3);
             try
             {
                 var session = clusterInfo.Session;
 
-                String keyspace = "TestKeyspace";
-                String table = "TestTable";
-                int replicationFactor = 3;
-                String key = "1";
+                var keyspace = "TestKeyspace";
+                var table = "TestTable";
+                var replicationFactor = 3;
+                var key = "1";
 
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor)));
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
+                Thread.Sleep(5000);
                 session.ChangeKeyspace(keyspace);
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)));
+                session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
+                Thread.Sleep(3000);
 
                 session.Execute(
                     new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
@@ -189,17 +180,12 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
 
                 TestUtils.CcmStopForce(clusterInfo, 2);
-                try
-                {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
-                }
-                catch (ReadTimeoutException e)
-                {
-                    Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                    Assert.AreEqual(e.ReceivedAcknowledgements, 2);
-                    Assert.AreEqual(e.RequiredAcknowledgements, 3);
-                    Assert.AreEqual(e.WasDataRetrieved, true);
-                }
+                var ex = Assert.Throws<ReadTimeoutException>(() => 
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)));
+                Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
+                Assert.AreEqual(ex.ReceivedAcknowledgements, 2);
+                Assert.AreEqual(ex.RequiredAcknowledgements, 3);
+                Assert.AreEqual(ex.WasDataRetrieved, true);
             }
             finally
             {
@@ -213,7 +199,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SyntaxErrorCCM()
         {
-            String errorMessage = "Test Message";
+            var errorMessage = "Test Message";
 
             try
             {
@@ -231,7 +217,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TraceRetrievalExceptionCCM()
         {
-            String errorMessage = "Test Message";
+            var errorMessage = "Test Message";
 
             try
             {
@@ -249,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TruncateExceptionCCM()
         {
-            String errorMessage = "Test Message";
+            var errorMessage = "Test Message";
 
             try
             {
@@ -267,7 +253,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void UnauthorizedExceptionCCM()
         {
-            String errorMessage = "Test Message";
+            var errorMessage = "Test Message";
 
             try
             {
@@ -293,10 +279,10 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = clusterInfo.Session;
 
-                String keyspace = "TestKeyspace";
-                String table = "TestTable";
-                int replicationFactor = 3;
-                String key = "1";
+                var keyspace = "TestKeyspace";
+                var table = "TestTable";
+                var replicationFactor = 3;
+                var key = "1";
 
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
@@ -386,10 +372,10 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = clusterInfo.Session;
 
-                String keyspace = "TestKeyspace";
-                String table = "TestTable";
-                int replicationFactor = 3;
-                String key = "1";
+                var keyspace = "TestKeyspace";
+                var table = "TestTable";
+                var replicationFactor = 3;
+                var key = "1";
 
                 session.WaitForSchemaAgreement(
                     session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
@@ -433,21 +419,17 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = clusterInfo.Session;
 
-                String keyspace = "TestKeyspace";
-                String table = "TestTable";
-                String key = "1";
+                var keyspace = "TestKeyspace";
+                var table = "TestTable";
+                var key = "1";
 
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1))
-                    );
-                session.Execute("USE " + keyspace);
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
-                    );
+                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1));
+                session.ChangeKeyspace(keyspace);
+                session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
 
                 session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)));
-                IEnumerable<Row> rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
-                //Linq Count interates
+                var rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
+                //Linq Count iterates
                 //The first time should give you the rows
                 Assert.AreEqual(1, rowset.Count());
                 //The following times should be consumed
@@ -467,14 +449,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var localSession = clusterInfo.Session;
 
-                String keyspace = "TestKeyspace";
-                String table = "TestTable";
+                var keyspace = "TestKeyspace";
+                var table = "TestTable";
 
-                localSession.WaitForSchemaAgreement(
-                    localSession.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1)));
-                localSession.Execute("USE " + keyspace);
-                localSession.WaitForSchemaAgreement(
-                    localSession.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)));
+                localSession.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1));
+                localSession.ChangeKeyspace(keyspace);
+                localSession.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
 
                 localSession.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
                 localSession.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
