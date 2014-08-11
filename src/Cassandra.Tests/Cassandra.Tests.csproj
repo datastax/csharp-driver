@@ -47,6 +47,7 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AbstractResponseTest.cs" />
     <Compile Include="AdoUnitTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />

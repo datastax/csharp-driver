@@ -31,6 +31,8 @@ namespace Cassandra
 
         internal AbstractResponse(ResponseFrame frame)
         {
+            if (frame == null) throw new ArgumentNullException("frame");
+
             BeBinaryReader = new BEBinaryReader(frame.Body);
 
             if ((frame.Header.Flags & 0x02) == 0x02)
