@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests
         private static readonly Logger logger = new Logger(typeof (TestUtils));
 
         public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT =
-            "CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
+            "CREATE KEYSPACE \"{0}\" WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
 
         public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
 

@@ -229,5 +229,14 @@ namespace Cassandra
             }
             return valueMap;
         }
+
+        /// <summary>
+        /// Returns true if the ConsistencyLevel is either <see cref="ConsistencyLevel.Serial"/> or <see cref="ConsistencyLevel.LocalSerial"/>,
+        /// otherwise false.
+        /// </summary>
+        public static bool IsSerialConsistencyLevel(this ConsistencyLevel consistency)
+        {
+            return consistency == ConsistencyLevel.Serial || consistency == ConsistencyLevel.LocalSerial;
+        }
     }
 }

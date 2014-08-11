@@ -31,7 +31,13 @@ namespace Cassandra
         /// Returns a response from the closest replica, as determined by the snitch.
         /// </summary>
         One = 0x0001,
+        /// <summary>
+        /// Returns the most recent data from two of the closest replicas.
+        /// </summary>
         Two = 0x0002,
+        /// <summary>
+        /// Returns the most recent data from three of the closest replicas.
+        /// </summary>
         Three = 0x0003,
         /// <summary>
         /// Reading: Returns the record with the most recent timestamp after a quorum of replicas has responded regardless of data center.
@@ -48,9 +54,22 @@ namespace Cassandra
         /// Writing: A write must be written to the commit log and memory table on a quorum of replica nodes in the same data center as the coordinator node. Avoids latency of inter-data center communication.
         /// </summary>
         LocalQuorum = 0x0006,
+        /// <summary>
+        /// Reading: Returns the record once a quorum of replicas in each data center of the cluster has responded.
+        /// Writing: Strong consistency. A write must be written to the commit log and memtable on a quorum of replica nodes in all data centers.
+        /// </summary>
         EachQuorum = 0x0007,
+        /// <summary>
+        /// Allows reading the current (and possibly uncommitted) state of data without proposing a new addition or update. If a SERIAL read finds an uncommitted transaction in progress, it will commit the transaction as part of the read.
+        /// </summary>
         Serial = 0x0008,
+        /// <summary>
+        /// Same as <c>Serial</c>, but confined to the data center.
+        /// </summary>
         LocalSerial = 0x0009,
-        LocalOne = 0x0010
+        /// <summary>
+        /// Similar to <c>One</c> but only within the DC the coordinator is in.
+        /// </summary>
+        LocalOne = 0x000A
     }
 }
