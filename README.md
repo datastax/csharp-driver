@@ -23,6 +23,7 @@ PM> Install-Package CassandraCSharpDriver
 ## Documentation
 
 - [Documentation index][docindex]
+- [Getting started guide][getting-started]
 - [API docs][apidocs]
 
 ## Getting Help
@@ -218,8 +219,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://www.datastax.com/drivers/csharp/2.0/
-  [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/2.0/
+  [apidocs]: http://www.datastax.com/drivers/csharp/2.1/
+  [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/2.1/
+  [getting-started]: http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
   [jira]: https://datastax-oss.atlassian.net/browse/CSHARP
