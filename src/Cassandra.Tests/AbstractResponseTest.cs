@@ -14,25 +14,19 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System;
+using NUnit.Framework;
 
 namespace Cassandra.Tests
 {
-    public class ThreadPerTaskScheduler : TaskScheduler
+    [TestFixture]
+    public class AbstractResponseTest
     {
-        protected override IEnumerable<Task> GetScheduledTasks() { return Enumerable.Empty<Task>(); }
-
-        protected override void QueueTask(Task task)
+        [Test]
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void Ctor_Null_Throws()
         {
-            new Thread(() => TryExecuteTask(task)) { IsBackground = true }.Start();
-        }
-
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
-        {
-            return TryExecuteTask(task);
+            new AbstractResponse(null);
         }
     }
 }
