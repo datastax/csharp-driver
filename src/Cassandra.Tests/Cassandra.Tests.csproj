@@ -56,6 +56,7 @@
     <Compile Include="LinqToCqlUnitTests.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResponseFrameTest.cs" />
     <Compile Include="RowSetUnitTests.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TokenTests.cs" />

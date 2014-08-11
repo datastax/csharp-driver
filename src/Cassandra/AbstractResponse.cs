@@ -20,22 +20,29 @@ namespace Cassandra
 {
     internal class AbstractResponse
     {
+        internal const byte TraceFlagValue = 0x02;
+
         /// <summary>
         /// Big-endian binary reader of the response frame
         /// </summary>
         protected BEBinaryReader BeBinaryReader { get; set; }
+
         /// <summary>
         /// Identifier of the Cassandra trace 
         /// </summary>
-        protected Guid? TraceId { get; set; }
+        protected internal Guid? TraceId { get; set; }
 
         internal AbstractResponse(ResponseFrame frame)
         {
             if (frame == null) throw new ArgumentNullException("frame");
+            if (frame.Body == null) throw new InvalidOperationException("Response body of the received frame was null");
 
             BeBinaryReader = new BEBinaryReader(frame.Body);
 
-            if ((frame.Header.Flags & 0x02) == 0x02)
+            // If a response frame has the tracing flag set, its body contains
+            // a tracing ID. The tracing ID is a [uuid] and is the first thing in
+            // the frame body. 
+            if ((frame.Header.Flags & TraceFlagValue) == TraceFlagValue)
             {
                 var buffer = new byte[16];
                 BeBinaryReader.Read(buffer, 0, 16);

@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.IO;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -27,6 +28,67 @@ namespace Cassandra.Tests
         public void Ctor_Null_Throws()
         {
             new AbstractResponse(null);
+        }
+
+        [Test]
+        public void Ctor_NoFlags_TraceIdIsNull()
+        {
+            // Arrange
+            var frame = new ResponseFrame(new FrameHeader(), new MemoryStream());
+
+            // Act
+            var uut = new AbstractResponse(frame);
+
+            // Assert
+            Assert.IsNull(uut.TraceId);
+        }
+
+        [Test]
+        public void Ctor_NoFlags_BodyStreamPositionIsZero()
+        {
+            // Arrange
+            var frame = new ResponseFrame(new FrameHeader(), new MemoryStream(new byte[] { 1 }));
+
+            // Act
+            var uut = new AbstractResponse(frame);
+
+            // Assert
+            Assert.AreEqual(0, frame.Body.Position);
+        }
+
+        [Test]
+        public void Ctor_TraceFlagSet_TraceIdIsSet()
+        {
+            // Arrange
+            var header = new FrameHeader {Flags = AbstractResponse.TraceFlagValue};
+            var rnd = new Random();
+            var buffer = new byte[16];
+            rnd.NextBytes(buffer);
+            var expected = new Guid(TypeCodec.GuidShuffle(buffer));
+            var body = new MemoryStream(buffer);
+            var frame = new ResponseFrame(header, body);
+
+            // Act
+            var uut = new AbstractResponse(frame);
+
+            // Assert
+            Assert.AreEqual(expected, uut.TraceId);
+        }
+
+        [Test]
+        public void Ctor_TraceFlagSet_BytesReadFromFrame()
+        {
+            // Arrange
+            var header = new FrameHeader { Flags = AbstractResponse.TraceFlagValue };
+            var body = new MemoryStream(new byte[20]);
+            var frame = new ResponseFrame(header, body);
+
+            // Act
+            var uut = new AbstractResponse(frame);
+
+            // Assert
+            Assert.AreEqual(16, body.Position);
+            Assert.AreEqual(20, body.Length);
         }
     }
 }
