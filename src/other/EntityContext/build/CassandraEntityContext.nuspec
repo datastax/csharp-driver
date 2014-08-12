@@ -19,7 +19,7 @@
         <tags>database driver</tags>
         <dependencies>
           <dependency id="lz4net" version="1.0.3.93" />
-          <dependency id="CassandraCSharpDriver" version="2.0.2" />
+          <dependency id="CassandraCSharpDriver" version="2.1.0" />
         </dependencies>
     </metadata>
     <files>
