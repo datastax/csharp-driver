@@ -13,6 +13,7 @@ namespace Cassandra.IntegrationTests
     /// The tests are not meant to fail, just print the result.
     /// </summary>
     [TestFixture]
+    [Explicit]
     public class InfrastructureTests
     {
         /// <summary>

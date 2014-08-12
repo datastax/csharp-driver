@@ -526,18 +526,22 @@ namespace Cassandra.IntegrationTests.Core
             var clusterInfo = TestUtils.CcmSetup(2, builder, null, 2);
             try
             {
+                var hosts = clusterInfo.Cluster.AllHosts();
+                //2 hosts in each datacenter
+                Assert.AreEqual(2, hosts.Count(h => h.Datacenter == "dc1"));
+                Assert.AreEqual(2, hosts.Count(h => h.Datacenter == "dc2"));
                 var session = clusterInfo.Session;
-                var hosts = new List<IPAddress>();
+                var queriedHosts = new List<IPAddress>();
                 for (var i = 0; i < 50; i++)
                 {
                     var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
-                    hosts.Add(rs.Info.QueriedHost);
+                    queriedHosts.Add(rs.Info.QueriedHost);
                 }
                 //Only the ones in the local
-                Assert.True(hosts.Contains(IPAddress.Parse(IpPrefix + "1")), "Only hosts from the local DC should be queried 1");
-                Assert.True(hosts.Contains(IPAddress.Parse(IpPrefix + "2")), "Only hosts from the local DC should be queried 2");
-                Assert.False(hosts.Contains(IPAddress.Parse(IpPrefix + "3")), "Only hosts from the local DC should be queried 3");
-                Assert.False(hosts.Contains(IPAddress.Parse(IpPrefix + "4")), "Only hosts from the local DC should be queried 4");
+                Assert.True(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "1")), "Only hosts from the local DC should be queried 1");
+                Assert.True(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "2")), "Only hosts from the local DC should be queried 2");
+                Assert.False(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "3")), "Only hosts from the local DC should be queried 3");
+                Assert.False(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "4")), "Only hosts from the local DC should be queried 4");
             }
             finally
             {
