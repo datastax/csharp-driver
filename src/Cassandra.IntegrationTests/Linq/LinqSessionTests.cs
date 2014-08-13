@@ -62,7 +62,13 @@ namespace Cassandra.IntegrationTests.Linq
                 .ExecuteAsync()
                 .Result;
 
+            var countQuerySync = table
+                .Where(m => m.Director == resultMovie.Director && m.Movie == resultMovie.Movie && m.Maker == resultMovie.Maker)
+                .Count()
+                .Execute();
+
             Assert.AreEqual(count, countQueryResult);
+            Assert.AreEqual(count, countQuerySync);
 
             var first = table.First(m => m.Director == movie.Director).ExecuteAsync().Result;
             Assert.AreEqual(movie.Maker, first.Maker);

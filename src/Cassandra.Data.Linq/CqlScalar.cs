@@ -48,7 +48,7 @@ namespace Cassandra.Data.Linq
             object[] values;
             string cql = visitor.GetCount(out values, withValues);
 
-            var adaptation =
+            Task<TEntity> adaptation =
                 InternalExecuteAsync(cql, values).ContinueWith((t) =>
                 {
                     var rs = t.Result;
@@ -61,6 +61,11 @@ namespace Cassandra.Data.Linq
                     return result;
                 }, TaskContinuationOptions.ExecuteSynchronously);
             return adaptation;
+        }
+
+        public new IAsyncResult BeginExecute(AsyncCallback callback, object state)
+        {
+            return ExecuteAsync().ToApm(callback, state);
         }
 
         public new TEntity EndExecute(IAsyncResult ar)
