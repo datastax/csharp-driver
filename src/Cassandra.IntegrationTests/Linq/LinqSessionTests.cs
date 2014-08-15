@@ -101,12 +101,12 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.IsNull(first);
 
             //sync
-            first = table.FirstOrDefault(m => m.Director == "director1" && m.Movie == "title1").Execute();
+            first = table.FirstOrDefault(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1").Execute();
             Assert.IsNotNull(first);
             Assert.AreEqual("maker1", first.Maker);
 
             //async
-            first = table.FirstOrDefault(m => m.Director == "director2" && m.Movie == "title2").ExecuteAsync().Result;
+            first = table.FirstOrDefault(m => m.Director == "director2" && m.Movie == "title2" && m.Maker == "maker2").ExecuteAsync().Result;
             Assert.IsNotNull(first);
             Assert.AreEqual("actor2", first.MainActor);
         }
@@ -116,15 +116,12 @@ namespace Cassandra.IntegrationTests.Linq
         {
             var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
-            //Should throw when no element satisfies
-            Assert.Throws<InvalidOperationException>(() => table.First(m => m.Director == "whatever").Execute());
-
             //sync
-            var first = table.First(m => m.Director == "director1" && m.Movie == "title1").Execute();
+            var first = table.First(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1").Execute();
             Assert.IsNotNull(first);
-            Assert.AreEqual("maker1", first.Maker);
+            Assert.AreEqual("actor1", first.MainActor);
             //async
-            first = table.First(m => m.Director == "director2" && m.Movie == "title2").ExecuteAsync().Result;
+            first = table.First(m => m.Director == "director2" && m.Movie == "title2" && m.Maker == "maker2").ExecuteAsync().Result;
             Assert.IsNotNull(first);
             Assert.AreEqual("maker2", first.Maker);
         }
