@@ -29,6 +29,20 @@ namespace Cassandra.IntegrationTests.Linq
     [Category("short")]
     public class LinqSessionTests : SingleNodeClusterTest
     {
+        public override void TestFixtureSetUp()
+        {
+            base.TestFixtureSetUp();
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //Insert some data
+            var ps = Session.Prepare("INSERT INTO \"nerdiStuff\" " +
+                            "(\"movieTile\", \"movieMaker\", \"diri\", \"mainGuy\") VALUES " +
+                            "(?, ?, ?, ?)");
+            Session.Execute(ps.Bind("title1", "maker1", "director1", "actor1"));
+            Session.Execute(ps.Bind("title2", "maker2", "director2", "actor2"));
+            Session.Execute(ps.Bind("title3", "maker3", "director3", null));
+        }
+
         [Test]
         public void InsertAndSelectExecuteAsync()
         {
@@ -70,11 +84,49 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.AreEqual(count, countQueryResult);
             Assert.AreEqual(count, countQuerySync);
 
-            var first = table.First(m => m.Director == movie.Director).ExecuteAsync().Result;
+            var first = table.
+                First(m => m.Director == movie.Director).Execute();
             Assert.AreEqual(movie.Maker, first.Maker);
             Assert.AreEqual(movie.Director, first.Director);
             Assert.AreEqual(movie.MainActor, first.MainActor);
             Assert.AreEqual(movie.Year, first.Year);
+        }
+
+        [Test]
+        public void FirstOrDefaultTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            var first = table.FirstOrDefault(m => m.Director == "whatever").Execute();
+            Assert.IsNull(first);
+
+            //sync
+            first = table.FirstOrDefault(m => m.Director == "director1" && m.Movie == "title1").Execute();
+            Assert.IsNotNull(first);
+            Assert.AreEqual("maker1", first.Maker);
+
+            //async
+            first = table.FirstOrDefault(m => m.Director == "director2" && m.Movie == "title2").ExecuteAsync().Result;
+            Assert.IsNotNull(first);
+            Assert.AreEqual("actor2", first.MainActor);
+        }
+
+        [Test]
+        public void FirstTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //Should throw when no element satisfies
+            Assert.Throws<InvalidOperationException>(() => table.First(m => m.Director == "whatever").Execute());
+
+            //sync
+            var first = table.First(m => m.Director == "director1" && m.Movie == "title1").Execute();
+            Assert.IsNotNull(first);
+            Assert.AreEqual("maker1", first.Maker);
+            //async
+            first = table.First(m => m.Director == "director2" && m.Movie == "title2").ExecuteAsync().Result;
+            Assert.IsNotNull(first);
+            Assert.AreEqual("maker2", first.Maker);
         }
 
         [Test]
