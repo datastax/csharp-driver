@@ -38,9 +38,12 @@ namespace Cassandra.IntegrationTests.Linq
             var ps = Session.Prepare("INSERT INTO \"nerdiStuff\" " +
                             "(\"movieTile\", \"movieMaker\", \"diri\", \"mainGuy\") VALUES " +
                             "(?, ?, ?, ?)");
+            //dont mind the schema, it does not make much sense
             Session.Execute(ps.Bind("title1", "maker1", "director1", "actor1"));
             Session.Execute(ps.Bind("title2", "maker2", "director2", "actor2"));
             Session.Execute(ps.Bind("title3", "maker3", "director3", null));
+            Session.Execute(ps.Bind("title4", "maker4", "director4a", null));
+            Session.Execute(ps.Bind("title4", "maker4", "director4b", null));
         }
 
         [Test]
@@ -124,6 +127,73 @@ namespace Cassandra.IntegrationTests.Linq
             first = table.First(m => m.Director == "director2" && m.Movie == "title2" && m.Maker == "maker2").ExecuteAsync().Result;
             Assert.IsNotNull(first);
             Assert.AreEqual("maker2", first.Maker);
+        }
+
+        [Test]
+        public void CountTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //global count
+            var count = table.Count().Execute();
+            Assert.Greater(count, 0);
+
+            count = table.Where(m => m.Movie == "title2" && m.Maker == "maker2").Count().Execute();
+            Assert.AreEqual(1, count);
+            count = table.Where(m => m.Movie == "title3" && m.Maker == "maker3").Count().ExecuteAsync().Result;
+            Assert.AreEqual(1, count);
+        }
+
+        [Test]
+        public void TakeTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //with where clause
+            var results = table
+                .Where(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1")
+                .Take(1)
+                .Execute();
+            Assert.AreEqual(1, results.Count());
+            //without where clause
+            results = table
+                .Take(2)
+                .ExecuteAsync()
+                .Result;
+            Assert.AreEqual(2, results.Count());
+            results = table
+                .Take(10000)
+                .Execute();
+            Assert.Greater(results.Count(), 2);
+        }
+
+        [Test]
+        public void OrderByTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+
+            var results = table
+                .Where(m => m.Movie == "title1" && m.Maker == "maker1")
+                .OrderBy(m => m.Director)
+                .Execute();
+            Assert.AreEqual(1, results.Count());
+
+            results = table
+                .Where(m => m.Movie == "title4" && m.Maker == "maker4")
+                .OrderBy(m => m.Director)
+                .ExecuteAsync()
+                .Result;
+            var resultOrder1 = results.ToList();
+
+            results = table
+                .Where(m => m.Movie == "title4" && m.Maker == "maker4")
+                .OrderByDescending(m => m.Director)
+                .Execute();
+            var resultOrder2 = results.ToList();
+            Assert.AreEqual(2, resultOrder1.Count);
+            Assert.AreEqual(2, resultOrder2.Count);
+            Assert.AreNotEqual(resultOrder1.First().Director, resultOrder2.First().Director);
         }
 
         [Test]
