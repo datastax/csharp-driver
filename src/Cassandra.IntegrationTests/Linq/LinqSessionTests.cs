@@ -168,6 +168,58 @@ namespace Cassandra.IntegrationTests.Linq
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
+        public void UpdateIfTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            var movie = new NerdMovie()
+            {
+                Movie = "Dead Poets Society",
+                Year = 1989,
+                MainActor = "Robin Williams",
+                Director = "Peter Weir",
+                Maker = "Touchstone"
+            };
+            table
+                .Insert(movie)
+                .SetConsistencyLevel(ConsistencyLevel.Quorum)
+                .Execute();
+
+            var retrievedMovie = table
+                .FirstOrDefault(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone")
+                .Execute();
+            Assert.NotNull(retrievedMovie);
+            Assert.AreEqual(1989, retrievedMovie.Year);
+            Assert.AreEqual("Robin Williams", retrievedMovie.MainActor);
+
+            table
+                .Where(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone" && m.Director == "Peter Weir")
+                .Select(m => new NerdMovie {MainActor = "Robin McLaurin Williams"})
+                .UpdateIf(m => m.Year == 1989)
+                .Execute();
+
+            retrievedMovie = table
+                .FirstOrDefault(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone")
+                .Execute();
+            Assert.NotNull(retrievedMovie);
+            Assert.AreEqual(1989, retrievedMovie.Year);
+            Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
+
+            //Should not update as the if clause is not satisfied
+            table
+                .Where(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone" && m.Director == "Peter Weir")
+                .Select(m => new NerdMovie { MainActor = "WHOEVER" })
+                .UpdateIf(m => m.Year == 1500)
+                .Execute();
+            retrievedMovie = table
+                .FirstOrDefault(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone")
+                .Execute();
+            Assert.NotNull(retrievedMovie);
+            Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
+        }
+
+        [Test]
         public void OrderByTest()
         {
             var table = Session.GetTable<NerdMovie>();

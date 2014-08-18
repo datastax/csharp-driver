@@ -149,6 +149,9 @@ namespace Cassandra.Data.Linq
             }
         }
 
+        /// <summary>
+        /// Returns a CqlInsert command to be executed against a table. To execute this command, use Execute() method.
+        /// </summary>
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
             return new CqlInsert<TEntity>(entity, this);
