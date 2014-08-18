@@ -6,9 +6,39 @@ namespace Cassandra
 {
     internal static class TaskHelper
     {
-        private static readonly Action<Exception> PreserveStackHandler = (Action<Exception>)Delegate.CreateDelegate(
-            typeof(Action<Exception>),
-            typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic));
+        private static readonly MethodInfo PreserveStackMethod;
+        private static readonly Action<Exception> PreserveStackHandler = (ex) => { };
+
+        static TaskHelper()
+        {
+            try
+            {
+                PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (PreserveStackMethod == null)
+                {
+                    return;
+                }
+                //Only under .NET Framework
+                PreserveStackHandler = (ex) =>
+                {
+                    try
+                    {
+                        //This could result in a MemberAccessException
+                        PreserveStackMethod.Invoke(ex, null);
+                    }
+                    catch
+                    {
+                        //Tried to preserve the stack trace, failed.
+                        //Move on on.
+                    }
+                };
+            }
+            catch
+            {
+                //Do nothing
+                //Do not throw exceptions on static constructors
+            }
+        }
 
         /// <summary>
         /// Returns an AsyncResult according to the .net async programming model (Begin)

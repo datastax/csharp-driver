@@ -17,6 +17,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.Serialization;
 
 namespace Cassandra
 {
@@ -28,6 +29,7 @@ namespace Cassandra
     ///  purpose, the list of hosts that have been tried along with the failure cause
     ///  can be retrieved using the <link>#errors</link> method.
     /// </summary>
+    [Serializable]
     public class NoHostAvailableException : DriverException
     {
         /// <summary>
@@ -39,6 +41,12 @@ namespace Cassandra
             : base(MakeMessage(errors))
         {
             Errors = errors;
+        }
+
+        protected NoHostAvailableException(SerializationInfo info, StreamingContext context) :
+            base(info, context)
+        {
+            
         }
 
         private static String MakeMessage(Dictionary<IPAddress, Exception> errors)

@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System.Security;
+using System.Security.Permissions;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -404,6 +406,62 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(e.RequiredAcknowledgements, 3);
                     Assert.AreEqual(e.WriteType, "SIMPLE");
                 }
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void PreserveStackTraceTest()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                PreserveStackTraceAssertions();
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        public static void PreserveStackTraceAssertions()
+        {
+            var ipPrefix = AppDomain.CurrentDomain.GetData("ipPrefix");
+            if (ipPrefix == null)
+            {
+                ipPrefix = Options.Default.IP_PREFIX;
+            }
+            var cluster = Cluster.Builder().AddContactPoint(ipPrefix.ToString() + "1").Build();
+            var session = cluster.Connect();
+            var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
+            //Must maintain the original call stack trace
+            Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertions"));
+            Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
+        }
+
+        public static AppDomain CreatePartialTrustDomain()
+        {
+            AppDomainSetup setup = new AppDomainSetup() { ApplicationBase = AppDomain.CurrentDomain.BaseDirectory };
+            PermissionSet permissions = new PermissionSet(null);
+            permissions.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
+            permissions.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
+            permissions.AddPermission(new SocketPermission(PermissionState.Unrestricted));
+            return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
+        }
+
+        [Test]
+        public void ExceptionsOnPartialTrustTest()
+        {
+
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                var appDomain = CreatePartialTrustDomain();
+                appDomain.SetData("ipPrefix", Options.Default.IP_PREFIX);
+                appDomain.DoCallBack(PreserveStackTraceAssertions);
             }
             finally
             {
