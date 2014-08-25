@@ -10,7 +10,7 @@ namespace Cassandra
     {
         public static readonly NoneAuthProvider Instance = new NoneAuthProvider();
 
-        public IAuthenticator NewAuthenticator(IPAddress host)
+        public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
             throw new AuthenticationException(
                 string.Format("Host {0} requires authentication, but no authenticator found in Cluster configuration", host),

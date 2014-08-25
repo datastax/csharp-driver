@@ -26,7 +26,7 @@ namespace Cassandra
     /// </summary>
     public class Host
     {
-        private readonly IPAddress _address;
+        private readonly IPEndPoint _address;
         private readonly IReconnectionPolicy _reconnectionPolicy;
 
         private string _datacenter;
@@ -54,7 +54,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the node address.
         /// </summary>
-        public IPAddress Address
+        public IPEndPoint Address
         {
             get { return _address; }
         }
@@ -81,7 +81,7 @@ namespace Cassandra
             get { return _rack; }
         }
 
-        public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy)
         {
             _address = address;
             _reconnectionPolicy = reconnectionPolicy;

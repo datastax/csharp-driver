@@ -383,7 +383,8 @@ namespace Cassandra.IntegrationTests.Core
                 new ClientOptions(),
                 new PlainTextAuthProvider("username", "password"),
                 null,
-                new QueryOptions());
+                new QueryOptions(),
+                new DefaultAddressTranslator());
             using (var connection = CreateConnection(protocolVersion, config))
             {
                 //Authentication will happen on init
@@ -402,7 +403,8 @@ namespace Cassandra.IntegrationTests.Core
                 new ClientOptions(),
                 new PlainTextAuthProvider("WRONGUSERNAME", "password"),
                 null,
-                new QueryOptions());
+                new QueryOptions(),
+                new DefaultAddressTranslator());
             using (var connection = CreateConnection(protocolVersion, config))
             {
                 Assert.Throws<AuthenticationException>(connection.Init);
@@ -422,7 +424,8 @@ namespace Cassandra.IntegrationTests.Core
                 new ClientOptions(),
                 NoneAuthProvider.Instance,
                 new SimpleAuthInfoProvider(new Dictionary<string, string> { { "username", "username" }, {"password", "password"} }),
-                new QueryOptions());
+                new QueryOptions(),
+                new DefaultAddressTranslator());
             using (var connection = CreateConnection(protocolVersion, config))
             {
                 //Authentication will happen on init
@@ -441,7 +444,8 @@ namespace Cassandra.IntegrationTests.Core
                 new ClientOptions(),
                 NoneAuthProvider.Instance,
                 new SimpleAuthInfoProvider(new Dictionary<string, string> { { "username", "WRONGUSERNAME" }, { "password", "password" } }),
-                new QueryOptions());
+                new QueryOptions(),
+                new DefaultAddressTranslator());
             using (var connection = CreateConnection(protocolVersion, config))
             {
                 Assert.Throws<AuthenticationException>(connection.Init);
@@ -476,7 +480,8 @@ namespace Cassandra.IntegrationTests.Core
                 new ClientOptions(), 
                 NoneAuthProvider.Instance,
                 null,
-                new QueryOptions());
+                new QueryOptions(),
+                new DefaultAddressTranslator());
             try
             {
                 using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
@@ -572,7 +577,8 @@ namespace Cassandra.IntegrationTests.Core
                 new ClientOptions(),
                 NoneAuthProvider.Instance,
                 null,
-                new QueryOptions());
+                new QueryOptions(),
+                new DefaultAddressTranslator());
             return CreateConnection(GetLatestProtocolVersion(), config);
         }
 

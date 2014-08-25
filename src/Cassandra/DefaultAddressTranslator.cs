@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,24 +19,14 @@ using System.Net;
 namespace Cassandra
 {
     /// <summary>
-    ///  Indicates an error during the authentication phase while connecting to a node.
+    ///     The default <c>AddressTranslater</c> used by the driver that do no translation.
     /// </summary>
-    public class AuthenticationException : DriverException
+    public sealed class DefaultAddressTranslator : IAddressTranslator
     {
-        /// <summary>
-        ///  Gets the host for which the authentication failed. 
-        /// </summary>
-        public IPEndPoint Host { get; private set; }
-
-        public AuthenticationException(string message)
-            : base(message)
+        /// <inheritdoc />
+        public IPEndPoint Translate(IPEndPoint address)
         {
-        }
-
-        public AuthenticationException(string message, IPEndPoint host)
-            : base(string.Format("Authentication error on host {0}: {1}", host, message))
-        {
-            Host = host;
+            return address;
         }
     }
 }

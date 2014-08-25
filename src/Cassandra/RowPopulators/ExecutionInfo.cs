@@ -25,12 +25,12 @@ namespace Cassandra
         /// Gets the list of host that were queried before getting a valid response, 
         /// being the last host the one that replied correctly.
         /// </summary>
-        public IList<IPAddress> TriedHosts { get; private set; }
+        public IList<IPEndPoint> TriedHosts { get; private set; }
         
         /// <summary>
         /// Retrieves the coordinator that responded to the request
         /// </summary>
-        public IPAddress QueriedHost
+        public IPEndPoint QueriedHost
         {
             get
             {
@@ -52,7 +52,7 @@ namespace Cassandra
         /// </summary>
         public ConsistencyLevel AchievedConsistency { get; private set; }
 
-        internal void SetTriedHosts(List<IPAddress> triedHosts)
+        internal void SetTriedHosts(List<IPEndPoint> triedHosts)
         {
             TriedHosts = triedHosts;
         }

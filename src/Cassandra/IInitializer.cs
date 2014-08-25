@@ -17,7 +17,7 @@ namespace Cassandra
         ///  Gets the initial Cassandra hosts to connect to.See
         ///  <link>Builder.AddContactPoint</link> for more details on contact
         /// </summary>
-        ICollection<IPAddress> ContactPoints { get; }
+        ICollection<IPEndPoint> ContactPoints { get; }
 
         /// <summary>
         ///  The configuration to use for the new cluster. <p> Note that some

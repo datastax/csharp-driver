@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using Moq;
 using NUnit.Framework;
 
@@ -36,8 +34,8 @@ namespace Cassandra.IntegrationTests.Core
             var authProvider = new PlainTextAuthProvider("username", "password");
             var authProvideMockWrapper = new Mock<IAuthProvider>();
             authProvideMockWrapper
-                .Setup(a => a.NewAuthenticator(It.IsAny<IPAddress>()))
-                .Returns<IPAddress>(authProvider.NewAuthenticator)
+                .Setup(a => a.NewAuthenticator(It.IsAny<IPEndPoint>()))
+                .Returns<IPEndPoint>(authProvider.NewAuthenticator)
                 .Verifiable();
             using (var cluster = Cluster
                 .Builder()
