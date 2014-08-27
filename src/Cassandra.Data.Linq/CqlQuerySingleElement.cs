@@ -60,9 +60,14 @@ namespace Cassandra.Data.Linq
             return task.Result;
         }
 
+        /// <summary>
+        /// Evaluates the Linq query, executes the cql statement and returns the first result.
+        /// </summary>
         public new TEntity Execute()
         {
-            return EndExecute(BeginExecute(null, null));
+            var config = GetTable().GetSession().GetConfiguration();
+            var task = ExecuteAsync();
+            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
     }
 }

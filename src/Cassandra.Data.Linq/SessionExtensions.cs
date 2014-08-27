@@ -29,5 +29,20 @@ namespace Cassandra.Data.Linq
                 return new BatchV2(@this);
             return new BatchV1(@this);
         }
+
+        internal static Configuration GetConfiguration(this ISession session)
+        {
+            Configuration config = null;
+            if (session is Session)
+            {
+                config = ((Session) session).Configuration;
+            }
+            else
+            {
+                //Get the default options
+                config = new Configuration();
+            }
+            return config;
+        }
     }
 }

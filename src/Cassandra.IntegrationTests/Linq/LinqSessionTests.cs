@@ -249,6 +249,74 @@ namespace Cassandra.IntegrationTests.Linq
         }
 
         [Test]
+        public void CqlQueryExceptiosnTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table.Where(m => m.Year is int).Execute());
+            //No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.Year == 100).Execute());
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.MainActor == null).Execute());
+            //No execute
+            Assert.Throws<InvalidOperationException>(() => table.Where(m => m.Maker == "dum").GetEnumerator());
+
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+        }
+
+        [Test]
+        public void CqlQuerySingleElementExceptionsTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table.First(m => m.Year is int).Execute());
+            //No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table.First(m => m.Year == 100).Execute());
+            Assert.Throws<InvalidQueryException>(() => table.First(m => m.MainActor == null).Execute());
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table.First(m => m.Maker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+        }
+
+        [Test]
+        public void CqlScalarExceptionsTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table.Where(m => m.Year is int).Count().Execute());
+            //No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.Year == 100).Count().Execute());
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.MainActor == null).Count().Execute());
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum").Count().SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
+        }
+
+        [Test]
+        public void CqlCommandExceptionsTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table
+                .Where(m => m.Year is int)
+                .Select(m => new NerdMovie {Year = 1})
+                .Update().Execute());
+            //Delete: No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table
+                .Where(m => m.Year == 1999)
+                .Delete()
+                .Execute());
+            //Insert: No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table
+                .Insert(new NerdMovie() { MainActor = "Dolph Lundgren" })
+                .Execute());
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table
+                .Where(m => m.Movie == "title1" && m.Maker == "maker1")
+                .SetConsistencyLevel(ConsistencyLevel.LocalSerial)
+                .Delete()
+                .Execute());
+        }
+
+        [Test]
         public void LinqBatchInsertUpdateSelectTest()
         {
             Table<NerdMovie> table = Session.GetTable<NerdMovie>();

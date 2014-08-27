@@ -98,7 +98,9 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IEnumerable<TEntity> Execute()
         {
-            return EndExecute(BeginExecute(null, null));
+            var config = GetTable().GetSession().GetConfiguration();
+            var task = ExecuteAsync();
+            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
 
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)

@@ -52,7 +52,9 @@ namespace Cassandra.Data.Linq
 
         public void Execute()
         {
-            EndExecute(BeginExecute(null, null));
+            var config = GetTable().GetSession().GetConfiguration();
+            var task = ExecuteAsync();
+            TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)

@@ -14,7 +14,9 @@ namespace Cassandra.Data.Linq
 
         public new TEntity Execute()
         {
-            return EndExecute(BeginExecute(null, null));
+            var config = GetTable().GetSession().GetConfiguration();
+            var task = ExecuteAsync();
+            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
 
         public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
