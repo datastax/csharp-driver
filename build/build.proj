@@ -19,7 +19,7 @@
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Version information -->
-    <Version>2.1.1</Version>
+    <Version>2.1.2</Version>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   
