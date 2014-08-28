@@ -15,7 +15,8 @@ namespace Cassandra.Data.Linq
             bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out values, _ttl, _timestamp, withValues);
+            var type = GetTable().GetEntityType();
+            return visitor.GetUpdate(out values, type, _ttl, _timestamp, withValues);
         }
 
         public override string ToString()
@@ -23,7 +24,8 @@ namespace Cassandra.Data.Linq
             object[] _;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out _, _ttl, _timestamp, false);
+            var type = GetTable().GetEntityType();
+            return visitor.GetUpdate(out _, type, _ttl, _timestamp, false);
         }
     }
 }

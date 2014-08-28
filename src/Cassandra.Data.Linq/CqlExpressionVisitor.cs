@@ -158,7 +158,7 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        public string GetUpdate(out object[] values, int? ttl, DateTimeOffset? timestamp, bool withValues = true)
+        public string GetUpdate(out object[] values, Type tableType, int? ttl, DateTimeOffset? timestamp, bool withValues = true)
         {
             var sb = new StringBuilder();
             sb.Append("UPDATE ");
@@ -191,6 +191,8 @@ namespace Cassandra.Data.Linq
                 {
                     var val = (object) null;
                     MemberInfo propsOrField = o.GetType().GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Value.Item1);
+                    var oriProps = tableType.GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Key);
+                    var counter = oriProps != null ? oriProps.GetCustomAttributes(typeof(CounterAttribute), true).FirstOrDefault() as CounterAttribute : null;
 
                     if (o.GetType().IsPrimitive || propsOrField == null)
                         val = o;
@@ -199,7 +201,10 @@ namespace Cassandra.Data.Linq
 
                     if (!Alter.ContainsKey(mapping.Key))
                         throw new CqlArgumentException("Unknown column: " + mapping.Key);
-                    setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + cqlTool.AddValue(val));
+                    if (counter != null)
+                        setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + Alter[mapping.Key].QuoteIdentifier() + " + " + cqlTool.AddValue(val));
+                    else
+                        setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + cqlTool.AddValue(val));
                 }
                 else
                 {
