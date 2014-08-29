@@ -15,6 +15,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 namespace Cassandra
 {
@@ -152,6 +153,6 @@ namespace Cassandra
         /// <param name="cqlQuery">cql query to prepare</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery);
         void WaitForSchemaAgreement(RowSet rs);
-        bool WaitForSchemaAgreement(System.Net.IPAddress forHost);
+        bool WaitForSchemaAgreement(IPEndPoint forHost);
     }
 }

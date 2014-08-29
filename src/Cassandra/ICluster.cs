@@ -62,13 +62,13 @@ namespace Cassandra
         /// </summary>
         /// <param name="address">Ip address of the host</param>
         /// <returns>The host or null if not found</returns>
-        Host GetHost(IPAddress address);
+        Host GetHost(IPEndPoint address);
         /// <summary>
         /// Gets a collection of replicas for a given partitionKey
         /// </summary>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
-        ICollection<IPAddress> GetReplicas(byte[] partitionKey);
+        ICollection<IPEndPoint> GetReplicas(byte[] partitionKey);
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <c>* Cluster</c> instance and reclaim all resources

@@ -93,7 +93,7 @@ namespace Cassandra
                 yield break;
             }
 
-            ICollection<IPAddress> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
+            ICollection<IPEndPoint> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
                 foreach (var iter in _childPolicy.NewQueryPlan(query))
@@ -103,7 +103,7 @@ namespace Cassandra
                 yield break;
             }
 
-            IEnumerator<IPAddress> iterator = replicas.GetEnumerator();
+            IEnumerator<IPEndPoint> iterator = replicas.GetEnumerator();
             while (iterator.MoveNext())
             {
                 var host = _cluster.GetHost(iterator.Current);

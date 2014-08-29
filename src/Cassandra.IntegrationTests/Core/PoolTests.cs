@@ -17,11 +17,9 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -62,7 +60,7 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var session = (Session)clusterInfo.Session;
-                var hosts = new List<IPAddress>();
+                var hosts = new List<IPEndPoint>();
                 for (var i = 0; i < 50; i++)
                 {
                     var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
@@ -78,7 +76,8 @@ namespace Cassandra.IntegrationTests.Core
                     hosts.Add(rs.Info.QueriedHost);
                 }
 
-                var pool = session.GetConnectionPool(new Host(IPAddress.Parse(IpPrefix + "1"), policy), HostDistance.Local);
+                var endpoint = new IPEndPoint(IPAddress.Parse(IpPrefix + "1"), ProtocolOptions.DefaultPort);
+                var pool = session.GetConnectionPool(new Host(endpoint, policy), HostDistance.Local);
                 var connections = pool.OpenConnections.ToArray();
                 var expectedCoreConnections = clusterInfo.Cluster.Configuration
                     .GetPoolingOptions(connections.First().ProtocolVersion)
@@ -217,7 +216,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 //Wait for the join to be online
                 Thread.Sleep(120000);
-                var list = new List<IPAddress>();
+                var list = new List<IPEndPoint>();
                 for (var i = 0; i < 100; i++)
                 {
                     var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");

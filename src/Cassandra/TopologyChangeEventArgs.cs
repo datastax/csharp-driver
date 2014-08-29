@@ -26,7 +26,7 @@ namespace Cassandra
             RemovedNode
         };
 
-        public IPAddress Address;
+        public IPEndPoint Address;
         public Reason What;
     }
 }

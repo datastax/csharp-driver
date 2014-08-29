@@ -46,7 +46,7 @@ namespace Cassandra
             AddAll(properties);
         }
 
-        public IDictionary<string, string> GetAuthInfos(IPAddress host)
+        public IDictionary<string, string> GetAuthInfos(IPEndPoint host)
         {
             return _credentials;
         }

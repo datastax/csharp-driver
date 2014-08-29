@@ -87,7 +87,7 @@ namespace Cassandra
             get { return _metadata; }
         }
 
-        private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
+        private Cluster(IEnumerable<IPEndPoint> contactPoints, Configuration configuration)
         {
             _configuration = configuration;
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
@@ -97,7 +97,7 @@ namespace Cassandra
                 new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
                 Policies.DefaultRetryPolicy);
 
-            foreach (IPAddress ep in contactPoints)
+            foreach (IPEndPoint ep in contactPoints)
                 Metadata.AddHost(ep);
 
             //Use 1 connection per host
@@ -110,14 +110,14 @@ namespace Cassandra
 
             var controlConnection = new ControlConnection(
                 this, 
-                new List<IPAddress>(), 
                 controlpolicies,
                 new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
                 controlPoolingOptions, 
                 _configuration.SocketOptions,
                 new ClientOptions(true, _configuration.ClientOptions.QueryAbortTimeout, null),
                 _configuration.AuthProvider,
-                _configuration.AuthInfoProvider);
+                _configuration.AuthInfoProvider,
+                _configuration.AddressTranslator);
 
             _metadata.SetupControlConnection(controlConnection);
             _binaryProtocolVersion = controlConnection.ProtocolVersion;
@@ -179,13 +179,13 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public Host GetHost(IPAddress address)
+        public Host GetHost(IPEndPoint address)
         {
             return _metadata.GetHost(address);
         }
 
         /// <inheritdoc />
-        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
+        public ICollection<IPEndPoint> GetReplicas(byte[] partitionKey)
         {
             return _metadata.GetReplicas(partitionKey);
         }

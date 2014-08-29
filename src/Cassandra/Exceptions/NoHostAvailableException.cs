@@ -35,9 +35,9 @@ namespace Cassandra
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
-        public Dictionary<IPAddress, Exception> Errors { get; private set; }
+        public Dictionary<IPEndPoint, Exception> Errors { get; private set; }
 
-        public NoHostAvailableException(Dictionary<IPAddress, Exception> errors)
+        public NoHostAvailableException(Dictionary<IPEndPoint, Exception> errors)
             : base(MakeMessage(errors))
         {
             Errors = errors;
@@ -49,7 +49,7 @@ namespace Cassandra
             
         }
 
-        private static String MakeMessage(Dictionary<IPAddress, Exception> errors)
+        private static String MakeMessage(Dictionary<IPEndPoint, Exception> errors)
         {
             return string.Format("None of the hosts tried for query are available (tried: {0})", String.Join(",", errors.Keys.Select((ip) => ip.ToString())));
         }

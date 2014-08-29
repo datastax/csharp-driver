@@ -17,7 +17,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using Moq;
 using System.Net;
@@ -260,7 +259,8 @@ namespace Cassandra.Tests
             var list = new List<Host>();
             for (byte i = 0; i < length; i++)
             {
-                var host = new Host(new IPAddress(new byte[] { 0, 0, thirdPosition, i }), new ConstantReconnectionPolicy(100));
+                var address = new IPAddress(new byte[] {0, 0, thirdPosition, i});
+                var host = new Host(new IPEndPoint(address, ProtocolOptions.DefaultPort), new ConstantReconnectionPolicy(100));
                 host.SetLocationInfo(datacenter, "rack1");
                 list.Add(host);
             }

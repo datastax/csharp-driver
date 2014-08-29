@@ -21,7 +21,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -76,11 +75,11 @@ namespace Cassandra
 
         public IFrameCompressor Compressor { get; set; }
 
-        public IPAddress HostAddress
+        public IPEndPoint Address
         {
             get
             {
-                return _tcpSocket.IPEndPoint.Address;
+                return _tcpSocket.IPEndPoint;
             }
         }
 
@@ -138,7 +137,7 @@ namespace Cassandra
                     {
                         return;
                     }
-                    _logger.Info("Connection to host " + HostAddress + " switching to keyspace " + value);
+                    _logger.Info("Connection to host " + Address + " switching to keyspace " + value);
                     this._keyspace = value;
                     var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
                     var request = new QueryRequest(ProtocolVersion, String.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
@@ -192,7 +191,7 @@ namespace Cassandra
                 //Use protocol v2+ authentication flow
 
                 //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
-                var authenticator = Configuration.AuthProvider.NewAuthenticator(HostAddress);
+                var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
 
                 var initialResponse = authenticator.InitialResponse() ?? new byte[0];
                 Authenticate(initialResponse, authenticator);
@@ -203,11 +202,11 @@ namespace Cassandra
                 if (Configuration.AuthInfoProvider == null)
                 {
                     throw new AuthenticationException(
-                        String.Format("Host {0} requires authentication, but no credentials provided in Cluster configuration", HostAddress),
-                        HostAddress);
+                        String.Format("Host {0} requires authentication, but no credentials provided in Cluster configuration", Address),
+                        Address);
                 }
                 var credentialsProvider = Configuration.AuthInfoProvider;
-                var credentials = credentialsProvider.GetAuthInfos(HostAddress);
+                var credentials = credentialsProvider.GetAuthInfos(Address);
                 var request = new CredentialsRequest(ProtocolVersion, credentials);
                 var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
                 //If Cassandra replied with a auth response error

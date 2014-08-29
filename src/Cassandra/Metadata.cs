@@ -58,7 +58,7 @@ namespace Cassandra
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
 
-        public Host GetHost(IPAddress address)
+        public Host GetHost(IPEndPoint address)
         {
             Host host;
             if (_hosts.TryGet(address, out host))
@@ -66,13 +66,13 @@ namespace Cassandra
             return null;
         }
 
-        internal Host AddHost(IPAddress address)
+        internal Host AddHost(IPEndPoint address)
         {
             _hosts.AddIfNotExistsOrBringUpIfDown(address);
             return GetHost(address);
         }
 
-        internal void RemoveHost(IPAddress address)
+        internal void RemoveHost(IPEndPoint address)
         {
             _hosts.RemoveIfExists(address);
         }
@@ -83,18 +83,18 @@ namespace Cassandra
                 SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
         }
 
-        internal void SetDownHost(IPAddress address, object sender = null)
+        internal void SetDownHost(IPEndPoint address, object sender = null)
         {
             if (_hosts.SetDownIfExists(address))
                 if (HostsEvent != null)
-                    HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Down});
+                    HostsEvent(sender ?? this, new HostsEventArgs {Address = address, What = HostsEventArgs.Kind.Down});
         }
 
-        internal void BringUpHost(IPAddress address, object sender = null)
+        internal void BringUpHost(IPEndPoint address, object sender = null)
         {
             if (_hosts.AddIfNotExistsOrBringUpIfDown(address))
                 if (HostsEvent != null)
-                    HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
+                    HostsEvent(sender ?? this, new HostsEventArgs {Address = address, What = HostsEventArgs.Kind.Up});
         }
 
         /// <summary>
@@ -108,21 +108,21 @@ namespace Cassandra
         }
 
 
-        public IEnumerable<IPAddress> AllReplicas()
+        public IEnumerable<IPEndPoint> AllReplicas()
         {
             return _hosts.AllEndPointsToCollection();
         }
 
-        internal void RebuildTokenMap(string partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
+        internal void RebuildTokenMap(string partitioner, Dictionary<IPEndPoint, HashSet<string>> allTokens)
         {
             _tokenMap = TokenMap.Build(partitioner, allTokens);
         }
 
-        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
+        public ICollection<IPEndPoint> GetReplicas(byte[] partitionKey)
         {
             if (_tokenMap == null)
             {
-                return new List<IPAddress>();
+                return new List<IPEndPoint>();
             }
             return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));
         }

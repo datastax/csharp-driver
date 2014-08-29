@@ -1,5 +1,5 @@
-//
-//      Copyright (C) 2012-2014 DataStax Inc.
+﻿//
+//      Copyright (C) 2012 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@ using System.Net;
 
 namespace Cassandra
 {
-    internal class StatusChangeEventArgs : CassandraEventArgs
+    /// <summary>
+    ///     The default <c>AddressTranslater</c> used by the driver that do no translation.
+    /// </summary>
+    public sealed class DefaultAddressTranslator : IAddressTranslator
     {
-        public enum Reason
+        /// <inheritdoc />
+        public IPEndPoint Translate(IPEndPoint address)
         {
-            Up,
-            Down
-        };
-
-        public IPEndPoint Address;
-        public Reason What;
+            return address;
+        }
     }
 }

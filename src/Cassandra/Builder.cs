@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 
@@ -26,8 +27,8 @@ namespace Cassandra
     /// </summary>
     public class Builder : IInitializer
     {
-        private readonly List<IPAddress> _addresses = new List<IPAddress>();
-        private PoolingOptions _poolingOptions = null;
+        private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
+        private PoolingOptions _poolingOptions;
         private SocketOptions _socketOptions = new SocketOptions();
         private IAuthInfoProvider _authInfoProvider;
         private IAuthProvider _authProvider = NoneAuthProvider.Instance;
@@ -43,11 +44,7 @@ namespace Cassandra
         private IRetryPolicy _retryPolicy;
         private SSLOptions _sslOptions;
         private bool _withoutRowSetBuffering;
-
-        public int Port
-        {
-            get { return _port; }
-        }
+        private IAddressTranslator _addressTranslator = new DefaultAddressTranslator();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -73,7 +70,7 @@ namespace Cassandra
             get { return _socketOptions; }
         }
 
-        public ICollection<IPAddress> ContactPoints
+        public ICollection<IPEndPoint> ContactPoints
         {
             get { return _addresses; }
         }
@@ -101,7 +98,8 @@ namespace Cassandra
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
                                      _authProvider,
                                      _authInfoProvider,
-                                     _queryOptions
+                                     _queryOptions,
+                                     _addressTranslator
                 );
         }
 
@@ -162,14 +160,47 @@ namespace Cassandra
         ///  required (the driver will retrieve the address of the other nodes
         ///  automatically), but it is usually a good idea to provide more than one
         ///  contact point, as if that unique contact point is not available, the driver
-        ///  won't be able to initialize itself correctly.'
+        ///  won't be able to initialize itself correctly.
         /// </summary>
-        /// <param name="address"> the address of the node to connect to </param>
-        /// 
-        /// <returns>this Builder </returns>
+        /// <remarks>
+        ///  However, this can be useful if the Cassandra nodes are behind a router and 
+        ///  are not accessed directly. Note that if you are in this situtation 
+        ///  (Cassandra nodes are behind a router, not directly accessible), you almost 
+        ///  surely want to provide a specific <c>IAddressTranslator</c> 
+        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual 
+        ///  Cassandra node addresses to the addresses the driver should use, otherwise 
+        ///  the driver will not be able to auto-detect new nodes (and will generally not 
+        ///  function optimally).
+        /// </remarks>
+        /// <param name="address">the address of the node to connect to</param> 
+        /// <returns>this Builder</returns>
         public Builder AddContactPoint(string address)
         {
-            _addresses.AddRange(Utils.ResolveHostByName(address));
+            AddContactPoints(Utils.ResolveHostByName(address));
+            return this;
+        }
+
+        /// <summary>
+        ///  Add contact point. See <link>Builder.AddContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <returns>this Builder</returns>
+        public Builder AddContactPoint(IPAddress address)
+        {
+            AddContactPoint(new IPEndPoint(address, ProtocolOptions.DefaultPort));
+            return this;
+        }
+
+        /// <summary>
+        ///  Add contact point. See <link>Builder.AddContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <returns>this Builder</returns>
+        public Builder AddContactPoint(IPEndPoint address)
+        {
+            _addresses.Add(address);
             return this;
         }
 
@@ -177,14 +208,47 @@ namespace Cassandra
         ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="addresses"> addresses of the nodes to add as contact point
-        ///  </param>
-        /// 
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param> 
         /// <returns>this Builder </returns>
         public Builder AddContactPoints(params string[] addresses)
         {
-            foreach (string address in addresses)
-                AddContactPoint(address);
+            AddContactPoints(addresses.AsEnumerable());
+            return this;
+        }
+
+        /// <summary>
+        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param>
+        /// <returns>this Builder</returns>
+        public Builder AddContactPoints(IEnumerable<string> addresses)
+        {
+            AddContactPoints(addresses.SelectMany(Utils.ResolveHostByName));
+            return this;
+        }
+
+        /// <summary>
+        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param>
+        /// <returns>this Builder</returns>
+        public Builder AddContactPoints(params IPAddress[] addresses)
+        {
+            AddContactPoints(addresses.AsEnumerable());
+            return this;
+        }
+
+        /// <summary>
+        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param>
+        /// <returns>this Builder</returns>
+        public Builder AddContactPoints(IEnumerable<IPAddress> addresses)
+        {
+            AddContactPoints(addresses.Select(p => new IPEndPoint(p, ProtocolOptions.DefaultPort)));
             return this;
         }
 
@@ -196,10 +260,23 @@ namespace Cassandra
         ///  </param>
         /// 
         /// <returns>this Builder</returns>
-        public Builder AddContactPoints(params IPAddress[] addresses)
+        public Builder AddContactPoints(params IPEndPoint[] addresses)
         {
-            foreach (IPAddress address in addresses)
-                _addresses.Add(address);
+            AddContactPoints(addresses.AsEnumerable());
+            return this;
+        }
+
+        /// <summary>
+        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
+        ///  on contact points.
+        /// </summary>
+        /// <param name="addresses"> addresses of the nodes to add as contact point
+        ///  </param>
+        /// 
+        /// <returns>this Builder</returns>
+        public Builder AddContactPoints(IEnumerable<IPEndPoint> addresses)
+        {
+            _addresses.AddRange(addresses);
             return this;
         }
 
@@ -370,6 +447,22 @@ namespace Cassandra
         public Builder WithSSL(SSLOptions sslOptions)
         {
             _sslOptions = sslOptions;
+            return this;
+        }
+
+        /// <summary>
+        ///  Configures the address translater to use for the new cluster.
+        /// </summary>
+        /// <remarks>
+        /// See <c>IAddressTranslater</c> for more detail on address translation,
+        /// but the default tanslater, <c>DefaultAddressTranslator</c>, should be
+        /// correct in most cases. If unsure, stick to the default.
+        /// </remarks>
+        /// <param name="addressTranslator">the translater to use.</param>
+        /// <returns>this Builder</returns>
+        public Builder WithAddressTranslator(IAddressTranslator addressTranslator)
+        {
+            _addressTranslator = addressTranslator;
             return this;
         }
 

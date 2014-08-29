@@ -531,17 +531,17 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(2, hosts.Count(h => h.Datacenter == "dc1"));
                 Assert.AreEqual(2, hosts.Count(h => h.Datacenter == "dc2"));
                 var session = clusterInfo.Session;
-                var queriedHosts = new List<IPAddress>();
+                var queriedHosts = new List<IPEndPoint>();
                 for (var i = 0; i < 50; i++)
                 {
                     var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
                     queriedHosts.Add(rs.Info.QueriedHost);
                 }
                 //Only the ones in the local
-                Assert.True(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "1")), "Only hosts from the local DC should be queried 1");
-                Assert.True(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "2")), "Only hosts from the local DC should be queried 2");
-                Assert.False(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "3")), "Only hosts from the local DC should be queried 3");
-                Assert.False(queriedHosts.Contains(IPAddress.Parse(IpPrefix + "4")), "Only hosts from the local DC should be queried 4");
+                Assert.True(queriedHosts.Contains(new IPEndPoint(IPAddress.Parse(IpPrefix + "1"), ProtocolOptions.DefaultPort)), "Only hosts from the local DC should be queried 1");
+                Assert.True(queriedHosts.Contains(new IPEndPoint(IPAddress.Parse(IpPrefix + "2"), ProtocolOptions.DefaultPort)), "Only hosts from the local DC should be queried 2");
+                Assert.False(queriedHosts.Contains(new IPEndPoint(IPAddress.Parse(IpPrefix + "3"), ProtocolOptions.DefaultPort)), "Only hosts from the local DC should be queried 3");
+                Assert.False(queriedHosts.Contains(new IPEndPoint(IPAddress.Parse(IpPrefix + "4"), ProtocolOptions.DefaultPort)), "Only hosts from the local DC should be queried 4");
             }
             finally
             {
