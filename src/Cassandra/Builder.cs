@@ -164,7 +164,7 @@ namespace Cassandra
         /// </summary>
         /// <remarks>
         ///  However, this can be useful if the Cassandra nodes are behind a router and 
-        ///  are not accessed directly. Note that if you are in this situtation 
+        ///  are not accessed directly. Note that if you are in this situation 
         ///  (Cassandra nodes are behind a router, not directly accessible), you almost 
         ///  surely want to provide a specific <c>IAddressTranslator</c> 
         ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual 

@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
              .Build();
             //No ring was discovered
             Assert.AreEqual(1, cluster.AllHosts().Count);
-            Assert.AreEqual(IPAddress.Parse(ip), cluster.AllHosts().First().Address);
+            Assert.AreEqual(new IPEndPoint(IPAddress.Parse(ip), 9042), cluster.AllHosts().First().Address);
         }
 
         [Test]

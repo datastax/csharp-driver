@@ -223,7 +223,7 @@ namespace Cassandra.IntegrationTests.Core
                     rs.Count();
                     list.Add(rs.Info.QueriedHost);
                 }
-                Assert.True(list.Any(ip => ip.ToString() == IpPrefix + "2"), "The new node should be queried");
+                Assert.True(list.Any(ip => ip.ToString().StartsWith(IpPrefix + "2")), "The new node should be queried");
             }
             finally
             {

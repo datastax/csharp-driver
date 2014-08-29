@@ -81,7 +81,7 @@ namespace Cassandra
 
         private Connection CreateConnection()
         {
-            _logger.Info("Creating a new connection to the host " + Host);
+            _logger.Info("Creating a new connection to the host " + Host.Address);
             var connection = new Connection(ProtocolVersion, Host.Address, Configuration);
             connection.Init();
             return connection;
