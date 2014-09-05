@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ namespace Cassandra
                 ce.What = BeBinaryReader.ReadString() == "NEW_NODE"
                               ? TopologyChangeEventArgs.Reason.NewNode
                               : TopologyChangeEventArgs.Reason.RemovedNode;
-                ce.Address = BeBinaryReader.ReadInet().Address;
+                ce.Address = BeBinaryReader.ReadInet();
                 CassandraEventArgs = ce;
                 return;
             }
@@ -45,7 +45,7 @@ namespace Cassandra
                 ce.What = BeBinaryReader.ReadString() == "UP"
                               ? StatusChangeEventArgs.Reason.Up
                               : StatusChangeEventArgs.Reason.Down;
-                ce.Address = BeBinaryReader.ReadInet().Address;
+                ce.Address = BeBinaryReader.ReadInet();
                 CassandraEventArgs = ce;
                 return;
             }

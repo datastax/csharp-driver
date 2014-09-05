@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -38,9 +38,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(3, builder);
-            createSchema(clusterInfo.Session, 1);
             try
             {
+                createSchema(clusterInfo.Session, 1);
                 init(clusterInfo, 12, ConsistencyLevel.One);
                 query(clusterInfo, 12, ConsistencyLevel.One);
 
@@ -164,9 +164,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(3, builder);
-            createSchema(clusterInfo.Session, 2);
             try
             {
+                createSchema(clusterInfo.Session, 2);
                 init(clusterInfo, 12, ConsistencyLevel.Two);
                 query(clusterInfo, 12, ConsistencyLevel.Two);
 
@@ -293,9 +293,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             Builder builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             var clusterInfo = TestUtils.CcmSetup(3, builder);
-            createSchema(clusterInfo.Session, 3);
             try
             {
+                createSchema(clusterInfo.Session, 3);
                 init(clusterInfo, 12, ConsistencyLevel.Two);
                 query(clusterInfo, 12, ConsistencyLevel.Two);
 
@@ -425,9 +425,9 @@ namespace Cassandra.IntegrationTests.Core
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var clusterInfo = TestUtils.CcmSetup(3, builder);
-            createSchema(clusterInfo.Session, 1);
             try
             {
+                createSchema(clusterInfo.Session, 1);
                 init(clusterInfo, 12, ConsistencyLevel.One);
                 query(clusterInfo, 12, ConsistencyLevel.One);
 
@@ -554,9 +554,9 @@ namespace Cassandra.IntegrationTests.Core
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var clusterInfo = TestUtils.CcmSetup(3, builder);
-            createSchema(clusterInfo.Session, 2);
             try
             {
+                createSchema(clusterInfo.Session, 2);
                 init(clusterInfo, 12, ConsistencyLevel.Two);
                 query(clusterInfo, 12, ConsistencyLevel.Two);
 

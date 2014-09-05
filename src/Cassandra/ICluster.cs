@@ -1,3 +1,19 @@
+//
+//      Copyright (C) 2012-2014 DataStax Inc.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
@@ -46,13 +62,13 @@ namespace Cassandra
         /// </summary>
         /// <param name="address">Ip address of the host</param>
         /// <returns>The host or null if not found</returns>
-        Host GetHost(IPAddress address);
+        Host GetHost(IPEndPoint address);
         /// <summary>
         /// Gets a collection of replicas for a given partitionKey
         /// </summary>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
-        ICollection<IPAddress> GetReplicas(byte[] partitionKey);
+        ICollection<IPEndPoint> GetReplicas(byte[] partitionKey);
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <c>* Cluster</c> instance and reclaim all resources

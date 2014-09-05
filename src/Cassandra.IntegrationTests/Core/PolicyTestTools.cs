@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public static readonly String TABLE = "test";
 
-        public static Dictionary<IPAddress, int> coordinators = new Dictionary<IPAddress, int>();
+        public static Dictionary<IPEndPoint, int> coordinators = new Dictionary<IPEndPoint, int>();
         public static List<ConsistencyLevel> achievedConsistencies = new List<ConsistencyLevel>();
         public static PreparedStatement prepared;
 
@@ -45,25 +45,25 @@ namespace Cassandra.IntegrationTests.Core
 
         public static void createSchema(ISession session, int replicationFactor)
         {
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor)));
+            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor));
+            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)));
+            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
+            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
         }
 
         public static void createMultiDCSchema(ISession session, int dc1RF = 1, int dc2RF = 1)
         {
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy",
-                                              string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF))));
+            session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy",
+                                              string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF)));
+            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE)));
+            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
+            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
         }
 
         ///  Coordinator management/count
-        public static void addCoordinator(IPAddress coordinator, ConsistencyLevel cl)
+        public static void addCoordinator(IPEndPoint coordinator, ConsistencyLevel cl)
         {
             if (!coordinators.ContainsKey(coordinator))
                 coordinators.Add(coordinator, 0);
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public static void resetCoordinators()
         {
-            coordinators = new Dictionary<IPAddress, int>();
+            coordinators = new Dictionary<IPEndPoint, int>();
             achievedConsistencies = new List<ConsistencyLevel>();
         }
 
@@ -84,7 +84,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             try
             {
-                int? queried = coordinators.ContainsKey(IPAddress.Parse(host)) ? (int?) coordinators[IPAddress.Parse(host)] : null;
+                var endpoint = new IPEndPoint(IPAddress.Parse(host), ProtocolOptions.DefaultPort);
+                int? queried = coordinators.ContainsKey(endpoint) ? (int?) coordinators[endpoint] : null;
                 if (DEBUG)
                     Debug.WriteLine(String.Format("Expected: {0}\tReceived: {1}", n, queried));
                 else
@@ -107,7 +108,8 @@ namespace Cassandra.IntegrationTests.Core
                 int queriedInSet = 0;
                 foreach (var host in hosts)
                 {
-                    queriedInSet += coordinators.ContainsKey(IPAddress.Parse(host)) ? (int)coordinators[IPAddress.Parse(host)] : 0;
+                    var endpoint = new IPEndPoint(IPAddress.Parse(host), ProtocolOptions.DefaultPort);
+                    queriedInSet += coordinators.ContainsKey(endpoint) ? coordinators[endpoint] : 0;
                 }
 
                 if (DEBUG)
@@ -125,9 +127,10 @@ namespace Cassandra.IntegrationTests.Core
         protected void assertQueriedAtLeast(String host, int n)
         {
             var queried = 0;
-            if (coordinators.ContainsKey(IPAddress.Parse(host)))
+            var endpoint = new IPEndPoint(IPAddress.Parse(host), ProtocolOptions.DefaultPort);
+            if (coordinators.ContainsKey(endpoint))
             {
-                queried = coordinators[IPAddress.Parse(host)];   
+                queried = coordinators[endpoint];   
             }
             Assert.GreaterOrEqual(queried, n);
         }
@@ -210,7 +213,7 @@ namespace Cassandra.IntegrationTests.Core
                 BoundStatement bs = prepared.Bind(0);
                 for (int i = 0; i < n; ++i)
                 {
-                    IPAddress ccord;
+                    IPEndPoint ccord;
                     ConsistencyLevel cac;
                     var rs = clusterInfo.Session.Execute(bs);
                     {
@@ -226,7 +229,7 @@ namespace Cassandra.IntegrationTests.Core
                 routingKey.RawRoutingKey = Enumerable.Repeat((byte) 0x00, 4).ToArray();
                 for (int i = 0; i < n; ++i)
                 {
-                    IPAddress ccord;
+                    IPEndPoint ccord;
                     ConsistencyLevel cac;
                     var rs =
                             clusterInfo.Session.Execute(

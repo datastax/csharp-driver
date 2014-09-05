@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ namespace Cassandra
         ///  authentication negotiations on behalf of the client </returns>
         /// <throws name="SaslException"> if an unsupported SASL mechanism is supplied or
         ///  an error is encountered when initialising the authenticator</throws>
-        public IAuthenticator NewAuthenticator(IPAddress host)
+        public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
             return new PlainTextAuthenticator(_username, _password);
         }

@@ -1,5 +1,5 @@
-﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -259,7 +259,8 @@ namespace Cassandra.Tests
             var list = new List<Host>();
             for (byte i = 0; i < length; i++)
             {
-                var host = new Host(new IPAddress(new byte[] { 0, 0, thirdPosition, i }), new ConstantReconnectionPolicy(100));
+                var address = new IPAddress(new byte[] {0, 0, thirdPosition, i});
+                var host = new Host(new IPEndPoint(address, ProtocolOptions.DefaultPort), new ConstantReconnectionPolicy(100));
                 host.SetLocationInfo(datacenter, "rack1");
                 list.Add(host);
             }

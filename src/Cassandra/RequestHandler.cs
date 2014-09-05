@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ namespace Cassandra
         private readonly IStatement _statement;
         private int _retryCount = 0;
         private readonly TaskCompletionSource<T> _tcs;
-        private readonly Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
+        private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
 
         /// <summary>
         /// Creates a new instance of the RequestHandler that deals with host failover and retries on error

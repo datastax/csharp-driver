@@ -70,6 +70,8 @@
     </Compile>
     <Compile Include="Exceptions\RequestInvalidException.cs" />
     <Compile Include="HostConnectionPool.cs" />
+    <Compile Include="DefaultAddressTranslator.cs" />
+    <Compile Include="IAddressTranslator.cs" />
     <Compile Include="ICqlRequest.cs" />
     <Compile Include="ListBackedStream.cs" />
     <Compile Include="AtomicValue.cs" />

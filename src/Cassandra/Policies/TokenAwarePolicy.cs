@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ namespace Cassandra
                 yield break;
             }
 
-            ICollection<IPAddress> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
+            ICollection<IPEndPoint> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
                 foreach (var iter in _childPolicy.NewQueryPlan(query))
@@ -103,7 +103,7 @@ namespace Cassandra
                 yield break;
             }
 
-            IEnumerator<IPAddress> iterator = replicas.GetEnumerator();
+            IEnumerator<IPEndPoint> iterator = replicas.GetEnumerator();
             while (iterator.MoveNext())
             {
                 var host = _cluster.GetHost(iterator.Current);

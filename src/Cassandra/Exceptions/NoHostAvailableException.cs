@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.Serialization;
 
 namespace Cassandra
 {
@@ -28,20 +29,27 @@ namespace Cassandra
     ///  purpose, the list of hosts that have been tried along with the failure cause
     ///  can be retrieved using the <link>#errors</link> method.
     /// </summary>
+    [Serializable]
     public class NoHostAvailableException : DriverException
     {
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
-        public Dictionary<IPAddress, Exception> Errors { get; private set; }
+        public Dictionary<IPEndPoint, Exception> Errors { get; private set; }
 
-        public NoHostAvailableException(Dictionary<IPAddress, Exception> errors)
+        public NoHostAvailableException(Dictionary<IPEndPoint, Exception> errors)
             : base(MakeMessage(errors))
         {
             Errors = errors;
         }
 
-        private static String MakeMessage(Dictionary<IPAddress, Exception> errors)
+        protected NoHostAvailableException(SerializationInfo info, StreamingContext context) :
+            base(info, context)
+        {
+            
+        }
+
+        private static String MakeMessage(Dictionary<IPEndPoint, Exception> errors)
         {
             return string.Format("None of the hosts tried for query are available (tried: {0})", String.Join(",", errors.Keys.Select((ip) => ip.ToString())));
         }

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -29,12 +30,12 @@ namespace Cassandra.IntegrationTests
     /// <summary>
     ///  A number of static fields/methods handy for tests.
     /// </summary>
-    public static class TestUtils
+    internal static class TestUtils
     {
         private static readonly Logger logger = new Logger(typeof (TestUtils));
 
         public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT =
-            "CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
+            "CREATE KEYSPACE \"{0}\" WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
 
         public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
 
@@ -603,6 +604,46 @@ namespace Cassandra.IntegrationTests
         public static void CcmDecommissionNode(CcmClusterInfo info, int node)
         {
             ExecuteLocalCcm(string.Format("node{0} decommission", node), info.ConfigDir);
+        }
+
+        /// <summary>
+        /// Determines if a connection can be made to a node at port 9042
+        /// </summary>
+        public static bool IsNodeReachable(IPAddress ip)
+        {
+            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                var connectResult = socket.BeginConnect(new IPEndPoint(ip, 9042), null, null);
+                var connectSignaled = connectResult.AsyncWaitHandle.WaitOne(1000);
+
+                if (!connectSignaled)
+                {
+                    //It timed out: Close the socket
+                    return false;
+                }
+                try
+                {
+                    socket.EndConnect(connectResult);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
+        {
+            WaitForSchemaAgreement(clusterInfo.Cluster.AllHosts().Count);
+        }
+
+        public static void WaitForSchemaAgreement(int hostsLength)
+        {
+            if (hostsLength > 0)
+            {
+                Thread.Sleep(hostsLength * 1500);
+            }
         }
     }
 

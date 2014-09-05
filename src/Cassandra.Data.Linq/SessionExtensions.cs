@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,6 +28,21 @@ namespace Cassandra.Data.Linq
             if (@this == null || @this.BinaryProtocolVersion > 1)
                 return new BatchV2(@this);
             return new BatchV1(@this);
+        }
+
+        internal static Configuration GetConfiguration(this ISession session)
+        {
+            Configuration config = null;
+            if (session is Session)
+            {
+                config = ((Session) session).Configuration;
+            }
+            else
+            {
+                //Get the default options
+                config = new Configuration();
+            }
+            return config;
         }
     }
 }

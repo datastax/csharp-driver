@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,7 +29,9 @@ namespace Cassandra.Data.Linq
                .SetPagingState(src.PagingState)
                .SetRetryPolicy(src.RetryPolicy);
             if (src.SerialConsistencyLevel != ConsistencyLevel.Any)
+            {
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);
+            }
         }
 
         /// <summary>
@@ -70,12 +72,12 @@ namespace Cassandra.Data.Linq
         }
 
         /// <summary>
-        /// Returns a CqlScalar which after execution returns the number of elements in a sequence.
+        /// Returns the number of rows matching the query.
         /// To execute this CqlScalar use <c>Execute()</c> method.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements of source.</typeparam>
         /// <param name="source">The CqlQuery&lt;TSource&gt; to return the first element of.</param>
-        /// <returns>a CqlScalar&lt;long&gt; which after execution returns the number of elements in a sequence.</returns>
+        /// <returns>A single result: the number of rows matching the query.</returns>
         public static CqlScalar<long> Count<TSource>(this CqlQuery<TSource> source)
         {
             var ret = new CqlScalar<long>(source.Expression, source.Provider);

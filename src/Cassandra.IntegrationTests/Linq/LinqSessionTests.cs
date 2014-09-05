@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,23 @@ namespace Cassandra.IntegrationTests.Linq
     [Category("short")]
     public class LinqSessionTests : SingleNodeClusterTest
     {
+        public override void TestFixtureSetUp()
+        {
+            base.TestFixtureSetUp();
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //Insert some data
+            var ps = Session.Prepare("INSERT INTO \"nerdiStuff\" " +
+                            "(\"movieTile\", \"movieMaker\", \"diri\", \"mainGuy\") VALUES " +
+                            "(?, ?, ?, ?)");
+            //dont mind the schema, it does not make much sense
+            Session.Execute(ps.Bind("title1", "maker1", "director1", "actor1"));
+            Session.Execute(ps.Bind("title2", "maker2", "director2", "actor2"));
+            Session.Execute(ps.Bind("title3", "maker3", "director3", null));
+            Session.Execute(ps.Bind("title4", "maker4", "director4a", null));
+            Session.Execute(ps.Bind("title4", "maker4", "director4b", null));
+        }
+
         [Test]
         public void InsertAndSelectExecuteAsync()
         {
@@ -62,13 +79,241 @@ namespace Cassandra.IntegrationTests.Linq
                 .ExecuteAsync()
                 .Result;
 
-            Assert.AreEqual(count, countQueryResult);
+            var countQuerySync = table
+                .Where(m => m.Director == resultMovie.Director && m.Movie == resultMovie.Movie && m.Maker == resultMovie.Maker)
+                .Count()
+                .Execute();
 
-            var first = table.First(m => m.Director == movie.Director).ExecuteAsync().Result;
+            Assert.AreEqual(count, countQueryResult);
+            Assert.AreEqual(count, countQuerySync);
+
+            var first = table.
+                First(m => m.Director == movie.Director).Execute();
             Assert.AreEqual(movie.Maker, first.Maker);
             Assert.AreEqual(movie.Director, first.Director);
             Assert.AreEqual(movie.MainActor, first.MainActor);
             Assert.AreEqual(movie.Year, first.Year);
+        }
+
+        [Test]
+        public void FirstOrDefaultTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            var first = table.FirstOrDefault(m => m.Director == "whatever").Execute();
+            Assert.IsNull(first);
+
+            //sync
+            first = table.FirstOrDefault(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1").Execute();
+            Assert.IsNotNull(first);
+            Assert.AreEqual("maker1", first.Maker);
+
+            //async
+            first = table.FirstOrDefault(m => m.Director == "director2" && m.Movie == "title2" && m.Maker == "maker2").ExecuteAsync().Result;
+            Assert.IsNotNull(first);
+            Assert.AreEqual("actor2", first.MainActor);
+        }
+
+        [Test]
+        public void FirstTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //sync
+            var first = table.First(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1").Execute();
+            Assert.IsNotNull(first);
+            Assert.AreEqual("actor1", first.MainActor);
+            //async
+            first = table.First(m => m.Director == "director2" && m.Movie == "title2" && m.Maker == "maker2").ExecuteAsync().Result;
+            Assert.IsNotNull(first);
+            Assert.AreEqual("maker2", first.Maker);
+        }
+
+        [Test]
+        public void CountTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //global count
+            var count = table.Count().Execute();
+            Assert.Greater(count, 0);
+
+            count = table.Where(m => m.Movie == "title2" && m.Maker == "maker2").Count().Execute();
+            Assert.AreEqual(1, count);
+            count = table.Where(m => m.Movie == "title3" && m.Maker == "maker3").Count().ExecuteAsync().Result;
+            Assert.AreEqual(1, count);
+        }
+
+        [Test]
+        public void TakeTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            //with where clause
+            var results = table
+                .Where(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1")
+                .Take(1)
+                .Execute();
+            Assert.AreEqual(1, results.Count());
+            //without where clause
+            results = table
+                .Take(2)
+                .ExecuteAsync()
+                .Result;
+            Assert.AreEqual(2, results.Count());
+            results = table
+                .Take(10000)
+                .Execute();
+            Assert.Greater(results.Count(), 2);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void UpdateIfTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+            var movie = new NerdMovie()
+            {
+                Movie = "Dead Poets Society",
+                Year = 1989,
+                MainActor = "Robin Williams",
+                Director = "Peter Weir",
+                Maker = "Touchstone"
+            };
+            table
+                .Insert(movie)
+                .SetConsistencyLevel(ConsistencyLevel.Quorum)
+                .Execute();
+
+            var retrievedMovie = table
+                .FirstOrDefault(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone")
+                .Execute();
+            Assert.NotNull(retrievedMovie);
+            Assert.AreEqual(1989, retrievedMovie.Year);
+            Assert.AreEqual("Robin Williams", retrievedMovie.MainActor);
+
+            table
+                .Where(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone" && m.Director == "Peter Weir")
+                .Select(m => new NerdMovie {MainActor = "Robin McLaurin Williams"})
+                .UpdateIf(m => m.Year == 1989)
+                .Execute();
+
+            retrievedMovie = table
+                .FirstOrDefault(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone")
+                .Execute();
+            Assert.NotNull(retrievedMovie);
+            Assert.AreEqual(1989, retrievedMovie.Year);
+            Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
+
+            //Should not update as the if clause is not satisfied
+            table
+                .Where(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone" && m.Director == "Peter Weir")
+                .Select(m => new NerdMovie { MainActor = "WHOEVER" })
+                .UpdateIf(m => m.Year == 1500)
+                .Execute();
+            retrievedMovie = table
+                .FirstOrDefault(m => m.Movie == "Dead Poets Society" && m.Maker == "Touchstone")
+                .Execute();
+            Assert.NotNull(retrievedMovie);
+            Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
+        }
+
+        [Test]
+        public void OrderByTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            table.CreateIfNotExists();
+
+            var results = table
+                .Where(m => m.Movie == "title1" && m.Maker == "maker1")
+                .OrderBy(m => m.Director)
+                .Execute();
+            Assert.AreEqual(1, results.Count());
+
+            results = table
+                .Where(m => m.Movie == "title4" && m.Maker == "maker4")
+                .OrderBy(m => m.Director)
+                .ExecuteAsync()
+                .Result;
+            var resultOrder1 = results.ToList();
+
+            results = table
+                .Where(m => m.Movie == "title4" && m.Maker == "maker4")
+                .OrderByDescending(m => m.Director)
+                .Execute();
+            var resultOrder2 = results.ToList();
+            Assert.AreEqual(2, resultOrder1.Count);
+            Assert.AreEqual(2, resultOrder2.Count);
+            Assert.AreNotEqual(resultOrder1.First().Director, resultOrder2.First().Director);
+        }
+
+        [Test]
+        public void CqlQueryExceptiosnTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table.Where(m => m.Year is int).Execute());
+            //No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.Year == 100).Execute());
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.MainActor == null).Execute());
+            //No execute
+            Assert.Throws<InvalidOperationException>(() => table.Where(m => m.Maker == "dum").GetEnumerator());
+
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+        }
+
+        [Test]
+        public void CqlQuerySingleElementExceptionsTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table.First(m => m.Year is int).Execute());
+            //No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table.First(m => m.Year == 100).Execute());
+            Assert.Throws<InvalidQueryException>(() => table.First(m => m.MainActor == null).Execute());
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table.First(m => m.Maker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+        }
+
+        [Test]
+        public void CqlScalarExceptionsTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table.Where(m => m.Year is int).Count().Execute());
+            //No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.Year == 100).Count().Execute());
+            Assert.Throws<InvalidQueryException>(() => table.Where(m => m.MainActor == null).Count().Execute());
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum").Count().SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
+        }
+
+        [Test]
+        public void CqlCommandExceptionsTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            //No translation in CQL
+            Assert.Throws<SyntaxError>(() => table
+                .Where(m => m.Year is int)
+                .Select(m => new NerdMovie {Year = 1})
+                .Update().Execute());
+            //Delete: No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table
+                .Where(m => m.Year == 1999)
+                .Delete()
+                .Execute());
+            //Insert: No partition key in Query
+            Assert.Throws<InvalidQueryException>(() => table
+                .Insert(new NerdMovie() { MainActor = "Dolph Lundgren" })
+                .Execute());
+            //Wrong consistency level
+            Assert.Throws<RequestInvalidException>(() => table
+                .Where(m => m.Movie == "title1" && m.Maker == "maker1")
+                .SetConsistencyLevel(ConsistencyLevel.LocalSerial)
+                .Delete()
+                .Execute());
         }
 
         [Test]

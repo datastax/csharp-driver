@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -149,6 +149,9 @@ namespace Cassandra.Data.Linq
             }
         }
 
+        /// <summary>
+        /// Returns a CqlInsert command to be executed against a table. To execute this command, use Execute() method.
+        /// </summary>
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
             return new CqlInsert<TEntity>(entity, this);

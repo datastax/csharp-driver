@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        internal static IPAddress ExecuteSyncNonQuery(ISession session, string query, string messageInstead = null,
+        internal static IPEndPoint ExecuteSyncNonQuery(ISession session, string query, string messageInstead = null,
                                                       ConsistencyLevel? consistency = null)
         {
             RowSet ret = session.Execute(query, consistency ?? session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             return ret;
         }
 
-        internal static IPAddress ExecutePreparedQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
+        internal static IPEndPoint ExecutePreparedQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
             RowSet ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             return ret.Info.QueriedHost;

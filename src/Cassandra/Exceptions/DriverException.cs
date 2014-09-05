@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,12 +15,14 @@
 //
 
 using System;
+using System.Runtime.Serialization;
 
 namespace Cassandra
 {
     /// <summary>
     /// Top level class for exceptions thrown by the driver.
     /// </summary>
+    [Serializable]
     public class DriverException : Exception
     {
         public DriverException(string message)
@@ -31,6 +33,12 @@ namespace Cassandra
         public DriverException(string message, Exception innerException)
             : base(message, innerException)
         {
+        }
+
+        protected DriverException(SerializationInfo info, StreamingContext context) :
+            base(info, context)
+        {
+            
         }
     }
 }

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -393,6 +393,22 @@ APPLY BATCH".Replace("\r", ""));
             Assert.Greater(actualCqlQueries.Count, 0);
             Assert.AreEqual("CREATE TABLE \"CounterTestTable1\"(\"RowKey1\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY(\"RowKey1\", \"RowKey2\"));", actualCqlQueries[0]);
             Assert.AreEqual("CREATE TABLE \"CounterTestTable2\"(\"RowKey1\" int, \"RowKey2\" int, \"CKey1\" int, \"Value\" counter, PRIMARY KEY((\"RowKey1\", \"RowKey2\"), \"CKey1\"));", actualCqlQueries[1]);
+        }
+
+        [Test]
+        public void LinqGeneratedUpdateStatementForCounterTest()
+        {
+            var table = SessionExtensions.GetTable<CounterTestTable1>(null);
+            string query;
+            string expectedQuery;
+
+            query = table
+                .Where(r => r.RowKey1 == 5 && r.RowKey2 == 6)
+                .Select(r => new CounterTestTable1() { Value = 1 })
+                .Update()
+                .ToString();
+            expectedQuery = "UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + 1 WHERE \"RowKey1\" = 5 AND \"RowKey2\" = 6";
+            Assert.AreEqual(expectedQuery, query);
         }
 
         [Table]

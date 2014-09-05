@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,14 +26,14 @@ namespace Cassandra
         /// <summary>
         ///  Gets the host for which the authentication failed. 
         /// </summary>
-        public IPAddress Host { get; private set; }
+        public IPEndPoint Host { get; private set; }
 
         public AuthenticationException(string message)
             : base(message)
         {
         }
 
-        public AuthenticationException(string message, IPAddress host)
+        public AuthenticationException(string message, IPEndPoint host)
             : base(string.Format("Authentication error on host {0}: {1}", host, message))
         {
             Host = host;

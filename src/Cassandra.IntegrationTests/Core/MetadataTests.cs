@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012 DataStax Inc.
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -300,6 +300,36 @@ namespace Cassandra.IntegrationTests.Core
                 var phoneSetSubType = (SetColumnInfo)phoneSet.TypeInfo;
                 Assert.AreEqual(ColumnTypeCode.Udt, phoneSetSubType.KeyTypeCode);
                 Assert.AreEqual(2, ((UdtColumnInfo)phoneSetSubType.KeyTypeInfo).Fields.Count);
+
+                var tableMetadata = Cluster.Metadata.GetTable(Keyspace, "user");
+                Assert.AreEqual(3, tableMetadata.TableColumns.Count());
+                Assert.AreEqual(ColumnTypeCode.Udt, tableMetadata.TableColumns.First(c => c.Name == "addr").TypeCode);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void TupleMetadataTest()
+        {
+            if (Options.Default.CassandraVersion < new Version(2, 1))
+            {
+                Assert.Ignore("Test suitable to be run against Cassandra 2.1 or above");
+            }
+            const string cqlTable1 = "CREATE TABLE users_tuples (id int PRIMARY KEY, phone tuple<uuid, text, int>, achievements list<tuple<text,int>>)";
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                Session = clusterInfo.Session;
+                Cluster = clusterInfo.Cluster;
+                Session.CreateKeyspaceIfNotExists(Keyspace);
+                Session.ChangeKeyspace(Keyspace);
+                Session.Execute(cqlTable1);
+
+                var tableMetadata = Cluster.Metadata.GetTable(Keyspace, "users_tuples");
+                Assert.AreEqual(3, tableMetadata.TableColumns.Count());
             }
             finally
             {
