@@ -266,8 +266,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Ignore("Test suitable to be run against Cassandra 2.1 or above");
             }
             const string cqlType1 = "CREATE TYPE phone (alias text, number text)";
-            const string cqlType2 = "CREATE TYPE address (street text, \"ZIP\" int, phones set<phone>)";
-            const string cqlTable = "CREATE TABLE user (id int PRIMARY KEY, addr address, main_phone phone)";
+            const string cqlType2 = "CREATE TYPE address (street text, \"ZIP\" int, phones set<frozen<phone>>)";
+            const string cqlTable = "CREATE TABLE user (id int PRIMARY KEY, addr frozen<address>, main_phone frozen<phone>)";
             var clusterInfo = TestUtils.CcmSetup(1);
             try
             {
@@ -318,7 +318,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Assert.Ignore("Test suitable to be run against Cassandra 2.1 or above");
             }
-            const string cqlTable1 = "CREATE TABLE users_tuples (id int PRIMARY KEY, phone tuple<uuid, text, int>, achievements list<tuple<text,int>>)";
+            const string cqlTable1 = "CREATE TABLE users_tuples (id int PRIMARY KEY, phone frozen<tuple<uuid, text, int>>, achievements list<frozen<tuple<text,int>>>)";
             var clusterInfo = TestUtils.CcmSetup(1);
             try
             {

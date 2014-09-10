@@ -41,9 +41,9 @@ namespace Cassandra.IntegrationTests.Core
             if (Options.Default.CassandraVersion >= new Version(2, 1))
             {
                 const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int)";
-                const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<phone>, emails set<text>)";
-                const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone phone)";
-                const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<contact>)";
+                const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";
+                const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
+                const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
 
                 Session.Execute(cqlType1);
                 Session.Execute(cqlType2);
@@ -347,7 +347,7 @@ namespace Cassandra.IntegrationTests.Core
         public void NoMappingDefinedTest()
         {
             const string cqlType = "CREATE TYPE temp_udt (text_sample text, date_sample timestamp)";
-            const string cqlTable = "CREATE TABLE temp_table (id int PRIMARY KEY, sample_udt temp_udt, sample_udt_list list<temp_udt>)";
+            const string cqlTable = "CREATE TABLE temp_table (id int PRIMARY KEY, sample_udt frozen<temp_udt>, sample_udt_list list<frozen<temp_udt>>)";
             const string cqlInsert = "INSERT INTO temp_table (id, sample_udt, sample_udt_list) VALUES (1, {text_sample: 'one', date_sample: 1}, [{text_sample: 'first'}])";
 
             var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
