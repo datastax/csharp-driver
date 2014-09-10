@@ -233,6 +233,46 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void InitialKeyspaceRaceTest()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+
+            try
+            {
+                var cluster = Cluster.Builder()
+                    .AddContactPoint(IpPrefix + "1")
+                    //using a keyspace
+                    .WithDefaultKeyspace("system")
+                    //lots of connections per host
+                    .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 30))
+                    .Build();
+
+                var actions = new List<Action>(1000);
+                var session = cluster.Connect();
+                //Try to be force a race condition
+                for (var i = 0; i < 1000; i++)
+                {
+                    //Some table within the system keyspace
+                    actions.Add(() =>
+                    {
+                        var task = session.ExecuteAsync(new SimpleStatement("SELECT * FROM schema_columnfamilies"));
+                        task.Wait(); 
+                    });
+                }
+                var parallelOptions = new ParallelOptions
+                {
+                    TaskScheduler = new ThreadPerTaskScheduler(),
+                    MaxDegreeOfParallelism = 1000
+                };
+                Parallel.Invoke(parallelOptions, actions.ToArray());
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
         [Explicit("This test needs to be rebuilt, when restarting the Cassandra node on Windows new connections are refused")]
         public void DroppingConnectionsTest()
         {
