@@ -273,6 +273,28 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void ConnectWithWrongKeyspaceNameTest()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+
+            try
+            {
+                var cluster = Cluster.Builder()
+                    .AddContactPoint(IpPrefix + "1")
+                    //using a keyspace that does not exists
+                    .WithDefaultKeyspace("DOES_NOT_EXISTS")
+                    .Build();
+
+                var ex = Assert.Throws<InvalidQueryException>(() => cluster.Connect());
+                Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
         [Explicit("This test needs to be rebuilt, when restarting the Cassandra node on Windows new connections are refused")]
         public void DroppingConnectionsTest()
         {
