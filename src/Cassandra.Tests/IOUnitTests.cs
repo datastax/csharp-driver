@@ -14,12 +14,8 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using NUnit.Framework;
 using System.Linq;
-using System.Text;
 
 namespace Cassandra.Tests
 {

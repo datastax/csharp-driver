@@ -41,16 +41,13 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AbstractResponseTest.cs" />
     <Compile Include="AdoUnitTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />
@@ -59,6 +56,7 @@
     <Compile Include="LinqToCqlUnitTests.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResponseFrameTest.cs" />
     <Compile Include="RowSetUnitTests.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TokenTests.cs" />

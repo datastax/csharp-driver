@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

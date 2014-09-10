@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using Cassandra.Data;
 using NUnit.Framework;
 
@@ -27,7 +28,7 @@ namespace Cassandra.Tests
             var target = new CqlParameterCollection();
 
             // test Count
-            NUnit.Framework.Assert.AreEqual(0, target.Count);
+            Assert.AreEqual(0, target.Count);
             var p1 = target.Add("p1", 1);
             Assert.AreEqual(1, target.Count);
 

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,25 +14,26 @@
 //   limitations under the License.
 //
 
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System;
+using System.IO;
+using NUnit.Framework;
 
 namespace Cassandra.Tests
 {
-    public class ThreadPerTaskScheduler : TaskScheduler
+    public class ResponseFrameTest
     {
-        protected override IEnumerable<Task> GetScheduledTasks() { return Enumerable.Empty<Task>(); }
-
-        protected override void QueueTask(Task task)
+        [Test]
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void Ctor_HeaderIsNull_Throws()
         {
-            new Thread(() => TryExecuteTask(task)) { IsBackground = true }.Start();
+            new ResponseFrame(null, new MemoryStream());
         }
 
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+        [Test]
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void Ctor_BodyIsNull_Throws()
         {
-            return TryExecuteTask(task);
-        }
+            new ResponseFrame(new FrameHeader(), null);
+        } 
     }
 }
