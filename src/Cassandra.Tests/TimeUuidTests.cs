@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -46,6 +48,47 @@ namespace Cassandra.Tests
             Assert.True(id1 != id4);
             Assert.AreNotEqual(id3, id4);
             Assert.True(id3 != id4);
+        }
+
+        [Test]
+        public void CheckCollisionsTest()
+        {
+            var values = new Dictionary<string, bool>();
+            var date = DateTimeOffset.Now;
+            for (var i = 0; i < 1000000; i++)
+            {
+                //The node id and clock id should be pseudo random
+                var id = TimeUuid.NewId(date).ToString();
+                Assert.False(values.ContainsKey(id), "TimeUuid collision at position {0}", i);
+                values.Add(id, true);
+            }
+        }
+
+        [Test]
+        public void CheckCollisionsParallelTest()
+        {
+            var values = new ConcurrentDictionary<string, bool>();
+            var date = DateTimeOffset.Now;
+            var actions = new List<Action>(1000000);
+            for (var i = 0; i < 1000000; i++)
+            {
+                Action a = () =>
+                {
+                    //The node id and clock id should be pseudo random
+                    var id = TimeUuid.NewId(date).ToString();
+                    Assert.False(values.ContainsKey(id), "TimeUuid collided");
+                    values.AddOrUpdate(id, true, (k, o) => true);
+                };
+                actions.Add(a);
+            }
+
+            var parallelOptions = new ParallelOptions
+            {
+                TaskScheduler = new ThreadPerTaskScheduler(), 
+                MaxDegreeOfParallelism = Int32.MaxValue
+            };
+
+            Parallel.Invoke(parallelOptions, actions.ToArray());
         }
     }
 }
