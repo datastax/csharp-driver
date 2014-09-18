@@ -95,6 +95,7 @@
     <Compile Include="Core\UdtMappingsTests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
+    <Compile Include="Linq\LinqMappingTests.cs" />
     <Compile Include="MultipleNodeClusterTest.cs" />
     <Compile Include="TestCassandraVersion.cs" />
     <Compile Include="TestInfrastructureException.cs" />

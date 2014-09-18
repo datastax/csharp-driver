@@ -7,6 +7,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     public class TimeUuidSerializationTests : SingleNodeClusterTest
     {
         private const string Keyspace = "ks1";
