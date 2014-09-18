@@ -48,6 +48,11 @@ namespace Cassandra.Tests
             Assert.True(id1 != id4);
             Assert.AreNotEqual(id3, id4);
             Assert.True(id3 != id4);
+            //Check implicit conversion operators
+            var id4Id = (Guid)id4;
+            var id4TimeId = (TimeUuid)id4Id;
+            Assert.AreEqual(id4, id4TimeId);
+            Assert.AreEqual(id4.ToByteArray(), id4Id.ToByteArray());
         }
 
         [Test]
@@ -69,8 +74,8 @@ namespace Cassandra.Tests
         {
             var values = new ConcurrentDictionary<string, bool>();
             var date = DateTimeOffset.Now;
-            var actions = new List<Action>(1000000);
-            for (var i = 0; i < 1000000; i++)
+            var actions = new List<Action>(500000);
+            for (var i = 0; i < 500000; i++)
             {
                 Action a = () =>
                 {

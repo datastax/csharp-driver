@@ -56,7 +56,10 @@ namespace Cassandra.Tests
                 new Tuple<object, DecodeHandler, EncodeHandler>(new DateTimeOffset(new DateTime(2015, 10, 21)), TypeCodec.DecodeTimestamp, TypeCodec.EncodeTimestamp),
                 new Tuple<object, DecodeHandler, EncodeHandler>(new IPAddress(new byte[] { 1, 1, 5, 255}), TypeCodec.DecodeInet, TypeCodec.EncodeInet),
                 new Tuple<object, DecodeHandler, EncodeHandler>(true, TypeCodec.DecodeBoolean, TypeCodec.EncodeBoolean),
-                new Tuple<object, DecodeHandler, EncodeHandler>(new byte[] {16}, TypeCodec.DecodeBlob, TypeCodec.EncodeBlob)
+                new Tuple<object, DecodeHandler, EncodeHandler>(new byte[] {16}, TypeCodec.DecodeBlob, TypeCodec.EncodeBlob),
+                new Tuple<object, DecodeHandler, EncodeHandler>(Guid.NewGuid(), TypeCodec.DecodeUuid, TypeCodec.EncodeUuid),
+                new Tuple<object, DecodeHandler, EncodeHandler>(Guid.NewGuid(), TypeCodec.DecodeTimeuuid, TypeCodec.EncodeTimeuuid),
+                new Tuple<object, DecodeHandler, EncodeHandler>(TimeUuid.NewId(), TypeCodec.DecodeTimeuuid, TypeCodec.EncodeTimeuuid)
             };
             foreach (var version in _protocolVersions)
             {
@@ -88,6 +91,8 @@ namespace Cassandra.Tests
                 new object[] {new DateTimeOffset(new DateTime(2010, 4, 29)), ColumnTypeCode.Timestamp},
                 new object[] {new IPAddress(new byte[] { 10, 0, 5, 5}), ColumnTypeCode.Inet},
                 new object[] {Guid.NewGuid(), ColumnTypeCode.Uuid},
+                new object[] {Guid.NewGuid(), ColumnTypeCode.Timeuuid},
+                new object[] {TimeUuid.NewId(), ColumnTypeCode.Timeuuid},
                 new object[] {false, ColumnTypeCode.Boolean},
                 new object[] {new byte [] { 1, 2}, ColumnTypeCode.Blob}
             };
@@ -274,6 +279,11 @@ namespace Cassandra.Tests
             Assert.AreEqual(ColumnTypeCode.Set, dataType.TypeCode);
             Assert.IsInstanceOf<SetColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual(ColumnTypeCode.Uuid, (dataType.TypeInfo as SetColumnInfo).KeyTypeCode);
+
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.TimeUUIDType)");
+            Assert.AreEqual(ColumnTypeCode.Set, dataType.TypeCode);
+            Assert.IsInstanceOf<SetColumnInfo>(dataType.TypeInfo);
+            Assert.AreEqual(ColumnTypeCode.Timeuuid, (dataType.TypeInfo as SetColumnInfo).KeyTypeCode);
 
             dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.LongType)");
             Assert.AreEqual(ColumnTypeCode.Map, dataType.TypeCode);

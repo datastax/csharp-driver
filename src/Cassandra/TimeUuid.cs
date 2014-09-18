@@ -103,6 +103,9 @@ namespace Cassandra
             return this._value.ToByteArray();
         }
 
+        /// <summary>
+        /// Gets the Guid representation of the Id
+        /// </summary>
         public Guid ToGuid()
         {
             return _value;
