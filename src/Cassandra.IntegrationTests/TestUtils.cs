@@ -281,7 +281,7 @@ namespace Cassandra.IntegrationTests
             return output;
         }
 
-        public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000)
+        public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000, bool throwOnProcessError = false)
         {
             var ccmPath = ConfigurationManager.AppSettings["CcmPath"];
             if (ccmPath == null)
@@ -292,17 +292,35 @@ namespace Cassandra.IntegrationTests
             ccmPath = Path.Combine(ccmPath, "ccm");
             if (!FileExists(ccmPath))
             {
+                var message = "Ccm file does not exists in path" + ccmPath;
+                if (throwOnProcessError)
+                {
+                    throw new TestInfrastructureException(message);
+                }
                 return new ProcessOutput()
                 {
                     ExitCode = 1000,
-                    OutputText = new StringBuilder("Ccm file does not exists in path" + ccmPath)
+                    OutputText = new StringBuilder(message)
                 };
             }
             ccmPath = EscapePath(ccmPath);
             ccmConfigDir = EscapePath(ccmConfigDir);
             ccmArgs += " --config-dir=" + ccmConfigDir;
             Trace.TraceInformation("Executing ccm: " + ccmArgs);
-            return ExecutePythonCommand(ccmPath + " " + ccmArgs, timeout);
+            var output = ExecutePythonCommand(ccmPath + " " + ccmArgs, timeout);
+            if (throwOnProcessError)
+            {
+                ValidateOutput(output);
+            }
+            return output;
+        }
+
+        private static void ValidateOutput(ProcessOutput output)
+        {
+            if (output.ExitCode != 0)
+            {
+                throw new TestInfrastructureException(string.Format("Process exited in error {0}", output.ToString()));
+            }
         }
 
         /// <summary>

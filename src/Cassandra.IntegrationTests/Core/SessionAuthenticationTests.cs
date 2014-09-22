@@ -15,39 +15,70 @@
 //
 
 ﻿using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using Moq;
+﻿using System.Threading;
+﻿using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     /// <summary>
     /// Test authentication on different versions of Cassandra using different configurations.
-    /// For now, this Test Fixture must be run manually as there is no easy way to create Cassandra clusters with this type of configurations.
     /// </summary>
     [TestFixture]
-    [Explicit] // <- That is why it is explicit!
-    public class SessionAuthenticationTests
+    public class SessionAuthenticationTests : TwoNodesClusterTest
     {
         private string ContactPoint
         {
             get { return MyTestOptions.Default.IpPrefix + "1"; }
         }
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        public override void TestFixtureSetUp()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
+            var ccmConfigDir = TestUtils.CreateTempDirectory();
+            TestUtils.ExecuteLocalCcm("list", ccmConfigDir, 2000, true);
+            var ccmCommand = String.Format("create test -v {0}", Options.Default.CASSANDRA_VERSION);
+            TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 180000, true);
+            TestUtils.ExecuteLocalCcm("updateconf \"authenticator: PasswordAuthenticator\"", ccmConfigDir, 3000, true);
+            TestUtils.ExecuteLocalCcm("populate -n 2", ccmConfigDir, 20000, true);
+            TestUtils.ExecuteLocalCcm("start", ccmConfigDir, 60000, true);
+            //Cassandra takes at least 10 secs to add the default user cassandra
+            Thread.Sleep(25000);
+            CcmClusterInfo = new CcmClusterInfo
+            {
+                ConfigDir = ccmConfigDir
+            };
+        }
+
+        public override void TestFixtureTearDown()
+        {
+            base.TestFixtureTearDown();
+        }
+
+        [Test]
+        public void Cassandra20OrAbove_PasswordAuthenticatorWithWrongCredentialsThrows()
+        {
+            using (var cluster = Cluster
+                .Builder()
+                .AddContactPoint(ContactPoint)
+                .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                .Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.AreEqual(1, ex.Errors.Count);
+                Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+            }
         }
 
         [Test]
         public void Cassandra20OrAbove_PasswordAuthenticator()
         {
-            var authProvider = new PlainTextAuthProvider("username", "password");
+            var authProvider = new PlainTextAuthProvider("cassandra", "cassandra");
             var authProvideMockWrapper = new Mock<IAuthProvider>();
             authProvideMockWrapper
                 .Setup(a => a.NewAuthenticator(It.IsAny<IPEndPoint>()))
@@ -68,27 +99,12 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Cassandra20OrAbove_PasswordAuthenticatorWithWrongCredentialsThrows()
-        {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(ContactPoint)
-                .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
-                .Build())
-            {
-                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
-                Assert.AreEqual(1, ex.Errors.Count);
-                Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
-            }
-        }
-
-        [Test]
         public void CassandraAny_WithCredentials()
         {
             using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(ContactPoint)
-                .WithCredentials("username", "password")
+                .WithCredentials("cassandra", "cassandra")
                 .Build())
             {
                 var session = cluster.Connect();
@@ -127,7 +143,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test]
+        [Explicit()]
         public void CassandraAny_Ssl()
         {
             var sslOptions = new SSLOptions()
@@ -145,7 +161,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(ContactPoint)
-                .WithCredentials("username", "password")
+                .WithCredentials("cassandra", "cassandra")
                 .WithSSL(sslOptions)
                 .Build())
             {

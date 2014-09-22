@@ -65,6 +65,7 @@ namespace Cassandra.Data.Linq
             {typeof (Double), "double"},
             {typeof (Single), "float"},
             {typeof (Guid), "uuid"},
+            {typeof (TimeUuid), "timeuuid"},
             {typeof (DateTimeOffset), "timestamp"},
             {typeof (DateTime), "timestamp"},
         };

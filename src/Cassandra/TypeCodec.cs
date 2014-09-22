@@ -342,6 +342,8 @@ namespace Cassandra
                 return ColumnTypeCode.Timestamp;
             if (type == typeof(Guid))
                 return ColumnTypeCode.Uuid;
+            if (type == typeof(TimeUuid))
+                return ColumnTypeCode.Timeuuid;
             if (type == TypeAdapters.VarIntTypeAdapter.GetDataType())
                 return ColumnTypeCode.Varint;
 
@@ -587,7 +589,12 @@ namespace Cassandra
 
         public static object DecodeTimeuuid(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            return new Guid(GuidShuffle(value));
+            var decodedValue = new Guid(GuidShuffle(value));
+            if (cSharpType == typeof (TimeUuid))
+            {
+                return (TimeUuid) decodedValue;
+            }
+            return decodedValue;
         }
 
         private static Type GetDefaultTypeFromTimeuuid(IColumnInfo typeInfo)
@@ -597,6 +604,10 @@ namespace Cassandra
 
         public static byte[] EncodeTimeuuid(int protocolVersion, IColumnInfo typeInfo, object value)
         {
+            if (value is TimeUuid)
+            {
+                value = ((TimeUuid) value).ToGuid();
+            }
             CheckArgument<Guid>(value);
             return GuidShuffle(((Guid) value).ToByteArray());
         }

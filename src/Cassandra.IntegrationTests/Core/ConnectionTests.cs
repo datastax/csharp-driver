@@ -484,6 +484,21 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void UseKeyspaceWrongNameTest()
+        {
+            using (var connection = CreateConnection())
+            {
+                connection.Init();
+                Assert.Null(connection.Keyspace);
+                Assert.Throws<InvalidQueryException>(() => connection.Keyspace = "DOES_NOT_EXISTS");
+                //The keyspace should still be null
+                Assert.Null(connection.Keyspace);
+                //Execute a query WITH the keyspace prefix still works
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+            }
+        }
+
+        [Test]
         public void WrongIpInitThrowsException()
         {
             var socketOptions = new SocketOptions();

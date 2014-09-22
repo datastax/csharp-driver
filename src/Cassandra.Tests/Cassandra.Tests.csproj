@@ -59,6 +59,7 @@
     <Compile Include="ResponseFrameTest.cs" />
     <Compile Include="RowSetUnitTests.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
+    <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
     <Compile Include="TypeCodecTests.cs" />
   </ItemGroup>

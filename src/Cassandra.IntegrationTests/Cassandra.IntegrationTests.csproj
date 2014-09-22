@@ -86,10 +86,12 @@
     <Compile Include="Core\SessionExecuteAsyncTests.cs" />
     <Compile Include="Core\SessionTests.cs" />
     <Compile Include="Core\StressTests.cs" />
+    <Compile Include="Core\TimeUuidSerializationTests.cs" />
     <Compile Include="Core\TupleTests.cs" />
     <Compile Include="Core\UdtMappingsTests.cs" />
     <Compile Include="Data\AdoBasicTests.cs" />
     <Compile Include="InfrastructureTests.cs" />
+    <Compile Include="Linq\LinqMappingTests.cs" />
     <Compile Include="MultipleNodeClusterTest.cs" />
     <Compile Include="TestCassandraVersion.cs" />
     <Compile Include="TestInfrastructureException.cs" />

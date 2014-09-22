@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.Core
             base.TestFixtureSetUp();
             if (Options.Default.CassandraVersion >= new Version(2, 1))
             {
-                const string cqlTable1 = "CREATE TABLE users_tuples (id int PRIMARY KEY, phone tuple<text, text, int>, achievements list<tuple<text,int>>)";
+                const string cqlTable1 = "CREATE TABLE users_tuples (id int PRIMARY KEY, phone frozen<tuple<text, text, int>>, achievements list<frozen<tuple<text,int>>>)";
 
                 Session.Execute(cqlTable1);
             }
