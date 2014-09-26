@@ -441,5 +441,77 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.True(query.ToString().Contains("\"x_pk\" IN ()"), "The query must contain an empty IN statement");
         }
-    }
+
+		[Test]
+		public void SelectAnonymousTypeTest()
+		{
+			var table = SessionExtensions.GetTable<TestTable>(null);
+			var query = table
+				.Where(row => row.pk == "value")
+				.Select(row => new { row.f1, TheCk1 = row.ck1 });
+
+			var cql = query.ToString();
+
+			Assert.True(cql.StartsWith("SELECT \"x_f1\", \"x_ck1\" FROM"));
+		}
+
+		private class TestTableResult
+		{
+			public int? TheCk1 { get; set; }
+
+			public int TheF1 { get; set; }
+		}
+
+		private class TestTableResult2
+		{
+			public int? TheCk1 { private get; set; }
+
+			public int TheF1 { private get; set; }
+
+			public TestTableResult2(int? theCk1, int theF1)
+			{
+				TheCk1 = theCk1;
+				TheF1 = theF1;
+			}
+		}
+
+		[Test]
+		public void SelectExistingTypeTest()
+		{
+			var table = SessionExtensions.GetTable<TestTable>(null);
+			var query = table
+				.Where(row => row.pk == "value")
+				.Select(row => new TestTableResult { TheCk1 = row.ck1, TheF1 = row.f1 });
+
+			var cql = query.ToString();
+
+			Assert.True(cql.StartsWith("SELECT \"x_ck1\", \"x_f1\" FROM"));
+		}
+
+		[Test]
+		public void SelectTupleTypeTest()
+		{
+			var table = SessionExtensions.GetTable<TestTable>(null);
+			var query = table
+				.Where(row => row.pk == "value")
+				.Select(row => new Tuple<int?, int>(row.ck1, row.f1));
+
+			var cql = query.ToString();
+
+			Assert.True(cql.StartsWith("SELECT \"x_ck1\", \"x_f1\" FROM"));
+		}
+
+		[Test]
+		public void SelectGenericTypeTest()
+		{
+			var table = SessionExtensions.GetTable<TestTable>(null);
+			var query = table
+				.Where(row => row.pk == "value")
+				.Select(row => new TestTableResult2(row.ck1, row.f1));
+
+			var cql = query.ToString();
+
+			Assert.True(cql.StartsWith("SELECT \"x_ck1\", \"x_f1\" FROM"));
+		}
+	}
 }
