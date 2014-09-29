@@ -298,18 +298,32 @@ namespace Cassandra.Data.Linq
         {
             if (phasePhase.get() == ParsePhase.SelectBinding)
             {
-                if (node.Members != null)
-                {
-                    for (int i = 0; i < node.Members.Count; i++)
-                    {
-                        Expression binding = node.Arguments[i];
-                        if (binding.NodeType == ExpressionType.Parameter)
-                            throw new CqlLinqNotSupportedException(binding, phasePhase.get());
+				if (node.Arguments != null)
+				{
+					for (int i = 0; i < node.Arguments.Count; i++)
+					{
+						Expression binding = node.Arguments[i];
+						if (binding.NodeType == ExpressionType.Parameter)
+							throw new CqlLinqNotSupportedException(binding, phasePhase.get());
 
-                        using (currentBindingName.set(node.Members[i].Name))
-                            Visit(binding);
-                    }
-                }
+						string bindingName;
+						if (node.Members != null && i < node.Members.Count)
+						{
+							bindingName = node.Members[i].Name;
+						}
+						else
+						{
+							var memberExpression = binding as MemberExpression;
+							if (memberExpression == null)
+								throw new CqlLinqNotSupportedException(binding, phasePhase.get());
+
+							bindingName = memberExpression.Member.Name;
+						}
+
+						using (currentBindingName.set(bindingName)) 
+							Visit(binding);
+					}
+				}
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, phasePhase.get());
