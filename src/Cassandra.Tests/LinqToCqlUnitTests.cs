@@ -441,5 +441,62 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.True(query.ToString().Contains("\"x_pk\" IN ()"), "The query must contain an empty IN statement");
         }
+
+        private class BaseEntity
+        {
+            [PartitionKey]
+            public virtual int Id { get; set; }
+            public virtual string Name { get; set; }
+        }
+
+        private class InheritedEntity : BaseEntity
+        {
+            [PartitionKey]
+            public override int Id
+            {
+                get
+                {
+                    return base.Id;
+                }
+                set
+                {
+                    base.Id = value;
+                }
+            }
+
+            public override string Name
+            {
+                get
+                {
+                    return base.Name;
+                }
+                set
+                {
+                    base.Name = value;
+                }
+            }
+
+            public string Description { get; set; }
+        }
+
+        [Test]
+        public void VirtualPropertiesTest()
+        {
+            var table = SessionExtensions.GetTable<InheritedEntity>(null);
+            var query1 = table.Where(e => e.Id == 10);
+            Assert.AreEqual("SELECT * FROM \"InheritedEntity\" WHERE \"Id\" = 10", query1.ToString());
+            var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
+            Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = 1 AND \"Name\" = 'MyName'", query2.ToString());
+            var sessionMock = new Mock<ISession>();
+            string createQuery = null;
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
+            table2.CreateIfNotExists();
+            Assert.AreEqual("CREATE TABLE \"InheritedEntity\"(\"Id\" int, \"Name\" text, \"Description\" text, PRIMARY KEY(\"Id\"));", createQuery);
+        }
     }
 }
