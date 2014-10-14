@@ -55,7 +55,7 @@ foreach (var row in rs)
 
 ### Prepared statements
 
-Prepare your query **once** and bind different parameters to obtain the better performance.
+Prepare your query **once** and bind different parameters to obtain best performance.
 
 ```csharp
 //Prepare a statement once
