@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -56,6 +57,25 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(expectedMap, row.GetValue<IDictionary<string, string>>("map_sample"));
             Assert.AreEqual(expectedList, row.GetValue<List<string>>("list_sample"));
             Assert.AreEqual(expectedSet, row.GetValue<List<string>>("set_sample"));
+        }
+
+        [Test]
+        public void ReadingAndWritingTheSameListValue()
+        {
+            var session = Session;
+            var psInsert = session.Prepare(String.Format("INSERT INTO {0} (id, set_sample) VALUES (?, ?)", AllTypesTableName));
+            var psSelect = session.Prepare(String.Format("SELECT id, set_sample FROM {0} WHERE id = ?", AllTypesTableName));
+            var id = Guid.NewGuid();
+            //Use an array over here
+            var times = new byte[128];
+            Parallel.ForEach(times, x =>
+            {
+                session.Execute(psInsert.Bind(id, new List<string> { "one", "two" }));
+                var results = session.Execute(psSelect.Bind(id));
+                var row = results.First();
+                var retrievedValues = row.GetValue<List<string>>("set_sample");
+                Assert.AreEqual(2, retrievedValues.Count);
+            });
         }
 
         public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,

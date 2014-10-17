@@ -68,7 +68,13 @@ namespace Cassandra
 
         public Builder ApplyToBuilder(Builder builder)
         {
-            return builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace).WithCredentials(Username, Password);
+            builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace);
+            if (!String.IsNullOrEmpty(Username) && !String.IsNullOrEmpty(Password))
+            {
+                //Make sure the credentials are not null
+                builder.WithCredentials(Username, Password);
+            }
+            return builder;
         }
 
         public Builder MakeClusterBuilder()
