@@ -52,6 +52,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AdoUnitTests.cs" />
+    <Compile Include="BuilderTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />
     <Compile Include="CqlParameterCollectionTest.cs" />
