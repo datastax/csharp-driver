@@ -40,6 +40,14 @@ namespace Cassandra
         /// <param name="password"> to use for authentication requests</param>
         public PlainTextAuthProvider(string username, string password)
         {
+            if (String.IsNullOrEmpty(username))
+            {
+                throw new ArgumentNullException("username");
+            }
+            if (String.IsNullOrEmpty(password))
+            {
+                throw new ArgumentNullException("password");
+            }
             _username = username;
             _password = password;
         }
