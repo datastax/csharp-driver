@@ -162,12 +162,13 @@ namespace Cassandra
         {
             Policies.LoadBalancingPolicy.Initialize(Cluster);
 
-            if (createConnection)
+            if (!createConnection)
             {
-                var handler = new RequestHandler<RowSet>(this, null, null);
-                //Borrow a connection
-                handler.GetNextConnection(null);
+                return;
             }
+            var handler = new RequestHandler<RowSet>(this, null, null);
+            //Borrow a connection
+            handler.GetNextConnection(null);
         }
 
         /// <inheritdoc />

@@ -74,6 +74,10 @@ namespace Cassandra
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
         public event CassandraEventHandler CassandraEventResponse;
+        /// <summary>
+        /// Event raised when there is an error when executing the request to prevent idle disconnects
+        /// </summary>
+        public event Action<Exception> IdleRequestError;
         private const string IdleQuery = "SELECT key from system.local";
 
         public IFrameCompressor Compressor { get; set; }
@@ -342,7 +346,15 @@ namespace Cassandra
             var request = new QueryRequest(ProtocolVersion, IdleQuery, false, QueryProtocolOptions.Default);
             Send(request, (ex, response) =>
             {
-                //TODO: If there is an error it should be raised
+                if (ex == null)
+                {
+                    //The send succeeded
+                    //There is a valid response but we don't care about the response
+                }
+                if (IdleRequestError != null)
+                {
+                    IdleRequestError(ex);
+                }
             });
         }
 
@@ -656,7 +668,7 @@ namespace Cassandra
             //Only 1 thread can be here at the same time.
             _canWriteNext = true;
             //Set the idle timeout to avoid idle disconnects
-            var heartBeatInterval = Configuration.PoolingOptions.GetHeartBeatInterval();
+            var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
             if (heartBeatInterval != null)
             {
                 _idleTimer.Change(heartBeatInterval.Value, Timeout.Infinite);
