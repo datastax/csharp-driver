@@ -78,6 +78,10 @@ namespace Cassandra
         /// Event raised when there is an error when executing the request to prevent idle disconnects
         /// </summary>
         public event Action<Exception> OnIdleRequestException;
+        /// <summary>
+        /// Event that gets raised when a write has been completed. Testing purposes only.
+        /// </summary>
+        public event Action WriteCompleted;
         private const string IdleQuery = "SELECT key from system.local";
 
         public IFrameCompressor Compressor { get; set; }
@@ -683,6 +687,10 @@ namespace Cassandra
         /// </summary>
         protected virtual void WriteCompletedHandler()
         {
+            if (WriteCompleted != null)
+            {
+                WriteCompleted();
+            }
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             _canWriteNext = true;

@@ -585,7 +585,39 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null)
+        [Test]
+        public void WithHeartbeatEnabledShouldSendRequest()
+        {
+            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))
+            {
+                connection.Init();
+                //execute a dummy query
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+
+                var writeCounter = 0;
+                connection.WriteCompleted += () => writeCounter++;
+                Thread.Sleep(2200);
+                Assert.AreEqual(4, writeCounter);
+            }
+        }
+
+        [Test]
+        public void WithHeartbeatEnabledShouldRaiseWhenConnectionClosed()
+        {
+            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))
+            {
+                connection.Init();
+                //execute a dummy query
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                var called = 0;
+                connection.OnIdleRequestException += (_) => called++;
+                connection.Kill();
+                Thread.Sleep(2000);
+                Assert.AreEqual(1, called);
+            }
+        }
+
+        private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null, PoolingOptions poolingOptions = null)
         {
             if (socketOptions == null)
             {
@@ -598,7 +630,7 @@ namespace Cassandra.IntegrationTests.Core
             var config = new Configuration(
                 new Cassandra.Policies(),
                 protocolOptions,
-                null,
+                poolingOptions,
                 socketOptions,
                 new ClientOptions(),
                 NoneAuthProvider.Instance,
