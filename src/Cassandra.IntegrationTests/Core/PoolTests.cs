@@ -240,6 +240,7 @@ namespace Cassandra.IntegrationTests.Core
                     rs.Count();
                     list.Add(rs.Info.QueriedHost);
                 }
+                Assert.That(clusterInfo.Cluster.Metadata.AllHosts().ToList().Count, Is.EqualTo(2));
                 Assert.True(list.Any(ip => ip.ToString() == IpPrefix + "2"), "The new node should be queried");
             }
             finally
@@ -303,6 +304,26 @@ namespace Cassandra.IntegrationTests.Core
 
                 var ex = Assert.Throws<InvalidQueryException>(() => cluster.Connect());
                 Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void ConnectShouldResolveNames()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1);
+
+            try
+            {
+                var cluster = Cluster.Builder()
+                    .AddContactPoint("localhost")
+                    .Build();
+
+                var session = cluster.Connect("system");
+                StringAssert.StartsWith(IpPrefix + "1", cluster.AllHosts().First().Address.ToString());
             }
             finally
             {
