@@ -77,7 +77,7 @@ namespace Cassandra
         /// <summary>
         /// Event raised when there is an error when executing the request to prevent idle disconnects
         /// </summary>
-        public event Action<Exception> IdleRequestError;
+        public event Action<Exception> OnIdleRequestException;
         private const string IdleQuery = "SELECT key from system.local";
 
         public IFrameCompressor Compressor { get; set; }
@@ -340,6 +340,15 @@ namespace Cassandra
             _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
             if (_isCanceled)
             {
+                if (!this.IsDisposed)
+                {
+                    //If it was not manually disposed
+                    _logger.Warning("Can not issue an heartbeat request as connection is closed");
+                    if (OnIdleRequestException != null)
+                    {
+                        OnIdleRequestException(new SocketException((int)SocketError.NotConnected));
+                    }
+                }
                 return;
             }
             _logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
@@ -350,10 +359,12 @@ namespace Cassandra
                 {
                     //The send succeeded
                     //There is a valid response but we don't care about the response
+                    return;
                 }
-                if (IdleRequestError != null)
+                _logger.Warning("Received heartbeat request exception " + ex.ToString());
+                if (ex is SocketException && OnIdleRequestException != null)
                 {
-                    IdleRequestError(ex);
+                    OnIdleRequestException(ex);
                 }
             });
         }
@@ -415,6 +426,14 @@ namespace Cassandra
             {
                 throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + startupTask.Result.GetType().Name);
             }
+        }
+
+        /// <summary>
+        /// Silently kill the connection, for testing purposes only
+        /// </summary>
+        internal void Kill()
+        {
+            _tcpSocket.Kill();
         }
 
         private void ReadHandler(byte[] buffer, int bytesReceived)
@@ -669,7 +688,7 @@ namespace Cassandra
             _canWriteNext = true;
             //Set the idle timeout to avoid idle disconnects
             var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
-            if (heartBeatInterval != null)
+            if (heartBeatInterval != null && !_isCanceled)
             {
                 _idleTimer.Change(heartBeatInterval.Value, Timeout.Infinite);
             }

@@ -366,5 +366,49 @@ namespace Cassandra.IntegrationTests.Core
                 TestUtils.CcmRemove(clusterInfo);
             }
         }
+
+        [Test]
+        public void HeartbeatShouldDetectNodeDown()
+        {
+            //Execute a couple of time
+            //Kill connections the node silently
+            //Do nothing for a while
+            //Check if the node is considered as down
+            var clusterInfo = TestUtils.CcmSetup(1);
+
+            try
+            {
+                var cluster = Cluster.Builder()
+                    .AddContactPoint(IpPrefix + "1")
+                    .WithPoolingOptions(
+                        new PoolingOptions()
+                        .SetCoreConnectionsPerHost(HostDistance.Local, 2)
+                        .SetHeartBeatInterval(500))
+                    .WithReconnectionPolicy(new ConstantReconnectionPolicy(Int32.MaxValue))
+                    .Build();
+                var session = (Session)cluster.Connect();
+                for (var i = 0; i < 6; i++)
+                {
+                    session.Execute("SELECT * FROM system.schema_keyspaces");
+                }
+                var host = cluster.AllHosts().First();
+                var pool = session.GetConnectionPool(host, HostDistance.Local);
+                Trace.TraceInformation("Killing connections");
+                foreach (var c in pool.OpenConnections)
+                {
+                    c.Kill();
+                }
+                Trace.TraceInformation("Waiting");
+                for (var i = 0; i < 10; i++)
+                {
+                    Thread.Sleep(1000);
+                }
+                Assert.False(cluster.AllHosts().ToList()[0].IsUp);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
     }
 }

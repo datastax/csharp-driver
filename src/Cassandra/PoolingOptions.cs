@@ -265,7 +265,7 @@ namespace Cassandra
         /// Sets the amount of idle time in milliseconds that has to pass before the driver issues a request on an active connection to avoid idle time disconnections.
         /// <remarks>When set to null the heartbeat functionality at connection level is disabled.</remarks>
         /// </summary>
-        public PoolingOptions SetHeartBeatInterval(int? value)
+        public PoolingOptions SetHeartBeatInterval(int value)
         {
             _heartBeatInterval = value;
             return this;

@@ -351,6 +351,11 @@ namespace Cassandra
             }
         }
 
+        internal void Kill()
+        {
+            _socket.Shutdown(SocketShutdown.Send);
+        }
+
         public void Dispose()
         {
             try
