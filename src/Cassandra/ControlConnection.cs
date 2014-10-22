@@ -22,6 +22,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -34,14 +35,16 @@ namespace Cassandra
         private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
         private const String SelectColumns = "SELECT * FROM system.schema_columns";
         private const String SelectUdts = "SELECT * FROM system.schema_usertypes";
+        private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
         /// <summary>
         /// Protocol version used by the control connection
         /// </summary>
         private int _controlConnectionProtocolVersion = 2;
 
-        private readonly AtomicValue<Connection> _activeConnection = new AtomicValue<Connection>(null);
         private readonly Cluster _cluster;
+        private volatile Host _host;
+        private volatile Connection _connection;
 
         private readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>> _keyspaces =
             new AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>>(null);
@@ -73,6 +76,21 @@ namespace Cassandra
                     return _controlConnectionProtocolVersion;
                 }
                 return 1;
+            }
+        }
+
+        /// <summary>
+        /// The address of the endpoint used by the ControlConnection
+        /// </summary>
+        internal IPAddress BindAddress
+        {
+            get
+            {
+                if (_connection == null)
+                {
+                    return null;
+                }
+                return _connection.Address;
             }
         }
 
@@ -110,31 +128,8 @@ namespace Cassandra
             Shutdown();
         }
 
-        private void Metadata_HostsEvent(object sender, HostsEventArgs e)
-        {
-            if (sender == this)
-                return;
-            if (_activeConnection.Value == null)
-                return;
-
-            Action<object> act = _ => SetupControlConnection();
-
-            if (e.What == HostsEventArgs.Kind.Down)
-            {
-                if (e.IPAddress.Equals(_activeConnection.Value.HostAddress))
-                    act.BeginInvoke(null, ar => { act.EndInvoke(ar); }, null);
-            }
-            else if (e.What == HostsEventArgs.Kind.Up)
-            {
-                if (_isDisconnected)
-                    act.BeginInvoke(null, ar => { act.EndInvoke(ar); }, null);
-            }
-        }
-
         internal void Init()
         {
-            _cluster.Metadata.HostsEvent += Metadata_HostsEvent;
-
             _session.Init(false);
             SetupControlConnection();
         }
@@ -149,6 +144,10 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Gets the next connection and setup the event listener for the host and connection.
+        /// Not thread-safe.
+        /// </summary>
         private void SetupEventListener()
         {
             _session.BinaryProtocolVersion = _controlConnectionProtocolVersion;
@@ -169,10 +168,25 @@ namespace Cassandra
                 SetupEventListener();
                 return;
             }
-            _activeConnection.Value = connection;
-            _activeConnection.Value.CassandraEventResponse += conn_CassandraEvent;
-            const CassandraEventType eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
-            var registerTask = _activeConnection.Value.Send(new RegisterForEventRequest(_controlConnectionProtocolVersion, eventTypes));
+            //Only 1 thread at a time here if the caller is locking
+            
+            //Unsubscribe to previous events
+            if (_connection != null)
+            {
+                _connection.CassandraEventResponse -= OnConnectionCassandraEvent;
+            }
+            if (_host != null)
+            {
+                _host.Down -= OnHostDown;
+            }
+
+            connection.CassandraEventResponse += OnConnectionCassandraEvent;
+            _connection = connection;
+            var host = handler.Host;
+            host.Down += OnHostDown;
+            _host = host;
+            //Register to events on the connection
+            var registerTask = _connection.Send(new RegisterForEventRequest(_controlConnectionProtocolVersion, CassandraEventTypes));
             TaskHelper.WaitToComplete(registerTask, 10000);
             if (!(registerTask.Result is ReadyResponse))
             {
@@ -180,7 +194,15 @@ namespace Cassandra
             }
         }
 
-        private void conn_CassandraEvent(object sender, CassandraEventArgs e)
+        private void OnHostDown(Host h, DateTimeOffset nextUpTime)
+        {
+            h.Down -= OnHostDown;
+            _logger.Warning("Host " + h.Address + " used by the ControlConnection DOWN");
+
+            Task.Factory.StartNew(() => SetupControlConnection());
+        }
+
+        private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
             var act = new Action<object>(_ =>
             {
@@ -196,7 +218,7 @@ namespace Cassandra
                     if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                     {
                         _cluster.Metadata.RemoveHost(tce.Address);
-                        SetupControlConnection(_activeConnection.Value == null ? false : !tce.Address.Equals(_activeConnection.Value.HostAddress));
+                        SetupControlConnection(_connection != null && !tce.Address.Equals(_connection.Address));
                         return;
                     }
                 }
@@ -305,14 +327,14 @@ namespace Cassandra
                     }
                     RefreshNodeListAndTokenMap();
                     _isDisconnected = false;
-                    _logger.Info("ControlConnection is listening, using binary protocol version " + _controlConnectionProtocolVersion);
+                    _logger.Info("ControlConnection is listening on " + _connection.Address.ToString() + ", using binary protocol version " + _controlConnectionProtocolVersion);
                 }
                 catch (NoHostAvailableException)
                 {
                     _isDisconnected = true;
                     if (!_shutdownSwitch.IsTaken())
                     {
-                        _logger.Error("ControlConnection is lost. Retrying..");
+                        _logger.Error("ControlConnection is lost. Retrying.");
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                     }
                 }
@@ -321,7 +343,7 @@ namespace Cassandra
                     _isDisconnected = true;
                     if (!_shutdownSwitch.IsTaken())
                     {
-                        _logger.Error("ControlConnection is lost. Retrying..");
+                        _logger.Error("ControlConnection is lost. Retrying.");
                         _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                     }
                 }
@@ -380,7 +402,7 @@ namespace Cassandra
                 }
             }
             {
-                Host localhost = _cluster.Metadata.GetHost(_activeConnection.Value.HostAddress);
+                Host localhost = _cluster.Metadata.GetHost(_connection.Address);
 
                 var rowset = Query(SelectLocal);
                 // Update cluster name, DC and rack for the one node we are connected to
@@ -432,7 +454,7 @@ namespace Cassandra
             // Removes all those that seems to have been removed (since we lost the control connection)
             var foundHostsSet = new HashSet<IPAddress>(foundHosts);
             foreach (IPAddress host in _cluster.Metadata.AllReplicas())
-                if (!host.Equals(_activeConnection.Value.HostAddress) && !foundHostsSet.Contains(host))
+                if (!host.Equals(_connection.Address) && !foundHostsSet.Contains(host))
                     _cluster.Metadata.RemoveHost(host);
 
             if (partitioner != null)
@@ -444,7 +466,7 @@ namespace Cassandra
         private RowSet Query(string cqlQuery)
         {
             var request = new QueryRequest(_controlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
-            var task = _activeConnection.Value.Send(request);
+            var task = _connection.Send(request);
             TaskHelper.WaitToComplete(task, 10000);
             if (!(task.Result is ResultResponse) && !(((ResultResponse)task.Result).Output is OutputRows))
             {

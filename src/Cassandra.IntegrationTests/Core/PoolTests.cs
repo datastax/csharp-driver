@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.Core
             parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
             parallelOptions.MaxDegreeOfParallelism = 1000;
 
-            var policy = new ConstantReconnectionPolicy(300);
+            var policy = new ConstantReconnectionPolicy(Int32.MaxValue);
             var builder = Cluster.Builder().WithReconnectionPolicy(policy);
             var clusterInfo = TestUtils.CcmSetup(4, builder);
             try
@@ -128,7 +128,13 @@ namespace Cassandra.IntegrationTests.Core
                 //Execute in parallel more than 100 actions
                 Parallel.Invoke(parallelOptions, actions.ToArray());
 
-                actions = new List<Action>();
+                //Execute serially selects
+                for (var i = 0; i < 100; i++)
+                {
+                    selectAction();
+                }
+                //The control connection should be using the available node
+                StringAssert.StartsWith(IpPrefix + "4", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
             }
             finally
             {
@@ -166,12 +172,17 @@ namespace Cassandra.IntegrationTests.Core
                     actions.Add(selectAction);
                 }
 
-                //kill some nodes.
+                //Check that the control connection is using first host
+                StringAssert.StartsWith(IpPrefix + "1", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
+
+                //Kill some nodes
+                //Including the one used by the control connection
                 actions.Insert(20, () => TestUtils.CcmStopForce(clusterInfo, 1));
                 actions.Insert(20, () => TestUtils.CcmStopForce(clusterInfo, 2));
                 actions.Insert(80, () => TestUtils.CcmStopForce(clusterInfo, 3));
 
                 //Execute in parallel more than 100 actions
+                Trace.TraceInformation("Start invoking with kill nodes");
                 Parallel.Invoke(parallelOptions, actions.ToArray());
 
                 actions = new List<Action>();
@@ -180,13 +191,18 @@ namespace Cassandra.IntegrationTests.Core
                     actions.Add(selectAction);
                 }
 
+                //Check that the control connection is using first host
+                //StringAssert.StartsWith(IpPrefix + "4", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
                 //bring back some nodes
                 actions.Insert(3, () => TestUtils.CcmStart(clusterInfo, 3));
                 actions.Insert(50, () => TestUtils.CcmStart(clusterInfo, 2));
                 actions.Insert(50, () => TestUtils.CcmStart(clusterInfo, 1));
 
                 //Execute in parallel more than 100 actions
+                Trace.TraceInformation("Start invoking with restart nodes");
                 Parallel.Invoke(parallelOptions, actions.ToArray());
+                //Check that the control connection is still using last host
+                StringAssert.StartsWith(IpPrefix + "4", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
             }
             finally
             {

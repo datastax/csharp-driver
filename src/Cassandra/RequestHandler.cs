@@ -30,7 +30,6 @@ namespace Cassandra
         private readonly static Logger _logger = new Logger(typeof(Session));
 
         private Connection _connection;
-        private Host _currentHost;
         private readonly IRequest _request;
         private readonly IRetryPolicy _retryPolicy;
         private readonly Session _session;
@@ -38,6 +37,8 @@ namespace Cassandra
         private int _retryCount = 0;
         private readonly TaskCompletionSource<T> _tcs;
         private readonly Dictionary<IPAddress, Exception> _triedHosts = new Dictionary<IPAddress, Exception>();
+
+        public Host Host { get; private set; }
 
         /// <summary>
         /// Creates a new instance of the RequestHandler that deals with host failover and retries on error
@@ -134,7 +135,7 @@ namespace Cassandra
                     }
                     continue;
                 }
-                _currentHost = host;
+                Host = host;
                 _triedHosts[host.Address] = null;
                 Connection connection = null;
                 try
@@ -151,7 +152,7 @@ namespace Cassandra
                 }
                 catch (SocketException ex)
                 {
-                    _session.SetHostDown(host, connection);
+                    SetHostDown(host, connection, ex);
                     _triedHosts[host.Address] = ex;
                     host.Resurrect = CanBeResurrected(ex, connection);
                     if (!isLastChance && host.Resurrect)
@@ -175,7 +176,7 @@ namespace Cassandra
                     _triedHosts[host.Address] = ex;
                 }
             }
-            _currentHost = null;
+            Host = null;
             if (lastChanceHost != null)
             {
                 //There are no host available and some of them are due to network events.
@@ -232,10 +233,10 @@ namespace Cassandra
             if (ex is SocketException)
             {
                 _logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                _session.SetHostDown(_currentHost, _connection);
-                if (!_currentHost.IsUp)
+                SetHostDown(Host, _connection, ex);
+                if (!Host.IsUp)
                 {
-                    _currentHost.Resurrect = CanBeResurrected((SocketException)ex, _connection);
+                    Host.Resurrect = CanBeResurrected((SocketException)ex, _connection);
                 }
             }
             var decision = GetRetryDecision(ex);
@@ -262,6 +263,18 @@ namespace Cassandra
                     Retry(decision.RetryConsistencyLevel);
                     break;
             }
+        }
+
+        private void SetHostDown(Host host, Connection connection, Exception ex)
+        {
+            if (connection != null && connection.IsDisposed)
+            {
+                //The connection is being explicitly Disposed
+                //This closes the connection making next calls to the connection to throw socket exceptions.
+                //It does not mean the Host is down, the connection was closed.
+                return;
+            }
+            host.SetDown();
         }
 
         /// <summary>
@@ -314,7 +327,7 @@ namespace Cassandra
 
         private void PrepareAndRetry(byte[] id)
         {
-            _logger.Info(String.Format("Query {0} is not prepared on {1}, preparing before retrying executing.", BitConverter.ToString(id), _currentHost.Address));
+            _logger.Info(String.Format("Query {0} is not prepared on {1}, preparing before retrying executing.", BitConverter.ToString(id), Host.Address));
             BoundStatement boundStatement = null;
             if (_statement is BoundStatement)
             {

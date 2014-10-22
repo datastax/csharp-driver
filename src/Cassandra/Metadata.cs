@@ -28,19 +28,22 @@ namespace Cassandra
     public class Metadata : IDisposable
     {
         private readonly Hosts _hosts;
-        private ControlConnection _controlConnection;
         private volatile TokenMap _tokenMap;
+        public event HostsEventHandler HostsEvent;
+        public event SchemaChangedEventHandler SchemaChangedEvent;
 
         /// <summary>
         ///  Returns the name of currently connected cluster.
         /// </summary>
-        /// 
         /// <returns>the Cassandra name of currently connected cluster.</returns>
         public String ClusterName { get; internal set; }
+
+        internal ControlConnection ControlConnection { get; private set; }
 
         internal Metadata(IReconnectionPolicy rp)
         {
             _hosts = new Hosts(rp);
+            _hosts.HostDown += OnHostDown;
         }
 
         public void Dispose()
@@ -50,12 +53,9 @@ namespace Cassandra
 
         internal void SetupControlConnection(ControlConnection controlConnection)
         {
-            _controlConnection = controlConnection;
-            _controlConnection.Init();
+            ControlConnection = controlConnection;
+            ControlConnection.Init();
         }
-
-        public event HostsEventHandler HostsEvent;
-        public event SchemaChangedEventHandler SchemaChangedEvent;
 
 
         public Host GetHost(IPAddress address)
@@ -80,21 +80,33 @@ namespace Cassandra
         internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
         {
             if (SchemaChangedEvent != null)
+            {
                 SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
+            }
         }
 
         internal void SetDownHost(IPAddress address, object sender = null)
         {
-            if (_hosts.SetDownIfExists(address))
-                if (HostsEvent != null)
-                    HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Down});
+            _hosts.SetDownIfExists(address);
+        }
+
+        private void OnHostDown(Host h, DateTimeOffset nextUpTime)
+        {
+            if (HostsEvent != null)
+            {
+                HostsEvent(this, new HostsEventArgs { IPAddress = h.Address, What = HostsEventArgs.Kind.Down });
+            }
         }
 
         internal void BringUpHost(IPAddress address, object sender = null)
         {
             if (_hosts.AddIfNotExistsOrBringUpIfDown(address))
+            {
                 if (HostsEvent != null)
+                {
                     HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
+                }
+            }
         }
 
         /// <summary>
@@ -135,7 +147,7 @@ namespace Cassandra
         /// <returns>a collection of all defined keyspaces names.</returns>
         public ICollection<string> GetKeyspaces()
         {
-            return _controlConnection.GetKeyspaces();
+            return ControlConnection.GetKeyspaces();
         }
 
 
@@ -149,7 +161,7 @@ namespace Cassandra
         ///  <c>* keyspace</c> is not a known keyspace.</returns>
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {
-            return _controlConnection.GetKeyspace(keyspace);
+            return ControlConnection.GetKeyspace(keyspace);
         }
 
         /// <summary>
@@ -161,7 +173,7 @@ namespace Cassandra
         ///  keyspace.</returns>
         public ICollection<string> GetTables(string keyspace)
         {
-            return _controlConnection.GetTables(keyspace);
+            return ControlConnection.GetTables(keyspace);
         }
 
 
@@ -173,7 +185,7 @@ namespace Cassandra
         /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
         public TableMetadata GetTable(string keyspace, string tableName)
         {
-            return _controlConnection.GetTable(keyspace, tableName);
+            return ControlConnection.GetTable(keyspace, tableName);
         }
 
         /// <summary>
@@ -181,21 +193,23 @@ namespace Cassandra
         /// </summary>
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            return _controlConnection.GetUdtDefinition(keyspace, typeName);
+            return ControlConnection.GetUdtDefinition(keyspace, typeName);
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            _controlConnection.SubmitSchemaRefresh(keyspace, table);
+            ControlConnection.SubmitSchemaRefresh(keyspace, table);
             if (keyspace == null && table == null)
-                return _controlConnection.RefreshHosts();
+                return ControlConnection.RefreshHosts();
             return true;
         }
 
         public void ShutDown(int timeoutMs = Timeout.Infinite)
         {
-            if (_controlConnection != null)
-                _controlConnection.Shutdown(timeoutMs);
+            if (ControlConnection != null)
+            {
+                ControlConnection.Shutdown(timeoutMs);
+            }
         }
     }
 }

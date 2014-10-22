@@ -26,21 +26,28 @@ namespace Cassandra
     /// </summary>
     public class Host
     {
-        private readonly IPAddress _address;
+        private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private readonly IReconnectionPolicy _reconnectionPolicy;
-
-        private string _datacenter;
-
         private volatile bool _isUpNow = true;
         private DateTimeOffset _nextUpTime;
-        private string _rack;
         private IReconnectionSchedule _reconnectionSchedule;
+        /// <summary>
+        /// Event that gets raised when the host is considered as DOWN (not available) by the driver.
+        /// It will provide the time were reconnection will be attempted
+        /// </summary>
+        internal event Action<Host, DateTimeOffset> Down;
 
+        /// <summary>
+        /// Determines if the host is UP for the driver
+        /// </summary>
         public bool IsUp
         {
             get { return _isUpNow; }
         }
 
+        /// <summary>
+        /// Determines if the host can be considered as UP
+        /// </summary>
         public bool IsConsiderablyUp
         {
             get { return _isUpNow || (_nextUpTime <= DateTimeOffset.Now); }
@@ -54,10 +61,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the node address.
         /// </summary>
-        public IPAddress Address
-        {
-            get { return _address; }
-        }
+        public IPAddress Address { get; private set; }
 
         /// <summary>
         ///  Gets the name of the datacenter this host is part of. The returned
@@ -65,10 +69,7 @@ namespace Cassandra
         ///  possible for this information to not be available. In that case this method
         ///  returns <c>null</c> and caller should always expect that possibility.
         /// </summary>
-        public string Datacenter
-        {
-            get { return _datacenter; }
-        }
+        public string Datacenter { get; private set; }
 
         /// <summary>
         ///  Gets the name of the rack this host is part of. The returned rack name is
@@ -76,24 +77,30 @@ namespace Cassandra
         ///  information to not be available. In that case this method returns
         ///  <c>null</c> and caller should always expect that possibility.
         /// </summary>
-        public string Rack
-        {
-            get { return _rack; }
-        }
+        public string Rack { get; private set; }
 
         public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
         {
-            _address = address;
+            Address = address;
             _reconnectionPolicy = reconnectionPolicy;
             _reconnectionSchedule = reconnectionPolicy.NewSchedule();
         }
 
+        /// <summary>
+        /// Sets the Host as Down
+        /// </summary>
         public bool SetDown()
         {
             if (IsConsiderablyUp)
             {
+                Logger.Warning("Host " + this.Address.ToString() + " considered as DOWN");
                 Thread.MemoryBarrier();
                 _nextUpTime = DateTimeOffset.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
+                if (Down != null)
+                {
+                    //Raise event
+                    Down(this, _nextUpTime);
+                }
             }
             if (_isUpNow)
             {
@@ -114,10 +121,10 @@ namespace Cassandra
             return false;
         }
 
-        public void SetLocationInfo(string datacenter, string rack)
+        internal void SetLocationInfo(string datacenter, string rack)
         {
-            _datacenter = datacenter;
-            _rack = rack;
+            Datacenter = datacenter;
+            Rack = rack;
         }
     }
 }
