@@ -31,6 +31,23 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string AllTypesTableName = "all_types_table_prepared";
 
+
+        //Do the test with multiple types for backward compatibility
+        private void AssertNotValid(ISession session, PreparedStatement ps, object value)
+        {
+            Assert.Throws(Is
+                .InstanceOf<ArgumentException>().Or
+                .InstanceOf<InvalidQueryException>().Or
+                .InstanceOf<InvalidTypeException>().Or
+                .InstanceOf<ServerErrorException>(),
+                () => session.Execute(ps.Bind(Guid.NewGuid(), value)));   
+        }
+
+        private void AssertValid(ISession session, PreparedStatement ps, object value)
+        {
+            Assert.DoesNotThrow(() => session.Execute(ps.Bind(Guid.NewGuid(), value)));
+        }
+
         public PreparedStatementsTests() : base(4)
         {
             
@@ -385,37 +402,55 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void BoundStatementWithNumericWrongValuesShouldThrow()
         {
-            var psInt32 = Session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
-            var psDouble = Session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
-            var psDecimal = Session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
-
-            //Do the test with multiple types for backward compatibility
-            Action<PreparedStatement, object> assertNotValid = (ps, value) =>
-                Assert.Throws(Is.InstanceOf<ArgumentException>().Or.InstanceOf<InvalidQueryException>().Or.InstanceOf<InvalidTypeException>(),
-                    () => Session.Execute(ps.Bind(Guid.NewGuid(), value)));
-            Action<PreparedStatement, object> assertValid = (ps, value) =>
-                Assert.DoesNotThrow(() => Session.Execute(ps.Bind(Guid.NewGuid(), value)));
+            var session = Session;
+            var psInt32 = session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDouble = session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDecimal = session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
 
             //Double is not valid int
-            assertNotValid(psInt32, 1D);
+            AssertNotValid(session, psInt32, 1D);
             //Long is not valid int
-            assertNotValid(psInt32, 1L);
-            assertValid(psInt32, 100);
-            assertValid(psInt32, new byte[] { 0, 0, 0, 1 });
-            assertNotValid(psInt32, new byte[5]);
+            AssertNotValid(session, psInt32, 1L);
+            AssertValid(session, psInt32, 100);
+            AssertValid(session, psInt32, new byte[] { 0, 0, 0, 1 });
+            AssertNotValid(session, psInt32, new byte[5]);
             //Double: Only doubles, longs and blobs (8 bytes)
-            assertValid(psDouble, 1D);
-            assertValid(psDouble, 1L);
-            assertNotValid(psDouble, 1F);
-            assertNotValid(psDouble, 100);
-            assertNotValid(psDouble, (short)100);
-            assertValid(psDouble, new byte[8]);
+            AssertValid(session, psDouble, 1D);
+            AssertValid(session, psDouble, 1L);
+            AssertNotValid(session, psDouble, 1F);
+            AssertNotValid(session, psDouble, 100);
+            AssertNotValid(session, psDouble, (short)100);
+            AssertValid(session, psDouble, new byte[8]);
             //Decimal: There is type conversion, all numeric types are valid
-            assertValid(psDecimal, 1L);
-            assertValid(psDecimal, 1F);
-            assertValid(psDecimal, 1D);
-            assertValid(psDecimal, 1);
-            assertValid(psDecimal, new byte[16]);
+            AssertValid(session, psDecimal, 1L);
+            AssertValid(session, psDecimal, 1F);
+            AssertValid(session, psDecimal, 1D);
+            AssertValid(session, psDecimal, 1);
+            AssertValid(session, psDecimal, new byte[16]);
+        }
+
+        [Test]
+        public void BoundStatementWithCollectionsWrongValuesShouldThrow()
+        {
+            var session = Session;
+            var psList = session.Prepare(String.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)", AllTypesTableName));
+            var psMap = session.Prepare(String.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)", AllTypesTableName));
+            //List: Only List and blob are valid
+            AssertNotValid(session, psList, new[] { "one", "two" });
+            AssertValid(session, psList, new List<string>(new[] { "one", "two", "three" }));
+            AssertValid(session, psList, new List<string>(new[] { "one", "two"}).Select(s => s));
+            //Numeric are valid ?!
+            AssertValid(session, psList, 100);
+            AssertValid(session, psList, 1L);
+
+            AssertNotValid(session, psList, "what");
+
+            AssertValid(session, psMap, new Dictionary<string, string> { { "one", "1" }, { "two", "2" } });
+            AssertNotValid(session, psMap, new List<string>(new[] { "one", "two", "three" }));
+            AssertNotValid(session, psMap, "what");
+            //Numeric are valid ?!
+            AssertValid(session, psList, 100);
+
         }
 
         [Test]
