@@ -383,6 +383,42 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void BoundStatementWithNumericWrongValuesShouldThrow()
+        {
+            var psInt32 = Session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDouble = Session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDecimal = Session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
+
+            //Do the test with multiple types for backward compatibility
+            Action<PreparedStatement, object> assertNotValid = (ps, value) =>
+                Assert.Throws(Is.InstanceOf<ArgumentException>().Or.InstanceOf<InvalidQueryException>().Or.InstanceOf<InvalidTypeException>(),
+                    () => Session.Execute(ps.Bind(Guid.NewGuid(), value)));
+            Action<PreparedStatement, object> assertValid = (ps, value) =>
+                Assert.DoesNotThrow(() => Session.Execute(ps.Bind(Guid.NewGuid(), value)));
+
+            //Double is not valid int
+            assertNotValid(psInt32, 1D);
+            //Long is not valid int
+            assertNotValid(psInt32, 1L);
+            assertValid(psInt32, 100);
+            assertValid(psInt32, new byte[] { 0, 0, 0, 1 });
+            assertNotValid(psInt32, new byte[5]);
+            //Double: Only doubles, longs and blobs (8 bytes)
+            assertValid(psDouble, 1D);
+            assertValid(psDouble, 1L);
+            assertNotValid(psDouble, 1F);
+            assertNotValid(psDouble, 100);
+            assertNotValid(psDouble, (short)100);
+            assertValid(psDouble, new byte[8]);
+            //Decimal: There is type conversion, all numeric types are valid
+            assertValid(psDecimal, 1L);
+            assertValid(psDecimal, 1F);
+            assertValid(psDecimal, 1D);
+            assertValid(psDecimal, 1);
+            assertValid(psDecimal, new byte[16]);
+        }
+
+        [Test]
         public void PreparedSelectOneTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");

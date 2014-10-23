@@ -18,6 +18,9 @@ using System;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Exception that is thrown when the driver expected a type and other was provided
+    /// </summary>
     public class InvalidTypeException : DriverException
     {
         public object ReceivedType { get; private set; }
