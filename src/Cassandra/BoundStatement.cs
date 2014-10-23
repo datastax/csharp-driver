@@ -87,6 +87,43 @@ namespace Cassandra
             return this;
         }
 
+        internal override void SetValues(object[] values)
+        {
+            ValidateValues(values);
+            base.SetValues(values);
+        }
+
+        /// <summary>
+        /// Validate values using prepared statement metadata
+        /// </summary>
+        private void ValidateValues(object[] values)
+        {
+            if (values == null)
+            {
+                return;
+            }
+            if (PreparedStatement.Metadata == null || PreparedStatement.Metadata.Columns == null || PreparedStatement.Metadata.Columns.Length == 0)
+            {
+                return;
+            }
+            var paramsMetadata = PreparedStatement.Metadata.Columns;
+            if (values.Length > paramsMetadata.Length)
+            {
+                throw new ArgumentException(
+                    String.Format("Provided {0} parameters to bind, expected {1}", values.Length, paramsMetadata.Length));
+            }
+            for (var i = 0; i < values.Length; i++)
+            {
+                var p = paramsMetadata[i];
+                var value = values[i];
+                if (!TypeCodec.IsAssignableFrom(p, value))
+                {
+                    throw new InvalidTypeException(
+                        String.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
+                }
+            }
+        }
+
         internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
             //The consistency of each query will be not used.

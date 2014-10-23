@@ -407,9 +407,8 @@ namespace Cassandra.IntegrationTests.Core
             var psDouble = session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
             var psDecimal = session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
 
-            //Double is not valid int
+            //Int: only int and blob valid
             AssertNotValid(session, psInt32, 1D);
-            //Long is not valid int
             AssertNotValid(session, psInt32, 1L);
             AssertValid(session, psInt32, 100);
             AssertValid(session, psInt32, new byte[] { 0, 0, 0, 1 });
@@ -448,9 +447,18 @@ namespace Cassandra.IntegrationTests.Core
             AssertValid(session, psMap, new Dictionary<string, string> { { "one", "1" }, { "two", "2" } });
             AssertNotValid(session, psMap, new List<string>(new[] { "one", "two", "three" }));
             AssertNotValid(session, psMap, "what");
-            //Numeric are valid ?!
-            AssertValid(session, psList, 100);
+            AssertValid(session, psMap, 1);
+        }
 
+        [Test]
+        public void BoundStatementWithMoreParameterThrows()
+        {
+            var ps = Session.Prepare(String.Format("INSERT INTO {0} (id, list_sample, int_sample) VALUES (?, ?, ?)", AllTypesTableName));
+            Assert.Throws(Is
+                .InstanceOf<ArgumentException>().Or
+                .InstanceOf<InvalidQueryException>().Or
+                .InstanceOf<ServerErrorException>(),
+                () => Session.Execute(ps.Bind(Guid.NewGuid(), null, null, "yeah, this is extra")));
         }
 
         [Test]

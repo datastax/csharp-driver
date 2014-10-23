@@ -152,7 +152,7 @@ namespace Cassandra
         /// <summary>
         /// Gets or sets the index of the columns within the row
         /// </summary>
-        public virtual Dictionary<string, int> ColumnIndexes { get; protected set; }
+        public Dictionary<string, int> ColumnIndexes { get; protected set; }
 
         private readonly CqlColumn[] _columns;
 
