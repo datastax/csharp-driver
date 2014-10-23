@@ -14,9 +14,11 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
+using System.Linq;
 
 namespace Cassandra
 {
@@ -24,6 +26,7 @@ namespace Cassandra
     {
         private readonly ConcurrentDictionary<IPEndPoint, Host> _hosts = new ConcurrentDictionary<IPEndPoint, Host>();
         private readonly IReconnectionPolicy _rp;
+        public event Action<Host, DateTimeOffset> HostDown;
 
         public Hosts(IReconnectionPolicy rp)
         {
@@ -43,27 +46,48 @@ namespace Cassandra
         public bool AddIfNotExistsOrBringUpIfDown(IPEndPoint ep)
         {
             if (!_hosts.ContainsKey(ep))
-                if (_hosts.TryAdd(ep, new Host(ep, _rp)))
+            {
+                var h = new Host(ep, _rp);
+                if (_hosts.TryAdd(ep, h))
+                {
+                    h.Down += OnHostDown;
                     return true;
+                }
+            }
 
             Host host;
             if (_hosts.TryGetValue(ep, out host))
+            {
                 return host.BringUpIfDown();
+            }
             return false;
+        }
+
+        private void OnHostDown(Host h, DateTimeOffset nextUpTime)
+        {
+            if (HostDown != null)
+            {
+                HostDown(h, nextUpTime);
+            }
         }
 
         public bool SetDownIfExists(IPEndPoint ep)
         {
             Host host;
             if (_hosts.TryGetValue(ep, out host))
+            {
                 return host.SetDown();
+            }
             return false;
         }
 
         public void RemoveIfExists(IPEndPoint ep)
         {
             Host host;
-            _hosts.TryRemove(ep, out host);
+            if (_hosts.TryRemove(ep, out host))
+            {
+                host.Down -= OnHostDown;
+            }
         }
 
         public IEnumerable<IPEndPoint> AllEndPointsToCollection()

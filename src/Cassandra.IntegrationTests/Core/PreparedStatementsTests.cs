@@ -31,6 +31,23 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string AllTypesTableName = "all_types_table_prepared";
 
+
+        //Do the test with multiple types for backward compatibility
+        private void AssertNotValid(ISession session, PreparedStatement ps, object value)
+        {
+            Assert.Throws(Is
+                .InstanceOf<ArgumentException>().Or
+                .InstanceOf<InvalidQueryException>().Or
+                .InstanceOf<InvalidTypeException>().Or
+                .InstanceOf<ServerErrorException>(),
+                () => session.Execute(ps.Bind(Guid.NewGuid(), value)));   
+        }
+
+        private void AssertValid(ISession session, PreparedStatement ps, object value)
+        {
+            Assert.DoesNotThrow(() => session.Execute(ps.Bind(Guid.NewGuid(), value)));
+        }
+
         public PreparedStatementsTests() : base(4)
         {
             
@@ -380,6 +397,68 @@ namespace Cassandra.IntegrationTests.Core
 
             //Check that the sum of all rows in different threads is the same as total rows
             Assert.AreEqual(totalRowLength * times, counter);
+        }
+
+        [Test]
+        public void BoundStatementWithNumericWrongValuesShouldThrow()
+        {
+            var session = Session;
+            var psInt32 = session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDouble = session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDecimal = session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
+
+            //Int: only int and blob valid
+            AssertNotValid(session, psInt32, 1D);
+            AssertNotValid(session, psInt32, 1L);
+            AssertValid(session, psInt32, 100);
+            AssertValid(session, psInt32, new byte[] { 0, 0, 0, 1 });
+            AssertNotValid(session, psInt32, new byte[5]);
+            //Double: Only doubles, longs and blobs (8 bytes)
+            AssertValid(session, psDouble, 1D);
+            AssertValid(session, psDouble, 1L);
+            AssertNotValid(session, psDouble, 1F);
+            AssertNotValid(session, psDouble, 100);
+            AssertNotValid(session, psDouble, (short)100);
+            AssertValid(session, psDouble, new byte[8]);
+            //Decimal: There is type conversion, all numeric types are valid
+            AssertValid(session, psDecimal, 1L);
+            AssertValid(session, psDecimal, 1F);
+            AssertValid(session, psDecimal, 1D);
+            AssertValid(session, psDecimal, 1);
+            AssertValid(session, psDecimal, new byte[16]);
+        }
+
+        [Test]
+        public void BoundStatementWithCollectionsWrongValuesShouldThrow()
+        {
+            var session = Session;
+            var psList = session.Prepare(String.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)", AllTypesTableName));
+            var psMap = session.Prepare(String.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)", AllTypesTableName));
+            //List: Only List and blob are valid
+            AssertNotValid(session, psList, new[] { "one", "two" });
+            AssertValid(session, psList, new List<string>(new[] { "one", "two", "three" }));
+            AssertValid(session, psList, new List<string>(new[] { "one", "two"}).Select(s => s));
+            //Numeric are valid ?!
+            AssertValid(session, psList, 100);
+            AssertValid(session, psList, 1L);
+
+            AssertNotValid(session, psList, "what");
+
+            AssertValid(session, psMap, new Dictionary<string, string> { { "one", "1" }, { "two", "2" } });
+            AssertNotValid(session, psMap, new List<string>(new[] { "one", "two", "three" }));
+            AssertNotValid(session, psMap, "what");
+            AssertValid(session, psMap, 1);
+        }
+
+        [Test]
+        public void BoundStatementWithMoreParameterThrows()
+        {
+            var ps = Session.Prepare(String.Format("INSERT INTO {0} (id, list_sample, int_sample) VALUES (?, ?, ?)", AllTypesTableName));
+            Assert.Throws(Is
+                .InstanceOf<ArgumentException>().Or
+                .InstanceOf<InvalidQueryException>().Or
+                .InstanceOf<ServerErrorException>(),
+                () => Session.Execute(ps.Bind(Guid.NewGuid(), null, null, "yeah, this is extra")));
         }
 
         [Test]

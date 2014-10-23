@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     public class SessionTests : TwoNodesClusterTest
     {
         [Test]
@@ -174,6 +175,7 @@ namespace Cassandra.IntegrationTests.Core
                         localSession.Execute("select * from schema_keyspaces");
                     }
                 });
+                Assert.That(localSession.Keyspace, Is.EqualTo("system"));
             }
             finally
             {
@@ -237,14 +239,64 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Explicit("Not implemented")]
+        public void ShouldCreateTheRightAmountOfConnections()
+        {
+            var localCluster1 = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3))
+                .Build();
+            Cluster localCluster2 = null;
+            try
+            {
+                var localSession1 = (Session)localCluster1.Connect();
+                var hosts1 = localCluster1.AllHosts().ToList();
+                Assert.AreEqual(2, hosts1.Count);
+                //Execute multiple times a query on the newly created keyspace
+                for (var i = 0; i < 6; i++)
+                {
+                    localSession1.Execute("SELECT * FROM system.local");
+                }
+                var pool11 = localSession1.GetConnectionPool(hosts1[0], HostDistance.Local);
+                var pool12 = localSession1.GetConnectionPool(hosts1[1], HostDistance.Local);
+                Assert.That(pool11.OpenConnections.Count(), Is.EqualTo(3));
+                Assert.That(pool12.OpenConnections.Count(), Is.EqualTo(3));
+                
+                localCluster2 = Cluster.Builder()
+                    .AddContactPoint(IpPrefix + "1")
+                    .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
+                    .Build();
+                var localSession2 = (Session)localCluster2.Connect();
+                var hosts2 = localCluster2.AllHosts().ToList();
+                Assert.AreEqual(2, hosts2.Count);
+                //Execute multiple times a query on the newly created keyspace
+                for (var i = 0; i < 6; i++)
+                {
+                    localSession2.Execute("SELECT * FROM system.local");
+                }
+                var pool21 = localSession2.GetConnectionPool(hosts2[0], HostDistance.Local);
+                var pool22 = localSession2.GetConnectionPool(hosts2[1], HostDistance.Local);
+                Assert.That(pool21.OpenConnections.Count(), Is.EqualTo(1));
+                Assert.That(pool22.OpenConnections.Count(), Is.EqualTo(1));
+            }
+            finally
+            {
+                localCluster1.Shutdown(1000);
+                if (localCluster2 != null)
+                {
+                    localCluster2.Shutdown(1000);
+                }
+            }
+        }
+
+        [Test]
+        [Ignore("Not implemented")]
         public void SessionFaultsTasksAfterDisposed()
         {
             throw new NotImplementedException();
         }
 
         [Test]
-        [Explicit("Not implemented")]
+        [Ignore("Not implemented")]
         public void SessionDisposedOnCluster()
         {
             throw new NotImplementedException();

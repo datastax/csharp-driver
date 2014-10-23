@@ -57,6 +57,7 @@ namespace Cassandra
         private int _maxSimultaneousRequestsForRemote = DefaultMaxRequests;
         private int _minSimultaneousRequestsForLocal = DefaultMinRequests;
         private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
+        private int? _heartBeatInterval;
 
         /// <summary>
         ///  Number of simultaneous requests on a connection below which connections in
@@ -249,6 +250,24 @@ namespace Cassandra
                 default:
                     throw new ArgumentOutOfRangeException("Cannot set max connections per host for " + distance + " hosts");
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the amount of idle time in milliseconds that has to pass before the driver issues a request on an active connection to avoid idle time disconnections.
+        /// </summary>
+        public int? GetHeartBeatInterval()
+        {
+            return _heartBeatInterval;
+        }
+
+        /// <summary>
+        /// Sets the amount of idle time in milliseconds that has to pass before the driver issues a request on an active connection to avoid idle time disconnections.
+        /// <remarks>When set to null the heartbeat functionality at connection level is disabled.</remarks>
+        /// </summary>
+        public PoolingOptions SetHeartBeatInterval(int value)
+        {
+            _heartBeatInterval = value;
             return this;
         }
 

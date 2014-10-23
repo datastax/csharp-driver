@@ -132,6 +132,27 @@ namespace Cassandra
             {ColumnTypeCode.Tuple,        GetDefaultTypeFromTuple}
         };
 
+        /// <summary>
+        /// Default single (no collection types) cql type per CLR type
+        /// </summary>
+        private static Dictionary<Type, ColumnTypeCode> DefaultSingleCqlTypes = new Dictionary<Type, ColumnTypeCode>()
+        {
+            { typeof(string), ColumnTypeCode.Varchar },
+            { typeof(long), ColumnTypeCode.Bigint },
+            { typeof(byte[]), ColumnTypeCode.Blob },
+            { typeof(bool), ColumnTypeCode.Boolean },
+            { typeof(double), ColumnTypeCode.Double },
+            { typeof(float), ColumnTypeCode.Float },
+            { typeof(IPAddress), ColumnTypeCode.Inet },
+            { typeof(int), ColumnTypeCode.Int },
+            { typeof(DateTimeOffset), ColumnTypeCode.Timestamp },
+            { typeof(DateTime), ColumnTypeCode.Timestamp },
+            { typeof(Guid), ColumnTypeCode.Uuid },
+            { typeof(TimeUuid), ColumnTypeCode.Timeuuid },
+            { TypeAdapters.DecimalTypeAdapter.GetDataType(), ColumnTypeCode.Decimal },
+            { TypeAdapters.VarIntTypeAdapter.GetDataType(), ColumnTypeCode.Varint }
+        };
+
         private static readonly Dictionary<string, ColumnTypeCode> SingleTypeNames = new Dictionary<string, ColumnTypeCode>()
         {
             {"org.apache.cassandra.db.marshal.UTF8Type", ColumnTypeCode.Varchar},
@@ -262,7 +283,11 @@ namespace Cassandra
         public static ColumnTypeCode GetColumnTypeCodeInfo(Type type, out IColumnInfo typeInfo)
         {
             typeInfo = null;
-            //TODO: Replace with a factory
+            ColumnTypeCode singleCqlType;
+            if (DefaultSingleCqlTypes.TryGetValue(type, out singleCqlType))
+            {
+                return singleCqlType;
+            }
             if (type.IsGenericType)
             {
                 if (type.Name.Equals("Nullable`1"))
@@ -317,35 +342,6 @@ namespace Cassandra
                     return ColumnTypeCode.Tuple;
                 }
             }
-
-            if (type == typeof(string))
-                return ColumnTypeCode.Varchar;
-            if (type == typeof(long))
-                return ColumnTypeCode.Bigint;
-            if (type == typeof(byte[]))
-                return ColumnTypeCode.Blob;
-            if (type == typeof(bool))
-                return ColumnTypeCode.Boolean;
-            if (type == TypeAdapters.DecimalTypeAdapter.GetDataType())
-                return ColumnTypeCode.Decimal;
-            if (type == typeof(double))
-                return ColumnTypeCode.Double;
-            if (type == typeof(float))
-                return ColumnTypeCode.Float;
-            if (type == typeof(IPAddress))
-                return ColumnTypeCode.Inet;
-            if (type == typeof(int))
-                return ColumnTypeCode.Int;
-            if (type == typeof(DateTimeOffset))
-                return ColumnTypeCode.Timestamp;
-            if (type == typeof(DateTime))
-                return ColumnTypeCode.Timestamp;
-            if (type == typeof(Guid))
-                return ColumnTypeCode.Uuid;
-            if (type == typeof(TimeUuid))
-                return ColumnTypeCode.Timeuuid;
-            if (type == TypeAdapters.VarIntTypeAdapter.GetDataType())
-                return ColumnTypeCode.Varint;
 
             //Determine if its a Udt type
             var udtMap = GetUdtMap(type);
@@ -1510,6 +1506,40 @@ namespace Cassandra
             UdtMap map;
             UdtMapsByClrType.TryGetValue(type, out map);
             return map;
+        }
+
+        /// <summary>
+        /// Performs a lightweight validation to determine if the source type and target type matches.
+        /// It isn't more invasive to support crazy uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
+        /// </summary>
+        public static bool IsAssignableFrom(CqlColumn column, object value)
+        {
+            if (value == null || value is byte[])
+            {
+                return true;
+            }
+            var type = value.GetType();
+            ColumnTypeCode cqlType;
+            if (DefaultSingleCqlTypes.TryGetValue(type, out cqlType))
+            {
+                //Its a single type, if the types match -> go ahead
+                if (cqlType == column.TypeCode) return true;
+                //Only int32 and blobs are valid cql ints
+                if (column.TypeCode == ColumnTypeCode.Int) return false;
+                //Only double, longs and blobs are valid cql double
+                if (column.TypeCode == ColumnTypeCode.Double && !(value is Int64)) return false;
+                //The rest of the single values are not evaluated
+                return true;
+            }
+            if (column.TypeCode == ColumnTypeCode.List || column.TypeCode == ColumnTypeCode.Set)
+            {
+                return value is IEnumerable;
+            }
+            if (column.TypeCode == ColumnTypeCode.Map)
+            {
+                return value is IDictionary;
+            }
+            return true;
         }
     }
 }

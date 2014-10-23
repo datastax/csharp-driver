@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,6 +58,7 @@ namespace Cassandra
         public HostConnectionPool(Host host, HostDistance hostDistance, Configuration configuration)
         {
             this.Host = host;
+            this.Host.Down += OnHostDown;
             this.HostDistance = hostDistance;
             this.Configuration = configuration;
         }
@@ -84,10 +85,37 @@ namespace Cassandra
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         private Connection CreateConnection()
         {
-            _logger.Info("Creating a new connection to the host " + Host.Address);
-            var connection = new Connection(ProtocolVersion, Host.Address, Configuration);
-            connection.Init();
-            return connection;
+            _logger.Info("Creating a new connection to the host " + Host.Address.ToString());
+            var c = new Connection(ProtocolVersion, Host.Address, Configuration);
+            c.Init();
+            if (Configuration.PoolingOptions.GetHeartBeatInterval() != null)
+            {
+                //Heartbeat is enabled, subscribe for possible exceptions
+                c.OnIdleRequestException += OnIdleRequestException;   
+            }
+            return c;
+        }
+
+        /// <summary>
+        /// Handler that gets invoked when if there is a socket exception when making a heartbeat/idle request
+        /// </summary>
+        private void OnIdleRequestException(Exception ex)
+        {
+            Host.SetDown();
+        }
+
+        private void OnHostDown(Host h, DateTimeOffset nextTimeUp)
+        {
+            //Dispose all current connections
+            //Connection allows multiple calls to Dispose
+            var currentPool = _connections;
+            if (currentPool != null)
+            {
+                foreach (var c in currentPool)
+                {
+                    c.Dispose();
+                }
+            }
         }
 
         /// <summary>

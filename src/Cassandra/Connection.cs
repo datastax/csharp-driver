@@ -40,6 +40,7 @@ namespace Cassandra
         /// </summary>
         private volatile bool _isCanceled;
         private readonly object _cancelLock = new object();
+        private readonly Timer _idleTimer;
         private AutoResetEvent _pendingWaitHandle;
         /// <summary>
         /// Stores the available stream ids.
@@ -72,6 +73,15 @@ namespace Cassandra
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
         public event CassandraEventHandler CassandraEventResponse;
+        /// <summary>
+        /// Event raised when there is an error when executing the request to prevent idle disconnects
+        /// </summary>
+        public event Action<Exception> OnIdleRequestException;
+        /// <summary>
+        /// Event that gets raised when a write has been completed. Testing purposes only.
+        /// </summary>
+        public event Action WriteCompleted;
+        private const string IdleQuery = "SELECT key from system.local";
 
         public IFrameCompressor Compressor { get; set; }
 
@@ -175,6 +185,7 @@ namespace Cassandra
             this.ProtocolVersion = protocolVersion;
             this.Configuration = configuration;
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
+            _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         /// <summary>
@@ -306,6 +317,7 @@ namespace Cassandra
                 //Only dispose once
                 return;
             }
+            _idleTimer.Dispose();
             _tcpSocket.Dispose();
         }
 
@@ -316,10 +328,48 @@ namespace Cassandra
                 _logger.Error("Unexpected response type for event: " + response.GetType().Name);
                 return;
             }
-            if (this.CassandraEventResponse != null)
+            if (CassandraEventResponse != null)
             {
-                this.CassandraEventResponse(this, (response as EventResponse).CassandraEventArgs);
+                CassandraEventResponse(this, (response as EventResponse).CassandraEventArgs);
             }
+        }
+
+        /// <summary>
+        /// Gets executed once the idle timeout has passed
+        /// </summary>
+        private void IdleTimeoutHandler(object state)
+        {
+            //Ensure there are no more idle timeouts until the query finished sending
+            _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            if (_isCanceled)
+            {
+                if (!this.IsDisposed)
+                {
+                    //If it was not manually disposed
+                    _logger.Warning("Can not issue an heartbeat request as connection is closed");
+                    if (OnIdleRequestException != null)
+                    {
+                        OnIdleRequestException(new SocketException((int)SocketError.NotConnected));
+                    }
+                }
+                return;
+            }
+            _logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
+            var request = new QueryRequest(ProtocolVersion, IdleQuery, false, QueryProtocolOptions.Default);
+            Send(request, (ex, response) =>
+            {
+                if (ex == null)
+                {
+                    //The send succeeded
+                    //There is a valid response but we don't care about the response
+                    return;
+                }
+                _logger.Warning("Received heartbeat request exception " + ex.ToString());
+                if (ex is SocketException && OnIdleRequestException != null)
+                {
+                    OnIdleRequestException(ex);
+                }
+            });
         }
 
         /// <summary>
@@ -381,6 +431,14 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Silently kill the connection, for testing purposes only
+        /// </summary>
+        internal void Kill()
+        {
+            _tcpSocket.Kill();
+        }
+
         private void ReadHandler(byte[] buffer, int bytesReceived)
         {
             if (_isCanceled)
@@ -412,7 +470,7 @@ namespace Cassandra
         /// <returns>True if a full operation (streamId) has been processed.</returns>
         protected virtual bool ReadParse(byte[] buffer, int offset, int count)
         {
-            OperationState state = _receivingOperation;
+            var state = _receivingOperation;
             if (state == null)
             {
                 if (_minimalBuffer != null)
@@ -452,38 +510,39 @@ namespace Cassandra
             }
             var countAdded = state.AppendBody(buffer, offset, count);
 
-            if (state.IsBodyComplete)
+            if (!state.IsBodyComplete)
             {
-                _logger.Verbose("Read #" + state.Header.StreamId + " for Opcode " + state.Header.Opcode);
-                //Stop reference it as the current receiving operation
-                _receivingOperation = null;
-                if (state.Header.Opcode != EventResponse.OpCode)
-                {
-                    //Remove from pending
-                    _pendingOperations.TryRemove(state.Header.StreamId, out state);
-                    //Release the streamId
-                    _freeOperations.Push(state.Header.StreamId);
-                }
-                try
-                {
-                    var response = ReadParseResponse(state.Header, state.BodyStream);
-                    state.InvokeCallback(null, response);
-                }
-                catch (Exception ex)
-                {
-                    state.InvokeCallback(ex);
-                }
-
-                if (countAdded < count)
-                {
-                    //There is more data, from the next frame
-                    ReadParse(buffer, offset + countAdded, count - countAdded);
-                }
-                return true;
+                //Nothing finished
+                return false;
             }
+            _logger.Verbose("Read #" + state.Header.StreamId + " for Opcode " + state.Header.Opcode);
+            //Stop reference it as the current receiving operation
+            _receivingOperation = null;
+            if (state.Header.Opcode != EventResponse.OpCode)
+            {
+                //Remove from pending
+                _pendingOperations.TryRemove(state.Header.StreamId, out state);
+                //Release the streamId
+                _freeOperations.Push(state.Header.StreamId);
+            }
+            try
+            {
+                var response = ReadParseResponse(state.Header, state.BodyStream);
+                state.InvokeCallback(null, response);
+            }
+            catch (Exception ex)
+            {
+                state.InvokeCallback(ex);
+            }
+
+            if (countAdded < count)
+            {
+                //There is more data, from the next frame
+                ReadParse(buffer, offset + countAdded, count - countAdded);
+            }
+            return true;
             //There isn't enough data to read the whole frame.
             //It is already buffered, carry on.
-            return false;
         }
 
         private AbstractResponse ReadParseResponse(FrameHeader header, Stream body)
@@ -627,9 +686,20 @@ namespace Cassandra
         /// </summary>
         protected virtual void WriteCompletedHandler()
         {
-            //There is no need to lock
+            if (WriteCompleted != null)
+            {
+                WriteCompleted();
+            }
+            //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             _canWriteNext = true;
+            //Set the idle timeout to avoid idle disconnects
+            var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
+            if (heartBeatInterval != null && !_isCanceled)
+            {
+                _idleTimer.Change(heartBeatInterval.Value, Timeout.Infinite);
+            }
+            //Send the next request, if exists
             SendQueueNext();
         }
 

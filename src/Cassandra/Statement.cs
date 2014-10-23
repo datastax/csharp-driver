@@ -125,10 +125,9 @@ namespace Cassandra
         ///  execution. If more values than variables are provided however, an
         ///  IllegalArgumentException will be raised. </param>
         /// <returns>this bound statement. </returns>
-        internal IStatement SetValues(object[] values)
+        internal virtual void SetValues(object[] values)
         {
             _values = values;
-            return this;
         }
         
         /// <inheritdoc />

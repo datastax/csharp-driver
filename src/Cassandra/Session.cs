@@ -162,12 +162,13 @@ namespace Cassandra
         {
             Policies.LoadBalancingPolicy.Initialize(Cluster);
 
-            if (createConnection)
+            if (!createConnection)
             {
-                var handler = new RequestHandler<RowSet>(this, null, null);
-                //Borrow a connection
-                handler.GetNextConnection(null);
+                return;
             }
+            var handler = new RequestHandler<RowSet>(this, null, null);
+            //Borrow a connection
+            handler.GetNextConnection(null);
         }
 
         /// <inheritdoc />
@@ -331,22 +332,6 @@ namespace Cassandra
             _logger.Info("Waiting for pending operations of " + connections.Count + " connections to complete.");
             var handles = connections.Select(c => c.WaitPending()).ToArray();
             return WaitHandle.WaitAll(handles, timeout);
-        }
-
-        internal void SetHostDown(Host host, Connection connection)
-        {
-            if (connection != null && connection.IsDisposed)
-            {
-                //The connection is being explicitly Disposed
-                //This closes the connection making next calls to the connection to throw socket exceptions.
-                //It does not mean the Host is down, the connection was closed.
-                return;
-            }
-            if (Cluster.Metadata != null)
-            {
-                _logger.Warning("Setting host " + host.Address + " as DOWN");
-                Cluster.Metadata.SetDownHost(host.Address, this);
-            }
         }
     }
 }
