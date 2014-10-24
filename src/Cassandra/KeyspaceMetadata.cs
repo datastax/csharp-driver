@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
@@ -62,7 +63,12 @@ namespace Cassandra
             _cc = cc;
             Name = name;
             DurableWrites = durableWrites;
+
             StrategyClass = strategyClass;
+            if (strategyClass != null && strategyClass.StartsWith("org.apache.cassandra.locator."))
+            {
+                StrategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");   
+            }
             Replication = replicationOptions;
         }
 
@@ -71,25 +77,22 @@ namespace Cassandra
         ///  Returns metadata of specified table in this keyspace.
         /// </summary>
         /// <param name="tableName"> the name of table to retrieve </param>
-        /// 
         /// <returns>the metadata for table <c>tableName</c> in this keyspace if it
         ///  exists, <c>null</c> otherwise.</returns>
         public TableMetadata GetTableMetadata(string tableName)
         {
-            return _cc.GetTable(Name, tableName);
+            return _cc.GetTableMetadata(tableName, Name);
         }
 
 
         /// <summary>
         ///  Returns metadata of all tables defined in this keyspace.
         /// </summary>
-        /// 
         /// <returns>an IEnumerable of TableMetadata for the tables defined in this
         ///  keyspace.</returns>
         public IEnumerable<TableMetadata> GetTablesMetadata()
         {
-            foreach (string tableName in _cc.GetTables(Name))
-                yield return _cc.GetTable(Name, tableName);
+            throw new NotImplementedException();
         }
 
 
@@ -101,7 +104,7 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return _cc.GetTables(Name);
+            throw new NotImplementedException();
         }
 
         /// <summary>

@@ -516,8 +516,6 @@ namespace Cassandra
                 try
                 {
                     this.Session = Cluster.Connect();
-                    if(tryNo>0)
-                        Cluster.RefreshSchema();
                 }
                 catch (NoHostAvailableException e)
                 {
