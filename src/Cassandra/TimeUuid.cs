@@ -8,7 +8,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a v1 uuid 
     /// </summary>
-    public struct TimeUuid
+    public struct TimeUuid : IEquatable<TimeUuid>
     {
         private static readonly DateTimeOffset GregorianCalendarTime = new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero);
         //Reuse the random generator to avoid collisions
@@ -61,13 +61,18 @@ namespace Cassandra
         /// <summary>
         /// Returns a value indicating whether this instance and a specified TimeUuid object represent the same value.
         /// </summary>
+        public bool Equals(TimeUuid other)
+        {
+            return _value.Equals(other._value);
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether this instance and a specified TimeUuid object represent the same value.
+        /// </summary>
         public override bool Equals(object obj)
         {
-            if (!(obj is TimeUuid))
-            {
-                return false;
-            }
-            return _value.Equals(((TimeUuid)obj).ToGuid());
+            var otherTimeUuid = obj as TimeUuid?;
+            return otherTimeUuid != null && Equals(otherTimeUuid.Value);
         }
 
         /// <summary>
