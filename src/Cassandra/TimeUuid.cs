@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Cassandra
 {
@@ -26,11 +23,11 @@ namespace Cassandra
         {
             if (nodeId == null || nodeId.Length != 6)
             {
-                throw new ArgumentException("node id should contain 6 bytes");
+                throw new ArgumentException("node Id should contain 6 bytes", "nodeId");
             }
             if (clockId == null || clockId.Length != 2)
             {
-                throw new ArgumentException("node id should contain 6 bytes");
+                throw new ArgumentException("clock Id should contain 2 bytes", "clockId");
             }
             var timeBytes = BitConverter.GetBytes((time - GregorianCalendarTime).Ticks);
             var buffer = new byte[16];
@@ -105,7 +102,7 @@ namespace Cassandra
         /// </summary>
         public byte[] ToByteArray()
         {
-            return this._value.ToByteArray();
+            return _value.ToByteArray();
         }
 
         /// <summary>
