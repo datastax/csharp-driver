@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace Cassandra.Tests
 {
     [TestFixture]
-    class TimeUuidTests
+    public class TimeUuidTests
     {
         [Test]
         public void GenerationDateTest()
@@ -102,6 +102,27 @@ namespace Cassandra.Tests
         public void EnsureIsEquatable()
         {
             Assert.That(new TimeUuid(), Is.InstanceOf<IEquatable<TimeUuid>>());
+        }
+
+        [Test]
+        public void EnsureIsComparable()
+        {
+            Assert.That(new TimeUuid(), Is.InstanceOf<IComparable<TimeUuid>>());
+        }
+
+        [Test]
+        public void CheckComparison()
+        {
+            var date = DateTimeOffset.UtcNow;
+            var previousId = TimeUuid.NewId(date);
+
+            for (var i = 1; i < 50 * 1000; ++i)
+            {
+                var id = TimeUuid.NewId(date.AddTicks(i));
+                Assert.That(id, Is.GreaterThan(previousId));
+
+                previousId = id;
+            }
         }
     }
 }
