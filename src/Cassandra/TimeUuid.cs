@@ -8,7 +8,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a v1 uuid 
     /// </summary>
-    public struct TimeUuid : IEquatable<TimeUuid>
+    public struct TimeUuid : IEquatable<TimeUuid>, IComparable<TimeUuid>
     {
         private static readonly DateTimeOffset GregorianCalendarTime = new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero);
         //Reuse the random generator to avoid collisions
@@ -114,6 +114,14 @@ namespace Cassandra
         public Guid ToGuid()
         {
             return _value;
+        }
+
+        /// <summary>
+        /// Compares the current TimeUuid with another TimeUuid.
+        /// </summary>
+        public int CompareTo(TimeUuid other)
+        {
+            return _value.CompareTo(other._value);
         }
 
         /// <summary>
