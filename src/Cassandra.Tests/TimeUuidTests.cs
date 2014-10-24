@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
@@ -42,6 +40,10 @@ namespace Cassandra.Tests
             var id4 = TimeUuid.NewId(node1, clock1, new DateTimeOffset());
             Assert.AreEqual(id1, id2);
             Assert.True(id1 == id2);
+            Assert.IsTrue(id1.Equals(id2));
+            Assert.IsTrue(id1.Equals((object)id2));
+            Assert.IsFalse(id1.Equals(string.Empty));
+            Assert.IsFalse(id1.Equals(null));
             Assert.AreNotEqual(id1, id3);
             Assert.True(id1 != id3);
             Assert.AreNotEqual(id1, id4);
@@ -94,6 +96,12 @@ namespace Cassandra.Tests
             };
 
             Parallel.Invoke(parallelOptions, actions.ToArray());
+        }
+
+        [Test]
+        public void EnsureIsEquatable()
+        {
+            Assert.That(new TimeUuid(), Is.InstanceOf<IEquatable<TimeUuid>>());
         }
     }
 }
