@@ -396,7 +396,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void CompositePartitionKeyMetadataTest()
+        public void TableMetadataCompositePartitionKeyTest()
         {
             var clusterInfo = TestUtils.CcmSetup(1);
             try
@@ -460,7 +460,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void ClusteringOrderMetadataTest()
+        public void TableMetadataClusteringOrderTest()
         {
             var clusterInfo = TestUtils.CcmSetup(1);
             try
@@ -499,7 +499,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void CollectionsSecondaryIndexMetadataTest()
+        public void TableMetadataCollectionsSecondaryIndexTest()
         {
             if (Options.Default.CassandraVersion < new Version(2, 1))
             {
@@ -556,12 +556,15 @@ namespace Cassandra.IntegrationTests.Core
 
                 Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, tableName));
 
+                Assert.Null(Cluster.Metadata
+                                   .GetKeyspace(Keyspace)
+                                   .GetTableMetadata("tbl_does_not_exists"));
 
                 var table = Cluster.Metadata
-                    .GetKeyspace(Keyspace)
-                    .GetTableMetadata(tableName);
+                                   .GetKeyspace(Keyspace)
+                                   .GetTableMetadata(tableName);
 
-                Assert.IsNotNull(table);
+                Assert.NotNull(table);
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "id"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "ascii_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "text_sample"));
@@ -578,6 +581,10 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "map_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "list_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "set_sample"));
+
+                var tableByAll = Cluster.Metadata.GetKeyspace(Keyspace).GetTablesMetadata().First(t => t.Name == tableName);
+                Assert.NotNull(tableByAll);
+                Assert.AreEqual(table.TableColumns.Length, tableByAll.TableColumns.Length);
             }
             finally
             {

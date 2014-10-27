@@ -193,7 +193,17 @@ namespace Cassandra
         ///  keyspace.</returns>
         public ICollection<string> GetTables(string keyspace)
         {
-            throw new NotImplementedException();
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return new string[0];
+            }
+            KeyspaceMetadata ksMetadata;
+            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            {
+                return new string[0];
+            }
+            return ksMetadata.GetTablesNames();
         }
 
 
@@ -205,7 +215,17 @@ namespace Cassandra
         /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
         public TableMetadata GetTable(string keyspace, string tableName)
         {
-            return ControlConnection.GetTableMetadata(keyspace, tableName);
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return null;
+            }
+            KeyspaceMetadata ksMetadata;
+            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetTableMetadata(tableName);
         }
 
         /// <summary>
