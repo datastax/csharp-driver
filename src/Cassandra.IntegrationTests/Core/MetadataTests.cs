@@ -38,6 +38,64 @@ namespace Cassandra.IntegrationTests.Core
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
         }
 
+        [Test]
+        public void KeyspacesMetadataAvailableAtStartup()
+        {
+            var clusterInfo = TestUtils.CcmSetup(1, null, null, 0, false);
+            try
+            {
+                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
+                cluster.Connect();
+                Assert.Greater(cluster.Metadata.GetKeyspaces().Count, 0);
+                Assert.NotNull(cluster.Metadata.GetKeyspace("system"));
+                Assert.AreEqual("system", cluster.Metadata.GetKeyspace("system").Name);
+                //Case sensitive
+                Assert.Null(cluster.Metadata.GetKeyspace("SYSTEM"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        /// <summary>
+        /// When there is a change in schema, it should be received via ControlConnection
+        /// </summary>
+        [Test]
+        public void KeyspacesMetadataUpToDateViaCassandraEvents()
+        {
+            var clusterInfo = TestUtils.CcmSetup(2, null, null, 0, false);
+            try
+            {
+                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
+                var session = cluster.Connect();
+                var initialLength = cluster.Metadata.GetKeyspaces().Count;
+                Assert.Greater(initialLength, 0);
+                const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
+                session.Execute(String.Format(createKeyspaceQuery, "ks1", "SimpleStrategy", "'replication_factor' : 1"));
+                session.Execute(String.Format(createKeyspaceQuery, "ks2", "SimpleStrategy", "'replication_factor' : 3"));
+                session.Execute(String.Format(createKeyspaceQuery, "ks3", "NetworkTopologyStrategy", "'dc1' : 1"));
+                session.Execute(String.Format(createKeyspaceQuery, "\"KS4\"", "SimpleStrategy", "'replication_factor' : 3"));
+                //Let the magic happen
+                Thread.Sleep(5000);
+                Assert.Greater(cluster.Metadata.GetKeyspaces().Count, initialLength);
+                var ks1 = cluster.Metadata.GetKeyspace("ks1");
+                Assert.NotNull(ks1);
+                Assert.AreEqual(ks1.Replication["replication_factor"], 1);
+                var ks2 = cluster.Metadata.GetKeyspace("ks2");
+                Assert.NotNull(ks2);
+                Assert.AreEqual(ks2.Replication["replication_factor"], 3);
+                var ks3 = cluster.Metadata.GetKeyspace("ks3");
+                Assert.NotNull(ks3);
+                Assert.AreEqual(ks3.Replication["dc1"], 1);
+                Assert.Null(cluster.Metadata.GetKeyspace("ks4"));
+                Assert.NotNull(cluster.Metadata.GetKeyspace("KS4"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
 
         private void CheckPureMetadata(string tableName = null, string keyspaceName = null, TableOptions tableOptions = null)
         {
@@ -338,7 +396,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void CompositePartitionKeyMetadataTest()
+        public void TableMetadataCompositePartitionKeyTest()
         {
             var clusterInfo = TestUtils.CcmSetup(1);
             try
@@ -402,7 +460,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void ClusteringOrderMetadataTest()
+        public void TableMetadataClusteringOrderTest()
         {
             var clusterInfo = TestUtils.CcmSetup(1);
             try
@@ -441,7 +499,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void CollectionsSecondaryIndexMetadataTest()
+        public void TableMetadataCollectionsSecondaryIndexTest()
         {
             if (Options.Default.CassandraVersion < new Version(2, 1))
             {
@@ -498,12 +556,15 @@ namespace Cassandra.IntegrationTests.Core
 
                 Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, tableName));
 
+                Assert.Null(Cluster.Metadata
+                                   .GetKeyspace(Keyspace)
+                                   .GetTableMetadata("tbl_does_not_exists"));
 
                 var table = Cluster.Metadata
-                    .GetKeyspace(Keyspace)
-                    .GetTableMetadata(tableName);
+                                   .GetKeyspace(Keyspace)
+                                   .GetTableMetadata(tableName);
 
-                Assert.IsNotNull(table);
+                Assert.NotNull(table);
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "id"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "ascii_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "text_sample"));
@@ -520,6 +581,20 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "map_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "list_sample"));
                 Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "set_sample"));
+
+                var tableByAll = Cluster.Metadata.GetKeyspace(Keyspace).GetTablesMetadata().First(t => t.Name == tableName);
+                Assert.NotNull(tableByAll);
+                Assert.AreEqual(table.TableColumns.Length, tableByAll.TableColumns.Length);
+
+                var columnLength = table.TableColumns.Length;
+                //Alter table and check for changes
+                Session.Execute(String.Format("ALTER TABLE {0} ADD added_col int", tableName));
+                Thread.Sleep(1000);
+                table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata(tableName);
+                Assert.AreEqual(columnLength + 1, table.TableColumns.Length);
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
             }
             finally
             {

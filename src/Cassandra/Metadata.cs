@@ -15,7 +15,9 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 
@@ -27,8 +29,12 @@ namespace Cassandra
     /// </summary>
     public class Metadata : IDisposable
     {
+        private const string SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
+        private const string SelectSingleKeyspace = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{0}'";
+        private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private readonly Hosts _hosts;
         private volatile TokenMap _tokenMap;
+        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces;
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
@@ -112,7 +118,6 @@ namespace Cassandra
         /// <summary>
         ///  Returns all known hosts of this cluster.
         /// </summary>
-        /// 
         /// <returns>collection of all known hosts of this cluster.</returns>
         public ICollection<Host> AllHosts()
         {
@@ -130,38 +135,53 @@ namespace Cassandra
             _tokenMap = TokenMap.Build(partitioner, allTokens);
         }
 
-        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
+        public ICollection<IPAddress> GetReplicas(string keyspace, byte[] partitionKey)
         {
             if (_tokenMap == null)
             {
                 return new List<IPAddress>();
             }
-            return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));
+            return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));   
         }
 
-
-        /// <summary>
-        ///  Returns a collection of all defined keyspaces names.
-        /// </summary>
-        /// 
-        /// <returns>a collection of all defined keyspaces names.</returns>
-        public ICollection<string> GetKeyspaces()
+        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            return ControlConnection.GetKeyspaces();
+            return GetReplicas(null, partitionKey);
         }
-
 
         /// <summary>
         ///  Returns metadata of specified keyspace.
         /// </summary>
         /// <param name="keyspace"> the name of the keyspace for which metadata should be
         ///  returned. </param>
-        /// 
         /// <returns>the metadata of the requested keyspace or <c>null</c> if
         ///  <c>* keyspace</c> is not a known keyspace.</returns>
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {
-            return ControlConnection.GetKeyspace(keyspace);
+            //Use local cache
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return null;
+            }
+            KeyspaceMetadata ksInfo;
+            keyspacesMap.TryGetValue(keyspace, out ksInfo);
+            return ksInfo;
+        }
+
+        /// <summary>
+        ///  Returns a collection of all defined keyspaces names.
+        /// </summary>
+        /// <returns>a collection of all defined keyspaces names.</returns>
+        public ICollection<string> GetKeyspaces()
+        {
+            //Use local cache
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return new string[0];
+            }
+            return keyspacesMap.Keys;
         }
 
         /// <summary>
@@ -173,7 +193,17 @@ namespace Cassandra
         ///  keyspace.</returns>
         public ICollection<string> GetTables(string keyspace)
         {
-            return ControlConnection.GetTables(keyspace);
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return new string[0];
+            }
+            KeyspaceMetadata ksMetadata;
+            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            {
+                return new string[0];
+            }
+            return ksMetadata.GetTablesNames();
         }
 
 
@@ -185,7 +215,17 @@ namespace Cassandra
         /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
         public TableMetadata GetTable(string keyspace, string tableName)
         {
-            return ControlConnection.GetTable(keyspace, tableName);
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return null;
+            }
+            KeyspaceMetadata ksMetadata;
+            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetTableMetadata(tableName);
         }
 
         /// <summary>
@@ -193,15 +233,49 @@ namespace Cassandra
         /// </summary>
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            return ControlConnection.GetUdtDefinition(keyspace, typeName);
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return null;
+            }
+            KeyspaceMetadata ksMetadata;
+            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetUdtDefinition(typeName);
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            ControlConnection.SubmitSchemaRefresh(keyspace, table);
-            if (keyspace == null && table == null)
-                return ControlConnection.RefreshHosts();
+            //backward-compatibility purposes, it is part of the public API
+            return RefreshKeyspaces();
+        }
+
+        /// <summary>
+        /// Retrieves the keyspaces and stores the information in the internal state
+        /// </summary>
+        public bool RefreshKeyspaces()
+        {
+            Logger.Info("Retrieving keyspaces metadata");
+            //Use the control connection to get the keyspace
+            var rs = ControlConnection.Query(SelectKeyspaces);
+            //parse the info
+            var keyspaces = rs.Select(ParseKeyspaceRow).ToDictionary(ks => ks.Name);
+            //Assign to local state
+            _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(keyspaces);
+            //Backward-compatibility: return that it was updated
             return true;
+        }
+
+        private KeyspaceMetadata ParseKeyspaceRow(Row row)
+        {
+            return new KeyspaceMetadata(
+                ControlConnection, 
+                row.GetValue<string>("keyspace_name"), 
+                row.GetValue<bool>("durable_writes"), 
+                row.GetValue<string>("strategy_class"), 
+                Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options")));
         }
 
         public void ShutDown(int timeoutMs = Timeout.Infinite)
@@ -209,6 +283,57 @@ namespace Cassandra
             if (ControlConnection != null)
             {
                 ControlConnection.Shutdown(timeoutMs);
+            }
+        }
+
+        internal bool RemoveKeyspace(string name)
+        {
+            Logger.Verbose("Removing keyspace metadata: " + name);
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return false;
+            }
+            KeyspaceMetadata ks;
+            FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
+            var removed = keyspacesMap.TryRemove(name, out ks);
+            if (removed)
+            {
+                FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
+            }
+            return removed;
+        }
+
+        internal void RefreshSingleKeyspace(bool added, string name)
+        {
+            Logger.Verbose("Updating keyspace metadata: " + name);
+            var row = ControlConnection.Query(String.Format(SelectSingleKeyspace, name)).FirstOrDefault();
+            if (row == null)
+            {
+                return;
+            }
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return;
+            }
+            var ksMetadata = ParseKeyspaceRow(row);
+            keyspacesMap.AddOrUpdate(name, ksMetadata, (k, v) => ksMetadata);
+            var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
+            FireSchemaChangedEvent(eventKind, name, null, this);
+        }
+
+        internal void RefreshTable(string keyspaceName, string tableName)
+        {
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return;
+            }
+            KeyspaceMetadata ksMetadata;
+            if (keyspacesMap.TryGetValue(keyspaceName, out ksMetadata))
+            {
+                ksMetadata.ClearTableMetadata(tableName);
             }
         }
     }

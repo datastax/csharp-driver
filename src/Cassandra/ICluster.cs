@@ -70,6 +70,13 @@ namespace Cassandra
         /// <returns></returns>
         ICollection<IPAddress> GetReplicas(byte[] partitionKey);
         /// <summary>
+        /// Gets a collection of replicas for a given partitionKey on a given keyspace
+        /// </summary>
+        /// <param name="keyspace">Byte array representing the partition key</param>
+        /// <param name="partitionKey">Byte array representing the partition key</param>
+        /// <returns></returns>
+        ICollection<IPAddress> GetReplicas(string keyspace, byte[] partitionKey);
+        /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <c>* Cluster</c> instance and reclaim all resources
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>

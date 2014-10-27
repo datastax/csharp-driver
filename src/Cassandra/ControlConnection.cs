@@ -31,10 +31,6 @@ namespace Cassandra
         private const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
-        private const String SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
-        private const String SelectColumnFamilies = "SELECT * FROM system.schema_columnfamilies";
-        private const String SelectColumns = "SELECT * FROM system.schema_columns";
-        private const String SelectUdts = "SELECT * FROM system.schema_usertypes";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
         /// <summary>
@@ -45,9 +41,6 @@ namespace Cassandra
         private readonly Cluster _cluster;
         private volatile Host _host;
         private volatile Connection _connection;
-
-        private readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>> _keyspaces =
-            new AtomicValue<ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>>(null);
 
         private static readonly Logger _logger = new Logger(typeof (ControlConnection));
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
@@ -204,7 +197,7 @@ namespace Cassandra
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
-            var act = new Action<object>(_ =>
+            Task.Factory.StartNew(() =>
             {
                 if (e is TopologyChangeEventArgs)
                 {
@@ -239,35 +232,24 @@ namespace Cassandra
                 else if (e is SchemaChangeEventArgs)
                 {
                     var ssc = e as SchemaChangeEventArgs;
-
-                    if (ssc.What == SchemaChangeEventArgs.Reason.Created)
+                    if (!String.IsNullOrEmpty(ssc.Table))
                     {
-                        SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
-                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Created,
-                                                                 string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
+                        RefreshTable(ssc.Keyspace, ssc.Table);
                         return;
                     }
                     if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
                     {
-                        SubmitSchemaRefresh(string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, null);
-                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped,
-                                                                 string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
+                        _cluster.Metadata.RemoveKeyspace(ssc.Keyspace);
                         return;
                     }
-                    if (ssc.What == SchemaChangeEventArgs.Reason.Updated)
-                    {
-                        SubmitSchemaRefresh(ssc.Keyspace, string.IsNullOrEmpty(ssc.Table) ? null : ssc.Table);
-                        _cluster.Metadata.FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Updated,
-                                                                 string.IsNullOrEmpty(ssc.Keyspace) ? null : ssc.Keyspace, ssc.Table);
-                        return;
-                    }
+                    _cluster.Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
                 }
-
-                var ex = new DriverInternalError("Unknown Event");
-                _logger.Error(ex);
-                throw ex;
             });
-            act.BeginInvoke(null, ar => { act.EndInvoke(ar); }, null);
+        }
+
+        private void RefreshTable(string keyspaceName, string tableName)
+        {
+            _cluster.Metadata.RefreshTable(keyspaceName, tableName);
         }
 
         private void ReconnectionClb(object state)
@@ -453,17 +435,23 @@ namespace Cassandra
 
             // Removes all those that seems to have been removed (since we lost the control connection)
             var foundHostsSet = new HashSet<IPAddress>(foundHosts);
-            foreach (IPAddress host in _cluster.Metadata.AllReplicas())
+            foreach (var host in _cluster.Metadata.AllReplicas())
                 if (!host.Equals(_connection.Address) && !foundHostsSet.Contains(host))
                     _cluster.Metadata.RemoveHost(host);
 
+            _cluster.Metadata.RefreshKeyspaces();
             if (partitioner != null)
+            {
                 _cluster.Metadata.RebuildTokenMap(partitioner, tokenMap);
+            }
 
             _logger.Info("NodeList and TokenMap have been successfully refreshed!");
         }
 
-        private RowSet Query(string cqlQuery)
+        /// <summary>
+        /// Uses the active connection to execute a query
+        /// </summary>
+        public RowSet Query(string cqlQuery)
         {
             var request = new QueryRequest(_controlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
             var task = _connection.Send(request);
@@ -473,415 +461,6 @@ namespace Cassandra
                 throw new DriverInternalError("Expected rows " + task.Result);
             }
             return ((task.Result as ResultResponse).Output as OutputRows).RowSet;
-        }
-
-        private bool WaitForSchemaAgreement()
-        {
-            DateTimeOffset start = DateTimeOffset.Now;
-            long elapsed = 0;
-            while (elapsed < MaxSchemaAgreementWaitMs)
-            {
-                var versions = new HashSet<Guid>();
-                {
-                    var rowset = Query(CqlQueryTools.SelectSchemaPeers);
-                    foreach (Row row in rowset.GetRows())
-                    {
-                        if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
-                            continue;
-
-                        IPAddress rpc = row.GetValue<IPAddress>("rpc_address");
-                        if (rpc.Equals(BindAllAddress))
-                            if (!row.IsNull("peer"))
-                                rpc = row.GetValue<IPAddress>("peer");
-
-                        Host peer = _cluster.Metadata.GetHost(rpc);
-                        if (peer != null && peer.IsConsiderablyUp)
-                            versions.Add(row.GetValue<Guid>("schema_version"));
-                    }
-                }
-
-                {
-                    var rowset = Query(CqlQueryTools.SelectSchemaLocal);
-                    // Update cluster name, DC and rack for the one node we are connected to
-                    foreach (Row localRow in rowset.GetRows())
-                    {
-                        if (!localRow.IsNull("schema_version"))
-                        {
-                            versions.Add(localRow.GetValue<Guid>("schema_version"));
-                            break;
-                        }
-                    }
-                }
-
-
-                if (versions.Count <= 1)
-                    return true;
-
-                // let's not flood the node too much
-                Thread.Sleep(200);
-                elapsed = (long) (DateTimeOffset.Now - start).TotalMilliseconds;
-            }
-
-            return false;
-        }
-
-        internal void SubmitSchemaRefresh(string keyspace, string table)
-        {
-            if (keyspace == null)
-                ResetSchema();
-            else if (table == null)
-                ResetKeyspace(keyspace);
-            else
-                ResetTable(keyspace, table);
-        }
-
-        private void ResetSchema()
-        {
-            _keyspaces.Value = null;
-        }
-
-        private ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>> SetupSchema()
-        {
-            ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>> ks = _keyspaces.Value;
-            if (ks == null)
-            {
-                var newKeyspaces = new ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>>();
-                var rows = Query(SelectKeyspaces);
-                foreach (Row row in rows)
-                {
-                    var strKsName = row.GetValue<string>("keyspace_name");
-                    string strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
-                    var drblWrites = row.GetValue<bool>("durable_writes");
-                    IDictionary<string, int> rplctOptions = Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options"));
-
-                    var newMetadata = new KeyspaceMetadata(this, strKsName, drblWrites, strClass, rplctOptions);
-
-                    newKeyspaces.TryAdd(strKsName, new AtomicValue<KeyspaceMetadata>(newMetadata));
-                }
-                return _keyspaces.Value = newKeyspaces;
-            }
-            return ks;
-        }
-
-        private void ResetKeyspace(string keyspace)
-        {
-            ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>> ks = _keyspaces.Value;
-            if (ks != null)
-            {
-                AtomicValue<KeyspaceMetadata> value;
-                if (ks.TryGetValue(keyspace, out value))
-                    value.Value = null;
-            }
-        }
-
-        private KeyspaceMetadata SetupKeyspace(string keyspace)
-        {
-            ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>> sc = SetupSchema();
-            AtomicValue<KeyspaceMetadata> ksval;
-            if (!sc.TryGetValue(keyspace, out ksval) || ksval.Value == null || ksval.Value.Tables.Value == null)
-            {
-                WaitForSchemaAgreement();
-                ResetSchema();
-                sc = SetupSchema();
-                KeyspaceMetadata ks = null;
-
-                {
-                    var cqlQuery = String.Format(SelectKeyspaces + " WHERE keyspace_name='{0}';", keyspace);
-                    var rows = Query(cqlQuery);
-                    foreach (Row row in rows)
-                    {
-                        var strKsName = row.GetValue<string>("keyspace_name");
-                        string strClass = GetStrategyClass(row.GetValue<string>("strategy_class"));
-                        var drblWrites = row.GetValue<bool>("durable_writes");
-                        IDictionary<string, int> rplctOptions = Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options"));
-
-                        ks = new KeyspaceMetadata(this, strKsName, drblWrites, strClass, rplctOptions);
-                    }
-                    if (ks == null)
-                        throw new InvalidOperationException();
-                }
-
-                {
-                    var ktb = new ConcurrentDictionary<string, AtomicValue<TableMetadata>>();
-                    var cqlQuery = String.Format(SelectColumnFamilies + " WHERE keyspace_name='{0}';", keyspace);
-                    var rows = Query(cqlQuery);
-                    foreach (Row row in rows)
-                    {
-                        ktb.TryAdd(row.GetValue<string>("columnfamily_name"), new AtomicValue<TableMetadata>(null));
-                    }
-                    ks.Tables.Value = ktb;
-                    sc.TryAdd(ks.Name, new AtomicValue<KeyspaceMetadata>(ks));
-                    return ks;
-                }
-            }
-            return ksval.Value;
-        }
-
-
-        private void ResetTable(string keyspace, string table)
-        {
-            ConcurrentDictionary<string, AtomicValue<KeyspaceMetadata>> ks = _keyspaces.Value;
-
-            if (ks != null)
-            {
-                AtomicValue<KeyspaceMetadata> value;
-                if (ks.TryGetValue(keyspace, out value))
-                {
-                    if (value.Value != null)
-                    {
-                        ConcurrentDictionary<string, AtomicValue<TableMetadata>> kss = value.Value.Tables.Value;
-                        if (kss != null)
-                        {
-                            AtomicValue<TableMetadata> tabval;
-                            if (kss.TryGetValue(table, out tabval))
-                                tabval.Value = null;
-                        }
-                    }
-                }
-            }
-        }
-
-        private TableMetadata SetupTable(string keyspace, string table)
-        {
-            bool wasc = false;
-            RETRY:
-            KeyspaceMetadata ks = SetupKeyspace(keyspace);
-            ConcurrentDictionary<string, AtomicValue<TableMetadata>> tbl = ks.Tables.Value;
-            if (tbl == null)
-            {
-                goto RETRY;
-            }
-            AtomicValue<TableMetadata> tblval;
-            if (!tbl.TryGetValue(table, out tblval))
-            {
-                WaitForSchemaAgreement();
-                ResetKeyspace(keyspace);
-                if (wasc)
-                    throw new IndexOutOfRangeException();
-                wasc = true;
-                goto RETRY;
-            }
-
-            if (tblval.Value == null)
-            {
-                TableMetadata m = GetTableMetadata(table, keyspace);
-                tblval.Value = m;
-                return m;
-            }
-            return tblval.Value;
-        }
-
-        internal void RefreshSchema(string keyspace, string table)
-        {
-            if (keyspace == null)
-            {
-                ResetSchema();
-                SetupSchema();
-            }
-            else if (table == null)
-            {
-                ResetKeyspace(keyspace);
-                SetupKeyspace(keyspace);
-            }
-            else
-            {
-                ResetTable(keyspace, table);
-                SetupTable(keyspace, table);
-            }
-        }
-
-        public ICollection<string> GetKeyspaces()
-        {
-            return SetupSchema().Keys;
-        }
-
-        public KeyspaceMetadata GetKeyspace(string keyspace)
-        {
-            return SetupKeyspace(keyspace);
-        }
-
-        public ICollection<string> GetTables(string keyspace)
-        {
-            return SetupKeyspace(keyspace).Tables.Value.Keys;
-        }
-
-        public TableMetadata GetTable(string keyspace, string table)
-        {
-            return SetupTable(keyspace, table);
-        }
-
-        /// <summary>
-        /// Gets the definition of a User defined type
-        /// </summary>
-        public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
-        {
-            var rs = Query(String.Format(SelectUdts + " WHERE keyspace_name='{0}' AND type_name = '{1}';", keyspace, typeName));
-            var row = rs.FirstOrDefault();
-            if (row == null)
-            {
-                return null;
-            }
-            var udt = new UdtColumnInfo(row.GetValue<string>("keyspace_name") + "." + row.GetValue<string>("type_name"));
-            var fieldNames = row.GetValue<List<string>>("field_names");
-            var fieldTypes = row.GetValue<List<string>>("field_types");
-            if (fieldNames.Count != fieldTypes.Count)
-            {
-                var ex = new DriverInternalError("Field names and types for UDT do not match");
-                _logger.Error(ex);
-                throw ex;
-            }
-            for (var i = 0; i < fieldNames.Count; i++)
-            {
-                var field = TypeCodec.ParseDataType(fieldTypes[i]);
-                field.Name = fieldNames[i];
-                udt.Fields.Add(field);
-            }
-            return udt;
-        }
-
-        public string GetStrategyClass(string strClass)
-        {
-            if (strClass != null)
-            {
-                if (strClass.StartsWith("org.apache.cassandra.locator."))
-                    strClass = strClass.Replace("org.apache.cassandra.locator.", "");
-            }
-            else
-            {
-                throw new ArgumentNullException("strClass");
-            }
-
-            return strClass;
-        }
-
-        private SortedDictionary<string, string> getCompactionStrategyOptions(Row row)
-        {
-            var result = new SortedDictionary<string, string> {{"class", row.GetValue<string>("compaction_strategy_class")}};
-            foreach (KeyValuePair<string, string> entry in Utils.ConvertStringToMap(row.GetValue<string>("compaction_strategy_options")))
-                result.Add(entry.Key, entry.Value);
-            return result;
-        }
-
-        public TableMetadata GetTableMetadata(string tableName, string keyspaceName)
-        {
-            var cols = new Dictionary<string, TableColumn>();
-            TableOptions options = null;
-            {
-                var cqlQuery = string.Format(SelectColumns + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName);
-                var rows = Query(cqlQuery);
-                foreach (var row in rows)
-                {
-                    var dataType = TypeCodec.ParseDataType(row.GetValue<string>("validator"));
-                    var dsc = new TableColumn
-                    {
-                        Name = row.GetValue<string>("column_name"),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = dataType.TypeCode,
-                        TypeInfo = dataType.TypeInfo,
-                        SecondaryIndexName = row.GetValue<string>("index_name"),
-                        SecondaryIndexType = row.GetValue<string>("index_type"),
-                        KeyType =
-                            row.GetValue<string>("index_name") != null
-                                ? KeyType.SecondaryIndex
-                                : KeyType.None,
-                    };
-
-                    cols.Add(dsc.Name, dsc);
-                }
-            }
-            {
-                var cqlQuery = string.Format(SelectColumnFamilies + " WHERE columnfamily_name='{0}' AND keyspace_name='{1}';", tableName, keyspaceName);
-                var rows = Query(cqlQuery);
-                var row = rows.First();
-                var colNames = row.GetValue<string>("column_aliases");
-                var rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');
-                for (var i = 0; i < rowKeys.Length; i++)
-                {
-                    if (rowKeys[i].StartsWith("\""))
-                    {
-                        rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
-                    }
-                }
-                //Needs cleanup
-                if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
-                {
-                    bool isCompact = true;
-                    var comparator = row.GetValue<string>("comparator");
-                    //Remove reversed type
-                    comparator = comparator.Replace(TypeCodec.ReversedTypeName, "");
-                    if (comparator.StartsWith(TypeCodec.CompositeTypeName))
-                    {
-                        comparator = comparator.Replace(TypeCodec.CompositeTypeName, "");
-                        isCompact = false;
-                    }
-
-                    var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");
-                    MatchCollection rowKeysTypes = rg.Matches(comparator);
-
-                    int i = 0;
-                    foreach (var keyName in rowKeys)
-                    {
-                        var dataType = TypeCodec.ParseDataType(rowKeysTypes[i].ToString());
-                        var dsc = new TableColumn
-                        {
-                            Name = keyName,
-                            Keyspace = row.GetValue<string>("keyspace_name"),
-                            Table = row.GetValue<string>("columnfamily_name"),
-                            TypeCode = dataType.TypeCode,
-                            TypeInfo = dataType.TypeInfo,
-                            KeyType = KeyType.Clustering,
-                        };
-                        cols[dsc.Name] = dsc;
-                        i++;
-                    }
-
-                    options = new TableOptions
-                    {
-                        isCompactStorage = isCompact,
-                        bfFpChance = row.GetValue<double>("bloom_filter_fp_chance"),
-                        caching = row.GetValue<string>("caching"),
-                        comment = row.GetValue<string>("comment"),
-                        gcGrace = row.GetValue<int>("gc_grace_seconds"),
-                        localReadRepair = row.GetValue<double>("local_read_repair_chance"),
-                        readRepair = row.GetValue<double>("read_repair_chance"),
-                        compactionOptions = getCompactionStrategyOptions(row),
-                        compressionParams =
-                            (SortedDictionary<string, string>) Utils.ConvertStringToMap(row.GetValue<string>("compression_parameters"))
-                    };
-                    //replicate_on_write column not present in C* >= 2.1
-                    if (row.GetColumn("replicate_on_write") != null)
-                    {
-                        options.replicateOnWrite = row.GetValue<bool>("replicate_on_write");
-                    }
-                }
-                //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
-                //But you can get it from system.schema_columnfamilies
-                var keys = row.GetValue<string>("key_aliases")
-                              .Replace("[", "")
-                              .Replace("]", "")
-                              .Split(',');
-                var keyTypes = row.GetValue<string>("key_validator")
-                                  .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
-                                  .Replace("(", "")
-                                  .Replace(")", "")
-                                  .Split(',');
-                for (var i = 0; i < keys.Length; i++)
-                {
-                    var name = keys[i].Replace("\"", "").Trim();
-                    var dataType = TypeCodec.ParseDataType(keyTypes[i].Trim());
-                    cols[name] = new TableColumn()
-                    {
-                        Name = name,
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("columnfamily_name"),
-                        TypeCode = dataType.TypeCode,
-                        TypeInfo = dataType.TypeInfo,
-                        KeyType = KeyType.Partition
-                    };
-                }
-            }
-            return new TableMetadata(tableName, cols.Values.ToArray(), options);
         }
     }
 }

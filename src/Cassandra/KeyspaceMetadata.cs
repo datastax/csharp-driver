@@ -14,30 +14,33 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Cassandra
 {
     public class KeyspaceMetadata
     {
-        internal readonly AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>> Tables =
-            new AtomicValue<ConcurrentDictionary<string, AtomicValue<TableMetadata>>>(null);
-
+        private const String SelectSingleTable = "SELECT * FROM system.schema_columnfamilies WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
+        private const String SelectTables = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='{0}'";
+        private const String SelectColumns = "SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
+        private const String SelectUdts = "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
+        private readonly ConcurrentDictionary<string, TableMetadata> _tables = new ConcurrentDictionary<string, TableMetadata>();
         private readonly ControlConnection _cc;
 
         /// <summary>
         ///  Gets the name of this keyspace.
         /// </summary>
-        /// 
         /// <returns>the name of this CQL keyspace.</returns>
         public string Name { get; private set; }
 
         /// <summary>
         ///  Gets a value indicating whether durable writes are set on this keyspace.
         /// </summary>
-        /// 
         /// <returns><c>true</c> if durable writes are set on this keyspace
         ///  , <c>false</c> otherwise.</returns>
         public bool DurableWrites { get; private set; }
@@ -45,7 +48,6 @@ namespace Cassandra
         /// <summary>
         ///  Gets the Strategy Class of this keyspace.
         /// </summary>
-        /// 
         /// <returns>name of StrategyClass of this keyspace.</returns>
         public string StrategyClass { get; private set; }
 
@@ -62,7 +64,12 @@ namespace Cassandra
             _cc = cc;
             Name = name;
             DurableWrites = durableWrites;
+
             StrategyClass = strategyClass;
+            if (strategyClass != null && strategyClass.StartsWith("org.apache.cassandra.locator."))
+            {
+                StrategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");   
+            }
             Replication = replicationOptions;
         }
 
@@ -71,25 +78,165 @@ namespace Cassandra
         ///  Returns metadata of specified table in this keyspace.
         /// </summary>
         /// <param name="tableName"> the name of table to retrieve </param>
-        /// 
         /// <returns>the metadata for table <c>tableName</c> in this keyspace if it
         ///  exists, <c>null</c> otherwise.</returns>
         public TableMetadata GetTableMetadata(string tableName)
         {
-            return _cc.GetTable(Name, tableName);
+            TableMetadata table;
+            if (_tables.TryGetValue(tableName, out table))
+            {
+                //The table metadata is available in local cache
+                return table;
+            }
+            var keyspaceName = Name;
+            var cols = new Dictionary<string, TableColumn>();
+            TableOptions options = null;
+            var tableMetadataRow = _cc.Query(String.Format(SelectSingleTable, tableName, keyspaceName)).FirstOrDefault();
+            if (tableMetadataRow == null)
+            {
+                return null;
+            }
+            var columnsMetadata = _cc.Query(String.Format(SelectColumns, tableName, keyspaceName));
+            foreach (var row in columnsMetadata)
+            {
+                var dataType = TypeCodec.ParseDataType(row.GetValue<string>("validator"));
+                var dsc = new TableColumn
+                {
+                    Name = row.GetValue<string>("column_name"),
+                    Keyspace = row.GetValue<string>("keyspace_name"),
+                    Table = row.GetValue<string>("columnfamily_name"),
+                    TypeCode = dataType.TypeCode,
+                    TypeInfo = dataType.TypeInfo,
+                    SecondaryIndexName = row.GetValue<string>("index_name"),
+                    SecondaryIndexType = row.GetValue<string>("index_type"),
+                    KeyType =
+                        row.GetValue<string>("index_name") != null
+                            ? KeyType.SecondaryIndex
+                            : KeyType.None,
+                };
+                cols.Add(dsc.Name, dsc);
+            }
+            
+            var colNames = tableMetadataRow.GetValue<string>("column_aliases");
+            var rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');
+            for (var i = 0; i < rowKeys.Length; i++)
+            {
+                if (rowKeys[i].StartsWith("\""))
+                {
+                    rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
+                }
+            }
+            if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
+            {
+                bool isCompact = true;
+                var comparator = tableMetadataRow.GetValue<string>("comparator");
+                //Remove reversed type
+                comparator = comparator.Replace(TypeCodec.ReversedTypeName, "");
+                if (comparator.StartsWith(TypeCodec.CompositeTypeName))
+                {
+                    comparator = comparator.Replace(TypeCodec.CompositeTypeName, "");
+                    isCompact = false;
+                }
+
+                var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");
+                var rowKeysTypes = rg.Matches(comparator);
+
+                for (var i = 0; i < rowKeys.Length; i++)
+                {
+                    var keyName = rowKeys[i];
+                    var dataType = TypeCodec.ParseDataType(rowKeysTypes[i].ToString());
+                    var dsc = new TableColumn
+                    {
+                        Name = keyName,
+                        Keyspace = tableMetadataRow.GetValue<string>("keyspace_name"),
+                        Table = tableMetadataRow.GetValue<string>("columnfamily_name"),
+                        TypeCode = dataType.TypeCode,
+                        TypeInfo = dataType.TypeInfo,
+                        KeyType = KeyType.Clustering,
+                    };
+                    cols[dsc.Name] = dsc;
+                }
+
+                options = new TableOptions
+                {
+                    isCompactStorage = isCompact,
+                    bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
+                    caching = tableMetadataRow.GetValue<string>("caching"),
+                    comment = tableMetadataRow.GetValue<string>("comment"),
+                    gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
+                    localReadRepair = tableMetadataRow.GetValue<double>("local_read_repair_chance"),
+                    readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
+                    compactionOptions = GetCompactionStrategyOptions(tableMetadataRow),
+                    compressionParams =
+                        (SortedDictionary<string, string>)Utils.ConvertStringToMap(tableMetadataRow.GetValue<string>("compression_parameters"))
+                };
+                //replicate_on_write column not present in C* >= 2.1
+                if (tableMetadataRow.GetColumn("replicate_on_write") != null)
+                {
+                    options.replicateOnWrite = tableMetadataRow.GetValue<bool>("replicate_on_write");
+                }
+            }
+            //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
+            //But you can get it from system.schema_columnfamilies
+            var keys = tableMetadataRow.GetValue<string>("key_aliases")
+                            .Replace("[", "")
+                            .Replace("]", "")
+                            .Split(',');
+            var keyTypes = tableMetadataRow.GetValue<string>("key_validator")
+                                .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
+                                .Replace("(", "")
+                                .Replace(")", "")
+                                .Split(',');
+            for (var i = 0; i < keys.Length; i++)
+            {
+                var name = keys[i].Replace("\"", "").Trim();
+                var dataType = TypeCodec.ParseDataType(keyTypes[i].Trim());
+                cols[name] = new TableColumn()
+                {
+                    Name = name,
+                    Keyspace = tableMetadataRow.GetValue<string>("keyspace_name"),
+                    Table = tableMetadataRow.GetValue<string>("columnfamily_name"),
+                    TypeCode = dataType.TypeCode,
+                    TypeInfo = dataType.TypeInfo,
+                    KeyType = KeyType.Partition
+                };
+            }
+
+            table = new TableMetadata(tableName, cols.Values.ToArray(), options);
+            //Cache it
+            _tables.AddOrUpdate(tableName, table, (k, o) => table);
+            return table;
+        }
+
+        /// <summary>
+        /// Removes table metadata forcing refresh the next time the table metadata is retrieved
+        /// </summary>
+        internal void ClearTableMetadata(string tableName)
+        {
+            TableMetadata table;
+            _tables.TryRemove(tableName, out table);
+        }
+
+        private SortedDictionary<string, string> GetCompactionStrategyOptions(Row row)
+        {
+            var result = new SortedDictionary<string, string> { { "class", row.GetValue<string>("compaction_strategy_class") } };
+            foreach (var entry in Utils.ConvertStringToMap(row.GetValue<string>("compaction_strategy_options")))
+            {
+                result.Add(entry.Key, entry.Value);
+            }
+            return result;
         }
 
 
         /// <summary>
         ///  Returns metadata of all tables defined in this keyspace.
         /// </summary>
-        /// 
         /// <returns>an IEnumerable of TableMetadata for the tables defined in this
         ///  keyspace.</returns>
         public IEnumerable<TableMetadata> GetTablesMetadata()
         {
-            foreach (string tableName in _cc.GetTables(Name))
-                yield return _cc.GetTable(Name, tableName);
+            var tableNames = GetTablesNames();
+            return tableNames.Select(GetTableMetadata);
         }
 
 
@@ -101,7 +248,7 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return _cc.GetTables(Name);
+            return _cc.Query(String.Format(SelectTables, Name)).Select(r => r.GetValue<string>("columnfamily_name")).ToList();
         }
 
         /// <summary>
@@ -109,9 +256,8 @@ namespace Cassandra
         ///  name and the table it contains. In other words, this method returns the
         ///  queries that would allow to recreate the schema of this name, along with
         ///  all its table. Note that the returned String is formatted to be human
-        ///  readable (for some defintion of human readable at least).
+        ///  readable (for some definition of human readable at least).
         /// </summary>
-        /// 
         /// <returns>the CQL queries representing this name schema as a code
         ///  String}.</returns>
         public string ExportAsString()
@@ -119,9 +265,6 @@ namespace Cassandra
             var sb = new StringBuilder();
 
             sb.Append(AsCqlQuery()).Append("\n");
-
-            //foreach (var tm in Tables.Value.Values)
-            //    sb.Append("\n").Append(tm.Value.exportAsString()).Append("\n");
 
             return sb.ToString();
         }
@@ -132,7 +275,6 @@ namespace Cassandra
         ///  'CREATE KEYSPACE' query with the options corresponding to this name
         ///  definition.
         /// </summary>
-        /// 
         /// <returns>the 'CREATE KEYSPACE' query corresponding to this name.
         ///  <see>#ExportAsString</see></returns>
         public string AsCqlQuery()
@@ -141,15 +283,41 @@ namespace Cassandra
 
             sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
             sb.Append("REPLICATION = { 'class' : '").Append(Replication["class"]).Append("'");
-            foreach (KeyValuePair<string, int> rep in Replication)
+            foreach (var rep in Replication)
             {
                 if (rep.Key == "class")
+                {
                     continue;
+                }
                 sb.Append(", '").Append(rep.Key).Append("': '").Append(rep.Value).Append("'");
             }
             sb.Append(" } AND DURABLE_WRITES = ").Append(DurableWrites);
             sb.Append(";");
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Gets the definition of a User defined type
+        /// </summary>
+        internal UdtColumnInfo GetUdtDefinition(string typeName)
+        {
+            var keyspaceName = Name;
+            var rs = _cc.Query(String.Format(SelectUdts, keyspaceName, typeName));
+            var row = rs.FirstOrDefault();
+            if (row == null)
+            {
+                return null;
+            }
+            var udt = new UdtColumnInfo(row.GetValue<string>("keyspace_name") + "." + row.GetValue<string>("type_name"));
+            var fieldNames = row.GetValue<List<string>>("field_names");
+            var fieldTypes = row.GetValue<List<string>>("field_types");
+            for (var i = 0; i < fieldNames.Count && i < fieldTypes.Count; i++)
+            {
+                var field = TypeCodec.ParseDataType(fieldTypes[i]);
+                field.Name = fieldNames[i];
+                udt.Fields.Add(field);
+            }
+            return udt;
         }
     }
 }

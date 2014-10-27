@@ -190,9 +190,15 @@ namespace Cassandra
             return _metadata.GetReplicas(partitionKey);
         }
 
+        /// <inheritdoc />
+        public ICollection<IPAddress> GetReplicas(string keyspace, byte[] partitionKey)
+        {
+            return _metadata.GetReplicas(keyspace, partitionKey);
+        }
+
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            return _metadata.RefreshSchema(keyspace, table);
+            return _metadata.RefreshKeyspaces();
         }
 
         /// <inheritdoc />
