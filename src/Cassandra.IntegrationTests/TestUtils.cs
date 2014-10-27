@@ -202,15 +202,15 @@ namespace Cassandra.IntegrationTests
         }
 
         /// <summary>
-        /// Executes a python command
+        /// Executes a windows command
         /// </summary>
-        public static ProcessOutput ExecutePythonCommand(string pythonArgs, int timeout = 300000)
+        public static ProcessOutput ExecuteCommand(string args, int timeout = 300000)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
             {
-                process.StartInfo.FileName = "python.exe";
-                process.StartInfo.Arguments = pythonArgs;
+                process.StartInfo.FileName = "cmd.exe";
+                process.StartInfo.Arguments = "/c " + args;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
@@ -283,31 +283,10 @@ namespace Cassandra.IntegrationTests
 
         public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000, bool throwOnProcessError = false)
         {
-            var ccmPath = ConfigurationManager.AppSettings["CcmPath"];
-            if (ccmPath == null)
-            {
-                //By convention
-                ccmPath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"workspace\\tools\\ccm");
-            }
-            ccmPath = Path.Combine(ccmPath, "ccm");
-            if (!FileExists(ccmPath))
-            {
-                var message = "Ccm file does not exists in path" + ccmPath;
-                if (throwOnProcessError)
-                {
-                    throw new TestInfrastructureException(message);
-                }
-                return new ProcessOutput()
-                {
-                    ExitCode = 1000,
-                    OutputText = new StringBuilder(message)
-                };
-            }
-            ccmPath = EscapePath(ccmPath);
             ccmConfigDir = EscapePath(ccmConfigDir);
-            ccmArgs += " --config-dir=" + ccmConfigDir;
+            ccmArgs = "ccm " + ccmArgs + " --config-dir=" + ccmConfigDir;
             Trace.TraceInformation("Executing ccm: " + ccmArgs);
-            var output = ExecutePythonCommand(ccmPath + " " + ccmArgs, timeout);
+            var output = ExecuteCommand(ccmArgs, timeout);
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
