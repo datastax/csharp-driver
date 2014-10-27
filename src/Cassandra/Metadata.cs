@@ -233,7 +233,17 @@ namespace Cassandra
         /// </summary>
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            return ControlConnection.GetUdtDefinition(keyspace, typeName);
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return null;
+            }
+            KeyspaceMetadata ksMetadata;
+            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetUdtDefinition(typeName);
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)

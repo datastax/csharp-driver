@@ -28,6 +28,7 @@ namespace Cassandra
         private const String SelectSingleTable = "SELECT * FROM system.schema_columnfamilies WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
         private const String SelectTables = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='{0}'";
         private const String SelectColumns = "SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
+        private const String SelectUdts = "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
 
         private readonly ControlConnection _cc;
 
@@ -275,6 +276,30 @@ namespace Cassandra
             sb.Append(" } AND DURABLE_WRITES = ").Append(DurableWrites);
             sb.Append(";");
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Gets the definition of a User defined type
+        /// </summary>
+        internal UdtColumnInfo GetUdtDefinition(string typeName)
+        {
+            var keyspaceName = this.Name;
+            var rs = _cc.Query(String.Format(SelectUdts, keyspaceName, typeName));
+            var row = rs.FirstOrDefault();
+            if (row == null)
+            {
+                return null;
+            }
+            var udt = new UdtColumnInfo(row.GetValue<string>("keyspace_name") + "." + row.GetValue<string>("type_name"));
+            var fieldNames = row.GetValue<List<string>>("field_names");
+            var fieldTypes = row.GetValue<List<string>>("field_types");
+            for (var i = 0; i < fieldNames.Count && i < fieldTypes.Count; i++)
+            {
+                var field = TypeCodec.ParseDataType(fieldTypes[i]);
+                field.Name = fieldNames[i];
+                udt.Fields.Add(field);
+            }
+            return udt;
         }
     }
 }

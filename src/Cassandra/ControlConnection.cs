@@ -31,7 +31,6 @@ namespace Cassandra
         private const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
-        private const String SelectUdts = "SELECT * FROM system.schema_usertypes";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
         /// <summary>
@@ -456,88 +455,7 @@ namespace Cassandra
             {
                 throw new DriverInternalError("Expected rows " + task.Result);
             }
-            //TODO: Handle failure
             return ((task.Result as ResultResponse).Output as OutputRows).RowSet;
-        }
-
-        private bool WaitForSchemaAgreement()
-        {
-            DateTimeOffset start = DateTimeOffset.Now;
-            long elapsed = 0;
-            while (elapsed < MaxSchemaAgreementWaitMs)
-            {
-                var versions = new HashSet<Guid>();
-                {
-                    var rowset = Query(CqlQueryTools.SelectSchemaPeers);
-                    foreach (Row row in rowset.GetRows())
-                    {
-                        if (row.IsNull("rpc_address") || row.IsNull("schema_version"))
-                            continue;
-
-                        IPAddress rpc = row.GetValue<IPAddress>("rpc_address");
-                        if (rpc.Equals(BindAllAddress))
-                            if (!row.IsNull("peer"))
-                                rpc = row.GetValue<IPAddress>("peer");
-
-                        Host peer = _cluster.Metadata.GetHost(rpc);
-                        if (peer != null && peer.IsConsiderablyUp)
-                            versions.Add(row.GetValue<Guid>("schema_version"));
-                    }
-                }
-
-                {
-                    var rowset = Query(CqlQueryTools.SelectSchemaLocal);
-                    // Update cluster name, DC and rack for the one node we are connected to
-                    foreach (Row localRow in rowset.GetRows())
-                    {
-                        if (!localRow.IsNull("schema_version"))
-                        {
-                            versions.Add(localRow.GetValue<Guid>("schema_version"));
-                            break;
-                        }
-                    }
-                }
-
-
-                if (versions.Count <= 1)
-                    return true;
-
-                // let's not flood the node too much
-                Thread.Sleep(200);
-                elapsed = (long) (DateTimeOffset.Now - start).TotalMilliseconds;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Gets the definition of a User defined type
-        /// </summary>
-        public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
-        {
-            //TODO: Move to Metadata
-            var rs = Query(String.Format(SelectUdts + " WHERE keyspace_name='{0}' AND type_name = '{1}';", keyspace, typeName));
-            var row = rs.FirstOrDefault();
-            if (row == null)
-            {
-                return null;
-            }
-            var udt = new UdtColumnInfo(row.GetValue<string>("keyspace_name") + "." + row.GetValue<string>("type_name"));
-            var fieldNames = row.GetValue<List<string>>("field_names");
-            var fieldTypes = row.GetValue<List<string>>("field_types");
-            if (fieldNames.Count != fieldTypes.Count)
-            {
-                var ex = new DriverInternalError("Field names and types for UDT do not match");
-                _logger.Error(ex);
-                throw ex;
-            }
-            for (var i = 0; i < fieldNames.Count; i++)
-            {
-                var field = TypeCodec.ParseDataType(fieldTypes[i]);
-                field.Name = fieldNames[i];
-                udt.Fields.Add(field);
-            }
-            return udt;
         }
     }
 }
