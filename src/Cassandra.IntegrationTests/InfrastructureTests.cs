@@ -33,24 +33,6 @@ namespace Cassandra.IntegrationTests
     public class InfrastructureTests
     {
         /// <summary>
-        /// Checks that python is present in the system
-        /// </summary>
-        [Test]
-        public void PythonTest()
-        {
-            var output = TestUtils.ExecutePythonCommand("-V");
-            if (output.ExitCode == 0)
-            {
-                Trace.TraceInformation("Python version: " + output.OutputText.ToString());
-            }
-            else
-            {
-                Trace.TraceError("Python not found");
-                Trace.TraceError(output.ToString());
-            }
-        }
-
-        /// <summary>
         /// Checks that ccm is present in the user profile path (generally C:\Users\(USERNAME)\)
         /// </summary>
         [Test]
