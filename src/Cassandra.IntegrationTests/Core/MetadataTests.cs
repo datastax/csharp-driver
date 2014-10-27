@@ -585,6 +585,16 @@ namespace Cassandra.IntegrationTests.Core
                 var tableByAll = Cluster.Metadata.GetKeyspace(Keyspace).GetTablesMetadata().First(t => t.Name == tableName);
                 Assert.NotNull(tableByAll);
                 Assert.AreEqual(table.TableColumns.Length, tableByAll.TableColumns.Length);
+
+                var columnLength = table.TableColumns.Length;
+                //Alter table and check for changes
+                Session.Execute(String.Format("ALTER TABLE {0} ADD added_col int", tableName));
+                Thread.Sleep(1000);
+                table = Cluster.Metadata
+                    .GetKeyspace(Keyspace)
+                    .GetTableMetadata(tableName);
+                Assert.AreEqual(columnLength + 1, table.TableColumns.Length);
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
             }
             finally
             {

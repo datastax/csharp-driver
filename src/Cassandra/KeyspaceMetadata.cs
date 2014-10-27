@@ -29,7 +29,7 @@ namespace Cassandra
         private const String SelectTables = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='{0}'";
         private const String SelectColumns = "SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
         private const String SelectUdts = "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
-
+        private readonly ConcurrentDictionary<string, TableMetadata> _tables = new ConcurrentDictionary<string, TableMetadata>();
         private readonly ControlConnection _cc;
 
         /// <summary>
@@ -82,7 +82,13 @@ namespace Cassandra
         ///  exists, <c>null</c> otherwise.</returns>
         public TableMetadata GetTableMetadata(string tableName)
         {
-            var keyspaceName = this.Name;
+            TableMetadata table;
+            if (_tables.TryGetValue(tableName, out table))
+            {
+                //The table metadata is available in local cache
+                return table;
+            }
+            var keyspaceName = Name;
             var cols = new Dictionary<string, TableColumn>();
             TableOptions options = null;
             var tableMetadataRow = _cc.Query(String.Format(SelectSingleTable, tableName, keyspaceName)).FirstOrDefault();
@@ -196,7 +202,19 @@ namespace Cassandra
                 };
             }
 
-            return new TableMetadata(tableName, cols.Values.ToArray(), options);
+            table = new TableMetadata(tableName, cols.Values.ToArray(), options);
+            //Cache it
+            _tables.AddOrUpdate(tableName, table, (k, o) => table);
+            return table;
+        }
+
+        /// <summary>
+        /// Removes table metadata forcing refresh the next time the table metadata is retrieved
+        /// </summary>
+        internal void ClearTableMetadata(string tableName)
+        {
+            TableMetadata table;
+            _tables.TryRemove(tableName, out table);
         }
 
         private SortedDictionary<string, string> GetCompactionStrategyOptions(Row row)
@@ -230,7 +248,7 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return _cc.Query(String.Format(SelectTables, this.Name)).Select(r => r.GetValue<string>("columnfamily_name")).ToList();
+            return _cc.Query(String.Format(SelectTables, Name)).Select(r => r.GetValue<string>("columnfamily_name")).ToList();
         }
 
         /// <summary>
@@ -283,7 +301,7 @@ namespace Cassandra
         /// </summary>
         internal UdtColumnInfo GetUdtDefinition(string typeName)
         {
-            var keyspaceName = this.Name;
+            var keyspaceName = Name;
             var rs = _cc.Query(String.Format(SelectUdts, keyspaceName, typeName));
             var row = rs.FirstOrDefault();
             if (row == null)

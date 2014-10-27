@@ -322,5 +322,19 @@ namespace Cassandra
             var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
             FireSchemaChangedEvent(eventKind, name, null, this);
         }
+
+        internal void RefreshTable(string keyspaceName, string tableName)
+        {
+            var keyspacesMap = _keyspaces;
+            if (keyspacesMap == null)
+            {
+                return;
+            }
+            KeyspaceMetadata ksMetadata;
+            if (keyspacesMap.TryGetValue(keyspaceName, out ksMetadata))
+            {
+                ksMetadata.ClearTableMetadata(tableName);
+            }
+        }
     }
 }

@@ -234,7 +234,7 @@ namespace Cassandra
                     var ssc = e as SchemaChangeEventArgs;
                     if (!String.IsNullOrEmpty(ssc.Table))
                     {
-                        //Is a table change: dismiss
+                        RefreshTable(ssc.Keyspace, ssc.Table);
                         return;
                     }
                     if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
@@ -245,6 +245,11 @@ namespace Cassandra
                     _cluster.Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
                 }
             });
+        }
+
+        private void RefreshTable(string keyspaceName, string tableName)
+        {
+            _cluster.Metadata.RefreshTable(keyspaceName, tableName);
         }
 
         private void ReconnectionClb(object state)
