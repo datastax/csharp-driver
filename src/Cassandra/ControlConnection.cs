@@ -16,10 +16,8 @@
 
 using System;
 using System.Linq;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -28,7 +26,6 @@ namespace Cassandra
 {
     internal class ControlConnection : IDisposable
     {
-        private const long MaxSchemaAgreementWaitMs = 10000;
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
@@ -50,7 +47,6 @@ namespace Cassandra
         private readonly BoolSwitch _shutdownSwitch = new BoolSwitch();
         private bool _isDisconnected;
         private readonly object _setupLock = new Object();
-        private readonly object _refreshLock = new Object();
         private int _protocolVersion;
 
         /// <summary>
@@ -88,7 +84,6 @@ namespace Cassandra
         }
 
         internal ControlConnection(Cluster cluster,
-                                   IEnumerable<IPAddress> clusterEndpoints,
                                    Policies policies,
                                    ProtocolOptions protocolOptions,
                                    PoolingOptions poolingOptions,
@@ -132,6 +127,7 @@ namespace Cassandra
             if (_shutdownSwitch.TryTake())
             {
                 _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                _reconnectionTimer.Dispose();
                 _session.WaitForAllPendingActions(timeoutMs);
                 _session.Dispose();
             }
@@ -264,37 +260,6 @@ namespace Cassandra
             }
         }
 
-        internal bool RefreshHosts()
-        {
-            lock (_refreshLock)
-            {
-                try
-                {
-                    if (!_isDisconnected)
-                    {
-                        RefreshNodeListAndTokenMap();
-                        return true;
-                    }
-                    return false;
-                }
-                catch (NoHostAvailableException)
-                {
-                    _logger.Error("ControlConnection is lost now.");
-                    return false;
-                }
-                catch (SocketException)
-                {
-                    _logger.Error("ControlConnection is lost now.");
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("Unexpected error occurred during forced ControlConnection refresh.", ex);
-                    throw;
-                }
-            }
-        }
-
         private void SetupControlConnection(bool refreshOnly = false)
         {
             lock (_setupLock)
@@ -337,115 +302,102 @@ namespace Cassandra
             }
         }
 
-        // schema
-
         private void RefreshNodeListAndTokenMap()
         {
-            _logger.Info("Refreshing NodeList and TokenMap..");
-            // Make sure we're up to date on nodes and tokens            
+            _logger.Info("Refreshing NodeList and TokenMap.");
+            //TODO: Handle connection failure
+            var localRow = Query(SelectLocal).FirstOrDefault();
+            var rsPeers = Query(SelectPeers);
+            if (localRow == null)
+            {
+                _logger.Error("Local host metadata could not be retrieved");
+                return;
+            }
             var tokenMap = new Dictionary<IPAddress, HashSet<string>>();
-            string partitioner = null;
+            var partitioner = localRow.GetValue<string>("partitioner");
+            UpdateLocalInfo(localRow, tokenMap);
+            UpdatePeersInfo(rsPeers, tokenMap);
+            _cluster.Metadata.RefreshKeyspaces();
+            _cluster.Metadata.RebuildTokenMap(partitioner, tokenMap);
+            _logger.Info("NodeList and TokenMap have been successfully refreshed!");
+        }
 
-            var foundHosts = new List<IPAddress>();
+        private void UpdateLocalInfo(Row row, IDictionary<IPAddress, HashSet<string>> tokenMap)
+        {
+            var localhost = _host;
+            // Update cluster name, DC and rack for the one node we are connected to
+            var clusterName = row.GetValue<string>("cluster_name");
+            if (clusterName != null)
+            {
+                _cluster.Metadata.ClusterName = clusterName;
+            }
+            int protocolVersion;
+            if (row.GetColumn("native_protocol_version") != null &&
+                Int32.TryParse(row.GetValue<string>("native_protocol_version"), out protocolVersion))
+            {
+                //In Cassandra < 2
+                //  there is no native protocol version column, it will get the default value
+                _protocolVersion = protocolVersion;
+            }
+            localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
+            var tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+            tokenMap.Add(localhost.Address, new HashSet<string>(tokens));
+        }
+
+        private void UpdatePeersInfo(IEnumerable<Row> rs, IDictionary<IPAddress, HashSet<string>> tokenMap)
+        {
+            var foundPeers = new HashSet<IPAddress>();
             var dcs = new List<string>();
             var racks = new List<string>();
-            var allTokens = new List<HashSet<string>>();
+            foreach (var row in rs)
             {
-                var rowset = Query(SelectPeers);
-                
-                foreach (Row row in rowset.GetRows())
+                var address = GetAddressForPeerHost(row);
+                if (address == null)
                 {
-                    IPAddress hstip = null;
-                    if (!row.IsNull("rpc_address"))
-                        hstip = row.GetValue<IPAddress>("rpc_address");
-                    if (hstip == null)
-                    {
-                        if (!row.IsNull("peer"))
-                            hstip = row.GetValue<IPAddress>("peer");
-                        _logger.Error("No rpc_address found for host in peers system table. ");
-                    }
-                    else if (hstip.Equals(BindAllAddress))
-                    {
-                        if (!row.IsNull("peer"))
-                            hstip = row.GetValue<IPAddress>("peer");
-                    }
-
-                    if (hstip != null)
-                    {
-                        foundHosts.Add(hstip);
-                        dcs.Add(row.GetValue<string>("data_center"));
-                        racks.Add(row.GetValue<string>("rack"));
-                        var col = row.GetValue<IEnumerable<string>>("tokens");
-                        if (col == null)
-                            allTokens.Add(new HashSet<string>());
-                        else
-                            allTokens.Add(new HashSet<string>(col));
-                    }
+                    _logger.Error("No address found for host, ignoring it.");
+                    continue;
                 }
-            }
-            {
-                Host localhost = _cluster.Metadata.GetHost(_connection.Address);
-
-                var rowset = Query(SelectLocal);
-                // Update cluster name, DC and rack for the one node we are connected to
-                var localRow = rowset.First();
-                var clusterName = localRow.GetValue<string>("cluster_name");
-                if (clusterName != null)
-                {
-                    _cluster.Metadata.ClusterName = clusterName;
-                }
-                int protocolVersion;
-                if (rowset.Columns.Any(c => c.Name == "native_protocol_version") && 
-                    Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
-                {
-                    //In Cassandra < 2
-                    //  there is no native protocol version column, it will get the default value
-                    _protocolVersion = protocolVersion;
-                }
-                // In theory host can't be null. However there is no point in risking a NPE in case we
-                // have a race between a node removal and this.
-                if (localhost != null)
-                {
-                    localhost.SetLocationInfo(localRow.GetValue<string>("data_center"), localRow.GetValue<string>("rack"));
-
-                    partitioner = localRow.GetValue<string>("partitioner");
-                    var tokens = localRow.GetValue<IList<string>>("tokens");
-                    if (partitioner != null && tokens.Count > 0)
-                    {
-                        if (!tokenMap.ContainsKey(localhost.Address))
-                            tokenMap.Add(localhost.Address, new HashSet<string>());
-                        tokenMap[localhost.Address].UnionWith(tokens);
-                    }
-                }
-            }
-
-            for (int i = 0; i < foundHosts.Count; i++)
-            {
-                Host host = _cluster.Metadata.GetHost(foundHosts[i]);
+                foundPeers.Add(address);
+                var host = _cluster.Metadata.GetHost(address);
                 if (host == null)
                 {
-                    // We don't know that node, add it.
-                    host = _cluster.Metadata.AddHost(foundHosts[i]);
+                    host = _cluster.Metadata.AddHost(address);
                 }
-                host.SetLocationInfo(dcs[i], racks[i]);
-
-                if (partitioner != null && allTokens[i].Count != 0)
-                    tokenMap.Add(host.Address, allTokens[i]);
+                host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
+                var tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+                tokenMap.Add(host.Address, new HashSet<string>(tokens));
             }
 
-            // Removes all those that seems to have been removed (since we lost the control connection)
-            var foundHostsSet = new HashSet<IPAddress>(foundHosts);
-            foreach (var host in _cluster.Metadata.AllReplicas())
-                if (!host.Equals(_connection.Address) && !foundHostsSet.Contains(host))
-                    _cluster.Metadata.RemoveHost(host);
-
-            _cluster.Metadata.RefreshKeyspaces();
-            if (partitioner != null)
+            // Removes all those that seems to have been removed (since we lost the control connection or not valid contact point)
+            foreach (var address in _cluster.Metadata.AllReplicas())
             {
-                _cluster.Metadata.RebuildTokenMap(partitioner, tokenMap);
+                if (!address.Equals(_host.Address) && !foundPeers.Contains(address))
+                {
+                    _cluster.Metadata.RemoveHost(address);
+                }
             }
+        }
 
-            _logger.Info("NodeList and TokenMap have been successfully refreshed!");
+        /// <summary>
+        /// Uses system.peers values to build the Address translator
+        /// </summary>
+        internal static IPAddress GetAddressForPeerHost(Row row)
+        {
+            IPAddress address = null;
+            if (!row.IsNull("rpc_address"))
+            {
+                address = row.GetValue<IPAddress>("rpc_address");
+            }
+            if (address == null && !row.IsNull("peer"))
+            {
+                address = row.GetValue<IPAddress>("peer");
+                _logger.Error("No rpc_address found for host in peers system table.");
+            }
+            else if (BindAllAddress.Equals(address) && !row.IsNull("peer"))
+            {
+                address = row.GetValue<IPAddress>("peer");
+            }
+            return address;
         }
 
         /// <summary>

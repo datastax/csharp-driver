@@ -109,8 +109,7 @@ namespace Cassandra
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127);
 
             var controlConnection = new ControlConnection(
-                this, 
-                new List<IPAddress>(), 
+                this,
                 controlpolicies,
                 new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
                 controlPoolingOptions, 
