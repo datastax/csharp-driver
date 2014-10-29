@@ -41,7 +41,10 @@ namespace Cassandra
         ///  definitions.</p>
         /// </summary>
         Metadata Metadata { get; }
-
+        /// <summary>
+        /// Cluster client configuration
+        /// </summary>
+        Configuration Configuration { get; }
         /// <summary>
         ///  Returns all known hosts of this cluster.
         /// </summary>

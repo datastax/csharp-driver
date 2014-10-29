@@ -36,7 +36,7 @@ namespace Cassandra
 
         public int BinaryProtocolVersion { get; internal set; }
 
-        public Cluster Cluster { get; private set; }
+        public ICluster Cluster { get; private set; }
 
         /// <summary>
         /// Gets the cluster configuration
@@ -59,7 +59,7 @@ namespace Cassandra
 
         public Policies Policies { get { return Configuration.Policies; } }
 
-        internal Session(Cluster cluster, Configuration configuration, string keyspace, int binaryProtocolVersion)
+        internal Session(ICluster cluster, Configuration configuration, string keyspace, int binaryProtocolVersion)
         {
             Cluster = cluster;
             Configuration = configuration;

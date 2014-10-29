@@ -362,6 +362,10 @@ namespace Cassandra.IntegrationTests
             }
             output.OutputText.AppendLine(startOutput.ToString());
 
+            if (ConfigurationManager.AppSettings["CcmStatus"] != "true")
+            {
+                return output;   
+            }
             //Nodes are starting, but we dont know for sure if they are have started.
             var allNodesAreUp = false;
             var safeCounter = 0;

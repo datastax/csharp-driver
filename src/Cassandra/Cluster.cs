@@ -92,31 +92,12 @@ namespace Cassandra
             _configuration = configuration;
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
 
-            var controlpolicies = new Policies(
-                _configuration.Policies.LoadBalancingPolicy,
-                new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
-                Policies.DefaultRetryPolicy);
-
             foreach (IPAddress ep in contactPoints)
+            {
                 Metadata.AddHost(ep);
+            }
 
-            //Use 1 connection per host
-            //The connection will be reused, it wont create a connection per host.
-            var controlPoolingOptions = new PoolingOptions()
-                .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                .SetMaxConnectionsPerHost(HostDistance.Local, 1)
-                .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
-                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127);
-
-            var controlConnection = new ControlConnection(
-                this,
-                controlpolicies,
-                new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
-                controlPoolingOptions, 
-                _configuration.SocketOptions,
-                new ClientOptions(true, _configuration.ClientOptions.QueryAbortTimeout, null),
-                _configuration.AuthProvider,
-                _configuration.AuthInfoProvider);
+            var controlConnection = new ControlConnection(this, _metadata, configuration);
 
             _metadata.SetupControlConnection(controlConnection);
             _binaryProtocolVersion = controlConnection.ProtocolVersion;

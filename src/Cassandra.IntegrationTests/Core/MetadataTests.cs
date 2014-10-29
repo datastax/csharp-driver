@@ -49,6 +49,10 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Greater(cluster.Metadata.GetKeyspaces().Count, 0);
                 Assert.NotNull(cluster.Metadata.GetKeyspace("system"));
                 Assert.AreEqual("system", cluster.Metadata.GetKeyspace("system").Name);
+                //Not existent tables return null
+                Assert.Null(cluster.Metadata.GetKeyspace("ks_not_existent"));
+                Assert.Null(cluster.Metadata.GetTable("ks_not_existent", "tbl1"));
+                Assert.Null(cluster.Metadata.GetTable("system", "tbl1"));
                 //Case sensitive
                 Assert.Null(cluster.Metadata.GetKeyspace("SYSTEM"));
             }

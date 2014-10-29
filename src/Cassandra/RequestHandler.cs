@@ -267,13 +267,6 @@ namespace Cassandra
 
         private void SetHostDown(Host host, Connection connection, Exception ex)
         {
-            if (connection != null && connection.IsDisposed)
-            {
-                //The connection is being explicitly Disposed
-                //This closes the connection making next calls to the connection to throw socket exceptions.
-                //It does not mean the Host is down, the connection was closed.
-                return;
-            }
             host.SetDown();
         }
 
