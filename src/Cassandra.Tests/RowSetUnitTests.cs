@@ -114,20 +114,9 @@ namespace Cassandra.Tests
             };
 
             //use linq to iterate and map it to a list
-            try 
-            {
-                //The row set should throw an exception when getting the next page.
-                var rowList = rs.ToList();
-                Assert.Fail("It should throw a TestException");
-            }
-            catch (TestException)
-            {
-                //An exception of type TestException is expected. 
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail("Expected exception of type TestException, got: " + ex.GetType());
-            }
+            //The row set should throw an exception when getting the next page.
+            Assert.Throws<TestException>(() => { rs.ToList(); });
+
         }
 
         /// <summary>
