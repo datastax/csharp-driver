@@ -27,7 +27,7 @@ namespace Cassandra.Tests
             {
                 { "cluster_name", "ut-cluster" }, { "data_center", "ut-dc" }, { "rack", "ut-rack" }, {"tokens", null}
             });
-            cc.UpdateLocalInfo(row, new Dictionary<IPAddress, HashSet<string>>());
+            cc.UpdateLocalInfo(row, new Dictionary<Host, HashSet<string>>());
             Assert.AreEqual("ut-cluster", metadata.ClusterName);
             Assert.AreEqual("ut-dc", cc.Host.Datacenter);
             Assert.AreEqual("ut-rack", cc.Host.Rack);
@@ -49,7 +49,7 @@ namespace Cassandra.Tests
                 new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}},
                 new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}}
             });
-            cc.UpdatePeersInfo(rows, new Dictionary<IPAddress, HashSet<string>>());
+            cc.UpdatePeersInfo(rows, new Dictionary<Host, HashSet<string>>());
             Assert.AreEqual(3, metadata.AllHosts().Count);
             //using rpc_address
             var host2 = metadata.GetHost(hostAddress2);
@@ -76,7 +76,7 @@ namespace Cassandra.Tests
             {
                 new Dictionary<string, object>{{"rpc_address", null}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack" }, {"tokens", null}}
             });
-            cc.UpdatePeersInfo(rows, new Dictionary<IPAddress, HashSet<string>>());
+            cc.UpdatePeersInfo(rows, new Dictionary<Host, HashSet<string>>());
             //Only local host present
             Assert.AreEqual(1, metadata.AllHosts().Count);
         }

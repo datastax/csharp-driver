@@ -19,7 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
-using NUnit.Framework;
+﻿using Moq;
+﻿using NUnit.Framework;
 
 namespace Cassandra.Tests
 {
@@ -58,6 +59,57 @@ namespace Cassandra.Tests
             {
                 Assert.AreEqual(kv.Value, factory.Hash(kv.Key));
             }
+        }
+
+        [Test]
+        public void TokenMapSimpleStrategyWithKeyspaceTest()
+        {
+            var rp = new ConstantReconnectionPolicy(1);
+            var tokensByHost = new Dictionary<Host, HashSet<string>>
+            {
+                { new Host(GetAddress("192.168.0.0"), rp), new HashSet<string>{"0"}},
+                { new Host(GetAddress("192.168.0.1"), rp), new HashSet<string>{"10"}},
+                { new Host(GetAddress("192.168.0.2"), rp), new HashSet<string>{"20"}}
+            };
+            const string strategy = ReplicationStrategies.SimpleStrategy;
+            var keyspaces = new List<KeyspaceMetadata>
+            {
+                new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> {{"replication_factor", 2}}),
+                new KeyspaceMetadata(null, "ks2", true, strategy, new Dictionary<string, int> {{"replication_factor", 10}})
+            };
+            var tokenMap = TokenMap.Build("Murmur3Partitioner", tokensByHost, keyspaces);
+
+            //the primary replica and the next
+            var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
+            Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+
+            //The next replica should be the first
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(20));
+            Assert.AreEqual("2,0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+
+            //The closest replica and the next
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(19));
+            Assert.AreEqual("2,0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+
+            //Even if the replication factor is greater than the ring, it should return only ring size
+            replicas = tokenMap.GetReplicas("ks2", new M3PToken(5));
+            Assert.AreEqual("1,2,0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+
+            //The primary replica only as the keyspace was not found
+            replicas = tokenMap.GetReplicas(null, new M3PToken(0));
+            Assert.AreEqual("0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            replicas = tokenMap.GetReplicas(null, new M3PToken(10));
+            Assert.AreEqual("1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            replicas = tokenMap.GetReplicas("ks_does_not_exist", new M3PToken(20));
+            Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            replicas = tokenMap.GetReplicas(null, new M3PToken(19));
+            Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+        }
+
+        private static IPAddress GetAddress(string address)
+        {
+            //To ease up the migration between IP to endpoint
+            return IPAddress.Parse(address);
         }
     }
 }

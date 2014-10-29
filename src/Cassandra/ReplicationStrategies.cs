@@ -19,7 +19,7 @@ using System.Globalization;
 
 namespace Cassandra
 {
-    public static class ReplicationStrategies
+    internal static class ReplicationStrategies
     {
         public const string NetworkTopologyStrategy = "NetworkTopologyStrategy";
         public const string SimpleStrategy = "SimpleStrategy";

@@ -17,66 +17,116 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Linq;
 
 namespace Cassandra
 {
     internal class TokenMap
     {
         internal readonly TokenFactory Factory;
-        private readonly IToken[] _ring;
-        private readonly Dictionary<IToken, HashSet<IPAddress>> _tokenToCassandraClusterHosts;
+        private readonly List<IToken> _ring;
+        private readonly Dictionary<string, Dictionary<IToken, List<Host>>> _tokenToHostsByKeyspace;
+        private readonly Dictionary<IToken, Host> _primaryReplicas;
+        private static readonly Logger _logger = new Logger(typeof(ControlConnection));
 
-        private TokenMap(TokenFactory factory, Dictionary<IToken, HashSet<IPAddress>> tokenToCassandraClusterHosts, List<IToken> ring)
+        internal TokenMap(TokenFactory factory, Dictionary<string, Dictionary<IToken, List<Host>>> tokenToHostsByKeyspace, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
         {
             Factory = factory;
-            _tokenToCassandraClusterHosts = tokenToCassandraClusterHosts;
-            _ring = ring.ToArray();
-            Array.Sort(_ring);
+            _tokenToHostsByKeyspace = tokenToHostsByKeyspace;
+            _ring = ring;
+            _primaryReplicas = primaryReplicas;
         }
 
-        public static TokenMap Build(String partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
+        public static TokenMap Build(string partitioner, Dictionary<Host, HashSet<string>> allTokens, ICollection<KeyspaceMetadata> keyspaces)
         {
-            TokenFactory factory = TokenFactory.GetFactory(partitioner);
+            var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
-                return null;
-
-            var tokenToCassandraClusterHosts = new Dictionary<IToken, HashSet<IPAddress>>();
-            var allSorted = new HashSet<IToken>();
-
-            foreach (KeyValuePair<IPAddress, HashSet<string>> entry in allTokens)
             {
-                IPAddress cassandraClusterHost = entry.Key;
-                foreach (string tokenStr in entry.Value)
+                return null;   
+            }
+
+            var primaryReplicas = new Dictionary<IToken, Host>();
+            var allSorted = new SortedSet<IToken>();
+            foreach (var entry in allTokens)
+            {
+                var host = entry.Key;
+                foreach (var tokenStr in entry.Value)
                 {
                     try
                     {
-                        IToken t = factory.Parse(tokenStr);
-                        allSorted.Add(t);
-                        if (!tokenToCassandraClusterHosts.ContainsKey(t))
-                            tokenToCassandraClusterHosts.Add(t, new HashSet<IPAddress>());
-                        tokenToCassandraClusterHosts[t].Add(cassandraClusterHost);
+                        var token = factory.Parse(tokenStr);
+                        allSorted.Add(token);
+                        primaryReplicas[token] = host;
                     }
-                    catch (ArgumentException)
+                    catch
                     {
-                        // If we failed parsing that token, skip it
+                        _logger.Error(String.Format("Token {0} could not be parsed using {1} partitioner implementation", tokenStr, partitioner));
                     }
                 }
             }
-            return new TokenMap(factory, tokenToCassandraClusterHosts, new List<IToken>(allSorted));
+            var ring = new List<IToken>(allSorted);
+            var tokenToHosts = new Dictionary<string, Dictionary<IToken, List<Host>>>(keyspaces.Count);
+            foreach (var ks in keyspaces)
+            {
+                Dictionary<IToken, List<Host>> replicas;
+                if (ks.StrategyClass == ReplicationStrategies.SimpleStrategy)
+                {
+                    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], ring, primaryReplicas);
+                }
+                //TODO: Network strategy
+                else
+                {
+                    //No replication information, use primary replicas
+                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => new List<Host>(1) {kv.Value});   
+                }
+                tokenToHosts[ks.Name] = replicas;
+            }
+            return new TokenMap(factory, tokenToHosts, ring, primaryReplicas);
         }
 
-        public HashSet<IPAddress> GetReplicas(IToken token)
+        /// <summary>
+        /// Converts token-primary to token-replicas
+        /// </summary>
+        private static Dictionary<IToken, List<Host>> ComputeTokenToReplicaSimple(int replicationFactor, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
+        {
+            var rf = Math.Min(replicationFactor, ring.Count);
+            var tokenToReplicas = new Dictionary<IToken, List<Host>>(ring.Count);
+            for (var i = 0; i < ring.Count; i++)
+            {
+                var token = ring[i];
+                var replicas = new List<Host>(rf);
+                replicas.Add(primaryReplicas[token]);
+                for (var j = 1; j < rf; j++)
+                {
+                    var nextReplicaIndex = i + j;
+                    if (nextReplicaIndex >= ring.Count)
+                    {
+                        //circle back
+                        nextReplicaIndex = nextReplicaIndex % ring.Count;
+                    }
+                    var nextReplica = primaryReplicas[ring[nextReplicaIndex]];
+                    replicas.Add(nextReplica);
+                }
+                tokenToReplicas.Add(token, replicas);
+            }
+            return tokenToReplicas;
+        }
+
+        public List<Host> GetReplicas(string keyspaceName, IToken token)
         {
             // Find the primary replica
-            int i = Array.BinarySearch(_ring, token);
+            var i = _ring.BinarySearch(token);
             if (i < 0)
             {
-                i = (i + 1)*(-1);
-                if (i >= _ring.Length)
-                    i = 0;
+                //no exact match, use closest index
+                i = ~i;
             }
-
-            return _tokenToCassandraClusterHosts[_ring[i]];
+            var closestToken = _ring[i];
+            if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
+            {
+                return _tokenToHostsByKeyspace[keyspaceName][closestToken];
+            }
+            return new List<Host>(1) { _primaryReplicas[closestToken] };
         }
     }
 }

@@ -67,7 +67,7 @@ namespace Cassandra
         /// <returns>The host or null if not found</returns>
         Host GetHost(IPAddress address);
         /// <summary>
-        /// Gets a collection of replicas for a given partitionKey
+        /// Gets a collection of replicas for a given partitionKey. Backward-compatibility only, use GetReplicas(keyspace, partitionKey) instead.
         /// </summary>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
@@ -78,7 +78,7 @@ namespace Cassandra
         /// <param name="keyspace">Byte array representing the partition key</param>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
-        ICollection<IPAddress> GetReplicas(string keyspace, byte[] partitionKey);
+        ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey);
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <c>* Cluster</c> instance and reclaim all resources

@@ -130,23 +130,26 @@ namespace Cassandra
             return _hosts.AllEndPointsToCollection();
         }
 
-        internal void RebuildTokenMap(string partitioner, Dictionary<IPAddress, HashSet<string>> allTokens)
+        internal void RebuildTokenMap(string partitioner, Dictionary<Host, HashSet<string>> allTokens)
         {
-            _tokenMap = TokenMap.Build(partitioner, allTokens);
+            _tokenMap = TokenMap.Build(partitioner, allTokens, _keyspaces.Values);
         }
 
-        public ICollection<IPAddress> GetReplicas(string keyspace, byte[] partitionKey)
+        /// <summary>
+        /// Get the replicas for a given partition key and keyspace
+        /// </summary>
+        public ICollection<Host> GetReplicas(string keyspaceName, byte[] partitionKey)
         {
             if (_tokenMap == null)
             {
-                return new List<IPAddress>();
+                return new List<Host>();
             }
-            return _tokenMap.GetReplicas(_tokenMap.Factory.Hash(partitionKey));   
+            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
         }
 
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            return GetReplicas(null, partitionKey);
+            return GetReplicas(null, partitionKey).Select(h => h.Address).ToList();
         }
 
         /// <summary>

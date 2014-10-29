@@ -126,5 +126,13 @@ namespace Cassandra
             Datacenter = datacenter;
             Rack = rack;
         }
+
+        /// <summary>
+        /// The hash value of the address of the host
+        /// </summary>
+        public override int GetHashCode()
+        {
+            return Address.GetHashCode();
+        }
     }
 }

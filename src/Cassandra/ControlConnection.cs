@@ -40,7 +40,7 @@ namespace Cassandra
 
         private static readonly Logger _logger = new Logger(typeof (ControlConnection));
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
-        private readonly IReconnectionSchedule _reconnectionSchedule;
+        private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private readonly Session _session;
         private readonly BoolSwitch _shutdownSwitch = new BoolSwitch();
@@ -295,6 +295,7 @@ namespace Cassandra
                     }
                     RefreshNodeListAndTokenMap();
                     _isDisconnected = false;
+                    _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                     _logger.Info("ControlConnection is listening on " + _connection.Address.ToString() + ", using binary protocol version " + _controlConnectionProtocolVersion);
                 }
                 catch (NoHostAvailableException)
@@ -333,7 +334,7 @@ namespace Cassandra
                 _logger.Error("Local host metadata could not be retrieved");
                 return;
             }
-            var tokenMap = new Dictionary<IPAddress, HashSet<string>>();
+            var tokenMap = new Dictionary<Host, HashSet<string>>();
             var partitioner = localRow.GetValue<string>("partitioner");
             int protocolVersion;
             if (localRow.GetColumn("native_protocol_version") != null &&
@@ -350,7 +351,7 @@ namespace Cassandra
             _logger.Info("NodeList and TokenMap have been successfully refreshed!");
         }
 
-        internal void UpdateLocalInfo(Row row, IDictionary<IPAddress, HashSet<string>> tokenMap)
+        internal void UpdateLocalInfo(Row row, IDictionary<Host, HashSet<string>> tokenMap)
         {
             var localhost = _host;
             // Update cluster name, DC and rack for the one node we are connected to
@@ -361,10 +362,10 @@ namespace Cassandra
             }
             localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
             var tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
-            tokenMap.Add(localhost.Address, new HashSet<string>(tokens));
+            tokenMap.Add(localhost, new HashSet<string>(tokens));
         }
 
-        internal void UpdatePeersInfo(IEnumerable<Row> rs, IDictionary<IPAddress, HashSet<string>> tokenMap)
+        internal void UpdatePeersInfo(IEnumerable<Row> rs, IDictionary<Host, HashSet<string>> tokenMap)
         {
             var foundPeers = new HashSet<IPAddress>();
             foreach (var row in rs)
@@ -383,7 +384,7 @@ namespace Cassandra
                 }
                 host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
                 var tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
-                tokenMap.Add(host.Address, new HashSet<string>(tokens));
+                tokenMap.Add(host, new HashSet<string>(tokens));
             }
 
             // Removes all those that seems to have been removed (since we lost the control connection or not valid contact point)

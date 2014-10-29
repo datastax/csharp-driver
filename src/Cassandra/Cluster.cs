@@ -171,14 +171,26 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public ICollection<IPAddress> GetReplicas(string keyspace, byte[] partitionKey)
+        public ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey)
         {
             return _metadata.GetReplicas(keyspace, partitionKey);
         }
 
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            return _metadata.RefreshKeyspaces();
+            if (table == null)
+            {
+                //Refresh all the keyspaces and tables information
+                //TODO: Clear Tokens
+                return _metadata.RefreshKeyspaces();
+            }
+            var ks = _metadata.GetKeyspace(keyspace);
+            if (ks == null)
+            {
+                return false;
+            }
+            ks.ClearTableMetadata(table);
+            return true;
         }
 
         /// <inheritdoc />
