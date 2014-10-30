@@ -15,7 +15,8 @@
 //
 
 ﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -77,7 +78,6 @@ namespace Cassandra.Tests
         [Test]
         public void RoundRobinIsCyclicTestInParallel()
         {
-
             byte hostLength = 4;
             var hostList = GetHostList(hostLength);
 
@@ -252,6 +252,171 @@ namespace Cassandra.Tests
             Assert.AreEqual(expectedDelays, actualDelays);
         }
 
+        [Test]
+        public void TokenAwarePolicyReturnsLocalReplicasFirst()
+        {
+            var hostList = new List<Host>
+            {
+                //5 local nodes and 4 remote
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc1"),
+                TestHelper.CreateHost("0.0.0.3", "dc2"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc1"),
+                TestHelper.CreateHost("0.0.0.7", "dc2"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1")
+            };
+            var n = 2;
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList)
+                .Verifiable();
+            clusterMock
+                .Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
+                .Returns<string, byte[]>((keyspace, key) =>
+                {
+                    var i = key[0];
+                    return hostList.Where(h =>
+                    {
+                        //The host at with address == k || address == k + n
+                        var address = TestHelper.GetLastAddressByte(h);
+                        return address == i || address == i + n;
+                    }).ToList();
+                })
+                .Verifiable();
+
+            var policy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc1", 2));
+            policy.Initialize(clusterMock.Object);
+
+            //key for host :::1 and :::3
+            var k = new RoutingKey { RawRoutingKey = new byte[] { 1 } };
+            var hosts = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).ToList();
+            //5 local hosts + 2 remote hosts
+            Assert.AreEqual(7, hosts.Count);
+            //local replica first
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(hosts[0]));
+            //remote replica last
+            Assert.AreEqual(3, TestHelper.GetLastAddressByte(hosts[6]));
+            clusterMock.Verify();
+
+            //key for host :::2 and :::5
+            k = new RoutingKey { RawRoutingKey = new byte[] { 2 } };
+            n = 3;
+            hosts = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).ToList();
+            Assert.AreEqual(7, hosts.Count);
+            //local replicas first
+            Assert.AreEqual(2, TestHelper.GetLastAddressByte(hosts[0]));
+            Assert.AreEqual(5, TestHelper.GetLastAddressByte(hosts[1]));
+            //next should be local nodes
+            Assert.AreEqual("dc1", hosts[2].Datacenter);
+            Assert.AreEqual("dc1", hosts[3].Datacenter);
+            Assert.AreEqual("dc1", hosts[4].Datacenter);
+            clusterMock.Verify();
+        }
+
+        [Test]
+        public void TokenAwarePolicyRoundRobinsOnLocalReplicas()
+        {
+            var hostList = new List<Host>
+            {
+                //5 local nodes and 4 remote
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc1"),
+                TestHelper.CreateHost("0.0.0.3", "dc2"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc1"),
+                TestHelper.CreateHost("0.0.0.7", "dc2"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1")
+            };
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList)
+                .Verifiable();
+            clusterMock
+                .Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
+                .Returns<string, byte[]>((keyspace, key) =>
+                {
+                    var i = key[0];
+                    return hostList.Where(h =>
+                    {
+                        //The host at with address == k and the next one
+                        var address = TestHelper.GetLastAddressByte(h);
+                        return address == i || address == i + 1;
+                    }).ToList();
+                })
+                .Verifiable();
+
+            var policy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc1", 2));
+            policy.Initialize(clusterMock.Object);
+
+            var firstHosts = new ConcurrentBag<Host>();
+            var k = new RoutingKey { RawRoutingKey = new byte[] { 1 } };
+            //key for host :::1 and :::2
+            var actions = new List<Action>();
+            const int times = 100;
+            for (var i = 0; i < times; i++)
+            {
+                actions.Add(() =>
+                {
+                    var h = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).First();
+                    firstHosts.Add(h);
+                });
+            }
+            
+
+            var parallelOptions = new ParallelOptions();
+            parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
+            parallelOptions.MaxDegreeOfParallelism = 1000;
+
+            Parallel.Invoke(parallelOptions, actions.ToArray());
+            Assert.AreEqual(times, firstHosts.Count);
+            //Half the times
+            Assert.AreEqual(times / 2, firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 1));
+            Assert.AreEqual(times / 2, firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 2));
+
+            clusterMock.Verify();
+        }
+
+        [Test]
+        public void TokenAwarePolicyReturnsChildHostsIfNoRoutingKey()
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc1"),
+                TestHelper.CreateHost("0.0.0.3", "dc2"),
+                TestHelper.CreateHost("0.0.0.4", "dc2")
+            };
+            var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList)
+                .Verifiable();
+
+            var policy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc1", 1));
+            policy.Initialize(clusterMock.Object);
+            //No routing key
+            var hosts = policy.NewQueryPlan(null, new SimpleStatement()).ToList();
+            //2 localhosts
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(h) == HostDistance.Local));
+            Assert.AreEqual("dc1", hosts[0].Datacenter);
+            Assert.AreEqual("dc1", hosts[1].Datacenter);
+            clusterMock.Verify();
+            //No statement
+            hosts = policy.NewQueryPlan(null, null).ToList();
+            //2 localhosts
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(h) == HostDistance.Local));
+            Assert.AreEqual("dc1", hosts[0].Datacenter);
+            Assert.AreEqual("dc1", hosts[1].Datacenter);
+            clusterMock.Verify();
+        }
+
         /// <summary>
         /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
         /// </summary>
@@ -260,8 +425,7 @@ namespace Cassandra.Tests
             var list = new List<Host>();
             for (byte i = 0; i < length; i++)
             {
-                var host = new Host(new IPAddress(new byte[] { 0, 0, thirdPosition, i }), new ConstantReconnectionPolicy(100));
-                host.SetLocationInfo(datacenter, "rack1");
+                var host = TestHelper.CreateHost("0.0." + thirdPosition + "." + i, datacenter);
                 list.Add(host);
             }
             return list;

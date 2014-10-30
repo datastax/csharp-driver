@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 
 namespace Cassandra.Tests
@@ -32,6 +33,18 @@ namespace Cassandra.Tests
         public static IEnumerable<Row> CreateRows(IEnumerable<Dictionary<string, object>> valueMapList)
         {
             return valueMapList.Select(CreateRow);
+        }
+
+        public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1")
+        {
+            var h = new Host(IPAddress.Parse(address), new ConstantReconnectionPolicy(1));
+            h.SetLocationInfo(dc, rack);
+            return h;
+        }
+
+        public static byte GetLastAddressByte(Host h)
+        {
+            return h.Address.GetAddressBytes()[3];
         }
     }
 }

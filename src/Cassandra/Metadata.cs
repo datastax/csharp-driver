@@ -142,7 +142,7 @@ namespace Cassandra
         {
             if (_tokenMap == null)
             {
-                return new List<Host>();
+                return new Host[0];
             }
             return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
         }

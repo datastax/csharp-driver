@@ -67,9 +67,9 @@ namespace Cassandra.Tests
             var rp = new ConstantReconnectionPolicy(1);
             var tokensByHost = new Dictionary<Host, HashSet<string>>
             {
-                { CreateHost("192.168.0.0"), new HashSet<string>{"0"}},
-                { CreateHost("192.168.0.1"), new HashSet<string>{"10"}},
-                { CreateHost("192.168.0.2"), new HashSet<string>{"20"}}
+                { TestHelper.CreateHost("192.168.0.0"), new HashSet<string>{"0"}},
+                { TestHelper.CreateHost("192.168.0.1"), new HashSet<string>{"10"}},
+                { TestHelper.CreateHost("192.168.0.2"), new HashSet<string>{"20"}}
             };
             const string strategy = ReplicationStrategies.SimpleStrategy;
             var keyspaces = new List<KeyspaceMetadata>
@@ -117,12 +117,12 @@ namespace Cassandra.Tests
             var rp = new ConstantReconnectionPolicy(1);
             var tokensByHost = new Dictionary<Host, HashSet<string>>
             {
-                { CreateHost("192.168.0.0", "dc1"), new HashSet<string>{"0"}},
-                { CreateHost("192.168.0.1", "dc1"), new HashSet<string>{"100"}},
-                { CreateHost("192.168.0.2", "dc1"), new HashSet<string>{"200"}},
-                { CreateHost("192.168.0.100", "dc2"), new HashSet<string>{"1"}},
-                { CreateHost("192.168.0.101", "dc2"), new HashSet<string>{"101"}},
-                { CreateHost("192.168.0.102", "dc2"), new HashSet<string>{"201"}}
+                { TestHelper.CreateHost("192.168.0.0", "dc1"), new HashSet<string>{"0"}},
+                { TestHelper.CreateHost("192.168.0.1", "dc1"), new HashSet<string>{"100"}},
+                { TestHelper.CreateHost("192.168.0.2", "dc1"), new HashSet<string>{"200"}},
+                { TestHelper.CreateHost("192.168.0.100", "dc2"), new HashSet<string>{"1"}},
+                { TestHelper.CreateHost("192.168.0.101", "dc2"), new HashSet<string>{"101"}},
+                { TestHelper.CreateHost("192.168.0.102", "dc2"), new HashSet<string>{"201"}}
             };
             const string strategy = ReplicationStrategies.NetworkTopologyStrategy;
             var keyspaces = new List<KeyspaceMetadata>
@@ -141,40 +141,28 @@ namespace Cassandra.Tests
             //KS1
             //the primary replica and the next
             var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
-            Assert.AreEqual("0,100,1,101", String.Join(",", replicas.Select(GetLastAddressByte)));
+            Assert.AreEqual("0,100,1,101", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             //The next replica should be the first
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(200));
-            Assert.AreEqual("2,102,0,100", String.Join(",", replicas.Select(GetLastAddressByte)));
+            Assert.AreEqual("2,102,0,100", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             //The closest replica and the next
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(190));
-            Assert.AreEqual("2,102,0,100", String.Join(",", replicas.Select(GetLastAddressByte)));
+            Assert.AreEqual("2,102,0,100", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //KS2
             //Simple strategy: 3 tokens no matter which dc
             replicas = tokenMap.GetReplicas("ks2", new M3PToken(5000));
-            Assert.AreEqual("0,100,1", String.Join(",", replicas.Select(GetLastAddressByte)));
+            Assert.AreEqual("0,100,1", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //KS3
             replicas = tokenMap.GetReplicas("ks3", new M3PToken(0));
-            Assert.AreEqual("0,100,1,2", String.Join(",", replicas.Select(GetLastAddressByte)));
+            Assert.AreEqual("0,100,1,2", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             replicas = tokenMap.GetReplicas("ks3", new M3PToken(201));
-            Assert.AreEqual("102,0,1,2", String.Join(",", replicas.Select(GetLastAddressByte)));
+            Assert.AreEqual("102,0,1,2", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //KS4
             replicas = tokenMap.GetReplicas("ks4", new M3PToken(0));
-            Assert.AreEqual("0,1,2", String.Join(",", replicas.Select(GetLastAddressByte)));
-        }
-
-        private static byte GetLastAddressByte(Host h)
-        {
-            return h.Address.GetAddressBytes()[3];
-        }
-
-        private static Host CreateHost(string address, string dc = "dc1", string rack = "rack1")
-        {
-            var h = new Host(IPAddress.Parse(address), new ConstantReconnectionPolicy(1));
-            h.SetLocationInfo(dc, rack);
-            return h;
+            Assert.AreEqual("0,1,2", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
         }
     }
 }

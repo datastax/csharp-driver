@@ -25,11 +25,11 @@ namespace Cassandra
     {
         internal readonly TokenFactory Factory;
         private readonly List<IToken> _ring;
-        private readonly Dictionary<string, Dictionary<IToken, List<Host>>> _tokenToHostsByKeyspace;
+        private readonly Dictionary<string, Dictionary<IToken, HashSet<Host>>> _tokenToHostsByKeyspace;
         private readonly Dictionary<IToken, Host> _primaryReplicas;
         private static readonly Logger _logger = new Logger(typeof(ControlConnection));
 
-        internal TokenMap(TokenFactory factory, Dictionary<string, Dictionary<IToken, List<Host>>> tokenToHostsByKeyspace, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
+        internal TokenMap(TokenFactory factory, Dictionary<string, Dictionary<IToken, HashSet<Host>>> tokenToHostsByKeyspace, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
         {
             Factory = factory;
             _tokenToHostsByKeyspace = tokenToHostsByKeyspace;
@@ -77,10 +77,10 @@ namespace Cassandra
                 }
             }
             var ring = new List<IToken>(allSorted);
-            var tokenToHosts = new Dictionary<string, Dictionary<IToken, List<Host>>>(keyspaces.Count);
+            var tokenToHosts = new Dictionary<string, Dictionary<IToken, HashSet<Host>>>(keyspaces.Count);
             foreach (var ks in keyspaces)
             {
-                Dictionary<IToken, List<Host>> replicas;
+                Dictionary<IToken, HashSet<Host>> replicas;
                 if (ks.StrategyClass == ReplicationStrategies.SimpleStrategy)
                 {
                     replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], ring, primaryReplicas);
@@ -92,21 +92,21 @@ namespace Cassandra
                 else
                 {
                     //No replication information, use primary replicas
-                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => new List<Host>(1) {kv.Value});   
+                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => new HashSet<Host>(new [] { kv.Value }));   
                 }
                 tokenToHosts[ks.Name] = replicas;
             }
             return new TokenMap(factory, tokenToHosts, ring, primaryReplicas);
         }
 
-        private static Dictionary<IToken, List<Host>> ComputeTokenToReplicaNetwork(IDictionary<string, int> replicationFactors, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas, Dictionary<string, int> datacenters)
+        private static Dictionary<IToken, HashSet<Host>> ComputeTokenToReplicaNetwork(IDictionary<string, int> replicationFactors, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas, Dictionary<string, int> datacenters)
         {
-            var replicas = new Dictionary<IToken, List<Host>>();
+            var replicas = new Dictionary<IToken, HashSet<Host>>();
             for (var i = 0; i < ring.Count; i++)
             {
                 var token = ring[i];
                 var replicasByDc = new Dictionary<string, int>();
-                var tokenReplicas = new List<Host>();
+                var tokenReplicas = new HashSet<Host>();
                 for (var j = 0; j < ring.Count; j++)
                 {
                     var replicaIndex = i + j;
@@ -157,14 +157,14 @@ namespace Cassandra
         /// <summary>
         /// Converts token-primary to token-replicas
         /// </summary>
-        private static Dictionary<IToken, List<Host>> ComputeTokenToReplicaSimple(int replicationFactor, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
+        private static Dictionary<IToken, HashSet<Host>> ComputeTokenToReplicaSimple(int replicationFactor, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
         {
             var rf = Math.Min(replicationFactor, ring.Count);
-            var tokenToReplicas = new Dictionary<IToken, List<Host>>(ring.Count);
+            var tokenToReplicas = new Dictionary<IToken, HashSet<Host>>(ring.Count);
             for (var i = 0; i < ring.Count; i++)
             {
                 var token = ring[i];
-                var replicas = new List<Host>(rf);
+                var replicas = new HashSet<Host>();
                 replicas.Add(primaryReplicas[token]);
                 for (var j = 1; j < rf; j++)
                 {
@@ -182,7 +182,7 @@ namespace Cassandra
             return tokenToReplicas;
         }
 
-        public List<Host> GetReplicas(string keyspaceName, IToken token)
+        public ICollection<Host> GetReplicas(string keyspaceName, IToken token)
         {
             // Find the primary replica
             var i = _ring.BinarySearch(token);
@@ -200,7 +200,7 @@ namespace Cassandra
             {
                 return _tokenToHostsByKeyspace[keyspaceName][closestToken];
             }
-            return new List<Host>(1) { _primaryReplicas[closestToken] };
+            return new Host[] { _primaryReplicas[closestToken] };
         }
     }
 }

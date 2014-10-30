@@ -14,8 +14,11 @@
 //   limitations under the License.
 //
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using System.Linq;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -41,6 +44,7 @@ namespace Cassandra
     {
         private readonly ILoadBalancingPolicy _childPolicy;
         private ICluster _cluster;
+        int _index;
 
         /// <summary>
         ///  Creates a new <c>TokenAware</c> policy that wraps the provided child
@@ -75,7 +79,7 @@ namespace Cassandra
         ///  Returns the hosts to use for a new query. <p> The returned plan will first
         ///  return replicas (whose <c>HostDistance</c> for the child policy is
         ///  <c>Local</c>) for the query if it can determine them (i.e. mainly if
-        ///  <c>query.getRoutingKey()</c> is not <c>null</c>). Following what
+        ///  <c>IStatement.RoutingKey</c> is not <c>null</c>). Following what
         ///  it will return the plan of the child policy.</p>
         /// </summary>
         /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
@@ -84,56 +88,65 @@ namespace Cassandra
         public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
         {
             var routingKey = query == null ? null : query.RoutingKey;
+            IEnumerable<Host> childIterator;
             if (routingKey == null)
             {
-                foreach (var iter in _childPolicy.NewQueryPlan(keyspace, query))
+                childIterator = _childPolicy.NewQueryPlan(keyspace, query);
+                foreach (var h in childIterator)
                 {
-                    yield return iter;
+                    yield return h;
                 }
                 yield break;
             }
-
-            var replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
-            if (replicas.Count == 0)
+            var replicas = _cluster.GetReplicas(keyspace, routingKey.RawRoutingKey);
+            //We need to have split into local and remote replicas
+            //We need actual lists (not lazy) as we need to round-robin through them
+            var localReplicas = new List<Host>();
+            var remoteReplicas = new List<Host>();
+            foreach (var h in replicas)
             {
-                foreach (var iter in _childPolicy.NewQueryPlan(keyspace, query))
+                var distance = _childPolicy.Distance(h);
+                if (distance == HostDistance.Local)
                 {
-                    yield return iter;
+                    localReplicas.Add(h);
                 }
-                yield break;
-            }
-
-            IEnumerator<IPAddress> iterator = replicas.GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                var host = _cluster.GetHost(iterator.Current);
-                if (host != null && _childPolicy.Distance(host) == HostDistance.Local)
+                else if (distance == HostDistance.Remote)
                 {
-                    yield return host;
+                    remoteReplicas.Add(h);
                 }
             }
-
-            IEnumerable<Host> childIterator = _childPolicy.NewQueryPlan(keyspace, query);
-            var remoteChildren = new HashSet<Host>();
-            foreach (var host in childIterator)
+            //Return the local replicas first
+            if (localReplicas.Count > 0)
             {
-                if (replicas.Contains(host.Address))
+                //Round robin through the local replicas
+                var roundRobinIndex = Interlocked.Increment(ref _index);
+                //Overflow protection
+                if (roundRobinIndex > int.MaxValue - 10000)
+                {
+                    Interlocked.Exchange(ref _index, 0);
+                }
+                for (var i = 0; i < localReplicas.Count; i++)
+                {
+                    yield return localReplicas[(roundRobinIndex + i)%localReplicas.Count];
+                }
+            }
+
+            //Then, return the child policy hosts
+            childIterator = _childPolicy.NewQueryPlan(keyspace, query);
+            foreach (var h in childIterator)
+            {
+                //It is yielded with the rest of replicas
+                if (replicas.Contains(h))
                 {
                     continue;
                 }
-                if (_childPolicy.Distance(host) != HostDistance.Local)
-                {
-                    remoteChildren.Add(host);
-                }
-                else
-                {
-                    yield return host;
-                }
+                yield return h;
             }
 
-            foreach (var host in remoteChildren)
+            //Then, the remote replicas
+            foreach (var h in remoteReplicas)
             {
-                yield return host;
+                yield return h;
             }
         }
     }
