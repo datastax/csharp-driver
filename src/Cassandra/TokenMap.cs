@@ -145,8 +145,8 @@ namespace Cassandra
         {
             foreach (var dc in replicationFactors.Keys) 
             {
-                var rf = Math.Min(replicationFactors[dc], datacenters[dc]);
-                if (replicasByDc[dc] < rf) 
+                var rf = Math.Min(replicationFactors[dc], datacenters.ContainsKey(dc) ? datacenters[dc] : 0);
+                if (!replicasByDc.ContainsKey(dc) || replicasByDc[dc] < rf) 
                 {
                     return false;
                 }
@@ -190,6 +190,10 @@ namespace Cassandra
             {
                 //no exact match, use closest index
                 i = ~i;
+                if (i >= _ring.Count)
+                {
+                    i = 0;
+                }
             }
             var closestToken = _ring[i];
             if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))

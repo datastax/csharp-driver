@@ -82,6 +82,11 @@ namespace Cassandra.Tests
             //the primary replica and the next
             var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
             Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(-100));
+            Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            //Greater than the greatest token
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(500000));
+            Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
 
             //The next replica should be the first
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(20));
@@ -104,6 +109,65 @@ namespace Cassandra.Tests
             Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
             replicas = tokenMap.GetReplicas(null, new M3PToken(19));
             Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+        }
+
+        [Test]
+        public void TokenMapNetworkTopologyStrategyWithKeyspaceTest()
+        {
+            var rp = new ConstantReconnectionPolicy(1);
+            var tokensByHost = new Dictionary<Host, HashSet<string>>
+            {
+                { CreateHost("192.168.0.0", "dc1"), new HashSet<string>{"0"}},
+                { CreateHost("192.168.0.1", "dc1"), new HashSet<string>{"100"}},
+                { CreateHost("192.168.0.2", "dc1"), new HashSet<string>{"200"}},
+                { CreateHost("192.168.0.100", "dc2"), new HashSet<string>{"1"}},
+                { CreateHost("192.168.0.101", "dc2"), new HashSet<string>{"101"}},
+                { CreateHost("192.168.0.102", "dc2"), new HashSet<string>{"201"}}
+            };
+            const string strategy = ReplicationStrategies.NetworkTopologyStrategy;
+            var keyspaces = new List<KeyspaceMetadata>
+            {
+                //network strategy with rf 2 per dc 
+                new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}),
+                //Testing simple (even it is not supposed to be)
+                new KeyspaceMetadata(null, "ks2", true, ReplicationStrategies.SimpleStrategy, new Dictionary<string, int> {{"replication_factor", 3}}),
+                //network strategy with rf 3 dc1 and 1 dc2
+                new KeyspaceMetadata(null, "ks3", true, strategy, new Dictionary<string, int> {{"dc1", 3}, {"dc2", 1}, {"dc3", 5}}),
+                //network strategy with rf 4 dc1
+                new KeyspaceMetadata(null, "ks4", true, strategy, new Dictionary<string, int> {{"dc1", 5}})
+            };
+            var tokenMap = TokenMap.Build("Murmur3Partitioner", tokensByHost, keyspaces);
+
+            //KS1
+            //the primary replica and the next
+            var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
+            Assert.AreEqual("0,100,1,101", String.Join(",", replicas.Select(GetLastAddressByte)));
+            //The next replica should be the first
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(200));
+            Assert.AreEqual("2,102,0,100", String.Join(",", replicas.Select(GetLastAddressByte)));
+            //The closest replica and the next
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(190));
+            Assert.AreEqual("2,102,0,100", String.Join(",", replicas.Select(GetLastAddressByte)));
+
+            //KS2
+            //Simple strategy: 3 tokens no matter which dc
+            replicas = tokenMap.GetReplicas("ks2", new M3PToken(5000));
+            Assert.AreEqual("0,100,1", String.Join(",", replicas.Select(GetLastAddressByte)));
+
+            //KS3
+            replicas = tokenMap.GetReplicas("ks3", new M3PToken(0));
+            Assert.AreEqual("0,100,1,2", String.Join(",", replicas.Select(GetLastAddressByte)));
+            replicas = tokenMap.GetReplicas("ks3", new M3PToken(201));
+            Assert.AreEqual("102,0,1,2", String.Join(",", replicas.Select(GetLastAddressByte)));
+
+            //KS4
+            replicas = tokenMap.GetReplicas("ks4", new M3PToken(0));
+            Assert.AreEqual("0,1,2", String.Join(",", replicas.Select(GetLastAddressByte)));
+        }
+
+        private static byte GetLastAddressByte(Host h)
+        {
+            return h.Address.GetAddressBytes()[3];
         }
 
         private static Host CreateHost(string address, string dc = "dc1", string rack = "rack1")
