@@ -44,7 +44,7 @@ namespace Cassandra.Tests
             //Initialize the balancing policy
             var policy = new RoundRobinPolicy();
             policy.Initialize(clusterMock.Object);
-            var balancedHosts = policy.NewQueryPlan(new SimpleStatement());
+            var balancedHosts = policy.NewQueryPlan(null, new SimpleStatement());
 
             //Take a list of hosts of 4, it should get 1 of every one in a cyclic order.
             var firstRound = balancedHosts.ToList();
@@ -59,7 +59,7 @@ namespace Cassandra.Tests
             var followingRounds = new List<Host>();
             for (var i = 0; i < 10; i++)
             {
-                followingRounds.AddRange(policy.NewQueryPlan(new SimpleStatement()));
+                followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()));
             }
             Assert.AreEqual(10 * hostLength, followingRounds.Count);
 
@@ -94,7 +94,7 @@ namespace Cassandra.Tests
             Action action = () =>
             {
                 var resultingHosts = new List<Host>();
-                var hostEnumerator = policy.NewQueryPlan(new SimpleStatement());
+                var hostEnumerator = policy.NewQueryPlan(null, new SimpleStatement());
                 foreach (var h in hostEnumerator)
                 {
                     //Slow down to try to execute it at the same time
@@ -139,23 +139,23 @@ namespace Cassandra.Tests
             //Initialize the balancing policy
             var policy = new DCAwareRoundRobinPolicy("local");
             policy.Initialize(clusterMock.Object);
-            var balancedHosts = policy.NewQueryPlan(new SimpleStatement());
+            var balancedHosts = policy.NewQueryPlan(null, new SimpleStatement());
             var firstRound = balancedHosts.Take(hostLength - 2).ToList();
 
             //Returns only local hosts
-            Assert.AreEqual(hostLength - 2, firstRound.Where(h => h.Datacenter == "local").Count());
-            Assert.AreEqual(0, firstRound.Where(h => h.Datacenter != "local").Count());
+            Assert.AreEqual(hostLength - 2, firstRound.Count(h => h.Datacenter == "local"));
+            Assert.AreEqual(0, firstRound.Count(h => h.Datacenter != "local"));
 
             //following rounds: test it multiple times
             var followingRounds = new List<Host>();
             for (var i = 0; i < 10; i++)
             {
-                followingRounds.AddRange(policy.NewQueryPlan(new SimpleStatement()).Take(hostLength - 2));
+                followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()).Take(hostLength - 2));
             }
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
             
             //Check that there aren't remote nodes.
-            Assert.AreEqual(0, followingRounds.Where(h => h.Datacenter != "local").Count());
+            Assert.AreEqual(0, followingRounds.Count(h => h.Datacenter != "local"));
         }
 
         [Test]
@@ -180,7 +180,7 @@ namespace Cassandra.Tests
             Action action = () =>
             {
                 var resultingHosts = new List<Host>();
-                var hostEnumerator = policy.NewQueryPlan(new SimpleStatement());
+                var hostEnumerator = policy.NewQueryPlan(null, new SimpleStatement());
                 foreach (var h in hostEnumerator)
                 {
                     //Slow down to try to execute it at the same time

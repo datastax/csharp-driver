@@ -56,11 +56,11 @@ namespace Cassandra
         ///  be so), the next host will be used. If all hosts of the returned
         ///  <c>Iterator</c> are down, the query will fail.</p>
         /// </summary>
-        /// <param name="query"> the query for which to build a plan. </param>
-        /// 
-        /// <returns>an iterator of Host. The query is tried against the hosts returned
+        /// <param name="query">The query for which to build a plan, it can be null.</param>
+        /// <param name="keyspace">Keyspace on which the query is going to be executed, it can be null.</param>
+        /// <returns>An iterator of Host. The query is tried against the hosts returned
         ///  by this iterator in order, until the query has been sent successfully to one
         ///  of the host.</returns>
-        IEnumerable<Host> NewQueryPlan(IStatement query);
+        IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query);
     }
 }

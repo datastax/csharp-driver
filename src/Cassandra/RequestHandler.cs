@@ -120,19 +120,14 @@ namespace Cassandra
         /// <exception cref="NoHostAvailableException"/>
         /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
         /// <exception cref="UnsupportedProtocolVersionException"/>
-        internal Connection GetNextConnection(IStatement statement, bool isLastChance = false)
+        internal Connection GetNextConnection(IStatement statement)
         {
-            var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(statement);
-            Host lastChanceHost = null;
+            var hostEnumerable = _session.Policies.LoadBalancingPolicy.NewQueryPlan(_session.Keyspace, statement);
             //hostEnumerable GetEnumerator will return a NEW enumerator, making this call thread safe
             foreach (var host in hostEnumerable)
             {
                 if (!host.IsConsiderablyUp)
                 {
-                    if (!isLastChance && host.Resurrect)
-                    {
-                        lastChanceHost = host;
-                    }
                     continue;
                 }
                 Host = host;
@@ -154,11 +149,6 @@ namespace Cassandra
                 {
                     SetHostDown(host, connection, ex);
                     _triedHosts[host.Address] = ex;
-                    host.Resurrect = CanBeResurrected(ex, connection);
-                    if (!isLastChance && host.Resurrect)
-                    {
-                        lastChanceHost = host;
-                    }
                 }
                 catch (InvalidQueryException)
                 {
@@ -177,14 +167,6 @@ namespace Cassandra
                 }
             }
             Host = null;
-            if (lastChanceHost != null)
-            {
-                //There are no host available and some of them are due to network events.
-                //Probably there was a network event that reset all connections and it does not mean the connection
-                _logger.Warning("Suspected network reset. Getting one host up and retrying for a last chance");
-                lastChanceHost.BringUpIfDown();
-                return GetNextConnection(statement, true);
-            }
             throw new NoHostAvailableException(_triedHosts);
         }
 
@@ -234,10 +216,6 @@ namespace Cassandra
             {
                 _logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
                 SetHostDown(Host, _connection, ex);
-                if (!Host.IsUp)
-                {
-                    Host.Resurrect = CanBeResurrected((SocketException)ex, _connection);
-                }
             }
             var decision = GetRetryDecision(ex);
             switch (decision.DecisionType)

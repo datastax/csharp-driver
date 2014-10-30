@@ -127,10 +127,11 @@ namespace Cassandra
         ///  per remote datacenter. The order of the local node in the returned query plan
         ///  will follow a Round-robin algorithm.</p>
         /// </summary>
+        /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(IStatement query)
+        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
         {
             var copyOfHosts = (from h in _cluster.AllHosts() select h).ToArray();
             int idxSeed = Interlocked.Increment(ref _index);

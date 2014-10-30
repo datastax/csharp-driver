@@ -78,25 +78,25 @@ namespace Cassandra
         ///  <c>query.getRoutingKey()</c> is not <c>null</c>). Following what
         ///  it will return the plan of the child policy.</p>
         /// </summary>
+        /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
-        /// 
         /// <returns>the new query plan.</returns>
-        public IEnumerable<Host> NewQueryPlan(IStatement query)
+        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
         {
-            RoutingKey routingKey = query == null ? null : query.RoutingKey;
+            var routingKey = query == null ? null : query.RoutingKey;
             if (routingKey == null)
             {
-                foreach (var iter in _childPolicy.NewQueryPlan(null))
+                foreach (var iter in _childPolicy.NewQueryPlan(keyspace, query))
                 {
                     yield return iter;
                 }
                 yield break;
             }
 
-            ICollection<IPAddress> replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
+            var replicas = _cluster.GetReplicas(routingKey.RawRoutingKey);
             if (replicas.Count == 0)
             {
-                foreach (var iter in _childPolicy.NewQueryPlan(query))
+                foreach (var iter in _childPolicy.NewQueryPlan(keyspace, query))
                 {
                     yield return iter;
                 }
@@ -113,7 +113,7 @@ namespace Cassandra
                 }
             }
 
-            IEnumerable<Host> childIterator = _childPolicy.NewQueryPlan(query);
+            IEnumerable<Host> childIterator = _childPolicy.NewQueryPlan(keyspace, query);
             var remoteChildren = new HashSet<Host>();
             foreach (var host in childIterator)
             {
