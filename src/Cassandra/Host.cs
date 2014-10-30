@@ -69,7 +69,7 @@ namespace Cassandra
         ///  possible for this information to not be available. In that case this method
         ///  returns <c>null</c> and caller should always expect that possibility.
         /// </summary>
-        public string Datacenter { get; private set; }
+        public string Datacenter { get; internal set; }
 
         /// <summary>
         ///  Gets the name of the rack this host is part of. The returned rack name is

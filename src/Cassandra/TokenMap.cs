@@ -37,7 +37,7 @@ namespace Cassandra
             _primaryReplicas = primaryReplicas;
         }
 
-        public static TokenMap Build(string partitioner, Dictionary<Host, HashSet<string>> allTokens, ICollection<KeyspaceMetadata> keyspaces)
+        public static TokenMap Build(string partitioner, Dictionary<Host, HashSet<string>> tokensPerHost, ICollection<KeyspaceMetadata> keyspaces)
         {
             var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
@@ -47,9 +47,21 @@ namespace Cassandra
 
             var primaryReplicas = new Dictionary<IToken, Host>();
             var allSorted = new SortedSet<IToken>();
-            foreach (var entry in allTokens)
+            var datacenters = new Dictionary<string, int>();
+            foreach (var entry in tokensPerHost)
             {
                 var host = entry.Key;
+                if (host.Datacenter != null)
+                {
+                    if (!datacenters.ContainsKey(host.Datacenter))
+                    {
+                        datacenters[host.Datacenter] = 1;
+                    }
+                    else
+                    {
+                        datacenters[host.Datacenter]++;
+                    }   
+                }
                 foreach (var tokenStr in entry.Value)
                 {
                     try
@@ -73,7 +85,10 @@ namespace Cassandra
                 {
                     replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], ring, primaryReplicas);
                 }
-                //TODO: Network strategy
+                else if (ks.StrategyClass == ReplicationStrategies.NetworkTopologyStrategy)
+                {
+                    replicas = ComputeTokenToReplicaNetwork(ks.Replication, ring, primaryReplicas, datacenters);
+                }
                 else
                 {
                     //No replication information, use primary replicas
@@ -82,6 +97,61 @@ namespace Cassandra
                 tokenToHosts[ks.Name] = replicas;
             }
             return new TokenMap(factory, tokenToHosts, ring, primaryReplicas);
+        }
+
+        private static Dictionary<IToken, List<Host>> ComputeTokenToReplicaNetwork(IDictionary<string, int> replicationFactors, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas, Dictionary<string, int> datacenters)
+        {
+            var replicas = new Dictionary<IToken, List<Host>>();
+            for (var i = 0; i < ring.Count; i++)
+            {
+                var token = ring[i];
+                var replicasByDc = new Dictionary<string, int>();
+                var tokenReplicas = new List<Host>();
+                for (var j = 0; j < ring.Count; j++)
+                {
+                    var replicaIndex = i + j;
+                    if (replicaIndex >= ring.Count)
+                    {
+                        //circle back
+                        replicaIndex = replicaIndex % ring.Count;
+                    }
+                    var h = primaryReplicas[ring[replicaIndex]];
+                    var dcRf = 0;
+                    if (!replicationFactors.TryGetValue(h.Datacenter, out dcRf))
+                    {
+                        continue;
+                    }
+                    dcRf = Math.Min(dcRf, datacenters[h.Datacenter]);
+                    var dcReplicas = 0;
+                    replicasByDc.TryGetValue(h.Datacenter, out dcReplicas);
+                    //Amount of replicas per dc is equals to the rf or the amount of host in the datacenter
+                    if (dcReplicas >= dcRf)
+                    {
+                        continue;
+                    }
+                    replicasByDc[h.Datacenter] = dcReplicas + 1;
+                    tokenReplicas.Add(h);
+                    if (IsDoneForToken(replicationFactors, replicasByDc, datacenters))
+                    {
+                        break;
+                    }
+                }
+                replicas[token] = tokenReplicas;
+            }
+            return replicas;
+        }
+
+        private static bool IsDoneForToken(IDictionary<string, int> replicationFactors, Dictionary<string, int> replicasByDc, Dictionary<string, int> datacenters)
+        {
+            foreach (var dc in replicationFactors.Keys) 
+            {
+                var rf = Math.Min(replicationFactors[dc], datacenters[dc]);
+                if (replicasByDc[dc] < rf) 
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>

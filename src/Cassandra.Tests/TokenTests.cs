@@ -67,9 +67,9 @@ namespace Cassandra.Tests
             var rp = new ConstantReconnectionPolicy(1);
             var tokensByHost = new Dictionary<Host, HashSet<string>>
             {
-                { new Host(GetAddress("192.168.0.0"), rp), new HashSet<string>{"0"}},
-                { new Host(GetAddress("192.168.0.1"), rp), new HashSet<string>{"10"}},
-                { new Host(GetAddress("192.168.0.2"), rp), new HashSet<string>{"20"}}
+                { CreateHost("192.168.0.0"), new HashSet<string>{"0"}},
+                { CreateHost("192.168.0.1"), new HashSet<string>{"10"}},
+                { CreateHost("192.168.0.2"), new HashSet<string>{"20"}}
             };
             const string strategy = ReplicationStrategies.SimpleStrategy;
             var keyspaces = new List<KeyspaceMetadata>
@@ -106,10 +106,11 @@ namespace Cassandra.Tests
             Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
         }
 
-        private static IPAddress GetAddress(string address)
+        private static Host CreateHost(string address, string dc = "dc1", string rack = "rack1")
         {
-            //To ease up the migration between IP to endpoint
-            return IPAddress.Parse(address);
+            var h = new Host(IPAddress.Parse(address), new ConstantReconnectionPolicy(1));
+            h.SetLocationInfo(dc, rack);
+            return h;
         }
     }
 }
