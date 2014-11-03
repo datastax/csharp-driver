@@ -333,11 +333,7 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("0.0.0.8", "dc2"),
                 TestHelper.CreateHost("0.0.0.9", "dc1")
             };
-            var clusterMock = new Mock<ICluster>();
-            clusterMock
-                .Setup(c => c.AllHosts())
-                .Returns(hostList)
-                .Verifiable();
+            var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
             clusterMock
                 .Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
                 .Returns<string, byte[]>((keyspace, key) =>

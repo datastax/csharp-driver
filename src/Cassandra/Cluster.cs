@@ -28,6 +28,15 @@ namespace Cassandra
     /// <inheritdoc />
     public class Cluster : ICluster
     {
+        private static int _maxProtocolVersion = 3;
+        private int _binaryProtocolVersion;
+        private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
+        private ControlConnection _controlConnection;
+        private volatile bool _initialized;
+        private volatile Exception _initException;
+        private readonly object _initLock = new Object();
+        private static readonly Logger _logger = new Logger(typeof(Cluster));
+        private readonly Metadata _metadata;
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
         ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
@@ -57,13 +66,6 @@ namespace Cassandra
             return new Builder();
         }
 
-        private readonly int _binaryProtocolVersion;
-        private readonly Configuration _configuration;
-        private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
-        private readonly Logger _logger = new Logger(typeof (Cluster));
-        private readonly Metadata _metadata;
-        private static int _maxProtocolVersion = 3;
-
         /// <summary>
         /// Gets or sets the maximum protocol version used by this driver
         /// </summary>
@@ -76,36 +78,72 @@ namespace Cassandra
         /// <summary>
         ///  Gets the cluster configuration.
         /// </summary>
-        public Configuration Configuration
-        {
-            get { return _configuration; }
-        }
+        public Configuration Configuration { get; private set; }
 
         /// <inheritdoc />
         public Metadata Metadata
         {
-            get { return _metadata; }
+            get
+            {
+                Init();
+                return _metadata;
+            }
         }
 
         private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
         {
-            _configuration = configuration;
+            Configuration = configuration;
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
-
-            foreach (IPAddress ep in contactPoints)
+            foreach (var ep in contactPoints)
             {
-                Metadata.AddHost(ep);
+                _metadata.AddHost(ep);
             }
+        }
 
-            var controlConnection = new ControlConnection(this, _metadata, configuration);
-
-            _metadata.SetupControlConnection(controlConnection);
-            _binaryProtocolVersion = controlConnection.ProtocolVersion;
-            if (controlConnection.ProtocolVersion > MaxProtocolVersion)
+        /// <summary>
+        /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
+        /// </summary>
+        private void Init()
+        {
+            if (_initialized)
             {
-                _binaryProtocolVersion = MaxProtocolVersion;
+                //It was already initialized
+                return;
             }
-            _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
+            lock (_initLock)
+            {
+                if (_initialized)
+                {
+                    //It was initialized when waiting on the lock
+                    return;
+                }
+                if (_initException != null)
+                {
+                    throw new InvalidOperationException("Cluster could not be initialized", _initException);
+                }
+                _controlConnection = new ControlConnection(this, _metadata);
+                _metadata.ControlConnection = _controlConnection;
+                try
+                {
+                    _controlConnection.Init();
+                }
+                catch (Exception ex)
+                {
+                    //There was an error that the driver is not able to recover from
+                    //Store the exception for the following times
+                    _initException = ex;
+                    //Throw the actual exception for the first time
+                    throw;
+                }
+                _binaryProtocolVersion = _controlConnection.ProtocolVersion;
+                if (_controlConnection.ProtocolVersion > MaxProtocolVersion)
+                {
+                    _binaryProtocolVersion = MaxProtocolVersion;
+                }
+                Configuration.Policies.LoadBalancingPolicy.Initialize(this);
+                _logger.Info("Cluster Connected using binary protocol version: [" + _binaryProtocolVersion + "]");
+                _initialized = true;
+            }
         }
 
         /// <inheritdoc />
@@ -119,7 +157,7 @@ namespace Cassandra
         /// </summary>
         public ISession Connect()
         {
-            return Connect(_configuration.ClientOptions.DefaultKeyspace);
+            return Connect(Configuration.ClientOptions.DefaultKeyspace);
         }
 
         /// <summary>
@@ -128,7 +166,8 @@ namespace Cassandra
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public ISession Connect(string keyspace)
         {
-            var scs = new Session(this, _configuration, keyspace, _binaryProtocolVersion);
+            Init();
+            var scs = new Session(this, Configuration, keyspace, _binaryProtocolVersion);
             scs.Init(true);
             _connectedSessions.TryAdd(scs.Guid, scs);
             _logger.Info("Session connected!");
@@ -147,9 +186,9 @@ namespace Cassandra
         /// <returns>a new session on this cluster set to default keyspace.</returns>
         public ISession ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durableWrites = true)
         {
-            var session = Connect("");
-            session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durableWrites);
-            session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
+            var session = Connect(null);
+            session.CreateKeyspaceIfNotExists(Configuration.ClientOptions.DefaultKeyspace, replication, durableWrites);
+            session.ChangeKeyspace(Configuration.ClientOptions.DefaultKeyspace);
             return session;
         }
 
@@ -161,42 +200,37 @@ namespace Cassandra
         /// <inheritdoc />
         public Host GetHost(IPAddress address)
         {
-            return _metadata.GetHost(address);
+            return Metadata.GetHost(address);
         }
 
         /// <inheritdoc />
         public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
         {
-            return _metadata.GetReplicas(partitionKey);
+            return Metadata.GetReplicas(partitionKey);
         }
 
         /// <inheritdoc />
         public ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey)
         {
-            return _metadata.GetReplicas(keyspace, partitionKey);
+            return Metadata.GetReplicas(keyspace, partitionKey);
         }
 
+        /// <summary>
+        /// Updates cluster metadata for a given keyspace or keyspace table
+        /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            if (table == null)
-            {
-                //Refresh all the keyspaces and tables information
-                //TODO: Clear Tokens
-                return _metadata.RefreshKeyspaces();
-            }
-            var ks = _metadata.GetKeyspace(keyspace);
-            if (ks == null)
-            {
-                return false;
-            }
-            ks.ClearTableMetadata(table);
-            return true;
+            return Metadata.RefreshSchema(keyspace, table);
         }
 
         /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            foreach (KeyValuePair<Guid, Session> kv in _connectedSessions)
+            if (!_initialized)
+            {
+                return;
+            }
+            foreach (var kv in _connectedSessions)
             {
                 Session ses;
                 if (_connectedSessions.TryRemove(kv.Key, out ses))
@@ -209,14 +243,9 @@ namespace Cassandra
                 }
             }
             _metadata.ShutDown(timeoutMs);
+            _controlConnection.Dispose();
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
-        }
-
-        internal void SessionDisposed(Session s)
-        {
-            Session ses;
-            _connectedSessions.TryRemove(s.Guid, out ses);
         }
     }
 }

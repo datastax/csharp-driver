@@ -22,7 +22,7 @@ using System.Linq;
 
 namespace Cassandra
 {
-    internal class Hosts
+    internal class Hosts : IEnumerable<Host>
     {
         private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
         private readonly IReconnectionPolicy _rp;
@@ -40,7 +40,7 @@ namespace Cassandra
 
         public ICollection<Host> ToCollection()
         {
-            return new List<Host>(_hosts.Values);
+            return _hosts.Values;
         }
 
         public bool AddIfNotExistsOrBringUpIfDown(IPAddress ep)
@@ -86,6 +86,7 @@ namespace Cassandra
             Host host;
             if (_hosts.TryRemove(ep, out host))
             {
+                host.SetDown();
                 host.Down -= OnHostDown;
             }
         }
@@ -93,6 +94,16 @@ namespace Cassandra
         public IEnumerable<IPAddress> AllEndPointsToCollection()
         {
             return _hosts.Keys;
+        }
+
+        public IEnumerator<Host> GetEnumerator()
+        {
+            return _hosts.Values.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return _hosts.Values.GetEnumerator();
         }
     }
 }

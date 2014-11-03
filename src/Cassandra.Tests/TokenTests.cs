@@ -65,11 +65,11 @@ namespace Cassandra.Tests
         public void TokenMapSimpleStrategyWithKeyspaceTest()
         {
             var rp = new ConstantReconnectionPolicy(1);
-            var tokensByHost = new Dictionary<Host, HashSet<string>>
+            var hosts = new List<Host>
             {
-                { TestHelper.CreateHost("192.168.0.0"), new HashSet<string>{"0"}},
-                { TestHelper.CreateHost("192.168.0.1"), new HashSet<string>{"10"}},
-                { TestHelper.CreateHost("192.168.0.2"), new HashSet<string>{"20"}}
+                { TestHelper.CreateHost("192.168.0.0", "dc1", "rack", new HashSet<string>{"0"})},
+                { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", new HashSet<string>{"10"})},
+                { TestHelper.CreateHost("192.168.0.2", "dc1", "rack", new HashSet<string>{"20"})}
             };
             const string strategy = ReplicationStrategies.SimpleStrategy;
             var keyspaces = new List<KeyspaceMetadata>
@@ -77,7 +77,7 @@ namespace Cassandra.Tests
                 new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> {{"replication_factor", 2}}),
                 new KeyspaceMetadata(null, "ks2", true, strategy, new Dictionary<string, int> {{"replication_factor", 10}})
             };
-            var tokenMap = TokenMap.Build("Murmur3Partitioner", tokensByHost, keyspaces);
+            var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
             //the primary replica and the next
             var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
@@ -115,14 +115,14 @@ namespace Cassandra.Tests
         public void TokenMapNetworkTopologyStrategyWithKeyspaceTest()
         {
             var rp = new ConstantReconnectionPolicy(1);
-            var tokensByHost = new Dictionary<Host, HashSet<string>>
+            var hosts = new List<Host>
             {
-                { TestHelper.CreateHost("192.168.0.0", "dc1"), new HashSet<string>{"0"}},
-                { TestHelper.CreateHost("192.168.0.1", "dc1"), new HashSet<string>{"100"}},
-                { TestHelper.CreateHost("192.168.0.2", "dc1"), new HashSet<string>{"200"}},
-                { TestHelper.CreateHost("192.168.0.100", "dc2"), new HashSet<string>{"1"}},
-                { TestHelper.CreateHost("192.168.0.101", "dc2"), new HashSet<string>{"101"}},
-                { TestHelper.CreateHost("192.168.0.102", "dc2"), new HashSet<string>{"201"}}
+                { TestHelper.CreateHost("192.168.0.0", "dc1", "rack1", new HashSet<string>{"0"})},
+                { TestHelper.CreateHost("192.168.0.1", "dc1", "rack1", new HashSet<string>{"100"})},
+                { TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string>{"200"})},
+                { TestHelper.CreateHost("192.168.0.100", "dc2", "rack1", new HashSet<string>{"1"})},
+                { TestHelper.CreateHost("192.168.0.101", "dc2", "rack1", new HashSet<string>{"101"})},
+                { TestHelper.CreateHost("192.168.0.102", "dc2", "rack1", new HashSet<string>{"201"})}
             };
             const string strategy = ReplicationStrategies.NetworkTopologyStrategy;
             var keyspaces = new List<KeyspaceMetadata>
@@ -136,7 +136,7 @@ namespace Cassandra.Tests
                 //network strategy with rf 4 dc1
                 new KeyspaceMetadata(null, "ks4", true, strategy, new Dictionary<string, int> {{"dc1", 5}})
             };
-            var tokenMap = TokenMap.Build("Murmur3Partitioner", tokensByHost, keyspaces);
+            var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
             //KS1
             //the primary replica and the next

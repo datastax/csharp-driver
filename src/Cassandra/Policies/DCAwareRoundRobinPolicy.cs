@@ -79,7 +79,6 @@ namespace Cassandra
         public void Initialize(ICluster cluster)
         {
             this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.AllHosts().Count);
         }
 
         private string DC(Host host)

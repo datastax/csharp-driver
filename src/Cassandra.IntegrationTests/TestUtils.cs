@@ -531,6 +531,7 @@ namespace Cassandra.IntegrationTests
                         if (keyspaceName != null)
                         {
                             clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                            WaitForSchema(clusterInfo.Cluster);
                             clusterInfo.Session.ChangeKeyspace(keyspaceName);
                         }
                     }
@@ -542,6 +543,16 @@ namespace Cassandra.IntegrationTests
                 }
             }
             return clusterInfo;
+        }
+
+        private static void WaitForSchema(ICluster cluster)
+        {
+            var hostCount = cluster.AllHosts().Count;
+            if (hostCount == 1)
+            {
+                return;
+            }
+            Thread.Sleep(500*hostCount);
         }
 
         public static void CcmRemove(CcmClusterInfo info)

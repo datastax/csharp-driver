@@ -35,10 +35,11 @@ namespace Cassandra.Tests
             return valueMapList.Select(CreateRow);
         }
 
-        public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1")
+        public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1", IEnumerable<string> tokens = null)
         {
             var h = new Host(IPAddress.Parse(address), new ConstantReconnectionPolicy(1));
             h.SetLocationInfo(dc, rack);
+            h.Tokens = tokens;
             return h;
         }
 

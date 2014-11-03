@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 
@@ -59,6 +60,11 @@ namespace Cassandra
         public IPAddress Address { get; private set; }
 
         /// <summary>
+        /// Tokens assigned to the host
+        /// </summary>
+        internal IEnumerable<string> Tokens { get; set; }
+
+        /// <summary>
         ///  Gets the name of the datacenter this host is part of. The returned
         ///  datacenter name is the one as known by Cassandra. Also note that it is
         ///  possible for this information to not be available. In that case this method
@@ -89,7 +95,6 @@ namespace Cassandra
             if (IsConsiderablyUp)
             {
                 Logger.Warning("Host " + this.Address.ToString() + " considered as DOWN");
-                Thread.MemoryBarrier();
                 _nextUpTime = DateTimeOffset.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
                 if (Down != null)
                 {

@@ -32,7 +32,6 @@ namespace Cassandra
         private const string SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const string SelectSingleKeyspace = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{0}'";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
-        private readonly Hosts _hosts;
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces;
         public event HostsEventHandler HostsEvent;
@@ -44,12 +43,19 @@ namespace Cassandra
         /// <returns>the Cassandra name of currently connected cluster.</returns>
         public String ClusterName { get; internal set; }
 
-        internal ControlConnection ControlConnection { get; private set; }
+        /// <summary>
+        /// Control connection to be used to execute the queries to retrieve the metadata
+        /// </summary>
+        internal ControlConnection ControlConnection { get; set; }
+
+        internal string Partitioner { get; set; }
+
+        internal Hosts Hosts { get; private set; }
 
         internal Metadata(IReconnectionPolicy rp)
         {
-            _hosts = new Hosts(rp);
-            _hosts.HostDown += OnHostDown;
+            Hosts = new Hosts(rp);
+            Hosts.HostDown += OnHostDown;
         }
 
         public void Dispose()
@@ -57,30 +63,23 @@ namespace Cassandra
             ShutDown();
         }
 
-        internal void SetupControlConnection(ControlConnection controlConnection)
-        {
-            ControlConnection = controlConnection;
-            ControlConnection.Init();
-        }
-
-
         public Host GetHost(IPAddress address)
         {
             Host host;
-            if (_hosts.TryGet(address, out host))
+            if (Hosts.TryGet(address, out host))
                 return host;
             return null;
         }
 
         internal Host AddHost(IPAddress address)
         {
-            _hosts.AddIfNotExistsOrBringUpIfDown(address);
+            Hosts.AddIfNotExistsOrBringUpIfDown(address);
             return GetHost(address);
         }
 
         internal void RemoveHost(IPAddress address)
         {
-            _hosts.RemoveIfExists(address);
+            Hosts.RemoveIfExists(address);
         }
 
         internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
@@ -93,7 +92,7 @@ namespace Cassandra
 
         internal void SetDownHost(IPAddress address, object sender = null)
         {
-            _hosts.SetDownIfExists(address);
+            Hosts.SetDownIfExists(address);
         }
 
         private void OnHostDown(Host h, DateTimeOffset nextUpTime)
@@ -106,7 +105,7 @@ namespace Cassandra
 
         internal void BringUpHost(IPAddress address, object sender = null)
         {
-            if (_hosts.AddIfNotExistsOrBringUpIfDown(address))
+            if (Hosts.AddIfNotExistsOrBringUpIfDown(address))
             {
                 if (HostsEvent != null)
                 {
@@ -121,18 +120,22 @@ namespace Cassandra
         /// <returns>collection of all known hosts of this cluster.</returns>
         public ICollection<Host> AllHosts()
         {
-            return _hosts.ToCollection();
+            return Hosts.ToCollection();
         }
 
 
         public IEnumerable<IPAddress> AllReplicas()
         {
-            return _hosts.AllEndPointsToCollection();
+            return Hosts.AllEndPointsToCollection();
         }
 
-        internal void RebuildTokenMap(string partitioner, Dictionary<Host, HashSet<string>> allTokens)
+        internal void RebuildTokenMap()
         {
-            _tokenMap = TokenMap.Build(partitioner, allTokens, _keyspaces.Values);
+            if (Partitioner == null)
+            {
+                throw new DriverInternalError("Partitioner can not be null");
+            }
+            _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
         }
 
         /// <summary>
@@ -249,16 +252,30 @@ namespace Cassandra
             return ksMetadata.GetUdtDefinition(typeName);
         }
 
+        /// <summary>
+        /// Updates the keyspace and token information
+        /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            //backward-compatibility purposes, it is part of the public API
-            return RefreshKeyspaces();
+            if (table == null)
+            {
+                //Refresh all the keyspaces and tables information
+                RefreshKeyspaces();
+                return true;
+            }
+            var ks = GetKeyspace(keyspace);
+            if (ks == null)
+            {
+                return false;
+            }
+            ks.ClearTableMetadata(table);
+            return true;
         }
 
         /// <summary>
-        /// Retrieves the keyspaces and stores the information in the internal state
+        /// Retrieves the keyspaces, stores the information in the internal state and rebuilds the token map
         /// </summary>
-        public bool RefreshKeyspaces()
+        internal void RefreshKeyspaces()
         {
             Logger.Info("Retrieving keyspaces metadata");
             //Use the control connection to get the keyspace
@@ -267,8 +284,7 @@ namespace Cassandra
             var keyspaces = rs.Select(ParseKeyspaceRow).ToDictionary(ks => ks.Name);
             //Assign to local state
             _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(keyspaces);
-            //Backward-compatibility: return that it was updated
-            return true;
+            RebuildTokenMap();
         }
 
         private KeyspaceMetadata ParseKeyspaceRow(Row row)
@@ -283,10 +299,9 @@ namespace Cassandra
 
         public void ShutDown(int timeoutMs = Timeout.Infinite)
         {
-            if (ControlConnection != null)
-            {
-                ControlConnection.Shutdown(timeoutMs);
-            }
+            //unreference the control connection
+            ControlConnection = null;
+            _keyspaces = null;
         }
 
         internal bool RemoveKeyspace(string name)

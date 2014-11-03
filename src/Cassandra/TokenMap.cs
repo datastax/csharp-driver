@@ -37,7 +37,7 @@ namespace Cassandra
             _primaryReplicas = primaryReplicas;
         }
 
-        public static TokenMap Build(string partitioner, Dictionary<Host, HashSet<string>> tokensPerHost, ICollection<KeyspaceMetadata> keyspaces)
+        public static TokenMap Build(string partitioner, IEnumerable<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
         {
             var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
@@ -48,9 +48,8 @@ namespace Cassandra
             var primaryReplicas = new Dictionary<IToken, Host>();
             var allSorted = new SortedSet<IToken>();
             var datacenters = new Dictionary<string, int>();
-            foreach (var entry in tokensPerHost)
+            foreach (var host in hosts)
             {
-                var host = entry.Key;
                 if (host.Datacenter != null)
                 {
                     if (!datacenters.ContainsKey(host.Datacenter))
@@ -62,7 +61,7 @@ namespace Cassandra
                         datacenters[host.Datacenter]++;
                     }   
                 }
-                foreach (var tokenStr in entry.Value)
+                foreach (var tokenStr in host.Tokens)
                 {
                     try
                     {
