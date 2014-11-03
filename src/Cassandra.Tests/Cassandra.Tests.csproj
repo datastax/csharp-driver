@@ -53,6 +53,7 @@
     </Compile>
     <Compile Include="AdoUnitTests.cs" />
     <Compile Include="BuilderTests.cs" />
+    <Compile Include="ClusterTests.cs" />
     <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />

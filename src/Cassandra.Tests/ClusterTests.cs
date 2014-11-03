@@ -21,10 +21,10 @@ using System.Net;
 using System.Text;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Cassandra.Tests
 {
     [TestFixture]
-    public class ClusterTests
+    public class ClusterUnitTests
     {
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
