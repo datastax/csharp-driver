@@ -30,7 +30,7 @@ namespace Cassandra
     {
         private static int _maxProtocolVersion = 3;
         private int _binaryProtocolVersion;
-        private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
+        private readonly ConcurrentBag<Session> _connectedSessions = new ConcurrentBag<Session>();
         private ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
@@ -119,7 +119,7 @@ namespace Cassandra
                 }
                 if (_initException != null)
                 {
-                    throw new InvalidOperationException("Cluster could not be initialized", _initException);
+                    throw _initException;
                 }
                 _controlConnection = new ControlConnection(this, _metadata);
                 _metadata.ControlConnection = _controlConnection;
@@ -149,7 +149,8 @@ namespace Cassandra
         /// <inheritdoc />
         public ICollection<Host> AllHosts()
         {
-            return Metadata.AllHosts();
+            //Do not connect at first
+            return _metadata.AllHosts();
         }
 
         /// <summary>
@@ -167,11 +168,11 @@ namespace Cassandra
         public ISession Connect(string keyspace)
         {
             Init();
-            var scs = new Session(this, Configuration, keyspace, _binaryProtocolVersion);
-            scs.Init(true);
-            _connectedSessions.TryAdd(scs.Guid, scs);
+            var session = new Session(this, Configuration, keyspace, _binaryProtocolVersion);
+            session.Init(true);
+            _connectedSessions.Add(session);
             _logger.Info("Session connected!");
-            return scs;
+            return session;
         }
 
         /// <summary>
@@ -230,17 +231,10 @@ namespace Cassandra
             {
                 return;
             }
-            foreach (var kv in _connectedSessions)
+            Session session;
+            while (_connectedSessions.TryTake(out session))
             {
-                Session ses;
-                if (_connectedSessions.TryRemove(kv.Key, out ses))
-                {
-                    if (!ses.IsDisposed)
-                    {
-                        ses.WaitForAllPendingActions(timeoutMs);
-                        ses.Dispose();
-                    }
-                }
+                session.Dispose();
             }
             _metadata.ShutDown(timeoutMs);
             _controlConnection.Dispose();

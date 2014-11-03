@@ -48,11 +48,6 @@ namespace Cassandra
             get { return Thread.VolatileRead(ref _disposed) > 0; }
         }
 
-        /// <summary>
-        /// Gets or sets the identifier of this instance
-        /// </summary>
-        internal Guid Guid { get; private set; }
-
         public string Keyspace { get; internal set; }
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
@@ -65,7 +60,6 @@ namespace Cassandra
             Configuration = configuration;
             Keyspace = keyspace;
             BinaryProtocolVersion = binaryProtocolVersion;
-            Guid = Guid.NewGuid();
             UserDefinedTypes = new UdtMappingDefinitions(this);
             _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
         }
