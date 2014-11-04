@@ -166,9 +166,8 @@ namespace Cassandra
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {
             //Use local cache
-            var keyspacesMap = _keyspaces;
             KeyspaceMetadata ksInfo;
-            keyspacesMap.TryGetValue(keyspace, out ksInfo);
+            _keyspaces.TryGetValue(keyspace, out ksInfo);
             return ksInfo;
         }
 
@@ -179,8 +178,7 @@ namespace Cassandra
         public ICollection<string> GetKeyspaces()
         {
             //Use local cache
-            var keyspacesMap = _keyspaces;
-            return keyspacesMap.Keys;
+            return _keyspaces.Keys;
         }
 
         /// <summary>
@@ -192,9 +190,8 @@ namespace Cassandra
         ///  keyspace.</returns>
         public ICollection<string> GetTables(string keyspace)
         {
-            var keyspacesMap = _keyspaces;
             KeyspaceMetadata ksMetadata;
-            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
             {
                 return new string[0];
             }
@@ -210,9 +207,8 @@ namespace Cassandra
         /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
         public TableMetadata GetTable(string keyspace, string tableName)
         {
-            var keyspacesMap = _keyspaces;
             KeyspaceMetadata ksMetadata;
-            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
             {
                 return null;
             }
@@ -224,9 +220,8 @@ namespace Cassandra
         /// </summary>
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            var keyspacesMap = _keyspaces;
             KeyspaceMetadata ksMetadata;
-            if (!keyspacesMap.TryGetValue(keyspace, out ksMetadata))
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
             {
                 return null;
             }
@@ -241,7 +236,7 @@ namespace Cassandra
             if (table == null)
             {
                 //Refresh all the keyspaces and tables information
-                RefreshKeyspaces();
+                RefreshKeyspaces(true);
                 return true;
             }
             var ks = GetKeyspace(keyspace);
@@ -256,11 +251,11 @@ namespace Cassandra
         /// <summary>
         /// Retrieves the keyspaces, stores the information in the internal state and rebuilds the token map
         /// </summary>
-        internal void RefreshKeyspaces()
+        internal void RefreshKeyspaces(bool retry)
         {
             Logger.Info("Retrieving keyspaces metadata");
             //Use the control connection to get the keyspace
-            var rs = ControlConnection.Query(SelectKeyspaces);
+            var rs = ControlConnection.Query(SelectKeyspaces, retry);
             //parse the info
             var keyspaces = rs.Select(ParseKeyspaceRow).ToDictionary(ks => ks.Name);
             //Assign to local state
@@ -288,10 +283,9 @@ namespace Cassandra
         internal bool RemoveKeyspace(string name)
         {
             Logger.Verbose("Removing keyspace metadata: " + name);
-            var keyspacesMap = _keyspaces;
             KeyspaceMetadata ks;
             FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
-            var removed = keyspacesMap.TryRemove(name, out ks);
+            var removed = _keyspaces.TryRemove(name, out ks);
             if (removed)
             {
                 RebuildTokenMap();
@@ -303,18 +297,13 @@ namespace Cassandra
         internal void RefreshSingleKeyspace(bool added, string name)
         {
             Logger.Verbose("Updating keyspace metadata: " + name);
-            var row = ControlConnection.Query(String.Format(SelectSingleKeyspace, name)).FirstOrDefault();
+            var row = ControlConnection.Query(String.Format(SelectSingleKeyspace, name), true).FirstOrDefault();
             if (row == null)
             {
                 return;
             }
-            var keyspacesMap = _keyspaces;
-            if (keyspacesMap == null)
-            {
-                return;
-            }
             var ksMetadata = ParseKeyspaceRow(row);
-            keyspacesMap.AddOrUpdate(name, ksMetadata, (k, v) => ksMetadata);
+            _keyspaces.AddOrUpdate(name, ksMetadata, (k, v) => ksMetadata);
             var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
             RebuildTokenMap();
             FireSchemaChangedEvent(eventKind, name, null, this);
@@ -322,9 +311,8 @@ namespace Cassandra
 
         internal void RefreshTable(string keyspaceName, string tableName)
         {
-            var keyspacesMap = _keyspaces;
             KeyspaceMetadata ksMetadata;
-            if (keyspacesMap.TryGetValue(keyspaceName, out ksMetadata))
+            if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
             {
                 ksMetadata.ClearTableMetadata(tableName);
             }

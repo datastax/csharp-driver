@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.Tests;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -100,6 +101,32 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(ks3.Replication["dc1"], 1);
                 Assert.Null(cluster.Metadata.GetKeyspace("ks4"));
                 Assert.NotNull(cluster.Metadata.GetKeyspace("KS4"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void MetadataMethodReconnects()
+        {
+            var clusterInfo = TestUtils.CcmSetup(2, null, null, 0, false);
+            try
+            {
+                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
+                var session = cluster.Connect();
+                //The control connection is connected to host 1
+                Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+                TestUtils.CcmStopForce(clusterInfo, 1);
+                Thread.Sleep(10000);
+                //The control connection is still connected to host 1
+                Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+                //it should reconnect
+                var t = cluster.Metadata.GetTable("system", "schema_columnfamilies");
+                Assert.NotNull(t);
+                //The control connection should be connected to host 2
+                Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
             }
             finally
             {

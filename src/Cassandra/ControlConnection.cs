@@ -104,12 +104,13 @@ namespace Cassandra
         /// <exception cref="DriverInternalError" />
         internal void Init()
         {
+            _logger.Info("Trying to connect the ControlConnection");
             Connect(true);
             try
             {
                 SubscribeEventHandlers();
                 RefreshNodeList();
-                Metadata.RefreshKeyspaces();
+                Metadata.RefreshKeyspaces(false);
             }
             catch (SocketException ex)
             {
@@ -132,6 +133,7 @@ namespace Cassandra
             IEnumerable<Host> hostIterator = Metadata.Hosts;
             if (!firstTime)
             {
+                _logger.Info("Trying to reconnect the ControlConnection");
                 //Use the load balancing policy to determine which host to use
                 hostIterator = _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null);
             }
@@ -182,7 +184,7 @@ namespace Cassandra
                         SubscribeEventHandlers();
                     }
                     RefreshNodeList();
-                    Metadata.RefreshKeyspaces();
+                    Metadata.RefreshKeyspaces(false);
                     _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                 }
                 catch (Exception ex)
@@ -392,11 +394,30 @@ namespace Cassandra
         /// <summary>
         /// Uses the active connection to execute a query
         /// </summary>
-        public RowSet Query(string cqlQuery)
+        public RowSet Query(string cqlQuery, bool retry = false)
         {
             var request = new QueryRequest(_controlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
             var task = _connection.Send(request);
-            TaskHelper.WaitToComplete(task, 10000);
+            try
+            {
+                TaskHelper.WaitToComplete(task, 10000);
+            }
+            catch (SocketException ex)
+            {
+                const string message = "There was an error while executing on the host {0} the query '{1}'";
+                _logger.Error(String.Format(message, cqlQuery, _connection.Address), ex);
+                if (retry)
+                {
+                    //Try to connect to another host
+                    Refresh(reconnect:true, throwExceptions:true);
+                    //Try to execute again without retry
+                    return Query(cqlQuery, false);
+                }
+                else
+                {
+                    throw;
+                }
+            }
             if (!(task.Result is ResultResponse) && !(((ResultResponse)task.Result).Output is OutputRows))
             {
                 throw new DriverInternalError("Expected rows " + task.Result);

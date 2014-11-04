@@ -45,7 +45,12 @@ namespace Cassandra.Tests
 
         public static byte GetLastAddressByte(Host h)
         {
-            return h.Address.GetAddressBytes()[3];
+            return GetLastAddressByte(h.Address);
+        }
+
+        public static byte GetLastAddressByte(IPAddress address)
+        {
+            return address.GetAddressBytes()[3];
         }
     }
 }
