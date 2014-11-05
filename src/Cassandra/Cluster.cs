@@ -124,15 +124,25 @@ namespace Cassandra
                 }
                 if (_initException != null)
                 {
+                    //There was an exception that is not possible to recover from
                     throw _initException;
                 }
                 _controlConnection = new ControlConnection(this, _metadata);
                 _metadata.ControlConnection = _controlConnection;
-                _metadata.Hosts.Added += OnHostAdded;
-                _metadata.Hosts.Removed += OnHostRemoved;
                 try
                 {
                     _controlConnection.Init();
+                    _binaryProtocolVersion = _controlConnection.ProtocolVersion;
+                    if (_controlConnection.ProtocolVersion > MaxProtocolVersion)
+                    {
+                        _binaryProtocolVersion = MaxProtocolVersion;
+                    }
+                    Configuration.Policies.LoadBalancingPolicy.Initialize(this);
+                }
+                catch (NoHostAvailableException)
+                {
+                    //No host available now, maybe later it can recover from
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -142,14 +152,10 @@ namespace Cassandra
                     //Throw the actual exception for the first time
                     throw;
                 }
-                _binaryProtocolVersion = _controlConnection.ProtocolVersion;
-                if (_controlConnection.ProtocolVersion > MaxProtocolVersion)
-                {
-                    _binaryProtocolVersion = MaxProtocolVersion;
-                }
-                Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                 _logger.Info("Cluster Connected using binary protocol version: [" + _binaryProtocolVersion + "]");
                 _initialized = true;
+                _metadata.Hosts.Added += OnHostAdded;
+                _metadata.Hosts.Removed += OnHostRemoved;
             }
         }
 

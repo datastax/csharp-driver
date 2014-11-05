@@ -194,7 +194,7 @@ namespace Cassandra
             _hosts = null;
         }
 
-        internal string GetDatacenter(Host host)
+        private string GetDatacenter(Host host)
         {
             var dc = host.Datacenter;
             return dc ?? _localDc;
