@@ -18,10 +18,8 @@
 ﻿using System.Collections.Concurrent;
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using Moq;
-using System.Net;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -120,7 +118,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void DCAwareRoundRobinPolicyNeverHistsOtherDcWhenNodeUp()
+        public void DCAwareRoundRobinPolicyNeverHitsRemoteWhenSet()
         {
             byte hostLength = 5;
             var hostList = new List<Host>();
@@ -137,10 +135,11 @@ namespace Cassandra.Tests
                 .Returns(hostList);
 
             //Initialize the balancing policy
-            var policy = new DCAwareRoundRobinPolicy("local");
+            //0 used nodes per remote dc
+            var policy = new DCAwareRoundRobinPolicy("local", 0);
             policy.Initialize(clusterMock.Object);
             var balancedHosts = policy.NewQueryPlan(null, new SimpleStatement());
-            var firstRound = balancedHosts.Take(hostLength - 2).ToList();
+            var firstRound = balancedHosts.ToList();
 
             //Returns only local hosts
             Assert.AreEqual(hostLength - 2, firstRound.Count(h => h.Datacenter == "local"));
@@ -150,7 +149,7 @@ namespace Cassandra.Tests
             var followingRounds = new List<Host>();
             for (var i = 0; i < 10; i++)
             {
-                followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()).Take(hostLength - 2));
+                followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()).ToList());
             }
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
             
@@ -159,14 +158,24 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void DCAwareRoundRobinPolicyTestInParallel()
+        public void DCAwareRoundRobinYieldsRemoteNodesAtTheEnd()
         {
-            byte hostLength = 6;
-            var hostList = new List<Host>();
-            hostList.AddRange(GetHostList(1, 1, "remote1"));
-            hostList.AddRange(GetHostList(1, 1, "remote2"));
-            hostList.AddRange(GetHostList((byte)(hostLength - 3)));
-            hostList.AddRange(GetHostList(1, 2, "remote1"));
+            var hostList = new List<Host>
+            {
+                //5 local nodes and 4 remote
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2"),
+                TestHelper.CreateHost("0.0.0.3", "dc1"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc2"),
+                TestHelper.CreateHost("0.0.0.7", "dc1"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1"),
+                TestHelper.CreateHost("0.0.0.10", "dc2")
+            };
+            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
+            const string localDc = "dc1";
 
             var clusterMock = new Mock<ICluster>();
             clusterMock
@@ -174,38 +183,163 @@ namespace Cassandra.Tests
                 .Returns(hostList);
 
             //Initialize the balancing policy
-            var policy = new DCAwareRoundRobinPolicy("local", 1);
+            var policy = new DCAwareRoundRobinPolicy(localDc, 1);
             policy.Initialize(clusterMock.Object);
-
             Action action = () =>
             {
-                var resultingHosts = new List<Host>();
-                var hostEnumerator = policy.NewQueryPlan(null, new SimpleStatement());
-                foreach (var h in hostEnumerator)
+                var hosts = policy.NewQueryPlan(null, null).ToList();
+                for (var i = 0; i < hosts.Count; i++)
                 {
-                    //Slow down to try to execute it at the same time
-                    Thread.Sleep(50);
-                    resultingHosts.Add(h);
+                    var h = hosts[i];
+                    if (i < localHostsLength)
+                    {
+                        Assert.AreEqual(localDc, h.Datacenter);
+                    }
+                    else
+                    {
+                        Assert.AreNotEqual(localDc, h.Datacenter);
+                    }
                 }
-                //The first hosts should be local
-                Assert.True(resultingHosts.Take(hostLength-3).All(h => h.Datacenter == "local"));
-                //It should return the local hosts first and then 1 per each dc
-                Assert.AreEqual(hostLength - 1, resultingHosts.Count);
-                Assert.AreEqual(hostLength - 1, resultingHosts.Distinct().Count());
+            };
+        }
+
+        [Test]
+        public void DCAwareRoundRobinInitializeRetrievesLocalDc()
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", null),
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2")
+            };
+            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList);
+            var policy = new DCAwareRoundRobinPolicy();
+            policy.Initialize(clusterMock.Object);
+            Assert.AreEqual(HostDistance.Local, policy.Distance(hostList[1]));
+            Assert.AreNotEqual(HostDistance.Local, policy.Distance(hostList[2]));
+        }
+
+        [Test]
+        public void DCAwareRoundRobinInitializeNotMatchingDcThrows()
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2")
+            };
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList);
+            var policy = new DCAwareRoundRobinPolicy("not_valid_dc");
+            Assert.Throws<ArgumentException>(() => policy.Initialize(clusterMock.Object));
+        }
+
+        [Test]
+        public void DCAwareRoundRobinPolicyTestInParallel()
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2"),
+                TestHelper.CreateHost("0.0.0.3", "dc1"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc2"),
+                TestHelper.CreateHost("0.0.0.7", "dc1"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1"),
+                TestHelper.CreateHost("0.0.0.10", "dc2")
+            };
+            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
+            const string localDc = "dc1";
+
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList);
+
+            //Initialize the balancing policy
+            var policy = new DCAwareRoundRobinPolicy(localDc, 1);
+            policy.Initialize(clusterMock.Object);
+
+            var allHosts = new ConcurrentBag<Host>();
+            var firstHosts = new ConcurrentBag<Host>();
+            Action action = () =>
+            {
+                var hosts = policy.NewQueryPlan(null, null).ToList();
+                //Check that the value is not repeated
+                Assert.AreEqual(0, hosts.GroupBy(x => x)
+                    .Where(g => g.Count() > 1)
+                    .Select(y => y.Key)
+                    .Count());
+                firstHosts.Add(hosts[0]);
+                //Add to the general list
+                foreach (var h in hosts)
+                {
+                    allHosts.Add(h);
+                }
             };
 
             var actions = new List<Action>();
-            for (var i = 0; i < 100; i++)
+            const int times = 100;
+            for (var i = 0; i < times; i++)
             {
                 actions.Add(action);
             }
+            TestHelper.ParallelInvoke(actions);
 
-            var parallelOptions = new ParallelOptions();
-            parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
-            parallelOptions.MaxDegreeOfParallelism = 1000;
-
-            Parallel.Invoke(parallelOptions, actions.ToArray());
+            //Check that the first nodes where different
+            foreach (var h in hostList)
+            {
+                if (h.Datacenter == localDc)
+                {
+                    Assert.AreEqual(times/localHostsLength, firstHosts.Count(hc => hc == h));
+                }
+                else
+                {
+                    Assert.AreEqual(0, firstHosts.Count(hc => hc == h));
+                }
+            }
             clusterMock.Verify();
+        }
+
+        [Test]
+        public void DCAwareRoundRobinPolicyCachesLocalNodes()
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2"),
+                TestHelper.CreateHost("0.0.0.3", "dc1"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc2"),
+                TestHelper.CreateHost("0.0.0.7", "dc1"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1"),
+                TestHelper.CreateHost("0.0.0.10", "dc2")
+            };
+            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
+            const string localDc = "dc1";
+
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList);
+
+            //Initialize the balancing policy
+            var policy = new DCAwareRoundRobinPolicy(localDc, 1);
+            policy.Initialize(clusterMock.Object);
+
+            var instances = new ConcurrentBag<object>();
+            Action action = () => instances.Add(policy.GetHosts());
+            TestHelper.ParallelInvoke(action, 100);
+            Assert.AreEqual(1, instances.GroupBy(i => i.GetHashCode()).Count());
         }
 
         /// <summary>
@@ -334,6 +468,10 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("0.0.0.9", "dc1")
             };
             var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList)
+                .Verifiable();
             clusterMock
                 .Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
                 .Returns<string, byte[]>((keyspace, key) =>

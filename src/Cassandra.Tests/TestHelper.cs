@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Cassandra.Tests
 {
@@ -51,6 +52,32 @@ namespace Cassandra.Tests
         public static byte GetLastAddressByte(IPAddress address)
         {
             return address.GetAddressBytes()[3];
+        }
+
+        /// <summary>
+        /// Invokes actions in parallel using 1 thread per action
+        /// </summary>
+        public static void ParallelInvoke(IEnumerable<Action> actions)
+        {   
+            var parallelOptions = new ParallelOptions
+            {
+                TaskScheduler = new ThreadPerTaskScheduler(), 
+                MaxDegreeOfParallelism = 1000
+            };
+            Parallel.Invoke(parallelOptions, actions.ToArray());
+        }
+
+        /// <summary>
+        /// Invokes the same action multiple times in parallel using 1 thread per action
+        /// </summary>
+        internal static void ParallelInvoke(Action a, int times)
+        {
+            var actions = new Action[times];
+            for (var i = 0; i < times; i++)
+            {
+                actions[i] = a;
+            }
+            ParallelInvoke(actions);
         }
     }
 }

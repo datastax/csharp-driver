@@ -25,12 +25,14 @@ namespace Cassandra
     public interface ILoadBalancingPolicy
     {
         /// <summary>
-        ///  Initialize this load balancing policy. <p> Note that the driver guarantees
+        ///  Initialize this load balancing policy. 
+        /// <para>
+        ///  Note that the driver guarantees
         ///  that it will call this method exactly once per policy object and will do so
-        ///  before any call to another of the methods of the policy.</p>
+        ///  before any call to another of the methods of the policy.
+        /// </para>
         /// </summary>
-        /// <param name="cluster"> the  information about the session instance for which the policy is created.
-        ///  </param>
+        /// <param name="cluster">The information about the session instance for which the policy is created.</param>
         void Initialize(ICluster cluster);
 
         /// <summary>
