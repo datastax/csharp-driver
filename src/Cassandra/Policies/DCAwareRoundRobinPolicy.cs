@@ -206,33 +206,38 @@ namespace Cassandra
         internal Tuple<List<Host>, List<Host>> GetHosts()
         {
             var hosts = _hosts;
-            if (hosts == null)
+            if (hosts != null)
             {
-                lock (_hostCreationLock)
+                return hosts;
+            }
+            lock (_hostCreationLock)
+            {
+                //Check that if it has been updated since we were waiting for the lock
+                hosts = _hosts;
+                if (hosts != null)
                 {
-                    //Check that if it has been updated since we were waiting for the lock
-                    hosts = _hosts;
-                    if (hosts != null)
-                    {
-                        return hosts;
-                    }
-                    var localHosts = new List<Host>();
-                    var remoteHosts = new List<Host>();
-                    //Split between local and remote nodes 
-                    foreach (var h in _cluster.AllHosts())
-                    {
-                        if (GetDatacenter(h) == _localDc)
-                        {
-                            localHosts.Add(h);
-                        }
-                        else if (_usedHostsPerRemoteDc > 0)
-                        {
-                            remoteHosts.Add(h);
-                        }
-                    }
-                    hosts = new Tuple<List<Host>, List<Host>>(localHosts, remoteHosts);
-                    _hosts = hosts;
+                    return hosts;
                 }
+                var localHosts = new List<Host>();
+                var remoteHosts = new List<Host>();
+
+                //shallow copy the nodes
+                var allNodes = _cluster.AllHosts().ToArray();
+
+                //Split between local and remote nodes 
+                foreach (var h in allNodes)
+                {
+                    if (GetDatacenter(h) == _localDc)
+                    {
+                        localHosts.Add(h);
+                    }
+                    else if (_usedHostsPerRemoteDc > 0)
+                    {
+                        remoteHosts.Add(h);
+                    }
+                }
+                hosts = new Tuple<List<Host>, List<Host>>(localHosts, remoteHosts);
+                _hosts = hosts;
             }
             return hosts;
         }

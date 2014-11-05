@@ -28,9 +28,9 @@ namespace Cassandra
     ///  the following way: <ul> <li>the <c>distance</c> method is inherited
     ///  from the child policy.</li> <li>the iterator return by the
     ///  <c>newQueryPlan</c> method will first return the <c>LOCAL</c>
-    ///  replicas for the query (based on <link>Query#getRoutingKey</link>) <i>if
+    ///  replicas for the query (based on Statement.GetRoutingKey) <i>if
     ///  possible</i> (i.e. if the query <c>getRoutingKey</c> method doesn't
-    ///  return {@code null} and if {@link Metadata#getReplicas}' returns a non empty
+    ///  return <c>null</c> and if <see cref="Metadata.GetReplicas" /> returns a non empty
     ///  set of replicas for that partition key). If no local replica can be either
     ///  found or successfully contacted, the rest of the query plan will fallback to
     ///  one of the child policy.</li> </ul> </p><p> Do note that only replica for which
