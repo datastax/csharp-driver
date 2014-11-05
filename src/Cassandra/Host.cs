@@ -109,7 +109,10 @@ namespace Cassandra
             }
             return false;
         }
-
+        
+        /// <summary>
+        /// Returns true if the host was DOWN and it was set as UP
+        /// </summary>
         public bool BringUpIfDown()
         {
             if (!_isUpNow)

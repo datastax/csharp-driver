@@ -29,14 +29,19 @@ namespace Cassandra
     public class Cluster : ICluster
     {
         private static int _maxProtocolVersion = 3;
+        private static readonly Logger _logger = new Logger(typeof(Cluster));
         private int _binaryProtocolVersion;
         private readonly ConcurrentBag<Session> _connectedSessions = new ConcurrentBag<Session>();
         private ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
         private readonly object _initLock = new Object();
-        private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly Metadata _metadata;
+        /// <inheritdoc />
+        public event Action<Host> HostAdded;
+        /// <inheritdoc />
+        public event Action<Host> HostRemoved;
+
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
         ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
@@ -123,6 +128,8 @@ namespace Cassandra
                 }
                 _controlConnection = new ControlConnection(this, _metadata);
                 _metadata.ControlConnection = _controlConnection;
+                _metadata.Hosts.Added += OnHostAdded;
+                _metadata.Hosts.Removed += OnHostRemoved;
                 try
                 {
                     _controlConnection.Init();
@@ -214,6 +221,22 @@ namespace Cassandra
         public ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey)
         {
             return Metadata.GetReplicas(keyspace, partitionKey);
+        }
+
+        private void OnHostRemoved(Host h)
+        {
+            if (HostRemoved != null)
+            {
+                HostRemoved(h);
+            }
+        }
+
+        private void OnHostAdded(Host h)
+        {
+            if (HostAdded != null)
+            {
+                HostAdded(h);
+            }
         }
 
         /// <summary>

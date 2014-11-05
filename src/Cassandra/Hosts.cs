@@ -26,7 +26,18 @@ namespace Cassandra
     {
         private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
         private readonly IReconnectionPolicy _rp;
-        public event Action<Host, DateTimeOffset> HostDown;
+        /// <summary>
+        /// Event that gets triggered when a new host has been added
+        /// </summary>
+        internal event Action<Host, DateTimeOffset> Down;
+        /// <summary>
+        /// Event that gets triggered when a new host has been added to the pool
+        /// </summary>
+        internal event Action<Host> Added;
+        /// <summary>
+        /// Event that gets triggered when a host has been removed
+        /// </summary>
+        internal event Action<Host> Removed;
 
         public Hosts(IReconnectionPolicy rp)
         {
@@ -43,31 +54,27 @@ namespace Cassandra
             return _hosts.Values;
         }
 
-        public bool AddIfNotExistsOrBringUpIfDown(IPAddress ep)
+        /// <summary>
+        /// Adds the host if not exists
+        /// </summary>
+        public Host Add(IPAddress key)
         {
-            if (!_hosts.ContainsKey(ep))
+            var newHost = new Host(key, _rp);
+            var host = _hosts.GetOrAdd(key, newHost);
+            if (Object.ReferenceEquals(newHost, host) && Added != null)
             {
-                var h = new Host(ep, _rp);
-                if (_hosts.TryAdd(ep, h))
-                {
-                    h.Down += OnHostDown;
-                    return true;
-                }
+                //The node was added and there is an event handler
+                //Fire the event
+                Added(newHost);
             }
-
-            Host host;
-            if (_hosts.TryGetValue(ep, out host))
-            {
-                return host.BringUpIfDown();
-            }
-            return false;
+            return host;
         }
 
         private void OnHostDown(Host h, DateTimeOffset nextUpTime)
         {
-            if (HostDown != null)
+            if (Down != null)
             {
-                HostDown(h, nextUpTime);
+                Down(h, nextUpTime);
             }
         }
 
@@ -88,6 +95,10 @@ namespace Cassandra
             {
                 host.SetDown();
                 host.Down -= OnHostDown;
+                if (Removed != null)
+                {
+                    Removed(host);
+                }
             }
         }
 

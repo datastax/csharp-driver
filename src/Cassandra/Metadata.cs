@@ -55,7 +55,7 @@ namespace Cassandra
         internal Metadata(IReconnectionPolicy rp)
         {
             Hosts = new Hosts(rp);
-            Hosts.HostDown += OnHostDown;
+            Hosts.Down += OnHostDown;
         }
 
         public void Dispose()
@@ -73,8 +73,7 @@ namespace Cassandra
 
         internal Host AddHost(IPAddress address)
         {
-            Hosts.AddIfNotExistsOrBringUpIfDown(address);
-            return GetHost(address);
+            return Hosts.Add(address);
         }
 
         internal void RemoveHost(IPAddress address)
@@ -105,12 +104,17 @@ namespace Cassandra
 
         internal void BringUpHost(IPAddress address, object sender = null)
         {
-            if (Hosts.AddIfNotExistsOrBringUpIfDown(address))
+            //Add the host if not already present
+            var host = Hosts.Add(address);
+            //Bring it UP
+            if (!host.BringUpIfDown())
             {
-                if (HostsEvent != null)
-                {
-                    HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
-                }
+                //If it was already UP, its OK
+                return;
+            }
+            if (HostsEvent != null)
+            {
+                HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
             }
         }
 

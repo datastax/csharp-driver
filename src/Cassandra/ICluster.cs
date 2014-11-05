@@ -36,9 +36,13 @@ namespace Cassandra
     public interface ICluster : IDisposable
     {
         /// <summary>
-        ///  Gets read-only metadata on the connected cluster. <p> This includes the
+        ///  Gets read-only metadata on the connected cluster. 
+        /// <para>This includes the
         ///  know nodes (with their status as seen by the driver) as well as the schema
-        ///  definitions.</p>
+        ///  definitions.
+        /// </para>
+        /// <para>This method may trigger the creation of a connection if none has been established yet.
+        /// </para>
         /// </summary>
         Metadata Metadata { get; }
         /// <summary>
@@ -49,6 +53,14 @@ namespace Cassandra
         ///  Returns all known hosts of this cluster.
         /// </summary>
         ICollection<Host> AllHosts();
+        /// <summary>
+        /// Event that gets triggered when a new host is added to the cluster
+        /// </summary>
+        event Action<Host> HostAdded;
+        /// <summary>
+        /// Event that gets triggered when a host has been removed from the cluster
+        /// </summary>
+        event Action<Host> HostRemoved;
         /// <summary>
         ///  Creates a new session on this cluster.
         /// </summary>
