@@ -129,23 +129,24 @@ namespace Cassandra
         /// <summary>
         /// Gets the stored value in the column specified by index
         /// </summary>
-        /// <param name="tpy">Target type</param>
+        /// <param name="type">Target type</param>
         /// <param name="index">Index of the column</param>
         /// <returns></returns>
-        public object GetValue(Type tpy, int index)
+        public object GetValue(Type type, int index)
         {
-            return (Values[index] == null ? null : ConvertToObject(index, Values[index], tpy));
+            var value = Values[index];
+            return value == null ? null : ConvertToObject(index, value, type);
         }
 
         /// <summary>
         /// Gets the stored value in the column specified by name
         /// </summary>
-        /// <param name="tpy">Target type</param>
+        /// <param name="type">Target type</param>
         /// <param name="name">Name of the column</param>
         /// <returns></returns>
-        public object GetValue(Type tpy, string name)
+        public object GetValue(Type type, string name)
         {
-            return GetValue(tpy, ColumnIndexes[name]);
+            return GetValue(type, ColumnIndexes[name]);
         }
 
 
@@ -157,7 +158,16 @@ namespace Cassandra
         /// <returns></returns>
         public T GetValue<T>(int index)
         {
-            return (T)GetValue(typeof(T), index);
+            var type = typeof (T);
+            var value = GetValue(type, index);
+            //Check that the value is null but the type is not nullable (structs)
+            //It will box but only for not nullable structs
+            //A little overhead in case of misuse but improved Error message
+            if (value == null && default(T) != null)
+            {
+                throw new NullReferenceException(String.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
+            }
+            return (T) value;
         }
 
         /// <summary>
