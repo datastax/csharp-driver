@@ -134,6 +134,40 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        public void HostDownViaMetadataEvents()
+        {
+            var clusterInfo = TestUtils.CcmSetup(2, null, null, 0, false);
+            try
+            {
+                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
+                var session = cluster.Connect();
+                //The control connection is connected to host 1
+                //All host are up
+                Assert.True(cluster.AllHosts().All(h => h.IsUp));
+                
+                TestUtils.CcmStopForce(clusterInfo, 2);
+
+                var counter = 0;
+                const int maxWait = 100;
+                //No query to avoid getting a socket exception
+                while (counter++ < maxWait)
+                {
+                    if (cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp))
+                    {
+                        break;
+                    }
+                    Thread.Sleep(1000);
+                }
+                Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp));
+                Assert.AreNotEqual(counter, maxWait, "Waited but it was never notified via events");
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
         private void CheckPureMetadata(string tableName = null, string keyspaceName = null, TableOptions tableOptions = null)
         {
             var columns = new Dictionary
