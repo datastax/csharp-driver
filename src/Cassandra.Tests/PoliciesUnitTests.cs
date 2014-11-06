@@ -18,7 +18,8 @@
 ﻿using System.Collections.Concurrent;
 ﻿using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
+﻿using System.Net;
+﻿using NUnit.Framework;
 using Moq;
 using System.Threading.Tasks;
 using System.Threading;
@@ -340,6 +341,80 @@ namespace Cassandra.Tests
             Action action = () => instances.Add(policy.GetHosts());
             TestHelper.ParallelInvoke(action, 100);
             Assert.AreEqual(1, instances.GroupBy(i => i.GetHashCode()).Count());
+        }
+
+        [Test]
+        public void DCAwareRoundRobinPolicyWithNodesChanging()
+        {
+            var hostList = new ConcurrentBag<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2"),
+                TestHelper.CreateHost("0.0.0.3", "dc1"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc2"),
+                TestHelper.CreateHost("0.0.0.7", "dc1"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1"),
+                TestHelper.CreateHost("0.0.0.10", "dc2")
+            };
+            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
+            const string localDc = "dc1";
+            //to remove the host 3
+            var hostToRemove = hostList.First(h => TestHelper.GetLastAddressByte(h) == 3);
+            var clusterMock = new Mock<ICluster>();
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(() =>
+                {
+                    return hostList.ToList();
+                });
+            //Initialize the balancing policy
+            var policy = new DCAwareRoundRobinPolicy(localDc, 1);
+            policy.Initialize(clusterMock.Object);
+
+            var hostYielded = new ConcurrentBag<IEnumerable<Host>>();
+            Action action = () => hostYielded.Add(policy.NewQueryPlan(null, null).ToList());
+
+            //Invoke without nodes changing
+            TestHelper.ParallelInvoke(action, 100);
+            Assert.True(hostYielded.Any(hl => hl.Any(h => h == hostToRemove)));
+
+            var actionList = new List<Action>(Enumerable.Repeat<Action>(action, 1000));
+
+
+            actionList.Insert(200, () =>
+            {
+                var host = TestHelper.CreateHost("0.0.0.11", "dc1");
+                //raise event and then add
+                clusterMock.Raise(c => c.HostAdded += null, host);
+                hostList.Add(host);
+            });
+            actionList.Insert(400, () =>
+            {
+                var host = TestHelper.CreateHost("0.0.0.12", "dc1");
+                //first add and then raise event
+                hostList.Add(host);
+                clusterMock.Raise(c => c.HostAdded += null, host);
+            });
+            
+            actionList.Insert(400, () =>
+            {
+                var host = hostToRemove;
+                hostList = new ConcurrentBag<Host>(hostList.Where(h => h != hostToRemove));
+                clusterMock.Raise(c => c.HostRemoved += null, host);
+            });
+
+            //Invoke it with nodes being modified
+            TestHelper.ParallelInvoke(actionList);
+            //Clear the host yielded so far
+            hostYielded = new ConcurrentBag<IEnumerable<Host>>();
+            //Invoke it a some of times more in parallel
+            TestHelper.ParallelInvoke(action, 100);
+            //The removed node should not be returned
+            Assert.False(hostList.Any(h => h == hostToRemove));
+            Assert.False(hostYielded.Any(hl => hl.Any(h => h == hostToRemove)));
         }
 
         /// <summary>

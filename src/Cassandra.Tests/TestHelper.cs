@@ -70,14 +70,9 @@ namespace Cassandra.Tests
         /// <summary>
         /// Invokes the same action multiple times in parallel using 1 thread per action
         /// </summary>
-        internal static void ParallelInvoke(Action a, int times)
+        internal static void ParallelInvoke(Action action, int times)
         {
-            var actions = new Action[times];
-            for (var i = 0; i < times; i++)
-            {
-                actions[i] = a;
-            }
-            ParallelInvoke(actions);
+            ParallelInvoke(new List<Action>(Enumerable.Repeat<Action>(action, 100)));
         }
     }
 }
