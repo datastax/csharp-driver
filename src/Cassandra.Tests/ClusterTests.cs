@@ -21,10 +21,10 @@ using System.Net;
 using System.Text;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Cassandra.Tests
 {
     [TestFixture]
-    public class ClusterTests
+    public class ClusterUnitTests
     {
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -52,6 +52,17 @@ namespace Cassandra.IntegrationTests.Core
              .Build();
             Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
             Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
+        }
+
+        [Test]
+        public void ClusterIsDisposableAfterInitError()
+        {
+            const string ip = "127.100.100.100";
+            var cluster = Cluster.Builder()
+             .AddContactPoint(ip)
+             .Build();
+            Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+            Assert.DoesNotThrow(cluster.Dispose);
         }
     }
 }

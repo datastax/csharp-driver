@@ -53,6 +53,8 @@
     </Compile>
     <Compile Include="AdoUnitTests.cs" />
     <Compile Include="BuilderTests.cs" />
+    <Compile Include="ClusterTests.cs" />
+    <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />
     <Compile Include="CqlParameterCollectionTest.cs" />
@@ -61,6 +63,7 @@
     <Compile Include="PoliciesUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RowSetUnitTests.cs" />
+    <Compile Include="TestHelper.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />

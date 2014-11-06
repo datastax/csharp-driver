@@ -13,6 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
@@ -27,17 +29,35 @@ namespace Cassandra
     ///  other words, this policy guarantees that no host in a remote datacenter will
     ///  be queried unless no host in the local datacenter can be reached. </p><p> If used
     ///  with a single datacenter, this policy is equivalent to the
-    ///  <see cref="RoundRobinPolicy"/> policy, but its DC awareness
+    ///  <see cref="RoundRobinPolicy"/> policy, but its GetDatacenter awareness
     ///  incurs a slight overhead so the <see cref="RoundRobinPolicy"/>
     ///  policy could be preferred to this policy in that case.</p>
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
-
-        private readonly string _localDc;
+        private string _localDc;
         private readonly int _usedHostsPerRemoteDc;
+        private readonly int _maxIndex = Int32.MaxValue - 10000;
+        private volatile Tuple<List<Host>, List<Host>> _hosts;
+        private Object _hostCreationLock = new Object();
         ICluster _cluster;
         int _index;
+
+        /// <summary>
+        /// Creates a new datacenter aware round robin policy that auto-discover the local data-center.
+        /// <para>
+        /// If this constructor is used, the data-center used as local will the
+        /// data-center of the first Cassandra node the driver connects to. This
+        /// will always be ok if all the contact points use at <see cref="Cluster"/>
+        /// creation are in the local data-center. If it's not the case, you should
+        /// provide the local data-center name yourself by using one of the other
+        /// constructor of this class.
+        /// </para>
+        /// </summary>
+        public DCAwareRoundRobinPolicy() : this(null, 0)
+        {
+            
+        }
 
         /// <summary>
         ///  Creates a new datacenter aware round robin policy given the name of the local
@@ -47,8 +67,7 @@ namespace Cassandra
         ///  <c>new DCAwareRoundRobinPolicy(localDc, 0)</c>.</p>
         /// </summary>
         /// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
-        public DCAwareRoundRobinPolicy(string localDc)
-            : this(localDc, 0)
+        public DCAwareRoundRobinPolicy(string localDc) : this(localDc, 0)
         {
         }
 
@@ -71,21 +90,36 @@ namespace Cassandra
         /// connections to them will be maintained).</param>
         public DCAwareRoundRobinPolicy(string localDc, int usedHostsPerRemoteDc)
         {
-            this._localDc = localDc;
-            this._usedHostsPerRemoteDc = usedHostsPerRemoteDc;
+            _localDc = localDc;
+            _usedHostsPerRemoteDc = usedHostsPerRemoteDc;
         }
 
 
         public void Initialize(ICluster cluster)
         {
-            this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.AllHosts().Count);
-        }
-
-        private string DC(Host host)
-        {
-            string dc = host.Datacenter;
-            return dc ?? this._localDc;
+            _cluster = cluster;
+            //When the pool changes, it should clear the local cache
+            _cluster.HostAdded += _ => ClearHosts();
+            _cluster.HostRemoved += _ => ClearHosts();
+            if (_localDc == null)
+            {
+                //Use the first host to determine the datacenter
+                var firstHost = _cluster.AllHosts().FirstOrDefault(h => h.Datacenter != null);
+                if (firstHost == null)
+                {
+                    throw new DriverInternalError("Local datacenter could not be determined");
+                }
+                _localDc = firstHost.Datacenter;
+            }
+            else
+            {
+                //Check that the datacenter exists
+                if (_cluster.AllHosts().FirstOrDefault(h => h.Datacenter == _localDc) == null)
+                {
+                    var availableDcs = String.Join(", ", _cluster.AllHosts().Select(h => h.Datacenter));
+                    throw new ArgumentException(String.Format("Datacenter {0} does not match any of the nodes, available datacenters: {1}.", _localDc, availableDcs));
+                }
+            }
         }
 
         /// <summary>
@@ -93,89 +127,121 @@ namespace Cassandra
         ///  in the local datacenter as <c>Local</c>. For each remote datacenter, it
         ///  considers a configurable number of hosts as <c>Remote</c> and the rest
         ///  is <c>Ignored</c>. </p><p> To configure how many host in each remote
-        ///  datacenter is considered <c>Remote</c>, see
-        ///  <link>#DCAwareRoundRobinPolicy(String, int)</link>.</p>
+        ///  datacenter is considered <c>Remote</c>.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
         public HostDistance Distance(Host host)
         {
-            string dc = DC(host);
-            if (dc.Equals(_localDc))
-                return HostDistance.Local;
-
-            int ix = 0;
-            foreach (var h in _cluster.AllHosts())
+            var dc = GetDatacenter(host);
+            if (dc == _localDc)
             {
-                if (h.Address.Equals(host.Address))
-                {
-                    if (ix < _usedHostsPerRemoteDc)
-                        return HostDistance.Remote;
-                    else
-                        return HostDistance.Ignored;
-                }
-                else if (dc.Equals(DC(h)))
-                    ix++;
+                return HostDistance.Local;
             }
-            return HostDistance.Ignored;
+            return HostDistance.Remote;
         }
 
         /// <summary>
         ///  Returns the hosts to use for a new query. <p> The returned plan will always
         ///  try each known host in the local datacenter first, and then, if none of the
-        ///  local host is reacheable, will try up to a configurable number of other host
+        ///  local host is reachable, will try up to a configurable number of other host
         ///  per remote datacenter. The order of the local node in the returned query plan
         ///  will follow a Round-robin algorithm.</p>
         /// </summary>
+        /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(IStatement query)
+        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
         {
-            var copyOfHosts = (from h in _cluster.AllHosts() select h).ToArray();
-            int idxSeed = Interlocked.Increment(ref _index);
-                
-            // Overflow protection; not theoretically thread safe but should be good enough
-            if (idxSeed > int.MaxValue - 10000)
+            var startIndex = Interlocked.Increment(ref _index);
+            //Simplified overflow protection
+            if (startIndex > _maxIndex)
             {
                 Interlocked.Exchange(ref _index, 0);
             }
-
-            var localHosts = copyOfHosts.Where(h => _localDc.Equals(DC(h))).ToArray();
-
-            for (int i = 0; i < localHosts.Length; i++)
+            var hosts = GetHosts();
+            var localHosts = hosts.Item1;
+            var remoteHosts = hosts.Item2;
+            //Round-robin through local nodes
+            for (var i = 0; i < localHosts.Count; i++)
             {
-                yield return localHosts[(idxSeed + i) % localHosts.Length];
+                yield return localHosts[(startIndex + i) % localHosts.Count];
             }
 
-            
-            var remoteHosts = new List<Host>();
-            var ixes = new Dictionary<string, int>();
-            for (int i = 0; i < copyOfHosts.Length; i++)
+            if (_usedHostsPerRemoteDc == 0)
             {
-                var h = copyOfHosts[i];
-                if (_localDc.Equals(DC(h)))
+                yield break;
+            }
+            var dcHosts = new Dictionary<string, int>();
+            foreach (var h in remoteHosts)
+            {
+                int hostYieldedByDc;
+                var dc = GetDatacenter(h);
+                dcHosts.TryGetValue(dc, out hostYieldedByDc);
+                if (hostYieldedByDc >= _usedHostsPerRemoteDc)
                 {
+                    //We already returned the amount of remotes nodes required
                     continue;
                 }
-                if (!ixes.ContainsKey(DC(h)) || ixes[DC(h)] < _usedHostsPerRemoteDc)
+                dcHosts[dc] = hostYieldedByDc + 1;
+                yield return h;
+            }
+        }
+
+        private void ClearHosts()
+        {
+            _hosts = null;
+        }
+
+        private string GetDatacenter(Host host)
+        {
+            var dc = host.Datacenter;
+            return dc ?? _localDc;
+        }
+
+        /// <summary>
+        /// Gets a tuple containing the list of local and remote nodes
+        /// </summary>
+        internal Tuple<List<Host>, List<Host>> GetHosts()
+        {
+            var hosts = _hosts;
+            if (hosts != null)
+            {
+                return hosts;
+            }
+            lock (_hostCreationLock)
+            {
+                //Check that if it has been updated since we were waiting for the lock
+                hosts = _hosts;
+                if (hosts != null)
                 {
-                    remoteHosts.Add(h);
-                    if (!ixes.ContainsKey(DC(h)))
-                    { 
-                        ixes.Add(DC(h), 1); 
-                    }
-                    else
+                    return hosts;
+                }
+                var localHosts = new List<Host>();
+                var remoteHosts = new List<Host>();
+
+                //Do not reorder instructions, the host list must be up to date now, not earlier
+                Thread.MemoryBarrier();
+                //shallow copy the nodes
+                var allNodes = _cluster.AllHosts().ToArray();
+
+                //Split between local and remote nodes 
+                foreach (var h in allNodes)
+                {
+                    if (GetDatacenter(h) == _localDc)
                     {
-                        ixes[DC(h)] = ixes[DC(h)] + 1;
+                        localHosts.Add(h);
+                    }
+                    else if (_usedHostsPerRemoteDc > 0)
+                    {
+                        remoteHosts.Add(h);
                     }
                 }
+                hosts = new Tuple<List<Host>, List<Host>>(localHosts, remoteHosts);
+                _hosts = hosts;
             }
-
-            for (var i = 0; i < remoteHosts.Count; i++)
-            {
-                yield return remoteHosts[(idxSeed + i) % remoteHosts.Count];
-            }
+            return hosts;
         }
     }
 }

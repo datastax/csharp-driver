@@ -21,31 +21,26 @@ using System.Linq;
 namespace Cassandra
 {
     /// <summary>
-    ///  A Round-robin load balancing policy. <p> This policy queries nodes in a
+    ///  A Round-robin load balancing policy. 
+    /// <para> This policy queries nodes in a
     ///  round-robin fashion. For a given query, if an host fail, the next one
     ///  (following the round-robin order) is tried, until all hosts have been tried.
-    ///  </p><p> This policy is not datacenter aware and will include every known
+    ///  </para>
+    /// <para> This policy is not datacenter aware and will include every known
     ///  Cassandra host in its round robin algorithm. If you use multiple datacenter
     ///  this will be inefficient and you will want to use the
-    ///  <link>DCAwareRoundRobinPolicy</link> load balancing policy instead.</p>
+    ///  <see cref="DCAwareRoundRobinPolicy"/> load balancing policy instead.
+    /// </para>
     /// </summary>
     public class RoundRobinPolicy : ILoadBalancingPolicy
     {
-        /// <summary>
-        ///  Creates a load balancing policy that picks host to query in a round robin
-        ///  fashion (on all the hosts of the Cassandra cluster).
-        /// </summary>
-        public RoundRobinPolicy() { }
-
         ICluster _cluster;
         int _index;
 
         public void Initialize(ICluster cluster)
         {
             this._cluster = cluster;
-            this._index = StaticRandom.Instance.Next(cluster.AllHosts().Count);
         }
-
 
         /// <summary>
         ///  Return the HostDistance for the provided host. <p> This policy consider all
@@ -54,7 +49,6 @@ namespace Cassandra
         ///  <link>DCAwareRoundRobinPolicy</link> instead.</p>
         /// </summary>
         /// <param name="host"> the host of which to return the distance of. </param>
-        /// 
         /// <returns>the HostDistance to <c>host</c>.</returns>
         public HostDistance Distance(Host host)
         {
@@ -67,29 +61,25 @@ namespace Cassandra
         ///  plans returned will cycle over all the host of the cluster in a round-robin
         ///  fashion.</p>
         /// </summary>
+        /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
-        /// 
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(IStatement query)
+        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
         {
-            var copyOfHosts = (from h in _cluster.AllHosts() select h).ToArray();
-            int idxSeed = Interlocked.Increment(ref _index);
+            //shallow copy the all hosts
+            var hosts = (from h in _cluster.AllHosts() select h).ToArray();
+            var startIndex = Interlocked.Increment(ref _index);
 
-            //Overflow protection, not thread safe but it allows 10k concurrent calls, should be enough
-            if (idxSeed > int.MaxValue - 10000)
+            //Simplified overflow protection
+            if (startIndex > int.MaxValue - 10000)
             {
                 Interlocked.Exchange(ref _index, 0);
             }
 
-            for (var i = 0; i < copyOfHosts.Length; i++)
+            for (var i = 0; i < hosts.Length; i++)
             {
-                var h = copyOfHosts[(idxSeed + i) % copyOfHosts.Length];
-
-                if (h.IsConsiderablyUp)
-                {
-                    yield return h;
-                }
+                yield return hosts[(startIndex + i) % hosts.Length];
             }
         }
     }

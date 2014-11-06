@@ -25,12 +25,14 @@ namespace Cassandra
     public interface ILoadBalancingPolicy
     {
         /// <summary>
-        ///  Initialize this load balancing policy. <p> Note that the driver guarantees
+        ///  Initialize this load balancing policy. 
+        /// <para>
+        ///  Note that the driver guarantees
         ///  that it will call this method exactly once per policy object and will do so
-        ///  before any call to another of the methods of the policy.</p>
+        ///  before any call to another of the methods of the policy.
+        /// </para>
         /// </summary>
-        /// <param name="cluster"> the  information about the session instance for which the policy is created.
-        ///  </param>
+        /// <param name="cluster">The information about the session instance for which the policy is created.</param>
         void Initialize(ICluster cluster);
 
         /// <summary>
@@ -56,11 +58,11 @@ namespace Cassandra
         ///  be so), the next host will be used. If all hosts of the returned
         ///  <c>Iterator</c> are down, the query will fail.</p>
         /// </summary>
-        /// <param name="query"> the query for which to build a plan. </param>
-        /// 
-        /// <returns>an iterator of Host. The query is tried against the hosts returned
+        /// <param name="query">The query for which to build a plan, it can be null.</param>
+        /// <param name="keyspace">Keyspace on which the query is going to be executed, it can be null.</param>
+        /// <returns>An iterator of Host. The query is tried against the hosts returned
         ///  by this iterator in order, until the query has been sent successfully to one
         ///  of the host.</returns>
-        IEnumerable<Host> NewQueryPlan(IStatement query);
+        IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query);
     }
 }

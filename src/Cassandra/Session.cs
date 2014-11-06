@@ -36,7 +36,7 @@ namespace Cassandra
 
         public int BinaryProtocolVersion { get; internal set; }
 
-        public Cluster Cluster { get; private set; }
+        public ICluster Cluster { get; private set; }
 
         /// <summary>
         /// Gets the cluster configuration
@@ -48,24 +48,18 @@ namespace Cassandra
             get { return Thread.VolatileRead(ref _disposed) > 0; }
         }
 
-        /// <summary>
-        /// Gets or sets the identifier of this instance
-        /// </summary>
-        internal Guid Guid { get; private set; }
-
         public string Keyspace { get; internal set; }
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
         public Policies Policies { get { return Configuration.Policies; } }
 
-        internal Session(Cluster cluster, Configuration configuration, string keyspace, int binaryProtocolVersion)
+        internal Session(ICluster cluster, Configuration configuration, string keyspace, int binaryProtocolVersion)
         {
             Cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
             BinaryProtocolVersion = binaryProtocolVersion;
-            Guid = Guid.NewGuid();
             UserDefinedTypes = new UdtMappingDefinitions(this);
             _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
         }

@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.Tests;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -49,6 +50,10 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Greater(cluster.Metadata.GetKeyspaces().Count, 0);
                 Assert.NotNull(cluster.Metadata.GetKeyspace("system"));
                 Assert.AreEqual("system", cluster.Metadata.GetKeyspace("system").Name);
+                //Not existent tables return null
+                Assert.Null(cluster.Metadata.GetKeyspace("ks_not_existent"));
+                Assert.Null(cluster.Metadata.GetTable("ks_not_existent", "tbl1"));
+                Assert.Null(cluster.Metadata.GetTable("system", "tbl1"));
                 //Case sensitive
                 Assert.Null(cluster.Metadata.GetKeyspace("SYSTEM"));
             }
@@ -71,6 +76,10 @@ namespace Cassandra.IntegrationTests.Core
                 var session = cluster.Connect();
                 var initialLength = cluster.Metadata.GetKeyspaces().Count;
                 Assert.Greater(initialLength, 0);
+
+                //GetReplicas should yield the primary replica when the Keyspace is not found
+                Assert.AreEqual(1, cluster.GetReplicas("ks2", new byte[]{0, 0, 0, 1}).Count);
+
                 const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
                 session.Execute(String.Format(createKeyspaceQuery, "ks1", "SimpleStrategy", "'replication_factor' : 1"));
                 session.Execute(String.Format(createKeyspaceQuery, "ks2", "SimpleStrategy", "'replication_factor' : 3"));
@@ -85,11 +94,73 @@ namespace Cassandra.IntegrationTests.Core
                 var ks2 = cluster.Metadata.GetKeyspace("ks2");
                 Assert.NotNull(ks2);
                 Assert.AreEqual(ks2.Replication["replication_factor"], 3);
+                //GetReplicas should yield the 2 replicas (rf=3 but cluster=2) when the Keyspace is found
+                Assert.AreEqual(2, cluster.GetReplicas("ks2", new byte[] { 0, 0, 0, 1 }).Count);
                 var ks3 = cluster.Metadata.GetKeyspace("ks3");
                 Assert.NotNull(ks3);
                 Assert.AreEqual(ks3.Replication["dc1"], 1);
                 Assert.Null(cluster.Metadata.GetKeyspace("ks4"));
                 Assert.NotNull(cluster.Metadata.GetKeyspace("KS4"));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void MetadataMethodReconnects()
+        {
+            var clusterInfo = TestUtils.CcmSetup(2, null, null, 0, false);
+            try
+            {
+                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
+                var session = cluster.Connect();
+                //The control connection is connected to host 1
+                Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+                TestUtils.CcmStopForce(clusterInfo, 1);
+                Thread.Sleep(10000);
+                //The control connection is still connected to host 1
+                Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+                //it should reconnect
+                var t = cluster.Metadata.GetTable("system", "schema_columnfamilies");
+                Assert.NotNull(t);
+                //The control connection should be connected to host 2
+                Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
+        public void HostDownViaMetadataEvents()
+        {
+            var clusterInfo = TestUtils.CcmSetup(2, null, null, 0, false);
+            try
+            {
+                var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
+                var session = cluster.Connect();
+                //The control connection is connected to host 1
+                //All host are up
+                Assert.True(cluster.AllHosts().All(h => h.IsUp));
+                
+                TestUtils.CcmStopForce(clusterInfo, 2);
+
+                var counter = 0;
+                const int maxWait = 100;
+                //No query to avoid getting a socket exception
+                while (counter++ < maxWait)
+                {
+                    if (cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp))
+                    {
+                        break;
+                    }
+                    Thread.Sleep(1000);
+                }
+                Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp));
+                Assert.AreNotEqual(counter, maxWait, "Waited but it was never notified via events");
             }
             finally
             {

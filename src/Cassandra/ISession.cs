@@ -41,7 +41,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the cluster information and state
         /// </summary>
-        Cluster Cluster { get; }
+        ICluster Cluster { get; }
         /// <summary>
         /// Determines if the object has been disposed.
         /// </summary>

@@ -91,12 +91,12 @@ namespace Cassandra
             var keyspaceName = Name;
             var cols = new Dictionary<string, TableColumn>();
             TableOptions options = null;
-            var tableMetadataRow = _cc.Query(String.Format(SelectSingleTable, tableName, keyspaceName)).FirstOrDefault();
+            var tableMetadataRow = _cc.Query(String.Format(SelectSingleTable, tableName, keyspaceName), true).FirstOrDefault();
             if (tableMetadataRow == null)
             {
                 return null;
             }
-            var columnsMetadata = _cc.Query(String.Format(SelectColumns, tableName, keyspaceName));
+            var columnsMetadata = _cc.Query(String.Format(SelectColumns, tableName, keyspaceName), true);
             foreach (var row in columnsMetadata)
             {
                 var dataType = TypeCodec.ParseDataType(row.GetValue<string>("validator"));
@@ -248,7 +248,7 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return _cc.Query(String.Format(SelectTables, Name)).Select(r => r.GetValue<string>("columnfamily_name")).ToList();
+            return _cc.Query(String.Format(SelectTables, Name), true).Select(r => r.GetValue<string>("columnfamily_name")).ToList();
         }
 
         /// <summary>
@@ -302,7 +302,7 @@ namespace Cassandra
         internal UdtColumnInfo GetUdtDefinition(string typeName)
         {
             var keyspaceName = Name;
-            var rs = _cc.Query(String.Format(SelectUdts, keyspaceName, typeName));
+            var rs = _cc.Query(String.Format(SelectUdts, keyspaceName, typeName), true);
             var row = rs.FirstOrDefault();
             if (row == null)
             {

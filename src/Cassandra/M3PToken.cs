@@ -64,7 +64,7 @@ namespace Cassandra
 
             public override IToken Hash(byte[] partitionKey)
             {
-                long v = Murmur(partitionKey);
+                var v = Murmur(partitionKey);
                 return new M3PToken(v == long.MinValue ? long.MaxValue : v);
             }
 

@@ -30,7 +30,7 @@ namespace Cassandra
         {
             get
             {
-                return new RoundRobinPolicy();
+                return new TokenAwarePolicy(new DCAwareRoundRobinPolicy());
             }
         }
 

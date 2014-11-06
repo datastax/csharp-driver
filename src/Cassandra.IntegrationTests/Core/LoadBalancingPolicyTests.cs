@@ -550,6 +550,29 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void DcAwareWithWrongDatacenterNameThrows()
+        {
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc1"));
+            //create a cluster with 2 nodes on dc1 and another 2 nodes on dc2
+            var clusterInfo = TestUtils.CcmSetup(1, builder, null, 1, false);
+            try
+            {
+                var cluster = Cluster.Builder()
+                    .AddContactPoint(IpPrefix + "1")
+                    .WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("wrong_dc"))
+                    .Build();
+                var ex1 = Assert.Throws<ArgumentException>(() => cluster.Connect());
+                //Keeps throwing the same exception
+                var ex2 = Assert.Throws<ArgumentException>(() => cluster.Connect());
+                Assert.True(Object.ReferenceEquals(ex1, ex2));
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        [Test]
         public void tokenAwareTestCCM()
         {
             tokenAwareTest(false);
