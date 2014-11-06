@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
+using Cassandra.Tests;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -424,6 +425,31 @@ namespace Cassandra.IntegrationTests.Core
                     Thread.Sleep(1000);
                 }
                 Assert.False(cluster.AllHosts().ToList()[0].IsUp);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        /// <summary>
+        /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
+        /// </summary>
+        [Test]
+        public void ClusterInitializationRecoversFromNoHostAvailable()
+        {
+            var cluster = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .Build();
+            //initially it will throw as there is no node reachable
+            Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                //Now the node is ready to accept connections
+                var session = cluster.Connect("system");
+                TestHelper.ParallelInvoke(() => session.Execute("SELECT * from schema_keyspaces"), 20);
             }
             finally
             {
