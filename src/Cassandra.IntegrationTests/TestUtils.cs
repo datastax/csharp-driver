@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -531,7 +532,7 @@ namespace Cassandra.IntegrationTests
                         if (keyspaceName != null)
                         {
                             clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
-                            WaitForSchema(clusterInfo.Cluster);
+                            WaitForSchemaAgreement(clusterInfo.Cluster);
                             clusterInfo.Session.ChangeKeyspace(keyspaceName);
                         }
                     }
@@ -543,16 +544,6 @@ namespace Cassandra.IntegrationTests
                 }
             }
             return clusterInfo;
-        }
-
-        private static void WaitForSchema(ICluster cluster)
-        {
-            var hostCount = cluster.AllHosts().Count;
-            if (hostCount == 1)
-            {
-                return;
-            }
-            Thread.Sleep(500*hostCount);
         }
 
         public static void CcmRemove(CcmClusterInfo info)
@@ -645,17 +636,39 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
+        public static void WaitForSchemaAgreement(ICluster cluster)
         {
-            WaitForSchemaAgreement(clusterInfo.Cluster.AllHosts().Count);
+            const int maxRetries = 20;
+            var hostsLength = cluster.AllHosts().Count;
+            if (hostsLength == 1)
+            {
+                return;
+            }
+            var cc = cluster.Metadata.ControlConnection;
+            var counter = 0;
+            var nodesDown = cluster.AllHosts().Count(h => !h.IsConsiderablyUp);
+            while (counter++ < maxRetries)
+            {
+                Trace.TraceInformation("Waiting for test schema agreement");
+                Thread.Sleep(500);
+                var hosts = new List<Guid>();
+                //peers
+                hosts.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
+                //local
+                hosts.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
+
+                var differentSchemas = hosts.GroupBy(v => v).Count();
+                if (differentSchemas <= 1 + nodesDown)
+                {
+                    //There is 1 schema version or 1 + nodes that are considered as down
+                    break;
+                }
+            }
         }
 
-        public static void WaitForSchemaAgreement(int hostsLength)
+        public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
         {
-            if (hostsLength > 0)
-            {
-                Thread.Sleep(hostsLength * 1500);
-            }
+            WaitForSchemaAgreement(clusterInfo.Cluster);
         }
     }
 

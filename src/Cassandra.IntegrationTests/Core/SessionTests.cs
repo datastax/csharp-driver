@@ -222,6 +222,7 @@ namespace Cassandra.IntegrationTests.Core
                 localSession.CreateKeyspace(ks1);
                 localSession.ChangeKeyspace(ks1);
                 localSession.Execute("CREATE TABLE test1 (k uuid PRIMARY KEY, v text)");
+                TestUtils.WaitForSchemaAgreement(localCluster);
 
                 //Execute multiple times a query on the newly created keyspace
                 Assert.DoesNotThrow(() =>
