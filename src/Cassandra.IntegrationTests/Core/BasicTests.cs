@@ -36,11 +36,11 @@ namespace Cassandra.IntegrationTests.Core
         /// <returns>The name of the table</returns>
         private string CreateSimpleTableAndInsert(int rowsInTable)
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
                 CREATE TABLE {0}(
                 id uuid PRIMARY KEY,
-                label text);", tableName)));
+                label text);", tableName));
             for (int i = 0; i < rowsInTable; i++)
             {
                 Session.Execute(string.Format("INSERT INTO {2} (id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
@@ -55,11 +55,8 @@ namespace Cassandra.IntegrationTests.Core
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         label text,
-         number {1}
-         );", tableName, cassandraDataTypeName)));
+                var query = String.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, label text, number {1});", tableName, cassandraDataTypeName);
+                QueryTools.ExecuteSyncNonQuery(Session, query);
             }
             catch (AlreadyExistsException)
             {
@@ -115,10 +112,8 @@ namespace Cassandra.IntegrationTests.Core
             string tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                Session.WaitForSchemaAgreement(QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         incdec counter
-         );", tableName)));
+                var query = string.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, incdec counter);", tableName);
+                QueryTools.ExecuteSyncNonQuery(Session, query);
             }
             catch (AlreadyExistsException)
             {
@@ -146,11 +141,8 @@ namespace Cassandra.IntegrationTests.Core
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         value {1}
-         );", tableName, cassandraDataTypeName)));
+                var query = string.Format(@"CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, value {1});", tableName, cassandraDataTypeName);
+                QueryTools.ExecuteSyncNonQuery(Session, query);
             }
             catch (AlreadyExistsException)
             {
@@ -193,12 +185,9 @@ namespace Cassandra.IntegrationTests.Core
 
         public void TimestampTest()
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         ts timestamp
-         );", tableName)));
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            var createQuery = string.Format(@"CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, ts timestamp);", tableName);
+            QueryTools.ExecuteSyncNonQuery(Session, createQuery);
 
             QueryTools.ExecuteSyncNonQuery(Session,
                                            string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid(),
@@ -219,16 +208,14 @@ namespace Cassandra.IntegrationTests.Core
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid,
-         author text,
-         body text,
-         isok boolean,
-		 fval float,
-		 dval double,
-         PRIMARY KEY(tweet_id))", tableName))
-                    );
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                     tweet_id uuid,
+                     author text,
+                     body text,
+                     isok boolean,
+		             fval float,
+		             dval double,
+                     PRIMARY KEY(tweet_id))", tableName));
             }
             catch (AlreadyExistsException)
             {

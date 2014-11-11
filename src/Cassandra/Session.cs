@@ -305,7 +305,7 @@ namespace Cassandra
                 return true;
             }
             //This is trivial, but there isn't a reliable way to wait for all nodes to have the same schema.
-            Thread.Sleep(1000);
+            Thread.Sleep(1000 + (int)(300 * Math.Pow(2, Cluster.Metadata.AllHosts().Count)));
             return false;
         }
 

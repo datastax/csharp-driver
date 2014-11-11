@@ -50,12 +50,10 @@ namespace Cassandra.IntegrationTests.Core
             var localSession = Cluster.Connect();
             string keyspaceName = "kp_pi1";
 
-            localSession.WaitForSchemaAgreement(
-                localSession.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                                  , keyspaceName)));
+            localSession.Execute(
+                string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName));
 
+            TestUtils.WaitForSchemaAgreement(Cluster);
             localSession.ChangeKeyspace(keyspaceName);
 
             for (int KK = 0; KK < 1; KK++)
@@ -64,14 +62,15 @@ namespace Cassandra.IntegrationTests.Core
                 string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
                 try
                 {
-                    localSession.WaitForSchemaAgreement(
-                        localSession.Execute(string.Format(@"
-                            CREATE TABLE {0}(
-                            tweet_id uuid,
-                            author text,
-                            body text,
-                            isok boolean,
-                            PRIMARY KEY(tweet_id))", tableName)));
+                    localSession.Execute(string.Format(@"
+                        CREATE TABLE {0}(
+                        tweet_id uuid,
+                        author text,
+                        body text,
+                        isok boolean,
+                        PRIMARY KEY(tweet_id))", tableName));
+
+                    TestUtils.WaitForSchemaAgreement(Cluster);
                 }
                 catch (AlreadyExistsException)
                 {
