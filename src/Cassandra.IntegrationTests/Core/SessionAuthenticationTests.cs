@@ -61,6 +61,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void Cassandra20OrAbove_PasswordAuthenticatorWithWrongCredentialsThrows()
         {
             using (var cluster = Cluster
@@ -76,6 +77,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void Cassandra20OrAbove_PasswordAuthenticator()
         {
             var authProvider = new PlainTextAuthProvider("cassandra", "cassandra");

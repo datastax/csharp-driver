@@ -464,17 +464,16 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void PreparedSelectOneTest()
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            var tableName = "table" + Guid.NewGuid().ToString("N");
 
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
-                        CREATE TABLE {0}(
-                        tweet_id int PRIMARY KEY,
-                        numb double,
-                        label text);", tableName))
-                    );
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
+                    CREATE TABLE {0}(
+                    tweet_id int PRIMARY KEY,
+                    numb double,
+                    label text);", tableName));
+                TestUtils.WaitForSchemaAgreement(Session.Cluster);
             }
             catch (AlreadyExistsException)
             {
@@ -485,10 +484,10 @@ namespace Cassandra.IntegrationTests.Core
                 Session.Execute(string.Format("INSERT INTO {0} (tweet_id, numb, label) VALUES({1}, 0.01,'{2}')", tableName, i, "row" + i));
             }
 
-            PreparedStatement prep_select = QueryTools.PrepareQuery(Session, string.Format("SELECT * FROM {0} WHERE tweet_id = ?;", tableName));
+            var prepSelect = QueryTools.PrepareQuery(Session, string.Format("SELECT * FROM {0} WHERE tweet_id = ?;", tableName));
 
-            int rowID = 5;
-            var result = QueryTools.ExecutePreparedSelectQuery(Session, prep_select, new object[1] { rowID });
+            var rowID = 5;
+            var result = QueryTools.ExecutePreparedSelectQuery(Session, prepSelect, new object[1] { rowID });
             foreach (var row in result)
             {
                 Assert.True((string)row.GetValue(typeof(int), "label") == "row" + rowID);
@@ -584,15 +583,15 @@ namespace Cassandra.IntegrationTests.Core
 
         public void InsertingSingleValuePrepared(Type tp, object value = null)
         {
-            string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
+            var tableName = "table" + Guid.NewGuid().ToString("N");
 
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         value {1}
-         );", tableName, cassandraDataTypeName))
-                );
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                tweet_id uuid PRIMARY KEY,
+                value {1}
+                );", tableName, cassandraDataTypeName));
+
+            TestUtils.WaitForSchemaAgreement(Session.Cluster);
 
             var toInsert = new List<object[]>(1);
             object val = Randomm.RandomVal(tp);
@@ -603,7 +602,7 @@ namespace Cassandra.IntegrationTests.Core
 
             toInsert.Add(row1);
 
-            PreparedStatement prep = QueryTools.PrepareQuery(Session,
+            var prep = QueryTools.PrepareQuery(Session,
                                                              string.Format("INSERT INTO {0}(tweet_id, value) VALUES ({1}, ?);", tableName,
                                                                            toInsert[0][0]));
             if (value == null)
@@ -625,18 +624,17 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         numb1 double,
-         numb2 int
-         );", tableName))
-                    );
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                    tweet_id uuid PRIMARY KEY,
+                    numb1 double,
+                    numb2 int
+                    );", tableName));
+                TestUtils.WaitForSchemaAgreement(Session.Cluster);
             }
             catch (AlreadyExistsException)
             {
             }
-            int numberOfPrepares = 100;
+            var numberOfPrepares = 100;
 
             var values = new List<object[]>(numberOfPrepares);
             var prepares = new List<PreparedStatement>();

@@ -32,7 +32,6 @@ namespace Cassandra
         internal readonly byte[] Id;
         internal readonly RowSetMetadata Metadata;
         internal readonly RowSetMetadata ResultMetadata;
-        private volatile ConsistencyLevel _consistency;
         private volatile RoutingKey _routingKey;
 
         /// <summary>
@@ -46,6 +45,12 @@ namespace Cassandra
         public RoutingKey RoutingKey
         {
             get { return _routingKey; }
+        }
+
+        public ConsistencyLevel? ConsistencyLevel
+        {
+            get;
+            private set;
         }
 
         internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, RowSetMetadata resultMetadata)
@@ -64,11 +69,10 @@ namespace Cassandra
         ///  it only applies to BoundStatement created after the change.</p>
         /// </summary>
         /// <param name="consistency"> the default consistency level to set. </param>
-        /// 
         /// <returns>this <c>PreparedStatement</c> object.</returns>
         public PreparedStatement SetConsistencyLevel(ConsistencyLevel consistency)
         {
-            _consistency = consistency;
+            ConsistencyLevel = consistency;
             return this;
         }
 
