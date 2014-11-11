@@ -20,7 +20,6 @@ namespace Cassandra.Data.Linq
 {
     internal class CqlMthHelps
     {
-        private static CqlMthHelps _instance = new CqlMthHelps();
         internal static MethodInfo SelectMi = typeof (CqlMthHelps).GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo WhereMi = typeof (CqlMthHelps).GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo UpdateIfMi = typeof(CqlMthHelps).GetMethod("UpdateIf", BindingFlags.NonPublic | BindingFlags.Static);

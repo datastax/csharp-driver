@@ -30,7 +30,7 @@ namespace Cassandra
     ///  <c>newQueryPlan</c> method will first return the <c>LOCAL</c>
     ///  replicas for the query (based on Statement.GetRoutingKey) <i>if
     ///  possible</i> (i.e. if the query <c>getRoutingKey</c> method doesn't
-    ///  return <c>null</c> and if <see cref="Metadata.GetReplicas" /> returns a non empty
+    ///  return <c>null</c> and if <see cref="Metadata.GetReplicas(string, byte[])" /> returns a non empty
     ///  set of replicas for that partition key). If no local replica can be either
     ///  found or successfully contacted, the rest of the query plan will fallback to
     ///  one of the child policy.</li> </ul> </p><p> Do note that only replica for which
