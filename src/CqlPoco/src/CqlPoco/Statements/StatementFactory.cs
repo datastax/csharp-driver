@@ -25,20 +25,24 @@ namespace CqlPoco.Statements
             _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
         }
 
-        public async Task<Statement> GetStatementAsync(Cql cql)
+        public Task<Statement> GetStatementAsync(Cql cql)
         {
             // Use a SimpleStatement if we're not supposed to prepare
             if (cql.QueryOptions.NoPrepare)
             {
-                var statement = new SimpleStatement(cql.Statement).Bind(cql.Arguments);
+                Statement statement = new SimpleStatement(cql.Statement).Bind(cql.Arguments);
                 cql.QueryOptions.CopyOptionsToStatement(statement);
-                return statement;
+                return TaskHelper.ToTask(statement);
             }
 
-            PreparedStatement preparedStatement = await _statementCache.GetOrAdd(cql.Statement, _session.PrepareAsync).ConfigureAwait(false);
-            BoundStatement boundStatement = preparedStatement.Bind(cql.Arguments);
-            cql.QueryOptions.CopyOptionsToStatement(boundStatement);
-            return boundStatement;
+            return _statementCache
+                .GetOrAdd(cql.Statement, _session.PrepareAsync)
+                .Continue(t =>
+                {
+                    var boundStatement = t.Result.Bind(cql.Arguments);
+                    cql.QueryOptions.CopyOptionsToStatement(boundStatement);
+                    return (Statement)boundStatement;
+                });
         }
 
         public Statement GetStatement(Cql cql)
@@ -47,17 +51,22 @@ namespace CqlPoco.Statements
             return GetStatementAsync(cql).Result;
         }
 
-        public async Task<BatchStatement> GetBatchStatementAsync(IEnumerable<Cql> cqlToBatch)
+        public Task<BatchStatement> GetBatchStatementAsync(IEnumerable<Cql> cqlToBatch)
         {
             // Get all the statements async in parallel, then add to batch
-            Statement[] statements = await Task.WhenAll(cqlToBatch.Select(GetStatementAsync));
-
-            var batch = new BatchStatement();
-            foreach (var statement in statements)
+            return Task.Factory.ContinueWhenAll(cqlToBatch.Select(GetStatementAsync).ToArray(), (tasks) =>
             {
-                batch.Add(statement);
-            }
-            return batch;
+                var batch = new BatchStatement();
+                foreach (var t in tasks)
+                {
+                    if (t.Exception != null)
+                    {
+                        throw t.Exception;
+                    }
+                    batch.Add(t.Result);
+                }
+                return batch;
+            }, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
         public BatchStatement GetBatchStatement(IEnumerable<Cql> cqlToBatch)

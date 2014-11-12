@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CqlPoco</RootNamespace>
     <AssemblyName>CqlPoco</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -35,17 +35,26 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Cassandra">
-      <HintPath>..\packages\CassandraCSharpDriver.2.0.3\lib\net40\Cassandra.dll</HintPath>
+    <Reference Include="Cassandra, Version=2.1.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\CassandraCSharpDriver.2.1.4\lib\net40\Cassandra.dll</HintPath>
     </Reference>
-    <Reference Include="Cassandra.Data">
-      <HintPath>..\packages\CassandraCSharpDriver.2.0.3\lib\net40\Cassandra.Data.dll</HintPath>
+    <Reference Include="Cassandra.Data, Version=2.1.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\CassandraCSharpDriver.2.1.4\lib\net40\Cassandra.Data.dll</HintPath>
     </Reference>
-    <Reference Include="Cassandra.Data.Linq">
-      <HintPath>..\packages\CassandraCSharpDriver.2.0.3\lib\net40\Cassandra.Data.Linq.dll</HintPath>
+    <Reference Include="Cassandra.Data.Linq, Version=2.1.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\CassandraCSharpDriver.2.1.4\lib\net40\Cassandra.Data.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="Crc32C.NET">
+      <HintPath>..\packages\Crc32C.NET.1.0.5.0\lib\net20\Crc32C.NET.dll</HintPath>
     </Reference>
     <Reference Include="LZ4">
       <HintPath>..\packages\lz4net.1.0.3.93\lib\net40-client\LZ4.dll</HintPath>
+    </Reference>
+    <Reference Include="Snappy.NET">
+      <HintPath>..\packages\Snappy.NET.1.1.1.8\lib\net20\Snappy.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -76,6 +85,7 @@
     <Compile Include="Mapping\ITypeDefinition.cs" />
     <Compile Include="PrimaryKeyAttribute.cs" />
     <Compile Include="Statements\CqlGenerator.cs" />
+    <Compile Include="TaskHelper.cs" />
     <Compile Include="TypeConversion\NullableEnumStringMapper.cs" />
     <Compile Include="Utils\EnumerableExtensions.cs" />
     <Compile Include="Utils\LookupKeyedCollection.cs" />

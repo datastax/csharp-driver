@@ -69,7 +69,7 @@ namespace CqlPoco.Mapping
         {
             _memberInfo = memberInfo;
 
-            ColumnAttribute columnAttribute = memberInfo.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
+            var columnAttribute = (ColumnAttribute) memberInfo.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
             if (columnAttribute != null)
             {
                 _isExplicitlyDefined = true;
@@ -81,7 +81,7 @@ namespace CqlPoco.Mapping
                     _columnType = columnAttribute.Type;
             }
 
-            IgnoreAttribute ignoreAttribute = memberInfo.GetCustomAttributes<IgnoreAttribute>(true).FirstOrDefault();
+            var ignoreAttribute = memberInfo.GetCustomAttributes(typeof(IgnoreAttribute), true).FirstOrDefault();
             if (ignoreAttribute != null)
                 _ignore = true;
         }

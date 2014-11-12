@@ -6,6 +6,7 @@ using Cassandra;
 using CqlPoco.Mapping;
 using CqlPoco.Statements;
 using CqlPoco.TypeConversion;
+using CqlPoco;
 
 namespace CqlPoco
 {
@@ -43,16 +44,19 @@ namespace CqlPoco
             return FetchAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task<List<T>> FetchAsync<T>(Cql cql)
+        public Task<List<T>> FetchAsync<T>(Cql cql)
         {
-            // Get the statement to execute and execute it
+            //Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
-            RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
-
-            // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
-            return rows.Select(mapper).ToList();
+            return _statementFactory
+                .GetStatementAsync(cql)
+                .Continue(t1 => _session.ExecuteAsync(t1.Result)
+                    .Continue(t2 =>
+                    {
+                        var rs = t2.Result;
+                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                        return rs.Select(mapper).ToList();
+                    })).Unwrap();
         }
 
         public Task<T> SingleAsync<T>(string cql, params object[] args)
@@ -60,18 +64,19 @@ namespace CqlPoco
             return SingleAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task<T> SingleAsync<T>(Cql cql)
+        public Task<T> SingleAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
-            RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
-
-            Row row = rows.Single();
-
-            // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
-            return mapper(row);
+            return _statementFactory.GetStatementAsync(cql)
+                .Continue(t1 => _session.ExecuteAsync(t1.Result)
+                    .Continue(t2 =>
+                    {
+                        var rs = t2.Result;
+                        // Map to return type
+                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                        return mapper(rs.Single());
+                    })).Unwrap();
         }
 
         public Task<T> SingleOrDefaultAsync<T>(string cql, params object[] args)
@@ -79,21 +84,24 @@ namespace CqlPoco
             return SingleOrDefaultAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task<T> SingleOrDefaultAsync<T>(Cql cql)
+        public Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
-            RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
-
-            Row row = rows.SingleOrDefault();
-
-            // Map to return type or return default
-            if (row == null)
-                return default(T);
-
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
-            return mapper(row);
+            return _statementFactory.GetStatementAsync(cql)
+                .Continue(t1 => _session.ExecuteAsync(t1.Result)
+                    .Continue(t2 =>
+                    {
+                        var rs = t2.Result;
+                        var row = rs.SingleOrDefault();
+                        // Map to return type
+                        if (row == null)
+                        {
+                            return default(T);
+                        }
+                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                        return mapper(row);
+                    })).Unwrap();
         }
 
         public Task<T> FirstAsync<T>(string cql, params object[] args)
@@ -101,18 +109,20 @@ namespace CqlPoco
             return FirstAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task<T> FirstAsync<T>(Cql cql)
+        public Task<T> FirstAsync<T>(Cql cql)
         {
             // Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
-            RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
-
-            Row row = rows.First();
-
-            // Map to return type
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
-            return mapper(row);
+            return _statementFactory.GetStatementAsync(cql)
+                .Continue(t1 => _session.ExecuteAsync(t1.Result)
+                    .Continue(t2 =>
+                    {
+                        var rs = t2.Result;
+                        var row = rs.First();
+                        // Map to return type
+                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                        return mapper(row);
+                    })).Unwrap();
         }
 
         public Task<T> FirstOrDefaultAsync<T>(string cql, params object[] args)
@@ -120,21 +130,24 @@ namespace CqlPoco
             return FirstOrDefaultAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task<T> FirstOrDefaultAsync<T>(Cql cql)
+        public Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
-            // Get the statement to execute and execute it
+
             _cqlGenerator.AddSelect<T>(cql);
-            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
-            RowSet rows = await _session.ExecuteAsync(statement).ConfigureAwait(false);
-
-            Row row = rows.FirstOrDefault();
-
-            // Map to return type or return default
-            if (row == null)
-                return default(T);
-
-            Func<Row, T> mapper = _mapperFactory.GetMapper<T>(cql.Statement, rows);
-            return mapper(row);
+            return _statementFactory.GetStatementAsync(cql)
+                .Continue(t1 => _session.ExecuteAsync(t1.Result)
+                    .Continue(t2 =>
+                    {
+                        var rs = t2.Result;
+                        var row = rs.FirstOrDefault();
+                        // Map to return type
+                        if (row == null)
+                        {
+                            return default(T);
+                        }
+                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                        return mapper(row);
+                    })).Unwrap();
         }
 
         public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
@@ -194,11 +207,16 @@ namespace CqlPoco
             return ExecuteAsync(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public async Task ExecuteAsync(Cql cql)
+        public Task ExecuteAsync(Cql cql)
         {
             // Execute the statement
-            Statement statement = await _statementFactory.GetStatementAsync(cql).ConfigureAwait(false);
-            await _session.ExecuteAsync(statement).ConfigureAwait(false);
+            return _statementFactory
+                .GetStatementAsync(cql)
+                .Continue(t =>
+                {
+                    var statement = t.Result;
+                    return _session.ExecuteAsync(statement);
+                });
         }
 
         public ICqlBatch CreateBatch()
@@ -214,12 +232,17 @@ namespace CqlPoco
             _session.Execute(batchStatement);
         }
 
-        public async Task ExecuteAsync(ICqlBatch batch)
+        public Task ExecuteAsync(ICqlBatch batch)
         {
             if (batch == null) throw new ArgumentNullException("batch");
 
-            BatchStatement batchStatement = await _statementFactory.GetBatchStatementAsync(batch.Statements);
-            await _session.ExecuteAsync(batchStatement);
+            return _statementFactory
+                .GetBatchStatementAsync(batch.Statements)
+                .Continue(t =>
+                {
+                    var batchStatement = t.Result;
+                    return _session.ExecuteAsync(batchStatement);
+                });
         }
 
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)

@@ -43,15 +43,15 @@ namespace CqlPoco.Mapping
             _pocoType = pocoType;
 
             // Look for supported attributes on the Type and set any properties appropriately
-            PrimaryKeyAttribute primaryKeyAttribute = pocoType.GetCustomAttributes<PrimaryKeyAttribute>(true).FirstOrDefault();
+            var primaryKeyAttribute = (PrimaryKeyAttribute)pocoType.GetCustomAttributes(typeof(PrimaryKeyAttribute), true).FirstOrDefault();
             if (primaryKeyAttribute != null)
                 _primaryKeyColumns = primaryKeyAttribute.ColumnNames;
 
-            ExplicitColumnsAttribute explicitColumnsAttribute = pocoType.GetCustomAttributes<ExplicitColumnsAttribute>(true).FirstOrDefault();
+            var explicitColumnsAttribute = (ExplicitColumnsAttribute)pocoType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).FirstOrDefault();
             if (explicitColumnsAttribute != null)
                 _explicitColumns = true;
 
-            TableNameAttribute tableNameAttribute = pocoType.GetCustomAttributes<TableNameAttribute>(true).FirstOrDefault();
+            var tableNameAttribute = (TableNameAttribute)pocoType.GetCustomAttributes(typeof(TableNameAttribute), true).FirstOrDefault();
             if (tableNameAttribute != null)
                 _tableName = tableNameAttribute.Value;
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace CqlPoco.TypeConversion
@@ -26,7 +27,7 @@ namespace CqlPoco.TypeConversion
 
         private static readonly MethodInfo ConvertToSortedSetMethod = typeof(TypeConverter).GetMethod("ConvertToSortedSet", PrivateStatic);
 
-        private static readonly MethodInfo ConvertToArrayMethod = typeof (Enumerable).GetMethod("ToArray", BindingFlags.Public | BindingFlags.Static);
+        private static readonly MethodInfo ConvertToArrayMethod = typeof(Enumerable).GetMethod("ToArray", BindingFlags.Public | BindingFlags.Static);
 
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
@@ -121,7 +122,7 @@ namespace CqlPoco.TypeConversion
                 // Allow conversion from IDictionary<,> -> Dictionary<,> since C* driver uses SortedDictionary which can't be cast to Dictionary
                 if (sourceGenericDefinition == typeof (IDictionary<,>) && pocoType == typeof (Dictionary<,>).MakeGenericType(sourceGenericArgs))
                 {
-                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
+                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
                 }
 
                 // IEnumerable<> could be a Set or a List from Cassandra
@@ -130,19 +131,19 @@ namespace CqlPoco.TypeConversion
                     // For some reason, the driver uses List<> to represent Sets so allow conversion to HashSet<>, SortedSet<>, and ISet<>
                     if (pocoType == typeof (HashSet<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToHashSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
+                        return ConvertToHashSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
                     }
 
                     if (pocoType == typeof (SortedSet<>).MakeGenericType(sourceGenericArgs) ||
                         pocoType == typeof (ISet<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToSortedSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
+                        return ConvertToSortedSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
                     }
 
                     // Allow converting from set/list's IEnumerable<T> to T[]
                     if (pocoType == sourceGenericArgs[0].MakeArrayType())
                     {
-                        return ConvertToArrayMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate(typeof (Func<TDatabase, TPoco>));
+                        return ConvertToArrayMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
                     }
                 }
             }
@@ -222,4 +223,32 @@ namespace CqlPoco.TypeConversion
         /// <returns>A Func that can converter between the two Types or null if one is not available.</returns>
         protected abstract Func<TPoco, TDatabase> GetUserDefinedToDbConverter<TPoco, TDatabase>();
     }
+
+    internal static class ReflectionUtils
+    {
+        public static Delegate CreateDelegate(this MethodInfo method)
+        {
+            if (method == null)
+            {
+                throw new ArgumentNullException("method");
+            }
+
+            if (!method.IsStatic)
+            {
+                throw new ArgumentException("The provided method must be static.", "method");
+            }
+
+            if (method.IsGenericMethod)
+            {
+                throw new ArgumentException("The provided method must not be generic.", "method");
+            }
+
+            var parameters = method.GetParameters()
+                           .Select(p => Expression.Parameter(p.ParameterType, p.Name))
+                           .ToArray();
+            var call = Expression.Call(null, method, parameters);
+            return Expression.Lambda(call, parameters).Compile();
+        }
+    }
+
 }
