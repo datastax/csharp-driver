@@ -1,4 +1,4 @@
-﻿namespace CqlPoco.IntegrationTests.Pocos
+﻿namespace  Cassandra.Tests.Mapping.Pocos
 {
     public enum ContactMethod
     {

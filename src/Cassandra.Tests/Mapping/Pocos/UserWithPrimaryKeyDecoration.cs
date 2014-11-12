@@ -1,4 +1,6 @@
-﻿namespace CqlPoco.IntegrationTests.Pocos
+﻿using Cassandra.Mapping;
+
+namespace  Cassandra.Tests.Mapping.Pocos
 {
     /// <summary>
     /// A decorated POCO for use when testing UDPATE/DELETE.

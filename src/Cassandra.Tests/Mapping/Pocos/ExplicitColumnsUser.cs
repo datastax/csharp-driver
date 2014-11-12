@@ -1,6 +1,7 @@
 ﻿using System;
+using Cassandra.Mapping;
 
-namespace CqlPoco.IntegrationTests.Pocos
+namespace  Cassandra.Tests.Mapping.Pocos
 {
     /// <summary>
     /// A user decorated with attributes indicating how it should be mapped, specifically the ExplicitColumnsAttribute.

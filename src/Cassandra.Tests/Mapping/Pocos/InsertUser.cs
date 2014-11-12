@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Cassandra.Mapping;
 
-namespace CqlPoco.IntegrationTests.Pocos
+namespace  Cassandra.Tests.Mapping.Pocos
 {
     [TableName("users")]
     public class InsertUser

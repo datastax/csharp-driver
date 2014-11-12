@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CqlPoco.IntegrationTests.TestData
+namespace Cassandra.Tests.Mapping.TestData
 {
     /// <summary>
     /// Static utility class to help with generating test data.
