@@ -28,8 +28,6 @@ namespace Cassandra
 
     public class KerberosAuthenticator : IAuthenticator
     {
-        private readonly Logger _logger = new Logger(typeof(KerberosAuthenticator));
-
         SSPIHelper _sspi;
         string _username;
 
