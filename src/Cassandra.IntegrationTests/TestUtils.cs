@@ -203,22 +203,21 @@ namespace Cassandra.IntegrationTests
         }
 
         /// <summary>
-        /// Executes a windows command
+        /// Spawns a new process (platform independent)
         /// </summary>
-        public static ProcessOutput ExecuteCommand(string args, int timeout = 300000)
+        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout = 300000)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
             {
-                process.StartInfo.FileName = "cmd.exe";
-                process.StartInfo.Arguments = "/c " + args;
+                process.StartInfo.FileName = processName;
+                process.StartInfo.Arguments = args;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 process.StartInfo.CreateNoWindow = true;
-
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))
@@ -285,14 +284,36 @@ namespace Cassandra.IntegrationTests
         public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000, bool throwOnProcessError = false)
         {
             ccmConfigDir = EscapePath(ccmConfigDir);
-            ccmArgs = "ccm " + ccmArgs + " --config-dir=" + ccmConfigDir;
+            var args = ccmArgs + " --config-dir=" + ccmConfigDir;
             Trace.TraceInformation("Executing ccm: " + ccmArgs);
-            var output = ExecuteCommand(ccmArgs, timeout);
+            var processName = "/usr/local/bin/ccm";
+            if (IsWin)
+            {
+                processName = "cmd.exe";
+                args = "/c ccm " + args;
+            }
+            var output = ExecuteProcess(processName, args, timeout);
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
             }
             return output;
+        }
+
+        public static bool IsWin
+        {
+            get
+            {
+                switch (Environment.OSVersion.Platform) 
+                {
+                case PlatformID.Win32NT:
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.WinCE:
+                    return true;
+                }
+                return false;
+            }
         }
 
         private static void ValidateOutput(ProcessOutput output)
