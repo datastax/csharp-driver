@@ -61,16 +61,16 @@ namespace Cassandra.IntegrationTests
 
         private Options()
         {
-            IP_PREFIX = MyTestOptions.Default.IpPrefix;
-            SSH_HOST = MyTestOptions.Default.SSHHost;
-            SSH_PORT = MyTestOptions.Default.SSHPort;
-            SSH_USERNAME = MyTestOptions.Default.SSHUser;
-            SSH_PASSWORD = MyTestOptions.Default.SSHPassword;
-            CASSANDRA_VERSION = MyTestOptions.Default.CassandraVersion;
+            IP_PREFIX = TestGlobals.Default.IpPrefix;
+            SSH_HOST = TestGlobals.Default.SSHHost;
+            SSH_PORT = TestGlobals.Default.SSHPort;
+            SSH_USERNAME = TestGlobals.Default.SSHUser;
+            SSH_PASSWORD = TestGlobals.Default.SSHPassword;
+            CASSANDRA_VERSION = TestGlobals.Default.CassandraVersion;
 
-            USE_COMPRESSION = MyTestOptions.Default.UseCompression;
-            USE_NOBUFFERING = MyTestOptions.Default.NoUseBuffering;
-            USE_LOGGER = MyTestOptions.Default.UseLogger;
+            USE_COMPRESSION = TestGlobals.Default.UseCompression;
+            USE_NOBUFFERING = TestGlobals.Default.NoUseBuffering;
+            USE_LOGGER = TestGlobals.Default.UseLogger;
         }
     }
 }

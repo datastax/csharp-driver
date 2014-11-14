@@ -32,7 +32,7 @@ namespace Cassandra.IntegrationTests
     /// </summary>
     internal static class TestUtils
     {
-        private static readonly Logger logger = new Logger(typeof (TestUtils));
+        private static readonly Logger logger = new Logger(typeof(TestUtils));
 
         public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT =
             "CREATE KEYSPACE \"{0}\" WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests
             // FIXME: Once stop() works, remove this line
             try
             {
-                Thread.Sleep(waitTime*1000);
+                Thread.Sleep(waitTime * 1000);
             }
             catch (InvalidQueryException e)
             {
@@ -311,7 +311,7 @@ namespace Cassandra.IntegrationTests
         /// <param name="secondDcNodeLength">amount of nodes to add the second DC</param>
         /// <param name="clusterName"></param>
         /// <returns></returns>
-        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir,string cassandraVersion, int nodeLength = 1, int secondDcNodeLength = 0, string clusterName = "test")
+        public static ProcessOutput ExecuteLocalCcmClusterStart(string ccmConfigDir, string cassandraVersion, int nodeLength = 1, int secondDcNodeLength = 0, string clusterName = "test")
         {
             //Starting ccm cluster involves:
             //  1.- Getting the Apache Cassandra Distro
@@ -343,7 +343,7 @@ namespace Cassandra.IntegrationTests
             }
             if (secondDcNodeLength > 0)
             {
-                ccmCommand = String.Format("populate -n {0}:{1}", nodeLength, secondDcNodeLength); 
+                ccmCommand = String.Format("populate -n {0}:{1}", nodeLength, secondDcNodeLength);
             }
             else
             {
@@ -362,10 +362,6 @@ namespace Cassandra.IntegrationTests
             }
             output.OutputText.AppendLine(startOutput.ToString());
 
-            if (ConfigurationManager.AppSettings["CcmStatus"] != "true")
-            {
-                return output;   
-            }
             //Nodes are starting, but we dont know for sure if they are have started.
             var allNodesAreUp = false;
             var safeCounter = 0;
@@ -411,6 +407,108 @@ namespace Cassandra.IntegrationTests
         }
 
         /// <summary>
+        /// Starts a Cassandra cluster with the name, version and node count and ip prefix provided.
+        /// NOTE: this will eventually be replaced 
+        /// </summary>
+        public static ProcessOutput ExecuteLocalCcmClusterStart(
+            string ccmConfigDir, string cassandraVersion, string localIpPrefix, int nodeLength = 1, int secondDcNodeLength = 0, string clusterName = "test")
+        {
+            //Starting ccm cluster involves:
+            //  1.- Getting the Apache Cassandra Distro
+            //  2.- Compiling it
+            //  3.- Fill the config files
+            //  4.- Starting each node.
+
+            //Considerations: 
+            //  As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
+            //  Also, the process can exit before the nodes are actually up: Execute ccm status until they are up
+
+            var totalNodeLength = nodeLength + secondDcNodeLength;
+
+            //Only if ccm list succedes, create the cluster and continue.
+            var output = TestUtils.ExecuteLocalCcm("list", ccmConfigDir, 2000);
+            if (output.ExitCode != 0)
+            {
+                return output;
+            }
+
+            var ccmCommand = String.Format("create {0} -v {1}", clusterName, cassandraVersion);
+            //When creating a cluster, it could download the Cassandra binaries from the internet.
+            //Give enough time = 3 minutes.
+            var timeout = 180000;
+            output = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, timeout);
+            if (output.ExitCode != 0)
+            {
+                return output;
+            }
+            ccmCommand = String.Format("populate -i {0} -n ", localIpPrefix);
+            if (secondDcNodeLength > 0)
+            {
+                ccmCommand += String.Format("{0}:{1}", nodeLength, secondDcNodeLength);
+            }
+            else
+            {
+                ccmCommand += nodeLength;
+            }
+            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 300000);
+            if (populateOutput.ExitCode != 0)
+            {
+                return populateOutput;
+            }
+            output.OutputText.AppendLine(populateOutput.ToString());
+            var startOutput = TestUtils.ExecuteLocalCcm("start", ccmConfigDir);
+            if (startOutput.ExitCode != 0)
+            {
+                return startOutput;
+            }
+            output.OutputText.AppendLine(startOutput.ToString());
+
+            //Nodes are starting, but we dont know for sure if they are have started.
+            var allNodesAreUp = false;
+            var safeCounter = 0;
+            while (!allNodesAreUp && safeCounter < 10)
+            {
+                var statusOutput = TestUtils.ExecuteLocalCcm("status", ccmConfigDir, 1000);
+                if (statusOutput.ExitCode != 0)
+                {
+                    //Something went wrong
+                    output = statusOutput;
+                    break;
+                }
+                //Analyze the status output to see if all nodes are up
+                if (Regex.Matches(statusOutput.OutputText.ToString(), "UP", RegexOptions.Multiline).Count == totalNodeLength)
+                {
+                    //All nodes are up
+                    for (int x = 1; x <= totalNodeLength; x++)
+                    {
+                        var foundText = false;
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        while (sw.ElapsedMilliseconds < 180000)
+                        {
+                            var logFileText =
+                                TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, String.Format("node{0}\\logs\\system.log", x)));
+                            if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
+                            {
+                                foundText = true;
+                                break;
+                            }
+                        }
+                        if (!foundText)
+                        {
+                            throw new TestInfrastructureException(String.Format("node{0} did not properly start", x));
+                        }
+                    }
+                    allNodesAreUp = true;
+                }
+                safeCounter++;
+            }
+
+            return output;
+        }
+
+
+        /// <summary>
         /// Stops the cluster and removes the config files
         /// </summary>
         /// <returns></returns>
@@ -449,7 +547,7 @@ namespace Cassandra.IntegrationTests
             return fileText;
         }
 
-        private static Dictionary<string, bool> _existsCache = new Dictionary<string,bool>();
+        private static Dictionary<string, bool> _existsCache = new Dictionary<string, bool>();
         /// <summary>
         /// Checks that the file exists and caches the result in a static variable
         /// </summary>
@@ -494,6 +592,57 @@ namespace Cassandra.IntegrationTests
             return tempDirectory;
         }
 
+        public static CcmClusterInfo CcmSetup(string localIpPrefix, int nodeCount, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0, bool connect = true)
+        {
+            var clusterInfo = new CcmClusterInfo();
+            if (builder == null)
+            {
+                builder = Cluster.Builder();
+            }
+            if (UseRemoteCcm)
+            {
+                CCMBridge.ReusableCCMCluster.Setup(nodeCount);
+                clusterInfo.Cluster = CCMBridge.ReusableCCMCluster.Build(builder);
+                if (keyspaceName != null)
+                {
+                    clusterInfo.Session = CCMBridge.ReusableCCMCluster.Connect(keyspaceName);
+                }
+            }
+            else
+            {
+                //Create a local instance
+                clusterInfo.ConfigDir = TestUtils.CreateTempDirectory();
+                var output = TestUtils.ExecuteLocalCcmClusterStart(clusterInfo.ConfigDir, Options.Default.CASSANDRA_VERSION, localIpPrefix, nodeCount, secondDcNodeLength);
+
+                if (output.ExitCode != 0)
+                {
+                    throw new TestInfrastructureException("Local ccm could not start: " + output.ToString());
+                }
+                try
+                {
+                    if (connect)
+                    {
+                        clusterInfo.Cluster = builder
+                            .AddContactPoint(localIpPrefix + "1")
+                            .Build();
+                        clusterInfo.Session = clusterInfo.Cluster.Connect();
+                        if (keyspaceName == null)
+                            keyspaceName = SIMPLE_KEYSPACE;
+                        clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                        clusterInfo.Session.ChangeKeyspace(keyspaceName);
+                    }
+                }
+                catch
+                {
+                    CcmRemove(clusterInfo);
+                    throw;
+                }
+            }
+            return clusterInfo;
+        }
+
+
+
         public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0, bool connect = true)
         {
             var clusterInfo = new CcmClusterInfo();
@@ -531,7 +680,6 @@ namespace Cassandra.IntegrationTests
                         if (keyspaceName != null)
                         {
                             clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
-                            WaitForSchema(clusterInfo.Cluster);
                             clusterInfo.Session.ChangeKeyspace(keyspaceName);
                         }
                     }
@@ -543,16 +691,6 @@ namespace Cassandra.IntegrationTests
                 }
             }
             return clusterInfo;
-        }
-
-        private static void WaitForSchema(ICluster cluster)
-        {
-            var hostCount = cluster.AllHosts().Count;
-            if (hostCount == 1)
-            {
-                return;
-            }
-            Thread.Sleep(500*hostCount);
         }
 
         public static void CcmRemove(CcmClusterInfo info)

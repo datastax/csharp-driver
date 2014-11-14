@@ -38,19 +38,22 @@ namespace Cassandra
         private Renci.SshNet.ShellStream _ssh_shellStream;
         private Options trick = Options.Default;
 
-        private CCMBridge()
+        private CCMBridge(bool instantiateSSH_client = true)
         {
             _ccmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
-            _ssh_client = new Renci.SshNet.SshClient(Options.Default.SSH_HOST, Options.Default.SSH_PORT, Options.Default.SSH_USERNAME, Options.Default.SSH_PASSWORD);
-            _ssh_client.Connect();
-
-            _ssh_shellStream = _ssh_client.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
-            var outp = new StringBuilder();
-            while (true)
+            if (instantiateSSH_client)
             {
-                outp.Append(_ssh_shellStream.Read());
-                if (outp.ToString().Trim().EndsWith("$"))
-                    break;
+                _ssh_client = new Renci.SshNet.SshClient(Options.Default.SSH_HOST, Options.Default.SSH_PORT, Options.Default.SSH_USERNAME, Options.Default.SSH_PASSWORD);
+                _ssh_client.Connect();
+
+                _ssh_shellStream = _ssh_client.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
+                var outp = new StringBuilder();
+                while (true)
+                {
+                    outp.Append(_ssh_shellStream.Read());
+                    if (outp.ToString().Trim().EndsWith("$"))
+                        break;
+                }
             }
         }
 
@@ -76,24 +79,34 @@ namespace Cassandra
             return bridge;
         }
 
-        public static CCMBridge Create(string name, int nbNodes, bool useAlreadyExisting= false)
+        public static CCMBridge Create(string name, int nodeCount, bool useAlreadyExisting = false)
         {
 #if !MYTEST
-            if (!useAlreadyExisting && (nbNodes > 6))
+            if (!useAlreadyExisting && (nodeCount > 6))
                 throw new InvalidOperationException();
 #endif
 
             CCMBridge bridge = new CCMBridge();
-            bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b -v {3}", name, nbNodes, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
+            bridge.ExecuteCCM(string.Format("Create {0} -n {1} -s -i {2} -b -v {3}", name, nodeCount, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
             return bridge;
         }
 
-        public static CCMBridge Create(string name, int nbNodesDC1, int nbNodesDC2, bool useAlreadyExisting =false)
+        public static CCMBridge Create(string name, string localIpPrefix, int nodeCount, string configDir, bool useAlreadyExisting = false)
         {
-#if !MYTEST
+            CCMBridge ccmBridge = new CCMBridge();
+            ccmBridge.ExecuteCCM(
+                string.Format("Create {0} -n {1} -s -i {2} -b -v {3} --config-dir={4}",
+                name, nodeCount, localIpPrefix, Options.Default.CASSANDRA_VERSION, configDir), 
+                useAlreadyExisting);
+            return ccmBridge;
+        }
+
+        public static CCMBridge Create(string name, int nbNodesDC1, int nbNodesDC2, bool useAlreadyExisting = false)
+        {
+            #if !MYTEST
             if (!useAlreadyExisting && (nbNodesDC1 + nbNodesDC2 > 6))
                 throw new InvalidOperationException();
-#endif
+            #endif
 
             CCMBridge bridge = new CCMBridge();
             bridge.ExecuteCCM(string.Format("Create {0} -n {1}:{2} -s -i {3} -b -v {4}", name, nbNodesDC1, nbNodesDC2, Options.Default.IP_PREFIX, Options.Default.CASSANDRA_VERSION), useAlreadyExisting);
@@ -172,7 +185,7 @@ namespace Cassandra
             Trace.TraceInformation("CCM>"+args);
             if (_ssh_shellStream.DataAvailable)
                 _ssh_shellStream.Read();
-            _ssh_shellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
+            _ssh_shellStream.WriteLine("ccm " + args);
             var outp = new StringBuilder();
             while (true)
             {
@@ -471,28 +484,38 @@ namespace Cassandra
 
             private bool erroredOut;
 
-            public static CCMCluster Create(int nbNodes, Builder builder)
+            public static CCMCluster Create(int nodeCountDC1, Builder builder)
             {
-#if !MYTEST
-                if (nbNodes > 6)
+                #if !MYTEST
+                if (nodeCountDC1 > 6)
                     throw new InvalidOperationException();
-#endif
-                if (nbNodes == 0)
+                #endif
+
+                if (nodeCountDC1 == 0)
                     throw new ArgumentException();
 
-                return new CCMCluster(CCMBridge.Create("test", nbNodes), builder);
+                return new CCMCluster(CCMBridge.Create("test", nodeCountDC1), builder);
             }
 
-            public static CCMCluster Create(int nbNodesDC1, int nbNodesDC2, Builder builder)
+            //public static CCMCluster Create(int nodeCountDC1, string localHostIpPrefix, Builder builder)
+            //{
+            //    if (nodeCountDC1 == 0)
+            //        throw new ArgumentException();
+
+            //    return new CCMCluster(CCMBridge.Create("test_cluster", localHostIpPrefix, nodeCountDC1), builder);
+            //}
+
+            public static CCMCluster Create(int nodeCountDC1, int nodeCountDC2, Builder builder)
             {
-#if !MYTEST
-                if (nbNodesDC1 + nbNodesDC2 > 6)
+                #if !MYTEST
+                if (nodeCountDC1 + nodeCountDC2 > 6)
                     throw new InvalidOperationException();
-#endif
-                if (nbNodesDC1 == 0)
+                #endif
+
+                if (nodeCountDC1 == 0)
                     throw new ArgumentException();
 
-                return new CCMCluster(CCMBridge.Create("test", nbNodesDC1, nbNodesDC2), builder);
+                return new CCMCluster(CCMBridge.Create("test", nodeCountDC1, nodeCountDC2), builder);
             }
 
             private CCMCluster(CCMBridge ccmBridge, Builder builder)
