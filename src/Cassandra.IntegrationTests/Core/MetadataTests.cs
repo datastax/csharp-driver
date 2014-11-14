@@ -211,13 +211,12 @@ namespace Cassandra.IntegrationTests.Core
             string opt = tableOptions != null ? " WITH " + tableOptions : "";
             sb.Append("))" + opt + ";");
 
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, sb.ToString())
-                );
+            QueryTools.ExecuteSyncNonQuery(Session, sb.ToString());
+            TestUtils.WaitForSchemaAgreement(Session.Cluster);
 
             var table = Cluster.Metadata.GetTable(keyspaceName ?? Keyspace, tableName);
             Assert.AreEqual(tableName, table.Name);
-            foreach (TableColumn metaCol in table.TableColumns)
+            foreach (var metaCol in table.TableColumns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.Name));
                 Assert.True(metaCol.TypeCode == columns.First(tpc => tpc.Key == metaCol.Name).Value);

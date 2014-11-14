@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests
     public class InfrastructureTests
     {
         /// <summary>
-        /// Checks that ccm is present in the user profile path (generally C:\Users\(USERNAME)\)
+        /// Checks that ccm can be executed
         /// </summary>
         [Test]
         public void CcmTest()
@@ -48,17 +48,18 @@ namespace Cassandra.IntegrationTests
             {
                 Trace.TraceError("Ccm not found");
                 Trace.TraceError(output.ToString());
+                Assert.Fail(output.ToString());
             }
         }
 
         /// <summary>
-        /// Checks that ccm is present in the user profile path (generally C:\Users\(USERNAME)\)
+        /// Checks that ccm can start a cluster
         /// </summary>
         [Test]
         public void CcmStartRemove()
         {
             var ccmConfigDir = TestUtils.CreateTempDirectory();
-            var output = TestUtils.ExecuteLocalCcmClusterStart(ccmConfigDir, "2.0.6");
+            var output = TestUtils.ExecuteLocalCcmClusterStart(ccmConfigDir, System.Configuration.ConfigurationManager.AppSettings["CassandraVersion"]);
             if (output.ExitCode == 0)
             {
                 Trace.TraceInformation("Ccm started correctly: " + output.OutputText.ToString());
@@ -67,6 +68,7 @@ namespace Cassandra.IntegrationTests
             {
                 Trace.TraceError("Ccm start failed:");
                 Trace.TraceError(output.ToString());
+                Assert.Fail(output.ToString());
             }
 
             TestUtils.ExecuteLocalCcmClusterRemove(ccmConfigDir);

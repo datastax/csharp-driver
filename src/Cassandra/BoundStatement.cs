@@ -72,6 +72,7 @@ namespace Cassandra
         {
             _statement = statement;
             _routingKey = statement.RoutingKey;
+            SetConsistencyLevel(statement.ConsistencyLevel);
         }
         
         /// <summary>

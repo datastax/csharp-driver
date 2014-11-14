@@ -254,11 +254,10 @@ namespace Cassandra.IntegrationTests.Core
         {
             try
             {
-                Session.WaitForSchemaAgreement(
                 QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
                                                                         id uuid PRIMARY KEY,
                                                                         val {1}
-                                                                        );", tableName, type)));
+                                                                        );", tableName, type));
             }
             catch (AlreadyExistsException)
             {

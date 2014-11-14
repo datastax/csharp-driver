@@ -87,14 +87,13 @@ namespace Cassandra.IntegrationTests.Core
             }
 
 
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            var tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         some_collection {1}<{2}{3}>
-         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName)));
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                    tweet_id uuid PRIMARY KEY,
+                    some_collection {1}<{2}{3}>
+                    );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
             }
             catch (AlreadyExistsException)
             {
@@ -179,15 +178,13 @@ namespace Cassandra.IntegrationTests.Core
                     randomKeyValue = Randomm.RandomVal(TypeOfDataToBeInputed).ToString();
             }
 
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
-         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName))
-                    );
+         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
             }
             catch (AlreadyExistsException)
             {
@@ -271,15 +268,13 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
 
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                Session.WaitForSchemaAgreement(
-                    QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid PRIMARY KEY,
-         some_collection {1}<{2}{3}>
-         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName))
-                    );
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                 tweet_id uuid PRIMARY KEY,
+                 some_collection {1}<{2}{3}>
+                 );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
             }
             catch (AlreadyExistsException)
             {

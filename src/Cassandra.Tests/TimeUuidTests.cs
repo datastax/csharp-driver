@@ -89,13 +89,7 @@ namespace Cassandra.Tests
                 actions.Add(a);
             }
 
-            var parallelOptions = new ParallelOptions
-            {
-                TaskScheduler = new ThreadPerTaskScheduler(), 
-                MaxDegreeOfParallelism = Int32.MaxValue
-            };
-
-            Parallel.Invoke(parallelOptions, actions.ToArray());
+            Parallel.Invoke(actions.ToArray());
         }
 
         [Test]
