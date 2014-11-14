@@ -19,15 +19,22 @@ using CommandLine;
 using CommandLine.Text;
 using System.Configuration;
 using System.Globalization;
+using System.Threading;
 
 namespace Cassandra.IntegrationTests
 {
     public class TestGlobals
     {
-        public const int CLUSTER_INIT_SLEEP_MS_PER_ITERATION = 500;
-        public const int CLUSTER_INIT_SLEEP_MS_MAX = 60 * 1000;
-        public const string TEST_CLUSTER_NAME_DEFAULT = "test_cluster";
-        public const string TEST_KEYSPACE_DEFAULT = "test_cluster_keyspace";
+        private static readonly Logger Logger = new Logger(typeof(TestGlobals));
+
+        public const int ClusterInitSleepMsPerIteration = 500;
+        public const int ClusterInitSleepMsMax = 60 * 1000;
+        public const string TestClusterNameDefault = "test_cluster";
+        public const string TestKeyspaceDefault = "test_cluster_keyspace";
+
+        private TestClusterManager _clusterManager = null;
+        private static bool _clusterManagerIsInitializing = false;
+        private static bool _clusterManagerIsInitalized = false;
 
         public enum TestGroupEnum
         {
@@ -128,6 +135,33 @@ namespace Cassandra.IntegrationTests
             return HelpText.AutoBuild(this,
                                       (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
         }
+
+        public TestClusterManager TestClusterManager
+        {
+            get
+            {
+                if (_clusterManagerIsInitalized)
+                    return _clusterManager;
+                else if (_clusterManagerIsInitializing)
+                {
+                    while (_clusterManagerIsInitializing)
+                    {
+                        int SleepMs = 1000;
+                        Logger.Info("Shared " + _clusterManagerIsInitializing.GetType().Name + " object is initializing. Sleeping " + SleepMs + " MS ... ");
+                        Thread.Sleep(SleepMs);
+                    }
+                }
+                else
+                {
+                    _clusterManagerIsInitializing = true;
+                    _clusterManager = new TestClusterManager();
+                    _clusterManagerIsInitializing = false;
+                    _clusterManagerIsInitalized = true;
+                }
+                return _clusterManager;
+            }
+        }
+
 
     }
 }

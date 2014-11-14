@@ -7,74 +7,64 @@ namespace Cassandra.IntegrationTests.Base
 {
     public class TestCluster : TestGlobals
     {
-        private static Logger logger = new Logger(typeof(TestCluster));
+        private static readonly Logger Logger = new Logger(typeof(TestCluster));
 
         // each TestCluster has one cluster
-        public string name;
-        public Cluster cluster;
+        public string Name;
+        public Cluster Cluster;
         //public CCMBridge ccmBridge;
-        public CcmClusterInfo ccmClusterInfo;
+        public CcmClusterInfo CcmClusterInfo = null;
         // public Cassandra.CCMBridge.CCMCluster ccmCluster;
-        public int nodeCount;
-        public string initialContactPoint;
-        public string defaultKeyspace;
-        public bool isInitializing;
-        public bool isInitialized;
-        public ISession session;
+        public int NodeCount;
+        public string InitialContactPoint;
+        public string DefaultKeyspace;
+        public bool IsInitializing;
+        public bool IsInitialized;
+        public ISession Session;
 
         public TestCluster(string name, int nodeCount, string initialContactPoint, string defaultKeyspace)
         {
-            this.defaultKeyspace = defaultKeyspace;
-            this.isInitialized = false;
-            this.isInitializing = false;
-            this.name = name;
-            this.nodeCount = nodeCount;
-            this.initialContactPoint = initialContactPoint;
+            this.DefaultKeyspace = defaultKeyspace;
+            this.IsInitialized = false;
+            this.IsInitializing = false;
+            this.Name = name;
+            this.NodeCount = nodeCount;
+            this.InitialContactPoint = initialContactPoint;
         }
 
-        ~TestCluster()
+        public void InitializeCtool()
         {
-            try
-            {
-                TestUtils.CcmRemove(ccmClusterInfo);
-            }
-            catch (Exception e)
-            {
-                Console.Out.WriteLine("CCM Removal failed with unexpected error message: " + e.Message);
-                Console.Out.WriteLine("Stack Trace: " + e.StackTrace);
-            }
-        }
-
-        public void initialize_ctool()
-        {
-            isInitializing = true;
+            IsInitializing = true;
             // here's where you would create a new C* cluster using ctool
-            initialize();
-            this.isInitializing = false;
-            this.isInitialized = true;
+            Initialize();
+            this.IsInitializing = false;
+            this.IsInitialized = true;
         }
 
-        public void initialize_ccm()
+        public void InitializeCcm()
         {
-            isInitializing = true;
-            ccmClusterInfo = TestUtils.CcmSetup(nodeCount, null, TEST_KEYSPACE_DEFAULT);
-            initialize();
-            this.isInitializing = false;
-            this.isInitialized = true;
+            IsInitializing = true;
+            CcmClusterInfo = TestUtils.CcmSetup(NodeCount, null, TestKeyspaceDefault);
+            Initialize();
+            this.IsInitializing = false;
+            this.IsInitialized = true;
         }
 
-        public void initialize()
+        public void Initialize()
         {
-            session = new Builder().AddContactPoint(initialContactPoint).Build().Connect();
-            session.CreateKeyspaceIfNotExists(defaultKeyspace);
-            session.ChangeKeyspace(defaultKeyspace);
+            Session = new Builder().AddContactPoint(InitialContactPoint).Build().Connect();
+            Session.CreateKeyspaceIfNotExists(DefaultKeyspace);
+            Session.ChangeKeyspace(DefaultKeyspace);
         }
 
-        public void tearDown()
+        public void TearDown()
         {
-            string ipList = string.Join(",", ccmClusterInfo.Cluster.AllHosts().Select(x => x.Address));
-            logger.Info(string.Format("removing cluster -- name: '{0}', hosts: {1}", name, ipList));
-            TestUtils.CcmRemove(ccmClusterInfo);
+            if (CcmClusterInfo != null)
+            {
+                string ipList = string.Join(",", CcmClusterInfo.Cluster.AllHosts().Select(x => x.Address));
+                Logger.Info(string.Format("removing cluster -- name: '{0}', hosts: {1}", Name, ipList));
+                TestUtils.CcmRemove(CcmClusterInfo);
+            }
         }
 
     }
