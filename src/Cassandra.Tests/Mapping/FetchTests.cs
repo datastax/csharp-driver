@@ -128,5 +128,15 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(ex.Message, "Mocked Exception 2");
             sessionMock.Verify();
         }
+
+        [Test]
+        public void FetchAsync_Pocos_WithCqlAndOptions()
+        {
+            var usersExpected = TestDataHelper.GetUserList();
+            var rowset = TestDataHelper.GetUsersRowSet(usersExpected);
+            var mappingClient = GetMappingClient(rowset);
+            var users = mappingClient.FetchAsync<PlainUser>(Cql.New("SELECT * FROM users").WithOptions(opt => opt.SetConsistencyLevel(ConsistencyLevel.Quorum))).Result;
+            CollectionAssert.AreEqual(users, usersExpected, new TestHelper.PropertyComparer());
+        }
     }
 }

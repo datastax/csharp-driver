@@ -8,6 +8,12 @@ namespace  Cassandra.Tests.Mapping.Pocos
     /// </summary>
     public class PlainUser
     {
+        public PlainUser()
+        {
+            LoginHistory = new List<DateTimeOffset>();
+            LuckyNumbers = new HashSet<int>();
+            ChildrenAges = new SortedDictionary<string, int>();
+        }
         // The main basic data types as properties
         public Guid UserId { get; set; }
         public string Name { get; set; }
@@ -21,7 +27,7 @@ namespace  Cassandra.Tests.Mapping.Pocos
         // Collection types
         public List<DateTimeOffset> LoginHistory { get; set; }
         public HashSet<int> LuckyNumbers { get; set; }
-        public Dictionary<string, int> ChildrenAges { get; set; }
+        public SortedDictionary<string, int> ChildrenAges { get; set; }
 
         // Enum and nullable enum properties
         public RainbowColor FavoriteColor { get; set; }

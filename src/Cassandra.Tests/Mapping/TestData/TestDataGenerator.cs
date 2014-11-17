@@ -66,13 +66,13 @@ namespace Cassandra.Tests.Mapping.TestData
             return new HashSet<T>(Enumerable.Range(0, elementsInSet).Select(factory));
         }
 
-        public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int index, Func<int, TKey> keyFactory, Func<int, TValue> valueFactory)
+        public static SortedDictionary<TKey, TValue> GetDictionary<TKey, TValue>(int index, Func<int, TKey> keyFactory, Func<int, TValue> valueFactory)
         {
             int elementsInDictionary = index % 4;
             if (elementsInDictionary == 0)
-                return new Dictionary<TKey, TValue>();
+                return new SortedDictionary<TKey, TValue>();
 
-            return Enumerable.Range(0, elementsInDictionary).ToDictionary(keyFactory, valueFactory);
+            return new SortedDictionary<TKey, TValue>(Enumerable.Range(0, elementsInDictionary).ToDictionary(keyFactory, valueFactory));
         }
 
         public static bool IsNullableType(Type t)

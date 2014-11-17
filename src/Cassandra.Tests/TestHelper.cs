@@ -88,22 +88,49 @@ namespace Cassandra.Tests
 
                 if (actualValue is IList)
                 {
-                    CollectionAssert.AreEqual((IList) expectedValue, (IList) actualValue, new PropertyComparer());
+                    CollectionAssert.AreEqual((IList) expectedValue, (IList) actualValue, new SimplifiedComparer(), "Values from property {0} do not match", property.Name);
+                    continue;
                 }
-                else
-                {
-                    Assert.AreEqual(expectedValue, actualValue, 
-                        String.Format("Property {0}.{1} does not match. Expected: {2} but was: {3}", property.DeclaringType.Name, property.Name, expectedValue, actualValue));
-                }
+                SimplifyValues(ref actualValue, ref expectedValue);
+                Assert.AreEqual(expectedValue, actualValue,
+                    String.Format("Property {0}.{1} does not match. Expected: {2} but was: {3}", property.DeclaringType.Name, property.Name, expectedValue, actualValue));
             }
         }
 
-        public class PropertyComparer : IComparer
+        /// <summary>
+        /// Uses the precision 
+        /// </summary>
+        internal static void SimplifyValues(ref object actualValue, ref object expectedValue)
+        {
+            if (actualValue is DateTimeOffset && expectedValue is DateTimeOffset)
+            {
+                actualValue = ((DateTimeOffset)actualValue).Ticks / 100000;
+                expectedValue = ((DateTimeOffset)expectedValue).Ticks / 100000;
+                return;
+            }
+            if (actualValue is DateTime && expectedValue is DateTime)
+            {
+                actualValue = ((DateTime)actualValue).Ticks / 100000;
+                expectedValue = ((DateTime)expectedValue).Ticks / 100000;
+                return;
+            }
+        }
+
+        internal class PropertyComparer : IComparer
         {
             public int Compare(object x, object y)
             {
                 AssertPropertiesEqual(y, x);
                 return 0;
+            }
+        }
+
+        internal class SimplifiedComparer : IComparer
+        {
+            public int Compare(object x, object y)
+            {
+                SimplifyValues(ref x, ref y);
+                return Comparer.Default.Compare(x, y);
             }
         }
     }
