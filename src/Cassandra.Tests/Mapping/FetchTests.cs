@@ -120,10 +120,6 @@ namespace Cassandra.Tests.Mapping
         {
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(() => TaskHelper.ToTask(new RowSet()))
-                .Verifiable();
-            sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(() => TaskHelper.FromException<PreparedStatement>(new SyntaxError("Mocked Exception 2")))
                 .Verifiable();
