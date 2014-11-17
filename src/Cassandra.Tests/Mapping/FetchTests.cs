@@ -16,20 +16,23 @@ namespace Cassandra.Tests.Mapping
     [TestFixture]
     public class FetchTests
     {
-        private ICqlClient GetMappingClient(RowSet rowset = null, Mock<ISession> sessionMock = null)
+        private static ICqlClient GetMappingClient(RowSet rowset)
         {
-            if (sessionMock == null)
-            {
-                sessionMock = new Mock<ISession>(MockBehavior.Strict);
-                sessionMock
-                    .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                    .Returns(TaskHelper.ToTask(rowset))
-                    .Verifiable();
-                sessionMock
-                    .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                    .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
-                    .Verifiable();
-            }
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TaskHelper.ToTask(rowset))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Verifiable();
+            return GetMappingClient(sessionMock);
+        }
+
+        private static ICqlClient GetMappingClient(Mock<ISession> sessionMock)
+        {
+            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             var mappingClient = CqlClientConfiguration
                 .ForSession(sessionMock.Object)
                 .BuildCqlClient();
@@ -74,7 +77,7 @@ namespace Cassandra.Tests.Mapping
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
                 .Verifiable();
-            var mappingClient = GetMappingClient(null, sessionMock);
+            var mappingClient = GetMappingClient(sessionMock);
             var taskList = new List<Task<List<PlainUser>>>();
             for (var i = 0; i < times; i++)
             {
@@ -91,6 +94,43 @@ namespace Cassandra.Tests.Mapping
             //ExecuteAsync should be called the exact number of times
             sessionMock
                 .Verify(s => s.ExecuteAsync(It.IsAny<BoundStatement>()), Times.Exactly(times));
+            sessionMock.Verify();
+        }
+
+        [Test]
+        public void Fetch_Throws_ExecuteAsync_Exception()
+        {
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(() => TaskHelper.FromException<RowSet>(new InvalidQueryException("Mocked Exception")))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            var ex = Assert.Throws<InvalidQueryException>(() => mappingClient.Fetch<PlainUser>("SELECT WILL FAIL FOR INVALID"));
+            Assert.AreEqual(ex.Message, "Mocked Exception");
+            sessionMock.Verify();
+        }
+
+        [Test]
+        public void Fetch_Throws_PrepareAsync_Exception()
+        {
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(() => TaskHelper.ToTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(() => TaskHelper.FromException<PreparedStatement>(new SyntaxError("Mocked Exception 2")))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            var ex = Assert.Throws<SyntaxError>(() => mappingClient.Fetch<PlainUser>("SELECT WILL FAIL FOR SYNTAX"));
+            Assert.AreEqual(ex.Message, "Mocked Exception 2");
+            sessionMock.Verify();
         }
     }
 }
