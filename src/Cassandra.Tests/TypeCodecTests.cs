@@ -143,19 +143,24 @@ namespace Cassandra.Tests
         {
             var initialValues = new object[]
             {
+                //Lists
                 new object[] {new List<int>(new [] {1, 2, 1000}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Int}},
                 new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
-                new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}}
+                //Sets
+                new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}},
+                new object[] {new SortedSet<string>(new [] {"a", "b", "c"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
+                new object[] {new HashSet<string>(new [] {"ADADD", "AA", "a"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}}
             };
             foreach (var version in _protocolVersions)
             {
                 foreach (object[] value in initialValues)
                 {
-                    var valueToEncode = (IList)value[0];
+                    var originalType = value[0].GetType();
+                    var valueToEncode = (IEnumerable)value[0];
                     var encoded = TypeCodec.Encode(version, valueToEncode);
-                    var decoded = (IList)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], value[0].GetType());
-                    Assert.AreEqual(valueToEncode.Count, decoded.Count);
-                    Assert.AreEqual(valueToEncode, decoded);
+                    var decoded = (IEnumerable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], originalType);
+                    Assert.IsInstanceOf(originalType, decoded);
+                    CollectionAssert.AreEqual(valueToEncode, decoded);
                 }
             }
         }

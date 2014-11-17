@@ -238,5 +238,14 @@ namespace Cassandra
         {
             return consistency == ConsistencyLevel.Serial || consistency == ConsistencyLevel.LocalSerial;
         }
+
+        /// <summary>
+        /// Creates a new instance of the collection type with the values provided
+        /// </summary>
+        public static object ToCollectionType(Type collectionType, Type valueType, Array value)
+        {
+            var listType = collectionType.MakeGenericType(valueType);
+            return Activator.CreateInstance(listType, new object[] { value });
+        }
     }
 }

@@ -503,16 +503,32 @@ namespace Cassandra
             var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
             var index = 0;
             var count = DecodeCollectionLength(protocolVersion, value, ref index);
-            var openType = typeof (List<>);
-            var listType = openType.MakeGenericType(valueType);
-            var result = (IList) Activator.CreateInstance(listType);
+            var result = Array.CreateInstance(valueType, count);
             for (var i = 0; i < count; i++)
             {
                 var valueBufferLength = DecodeCollectionLength(protocolVersion, value, ref index);
                 var valBuf = new byte[valueBufferLength];
                 Buffer.BlockCopy(value, index, valBuf, 0, valueBufferLength);
                 index += valueBufferLength;
-                result.Add(Decode(protocolVersion, valBuf, listTypecode, listTypeinfo));
+                result.SetValue(Decode(protocolVersion, valBuf, listTypecode, listTypeinfo), i);
+            }
+            if (cSharpType == null || !cSharpType.IsGenericType)
+            {
+                //Return as an array
+                return result;
+            }
+            //Is a generic type is expected, check if supported
+            if (cSharpType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                return Utils.ToCollectionType(typeof(List<>), valueType, result);
+            }
+            if (cSharpType.GetGenericTypeDefinition() == typeof(SortedSet<>))
+            {
+                return Utils.ToCollectionType(typeof(SortedSet<>), valueType, result);
+            }
+            if (cSharpType.GetGenericTypeDefinition() == typeof(HashSet<>))
+            {
+                return Utils.ToCollectionType(typeof(HashSet<>), valueType, result);
             }
             return result;
         }
