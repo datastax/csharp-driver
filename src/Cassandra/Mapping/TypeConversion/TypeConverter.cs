@@ -120,7 +120,7 @@ namespace Cassandra.Mapping.TypeConversion
                 Type[] sourceGenericArgs = dbType.GetGenericArguments();
 
                 // Allow conversion from IDictionary<,> -> Dictionary<,> since C* driver uses SortedDictionary which can't be cast to Dictionary
-                if (sourceGenericDefinition == typeof (IDictionary<,>) && pocoType == typeof (Dictionary<,>).MakeGenericType(sourceGenericArgs))
+                if (sourceGenericDefinition == typeof(IDictionary<,>) && pocoType == typeof(Dictionary<,>).MakeGenericType(sourceGenericArgs))
                 {
                     return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
                 }
@@ -237,18 +237,8 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 throw new ArgumentException("The provided method must be static.", "method");
             }
-
-            if (method.IsGenericMethod)
-            {
-                throw new ArgumentException("The provided method must not be generic.", "method");
-            }
-
-            var parameters = method.GetParameters()
-                           .Select(p => Expression.Parameter(p.ParameterType, p.Name))
-                           .ToArray();
-            var call = Expression.Call(null, method, parameters);
-            return Expression.Lambda(call, parameters).Compile();
+            var delegateType = Expression.GetFuncType(method.GetParameters().Select(p => p.ParameterType).ToArray());
+            return Delegate.CreateDelegate(delegateType, null, method);
         }
     }
-
 }
