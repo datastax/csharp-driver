@@ -123,16 +123,27 @@ namespace Cassandra.Tests
         {
             if (actualValue is DateTimeOffset && expectedValue is DateTimeOffset)
             {
-                actualValue = ((DateTimeOffset)actualValue).Ticks / 100000;
-                expectedValue = ((DateTimeOffset)expectedValue).Ticks / 100000;
+                actualValue = ((DateTimeOffset)actualValue).ToMillisecondPrecision();
+                expectedValue = ((DateTimeOffset)expectedValue).ToMillisecondPrecision();
                 return;
             }
             if (actualValue is DateTime && expectedValue is DateTime)
             {
-                actualValue = ((DateTime)actualValue).Ticks / 100000;
-                expectedValue = ((DateTime)expectedValue).Ticks / 100000;
+                actualValue = ((DateTimeOffset)(DateTime)actualValue).ToMillisecondPrecision();
+                expectedValue = ((DateTimeOffset)(DateTime)expectedValue).ToMillisecondPrecision();
                 return;
             }
+        }
+
+        /// <summary>
+        /// Converts an object to a dictionary containing the public properties name and values
+        /// </summary>
+        public static Dictionary<string, object> ToDictionary(object someObject)
+        {
+            return someObject.GetType()
+                             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                             .Where(p => p.GetCustomAttributes(typeof(Cassandra.Mapping.IgnoreAttribute), true).Length == 0)
+                             .ToDictionary(prop => prop.Name, prop => prop.GetValue(someObject, null));
         }
 
         internal class PropertyComparer : IComparer

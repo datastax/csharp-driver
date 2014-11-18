@@ -63,6 +63,7 @@
     <Compile Include="Mapping\FetchTests.cs" />
     <Compile Include="Mapping\FirstTests.cs" />
     <Compile Include="Mapping\FluentMappings\FluentUserMapping.cs" />
+    <Compile Include="Mapping\InsertTests.cs" />
     <Compile Include="Mapping\MappingTestBase.cs" />
     <Compile Include="Mapping\Pocos\ContactMethod.cs" />
     <Compile Include="Mapping\Pocos\DecoratedUser.cs" />
