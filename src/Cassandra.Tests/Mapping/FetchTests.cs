@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
-using Cassandra.Mapping.FluentMapping;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
@@ -14,33 +11,8 @@ using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
 {
-    [TestFixture]
-    public class FetchTests
+    public class FetchTests : MappingTestBase
     {
-        private static ICqlClient GetMappingClient(RowSet rowset)
-        {
-            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
-            sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(TaskHelper.ToTask(rowset))
-                .Verifiable();
-            sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
-                .Verifiable();
-            return GetMappingClient(sessionMock);
-        }
-
-        private static ICqlClient GetMappingClient(Mock<ISession> sessionMock)
-        {
-            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
-            var mappingClient = CqlClientConfiguration
-                .ForSession(sessionMock.Object)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
-            return mappingClient;
-        }
-
         [Test]
         public void FetchAsync_Pocos_WithCql_Empty()
         {

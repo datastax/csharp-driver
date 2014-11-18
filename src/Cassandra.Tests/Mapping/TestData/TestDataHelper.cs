@@ -31,6 +31,24 @@ namespace Cassandra.Tests.Mapping.TestData
             }).ToList();
         }
 
+        public static RowSet GetSingleValueRowSet<T>(string columnName, T value)
+        {
+            var rs = new RowSet();
+            IColumnInfo typeInfo;
+            var typeCode = TypeCodec.GetColumnTypeCodeInfo(typeof (T), out typeInfo);
+            rs.Columns = new[]
+            {
+                new CqlColumn { Name = columnName, TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = 0}
+            };
+            var columnIndexes = rs.Columns.ToDictionary(c => c.Name, c => c.Index);
+
+            var values = new List<object> { value }
+                .Select(v => TypeCodec.Encode(ProtocolVersion, v));
+            var row = new Row(ProtocolVersion, values.ToArray(), rs.Columns, columnIndexes);
+            rs.AddRow(row);
+            return rs;
+        }
+
         public static RowSet GetUsersRowSet(IEnumerable<PlainUser> users)
         {
             var rs = new RowSet();
