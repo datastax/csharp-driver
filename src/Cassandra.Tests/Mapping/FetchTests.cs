@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.FluentMapping;
+using Cassandra.Tests.Mapping.FluentMappings;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
 using Moq;
@@ -35,6 +36,7 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             var mappingClient = CqlClientConfiguration
                 .ForSession(sessionMock.Object)
+                .UseIndividualMapping<FluentUserMapping>()
                 .BuildCqlClient();
             return mappingClient;
         }
@@ -137,6 +139,25 @@ namespace Cassandra.Tests.Mapping
             var mappingClient = GetMappingClient(rowset);
             var users = mappingClient.FetchAsync<PlainUser>(Cql.New("SELECT * FROM users").WithOptions(opt => opt.SetConsistencyLevel(ConsistencyLevel.Quorum))).Result;
             CollectionAssert.AreEqual(users, usersExpected, new TestHelper.PropertyComparer());
+        }
+
+        [Test]
+        public void Fetch_Fluent_Mapping()
+        {
+            var usersOriginal = TestDataHelper.GetUserList();
+            var rowset = TestDataHelper.GetUsersRowSet(usersOriginal);
+            var mappingClient = GetMappingClient(rowset);
+            var users = mappingClient.Fetch<FluentUser>("SELECT * FROM users");
+            Assert.AreEqual(usersOriginal.Count, users.Count);
+            for (var i = 0; i < users.Count; i++)
+            {
+                var expected = usersOriginal[i];
+                var user = users[i];
+                Assert.AreEqual(expected.UserId, user.Id);
+                Assert.AreEqual(expected.Age, user.Age);
+                Assert.AreEqual(expected.ChildrenAges.ToDictionary(t => t.Key, t => t.Value), user.ChildrenAges.ToDictionary(t => t.Key, t => t.Value));
+                Assert.AreEqual(expected.HairColor, user.HairColor);
+            }
         }
     }
 }

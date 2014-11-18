@@ -1,7 +1,8 @@
-﻿using CqlPoco.FluentMapping;
-using CqlPoco.IntegrationTests.Pocos;
+﻿using System;
+using Cassandra.Mapping.FluentMapping;
+using Cassandra.Tests.Mapping.Pocos;
 
-namespace CqlPoco.IntegrationTests.FluentMappings
+namespace Cassandra.Tests.Mapping.FluentMappings
 {
     /// <summary>
     /// Defines how to map the FluentUser class.

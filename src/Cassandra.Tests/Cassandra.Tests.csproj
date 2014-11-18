@@ -61,6 +61,7 @@
     <Compile Include="CqlParameterTest.cs" />
     <Compile Include="LinqToCqlUnitTests.cs" />
     <Compile Include="Mapping\FetchTests.cs" />
+    <Compile Include="Mapping\FluentMappings\FluentUserMapping.cs" />
     <Compile Include="Mapping\Pocos\ContactMethod.cs" />
     <Compile Include="Mapping\Pocos\DecoratedUser.cs" />
     <Compile Include="Mapping\Pocos\ExplicitColumnsUser.cs" />
