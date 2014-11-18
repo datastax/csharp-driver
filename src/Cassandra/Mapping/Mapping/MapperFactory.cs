@@ -294,7 +294,15 @@ namespace Cassandra.Mapping.Mapping
             {
                 // No converter is available but the types don't match, so attempt to do:
                 //     (TFieldOrProp) row.GetValue<T>(columnIndex);
-                return Expression.Convert(getValueT, pocoDestType);
+                try
+                {
+                    return Expression.Convert(getValueT, pocoDestType);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    var message = String.Format("It is not possible to convert column `{0}` of type {1} to target type {2}", dbColumn.Name, dbColumn.TypeCode, pocoDestType.Name);
+                    throw new InvalidTypeException(message, ex);
+                }
             }
 
             // Invoke the converter function on getValueT (taking into account whether it's a static method):

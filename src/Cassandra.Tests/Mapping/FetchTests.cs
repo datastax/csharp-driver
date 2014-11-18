@@ -131,5 +131,35 @@ namespace Cassandra.Tests.Mapping
                 Assert.AreEqual(expected.HairColor, user.HairColor);
             }
         }
+
+        [Test]
+        public void Fetch_Invalid_Type_Conversion_Throws()
+        {
+            var usersOriginal = TestDataHelper.GetUserList();
+            var rowset = TestDataHelper.GetUsersRowSet(usersOriginal);
+            var mappingClient = GetMappingClient(rowset);
+            var ex = Assert.Throws<InvalidTypeException>(() => mappingClient.Fetch<UserDifferentPropTypes>("SELECT * FROM users"));
+            //Message contains column name
+            StringAssert.Contains("age", ex.Message.ToLower());
+            //Source type
+            StringAssert.Contains("int", ex.Message.ToLower());
+            //Target type
+            StringAssert.Contains("Dictionary", ex.Message);
+        }
+
+        [Test]
+        public void Fetch_Invalid_AllProps_Conversion_Throws()
+        {
+            var usersOriginal = TestDataHelper.GetUserList();
+            var rowset = TestDataHelper.GetUsersRowSet(usersOriginal);
+            var mappingClient = GetMappingClient(rowset);
+            var ex = Assert.Throws<ArgumentException>(() => mappingClient.Fetch<SomeClassWithNoDefaultConstructor>("SELECT * FROM users"));
+            StringAssert.Contains("default constructor", ex.Message);
+        }
+
+        private class SomeClassWithNoDefaultConstructor
+        {
+            public SomeClassWithNoDefaultConstructor(string w) { }
+        }
     }
 }
