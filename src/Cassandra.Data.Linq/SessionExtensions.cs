@@ -18,9 +18,9 @@ namespace Cassandra.Data.Linq
 {
     public static class SessionExtensions
     {
-        public static Table<TEntity> GetTable<TEntity>(this ISession @this, string tableName = null, string keyspaceName = null) where TEntity : class
+        public static Table<TEntity> GetTable<TEntity>(this ISession session, string tableName = null, string keyspaceName = null) where TEntity : class
         {
-            return new Table<TEntity>(@this, Table<TEntity>.CalculateName(tableName), keyspaceName);
+            return new Table<TEntity>(session, Table<TEntity>.CalculateName(tableName), keyspaceName);
         }
 
         public static Batch CreateBatch(this ISession @this)

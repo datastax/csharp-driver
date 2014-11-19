@@ -19,6 +19,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Cassandra.Mapping.FluentMapping;
+using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.TypeConversion;
 
 namespace Cassandra.Data.Linq
 {
@@ -34,13 +37,12 @@ namespace Cassandra.Data.Linq
             _session = session;
             _tableName = tableName;
             _keyspaceName = keyspaceName;
+            var pocoDataFactory = new PocoDataFactory(new Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType));
+            MapperFactory = new MapperFactory(new DefaultTypeConverter(), pocoDataFactory);
         }
 
-        internal Table(Table<TEntity> cp)
+        internal Table(Table<TEntity> cp) : this(cp._session, cp._tableName, cp._keyspaceName)
         {
-            _keyspaceName = cp._keyspaceName;
-            _tableName = cp._tableName;
-            _session = cp._session;
         }
 
         /// <summary>
@@ -53,16 +55,19 @@ namespace Cassandra.Data.Linq
 
         public IQueryable CreateQuery(Expression expression)
         {
+            //Implementation of the IQueryProvider
             throw new NotImplementedException();
         }
 
         public TResult Execute<TResult>(Expression expression)
         {
+            //Implementation of the IQueryProvider
             throw new NotImplementedException();
         }
 
         public object Execute(Expression expression)
         {
+            //Implementation of the IQueryProvider
             throw new NotImplementedException();
         }
 

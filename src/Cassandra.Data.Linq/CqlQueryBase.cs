@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
 {
@@ -38,6 +39,8 @@ namespace Cassandra.Data.Linq
         }
 
         public QueryTrace QueryTrace { get; protected set; }
+
+        internal MapperFactory MapperFactory { get; set; }
 
         public override RoutingKey RoutingKey
         {
@@ -80,33 +83,18 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-
+            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor();
             visitor.Evaluate(Expression);
             object[] values;
-            string cql = visitor.GetSelect(out values, withValues);
-            var adaptation =
-                InternalExecuteAsync(cql, values).ContinueWith((t) =>
-                {
-                    var rs = t.Result;
-                    QueryTrace = rs.Info.QueryTrace;
-
-                    CqlColumn[] cols = rs.Columns;
-                    var colToIdx = new Dictionary<string, int>();
-                    for (int idx = 0; idx < cols.Length; idx++)
-                        colToIdx.Add(cols[idx].Name, idx);
-                    return AdaptRows(rs, colToIdx, visitor);
-                }, TaskContinuationOptions.ExecuteSynchronously);
-            return adaptation;
-        }
-
-        internal IEnumerable<TEntity> AdaptRows(IEnumerable<Row> rows, Dictionary<string, int> colToIdx, CqlExpressionVisitor visitor)
-        {
-            foreach (Row row in rows)
+            var cql = visitor.GetSelect(out values, withValues);
+            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
             {
-                yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, visitor.Mappings, visitor.Alter);
-            }
+                var rs = t.Result;
+                var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+                return rs.Select(mapper);
+            });
+            return adaptation;
         }
 
         /// <summary>
