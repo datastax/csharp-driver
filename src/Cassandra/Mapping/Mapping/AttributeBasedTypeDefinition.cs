@@ -34,6 +34,8 @@ namespace Cassandra.Mapping.Mapping
             get { return _primaryKeyColumns; }
         }
 
+        public bool CaseSensitive { get; set; }
+
         /// <summary>
         /// Creates a new TypeDefinition for the POCO Type specified using any attributes on the class to determine mappings.
         /// </summary>

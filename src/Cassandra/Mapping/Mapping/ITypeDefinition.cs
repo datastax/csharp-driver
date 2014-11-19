@@ -29,6 +29,11 @@ namespace Cassandra.Mapping.Mapping
         string[] PrimaryKeyColumns { get; }
 
         /// <summary>
+        /// Determines if the queries generated using this definition should be case-sensitive
+        /// </summary>
+        bool CaseSensitive { get; }
+
+        /// <summary>
         /// Gets a column definition for the given field on the POCO.
         /// </summary>
         IColumnDefinition GetColumnDefinition(FieldInfo field);

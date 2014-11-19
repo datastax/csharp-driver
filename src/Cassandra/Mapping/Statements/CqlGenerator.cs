@@ -39,13 +39,37 @@ namespace Cassandra.Mapping.Statements
                 return;
 
             // Get the PocoData so we can generate a list of columns
-            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            string allColumns = pocoData.Columns.Select(c => c.ColumnName).ToCommaDelimitedString();
+            var pocoData = _pocoDataFactory.GetPocoData<T>();
+            var allColumns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
 
             // If it's got the from clause, leave FROM intact, otherwise add it
             cql.SetStatement(FromRegex.IsMatch(cql.Statement)
                                  ? string.Format("SELECT {0} {1}", allColumns, cql.Statement)
-                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, pocoData.TableName, cql.Statement));
+                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, Escape(pocoData.TableName, pocoData), cql.Statement));
+        }
+
+        /// <summary>
+        /// Escapes an identier if necessary
+        /// </summary>
+        private static string Escape(string identifier, PocoData pocoData)
+        {
+            if (!pocoData.CaseSensitive)
+            {
+                return identifier;
+            }
+            return "\"" + identifier + "\"";
+        }
+
+        private static Func<PocoColumn, string> Escape(PocoData pocoData)
+        {
+            Func<PocoColumn, string> f = (c) => Escape(c.ColumnName, pocoData);
+            return f;
+        }
+
+        private static Func<PocoColumn, string> Escape(PocoData pocoData, string format)
+        {
+            Func<PocoColumn, string> f = (c) => String.Format(format, Escape(c.ColumnName, pocoData));
+            return f;
         }
 
         /// <summary>
@@ -53,14 +77,14 @@ namespace Cassandra.Mapping.Statements
         /// </summary>
         public string GenerateInsert<T>()
         {
-            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
+            var pocoData = _pocoDataFactory.GetPocoData<T>();
 
             if (pocoData.Columns.Count == 0)
                 throw new InvalidOperationException(string.Format(NoColumns, "INSERT", typeof(T).Name));
 
-            string columns = pocoData.Columns.Select(c => c.ColumnName).ToCommaDelimitedString();
-            string placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
-            return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", pocoData.TableName, columns, placeholders);
+            var columns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
+            var placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
+            return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", Escape(pocoData.TableName, pocoData), columns, placeholders);
         }
         
         /// <summary>
@@ -68,7 +92,7 @@ namespace Cassandra.Mapping.Statements
         /// </summary>
         public string GenerateUpdate<T>()
         {
-            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
+            var pocoData = _pocoDataFactory.GetPocoData<T>();
 
             if (pocoData.Columns.Count == 0)
                 throw new InvalidOperationException(string.Format(NoColumns, "UPDATE", typeof(T).Name));
@@ -79,9 +103,9 @@ namespace Cassandra.Mapping.Statements
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
             }
 
-            string nonPkColumns = pocoData.GetNonPrimaryKeyColumns().Select(c => string.Format("{0} = ?", c.ColumnName)).ToCommaDelimitedString();
-            string pkColumns = string.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(c => string.Format("{0} = ?", c.ColumnName)));
-            return string.Format("UPDATE {0} SET {1} WHERE {2}", pocoData.TableName, nonPkColumns, pkColumns);
+            var nonPkColumns = pocoData.GetNonPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")).ToCommaDelimitedString();
+            var pkColumns = string.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")));
+            return string.Format("UPDATE {0} SET {1} WHERE {2}", Escape(pocoData.TableName, pocoData), nonPkColumns, pkColumns);
         }
 
         /// <summary>
@@ -89,8 +113,8 @@ namespace Cassandra.Mapping.Statements
         /// </summary>
         public void PrependUpdate<T>(Cql cql)
         {
-            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            cql.SetStatement(string.Format("UPDATE {0} {1}", pocoData.TableName, cql.Statement));
+            var pocoData = _pocoDataFactory.GetPocoData<T>();
+            cql.SetStatement(string.Format("UPDATE {0} {1}", Escape(pocoData.TableName, pocoData), cql.Statement));
         }
 
         /// <summary>
@@ -98,19 +122,21 @@ namespace Cassandra.Mapping.Statements
         /// </summary>
         public string GenerateDelete<T>()
         {
-            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
+            var pocoData = _pocoDataFactory.GetPocoData<T>();
 
             if (pocoData.Columns.Count == 0)
+            {
                 throw new InvalidOperationException(string.Format(NoColumns, "DELETE", typeof(T).Name));
+            }
 
             if (pocoData.MissingPrimaryKeyColumns.Length > 0)
             {
                 throw new InvalidOperationException(string.Format(MissingPkColumns, "DELETE", typeof(T).Name,
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
             }
-            
-            string pkColumns = string.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(c => string.Format("{0} = ?", c.ColumnName)));
-            return string.Format("DELETE FROM {0} WHERE {1}", pocoData.TableName, pkColumns);
+
+            var pkColumns = String.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")));
+            return string.Format("DELETE FROM {0} WHERE {1}", Escape(pocoData.TableName, pocoData), pkColumns);
         }
 
         /// <summary>

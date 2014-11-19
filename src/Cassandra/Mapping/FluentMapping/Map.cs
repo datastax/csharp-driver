@@ -17,6 +17,7 @@ namespace Cassandra.Mapping.FluentMapping
 
         private string _tableName;
         private bool _explicitColumns;
+        private bool _caseSensitive;
 
         private string[] _primaryKeyColumns;
         private MemberInfo[] _primaryKeyColumnMembers;
@@ -34,6 +35,11 @@ namespace Cassandra.Mapping.FluentMapping
         bool ITypeDefinition.ExplicitColumns
         {
             get { return _explicitColumns; }
+        }
+
+        bool ITypeDefinition.CaseSensitive
+        {
+            get { return _caseSensitive; }
         }
 
         string[] ITypeDefinition.PrimaryKeyColumns
@@ -130,6 +136,16 @@ namespace Cassandra.Mapping.FluentMapping
         public Map<TPoco> ExplicitColumns()
         {
             _explicitColumns = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies that when generating queries, the table and column names identifiers must be quoted. Defaults to false.
+        /// </summary>
+        /// <returns></returns>
+        public Map<TPoco> CaseSensitive()
+        {
+            _caseSensitive = true;
             return this;
         }
 

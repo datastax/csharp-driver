@@ -31,13 +31,18 @@ namespace Cassandra.Mapping.Mapping
         public HashSet<string> PrimaryKeyColumns { get; private set; }
 
         /// <summary>
+        /// Determines if the queries generated using this poco information should be case-sensitive
+        /// </summary>
+        public bool CaseSensitive { get; private set; }
+
+        /// <summary>
         /// The column names of any primary key columns that aren't in the Columns collection.  Could indicate a misconfiguration if the POCO
         /// is going to be used in auto-generated UPDATE/DELETE statements.
         /// </summary>
         public string[] MissingPrimaryKeyColumns { get; private set; }
 
         public PocoData(Type pocoType, string tableName, LookupKeyedCollection<string, PocoColumn> columns, 
-                        HashSet<string> primaryKeyColumns)
+                        HashSet<string> primaryKeyColumns, bool caseSensitive)
         {
             if (pocoType == null) throw new ArgumentNullException("pocoType");
             if (tableName == null) throw new ArgumentNullException("tableName");
@@ -47,6 +52,7 @@ namespace Cassandra.Mapping.Mapping
             TableName = tableName;
             Columns = columns;
             PrimaryKeyColumns = primaryKeyColumns;
+            CaseSensitive = caseSensitive;
 
             MissingPrimaryKeyColumns = PrimaryKeyColumns.Where(colName => Columns.Contains(colName) == false).ToArray();
         }

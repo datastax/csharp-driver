@@ -60,7 +60,7 @@ namespace Cassandra.Mapping.Mapping
                                                                               .ToLookupKeyedCollection(pc => pc.ColumnName,
                                                                                                        StringComparer.OrdinalIgnoreCase);
 
-            return new PocoData(pocoType, tableName, columns, primaryKeyColumns);
+            return new PocoData(pocoType, tableName, columns, primaryKeyColumns, typeDefinition.CaseSensitive);
         }
 
 
