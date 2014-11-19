@@ -60,6 +60,7 @@
     <Compile Include="CqlParameterCollectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
     <Compile Include="LinqToCqlUnitTests.cs" />
+    <Compile Include="Mapping\CqlGeneratorTests.cs" />
     <Compile Include="Mapping\FetchTests.cs" />
     <Compile Include="Mapping\FirstTests.cs" />
     <Compile Include="Mapping\FluentMappings\FluentUserMapping.cs" />
