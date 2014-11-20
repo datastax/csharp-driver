@@ -40,10 +40,8 @@ namespace Cassandra.Data.Linq
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetSelect(out _, false);
+            return GetCql(out _);
         }
 
         public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

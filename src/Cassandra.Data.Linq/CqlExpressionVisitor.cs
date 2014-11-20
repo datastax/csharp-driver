@@ -64,10 +64,9 @@ namespace Cassandra.Data.Linq
         private readonly VisitingParam<ParsePhase> _phasePhase = new VisitingParam<ParsePhase>(ParsePhase.None);
         private readonly PocoData _pocoData;
         private bool _allowFiltering;
-        private readonly Dictionary<string, object> _projections = new Dictionary<string, object>();
         private int _limit;
-        private readonly List<string> _orderBy = new List<string>();
-        private string _quotedTableName;
+        private readonly Dictionary<string, object> _projections = new Dictionary<string, object>();
+        private readonly List<Tuple<string, bool>> _orderBy = new List<Tuple<string, bool>>();
         private readonly List<string> _selectFields = new List<string>();
         private readonly StringBuilder _updateIfClause = new StringBuilder();
         private readonly StringBuilder _whereClause = new StringBuilder();
@@ -82,10 +81,18 @@ namespace Cassandra.Data.Linq
         {
             var sb = new StringBuilder();
             sb.Append("SELECT ");
-            sb.Append(_selectFields.Count == 0 ? "*" : string.Join(", ", _selectFields));
+            if (_selectFields.Count == 0)
+            {
+                //Select all columns
+                sb.Append("*");
+            }
+            else
+            {
+                sb.Append(String.Join(", ", _selectFields.Select(Escape)));   
+            }
 
             sb.Append(" FROM ");
-            sb.Append(_quotedTableName);
+            sb.Append(Escape(_pocoData.TableName));
 
             if (_whereClause.Length > 0)
             {
@@ -96,7 +103,7 @@ namespace Cassandra.Data.Linq
             if (_orderBy.Count > 0)
             {
                 sb.Append(" ORDER BY ");
-                sb.Append(string.Join(", ", _orderBy));
+                sb.Append(string.Join(", ", _orderBy.Select(item => Escape(item.Item1) + (item.Item2 ? "" : " DESC"))));
             }
 
             if (_limit > 0)
@@ -106,20 +113,35 @@ namespace Cassandra.Data.Linq
             }
 
             if (_allowFiltering)
+            {
                 sb.Append(" ALLOW FILTERING");
+            }
 
             if (withValues)
+            {
                 return _cqlTool.FillWithValues(sb.ToString(), out values);
+            }
             values = null;
             return _cqlTool.FillWithEncoded(sb.ToString());
         }
 
+        /// <summary>
+        /// Escapes an identier if necessary
+        /// </summary>
+        private string Escape(string identifier)
+        {
+            if (!_pocoData.CaseSensitive)
+            {
+                return identifier;
+            }
+            return "\"" + identifier + "\"";
+        }
 
         public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool ifExists = false, bool withValues = true)
         {
             var sb = new StringBuilder();
             sb.Append("DELETE FROM ");
-            sb.Append(_quotedTableName);
+            sb.Append(Escape(_pocoData.TableName));
             if (timestamp != null)
             {
                 sb.Append(" USING TIMESTAMP ");
@@ -163,7 +185,7 @@ namespace Cassandra.Data.Linq
         {
             var sb = new StringBuilder();
             sb.Append("UPDATE ");
-            sb.Append(_quotedTableName);
+            sb.Append(Escape(_pocoData.TableName));
             if (ttl != null || timestamp != null)
             {
                 sb.Append(" USING ");
@@ -184,15 +206,15 @@ namespace Cassandra.Data.Linq
             sb.Append(" SET ");
 
             var setStatements = new List<string>();
-
             foreach (var projection in _projections)
             {
+                var columnName = Escape(projection.Key);
                 if (projection.Value == null)
                 {
-                    setStatements.Add(projection.Key + " = NULL");
+                    setStatements.Add(columnName + " = NULL");
                     continue;
                 }
-                setStatements.Add(projection.Key + " = " + _cqlTool.AddValue(projection.Value));
+                setStatements.Add(columnName + " = " + _cqlTool.AddValue(projection.Value));
             }
 
             if (setStatements.Count == 0)
@@ -223,7 +245,7 @@ namespace Cassandra.Data.Linq
         {
             var sb = new StringBuilder();
             sb.Append("SELECT count(*) FROM ");
-            sb.Append(_quotedTableName);
+            sb.Append(Escape(_pocoData.TableName));
 
             if (_whereClause.Length > 0)
             {
@@ -547,8 +569,6 @@ namespace Cassandra.Data.Linq
             if (node.Value is ITable)
             {
                 var table = (node.Value as ITable);
-                //TODO: Check case sensitivity
-                _quotedTableName = _pocoData.TableName;
                 //TODO: Replace
                 _allowFiltering = table.GetEntityType().GetCustomAttributes(typeof (AllowFilteringAttribute), false).Any();
                 return node;
@@ -573,8 +593,7 @@ namespace Cassandra.Data.Linq
             if (_phasePhase.get() == ParsePhase.OrderBy || _phasePhase.get() == ParsePhase.OrderByDescending)
             {
                 var columnName = _pocoData.GetColumnNameByMemberName((string) node.Value);
-                //TODO: Quote after
-                _orderBy.Add(columnName + (_phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                _orderBy.Add(Tuple.Create(columnName, _phasePhase.get() == ParsePhase.OrderBy));
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, _phasePhase.get());
@@ -650,7 +669,7 @@ namespace Cassandra.Data.Linq
                     break;
                 case ParsePhase.OrderByDescending:
                 case ParsePhase.OrderBy:
-                    _orderBy.Add(_pocoData.GetColumnName(node.Member) + (_phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                    _orderBy.Add(Tuple.Create(_pocoData.GetColumnName(node.Member), _phasePhase.get() == ParsePhase.OrderBy));
                     if ((node.Expression is ConstantExpression))
                     {
                         return node;

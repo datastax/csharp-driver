@@ -66,18 +66,17 @@ namespace Cassandra.Data.Linq
             object[] values;
             string cql = visitor.GetCount(out values, withValues);
 
-            Task<TEntity> adaptation =
-                InternalExecuteAsync(cql, values).ContinueWith((t) =>
+            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
+            {
+                var rs = t.Result;
+                var result = default(TEntity);
+                var row = rs.FirstOrDefault();
+                if (row != null)
                 {
-                    var rs = t.Result;
-                    var result = default(TEntity);
-                    var row = rs.FirstOrDefault();
-                    if (row != null)
-                    {
-                        result = (TEntity)row[0];
-                    }
-                    return result;
-                }, TaskContinuationOptions.ExecuteSynchronously);
+                    result = (TEntity)row[0];
+                }
+                return result;
+            });
             return adaptation;
         }
 

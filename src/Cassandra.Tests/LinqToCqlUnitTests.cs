@@ -475,8 +475,16 @@ APPLY BATCH".Replace("\r", ""));
         public void Select_Specific_Columns()
         {
             var table = SessionExtensions.GetTable<TestTable>(null);
-            var query = table.Select(t => new TestTable {f1 = t.f1, pk = t.pk});
+            var query = table.Select(t => new TestTable { f1 = t.f1, pk = t.pk });
             Assert.AreEqual(@"SELECT ""x_f1"", ""x_pk"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
+        }
+
+        [Test]
+        public void Select_OrderBy_Columns()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.OrderBy(t => t.UuidValue).OrderByDescending(t => t.DateTimeValue);
+            Assert.AreEqual(@"SELECT * FROM ""AllTypesEntity"" ORDER BY ""UuidValue"", ""DateTimeValue"" DESC", query.ToString());
         }
     }
 }
