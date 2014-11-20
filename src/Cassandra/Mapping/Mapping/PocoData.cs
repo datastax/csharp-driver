@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Mapping.Mapping
@@ -10,6 +11,7 @@ namespace Cassandra.Mapping.Mapping
     /// </summary>
     internal class PocoData
     {
+        private readonly Dictionary<string, PocoColumn> _columnsByMemberName;
         /// <summary>
         /// The .NET Type of the POCO this data is for.
         /// </summary>
@@ -53,6 +55,7 @@ namespace Cassandra.Mapping.Mapping
             Columns = columns;
             PrimaryKeyColumns = primaryKeyColumns;
             CaseSensitive = caseSensitive;
+            _columnsByMemberName = columns.ToDictionary(c => c.MemberInfo.Name, c => c);
 
             MissingPrimaryKeyColumns = PrimaryKeyColumns.Where(colName => Columns.Contains(colName) == false).ToArray();
         }
@@ -74,6 +77,34 @@ namespace Cassandra.Mapping.Mapping
         {
             // Since the underlying collection (Columns) maintains order, this should be consistent in ordering
             return Columns.Where(c => PrimaryKeyColumns.Contains(c.ColumnName)).ToList();
+        }
+
+        /// <summary>
+        /// Gets the column information for a given member name
+        /// </summary>
+        public PocoColumn GetColumnByMemberName(string memberName)
+        {
+            PocoColumn column;
+            _columnsByMemberName.TryGetValue(memberName, out column);
+            return column;
+        }
+
+        /// <summary>
+        /// Gets the column name for a given member name
+        /// </summary>
+        public string GetColumnNameByMemberName(string memberName)
+        {
+            var column = GetColumnByMemberName(memberName);
+            return column != null ? column.ColumnName : null;
+        }
+
+        /// <summary>
+        /// Gets the column name for a given member
+        /// </summary>
+        public string GetColumnName(MemberInfo member)
+        {
+            var column = GetColumnByMemberName(member.Name);
+            return column != null ? column.ColumnName : null;
         }
     }
 }

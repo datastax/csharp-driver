@@ -63,14 +63,12 @@ namespace Cassandra.Data.Linq
         private readonly VisitingParam<StringBuilder> _currentConditionBuilder;
         private readonly VisitingParam<ParsePhase> _phasePhase = new VisitingParam<ParsePhase>(ParsePhase.None);
         private readonly PocoData _pocoData;
-
-        private bool _allowFiltering = false;
-        public Dictionary<string, string> Alter = new Dictionary<string, string>();
-        public Dictionary<string, Tuple<string, object, int>> Mappings = new Dictionary<string, Tuple<string, object, int>>();
+        private bool _allowFiltering;
+        private readonly Dictionary<string, object> _projections = new Dictionary<string, object>();
         private int _limit;
         private readonly List<string> _orderBy = new List<string>();
         private string _quotedTableName;
-        private readonly HashSet<string> _selectFields = new HashSet<string>();
+        private readonly List<string> _selectFields = new List<string>();
         private readonly StringBuilder _updateIfClause = new StringBuilder();
         private readonly StringBuilder _whereClause = new StringBuilder();
 
@@ -84,7 +82,7 @@ namespace Cassandra.Data.Linq
         {
             var sb = new StringBuilder();
             sb.Append("SELECT ");
-            sb.Append(_selectFields.Count == 0 ? "*" : string.Join(", ", from f in _selectFields select Alter[f].QuoteIdentifier()));
+            sb.Append(_selectFields.Count == 0 ? "*" : string.Join(", ", _selectFields));
 
             sb.Append(" FROM ");
             sb.Append(_quotedTableName);
@@ -119,7 +117,7 @@ namespace Cassandra.Data.Linq
 
         public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool ifExists = false, bool withValues = true)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append("DELETE FROM ");
             sb.Append(_quotedTableName);
             if (timestamp != null)
@@ -187,33 +185,20 @@ namespace Cassandra.Data.Linq
 
             var setStatements = new List<string>();
 
-            foreach (KeyValuePair<string, Tuple<string, object, int>> mapping in Mappings)
+            foreach (var projection in _projections)
             {
-                object o = mapping.Value.Item2;
-                if (o != null)
+                if (projection.Value == null)
                 {
-                    var val = (object) null;
-                    MemberInfo propsOrField = o.GetType().GetPropertiesOrFields().SingleOrDefault(pf => pf.Name == mapping.Value.Item1);
-
-                    if (o.GetType().IsPrimitive || propsOrField == null)
-                        val = o;
-                    else
-                        val = propsOrField.GetValueFromPropertyOrField(o);
-
-                    if (!Alter.ContainsKey(mapping.Key))
-                        throw new CqlArgumentException("Unknown column: " + mapping.Key);
-                    setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = " + _cqlTool.AddValue(val));
+                    setStatements.Add(projection.Key + " = NULL");
+                    continue;
                 }
-                else
-                {
-                    if (!Alter.ContainsKey(mapping.Key))
-                        throw new CqlArgumentException("Unknown column: " + mapping.Key);
-                    setStatements.Add(Alter[mapping.Key].QuoteIdentifier() + " = NULL");
-                }
+                setStatements.Add(projection.Key + " = " + _cqlTool.AddValue(projection.Value));
             }
 
             if (setStatements.Count == 0)
+            {
                 throw new CqlArgumentException("Nothing to update");
+            }
             sb.Append(String.Join(", ", setStatements));
 
             if (_whereClause.Length > 0)
@@ -294,23 +279,23 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitNew(NewExpression node)
         {
-            if (_phasePhase.get() == ParsePhase.SelectBinding)
+            if (_phasePhase.get() != ParsePhase.SelectBinding)
             {
-                if (node.Members != null)
-                {
-                    for (int i = 0; i < node.Members.Count; i++)
-                    {
-                        Expression binding = node.Arguments[i];
-                        if (binding.NodeType == ExpressionType.Parameter)
-                            throw new CqlLinqNotSupportedException(binding, _phasePhase.get());
-
-                        using (_currentBindingName.set(node.Members[i].Name))
-                            Visit(binding);
-                    }
-                }
-                return node;
+                throw new CqlLinqNotSupportedException(node, _phasePhase.get());
             }
-            throw new CqlLinqNotSupportedException(node, _phasePhase.get());
+            for (var i = 0; i < node.Members.Count; i++)
+            {
+                var binding = node.Arguments[i];
+                if (binding.NodeType == ExpressionType.Parameter)
+                {
+                    throw new CqlLinqNotSupportedException(binding, _phasePhase.get());
+                }
+                using (_currentBindingName.set(node.Members[i].Name))
+                {
+                    Visit(binding);
+                }
+            }
+            return node;
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -548,16 +533,10 @@ namespace Cassandra.Data.Linq
             }
             else if (_phasePhase.get() == ParsePhase.SelectBinding)
             {
-                object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                if (Alter.ContainsKey(_currentBindingName.get()))
-                {
-                    Mappings[_currentBindingName.get()] = Tuple.Create(_currentBindingName.get(), val, Mappings.Count);
-                    _selectFields.Add(_currentBindingName.get());
-                }
-                else
-                {
-                    Mappings[_currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
-                }
+                var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                var columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.get());
+                _projections[columnName] = val;
+                _selectFields.Add(columnName);
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, _phasePhase.get());
@@ -568,16 +547,10 @@ namespace Cassandra.Data.Linq
             if (node.Value is ITable)
             {
                 var table = (node.Value as ITable);
-                //TODO: Quote it
-                _quotedTableName = table.Name;
+                //TODO: Check case sensitivity
+                _quotedTableName = _pocoData.TableName;
+                //TODO: Replace
                 _allowFiltering = table.GetEntityType().GetCustomAttributes(typeof (AllowFilteringAttribute), false).Any();
-
-                List<MemberInfo> props = table.GetEntityType().GetPropertiesOrFields();
-                foreach (MemberInfo prop in props)
-                {
-                    string memName = CqlQueryTools.CalculateMemberName(prop);
-                    Alter[prop.Name] = memName;
-                }
                 return node;
             }
             if (_phasePhase.get() == ParsePhase.Condition)
@@ -587,15 +560,9 @@ namespace Cassandra.Data.Linq
             }
             if (_phasePhase.get() == ParsePhase.SelectBinding)
             {
-                if (Alter.ContainsKey(_currentBindingName.get()))
-                {
-                    Mappings[_currentBindingName.get()] = Tuple.Create(_currentBindingName.get(), node.Value, Mappings.Count);
-                    _selectFields.Add(_currentBindingName.get());
-                }
-                else
-                {
-                    Mappings[_currentBindingName.get()] = Tuple.Create<string, object, int>(null, node.Value, Mappings.Count);
-                }
+                var columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.get());
+                _projections[columnName] = node.Value;
+                _selectFields.Add(_currentBindingName.get());
                 return node;
             }
             if (_phasePhase.get() == ParsePhase.Take)
@@ -605,7 +572,9 @@ namespace Cassandra.Data.Linq
             }
             if (_phasePhase.get() == ParsePhase.OrderBy || _phasePhase.get() == ParsePhase.OrderByDescending)
             {
-                _orderBy.Add(Alter[(string) node.Value].QuoteIdentifier() + (_phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                var columnName = _pocoData.GetColumnNameByMemberName((string) node.Value);
+                //TODO: Quote after
+                _orderBy.Add(columnName + (_phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
                 return node;
             }
             throw new CqlLinqNotSupportedException(node, _phasePhase.get());
@@ -613,90 +582,84 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (_phasePhase.get() == ParsePhase.Condition)
+            switch (_phasePhase.get())
             {
-                if (node.Expression == null)
-                {
-                    object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    _currentConditionBuilder.get().Append(_cqlTool.AddValue(val));
-                    return node;
-                }
-                if (node.Expression.NodeType == ExpressionType.Parameter)
-                {
-                    _currentConditionBuilder.get().Append(Alter[node.Member.Name].QuoteIdentifier());
-                    return node;
-                }
-                if (node.Expression.NodeType == ExpressionType.Constant)
-                {
-                    object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    if (val is CqlToken)
-                    {
-                        _currentConditionBuilder.get().Append("token(");
-                        _currentConditionBuilder.get().Append(_cqlTool.AddValue((val as CqlToken).Values.First()));
-                        foreach (object e in (val as CqlToken).Values.Skip(1))
-                        {
-                            _currentConditionBuilder.get().Append(", ");
-                            _currentConditionBuilder.get().Append(_cqlTool.AddValue(e));
-                        }
-                        _currentConditionBuilder.get().Append(")");
-                    }
-                    else
-                    {
-                        _currentConditionBuilder.get().Append(_cqlTool.AddValue(val));
-                    }
-                    return node;
-                }
-                if (node.Expression.NodeType == ExpressionType.MemberAccess)
-                {
-                    object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    _currentConditionBuilder.get().Append(_cqlTool.AddValue(val));
-                    return node;
-                }
-            }
-            else if (_phasePhase.get() == ParsePhase.SelectBinding)
-            {
-                string name = node.Member.Name;
-                if (node.Expression == null)
-                {
-                    object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    Mappings[_currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
-                    return node;
-                }
-                if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
-                {
-                    if (Alter.ContainsKey(_currentBindingName.get()))
-                    {
-                        object val = Expression.Lambda(node.Expression).Compile().DynamicInvoke();
-                        Mappings[_currentBindingName.get()] = Tuple.Create(name, val, Mappings.Count);
-                        _selectFields.Add(name);
-                    }
-                    else
+                case ParsePhase.Condition:
+                    if (node.Expression == null)
                     {
                         object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                        Mappings[_currentBindingName.get()] = Tuple.Create<string, object, int>(null, val, Mappings.Count);
+                        _currentConditionBuilder.get().Append(_cqlTool.AddValue(val));
+                        return node;
                     }
-                    return node;
-                }
-                if (node.Expression.NodeType == ExpressionType.Parameter)
+                    if (node.Expression.NodeType == ExpressionType.Parameter)
+                    {
+                        _currentConditionBuilder.get().Append(_pocoData.GetColumnName(node.Member));
+                        return node;
+                    }
+                    if (node.Expression.NodeType == ExpressionType.Constant)
+                    {
+                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                        if (val is CqlToken)
+                        {
+                            _currentConditionBuilder.get().Append("token(");
+                            _currentConditionBuilder.get().Append(_cqlTool.AddValue((val as CqlToken).Values.First()));
+                            foreach (object e in (val as CqlToken).Values.Skip(1))
+                            {
+                                _currentConditionBuilder.get().Append(", ");
+                                _currentConditionBuilder.get().Append(_cqlTool.AddValue(e));
+                            }
+                            _currentConditionBuilder.get().Append(")");
+                        }
+                        else
+                        {
+                            _currentConditionBuilder.get().Append(_cqlTool.AddValue(val));
+                        }
+                        return node;
+                    }
+                    if (node.Expression.NodeType == ExpressionType.MemberAccess)
+                    {
+                        object val = Expression.Lambda(node).Compile().DynamicInvoke();
+                        _currentConditionBuilder.get().Append(_cqlTool.AddValue(val));
+                        return node;
+                    }
+                    break;
+                case ParsePhase.SelectBinding:
                 {
-                    Mappings[_currentBindingName.get()] = Tuple.Create<string, object, int>(name, name, Mappings.Count);
-                    _selectFields.Add(name);
-                    return node;
+                    var columnName = _pocoData.GetColumnName(node.Member);
+                    if (node.Expression == null)
+                    {
+                        var value = Expression.Lambda(node).Compile().DynamicInvoke();
+                        columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.get());
+                        _projections[columnName] = value;
+                        return node;
+                    }
+                    if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
+                    {
+                        var value = Expression.Lambda(node.Expression).Compile().DynamicInvoke();
+                        _projections[columnName] = value;
+                        _selectFields.Add(columnName);
+                        return node;
+                    }
+                    if (node.Expression.NodeType == ExpressionType.Parameter)
+                    {
+                        _projections[columnName] = columnName;
+                        _selectFields.Add(columnName);
+                        return node;
+                    }
                 }
-            }
-            else if (_phasePhase.get() == ParsePhase.OrderBy || _phasePhase.get() == ParsePhase.OrderByDescending)
-            {
-                string name = node.Member.Name;
-                _orderBy.Add(Alter[name].QuoteIdentifier() + (_phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
-
-                if ((node.Expression is ConstantExpression))
-                {
-                    return node;
-                }
-                if (node.Expression.NodeType == ExpressionType.Parameter)
-                {
-                    return node;
-                }
+                    break;
+                case ParsePhase.OrderByDescending:
+                case ParsePhase.OrderBy:
+                    _orderBy.Add(_pocoData.GetColumnName(node.Member) + (_phasePhase.get() == ParsePhase.OrderBy ? " ASC" : " DESC"));
+                    if ((node.Expression is ConstantExpression))
+                    {
+                        return node;
+                    }
+                    if (node.Expression.NodeType == ExpressionType.Parameter)
+                    {
+                        return node;
+                    }
+                    break;
             }
             throw new CqlLinqNotSupportedException(node, _phasePhase.get());
         }

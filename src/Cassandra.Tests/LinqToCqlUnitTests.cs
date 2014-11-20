@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Diagnostics;
 using System.Linq;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
@@ -27,7 +28,6 @@ namespace Cassandra.Tests
     [TestFixture]
     public class LinqToCqlUnitTests
     {
-
         [AllowFiltering]
         [Table("x_t")]
         public class TestTable
@@ -339,7 +339,7 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.That(cqlQuery, Is.Not.Null);
             Assert.That(cqlQuery.ToString(), Is.StringEnding("ALLOW FILTERING"));
-            Console.WriteLine(cqlQuery.ToString());
+            Trace.WriteLine(cqlQuery.ToString());
         }
 
         [Table]
@@ -448,18 +448,6 @@ APPLY BATCH".Replace("\r", ""));
                 }
             }
 
-            public override string Name
-            {
-                get
-                {
-                    return base.Name;
-                }
-                set
-                {
-                    base.Name = value;
-                }
-            }
-
             public string Description { get; set; }
         }
 
@@ -481,6 +469,14 @@ APPLY BATCH".Replace("\r", ""));
             var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
             table2.CreateIfNotExists();
             Assert.AreEqual("CREATE TABLE \"InheritedEntity\"(\"Id\" int, \"Name\" text, \"Description\" text, PRIMARY KEY(\"Id\"));", createQuery);
+        }
+
+        [Test]
+        public void Select_Specific_Columns()
+        {
+            var table = SessionExtensions.GetTable<TestTable>(null);
+            var query = table.Select(t => new TestTable {f1 = t.f1, pk = t.pk});
+            Assert.AreEqual(@"SELECT ""x_f1"", ""x_pk"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
         }
     }
 }
