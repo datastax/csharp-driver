@@ -15,6 +15,7 @@
 //
 
 using System.Linq;
+using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
 {
@@ -23,8 +24,8 @@ namespace Cassandra.Data.Linq
         private readonly TEntity _entity;
         private bool _ifNotExists;
 
-        internal CqlInsert(TEntity entity, IQueryProvider table)
-            : base(null, table)
+        internal CqlInsert(TEntity entity, IQueryProvider table, PocoData pocoData)
+            : base(null, table, pocoData)
         {
             _entity = entity;
         }

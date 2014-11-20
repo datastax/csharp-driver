@@ -332,9 +332,9 @@ APPLY BATCH".Replace("\r", ""));
         public void AllowFilteringTest()
         {
             var table = SessionExtensions.GetTable<AllowFilteringTestTable>(null);
-
+            var key1 = "x";
             var cqlQuery = table
-                .Where(item => item.ClusteringKey == "x" && item.Value == 1M)
+                .Where(item => item.ClusteringKey == key1 && item.Value == 1M)
                 .AllowFiltering();
 
             Assert.That(cqlQuery, Is.Not.Null);

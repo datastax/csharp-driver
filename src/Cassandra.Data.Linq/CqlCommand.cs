@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
 {
@@ -28,6 +29,8 @@ namespace Cassandra.Data.Linq
         private readonly IQueryProvider _table;
         protected DateTimeOffset? _timestamp = null;
         protected int? _ttl = null;
+
+        internal PocoData PocoData { get; private set; }
 
         /// <inheritdoc />
         public override string QueryString
@@ -58,10 +61,11 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        internal CqlCommand(Expression expression, IQueryProvider table)
+        internal CqlCommand(Expression expression, IQueryProvider table, PocoData pocoData)
         {
             _expression = expression;
             _table = table;
+            PocoData = pocoData;
         }
 
         protected abstract string GetCql(out object[] values);

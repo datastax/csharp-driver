@@ -33,14 +33,14 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
             visitor.Evaluate(Expression);
             object[] _;
             return visitor.GetSelect(out _, false);

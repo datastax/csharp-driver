@@ -159,7 +159,7 @@ namespace Cassandra.Data.Linq
 
         public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlDelete(source.Expression, source.Provider);
+            var ret = new CqlDelete(source.Expression, source.Provider, source.MapperFactory.GetPocoData<TSource>());
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -168,14 +168,14 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlDelete(Expression.Call(
                 null, CqlMthHelps.DeleteIfMi,
-                 new Expression[] { source.Expression, predicate }), source.Provider);
+                 new Expression[] { source.Expression, predicate }), source.Provider, source.MapperFactory.GetPocoData<TSource>());
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
 
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlUpdate(source.Expression, source.Provider);
+            var ret = new CqlUpdate(source.Expression, source.Provider, source.MapperFactory.GetPocoData<TSource>());
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -184,7 +184,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlUpdate(Expression.Call(
                 null, CqlMthHelps.UpdateIfMi,
-                new[] {source.Expression, predicate}), source.Provider);
+                new[] { source.Expression, predicate }), source.Provider, source.MapperFactory.GetPocoData<TSource>());
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }

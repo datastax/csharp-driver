@@ -145,7 +145,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
-            return new CqlInsert<TEntity>(entity, this);
+            return new CqlInsert<TEntity>(entity, this, MapperFactory.GetPocoData<TEntity>());
         }
     }
 }

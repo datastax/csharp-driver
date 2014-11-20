@@ -16,6 +16,7 @@
 
 using System.Linq;
 using System.Linq.Expressions;
+using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
 {
@@ -23,8 +24,8 @@ namespace Cassandra.Data.Linq
     {
         private bool _ifExists = false;
 
-        internal CqlDelete(Expression expression, IQueryProvider table)
-            : base(expression, table)
+        internal CqlDelete(Expression expression, IQueryProvider table, PocoData pocoData)
+            : base(expression, table, pocoData)
         {
         }
 
@@ -37,14 +38,14 @@ namespace Cassandra.Data.Linq
         protected override string GetCql(out object[] values)
         {
             var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             return visitor.GetDelete(out values, _timestamp, _ifExists, withValues);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             object[] _;
             return visitor.GetDelete(out _, _timestamp, _ifExists, false);

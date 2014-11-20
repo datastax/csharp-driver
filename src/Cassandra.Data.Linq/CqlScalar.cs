@@ -43,14 +43,14 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
             visitor.Evaluate(Expression);
             return visitor.GetCount(out values);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
             visitor.Evaluate(Expression);
             object[] _;
             return visitor.GetCount(out _, false);
@@ -60,7 +60,7 @@ namespace Cassandra.Data.Linq
         {
             bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
 
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
             visitor.Evaluate(Expression);
 
             object[] values;
