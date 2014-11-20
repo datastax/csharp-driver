@@ -92,7 +92,7 @@ namespace Cassandra.Mapping.Mapping
         /// </summary>
         private Func<Row, T> CreateMapper<T>(RowSet rows)
         {
-            PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
+            var pocoData = GetPocoData<T>();
 
             // See if we retrieved only one column and if that column does not exist in the PocoData
             if (rows.Columns.Length == 1 && pocoData.Columns.Contains(rows.Columns[0].Name) == false)
@@ -103,6 +103,11 @@ namespace Cassandra.Mapping.Mapping
             
             // Create a default POCO mapper
             return CreateMapperForPoco<T>(rows, pocoData);
+        }
+
+        public PocoData GetPocoData<T>()
+        {
+            return _pocoDataFactory.GetPocoData<T>();
         }
 
         /// <summary>

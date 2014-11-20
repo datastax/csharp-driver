@@ -24,9 +24,10 @@ namespace Cassandra.Data.Linq
 {
     public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlQuerySingleElement(Expression expression, IQueryProvider table)
-            : base(expression, table)
+        internal CqlQuerySingleElement(Expression expression, CqlQuery<TEntity> source)
+            : base(expression, source.Provider, source.MapperFactory)
         {
+            
         }
 
 
@@ -59,10 +60,7 @@ namespace Cassandra.Data.Linq
 
         public new Task<TEntity> ExecuteAsync()
         {
-            return base.ExecuteAsync().ContinueWith(t => 
-            {
-                return t.Result.FirstOrDefault();
-            });
+            return base.ExecuteAsync().Continue(t => t.Result.FirstOrDefault());
         }
 
         public new IAsyncResult BeginExecute(AsyncCallback callback, object state)

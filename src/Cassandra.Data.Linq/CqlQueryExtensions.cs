@@ -98,7 +98,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.First_ForCQLTableMi,
-                new[] {source.Expression, Expression.Constant(1), predicate})).Expression, source.Provider);
+                new[] { source.Expression, Expression.Constant(1), predicate })).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -118,7 +118,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.FirstOrDefault_ForCQLTableMi,
-                new[] {source.Expression, Expression.Constant(1), predicate})).Expression, source.Provider);
+                new[] {source.Expression, Expression.Constant(1), predicate})).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -134,7 +134,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.FirstMi,
-                new[] {source.Expression, Expression.Constant(1)})).Expression, source.Provider);
+                new[] {source.Expression, Expression.Constant(1)})).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -152,7 +152,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.FirstOrDefaultMi,
-                new[] {source.Expression, Expression.Constant(1)})).Expression, source.Provider);
+                new[] {source.Expression, Expression.Constant(1)})).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }

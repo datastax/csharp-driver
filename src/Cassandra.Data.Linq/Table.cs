@@ -38,11 +38,7 @@ namespace Cassandra.Data.Linq
             _tableName = tableName;
             _keyspaceName = keyspaceName;
             var pocoDataFactory = new PocoDataFactory(new Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType));
-            MapperFactory = new MapperFactory(new DefaultTypeConverter(), pocoDataFactory);
-        }
-
-        internal Table(Table<TEntity> cp) : this(cp._session, cp._tableName, cp._keyspaceName)
-        {
+            InternalInitialize(Expression.Constant(this), this, new MapperFactory(new DefaultTypeConverter(), pocoDataFactory));
         }
 
         /// <summary>
@@ -50,24 +46,27 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
         {
-            return new CqlQuery<TElement>(expression, this);
+            return new CqlQuery<TElement>(expression, this)
+            {
+                MapperFactory = MapperFactory
+            };
         }
 
-        public IQueryable CreateQuery(Expression expression)
+        IQueryable IQueryProvider.CreateQuery(Expression expression)
         {
-            //Implementation of the IQueryProvider
+            //Implementation of IQueryProvider
             throw new NotImplementedException();
         }
 
-        public TResult Execute<TResult>(Expression expression)
+        TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            //Implementation of the IQueryProvider
+            //Implementation of IQueryProvider
             throw new NotImplementedException();
         }
 
-        public object Execute(Expression expression)
+        object IQueryProvider.Execute(Expression expression)
         {
-            //Implementation of the IQueryProvider
+            //Implementation of IQueryProvider
             throw new NotImplementedException();
         }
 

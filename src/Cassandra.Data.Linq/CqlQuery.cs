@@ -26,11 +26,10 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Represents a Linq query that gets evaluated as a CQL statement.
     /// </summary>
-    public class CqlQuery<TEntity> : CqlQueryBase<TEntity>, IQueryable, IQueryable<TEntity>, IOrderedQueryable
+    public class CqlQuery<TEntity> : CqlQueryBase<TEntity>, IQueryable<TEntity>, IOrderedQueryable
     {
         internal CqlQuery()
         {
-            InternalInitialize(Expression.Constant(this), (Table<TEntity>) this);
         }
 
         internal CqlQuery(Expression expression, IQueryProvider table) : base(expression, table)
@@ -42,6 +41,9 @@ namespace Cassandra.Data.Linq
             return GetEnumerator();
         }
 
+        /// <summary>
+        /// IQueryable.Provider implementation
+        /// </summary>
         public IQueryProvider Provider
         {
             get { return GetTable() as IQueryProvider; }

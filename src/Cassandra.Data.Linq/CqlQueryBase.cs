@@ -51,16 +51,16 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQueryBase(Expression expression, IQueryProvider table)
+        internal CqlQueryBase(Expression expression, IQueryProvider table, MapperFactory mapperFactory = null)
         {
-            _expression = expression;
-            _table = table;
+            InternalInitialize(expression, table, mapperFactory);
         }
 
-        internal void InternalInitialize(Expression expression, IQueryProvider table)
+        internal void InternalInitialize(Expression expression, IQueryProvider table, MapperFactory mapperFactory)
         {
             _expression = expression;
             _table = table;
+            MapperFactory = mapperFactory;
         }
 
         public ITable GetTable()
