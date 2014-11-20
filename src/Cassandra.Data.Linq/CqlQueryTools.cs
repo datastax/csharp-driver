@@ -264,9 +264,9 @@ namespace Cassandra.Data.Linq
             sb.Append("CREATE TABLE ");
             if (ifNotExists)
                 sb.Append("IF NOT EXISTS ");
-            sb.Append(table.GetQuotedTableName());
+            sb.Append(table.Name);
             sb.Append("(");
-            string crtIndex = "CREATE INDEX " + (ifNotExists ? "IF NOT EXISTS " : "") + "ON " + table.GetQuotedTableName() + "(";
+            string crtIndex = "CREATE INDEX " + (ifNotExists ? "IF NOT EXISTS " : "") + "ON " + table.Name + "(";
 
             var clusteringKeys = new SortedDictionary<int, ClusteringKeyAttribute>();
             var partitionKeys = new SortedDictionary<int, string>();

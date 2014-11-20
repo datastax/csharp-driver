@@ -22,7 +22,10 @@ namespace Cassandra.Data.Linq
     {
         void Create();
         Type GetEntityType();
-        string GetQuotedTableName();
+        /// <summary>
+        /// Gets the table name in Cassandra
+        /// </summary>
+        string Name { get; }
         ISession GetSession();
         TableType GetTableType();
     }

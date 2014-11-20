@@ -565,7 +565,8 @@ namespace Cassandra.Data.Linq
             if (node.Value is ITable)
             {
                 var table = (node.Value as ITable);
-                QuotedTableName = table.GetQuotedTableName();
+                //TODO: Quote it
+                QuotedTableName = table.Name;
                 AllowFiltering = table.GetEntityType().GetCustomAttributes(typeof (AllowFilteringAttribute), false).Any();
 
                 List<MemberInfo> props = table.GetEntityType().GetPropertiesOrFields();

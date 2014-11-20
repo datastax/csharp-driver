@@ -70,6 +70,8 @@
     <Compile Include="EntityTrackingMode.cs" />
     <Compile Include="EntityUpdateMode.cs" />
     <Compile Include="ITable.cs" />
+    <Compile Include="LinqAttributeBasedColumnDefinition.cs" />
+    <Compile Include="LinqAttributeBasedTypeDefinition.cs" />
     <Compile Include="ParsePhase.cs" />
     <Compile Include="PartitionKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

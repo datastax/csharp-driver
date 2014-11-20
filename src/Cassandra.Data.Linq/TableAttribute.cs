@@ -27,9 +27,9 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        public TableAttribute(string Name)
+        public TableAttribute(string name)
         {
-            this.Name = Name;
+            Name = name;
         }
     }
 }

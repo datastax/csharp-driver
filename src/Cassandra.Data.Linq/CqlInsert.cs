@@ -38,14 +38,14 @@ namespace Cassandra.Data.Linq
         protected override string GetCql(out object[] values)
         {
             bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out values, _ttl, _timestamp, _ifNotExists,
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).Name, out values, _ttl, _timestamp, _ifNotExists,
                                                        withValues);
         }
 
         public override string ToString()
         {
             object[] _;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).GetQuotedTableName(), out _, _ttl, _timestamp, _ifNotExists, false);
+            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).Name, out _, _ttl, _timestamp, _ifNotExists, false);
         }
     }
 }

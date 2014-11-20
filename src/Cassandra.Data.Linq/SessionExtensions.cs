@@ -14,20 +14,59 @@
 //   limitations under the License.
 //
 
+using System;
+using Cassandra.Mapping.FluentMapping;
+using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.TypeConversion;
+using Cassandra.Mapping.Utils;
+
 namespace Cassandra.Data.Linq
 {
     public static class SessionExtensions
     {
-        public static Table<TEntity> GetTable<TEntity>(this ISession session, string tableName = null, string keyspaceName = null) where TEntity : class
+        /// <summary>
+        /// Creates a Linq IQueryProvider based on the type provided
+        /// </summary>
+        /// <typeparam name="TEntity">The object type</typeparam>
+        /// <param name="session"></param>
+        /// <param name="tableName">The table name in Cassandra. If null, it will be retrieved from the TEntity information.</param>
+        /// <param name="keyspaceName">The keyspace in which the table exists. If null, the current session keyspace will be used.</param>
+        /// <returns></returns>
+        public static Table<TEntity> GetTable<TEntity>(this ISession session, string tableName = null, string keyspaceName = null)
         {
-            return new Table<TEntity>(session, Table<TEntity>.CalculateName(tableName), keyspaceName);
+            var mappingInformation = new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName);
+            return GetTable<TEntity>(session, mappingInformation);
         }
 
-        public static Batch CreateBatch(this ISession @this)
+        /// <summary>
+        /// Creates a Linq IQueryProvider based on the type and mapping information provided
+        /// </summary>
+        /// <typeparam name="TEntity">The object type</typeparam>
+        /// <param name="session"></param>
+        /// <param name="mappingInformation">Instance of ITypeDefinition to obtain the mapping information.</param>
+        /// <returns></returns>
+        public static Table<TEntity> GetTable<TEntity>(this ISession session, ITypeDefinition mappingInformation)
         {
-            if (@this == null || @this.BinaryProtocolVersion > 1)
-                return new BatchV2(@this);
-            return new BatchV1(@this);
+            if (mappingInformation == null)
+            {
+                throw new ArgumentNullException("mappingInformation");
+            }
+            var definitions = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType)
+            {
+                mappingInformation
+            };
+            var pocoDataFactory = new PocoDataFactory(definitions);
+            var mapperFactory = new MapperFactory(new DefaultTypeConverter(), pocoDataFactory);
+            return new Table<TEntity>(session, mapperFactory);   
+        }
+
+        public static Batch CreateBatch(this ISession session)
+        {
+            if (session == null || session.BinaryProtocolVersion > 1)
+            {
+                return new BatchV2(session);
+            }
+            return new BatchV1(session);
         }
 
         internal static Configuration GetConfiguration(this ISession session)
