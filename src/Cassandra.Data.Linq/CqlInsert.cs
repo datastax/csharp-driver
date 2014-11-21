@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Mapping.Mapping;
 
@@ -23,11 +25,13 @@ namespace Cassandra.Data.Linq
     {
         private readonly TEntity _entity;
         private bool _ifNotExists;
+        private readonly MapperFactory _mapperFactory;
 
-        internal CqlInsert(TEntity entity, IQueryProvider table, PocoData pocoData)
-            : base(null, table, pocoData)
+        internal CqlInsert(TEntity entity, IQueryProvider table, MapperFactory mapperFactory)
+            : base(null, table, mapperFactory.GetPocoData<TEntity>())
         {
             _entity = entity;
+            _mapperFactory = mapperFactory;
         }
 
         public CqlInsert<TEntity> IfNotExists()
@@ -38,15 +42,23 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).Name, out values, _ttl, _timestamp, _ifNotExists,
-                                                       withValues);
+            var getBindValues = _mapperFactory.GetValueCollector<TEntity>("INSERT ALL LINQ");
+            var parameters = new List<object>(getBindValues(_entity));
+            var visitor = new CqlExpressionVisitor(PocoData);
+            var cql = visitor.GetInsert(_entity, _ifNotExists, _ttl, _timestamp, parameters);
+            values = parameters.ToArray();
+            return cql;
+        }
+
+        internal string GetCqlAndValues(out object[] values)
+        {
+            return GetCql(out values);
         }
 
         public override string ToString()
         {
             object[] _;
-            return CqlQueryTools.GetInsertCQLAndValues(_entity, (GetTable()).Name, out _, _ttl, _timestamp, _ifNotExists, false);
+            return GetCql(out _);
         }
     }
 }

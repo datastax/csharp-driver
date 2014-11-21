@@ -32,7 +32,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void TestCqlFromLinq()
         {
-            Table<LinqDecoratedEntity> table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
 
             Assert.AreEqual(
                 (from ent in table select ent).ToString(),
@@ -375,12 +375,30 @@ APPLY BATCH".Replace("\r", ""));
         public void InsertNullTest()
         {
             var table = SessionExtensions.GetTable<InsertNullTable>(null);
-            var row = new InsertNullTable() { Key = 1, Value = null };
+            var row = new InsertNullTable() { Key = 101, Value = null };
 
             var cqlInsert = table.Insert(row);
-            var cql = cqlInsert.ToString();
+            object[] values;
+            var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.That(cql, Is.EqualTo("INSERT INTO \"InsertNullTable\"(\"Key\", \"Value\") VALUES (1, null)"));
+            Assert.AreEqual("INSERT INTO \"InsertNullTable\" (\"Value\", \"Key\") VALUES (?, ?)", cql);
+            Assert.AreEqual(2, values.Length);
+            Assert.AreEqual(null, values[0]);
+            Assert.AreEqual(101, values[1]);
+        }
+
+        [Test]
+        public void InsertIfNotExistsTest()
+        {
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var uuid = Guid.NewGuid();
+            var row = new AllTypesDecorated { Int64Value = 202, UuidValue = uuid};
+
+            var cqlInsert = table.Insert(row).IfNotExists();
+            object[] values;
+            var cql = cqlInsert.GetCqlAndValues(out values);
+
+            StringAssert.EndsWith("IF NOT EXISTS", cql);
         }
 
         [Test]
@@ -444,6 +462,14 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
             var query = table.Select(t => new LinqDecoratedEntity { f1 = t.f1, pk = t.pk });
             Assert.AreEqual(@"SELECT ""x_f1"", ""x_pk"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
+        }
+
+        [Test]
+        public void Select_One_Columns()
+        {
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var query = table.Select(t => t.f1);
+            Assert.AreEqual(@"SELECT ""x_f1"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
         }
 
         [Test]

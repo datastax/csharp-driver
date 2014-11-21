@@ -23,6 +23,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Data.Linq
 {
@@ -271,6 +272,42 @@ namespace Cassandra.Data.Linq
                 return _cqlTool.FillWithValues(sb.ToString(), out values);
             values = null;
             return _cqlTool.FillWithEncoded(sb.ToString());
+        }
+
+        public string GetInsert<T>(T poco, bool ifNotExists, int? ttl, DateTimeOffset? timestamp, List<object> parameters)
+        {
+            var cql = new StringBuilder();
+            if (ifNotExists)
+            {
+                cql.Append(" IF NOT EXISTS");
+            }
+            if (ttl != null || timestamp != null)
+            {
+                cql.Append(" USING");
+                if (ttl != null)
+                {
+                    cql.Append(" TTL ?");
+                    parameters.Add(ttl.Value);
+                    if (timestamp != null)
+                    {
+                        cql.Append(" AND");
+                    }
+                }
+                if (timestamp != null)
+                {
+                    cql.Append(" TIMESTAMP ?");
+                    parameters.Add(timestamp.Value);
+                }
+            }
+            var columns = _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString();
+            var placeholders = Enumerable.Repeat("?", _pocoData.Columns.Count).ToCommaDelimitedString();
+            var cqlString = String.Format("INSERT INTO {0} ({1}) VALUES ({2})", Escape(_pocoData.TableName), columns, placeholders);
+            if (cql.Length > 0)
+            {
+                cql.Insert(0, cqlString);
+                cqlString = cql.ToString();
+            }
+            return cqlString;
         }
 
         public void Evaluate(Expression expression)
@@ -624,6 +661,7 @@ namespace Cassandra.Data.Linq
             switch (_phasePhase.Get())
             {
                 case ParsePhase.Condition:
+                {
                     if (node.Expression == null)
                     {
                         object val = Expression.Lambda(node).Compile().DynamicInvoke();
@@ -663,6 +701,7 @@ namespace Cassandra.Data.Linq
                         return node;
                     }
                     break;
+                }
                 case ParsePhase.SelectBinding:
                 {
                     var columnName = _pocoData.GetColumnName(node.Member);
@@ -686,10 +725,11 @@ namespace Cassandra.Data.Linq
                         _selectFields.Add(columnName);
                         return node;
                     }
-                }
                     break;
+                }
                 case ParsePhase.OrderByDescending:
                 case ParsePhase.OrderBy:
+                {
                     _orderBy.Add(Tuple.Create(_pocoData.GetColumnName(node.Member), _phasePhase.Get() == ParsePhase.OrderBy));
                     if ((node.Expression is ConstantExpression))
                     {
@@ -700,6 +740,7 @@ namespace Cassandra.Data.Linq
                         return node;
                     }
                     break;
+                }
             }
             throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
         }
