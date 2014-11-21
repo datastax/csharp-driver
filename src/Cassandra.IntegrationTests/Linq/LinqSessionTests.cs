@@ -33,7 +33,15 @@ namespace Cassandra.IntegrationTests.Linq
         {
             base.TestFixtureSetUp();
             var table = Session.GetTable<NerdMovie>();
-            table.CreateIfNotExists();
+            const string createCql = @"CREATE TABLE ""nerdiStuff"" (" +
+                                     @"""mainGuy"" text, " +
+                                     @"""movieMaker"" text, " +
+                                     @"""movieTile"" text, " +
+                                     @"""List"" list<text>, " +
+                                     @"diri text, " +
+                                     @"""When-Made"" int, " +
+                                     @"PRIMARY KEY ((""movieTile"", ""movieMaker""), diri))";
+            Session.Execute(createCql);
             //Insert some data
             var ps = Session.Prepare("INSERT INTO \"nerdiStuff\" " +
                             "(\"movieTile\", \"movieMaker\", \"diri\", \"mainGuy\") VALUES " +
