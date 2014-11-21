@@ -15,58 +15,52 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Represents nested states
+    /// </summary>
     internal class VisitingParam<T>
     {
-        private readonly Stack<T> Stack = new Stack<T>();
-        private readonly T def;
+        private readonly Stack<T> _clauses = new Stack<T>();
+        private readonly T _defaultValue;
 
-        public VisitingParam(T def)
+        public VisitingParam(T defaultValue)
         {
-            this.def = def;
+            _defaultValue = defaultValue;
         }
 
-        public IDisposable set(T val)
+        public VisitingParam() : this(default(T))
         {
-            return new Lock(Stack, val);
+            
         }
 
-        public IDisposable setIf(bool cond, T val)
+        public IDisposable Set(T val)
         {
-            if (cond)
-                return new Lock(Stack, val);
-            return new NullLock();
+            return new ClauseLock(_clauses, val);
         }
 
-        public T get()
+        public T Get()
         {
-            if (Stack.Count == 0) return def;
-            return Stack.Peek();
+            return _clauses.Count == 0 ? _defaultValue : _clauses.Peek();
         }
 
-        private class Lock : IDisposable
+        private class ClauseLock : IDisposable
         {
-            private readonly Stack<T> Stack;
+            private readonly Stack<T> _stack;
 
-            public Lock(Stack<T> Stack, T val)
+            public ClauseLock(Stack<T> stack, T val)
             {
-                this.Stack = Stack;
-                this.Stack.Push(val);
+                this._stack = stack;
+                this._stack.Push(val);
             }
 
             void IDisposable.Dispose()
             {
-                Stack.Pop();
-            }
-        }
-
-        private class NullLock : IDisposable
-        {
-            void IDisposable.Dispose()
-            {
+                _stack.Pop();
             }
         }
     }
