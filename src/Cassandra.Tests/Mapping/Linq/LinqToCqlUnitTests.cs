@@ -14,44 +14,25 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Cassandra.Data.Linq;
-using NUnit.Framework;
-using System;
-using Moq;
-using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cassandra.Data.Linq;
+using Cassandra.Tests.Mapping.Pocos;
+using Moq;
+using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Cassandra.Tests.Mapping.Linq
 {
     [TestFixture]
     public class LinqToCqlUnitTests
     {
-        [AllowFiltering]
-        [Table("x_t")]
-        public class TestTable
-        {
-            [PartitionKey]
-            [Column("x_pk")]
-            public string pk { get; set; }
-
-            [ClusteringKey(1)]
-            [Column("x_ck1")]
-            public int? ck1 { get; set; }
-
-            [ClusteringKey(2)]
-            [Column("x_ck2")]
-            public int ck2 { get; set; }
-
-            [Column("x_f1")]
-            public int f1 { get; set; }
-        }
-
         [Test]
         public void TestCqlFromLinq()
         {
-            Table<TestTable> table = SessionExtensions.GetTable<TestTable>(null);
+            Table<LinqDecoratedEntity> table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
 
             Assert.AreEqual(
                 (from ent in table select ent).ToString(),
@@ -136,7 +117,7 @@ namespace Cassandra.Tests
                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40)");
 
             Assert.AreEqual(
-               (table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).ToString(),
+               (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).ToString(),
                @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3)");
 
             try
@@ -149,7 +130,7 @@ namespace Cassandra.Tests
 
             {
                 var batch = SessionExtensions.CreateBatch(null);
-                batch.Append(table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
+                batch.Append(table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
                 batch.Append((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).Update());
                 batch.Append((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete());
                 Assert.AreEqual(batch.ToString().Replace("\r", ""),
@@ -162,7 +143,7 @@ APPLY BATCH".Replace("\r", ""));
 
             {
                 var batch = SessionExtensions.CreateBatch(null);
-                batch.Append(table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
+                batch.Append(table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
                 batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Select(ent => new { f1 = 1223 }).Update());
                 batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
                 Assert.AreEqual(batch.ToString().Replace("\r", ""),
@@ -203,10 +184,10 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void TestCqlFromLinqPaxosSupport()
         {
-            var table = SessionExtensions.GetTable<TestTable>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
 
             Assert.AreEqual(
-               (table.Insert(new TestTable() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
+               (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
                @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3) IF NOT EXISTS");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a) => a.f1 == 123).ToString(),
@@ -222,11 +203,11 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void TestCqlNullValuesLinqSupport()
         {
-            var table = SessionExtensions.GetTable<TestTable>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
 
             Assert.AreEqual(
                 @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', null, 2, 3)",
-                (table.Insert(new TestTable() { ck1 = null, ck2 = 2, f1 = 3, pk = "x" })).ToString());
+                (table.Insert(new LinqDecoratedEntity() { ck1 = null, ck2 = 2, f1 = 3, pk = "x" })).ToString());
 
             Assert.AreEqual(
                 @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck1"" IN (10, 30, 40)",
@@ -234,31 +215,17 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.AreEqual(
                 @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40)",
-                (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new TestTable() { f1 = 1223, ck1 = null }).Update().ToString());
+                (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new LinqDecoratedEntity() { f1 = 1223, ck1 = null }).Update().ToString());
 
             Assert.AreEqual(
                 @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" = 1",
-                (from ent in table where ent.ck1 == 1 select new TestTable() { f1 = 1223, ck1 = null }).Update().ToString());
+                (from ent in table where ent.ck1 == 1 select new LinqDecoratedEntity() { f1 = 1223, ck1 = null }).Update().ToString());
 
             Assert.AreEqual(
                 @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40) IF ""x_f1"" = 123",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString());
         }
 
-        /// <summary>
-        /// Test utility: Represents an application entity with most of common types as properties
-        /// </summary>
-        public class AllTypesEntity
-        {
-            public bool BooleanValue { get; set; }
-            public DateTime DateTimeValue { get; set; }
-            public decimal DecimalValue { get; set; }
-            public double DoubleValue { get; set; }
-            public Int64 Int64Value { get; set; }
-            public int IntValue { get; set; }
-            public string StringValue { get; set; }
-            public Guid UuidValue { get; set; }
-        }
 
         /// <summary>
         /// Tests the Linq to CQL generated where clause 
@@ -419,7 +386,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void EmptyListTest()
         {
-            var table = SessionExtensions.GetTable<TestTable>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
             var keys = new string[0];
             var query = table.Where(item => keys.Contains(item.pk));
 
@@ -474,8 +441,8 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Select_Specific_Columns()
         {
-            var table = SessionExtensions.GetTable<TestTable>(null);
-            var query = table.Select(t => new TestTable { f1 = t.f1, pk = t.pk });
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var query = table.Select(t => new LinqDecoratedEntity { f1 = t.f1, pk = t.pk });
             Assert.AreEqual(@"SELECT ""x_f1"", ""x_pk"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
         }
 
@@ -485,6 +452,42 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<AllTypesEntity>(null);
             var query = table.OrderBy(t => t.UuidValue).OrderByDescending(t => t.DateTimeValue);
             Assert.AreEqual(@"SELECT * FROM ""AllTypesEntity"" ORDER BY ""UuidValue"", ""DateTimeValue"" DESC", query.ToString());
+        }
+
+        [Test]
+        public void Select_Where_Contains()
+        {
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var ids = new []{ 1, 2, 3};
+            var query = table.Where(t => ids.Contains(t.IntValue) && t.Int64Value == 10);
+            Assert.AreEqual(@"SELECT * FROM ""atd"" WHERE ""int_VALUE"" IN (1, 2, 3) AND ""int64_VALUE"" = 10", query.ToString());
+        }
+
+        [Test]
+        public void UpdateIf_With_Where_Clause()
+        {
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var query = table
+                .Where(t => t.BooleanValue == true && t.DoubleValue > 1d)
+                .Select(t => new AllTypesDecorated { StringValue = "updated value"})
+                .UpdateIf(t => t.IntValue == 100);
+            Assert.AreEqual(
+                @"UPDATE ""atd"" SET ""string_VALUE"" = 'updated value' WHERE ""boolean_VALUE"" = true AND ""double_VALUE"" > 1 IF ""int_VALUE"" = 100", 
+                query.ToString());
+            Trace.TraceInformation(query.ToString());
+        }
+
+        [Test]
+        public void DeleteIf_With_Where_Clause()
+        {
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var query = table
+                .Where(t => t.Int64Value == 1)
+                .DeleteIf(t => t.StringValue == "conditional!");
+            Assert.AreEqual(
+                @"DELETE FROM ""atd"" WHERE ""int64_VALUE"" = 1 IF ""string_VALUE"" = 'conditional!'",
+                query.ToString());
+            Trace.TraceInformation(query.ToString());
         }
     }
 }
