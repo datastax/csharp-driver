@@ -25,7 +25,7 @@ namespace Cassandra.Data.Linq
     public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity>
     {
         internal CqlQuerySingleElement(Expression expression, CqlQuery<TEntity> source)
-            : base(expression, source.Provider, source.MapperFactory)
+            : base(expression, source.Provider, source.MapperFactory, source.PocoData)
         {
             
         }
@@ -33,7 +33,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
         }

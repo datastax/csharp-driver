@@ -19,12 +19,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
 {
     public class CqlScalar<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlScalar(Expression expression, IQueryProvider table) : base(expression, table)
+        internal CqlScalar(Expression expression, IQueryProvider table, PocoData pocoData) : base(expression, table, null, pocoData)
         {
         }
 
@@ -43,28 +44,21 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             return visitor.GetCount(out values);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetCount(out _, false);
+            return GetCql(out _);
         }
 
         public new Task<TEntity> ExecuteAsync()
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
-            visitor.Evaluate(Expression);
-
             object[] values;
-            string cql = visitor.GetCount(out values, withValues);
+            string cql = GetCql(out values);
 
             var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
             {

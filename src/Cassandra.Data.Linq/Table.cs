@@ -29,21 +29,20 @@ namespace Cassandra.Data.Linq
     {
         private TableType _tableType = TableType.All;
         private readonly ISession _session;
-        private readonly PocoData _pocoData;
 
         /// <summary>
         /// Gets the name of the Table in Cassandra
         /// </summary>
         public string Name
         {
-            get { return _pocoData.TableName; }
+            get { return PocoData.TableName; }
         }
 
         internal Table(ISession session, MapperFactory mapperFactory)
         {
             _session = session;
-            _pocoData = mapperFactory.GetPocoData<TEntity>();
-            InternalInitialize(Expression.Constant(this), this, mapperFactory);
+            var pocoData = mapperFactory.GetPocoData<TEntity>();
+            InternalInitialize(Expression.Constant(this), this, mapperFactory, pocoData);
         }
 
         /// <summary>
@@ -51,10 +50,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
         {
-            return new CqlQuery<TElement>(expression, this)
-            {
-                MapperFactory = MapperFactory
-            };
+            return new CqlQuery<TElement>(expression, this, MapperFactory, PocoData);
         }
 
         IQueryable IQueryProvider.CreateQuery(Expression expression)

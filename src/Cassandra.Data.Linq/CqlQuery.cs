@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
 {
@@ -32,7 +33,8 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQuery(Expression expression, IQueryProvider table) : base(expression, table)
+        internal CqlQuery(Expression expression, IQueryProvider table, MapperFactory mapperFactory, PocoData pocoData)
+            : base(expression, table, mapperFactory, pocoData)
         {
         }
 
@@ -74,14 +76,14 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             object[] _;
             return visitor.GetSelect(out _, false);

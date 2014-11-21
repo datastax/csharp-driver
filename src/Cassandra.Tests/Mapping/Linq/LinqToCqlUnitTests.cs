@@ -60,27 +60,23 @@ namespace Cassandra.Tests.Mapping.Linq
 
             Assert.AreEqual(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2 }).OrderBy(c => c.ck2).ToString(),
-                @"SELECT ""x_f1"", ""x_ck2"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ASC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2, ent.ck1 }).OrderBy(c => c.ck2).OrderByDescending(c => c.ck1).ToString(),
-                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ASC, ""x_ck1"" DESC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"", ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table where ent.pk == "koko" && ent.ck2 == 10 select new { ent.f1, ent.ck2, ent.ck1 }).OrderBy(c => c.ck2).OrderByDescending(c => c.ck1).ToString(),
-                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"" ASC, ""x_ck1"" DESC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE ""x_pk"" = 'koko' AND ""x_ck2"" = 10 ORDER BY ""x_ck2"", ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table where CqlToken.Create(ent.pk, ent.ck2, ent.ck2) > CqlToken.Create("x", 2) select new { ent.f1, ent.ck2, ent.ck1 }).OrderBy(c => c.ck2).OrderByDescending(c => c.ck1).ToString(),
-                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE token(""x_pk"", ""x_ck2"", ""x_ck2"") > token('x', 2) ORDER BY ""x_ck2"" ASC, ""x_ck1"" DESC ALLOW FILTERING");
+                @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE token(""x_pk"", ""x_ck2"", ""x_ck2"") > token('x', 2) ORDER BY ""x_ck2"", ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table where ent.ck2 > ent.ck1 select ent).ToString(),
                 @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" > ""x_ck1"" ALLOW FILTERING");
-
-            Assert.AreEqual(
-                (from ent in table select ent).Count().ToString(),
-                @"SELECT count(*) FROM ""x_t""");
 
             Assert.AreEqual(
                 (from ent in table select ent).FirstOrDefault().ToString(),
@@ -92,7 +88,7 @@ namespace Cassandra.Tests.Mapping.Linq
 
             Assert.AreEqual(
                 (from ent in table select ent).Where(e => e.pk.CompareTo("a") > 0).First().ToString(),
-                @"SELECT * FROM ""x_t"" WHERE ""x_pk"" > 'a' LIMIT 1 ALLOW FILTERING");
+                @"SELECT * FROM ""x_t"" WHERE ""x_pk"" > ?  LIMIT 1 ALLOW FILTERING");
 
             try
             {
@@ -118,7 +114,7 @@ namespace Cassandra.Tests.Mapping.Linq
 
             Assert.AreEqual(
                (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).ToString(),
-               @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3)");
+               @"INSERT INTO ""x_t"" (""x_f1"", ""x_pk"", ""x_ck1"", ""x_ck2"") VALUES (?, ?, ?, ?)");
 
             try
             {
@@ -188,7 +184,7 @@ APPLY BATCH".Replace("\r", ""));
 
             Assert.AreEqual(
                (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
-               @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3) IF NOT EXISTS");
+               @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3) IF NOT EXISTS");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a) => a.f1 == 123).ToString(),
                     @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40) IF ""x_f1"" = 123");
@@ -206,7 +202,7 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
 
             Assert.AreEqual(
-                @"INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', null, 2, 3)",
+                @"INSERT INTO ""x_t"" (""x_f1"", ""x_pk"", ""x_ck1"", ""x_ck2"") VALUES (?, ?, ?, ?)",
                 (table.Insert(new LinqDecoratedEntity() { ck1 = null, ck2 = 2, f1 = 3, pk = "x" })).ToString());
 
             Assert.AreEqual(
@@ -453,7 +449,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Verifiable();
             var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
             table2.CreateIfNotExists();
-            Assert.AreEqual("CREATE TABLE \"InheritedEntity\"(\"Id\" int, \"Name\" text, \"Description\" text, PRIMARY KEY(\"Id\"));", createQuery);
+            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Name\" text, \"Description\" text, PRIMARY KEY(\"Id\"));", createQuery);
         }
 
         [Test]
@@ -462,6 +458,15 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
             var query = table.Select(t => new LinqDecoratedEntity { f1 = t.f1, pk = t.pk });
             Assert.AreEqual(@"SELECT ""x_f1"", ""x_pk"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
+        }
+
+        [Test]
+        public void Select_Count()
+        {
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            Assert.AreEqual(
+                (from ent in table select ent).Count().ToString(),
+                @"SELECT count(*) FROM ""x_t""");
         }
 
         [Test]

@@ -41,6 +41,10 @@ namespace Cassandra.Data.Linq
         public QueryTrace QueryTrace { get; protected set; }
 
         internal MapperFactory MapperFactory { get; set; }
+        /// <summary>
+        /// The information associated with the TEntity
+        /// </summary>
+        internal PocoData PocoData { get; set; }
 
         public override RoutingKey RoutingKey
         {
@@ -51,16 +55,17 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQueryBase(Expression expression, IQueryProvider table, MapperFactory mapperFactory = null)
+        internal CqlQueryBase(Expression expression, IQueryProvider table, MapperFactory mapperFactory, PocoData pocoData)
         {
-            InternalInitialize(expression, table, mapperFactory);
+            InternalInitialize(expression, table, mapperFactory, pocoData);
         }
 
-        internal void InternalInitialize(Expression expression, IQueryProvider table, MapperFactory mapperFactory)
+        internal void InternalInitialize(Expression expression, IQueryProvider table, MapperFactory mapperFactory, PocoData pocoData)
         {
             _expression = expression;
             _table = table;
             MapperFactory = mapperFactory;
+            PocoData = pocoData;
         }
 
         public ITable GetTable()

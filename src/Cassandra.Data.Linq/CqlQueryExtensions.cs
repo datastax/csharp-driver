@@ -80,7 +80,7 @@ namespace Cassandra.Data.Linq
         /// <returns>A single result: the number of rows matching the query.</returns>
         public static CqlScalar<long> Count<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlScalar<long>(source.Expression, source.Provider);
+            var ret = new CqlScalar<long>(source.Expression, source.Provider, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -159,7 +159,7 @@ namespace Cassandra.Data.Linq
 
         public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlDelete(source.Expression, source.Provider, source.MapperFactory.GetPocoData<TSource>());
+            var ret = new CqlDelete(source.Expression, source.Provider, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -168,14 +168,14 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlDelete(Expression.Call(
                 null, CqlMthHelps.DeleteIfMi,
-                 new Expression[] { source.Expression, predicate }), source.Provider, source.MapperFactory.GetPocoData<TSource>());
+                 new Expression[] { source.Expression, predicate }), source.Provider, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
 
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlUpdate(source.Expression, source.Provider, source.MapperFactory.GetPocoData<TSource>());
+            var ret = new CqlUpdate(source.Expression, source.Provider, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -184,7 +184,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlUpdate(Expression.Call(
                 null, CqlMthHelps.UpdateIfMi,
-                new[] { source.Expression, predicate }), source.Provider, source.MapperFactory.GetPocoData<TSource>());
+                new[] { source.Expression, predicate }), source.Provider, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }

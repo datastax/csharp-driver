@@ -490,7 +490,7 @@ namespace Cassandra.Data.Linq
             if (node.Method.Name == "CompareTo")
             {
                 Visit(node.Object);
-                _currentCondition.Get().Append(" " + _binaryExpressionTag.Get() + " ");
+                _currentCondition.Get().Append(" " + _binaryExpressionTag.Get());
                 Visit(node.Arguments[0]);
                 return node;
             }
