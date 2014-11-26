@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -12,7 +13,8 @@ namespace Cassandra.Mapping.Mapping
         private readonly Type _pocoType;
         private readonly string _tableName;
         private readonly bool _explicitColumns;
-        private readonly string[] _primaryKeyColumns;
+        private readonly string[] _partitionKeys;
+        private readonly Tuple<string, SortOrder>[] _clusteringKeys = new Tuple<string, SortOrder>[0];
 
         Type ITypeDefinition.PocoType
         {
@@ -29,9 +31,14 @@ namespace Cassandra.Mapping.Mapping
             get { return _explicitColumns; }
         }
 
-        string[] ITypeDefinition.PrimaryKeyColumns
+        string[] ITypeDefinition.PartitionKeys
         {
-            get { return _primaryKeyColumns; }
+            get { return _partitionKeys; }
+        }
+
+        Tuple<string, SortOrder>[] ITypeDefinition.ClusteringKeys
+        {
+            get { return _clusteringKeys; }
         }
 
         public bool CaseSensitive { get; set; }
@@ -47,7 +54,11 @@ namespace Cassandra.Mapping.Mapping
             // Look for supported attributes on the Type and set any properties appropriately
             var primaryKeyAttribute = (PrimaryKeyAttribute)pocoType.GetCustomAttributes(typeof(PrimaryKeyAttribute), true).FirstOrDefault();
             if (primaryKeyAttribute != null)
-                _primaryKeyColumns = primaryKeyAttribute.ColumnNames;
+            {
+                //TODO: Use partition and clustering key attributes
+                //Until Linq and Mapper attributes are consolidated it doesn't make much sense.
+                _partitionKeys = primaryKeyAttribute.ColumnNames;
+            }
 
             var explicitColumnsAttribute = (ExplicitColumnsAttribute)pocoType.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).FirstOrDefault();
             if (explicitColumnsAttribute != null)

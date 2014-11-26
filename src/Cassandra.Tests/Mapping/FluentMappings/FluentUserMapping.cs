@@ -12,7 +12,7 @@ namespace Cassandra.Tests.Mapping.FluentMappings
         public FluentUserMapping()
         {
             TableName("users");
-            PrimaryKey(u => u.Id);
+            PartitionKey(u => u.Id);
             Column(u => u.Id, cm => cm.WithName("userid"));
             Column(u => u.FavoriteColor, cm => cm.WithDbType<string>());
             Column(u => u.TypeOfUser, cm => cm.WithDbType(typeof (string)));

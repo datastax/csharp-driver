@@ -12,6 +12,7 @@ namespace Cassandra.Mapping.Mapping
     internal class PocoData
     {
         private readonly Dictionary<string, PocoColumn> _columnsByMemberName;
+        private readonly HashSet<string> _primaryKeys;
         /// <summary>
         /// The .NET Type of the POCO this data is for.
         /// </summary>
@@ -28,9 +29,14 @@ namespace Cassandra.Mapping.Mapping
         public LookupKeyedCollection<string, PocoColumn> Columns { get; private set; }
 
         /// <summary>
-        /// The column names for the primary key columns.
+        /// Gets the partition key columns of the table.
         /// </summary>
-        public HashSet<string> PrimaryKeyColumns { get; private set; }
+        public List<PocoColumn> PartitionKeys { get; set; }
+
+        /// <summary>
+        /// Gets the clustering key columns of the table.
+        /// </summary>
+        public List<Tuple<PocoColumn, SortOrder>> ClusteringKeys { get; private set; }
 
         /// <summary>
         /// Determines if the queries generated using this poco information should be case-sensitive
@@ -41,42 +47,54 @@ namespace Cassandra.Mapping.Mapping
         /// The column names of any primary key columns that aren't in the Columns collection.  Could indicate a misconfiguration if the POCO
         /// is going to be used in auto-generated UPDATE/DELETE statements.
         /// </summary>
-        public string[] MissingPrimaryKeyColumns { get; private set; }
+        public List<string> MissingPrimaryKeyColumns { get; private set; }
 
-        public PocoData(Type pocoType, string tableName, LookupKeyedCollection<string, PocoColumn> columns, 
-                        HashSet<string> primaryKeyColumns, bool caseSensitive)
+        public PocoData(Type pocoType, string tableName, LookupKeyedCollection<string, PocoColumn> columns,
+                        string[] partitionkeys, Tuple<string, SortOrder>[] clusteringKeys, bool caseSensitive)
         {
             if (pocoType == null) throw new ArgumentNullException("pocoType");
             if (tableName == null) throw new ArgumentNullException("tableName");
             if (columns == null) throw new ArgumentNullException("columns");
-            if (primaryKeyColumns == null) throw new ArgumentNullException("primaryKeyColumns");
+            if (partitionkeys == null) throw new ArgumentNullException("partitionkeys");
+            if (clusteringKeys == null) throw new ArgumentNullException("clusteringKeys");
             PocoType = pocoType;
             TableName = tableName;
             Columns = columns;
-            PrimaryKeyColumns = primaryKeyColumns;
             CaseSensitive = caseSensitive;
             _columnsByMemberName = columns.ToDictionary(c => c.MemberInfo.Name, c => c);
+            PartitionKeys = partitionkeys.Where(columns.Contains).Select(key => columns[key]).ToList();
+            ClusteringKeys = clusteringKeys.Where(c => columns.Contains(c.Item1)).Select(c => Tuple.Create(columns[c.Item1], c.Item2)).ToList();
+            _primaryKeys = new HashSet<string>(PartitionKeys.Select(p => p.ColumnName).Concat(ClusteringKeys.Select(c => c.Item1.ColumnName)));
 
-            MissingPrimaryKeyColumns = PrimaryKeyColumns.Where(colName => Columns.Contains(colName) == false).ToArray();
+            MissingPrimaryKeyColumns = new List<string>();
+            if (PartitionKeys.Count != partitionkeys.Length)
+            {
+                MissingPrimaryKeyColumns.AddRange(partitionkeys.Where(k => !columns.Contains(k)));
+            }
+            if (ClusteringKeys.Count != clusteringKeys.Length)
+            {
+                MissingPrimaryKeyColumns.AddRange(partitionkeys.Where(k => !columns.Contains(k)));
+            }
         }
 
         /// <summary>
-        /// Gets only the PocoColumns from the collection of all columns that are NOT PK columns.
+        /// Gets only the PocoColumns from the collection of all columns that are NOT part of the partition or clustering keys.
         /// </summary>
         /// <returns></returns>
         public IList<PocoColumn> GetNonPrimaryKeyColumns()
         {
             // Since the underlying collection (Columns) maintains order, this should be consistent in ordering
-            return Columns.Where(c => PrimaryKeyColumns.Contains(c.ColumnName) == false).ToList();
+            return Columns.Where(c => _primaryKeys.Contains(c.ColumnName) == false).ToList();
         }
 
         /// <summary>
-        /// Gets only the PocoColumns from the collection of all columns that are PK columns.
+        /// Gets only the PocoColumns from the collection of all columns that are uniquely identifies a cql row.
+        /// First partition and then clustering keys.
         /// </summary>
         public IList<PocoColumn> GetPrimaryKeyColumns()
         {
             // Since the underlying collection (Columns) maintains order, this should be consistent in ordering
-            return Columns.Where(c => PrimaryKeyColumns.Contains(c.ColumnName)).ToList();
+            return Columns.Where(c => _primaryKeys.Contains(c.ColumnName)).ToList();
         }
 
         /// <summary>

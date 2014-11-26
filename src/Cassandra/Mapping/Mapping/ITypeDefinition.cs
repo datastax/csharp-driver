@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Cassandra.Mapping.Mapping
@@ -24,9 +25,14 @@ namespace Cassandra.Mapping.Mapping
         bool ExplicitColumns { get; }
 
         /// <summary>
-        /// The primary key columns.
+        /// Gets the partition key columns of the table.
         /// </summary>
-        string[] PrimaryKeyColumns { get; }
+        string[] PartitionKeys { get; }
+
+        /// <summary>
+        /// Gets the clustering key columns of the table.
+        /// </summary>
+        Tuple<string, SortOrder>[] ClusteringKeys { get; }
 
         /// <summary>
         /// Determines if the queries generated using this definition should be case-sensitive

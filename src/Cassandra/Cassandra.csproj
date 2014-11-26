@@ -138,6 +138,7 @@
     <Compile Include="Mapping\Mapping\PocoData.cs" />
     <Compile Include="Mapping\Mapping\PocoDataFactory.cs" />
     <Compile Include="Mapping\PrimaryKeyAttribute.cs" />
+    <Compile Include="Mapping\SortOrder.cs" />
     <Compile Include="Mapping\Statements\CqlGenerator.cs" />
     <Compile Include="Mapping\Statements\StatementFactory.cs" />
     <Compile Include="Mapping\TableNameAttribute.cs" />

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Mapping;
 
 namespace Cassandra.Data.Linq
@@ -17,7 +18,8 @@ namespace Cassandra.Data.Linq
         public Type PocoType { get; private set; }
         public string TableName { get; private set; }
         public bool ExplicitColumns { get; private set; }
-        public string[] PrimaryKeyColumns { get; private set; }
+        public string[] PartitionKeys { get; private set; }
+        public Tuple<string, SortOrder>[] ClusteringKeys { get; private set; }
         public bool CaseSensitive { get; private set; }
 
         public LinqAttributeBasedTypeDefinition(Type type, string tableName, string keyspaceName)
@@ -38,7 +40,7 @@ namespace Cassandra.Data.Linq
                 .Select(field => (MemberInfo) field)
                 .Concat(type.GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite));
             var partitionKeys = new List<Tuple<string, int>>();
-            var clusteringKeys = new List<Tuple<string, int>>();
+            var clusteringKeys = new List<Tuple<string, SortOrder, int>>();
             foreach (var member in mappable)
             {
                 var columnName = member.Name;
@@ -56,21 +58,15 @@ namespace Cassandra.Data.Linq
                 var clusteringKeyAttribute = (ClusteringKeyAttribute)member.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault();
                 if (clusteringKeyAttribute != null)
                 {
-                    clusteringKeys.Add(Tuple.Create(columnName, clusteringKeyAttribute.Index));
+                    clusteringKeys.Add(Tuple.Create(columnName, clusteringKeyAttribute.ClusteringSortOrder, clusteringKeyAttribute.Index));
                 }
             }
 
-            PrimaryKeyColumns = partitionKeys
+            PartitionKeys = partitionKeys
                 //Order the partition keys by index
                 .OrderBy(k => k.Item2)
-                .Select(k => k.Item1)
-                .Concat(
-                    clusteringKeys
-                    //Order the partition keys by index
-                    .OrderBy(k => k.Item2)
-                    .Select(k => k.Item1)
-                ).ToArray();
-            
+                .Select(k => k.Item1).ToArray();
+
             //Get the table name from the attribute or the type name
             if (TableName == null)
             {

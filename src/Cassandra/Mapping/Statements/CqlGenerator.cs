@@ -97,7 +97,7 @@ namespace Cassandra.Mapping.Statements
             if (pocoData.Columns.Count == 0)
                 throw new InvalidOperationException(string.Format(NoColumns, "UPDATE", typeof(T).Name));
 
-            if (pocoData.MissingPrimaryKeyColumns.Length > 0)
+            if (pocoData.MissingPrimaryKeyColumns.Count > 0)
             {
                 throw new InvalidOperationException(string.Format(MissingPkColumns, "UPDATE", typeof(T).Name,
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
@@ -129,7 +129,7 @@ namespace Cassandra.Mapping.Statements
                 throw new InvalidOperationException(string.Format(NoColumns, "DELETE", typeof(T).Name));
             }
 
-            if (pocoData.MissingPrimaryKeyColumns.Length > 0)
+            if (pocoData.MissingPrimaryKeyColumns.Count > 0)
             {
                 throw new InvalidOperationException(string.Format(MissingPkColumns, "DELETE", typeof(T).Name,
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -19,8 +20,9 @@ namespace Cassandra.Mapping.FluentMapping
         private bool _explicitColumns;
         private bool _caseSensitive;
 
-        private string[] _primaryKeyColumns;
-        private MemberInfo[] _primaryKeyColumnMembers;
+        private string[] _partitionKeyColumns;
+        private MemberInfo[] _partitionKeyColumnMembers;
+        private Tuple<string, SortOrder>[] _clusteringKeyColumns;
         
         Type ITypeDefinition.PocoType
         {
@@ -42,23 +44,23 @@ namespace Cassandra.Mapping.FluentMapping
             get { return _caseSensitive; }
         }
 
-        string[] ITypeDefinition.PrimaryKeyColumns
+        string[] ITypeDefinition.PartitionKeys
         {
             get
             {
                 // Use string column names if configured
-                if (_primaryKeyColumns != null)
-                    return _primaryKeyColumns;
+                if (_partitionKeyColumns != null)
+                    return _partitionKeyColumns;
 
                 // If no MemberInfos available either, just bail
-                if (_primaryKeyColumnMembers == null) 
+                if (_partitionKeyColumnMembers == null) 
                     return null;
 
                 // Get the column names from the members
-                var columnNames = new string[_primaryKeyColumnMembers.Length];
-                for (int index = 0; index < _primaryKeyColumnMembers.Length; index++)
+                var columnNames = new string[_partitionKeyColumnMembers.Length];
+                for (var index = 0; index < _partitionKeyColumnMembers.Length; index++)
                 {
-                    MemberInfo memberInfo = _primaryKeyColumnMembers[index];
+                    MemberInfo memberInfo = _partitionKeyColumnMembers[index];
 
                     // Try to get a column definition for each of the columns and if we can't find one or the column name is not defined,
                     // just default to the field/property name
@@ -70,6 +72,14 @@ namespace Cassandra.Mapping.FluentMapping
                 }
 
                 return columnNames;
+            }
+        }
+
+        Tuple<string, SortOrder>[] ITypeDefinition.ClusteringKeys
+        {
+            get
+            {
+                return _clusteringKeyColumns;
             }
         }
 
@@ -94,38 +104,61 @@ namespace Cassandra.Mapping.FluentMapping
         }
 
         /// <summary>
-        /// Specifies the primary key column names for the table.
+        /// Specifies the partition key column names for the table using the order provided.
         /// </summary>
-        public Map<TPoco> PrimaryKey(params string[] columnNames)
+        public Map<TPoco> PartitionKey(params string[] columnNames)
         {
             if (columnNames == null) throw new ArgumentNullException("columnNames");
             if (columnNames.Length == 0) throw new ArgumentOutOfRangeException("columnNames", "Must specify at least one primary key column.");
-            if (_primaryKeyColumnMembers != null) throw new InvalidOperationException("Primary key columns were already specified.");
-
-            _primaryKeyColumns = columnNames;
+            if (_partitionKeyColumnMembers != null) throw new InvalidOperationException("Primary key columns were already specified.");
+            _partitionKeyColumns = columnNames;
             return this;
         }
 
         /// <summary>
-        /// Specifies the properties/fields on the POCO whose column names are the primary key for the table.
+        /// Specifies the properties/fields on the POCO whose column names are the partition key for the table.
         /// </summary>
-        public Map<TPoco> PrimaryKey(params Expression<Func<TPoco, object>>[] columns)
+        public Map<TPoco> PartitionKey(params Expression<Func<TPoco, object>>[] columns)
         {
             if (columns == null) throw new ArgumentNullException("columns");
             if (columns.Length == 0) throw new ArgumentOutOfRangeException("columns", "Must specify at least one primary key column.");
-            if (_primaryKeyColumns != null) throw new InvalidOperationException("Primary key column names were already specified.");
+            if (_partitionKeyColumns != null) throw new InvalidOperationException("Partition key column names were already specified.");
 
             // Validate we got property/field expressions
-            var primaryKeyMemberInfo = new MemberInfo[columns.Length];
-            for (int index = 0; index < columns.Length; index++)
+            var partitionKeyMemberInfo = new MemberInfo[columns.Length];
+            for (var index = 0; index < columns.Length; index++)
             {
                 // If expression is good, add it to the array we're building (GetPropertyOrField should throw on invalid)
-                MemberInfo memberInfo = GetPropertyOrField(columns[index]);
-                primaryKeyMemberInfo[index] = memberInfo;
+                var memberInfo = GetPropertyOrField(columns[index]);
+                partitionKeyMemberInfo[index] = memberInfo;
             }
 
             // All expressions were good, so track accordingly
-            _primaryKeyColumnMembers = primaryKeyMemberInfo;
+            _partitionKeyColumnMembers = partitionKeyMemberInfo;
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies the partition key column names for the table using the order provided.
+        /// </summary>
+        public Map<TPoco> ClusteringKey(params string[] columnNames)
+        {
+            if (columnNames == null) throw new ArgumentNullException("columnNames");
+            if (columnNames.Length == 0) return this;
+            if (_clusteringKeyColumns != null) throw new InvalidOperationException("Primary key columns were already specified.");
+            _clusteringKeyColumns = columnNames.Select(name => Tuple.Create(name, SortOrder.Unspecified)).ToArray();
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies the Clustering keys with the corresponding clustering order
+        /// </summary>
+        public Map<TPoco> ClusteringKey(params Tuple<string, SortOrder>[] columnNames)
+        {
+            if (columnNames == null) throw new ArgumentNullException("columnNames");
+            if (columnNames.Length == 0) return this;
+            if (_clusteringKeyColumns != null) throw new InvalidOperationException("Primary key columns were already specified.");
+            _clusteringKeyColumns = columnNames;
             return this;
         }
 
@@ -175,7 +208,7 @@ namespace Cassandra.Mapping.FluentMapping
             columnConfig(columnMap);
             return this;
         }
-            
+
         IColumnDefinition ITypeDefinition.GetColumnDefinition(FieldInfo field)
         {
             // If a column map has been defined, return it, otherwise create an empty one

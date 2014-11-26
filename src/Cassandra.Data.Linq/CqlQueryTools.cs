@@ -331,9 +331,9 @@ namespace Cassandra.Data.Linq
             }
 
             foreach (KeyValuePair<int, ClusteringKeyAttribute> clustKey in clusteringKeys)
-                if (clustKey.Value.ClusteringOrder != null)
+                if (clustKey.Value.ClusteringSortOrder != Mapping.SortOrder.Unspecified)
                     directives.Add(string.Format("CLUSTERING ORDER BY ({0} {1})", (string) clustKey.Value.Name.QuoteIdentifier(),
-                                                 clustKey.Value.ClusteringOrder));
+                        clustKey.Value.ClusteringSortOrder == Mapping.SortOrder.Ascending ? "ASC" : "DESC"));
                 else
                     break;
 

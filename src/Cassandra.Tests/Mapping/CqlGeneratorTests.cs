@@ -17,7 +17,7 @@ namespace Cassandra.Tests.Mapping
         public void GenerateUpdate_Test()
         {
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
-            types.Add(new Map<ExplicitColumnsUser>().TableName("users").PrimaryKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
+            types.Add(new Map<ExplicitColumnsUser>().TableName("users").PartitionKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateUpdate<ExplicitColumnsUser>();
@@ -30,7 +30,7 @@ namespace Cassandra.Tests.Mapping
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("users")
-                .PrimaryKey(u => u.UserId)
+                .PartitionKey(u => u.UserId)
                 .Column(u => u.UserAge, cm => cm.WithName("AGE"))
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
@@ -43,7 +43,7 @@ namespace Cassandra.Tests.Mapping
         public void PrependUpdate_Test()
         {
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
-            types.Add(new Map<ExplicitColumnsUser>().TableName("users").PrimaryKey(u => u.UserId));
+            types.Add(new Map<ExplicitColumnsUser>().TableName("users").PartitionKey(u => u.UserId));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New("SET Name = ? WHERE UserId = ?", "New name", Guid.Empty);
@@ -57,7 +57,7 @@ namespace Cassandra.Tests.Mapping
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("users")
-                .PrimaryKey(u => u.UserId)
+                .PartitionKey(u => u.UserId)
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
@@ -70,7 +70,7 @@ namespace Cassandra.Tests.Mapping
         public void AddSelect_Test()
         {
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
-            types.Add(new Map<ExplicitColumnsUser>().TableName("users").PrimaryKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
+            types.Add(new Map<ExplicitColumnsUser>().TableName("users").PartitionKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New("WHERE UserId = ?", Guid.Empty);
@@ -84,7 +84,7 @@ namespace Cassandra.Tests.Mapping
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("users")
-                .PrimaryKey(u => u.UserId)
+                .PartitionKey(u => u.UserId)
                 .Column(u => u.UserAge, cm => cm.WithName("AGE"))
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
@@ -98,7 +98,7 @@ namespace Cassandra.Tests.Mapping
         public void GenerateDelete_Test()
         {
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
-            types.Add(new Map<ExplicitColumnsUser>().TableName("USERS").PrimaryKey(u => u.UserId));
+            types.Add(new Map<ExplicitColumnsUser>().TableName("USERS").PartitionKey(u => u.UserId));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateDelete<ExplicitColumnsUser>();
@@ -111,7 +111,7 @@ namespace Cassandra.Tests.Mapping
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("USERS")
-                .PrimaryKey("ID")
+                .PartitionKey("ID")
                 .Column(u => u.UserId, cm => cm.WithName("ID"))
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
@@ -126,7 +126,7 @@ namespace Cassandra.Tests.Mapping
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("USERS")
-                .PrimaryKey("ID")
+                .PartitionKey("ID")
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
@@ -140,7 +140,7 @@ namespace Cassandra.Tests.Mapping
             var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("USERS")
-                .PrimaryKey(u => u.UserId)
+                .PartitionKey(u => u.UserId)
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);

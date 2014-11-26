@@ -41,8 +41,8 @@ namespace Cassandra.Mapping.Mapping
             string tableName = typeDefinition.TableName ?? pocoType.Name;
 
             // Figure out the primary key columns (if not specified, assume a column called "id" is used)
-            string[] pkColumnNames = typeDefinition.PrimaryKeyColumns ?? new[] { "id" };
-            var primaryKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
+            var pkColumnNames = typeDefinition.PartitionKeys ?? new[] { "id" };
+            var partitionKeyColumns = new HashSet<string>(pkColumnNames, StringComparer.OrdinalIgnoreCase);
 
             // Get column definitions for all mappable fields and properties
             IEnumerable<IColumnDefinition> fieldsAndProperties = GetMappableFields(typeDefinition.PocoType)
@@ -54,13 +54,14 @@ namespace Cassandra.Mapping.Mapping
                                                                    ? fieldsAndProperties.Where(c => c.IsExplicitlyDefined)
                                                                    : fieldsAndProperties.Where(c => c.Ignore == false);
 
-            // Create PocoColumn collection (where ordering is guaranteed to be consistent) with PK columns LAST
+            // Create PocoColumn collection (where ordering is guaranteed to be consistent) with Partition key columns LAST
             LookupKeyedCollection<string, PocoColumn> columns = columnDefinitions.Select(PocoColumn.FromColumnDefinition)
-                                                                              .OrderBy(pc => primaryKeyColumns.Contains(pc.ColumnName))
+                                                                              .OrderBy(pc => partitionKeyColumns.Contains(pc.ColumnName))
                                                                               .ToLookupKeyedCollection(pc => pc.ColumnName,
                                                                                                        StringComparer.OrdinalIgnoreCase);
 
-            return new PocoData(pocoType, tableName, columns, primaryKeyColumns, typeDefinition.CaseSensitive);
+            var clusteringKeyNames = typeDefinition.ClusteringKeys ?? new Tuple<string, SortOrder>[0];
+            return new PocoData(pocoType, tableName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive);
         }
 
 
