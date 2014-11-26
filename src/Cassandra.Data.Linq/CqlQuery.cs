@@ -83,10 +83,8 @@ namespace Cassandra.Data.Linq
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetSelect(out _, false);
+            return GetCql(out _);
         }
     }
 }

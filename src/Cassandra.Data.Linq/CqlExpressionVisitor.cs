@@ -60,73 +60,78 @@ namespace Cassandra.Data.Linq
 
         private readonly VisitingParam<string> _binaryExpressionTag = new VisitingParam<string>();
         private readonly VisitingParam<string> _currentBindingName = new VisitingParam<string>();
-        private readonly VisitingParam<StringBuilder> _currentCondition;
+        /// <summary>
+        /// The active condition (WHERE or UPDATE IF conditions)
+        /// </summary>
+        private readonly VisitingParam<Tuple<StringBuilder, List<object>>> _currentCondition;
         private readonly VisitingParam<ParsePhase> _phasePhase = new VisitingParam<ParsePhase>(ParsePhase.None);
-        private readonly CqlStringTool _cqlTool = new CqlStringTool();
         private readonly PocoData _pocoData;
         private bool _allowFiltering;
         private int _limit;
         private readonly Dictionary<string, object> _projections = new Dictionary<string, object>();
         private readonly List<Tuple<string, bool>> _orderBy = new List<Tuple<string, bool>>();
         private readonly List<string> _selectFields = new List<string>();
-        private readonly StringBuilder _updateIfClause = new StringBuilder();
-        private readonly StringBuilder _whereClause = new StringBuilder();
+        /// <summary>
+        /// Represents a pair composed by cql string and the parameters for the WHERE clause
+        /// </summary>
+        private readonly Tuple<StringBuilder, List<object>> _whereClause = Tuple.Create(new StringBuilder(), new List<object>());
+        /// <summary>
+        /// Represents a pair composed by cql string and the parameters for the WHERE clause
+        /// </summary>
+        private readonly Tuple<StringBuilder, List<object>> _updateIfClause = Tuple.Create(new StringBuilder(), new List<object>());
 
         public CqlExpressionVisitor(PocoData pocoData)
         {
             _pocoData = pocoData;
-            _currentCondition = new VisitingParam<StringBuilder>(_whereClause);
+            _currentCondition = new VisitingParam<Tuple<StringBuilder, List<object>>>(_whereClause);
         }
 
         /// <summary>
         /// Gets a cql SELECT statement based on the current state
         /// </summary>
-        public string GetSelect(out object[] values, bool withValues = true)
+        public string GetSelect(out object[] values)
         {
-            var sb = new StringBuilder();
-            sb.Append("SELECT ");
+            var query = new StringBuilder();
+            var parameters = new List<object>();
+            query.Append("SELECT ");
             if (_selectFields.Count == 0)
             {
                 //Select all columns
-                sb.Append("*");
+                query.Append("*");
             }
             else
             {
-                sb.Append(String.Join(", ", _selectFields.Select(Escape)));   
+                query.Append(String.Join(", ", _selectFields.Select(Escape)));   
             }
 
-            sb.Append(" FROM ");
-            sb.Append(Escape(_pocoData.TableName));
+            query.Append(" FROM ");
+            query.Append(Escape(_pocoData.TableName));
 
-            if (_whereClause.Length > 0)
+            if (_whereClause.Item1.Length > 0)
             {
-                sb.Append(" WHERE ");
-                sb.Append(_whereClause);
+                query.Append(" WHERE ");
+                query.Append(_whereClause.Item1);
+                parameters.AddRange(_whereClause.Item2);
             }
 
             if (_orderBy.Count > 0)
             {
-                sb.Append(" ORDER BY ");
-                sb.Append(string.Join(", ", _orderBy.Select(item => Escape(item.Item1) + (item.Item2 ? "" : " DESC"))));
+                query.Append(" ORDER BY ");
+                query.Append(string.Join(", ", _orderBy.Select(item => Escape(item.Item1) + (item.Item2 ? "" : " DESC"))));
             }
 
             if (_limit > 0)
             {
-                sb.Append(" LIMIT ");
-                sb.Append(_limit);
+                query.Append(" LIMIT ?");
+                parameters.Add(_limit);
             }
 
             if (_allowFiltering)
             {
-                sb.Append(" ALLOW FILTERING");
+                query.Append(" ALLOW FILTERING");
             }
-
-            if (withValues)
-            {
-                return _cqlTool.FillWithValues(sb.ToString(), out values);
-            }
-            values = null;
-            return _cqlTool.FillWithEncoded(sb.ToString());
+            values = parameters.ToArray();
+            return query.ToString();
         }
 
         /// <summary>
@@ -144,170 +149,160 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Gets a cql DELETE statement based on the current state
         /// </summary>
-        public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool ifExists = false, bool withValues = true)
+        public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool ifExists)
         {
-            var sb = new StringBuilder();
-            sb.Append("DELETE FROM ");
-            sb.Append(Escape(_pocoData.TableName));
+            var query = new StringBuilder();
+            var parameters = new List<object>();
+            query.Append("DELETE FROM ");
+            query.Append(Escape(_pocoData.TableName));
             if (timestamp != null)
             {
-                sb.Append(" USING TIMESTAMP ");
-                sb.Append((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
-                sb.Append(" ");
+                query.Append(" USING TIMESTAMP ?");
+                parameters.Add((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
             }
 
-            if (_whereClause.Length > 0)
+            if (_whereClause.Item1.Length > 0)
             {
-                sb.Append(" WHERE ");
-                sb.Append(_whereClause);
+                query.Append(" WHERE ");
+                query.Append(_whereClause.Item1);
+                parameters.AddRange(_whereClause.Item2);
             }
 
             if (ifExists)
             {
-                sb.Append(" IF EXISTS ");
+                query.Append(" IF EXISTS ");
             }
-
-            if (_updateIfClause.Length > 0)
+            if (_updateIfClause.Item1.Length > 0)
             {
                 if (ifExists)
+                {
                     throw new CqlArgumentException("IfExits and DeleteIf are mutually excusive,");
-
-                sb.Append(" IF ");
-                sb.Append(_updateIfClause);
+                }
+                query.Append(" IF ");
+                query.Append(_updateIfClause.Item1);
+                parameters.AddRange(_updateIfClause.Item2);
             }
 
             if (_selectFields.Count > 0)
-                throw new CqlArgumentException("Unable to delete entity partially");
-
-            if (withValues)
             {
-                return _cqlTool.FillWithValues(sb.ToString(), out values);
+                throw new CqlArgumentException("Can not project result of a DELETE query or delete entity partially");
             }
-            values = null;
-            return _cqlTool.FillWithEncoded(sb.ToString());
+            values = parameters.ToArray();
+            return query.ToString();
         }
 
         /// <summary>
         /// Gets a cql UPDATE statement based on the current state
         /// </summary>
-        public string GetUpdate(out object[] values, int? ttl, DateTimeOffset? timestamp, bool withValues = true)
+        public string GetUpdate(out object[] values, int? ttl, DateTimeOffset? timestamp)
         {
-            var sb = new StringBuilder();
-            sb.Append("UPDATE ");
-            sb.Append(Escape(_pocoData.TableName));
+            var query = new StringBuilder();
+            var parameters = new List<object>();
+            query.Append("UPDATE ");
+            query.Append(Escape(_pocoData.TableName));
             if (ttl != null || timestamp != null)
             {
-                sb.Append(" USING ");
+                query.Append(" USING ");
             }
             if (ttl != null)
             {
-                sb.Append("TTL ");
-                sb.Append(ttl.Value);
+                query.Append("TTL ?");
+                parameters.Add(ttl.Value);
                 if (timestamp != null)
-                    sb.Append(" AND ");
+                {
+                    query.Append(" AND ");
+                }
             }
             if (timestamp != null)
             {
-                sb.Append("TIMESTAMP ");
-                sb.Append((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
-                sb.Append(" ");
+                query.Append("TIMESTAMP ? ");
+                parameters.Add((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
             }
-            sb.Append(" SET ");
-
+            query.Append(" SET ");
             var setStatements = new List<string>();
             foreach (var projection in _projections)
             {
-                var columnName = Escape(projection.Key);
-                if (projection.Value == null)
-                {
-                    setStatements.Add(columnName + " = NULL");
-                    continue;
-                }
-                setStatements.Add(columnName + " = " + _cqlTool.AddValue(projection.Value));
+                setStatements.Add(Escape(projection.Key) + " = ?");
+                parameters.Add(projection.Value);
             }
 
             if (setStatements.Count == 0)
             {
                 throw new CqlArgumentException("Nothing to update");
             }
-            sb.Append(String.Join(", ", setStatements));
+            query.Append(String.Join(", ", setStatements));
 
-            if (_whereClause.Length > 0)
+            if (_whereClause.Item1.Length > 0)
             {
-                sb.Append(" WHERE ");
-                sb.Append(_whereClause);
+                query.Append(" WHERE ");
+                query.Append(_whereClause.Item1);
+                parameters.AddRange(_whereClause.Item2);
             }
 
-            if (_updateIfClause.Length > 0)
+            if (_updateIfClause.Item1.Length > 0)
             {
-                sb.Append(" IF ");
-                sb.Append(_updateIfClause);
+                query.Append(" IF ");
+                query.Append(_updateIfClause.Item1);
+                parameters.AddRange(_updateIfClause.Item2);
             }
-
-            if (withValues)
-                return _cqlTool.FillWithValues(sb.ToString(), out values);
-            values = null;
-            return _cqlTool.FillWithEncoded(sb.ToString());
+            values = parameters.ToArray();
+            return query.ToString();
         }
 
-        public string GetCount(out object[] values, bool withValues = true)
+        public string GetCount(out object[] values)
         {
-            var sb = new StringBuilder();
-            sb.Append("SELECT count(*) FROM ");
-            sb.Append(Escape(_pocoData.TableName));
+            var query = new StringBuilder();
+            var parameters = new List<object>();
+            query.Append("SELECT count(*) FROM ");
+            query.Append(Escape(_pocoData.TableName));
 
-            if (_whereClause.Length > 0)
+            if (_whereClause.Item1.Length > 0)
             {
-                sb.Append(" WHERE ");
-                sb.Append(_whereClause);
+                query.Append(" WHERE ");
+                query.Append(_whereClause.Item1);
+                parameters.AddRange(_whereClause.Item2);
             }
-
             if (_limit > 0)
             {
-                sb.Append(" LIMIT ");
-                sb.Append(_limit);
+                query.Append(" LIMIT ?");
+                parameters.Add(_limit);
             }
+            values = parameters.ToArray();
 
-            if (withValues)
-                return _cqlTool.FillWithValues(sb.ToString(), out values);
-            values = null;
-            return _cqlTool.FillWithEncoded(sb.ToString());
+            return query.ToString();
         }
 
         public string GetInsert<T>(T poco, bool ifNotExists, int? ttl, DateTimeOffset? timestamp, List<object> parameters)
         {
-            var cql = new StringBuilder();
+            var query = new StringBuilder();
+            var columns = _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString();
+            var placeholders = Enumerable.Repeat("?", _pocoData.Columns.Count).ToCommaDelimitedString();
+            query.Append(String.Format("INSERT INTO {0} ({1}) VALUES ({2})", Escape(_pocoData.TableName), columns, placeholders));
+
             if (ifNotExists)
             {
-                cql.Append(" IF NOT EXISTS");
+                query.Append(" IF NOT EXISTS");
             }
             if (ttl != null || timestamp != null)
             {
-                cql.Append(" USING");
+                query.Append(" USING");
                 if (ttl != null)
                 {
-                    cql.Append(" TTL ?");
+                    query.Append(" TTL ?");
                     parameters.Add(ttl.Value);
                     if (timestamp != null)
                     {
-                        cql.Append(" AND");
+                        query.Append(" AND");
                     }
                 }
                 if (timestamp != null)
                 {
-                    cql.Append(" TIMESTAMP ?");
+                    query.Append(" TIMESTAMP ?");
                     parameters.Add(timestamp.Value);
                 }
             }
-            var columns = _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString();
-            var placeholders = Enumerable.Repeat("?", _pocoData.Columns.Count).ToCommaDelimitedString();
-            var cqlString = String.Format("INSERT INTO {0} ({1}) VALUES ({2})", Escape(_pocoData.TableName), columns, placeholders);
-            if (cql.Length > 0)
-            {
-                cql.Insert(0, cqlString);
-                cqlString = cql.ToString();
-            }
-            return cqlString;
+
+            return query.ToString();
         }
 
         public void Evaluate(Expression expression)
@@ -385,9 +380,9 @@ namespace Cassandra.Data.Linq
                     Visit(node.Arguments[0]);
                     using (_phasePhase.Set(ParsePhase.Condition))
                     {
-                        if (_whereClause.Length != 0)
+                        if (_whereClause.Item1.Length != 0)
                         {
-                            _whereClause.Append(" AND ");
+                            _whereClause.Item1.Append(" AND ");
                         }
                         Visit(node.Arguments[1]);
                     }
@@ -397,13 +392,13 @@ namespace Cassandra.Data.Linq
                     Visit(node.Arguments[0]);
                     using (_phasePhase.Set(ParsePhase.Condition))
                     {
-                        if (_updateIfClause.Length != 0)
+                        if (_updateIfClause.Item1.Length != 0)
                         {
-                            _updateIfClause.Append(" AND ");
+                            _updateIfClause.Item1.Append(" AND ");
                         }
                         using (_currentCondition.Set(_updateIfClause))
                         {
-                            this.Visit(node.Arguments[1]);
+                            Visit(node.Arguments[1]);
                         }
                     }
                     return node;
@@ -458,72 +453,72 @@ namespace Cassandra.Data.Linq
 
         private Expression EvaluateConditionFunction(MethodCallExpression node)
         {
-            if (node.Method.Name == "Contains")
+            var clause = _currentCondition.Get().Item1;
+            var parameters = _currentCondition.Get().Item2;
+            switch (node.Method.Name)
             {
-                Expression what = null;
-                Expression inp = null;
-                if (node.Object == null)
+                case "Contains":
                 {
-                    what = node.Arguments[1];
-                    inp = node.Arguments[0];
-                }
-                else
-                {
-                    what = node.Arguments[0];
-                    inp = node.Object;
-                }
-                Visit(what);
-                _currentCondition.Get().Append(" IN (");
-                var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
-                bool first = false;
-                foreach (object obj in values)
-                {
-                    if (!first)
-                        first = true;
+                    Expression what = null;
+                    Expression inp = null;
+                    if (node.Object == null)
+                    {
+                        what = node.Arguments[1];
+                        inp = node.Arguments[0];
+                    }
                     else
-                        _currentCondition.Get().Append(", ");
-                    _currentCondition.Get().Append(_cqlTool.AddValue(obj));
+                    {
+                        what = node.Arguments[0];
+                        inp = node.Object;
+                    }
+                    Visit(what);
+                    var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
+                    var placeHolders = new StringBuilder();
+                    foreach (var v in values)
+                    {
+                        placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
+                        parameters.Add(v);
+                    }
+                
+                    clause
+                        .Append(" IN (")
+                        .Append(placeHolders)
+                        .Append(")");
+                    return node;
                 }
-                _currentCondition.Get().Append(")");
-                return node;
-            }
-            if (node.Method.Name == "CompareTo")
-            {
-                Visit(node.Object);
-                _currentCondition.Get().Append(" " + _binaryExpressionTag.Get());
-                Visit(node.Arguments[0]);
-                return node;
-            }
-            if (node.Method.Name == "Equals")
-            {
-                Visit(node.Object);
-                _currentCondition.Get().Append(" = ");
-                Visit(node.Arguments[0]);
-                return node;
-            }
-            if (node.Type.Name == "CqlToken")
-            {
-                _currentCondition.Get().Append("token(");
-                ReadOnlyCollection<Expression> exprs = node.Arguments;
-                Visit(exprs.First());
-                foreach (Expression e in exprs.Skip(1))
-                {
-                    _currentCondition.Get().Append(", ");
-                    Visit(e);
-                }
-                _currentCondition.Get().Append(")");
-                return node;
+                case "CompareTo":
+                    Visit(node.Object);
+                    clause.Append(" " + _binaryExpressionTag.Get());
+                    Visit(node.Arguments[0]);
+                    return node;
+                case "Equals":
+                    Visit(node.Object);
+                    clause.Append(" = ");
+                    Visit(node.Arguments[0]);
+                    return node;
+                case "CqlToken":
+                    clause.Append("token(");
+                    foreach (var e in node.Arguments)
+                    {
+                        clause.Append(", ");
+                        Visit(e);
+                    }
+                    clause.Append(")");
+                    return node;
             }
             var val = Expression.Lambda(node).Compile().DynamicInvoke();
-            _currentCondition.Get().Append(_cqlTool.AddValue(val));
+            parameters.Add(val);
+            clause.Append("?");
             return node;
         }
 
         private static Expression DropNullableConversion(Expression node)
         {
             if (node is UnaryExpression && node.NodeType == ExpressionType.Convert && node.Type.IsGenericType &&
-                node.Type.Name.CompareTo("Nullable`1") == 0)
+                String.Compare(node.Type.Name, "Nullable`1", StringComparison.Ordinal) == 0)
+            {
                 return (node as UnaryExpression).Operand;
+            }
             return node;
         }
 
@@ -531,16 +526,19 @@ namespace Cassandra.Data.Linq
         {
             if (_phasePhase.Get() == ParsePhase.Condition)
             {
+                var clause = _currentCondition.Get().Item1;
+                var parameters = _currentCondition.Get().Item2;
                 if (CqlTags.ContainsKey(node.NodeType))
                 {
-                    _currentCondition.Get().Append(CqlTags[node.NodeType] + " (");
+                    clause.Append(CqlTags[node.NodeType] + " (");
                     Visit(DropNullableConversion(node.Operand));
-                    _currentCondition.Get().Append(")");
+                    clause.Append(")");
                 }
                 else
                 {
-                    object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    _currentCondition.Get().Append(_cqlTool.AddValue(val));
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    parameters.Add(val);
+                    clause.Append("?");
                 }
                 return node;
             }
@@ -554,20 +552,33 @@ namespace Cassandra.Data.Linq
             throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
         }
 
-        private bool IsCompareTo(Expression node)
+        private static bool IsCompareTo(Expression node)
         {
             if (node.NodeType == ExpressionType.Call)
-                if ((node as MethodCallExpression).Method.Name == "CompareTo")
+            {
+                var methodCallExpression = node as MethodCallExpression;
+                if (methodCallExpression != null && methodCallExpression.Method.Name == "CompareTo")
+                {
                     return true;
+                }
+            }
             return false;
         }
 
-        private bool IsZero(Expression node)
+        private static bool IsZero(Expression node)
         {
             if (node.NodeType == ExpressionType.Constant)
-                if ((node as ConstantExpression).Value is int)
-                    if (((int) (node as ConstantExpression).Value) == 0)
-                        return true;
+            {
+                var constantExpression = node as ConstantExpression;
+                if (constantExpression == null || !(constantExpression.Value is int))
+                {
+                    return false;
+                }
+                if (Convert.ToInt32((node as ConstantExpression).Value) == 0)
+                {
+                    return true;
+                }
+            }
             return false;
         }
 
@@ -582,7 +593,9 @@ namespace Cassandra.Data.Linq
                         if (IsZero(node.Right))
                         {
                             using (_binaryExpressionTag.Set(CqlTags[node.NodeType]))
+                            {
                                 Visit(node.Left);
+                            }
                             return node;
                         }
                     }
@@ -591,22 +604,25 @@ namespace Cassandra.Data.Linq
                         if (IsZero(node.Left))
                         {
                             using (_binaryExpressionTag.Set(CqlTags[CqlInvTags[node.NodeType]]))
+                            {
                                 Visit(node.Right);
+                            }
                             return node;
                         }
                     }
                     else
                     {
                         Visit(DropNullableConversion(node.Left));
-                        _currentCondition.Get().Append(" " + CqlTags[node.NodeType] + " ");
+                        _currentCondition.Get().Item1.Append(" " + CqlTags[node.NodeType] + " ");
                         Visit(DropNullableConversion(node.Right));
                         return node;
                     }
                 }
                 else if (!CqlUnsupTags.Contains(node.NodeType))
                 {
-                    object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    _currentCondition.Get().Append(_cqlTool.AddValue(val));
+                    var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                    _currentCondition.Get().Item2.Add(val);
+                    _currentCondition.Get().Item1.Append("?");
                     return node;
                 }
             }
@@ -632,7 +648,8 @@ namespace Cassandra.Data.Linq
             }
             if (_phasePhase.Get() == ParsePhase.Condition)
             {
-                _currentCondition.Get().Append(_cqlTool.AddValue(node.Value));
+                _currentCondition.Get().Item1.Append("?");
+                _currentCondition.Get().Item2.Add(node.Value);
                 return node;
             }
             if (_phasePhase.Get() == ParsePhase.SelectBinding)
@@ -662,16 +679,19 @@ namespace Cassandra.Data.Linq
             {
                 case ParsePhase.Condition:
                 {
+                    var clause = _currentCondition.Get().Item1;
+                    var parameters = _currentCondition.Get().Item2;
                     if (node.Expression == null)
                     {
-                        object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                        _currentCondition.Get().Append(_cqlTool.AddValue(val));
+                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                        parameters.Add(val);
+                        clause.Append("?");
                         return node;
                     }
                     if (node.Expression.NodeType == ExpressionType.Parameter)
                     {
                         var columnName = Escape(_pocoData.GetColumnName(node.Member));
-                        _currentCondition.Get().Append(columnName);
+                        clause.Append(columnName);
                         return node;
                     }
                     if (node.Expression.NodeType == ExpressionType.Constant)
@@ -679,25 +699,27 @@ namespace Cassandra.Data.Linq
                         var val = Expression.Lambda(node).Compile().DynamicInvoke();
                         if (val is CqlToken)
                         {
-                            _currentCondition.Get().Append("token(");
-                            _currentCondition.Get().Append(_cqlTool.AddValue((val as CqlToken).Values.First()));
-                            foreach (object e in (val as CqlToken).Values.Skip(1))
+                            clause.Append("token(");
+                            var tokenPlaceholders = new StringBuilder();
+                            foreach (var pk in (val as CqlToken).Values)
                             {
-                                _currentCondition.Get().Append(", ");
-                                _currentCondition.Get().Append(_cqlTool.AddValue(e));
+                                parameters.Add(pk);
+                                tokenPlaceholders.Append(tokenPlaceholders.Length == 0 ? "?" : ", ?");
                             }
-                            _currentCondition.Get().Append(")");
+                            clause.Append(")");
                         }
                         else
                         {
-                            _currentCondition.Get().Append(_cqlTool.AddValue(val));
+                            parameters.Add(val);
+                            clause.Append("?");
                         }
                         return node;
                     }
                     if (node.Expression.NodeType == ExpressionType.MemberAccess)
                     {
-                        object val = Expression.Lambda(node).Compile().DynamicInvoke();
-                        _currentCondition.Get().Append(_cqlTool.AddValue(val));
+                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
+                        parameters.Add(val);
+                        clause.Append("?");
                         return node;
                     }
                     break;

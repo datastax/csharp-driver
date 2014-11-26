@@ -164,7 +164,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Select(r => new AllTypesEntity() { IntValue = 1 })
                 .Update()
                 .ToString();
-            expectedQuery = "UPDATE \"AllTypesEntity\" SET \"IntValue\" = 1 WHERE \"StringValue\" = 'key'";
+            expectedQuery = "UPDATE \"AllTypesEntity\" SET \"IntValue\" = ? WHERE \"StringValue\" = ?";
             Assert.AreEqual(expectedQuery, query);
 
             Assert.Throws<CqlArgumentException>(() =>
@@ -203,26 +203,25 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
 
             Assert.AreEqual(
-                @"INSERT INTO ""x_t"" (""x_f1"", ""x_pk"", ""x_ck1"", ""x_ck2"") VALUES (?, ?, ?, ?)",
+                @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?)",
                 (table.Insert(new LinqDecoratedEntity() { ck1 = null, ck2 = 2, f1 = 3, pk = "x" })).ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck1"" IN (10, 30, 40)",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck1"" IN (?, ?, ?)",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223 }).Update().ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40)",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" IN (?, ?, ?)",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new LinqDecoratedEntity() { f1 = 1223, ck1 = null }).Update().ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" = 1",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" = ?",
                 (from ent in table where ent.ck1 == 1 select new LinqDecoratedEntity() { f1 = 1223, ck1 = null }).Update().ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = 1223, ""x_ck1"" = NULL WHERE ""x_ck1"" IN (10, 30, 40) IF ""x_f1"" = 123",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" IN (?, ?, ?) IF ""x_f1"" = ?",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString());
         }
-
 
         /// <summary>
         /// Tests the Linq to CQL generated where clause 
@@ -247,12 +246,12 @@ APPLY BATCH".Replace("\r", ""));
             };
             var expectedCqlQueries = new List<string>()
             {
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = true",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = false",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" < 157766400000",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" >= 157766400000",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"IntValue\" = 0",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"StringValue\" = 'Hello world'"
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = ?",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = ?",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" < ?",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" >= ?",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"IntValue\" = ?",
+                "SELECT * FROM \"AllTypesEntity\" WHERE \"StringValue\" = ?"
             };
             var actualCqlQueries = new List<IStatement>();
             sessionMock
@@ -378,10 +377,10 @@ APPLY BATCH".Replace("\r", ""));
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO \"InsertNullTable\" ( \"Key\", \"Value\") VALUES (?, ?)", cql);
+            Assert.AreEqual("INSERT INTO \"InsertNullTable\" (\"Key\", \"Value\") VALUES (?, ?)", cql);
             Assert.AreEqual(2, values.Length);
-            Assert.AreEqual(null, values[0]);
-            Assert.AreEqual(101, values[1]);
+            Assert.AreEqual(101, values[0]);
+            Assert.AreEqual(null, values[1]);
         }
 
         [Test]
@@ -438,9 +437,9 @@ APPLY BATCH".Replace("\r", ""));
         {
             var table = SessionExtensions.GetTable<InheritedEntity>(null);
             var query1 = table.Where(e => e.Id == 10);
-            Assert.AreEqual("SELECT * FROM \"InheritedEntity\" WHERE \"Id\" = 10", query1.ToString());
+            Assert.AreEqual("SELECT * FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
             var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
-            Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = 1 AND \"Name\" = 'MyName'", query2.ToString());
+            Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = ? AND \"Name\" = ?", query2.ToString());
             var sessionMock = new Mock<ISession>();
             string createQuery = null;
             sessionMock
@@ -450,7 +449,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Verifiable();
             var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
             table2.CreateIfNotExists();
-            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Description\" text, \"Name\" text, \"Id\" int, PRIMARY KEY (\"Id\"))", createQuery);
+            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Description\" text, \"Name\" text, PRIMARY KEY (\"Id\"))", createQuery);
         }
 
         [Test]
@@ -492,7 +491,7 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
             var ids = new []{ 1, 2, 3};
             var query = table.Where(t => ids.Contains(t.IntValue) && t.Int64Value == 10);
-            Assert.AreEqual(@"SELECT * FROM ""atd"" WHERE ""int_VALUE"" IN (1, 2, 3) AND ""int64_VALUE"" = 10", query.ToString());
+            Assert.AreEqual(@"SELECT * FROM ""atd"" WHERE ""int_VALUE"" IN (?, ?, ?) AND ""int64_VALUE"" = ?", query.ToString());
         }
 
         [Test]
@@ -504,7 +503,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Select(t => new AllTypesDecorated { StringValue = "updated value"})
                 .UpdateIf(t => t.IntValue == 100);
             Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""string_VALUE"" = 'updated value' WHERE ""boolean_VALUE"" = true AND ""double_VALUE"" > 1 IF ""int_VALUE"" = 100", 
+                @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?", 
                 query.ToString());
             Trace.TraceInformation(query.ToString());
         }
@@ -517,7 +516,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Where(t => t.Int64Value == 1)
                 .DeleteIf(t => t.StringValue == "conditional!");
             Assert.AreEqual(
-                @"DELETE FROM ""atd"" WHERE ""int64_VALUE"" = 1 IF ""string_VALUE"" = 'conditional!'",
+                @"DELETE FROM ""atd"" WHERE ""int64_VALUE"" = ? IF ""string_VALUE"" = ?",
                 query.ToString());
             Trace.TraceInformation(query.ToString());
         }

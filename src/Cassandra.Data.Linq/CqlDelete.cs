@@ -37,18 +37,15 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
-            return visitor.GetDelete(out values, _timestamp, _ifExists, withValues);
+            return visitor.GetDelete(out values, _timestamp, _ifExists);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetDelete(out _, _timestamp, _ifExists, false);
+            return GetCql(out _);
         }
     }
 }

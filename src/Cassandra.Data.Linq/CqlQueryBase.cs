@@ -88,11 +88,10 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
         {
-            var withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
             var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
             visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values, withValues);
+            var cql = visitor.GetSelect(out values);
             var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
             {
                 var rs = t.Result;
