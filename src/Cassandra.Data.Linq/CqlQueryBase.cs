@@ -19,19 +19,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
     public abstract class CqlQueryBase<TEntity> : Statement
     {
-        private Expression _expression;
         private IQueryProvider _table;
 
-        public Expression Expression
-        {
-            get { return _expression; }
-        }
+        public Expression Expression { get; private set; }
 
         public Type ElementType
         {
@@ -41,6 +39,8 @@ namespace Cassandra.Data.Linq
         public QueryTrace QueryTrace { get; protected set; }
 
         internal MapperFactory MapperFactory { get; set; }
+
+        internal StatementFactory StatementFactory { get; set; }
         /// <summary>
         /// The information associated with the TEntity
         /// </summary>
@@ -55,16 +55,17 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQueryBase(Expression expression, IQueryProvider table, MapperFactory mapperFactory, PocoData pocoData)
+        internal CqlQueryBase(Expression expression, IQueryProvider table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
         {
-            InternalInitialize(expression, table, mapperFactory, pocoData);
+            InternalInitialize(expression, table, mapperFactory, stmtFactory, pocoData);
         }
 
-        internal void InternalInitialize(Expression expression, IQueryProvider table, MapperFactory mapperFactory, PocoData pocoData)
+        internal void InternalInitialize(Expression expression, IQueryProvider table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
         {
-            _expression = expression;
+            Expression = expression;
             _table = table;
             MapperFactory = mapperFactory;
+            StatementFactory = stmtFactory;
             PocoData = pocoData;
         }
 
@@ -78,9 +79,14 @@ namespace Cassandra.Data.Linq
         protected Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();
-            SimpleStatement stmt = new SimpleStatement(cqlQuery).BindObjects(values);
-            this.CopyQueryPropertiesTo(stmt);
-            return session.ExecuteAsync(stmt);
+            return StatementFactory
+                .GetStatementAsync(Cql.New(cqlQuery, values))
+                .Continue(t1 =>
+                {
+                    var stmt = t1.Result;
+                    this.CopyQueryPropertiesTo(stmt);
+                    return session.ExecuteAsync(stmt);
+                }).Unwrap();
         }
 
         /// <summary>
@@ -120,13 +126,6 @@ namespace Cassandra.Data.Linq
         {
             var task = (Task<IEnumerable<TEntity>>)ar;
             return task.Result;
-        }
-
-        protected struct CqlQueryTag
-        {
-            public Dictionary<string, string> Alter;
-            public Dictionary<string, Tuple<string, object, int>> Mappings;
-            public ISession Session;
         }
     }
 }

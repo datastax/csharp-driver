@@ -20,13 +20,20 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Represents an IQueryable that returns the first column of the first rows
+    /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
     public class CqlScalar<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlScalar(Expression expression, IQueryProvider table, PocoData pocoData) : base(expression, table, null, pocoData)
+        internal CqlScalar(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, null, stmtFactory, pocoData)
         {
+
         }
 
         public new TEntity Execute()

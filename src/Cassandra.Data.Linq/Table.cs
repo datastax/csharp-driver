@@ -28,7 +28,6 @@ namespace Cassandra.Data.Linq
 {
     public class Table<TEntity> : CqlQuery<TEntity>, ITable
     {
-        private TableType _tableType = TableType.All;
         private readonly ISession _session;
 
         /// <summary>
@@ -39,11 +38,11 @@ namespace Cassandra.Data.Linq
             get { return PocoData.TableName; }
         }
 
-        internal Table(ISession session, MapperFactory mapperFactory)
+        internal Table(ISession session, MapperFactory mapperFactory, StatementFactory stmtFactory)
         {
             _session = session;
             var pocoData = mapperFactory.GetPocoData<TEntity>();
-            InternalInitialize(Expression.Constant(this), this, mapperFactory, pocoData);
+            InternalInitialize(Expression.Constant(this), this, mapperFactory, stmtFactory, pocoData);
         }
 
         /// <summary>
@@ -51,7 +50,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
         {
-            return new CqlQuery<TElement>(expression, this, MapperFactory, PocoData);
+            return new CqlQuery<TElement>(expression, this, MapperFactory, StatementFactory, PocoData);
         }
 
         IQueryable IQueryProvider.CreateQuery(Expression expression)
@@ -88,24 +87,13 @@ namespace Cassandra.Data.Linq
 
         public void CreateIfNotExists()
         {
-            if (_session.BinaryProtocolVersion > 1)
+            try
             {
-                var cqlQueries = CqlGenerator.GetCreate(PocoData, true);
-                foreach (var cql in cqlQueries)
-                {
-                    _session.WaitForSchemaAgreement(_session.Execute(cql));
-                }
+                Create();
             }
-            else
+            catch (AlreadyExistsException)
             {
-                try
-                {
-                    Create();
-                }
-                catch (AlreadyExistsException)
-                {
-                    //do nothing
-                }
+                //do nothing
             }
         }
 
@@ -116,25 +104,8 @@ namespace Cassandra.Data.Linq
 
         public TableType GetTableType()
         {
-            if (_tableType == TableType.All)
-            {
-                var props = GetEntityType().GetPropertiesOrFields();
-                foreach (var prop in props)
-                {
-                    if (prop.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() as
-                        CounterAttribute == null)
-                    {
-                        continue;
-                    }
-                    _tableType = TableType.Counter;
-                    break;
-                }
-                if (_tableType == TableType.All)
-                {
-                    _tableType = TableType.Standard;
-                }
-            }
-            return _tableType;
+            //TODO: Check for Counter columns
+            return TableType.Standard;
         }
 
         /// <summary>

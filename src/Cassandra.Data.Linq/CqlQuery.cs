@@ -21,6 +21,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
@@ -33,8 +34,8 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQuery(Expression expression, IQueryProvider table, MapperFactory mapperFactory, PocoData pocoData)
-            : base(expression, table, mapperFactory, pocoData)
+        internal CqlQuery(Expression expression, IQueryProvider table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, mapperFactory, stmtFactory, pocoData)
         {
         }
 
@@ -48,7 +49,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IQueryProvider Provider
         {
-            get { return GetTable() as IQueryProvider; }
+            get { return GetTable(); }
         }
 
         public IEnumerator<TEntity> GetEnumerator()

@@ -236,6 +236,7 @@ namespace Cassandra.Mapping.Statements
                 var mapInfo = typeInfo as MapColumnInfo;
                 return "map<" +
                        GetTypeString(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo) +
+                       ", " +
                        GetTypeString(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo) +
                        ">";
             }

@@ -80,7 +80,7 @@ namespace Cassandra.Data.Linq
         /// <returns>A single result: the number of rows matching the query.</returns>
         public static CqlScalar<long> Count<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlScalar<long>(source.Expression, source.Provider, source.PocoData);
+            var ret = new CqlScalar<long>(source.Expression, source.Provider, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }

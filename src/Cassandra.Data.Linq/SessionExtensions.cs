@@ -17,6 +17,7 @@
 using System;
 using Cassandra.Mapping.FluentMapping;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Mapping.Utils;
 
@@ -57,7 +58,8 @@ namespace Cassandra.Data.Linq
             };
             var pocoDataFactory = new PocoDataFactory(definitions);
             var mapperFactory = new MapperFactory(new DefaultTypeConverter(), pocoDataFactory);
-            return new Table<TEntity>(session, mapperFactory);   
+            var statementFactory = new StatementFactory(session);
+            return new Table<TEntity>(session, mapperFactory, statementFactory);
         }
 
         public static Batch CreateBatch(this ISession session)

@@ -257,7 +257,7 @@ namespace Cassandra.IntegrationTests.Linq
         }
 
         [Test]
-        public void CqlQueryExceptiosnTest()
+        public void CqlQueryExceptionsTest()
         {
             var table = Session.GetTable<NerdMovie>();
             //No translation in CQL
@@ -269,7 +269,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Throws<InvalidOperationException>(() => table.Where(m => m.Maker == "dum").GetEnumerator());
 
             //Wrong consistency level
-            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum" && m.Movie == "Whatever").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
         }
 
         [Test]
@@ -282,7 +282,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Throws<InvalidQueryException>(() => table.First(m => m.Year == 100).Execute());
             Assert.Throws<InvalidQueryException>(() => table.First(m => m.MainActor == null).Execute());
             //Wrong consistency level
-            Assert.Throws<RequestInvalidException>(() => table.First(m => m.Maker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+            Assert.Throws<RequestInvalidException>(() => table.First(m => m.Maker == "dumb" && m.Movie == "dumber").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
         }
 
         [Test]
@@ -295,7 +295,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Throws<InvalidQueryException>(() => table.Where(m => m.Year == 100).Count().Execute());
             Assert.Throws<InvalidQueryException>(() => table.Where(m => m.MainActor == null).Count().Execute());
             //Wrong consistency level
-            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum").Count().SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
+            Assert.Throws<RequestInvalidException>(() => table.Where(m => m.Maker == "dum" && m.Movie == "name me").Count().SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
         }
 
         [Test]

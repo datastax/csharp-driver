@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra;
-using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Mapping.Statements
 {
@@ -19,9 +16,7 @@ namespace Cassandra.Mapping.Statements
 
         public StatementFactory(ISession session)
         {
-            if (session == null) throw new ArgumentNullException("session");
             _session = session;
-
             _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
         }
 
@@ -34,7 +29,6 @@ namespace Cassandra.Mapping.Statements
                 cql.QueryOptions.CopyOptionsToStatement(statement);
                 return TaskHelper.ToTask(statement);
             }
-
             return _statementCache
                 .GetOrAdd(cql.Statement, _session.PrepareAsync)
                 .Continue(t =>
