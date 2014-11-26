@@ -75,7 +75,7 @@ namespace Cassandra.Tests.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New("WHERE UserId = ?", Guid.Empty);
             cqlGenerator.AddSelect<ExplicitColumnsUser>(cql);
-            Assert.AreEqual("SELECT Name, AGE, UserId FROM users WHERE UserId = ?", cql.Statement);
+            Assert.AreEqual("SELECT UserId, Name, AGE FROM users WHERE UserId = ?", cql.Statement);
         }
 
         [Test]
@@ -91,7 +91,7 @@ namespace Cassandra.Tests.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New(@"WHERE ""UserId"" = ?", Guid.Empty);
             cqlGenerator.AddSelect<ExplicitColumnsUser>(cql);
-            Assert.AreEqual(@"SELECT ""Name"", ""AGE"", ""UserId"" FROM ""users"" WHERE ""UserId"" = ?", cql.Statement);
+            Assert.AreEqual(@"SELECT ""UserId"", ""Name"", ""AGE"" FROM ""users"" WHERE ""UserId"" = ?", cql.Statement);
         }
 
         [Test]
@@ -131,7 +131,7 @@ namespace Cassandra.Tests.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>();
-            Assert.AreEqual(@"INSERT INTO USERS (Name, UserAge, ID) VALUES (?, ?, ?)", cql);
+            Assert.AreEqual(@"INSERT INTO USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
         }
 
         [Test]
@@ -145,7 +145,7 @@ namespace Cassandra.Tests.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>();
-            Assert.AreEqual(@"INSERT INTO ""USERS"" (""Name"", ""UserAge"", ""UserId"") VALUES (?, ?, ?)", cql);
+            Assert.AreEqual(@"INSERT INTO ""USERS"" (""UserId"", ""Name"", ""UserAge"") VALUES (?, ?, ?)", cql);
         }
     }
 }

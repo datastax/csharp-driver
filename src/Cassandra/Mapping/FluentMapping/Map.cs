@@ -213,6 +213,14 @@ namespace Cassandra.Mapping.FluentMapping
             return this;
         }
 
+        /// <summary>
+        /// Sets the mapping for the expression using the default options.
+        /// </summary>
+        public Map<TPoco> Column<TProp>(Expression<Func<TPoco, TProp>> column)
+        {
+            return Column(column, _ => { });
+        }
+
         IColumnDefinition ITypeDefinition.GetColumnDefinition(FieldInfo field)
         {
             // If a column map has been defined, return it, otherwise create an empty one

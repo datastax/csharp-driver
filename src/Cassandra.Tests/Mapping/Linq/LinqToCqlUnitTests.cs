@@ -114,8 +114,8 @@ namespace Cassandra.Tests.Mapping.Linq
                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40)");
 
             Assert.AreEqual(
-               (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).ToString(),
-               @"INSERT INTO ""x_t"" (""x_f1"", ""x_pk"", ""x_ck1"", ""x_ck2"") VALUES (?, ?, ?, ?)");
+                @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?)",
+                (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).ToString());
 
             try
             {
@@ -132,7 +132,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 batch.Append((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete());
                 Assert.AreEqual(batch.ToString().Replace("\r", ""),
                     @"BEGIN BATCH
-INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
+INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
 UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40);
 DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40);
 APPLY BATCH".Replace("\r", ""));
@@ -145,7 +145,7 @@ APPLY BATCH".Replace("\r", ""));
                 batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
                 Assert.AreEqual(batch.ToString().Replace("\r", ""),
                     @"BEGIN BATCH
-INSERT INTO ""x_t""(""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
+INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES ('x', 1, 2, 3);
 UPDATE ""x_t"" SET ""x_f1"" = 1223 WHERE ""x_ck2"" IN (10, 30, 40);
 DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (10, 30, 40);
 APPLY BATCH".Replace("\r", ""));
@@ -378,7 +378,7 @@ APPLY BATCH".Replace("\r", ""));
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO \"InsertNullTable\" (\"Value\", \"Key\") VALUES (?, ?)", cql);
+            Assert.AreEqual("INSERT INTO \"InsertNullTable\" ( \"Key\", \"Value\") VALUES (?, ?)", cql);
             Assert.AreEqual(2, values.Length);
             Assert.AreEqual(null, values[0]);
             Assert.AreEqual(101, values[1]);
@@ -539,7 +539,7 @@ APPLY BATCH".Replace("\r", ""));
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
-                            "Int64Value bigint, int_value int, UuidValue uuid, StringValue text, TimeUuidValue timeuuid, " +
+                            "Int64Value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
                             "PRIMARY KEY ((StringValue, TimeUuidValue)))", createQuery);
         }
 
@@ -556,12 +556,37 @@ APPLY BATCH".Replace("\r", ""));
             var typeDefinition = new Map<AllTypesDecorated>()
                 .PartitionKey(t => t.StringValue, t => t.IntValue)
                 .Column(t => t.IntValue, cm => cm.WithName("int_value"))
-                .ClusteringKey("TimeUuidValue");
+                .ClusteringKey("DateTimeValue");
             var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
-                            "Int64Value bigint, UuidValue uuid, TimeUuidValue timeuuid, int_value int, StringValue text, " +
+                            "Int64Value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "PRIMARY KEY ((StringValue, int_value), DateTimeValue))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Composite_Partition_Key_And_Clustering_Key_Explicit()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.StringValue, t => t.IntValue)
+                .Column(t => t.StringValue)
+                .Column(t => t.TimeUuidValue)
+                .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                .Column(t => t.Int64Value, cm => cm.WithName("bigint_value"))
+                .ClusteringKey("TimeUuidValue")
+                .ExplicitColumns();
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(bigint_value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, " +
                             "PRIMARY KEY ((StringValue, int_value), TimeUuidValue))", createQuery);
         }
     }

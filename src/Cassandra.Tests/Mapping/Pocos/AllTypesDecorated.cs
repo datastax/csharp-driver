@@ -26,11 +26,11 @@ namespace Cassandra.Tests.Mapping.Pocos
         public int IntValue { get; set; }
         [Column("string_VALUE")]
         public string StringValue { get; set; }
-        [PartitionKey]
-        [Column("uuid_VALUE")]
-        public Guid UuidValue { get; set; }
         [ClusteringKey(0)]
         [Column("timeuuid_VALUE")]
         public TimeUuid TimeUuidValue { get; set; }
+        [PartitionKey]
+        [Column("uuid_VALUE")]
+        public Guid UuidValue { get; set; }
     }
 }

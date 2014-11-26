@@ -54,9 +54,8 @@ namespace Cassandra.Mapping.Mapping
                                                                    ? fieldsAndProperties.Where(c => c.IsExplicitlyDefined)
                                                                    : fieldsAndProperties.Where(c => c.Ignore == false);
 
-            // Create PocoColumn collection (where ordering is guaranteed to be consistent) with Partition key columns LAST
+            // Create PocoColumn collection (where ordering is guaranteed to be consistent)
             LookupKeyedCollection<string, PocoColumn> columns = columnDefinitions.Select(PocoColumn.FromColumnDefinition)
-                                                                              .OrderBy(pc => partitionKeyColumns.Contains(pc.ColumnName))
                                                                               .ToLookupKeyedCollection(pc => pc.ColumnName,
                                                                                                        StringComparer.OrdinalIgnoreCase);
 
