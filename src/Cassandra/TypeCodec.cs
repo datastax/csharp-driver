@@ -135,9 +135,9 @@ namespace Cassandra
         /// <summary>
         /// Default single (no collection types) cql type per CLR type
         /// </summary>
-        private static Dictionary<Type, ColumnTypeCode> DefaultSingleCqlTypes = new Dictionary<Type, ColumnTypeCode>()
+        private readonly static Dictionary<Type, ColumnTypeCode> DefaultSingleCqlTypes = new Dictionary<Type, ColumnTypeCode>()
         {
-            { typeof(string), ColumnTypeCode.Varchar },
+            { typeof(string), ColumnTypeCode.Text },
             { typeof(long), ColumnTypeCode.Bigint },
             { typeof(byte[]), ColumnTypeCode.Blob },
             { typeof(bool), ColumnTypeCode.Boolean },

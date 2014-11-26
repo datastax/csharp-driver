@@ -21,11 +21,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Cassandra.Mapping.FluentMapping;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 
 namespace Cassandra.Data.Linq
 {
-    public class Table<TEntity> : CqlQuery<TEntity>, ITable, IQueryProvider
+    public class Table<TEntity> : CqlQuery<TEntity>, ITable
     {
         private TableType _tableType = TableType.All;
         private readonly ISession _session;
@@ -78,10 +79,33 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
-            var cqls = CqlQueryTools.GetCreateCQL(this, false);
-            foreach (var cql in cqls)
+            var cqlQueries = CqlGenerator.GetCreate(PocoData, false);
+            foreach (var cql in cqlQueries)
             {
                 _session.WaitForSchemaAgreement(_session.Execute(cql));
+            }
+        }
+
+        public void CreateIfNotExists()
+        {
+            if (_session.BinaryProtocolVersion > 1)
+            {
+                var cqlQueries = CqlGenerator.GetCreate(PocoData, true);
+                foreach (var cql in cqlQueries)
+                {
+                    _session.WaitForSchemaAgreement(_session.Execute(cql));
+                }
+            }
+            else
+            {
+                try
+                {
+                    Create();
+                }
+                catch (AlreadyExistsException)
+                {
+                    //do nothing
+                }
             }
         }
 
@@ -111,29 +135,6 @@ namespace Cassandra.Data.Linq
                 }
             }
             return _tableType;
-        }
-
-        public void CreateIfNotExists()
-        {
-            if (_session.BinaryProtocolVersion > 1)
-            {
-                var cqls = CqlQueryTools.GetCreateCQL(this, true);
-                foreach (var cql in cqls)
-                {
-                    _session.WaitForSchemaAgreement(_session.Execute(cql));
-                }
-            }
-            else
-            {
-                try
-                {
-                    Create();
-                }
-                catch (AlreadyExistsException)
-                {
-                    //do nothing
-                }
-            }
         }
 
         /// <summary>

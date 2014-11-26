@@ -66,9 +66,13 @@ namespace Cassandra.Mapping.FluentMapping
                     // just default to the field/property name
                     ColumnMap columnMap;
                     if (_columnMaps.TryGetValue(memberInfo.Name, out columnMap))
+                    {
                         columnNames[index] = ((IColumnDefinition) columnMap).ColumnName ?? memberInfo.Name;
-
-                    columnNames[index] = memberInfo.Name;
+                    }
+                    else
+                    {
+                        columnNames[index] = memberInfo.Name;   
+                    }
                 }
 
                 return columnNames;

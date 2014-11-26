@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Cassandra.Mapping.Mapping;
 using Cassandra.Mapping.Utils;
@@ -146,6 +148,124 @@ namespace Cassandra.Mapping.Statements
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
             cql.SetStatement(string.Format("DELETE FROM {0} {1}", pocoData.TableName, cql.Statement));
+        }
+
+        private static string GetTypeString(PocoColumn column)
+        {
+            IColumnInfo typeInfo;
+            var typeCode = TypeCodec.GetColumnTypeCodeInfo(column.ColumnType, out typeInfo);
+            return GetTypeString(typeCode, typeInfo);
+        }
+
+        /// <summary>
+        /// Gets the CQL queries involved in a table creation (CREATE TABLE, CREATE INDEX)
+        /// </summary>
+        public static List<string> GetCreate(PocoData pocoData, bool ifNotExists)
+        {
+            if (pocoData == null)
+            {
+                throw new ArgumentNullException("pocoData");
+            }
+            if (pocoData.MissingPrimaryKeyColumns.Count > 0)
+            {
+                throw new InvalidOperationException(string.Format(MissingPkColumns, "CREATE", pocoData.PocoType.Name,
+                                                                  pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
+            }
+            var commands = new List<string>();
+            var createTable = new StringBuilder("CREATE TABLE ");
+            createTable.Append(Escape(pocoData.TableName, pocoData));
+            createTable.Append(" (");
+            foreach (var column in pocoData.Columns)
+            {
+                createTable
+                    .Append(Escape(column.ColumnName, pocoData))
+                    .Append(" ");
+                //TODO: Counter columns
+                createTable    
+                    .Append(GetTypeString(column))
+                    .Append(", ");
+            }
+            createTable.Append("PRIMARY KEY (");
+            if (pocoData.PartitionKeys.Count == 1)
+            {
+                createTable.Append(Escape(pocoData.PartitionKeys[0].ColumnName, pocoData));
+            }
+            else
+            {
+                //tupled partition keys
+                createTable
+                    .Append("(")
+                    .Append(String.Join(", ", pocoData.PartitionKeys.Select(Escape(pocoData))))
+                    .Append(")");
+            }
+            if (pocoData.ClusteringKeys.Count > 0)
+            {
+                createTable.Append(", ");
+                createTable.Append(String.Join(", ", pocoData.ClusteringKeys.Select(k => Escape(k.Item1.ColumnName, pocoData))));
+            }
+            //close primary keys
+            createTable.Append(")");
+            //close table column definition
+            createTable.Append(")");
+            var clusteringOrder = String.Join(", ", pocoData.ClusteringKeys
+                .Where(k => k.Item2 != SortOrder.Unspecified)
+                .Select(k => Escape(k.Item1.ColumnName, pocoData) + " " + (k.Item2 == SortOrder.Ascending ? "ASC" : "DESC")));
+
+            if (!String.IsNullOrEmpty(clusteringOrder))
+            {
+                createTable
+                    .Append(" WITH CLUSTERING ORDER BY (")
+                    .Append(clusteringOrder)
+                    .Append(")");
+            }
+            //TODO: Compact storage
+            commands.Add(createTable.ToString());
+            //TODO: Secondary indexes
+            return commands;
+        }
+
+        private static string GetTypeString(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (typeInfo == null)
+            {
+                //Is a single type
+                return typeCode.ToString().ToLower();
+            }
+            if (typeInfo is MapColumnInfo)
+            {
+                var mapInfo = typeInfo as MapColumnInfo;
+                return "map<" +
+                       GetTypeString(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo) +
+                       GetTypeString(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo) +
+                       ">";
+            }
+            if (typeInfo is SetColumnInfo)
+            {
+                var setInfo = typeInfo as SetColumnInfo;
+                return "set<" +
+                       GetTypeString(setInfo.KeyTypeCode, setInfo.KeyTypeInfo) +
+                       ">";
+            }
+            if (typeInfo is ListColumnInfo)
+            {
+                var setInfo = typeInfo as ListColumnInfo;
+                return "list<" +
+                       GetTypeString(setInfo.ValueTypeCode, setInfo.ValueTypeInfo) +
+                       ">";
+            }
+            if (typeInfo is TupleColumnInfo)
+            {
+                var tupleInfo = typeInfo as TupleColumnInfo;
+                return "tuple<" +
+                       String.Join(", ", tupleInfo.Elements.Select(e => GetTypeString(e.TypeCode, e.TypeInfo))) +
+                       ">";
+            }
+            if (typeInfo is UdtColumnInfo)
+            {
+                var udtInfo = typeInfo as UdtColumnInfo;
+                return udtInfo.Name;
+            }
+            throw new NotSupportedException(String.Format("Type {0} is not suppoted", typeCode));
         }
     }
 }

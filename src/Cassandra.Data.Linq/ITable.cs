@@ -15,10 +15,11 @@
 //
 
 using System;
+using System.Linq;
 
 namespace Cassandra.Data.Linq
 {
-    public interface ITable
+    public interface ITable : IQueryProvider
     {
         void Create();
         Type GetEntityType();

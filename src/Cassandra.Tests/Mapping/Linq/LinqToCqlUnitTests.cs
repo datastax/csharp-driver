@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
+using Cassandra.Mapping.FluentMapping;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -449,7 +450,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Verifiable();
             var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
             table2.CreateIfNotExists();
-            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Name\" text, \"Description\" text, PRIMARY KEY(\"Id\"));", createQuery);
+            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Description\" text, \"Name\" text, \"Id\" int, PRIMARY KEY (\"Id\"))", createQuery);
         }
 
         [Test]
@@ -519,6 +520,49 @@ APPLY BATCH".Replace("\r", ""));
                 @"DELETE FROM ""atd"" WHERE ""int64_VALUE"" = 1 IF ""string_VALUE"" = 'conditional!'",
                 query.ToString());
             Trace.TraceInformation(query.ToString());
+        }
+
+        [Test]
+        public void Create_With_Composite_Partition_Key()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.StringValue, t => t.TimeUuidValue)
+                .Column(t => t.IntValue, cm => cm.WithName("int_value"));
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
+                            "Int64Value bigint, int_value int, UuidValue uuid, StringValue text, TimeUuidValue timeuuid, " +
+                            "PRIMARY KEY ((StringValue, TimeUuidValue)))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Composite_Partition_Key_And_Clustering_Key()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.StringValue, t => t.IntValue)
+                .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                .ClusteringKey("TimeUuidValue");
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
+                            "Int64Value bigint, UuidValue uuid, TimeUuidValue timeuuid, int_value int, StringValue text, " +
+                            "PRIMARY KEY ((StringValue, int_value), TimeUuidValue))", createQuery);
         }
     }
 }
