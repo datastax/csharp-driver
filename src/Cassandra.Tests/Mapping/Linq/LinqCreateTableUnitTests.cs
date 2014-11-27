@@ -195,5 +195,22 @@ namespace Cassandra.Tests.Mapping.Linq
             //keyspace.table in index creation
             Assert.AreEqual(@"CREATE INDEX ON KS2.tbl2 (city_id)", createQueries[1]);
         }
+
+        [Test]
+        public void Create_With_Linq_Decorated()
+        {
+            var createQueries = new List<string>();
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(createQueries.Add);
+            var table = sessionMock.Object.GetTable<LinqDecoratedCaseInsensitiveEntity>();
+            table.Create();
+            //keyspace.table in table creation
+            Assert.AreEqual(@"CREATE TABLE tbl1 (i_id bigint, val1 text, val2 text, Date timestamp, PRIMARY KEY (i_id))", createQueries[0]);
+            //keyspace.table in index creation
+            Assert.AreEqual(@"CREATE INDEX ON tbl1 (val2)", createQueries[1]);
+        }
     }
 }

@@ -453,9 +453,31 @@ namespace Cassandra.Data.Linq
 
         private Expression EvaluateConditionFunction(MethodCallExpression node)
         {
+            var methodName = node.Method.Name;
+            if (node.Method.ReflectedType != null)
+            {
+                if (node.Method.ReflectedType == typeof(CqlToken))
+                {
+                    methodName = "CqlToken";
+                }
+            }
+            if (EvaluateMethod(methodName, node))
+            {
+                //It was evaluated as one of the methods
+                return node;
+            }
+            //Try to invoke to obtain the value
+            var val = Expression.Lambda(node).Compile().DynamicInvoke();
+            _currentCondition.Get().Item2.Add(val);
+            _currentCondition.Get().Item1.Append("?");
+            return node;
+        }
+
+        private bool EvaluateMethod(string name, MethodCallExpression node)
+        {
             var clause = _currentCondition.Get().Item1;
             var parameters = _currentCondition.Get().Item2;
-            switch (node.Method.Name)
+            switch (name)
             {
                 case "Contains":
                 {
@@ -479,37 +501,41 @@ namespace Cassandra.Data.Linq
                         placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
                         parameters.Add(v);
                     }
-                
+
                     clause
                         .Append(" IN (")
                         .Append(placeHolders)
                         .Append(")");
-                    return node;
+                    return true;
                 }
                 case "CompareTo":
                     Visit(node.Object);
-                    clause.Append(" " + _binaryExpressionTag.Get());
+                    clause
+                        .Append(" ")
+                        .Append(_binaryExpressionTag.Get())
+                        .Append(" ");
                     Visit(node.Arguments[0]);
-                    return node;
+                    return true;
                 case "Equals":
                     Visit(node.Object);
                     clause.Append(" = ");
                     Visit(node.Arguments[0]);
-                    return node;
+                    return true;
                 case "CqlToken":
                     clause.Append("token(");
-                    foreach (var e in node.Arguments)
+                    for (var i = 0; i < node.Arguments.Count; i++)
                     {
-                        clause.Append(", ");
-                        Visit(e);
+                        var arg = node.Arguments[i];
+                        if (i > 0)
+                        {
+                            clause.Append(", ");   
+                        }
+                        Visit(arg);
                     }
                     clause.Append(")");
-                    return node;
+                    return true;
             }
-            var val = Expression.Lambda(node).Compile().DynamicInvoke();
-            parameters.Add(val);
-            clause.Append("?");
-            return node;
+            return false;
         }
 
         private static Expression DropNullableConversion(Expression node)

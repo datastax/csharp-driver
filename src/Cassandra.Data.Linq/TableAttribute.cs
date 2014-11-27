@@ -18,18 +18,40 @@ using System;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Specifies table information for a given class
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
     public sealed class TableAttribute : Attribute
     {
-        public string Name = null;
+        /// <summary>
+        /// Gets or sets the table name in Cassandra
+        /// </summary>
+        public string Name {get; set; }
 
+        /// <summary>
+        /// Determines if the table and column names are defined as case sensitive.
+        /// </summary>
+        public bool CaseSensitive { get; set; }
+
+        /// <summary>
+        /// Specifies table information for a given class
+        /// </summary>
         public TableAttribute()
         {
+            //Linq tables are case sensitive by default
+            CaseSensitive = true;
         }
 
-        public TableAttribute(string name)
+        /// <summary>
+        /// Specifies table information for a given class
+        /// </summary>
+        /// <param name="name">Name of the table</param>
+        /// <param name="caseSensitive">Determines if the table and column names are defined as case sensitive</param>
+        public TableAttribute(string name, bool caseSensitive = true)
         {
             Name = name;
+            CaseSensitive = caseSensitive;
         }
     }
 }

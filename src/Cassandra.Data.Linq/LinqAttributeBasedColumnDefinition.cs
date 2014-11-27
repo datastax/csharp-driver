@@ -61,7 +61,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         private static bool HasAttribute(MemberInfo memberInfo, Type attributeType)
         {
-            return memberInfo.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() != null;
+            return memberInfo.GetCustomAttributes(attributeType, true).FirstOrDefault() != null;
         }
     }
 }

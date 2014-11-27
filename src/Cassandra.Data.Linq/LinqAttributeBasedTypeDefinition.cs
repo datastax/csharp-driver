@@ -72,14 +72,20 @@ namespace Cassandra.Data.Linq
                 .OrderBy(k => k.Item2)
                 .Select(k => k.Item1).ToArray();
 
+            ClusteringKeys = clusteringKeys.
+                OrderBy(k => k.Item3)
+                .Select(k => Tuple.Create(k.Item1, k.Item2))
+                .ToArray();
+
             //Get the table name from the attribute or the type name
             if (TableName == null)
             {
                 TableName = type.Name;
-                var tableNameAttribute = (TableAttribute)type.GetCustomAttributes(typeof(TableAttribute), true).FirstOrDefault();
-                if (tableNameAttribute != null)
+                var tableAttribute = (TableAttribute)type.GetCustomAttributes(typeof(TableAttribute), true).FirstOrDefault();
+                if (tableAttribute != null)
                 {
-                    TableName = tableNameAttribute.Name;
+                    TableName = tableAttribute.Name;
+                    CaseSensitive = tableAttribute.CaseSensitive;
                 }
             }
             if (type.GetCustomAttributes(typeof(CompactStorageAttribute), true).FirstOrDefault() != null)

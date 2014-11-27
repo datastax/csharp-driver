@@ -77,6 +77,7 @@
     <Compile Include="Mapping\Pocos\FluentUser.cs" />
     <Compile Include="Mapping\Pocos\HairColor.cs" />
     <Compile Include="Mapping\Pocos\InsertUser.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedCaseInsensitiveEntity.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedEntity.cs" />
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />

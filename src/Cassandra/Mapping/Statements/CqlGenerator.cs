@@ -198,6 +198,10 @@ namespace Cassandra.Mapping.Statements
                 }
             }
             createTable.Append("PRIMARY KEY (");
+            if (pocoData.PartitionKeys.Count == 0)
+            {
+                throw new InvalidOperationException("No partition key defined");
+            }
             if (pocoData.PartitionKeys.Count == 1)
             {
                 createTable.Append(Escape(pocoData.PartitionKeys[0].ColumnName, pocoData));
