@@ -17,10 +17,13 @@ namespace Cassandra.Data.Linq
         private const BindingFlags PublicInstanceBindingFlags = BindingFlags.Public | BindingFlags.Instance;
         public Type PocoType { get; private set; }
         public string TableName { get; private set; }
+        public string KeyspaceName { get; private set; }
         public bool ExplicitColumns { get; private set; }
         public string[] PartitionKeys { get; private set; }
         public Tuple<string, SortOrder>[] ClusteringKeys { get; private set; }
         public bool CaseSensitive { get; private set; }
+        public bool CompactStorage { get; private set; }
+        public bool AllowFiltering { get; private set; }
 
         public LinqAttributeBasedTypeDefinition(Type type, string tableName, string keyspaceName)
         {
@@ -32,6 +35,7 @@ namespace Cassandra.Data.Linq
             CaseSensitive = true;
             ExplicitColumns = false;
             TableName = tableName;
+            KeyspaceName = keyspaceName;
 
             //Mappable fields and properties
             var mappable = type
@@ -62,6 +66,7 @@ namespace Cassandra.Data.Linq
                 }
             }
 
+
             PartitionKeys = partitionKeys
                 //Order the partition keys by index
                 .OrderBy(k => k.Item2)
@@ -76,6 +81,14 @@ namespace Cassandra.Data.Linq
                 {
                     TableName = tableNameAttribute.Name;
                 }
+            }
+            if (type.GetCustomAttributes(typeof(CompactStorageAttribute), true).FirstOrDefault() != null)
+            {
+                CompactStorage = true;
+            }
+            if (type.GetCustomAttributes(typeof(AllowFilteringAttribute), true).FirstOrDefault() != null)
+            {
+                AllowFiltering = true;
             }
         }
 

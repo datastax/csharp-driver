@@ -103,15 +103,14 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
-        public void Create_With_SecondaryIndex()
+        public void Create_With_Secondary_Index()
         {
             var createQueries = new List<string>();
             var sessionMock = new Mock<ISession>();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
-                .Callback<string>(createQueries.Add)
-                .Verifiable();
+                .Callback<string>(createQueries.Add);
             var typeDefinition = new Map<AllTypesDecorated>()
                 .PartitionKey(t => t.UuidValue)
                 .Column(t => t.UuidValue, cm => cm.WithName("user_id"))
@@ -124,6 +123,77 @@ namespace Cassandra.Tests.Mapping.Linq
             table.Create();
             Assert.AreEqual(@"CREATE TABLE ""USERS"" (""city_id"" int, ""name"" text, ""user_id"" uuid, PRIMARY KEY (""user_id""))", createQueries[0]);
             Assert.AreEqual(@"CREATE INDEX ON ""USERS"" (""city_id"")", createQueries[1]);
+        }
+
+        [Test]
+        public void Create_With_Compact_Storage()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.UuidValue)
+                .Column(t => t.UuidValue, cm => cm.WithName("user_id"))
+                .Column(t => t.StringValue, cm => cm.WithName("name"))
+                .Column(t => t.IntValue, cm => cm.WithName("city_id"))
+                .TableName("tbl1")
+                .CompactStorage()
+                .ExplicitColumns();
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            Assert.AreEqual(@"CREATE TABLE tbl1 (city_id int, name text, user_id uuid, PRIMARY KEY (user_id)) WITH COMPACT STORAGE", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Fully_Qualified_Table_Name_Case_Sensitive()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.UuidValue)
+                .Column(t => t.UuidValue, cm => cm.WithName("user_id"))
+                .Column(t => t.StringValue, cm => cm.WithName("name"))
+                .Column(t => t.IntValue, cm => cm.WithName("city_id"))
+                .TableName("TBL1")
+                .KeyspaceName("ks1")
+                .CaseSensitive()
+                .ExplicitColumns();
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            Assert.AreEqual(@"CREATE TABLE ""ks1"".""TBL1"" (""city_id"" int, ""name"" text, ""user_id"" uuid, PRIMARY KEY (""user_id""))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Fully_Qualified_Table_Name_Case_Insensitive()
+        {
+            var createQueries = new List<string>();
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(createQueries.Add);
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.UuidValue)
+                .Column(t => t.UuidValue, cm => cm.WithName("user_id"))
+                .Column(t => t.StringValue, cm => cm.WithName("name"))
+                .Column(t => t.IntValue, cm => cm.WithName("city_id").WithSecondaryIndex())
+                .TableName("tbl2")
+                .KeyspaceName("KS2")
+                .ExplicitColumns();
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            //keyspace.table in table creation
+            Assert.AreEqual(@"CREATE TABLE KS2.tbl2 (city_id int, name text, user_id uuid, PRIMARY KEY (user_id))", createQueries[0]);
+
+            //keyspace.table in index creation
+            Assert.AreEqual(@"CREATE INDEX ON KS2.tbl2 (city_id)", createQueries[1]);
         }
     }
 }

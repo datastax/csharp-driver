@@ -23,7 +23,9 @@ namespace Cassandra.Mapping.FluentMapping
         private string[] _partitionKeyColumns;
         private MemberInfo[] _partitionKeyColumnMembers;
         private Tuple<string, SortOrder>[] _clusteringKeyColumns;
-        
+        private bool _compactStorage;
+        private string _keyspaceName;
+
         Type ITypeDefinition.PocoType
         {
             get { return _pocoType; }
@@ -34,6 +36,11 @@ namespace Cassandra.Mapping.FluentMapping
             get { return _tableName; }
         }
 
+        string ITypeDefinition.KeyspaceName
+        {
+            get { return _keyspaceName; }
+        }
+
         bool ITypeDefinition.ExplicitColumns
         {
             get { return _explicitColumns; }
@@ -42,6 +49,16 @@ namespace Cassandra.Mapping.FluentMapping
         bool ITypeDefinition.CaseSensitive
         {
             get { return _caseSensitive; }
+        }
+
+        bool ITypeDefinition.AllowFiltering
+        {
+            get { return false; }
+        }
+
+        bool ITypeDefinition.CompactStorage
+        {
+            get { return _compactStorage; }
         }
 
         string[] ITypeDefinition.PartitionKeys
@@ -60,7 +77,7 @@ namespace Cassandra.Mapping.FluentMapping
                 var columnNames = new string[_partitionKeyColumnMembers.Length];
                 for (var index = 0; index < _partitionKeyColumnMembers.Length; index++)
                 {
-                    MemberInfo memberInfo = _partitionKeyColumnMembers[index];
+                    var memberInfo = _partitionKeyColumnMembers[index];
 
                     // Try to get a column definition for each of the columns and if we can't find one or the column name is not defined,
                     // just default to the field/property name
@@ -210,6 +227,26 @@ namespace Cassandra.Mapping.FluentMapping
 
             // Run the configuration action on the column map
             columnConfig(columnMap);
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies that when mapping, the table name should include the keyspace.
+        /// Use only if the table you are mapping is in a different keyspace than the current <see cref="ISession"/>.
+        /// </summary>
+        public Map<TPoco> KeyspaceName(string name)
+        {
+            _keyspaceName = name;
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies that the table is defined as COMPACT STORAGE
+        /// </summary>
+        /// <returns></returns>
+        public Map<TPoco> CompactStorage()
+        {
+            _compactStorage = true;
             return this;
         }
 

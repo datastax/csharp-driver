@@ -126,7 +126,7 @@ namespace Cassandra.Data.Linq
                 parameters.Add(_limit);
             }
 
-            if (_allowFiltering)
+            if (_allowFiltering || _pocoData.AllowFiltering)
             {
                 query.Append(" ALLOW FILTERING");
             }
@@ -438,9 +438,9 @@ namespace Cassandra.Data.Linq
                     _limit = 1;
                     return node;
                 case "AllowFiltering":
-                Visit(node.Arguments[0]);
-                _allowFiltering = true;
-                return node;
+                    Visit(node.Arguments[0]);
+                    _allowFiltering = true;
+                    return node;
             }
 
             if (_phasePhase.Get() == ParsePhase.Condition)
@@ -641,9 +641,6 @@ namespace Cassandra.Data.Linq
         {
             if (node.Value is ITable)
             {
-                var table = (node.Value as ITable);
-                //TODO: Replace
-                _allowFiltering = table.GetEntityType().GetCustomAttributes(typeof (AllowFilteringAttribute), false).Any();
                 return node;
             }
             if (_phasePhase.Get() == ParsePhase.Condition)

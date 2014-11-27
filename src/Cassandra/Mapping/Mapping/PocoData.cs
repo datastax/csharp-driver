@@ -24,6 +24,11 @@ namespace Cassandra.Mapping.Mapping
         public string TableName { get; private set; }
 
         /// <summary>
+        /// When defined, states that all queries generated should include fully qualified table names (ie: keyspace.table)
+        /// </summary>
+        public string KeyspaceName { get; set; }
+
+        /// <summary>
         /// All columns (including PK columns) keyed by their column names and ordered so that the primary key columns are in order last.
         /// </summary>
         public LookupKeyedCollection<string, PocoColumn> Columns { get; private set; }
@@ -43,14 +48,21 @@ namespace Cassandra.Mapping.Mapping
         /// </summary>
         public bool CaseSensitive { get; private set; }
 
+        public bool CompactStorage { get; private set; }
+
+        /// <summary>
+        /// Determines that all queries generated should allow filtering. Backwards compatibility.
+        /// </summary>
+        public bool AllowFiltering { get; private set; }
+
         /// <summary>
         /// The column names of any primary key columns that aren't in the Columns collection.  Could indicate a misconfiguration if the POCO
         /// is going to be used in auto-generated UPDATE/DELETE statements.
         /// </summary>
         public List<string> MissingPrimaryKeyColumns { get; private set; }
 
-        public PocoData(Type pocoType, string tableName, LookupKeyedCollection<string, PocoColumn> columns,
-                        string[] partitionkeys, Tuple<string, SortOrder>[] clusteringKeys, bool caseSensitive)
+        public PocoData(Type pocoType, string tableName, string keyspaceName, LookupKeyedCollection<string, PocoColumn> columns,
+                        string[] partitionkeys, Tuple<string, SortOrder>[] clusteringKeys, bool caseSensitive, bool compact, bool allowFiltering)
         {
             if (pocoType == null) throw new ArgumentNullException("pocoType");
             if (tableName == null) throw new ArgumentNullException("tableName");
@@ -61,6 +73,9 @@ namespace Cassandra.Mapping.Mapping
             TableName = tableName;
             Columns = columns;
             CaseSensitive = caseSensitive;
+            CompactStorage = compact;
+            AllowFiltering = allowFiltering;
+            KeyspaceName = keyspaceName;
             _columnsByMemberName = columns.ToDictionary(c => c.MemberInfo.Name, c => c);
             PartitionKeys = partitionkeys.Where(columns.Contains).Select(key => columns[key]).ToList();
             ClusteringKeys = clusteringKeys.Where(c => columns.Contains(c.Item1)).Select(c => Tuple.Create(columns[c.Item1], c.Item2)).ToList();

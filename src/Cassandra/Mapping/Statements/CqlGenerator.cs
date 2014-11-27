@@ -175,6 +175,11 @@ namespace Cassandra.Mapping.Statements
             var secondaryIndexes = new List<string>();
             var createTable = new StringBuilder("CREATE TABLE ");
             var tableName = Escape(pocoData.TableName, pocoData);
+            if (pocoData.KeyspaceName != null)
+            {
+                //Use keyspace.tablename notation
+                tableName = Escape(pocoData.KeyspaceName, pocoData) + "." + tableName;
+            }
             createTable.Append(tableName);
             createTable.Append(" (");
             foreach (var column in pocoData.Columns)
@@ -225,7 +230,10 @@ namespace Cassandra.Mapping.Statements
                     .Append(clusteringOrder)
                     .Append(")");
             }
-            //TODO: Compact storage
+            if (pocoData.CompactStorage)
+            {
+                createTable.Append(" WITH COMPACT STORAGE");
+            }
             commands.Add(createTable.ToString());
             //Secondary index definitions
             commands.AddRange(secondaryIndexes.Select(name => "CREATE INDEX ON " + tableName + " (" + name + ")"));

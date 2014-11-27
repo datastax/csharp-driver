@@ -60,7 +60,7 @@ namespace Cassandra.Mapping.Mapping
                                                                                                        StringComparer.OrdinalIgnoreCase);
 
             var clusteringKeyNames = typeDefinition.ClusteringKeys ?? new Tuple<string, SortOrder>[0];
-            return new PocoData(pocoType, tableName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive);
+            return new PocoData(pocoType, tableName, typeDefinition.KeyspaceName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive, typeDefinition.CompactStorage, typeDefinition.AllowFiltering);
         }
 
 
