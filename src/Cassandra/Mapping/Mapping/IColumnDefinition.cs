@@ -37,5 +37,15 @@ namespace Cassandra.Mapping.Mapping
         /// Whether or not this column has been explicitly defined (for use when TypeDefinition.ExplicitColumns is true).
         /// </summary>
         bool IsExplicitlyDefined { get; }
+
+        /// <summary>
+        /// Determines if there is a secondary index defined for this column
+        /// </summary>
+        bool SecondaryIndex { get; }
+
+        /// <summary>
+        /// Determines if this column is a counter column
+        /// </summary>
+        bool IsCounter { get; }
     }
 }

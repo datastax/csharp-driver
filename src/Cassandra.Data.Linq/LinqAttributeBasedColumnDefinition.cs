@@ -15,6 +15,9 @@ namespace Cassandra.Data.Linq
         public Type ColumnType { get; private set; }
         public bool Ignore { get; private set; }
         public bool IsExplicitlyDefined { get; private set; }
+        public bool SecondaryIndex { get; private set; }
+        public bool IsCounter { get; private set; }
+
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
         /// </summary>
@@ -47,12 +50,18 @@ namespace Cassandra.Data.Linq
                     ColumnName = columnAttribute.Name;
                 }
             }
+            SecondaryIndex = HasAttribute(memberInfo, typeof (SecondaryIndexAttribute));
+            IsCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
+            //TODO: Create Linq's Ignore attribute
+            Ignore = false;
+        }
 
-            var ignoreAttribute = memberInfo.GetCustomAttributes(typeof(Cassandra.Mapping.IgnoreAttribute), true).FirstOrDefault();
-            if (ignoreAttribute != null)
-            {
-                Ignore = true;
-            }
+        /// <summary>
+        /// Determines if the member has an attribute applied
+        /// </summary>
+        private static bool HasAttribute(MemberInfo memberInfo, Type attributeType)
+        {
+            return memberInfo.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() != null;
         }
     }
 }

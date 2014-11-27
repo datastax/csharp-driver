@@ -25,6 +25,16 @@ namespace Cassandra.Mapping.Mapping
         /// </summary>
         public Type MemberInfoType { get; private set; }
 
+        /// <summary>
+        /// Determines that there is a secondary index defined for this column
+        /// </summary>
+        public bool SecondaryIndex { get; set; }
+
+        /// <summary>
+        /// Determines that it is a counter column
+        /// </summary>
+        public bool IsCounter { get; set; }
+
         private PocoColumn()
         {
         }
@@ -38,7 +48,9 @@ namespace Cassandra.Mapping.Mapping
                 // Default the column type to the prop/field type if not specified
                 ColumnType = columnDefinition.ColumnType ?? columnDefinition.MemberInfoType,
                 MemberInfo = columnDefinition.MemberInfo,
-                MemberInfoType = columnDefinition.MemberInfoType
+                MemberInfoType = columnDefinition.MemberInfoType,
+                SecondaryIndex = columnDefinition.SecondaryIndex,
+                IsCounter = columnDefinition.IsCounter
             };
         }
     }

@@ -16,6 +16,8 @@ namespace Cassandra.Mapping.Mapping
         private readonly Type _columnType;
         private readonly bool _ignore;
         private readonly bool _isExplicitlyDefined;
+        private bool _secondaryIndex = false;
+        private bool _isCounter = false;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -45,6 +47,16 @@ namespace Cassandra.Mapping.Mapping
         bool IColumnDefinition.IsExplicitlyDefined
         {
             get { return _isExplicitlyDefined; }
+        }
+
+        bool IColumnDefinition.SecondaryIndex
+        {
+            get { return _secondaryIndex; }
+        }
+
+        bool IColumnDefinition.IsCounter
+        {
+            get { return _isCounter; }
         }
 
         /// <summary>
@@ -80,7 +92,7 @@ namespace Cassandra.Mapping.Mapping
                 if (columnAttribute.Type != null)
                     _columnType = columnAttribute.Type;
             }
-
+            //TODO: Handle Counter, Partition and secondary indexes
             var ignoreAttribute = memberInfo.GetCustomAttributes(typeof(IgnoreAttribute), true).FirstOrDefault();
             if (ignoreAttribute != null)
                 _ignore = true;

@@ -172,18 +172,25 @@ namespace Cassandra.Mapping.Statements
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
             }
             var commands = new List<string>();
+            var secondaryIndexes = new List<string>();
             var createTable = new StringBuilder("CREATE TABLE ");
-            createTable.Append(Escape(pocoData.TableName, pocoData));
+            var tableName = Escape(pocoData.TableName, pocoData);
+            createTable.Append(tableName);
             createTable.Append(" (");
             foreach (var column in pocoData.Columns)
             {
+                var columnName = Escape(column.ColumnName, pocoData);
                 createTable
-                    .Append(Escape(column.ColumnName, pocoData))
+                    .Append(columnName)
                     .Append(" ");
-                //TODO: Counter columns
+                var columnType = column.IsCounter ? "counter" : GetTypeString(column);
                 createTable    
-                    .Append(GetTypeString(column))
+                    .Append(columnType)
                     .Append(", ");
+                if (column.SecondaryIndex)
+                {
+                    secondaryIndexes.Add(columnName);
+                }
             }
             createTable.Append("PRIMARY KEY (");
             if (pocoData.PartitionKeys.Count == 1)
@@ -220,7 +227,8 @@ namespace Cassandra.Mapping.Statements
             }
             //TODO: Compact storage
             commands.Add(createTable.ToString());
-            //TODO: Secondary indexes
+            //Secondary index definitions
+            commands.AddRange(secondaryIndexes.Select(name => "CREATE INDEX ON " + tableName + " (" + name + ")"));
             return commands;
         }
 

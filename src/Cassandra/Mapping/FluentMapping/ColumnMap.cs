@@ -15,6 +15,8 @@ namespace Cassandra.Mapping.FluentMapping
         private Type _columnType;
         private bool _ignore;
         private readonly bool _isExplicitlyDefined;
+        private bool _secondaryIndex;
+        private bool _isCounter;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -46,6 +48,16 @@ namespace Cassandra.Mapping.FluentMapping
             get { return _isExplicitlyDefined; }
         }
 
+        bool IColumnDefinition.SecondaryIndex
+        {
+            get { return _secondaryIndex; }
+        }
+
+        bool IColumnDefinition.IsCounter
+        {
+            get { return _isCounter; }
+        }
+
         /// <summary>
         /// Creates a new ColumnMap for the property/field specified by the MemberInfo.
         /// </summary>
@@ -55,7 +67,6 @@ namespace Cassandra.Mapping.FluentMapping
             if (memberInfoType == null) throw new ArgumentNullException("memberInfoType");
             _memberInfo = memberInfo;
             _memberInfoType = memberInfoType;
-
             _isExplicitlyDefined = isExplicitlyDefined;
         }
 
@@ -98,6 +109,25 @@ namespace Cassandra.Mapping.FluentMapping
         public ColumnMap WithDbType<T>()
         {
             _columnType = typeof (T);
+            return this;
+        }
+
+        /// <summary>
+        /// Tells the mapper that this column is defined also as a secondary index
+        /// </summary>
+        /// <returns></returns>
+        public ColumnMap WithSecondaryIndex()
+        {
+            _secondaryIndex = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Tells the mapper that this is a counter column
+        /// </summary>
+        public ColumnMap AsCounter()
+        {
+            _isCounter = true;
             return this;
         }
     }
