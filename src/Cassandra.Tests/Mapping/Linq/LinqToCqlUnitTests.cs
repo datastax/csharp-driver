@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -215,7 +216,6 @@ APPLY BATCH".Replace("\r", ""));
             var linqQueries = new List<CqlQuery<AllTypesEntity>>()
             {
                 (from ent in table where ent.BooleanValue == true select ent),
-                (from ent in table where ent.BooleanValue == false select ent),
                 (from ent in table where ent.DateTimeValue < date select ent),
                 (from ent in table where ent.DateTimeValue >= date select ent),
                 (from ent in table where ent.IntValue == 0 select ent),
@@ -225,17 +225,19 @@ APPLY BATCH".Replace("\r", ""));
             var expectedCqlQueries = new List<string>()
             {
                 "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = ?",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = ?",
                 "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" < ?",
                 "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" >= ?",
                 "SELECT * FROM \"AllTypesEntity\" WHERE \"IntValue\" = ?",
                 "SELECT * FROM \"AllTypesEntity\" WHERE \"StringValue\" = ?"
             };
-            var actualCqlQueries = new List<IStatement>();
+            var actualCqlQueries = new List<string>();
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(Task<RowSet>.Factory.StartNew(() => new RowSet()))
-                .Callback<IStatement>(actualCqlQueries.Add);
+                .Returns(Task<RowSet>.Factory.StartNew(() => new RowSet()));
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Callback<string>(actualCqlQueries.Add)
+                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, "Mock query", null)));
 
             //Execute all linq queries
             foreach (var q in linqQueries)
@@ -248,10 +250,9 @@ APPLY BATCH".Replace("\r", ""));
             //Check that all expected queries and actual queries are equal
             for (var i = 0; i < expectedCqlQueries.Count; i++)
             {
-                Assert.IsInstanceOf<SimpleStatement>(actualCqlQueries[i]);
                 Assert.AreEqual(
                     expectedCqlQueries[i],
-                    ((SimpleStatement)actualCqlQueries[i]).QueryString,
+                    actualCqlQueries[i],
                     "Expected Cql query and generated CQL query by Linq do not match.");
             }
         }
