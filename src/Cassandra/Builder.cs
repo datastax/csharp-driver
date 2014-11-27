@@ -181,7 +181,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Add contact point. See <link>Builder.AddContactPoint</link> for more details
+        ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
         /// <param name="address"> address of the node to add as contact point</param> 
@@ -193,7 +193,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Add contact point. See <link>Builder.AddContactPoint</link> for more details
+        ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
         /// <param name="address"> address of the node to add as contact point</param> 
@@ -205,7 +205,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Add contact points. See <link>Builder.AddContactPoint</link> for more details
+        ///  Add contact points. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point</param> 

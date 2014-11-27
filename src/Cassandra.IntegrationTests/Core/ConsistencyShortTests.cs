@@ -72,5 +72,13 @@ namespace Cassandra.IntegrationTests.Core
                 Session.Execute(statement);
             });
         }
+
+        [Test]
+        public void PreparedStatementConsistencyShouldBeMantainedWhenBound()
+        {
+            var ps = Session.Prepare("SELECT * FROM " + AllTypesTableName);
+            var rs = Session.Execute(ps.SetConsistencyLevel(ConsistencyLevel.Quorum).Bind());
+            Assert.AreEqual(ConsistencyLevel.Quorum, rs.Info.AchievedConsistency);
+        }
     }
 }

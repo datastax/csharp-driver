@@ -144,7 +144,7 @@ namespace Cassandra
                 _socketStream = new NetworkStream(_socket);
                 if (SSLOptions != null)
                 {
-                    string targetHost = targetHost = IPEndPoint.Address.ToString();
+                    var targetHost = IPEndPoint.Address.ToString();
                     try
                     {
                         targetHost = SSLOptions.HostNameResolver(IPEndPoint.Address);

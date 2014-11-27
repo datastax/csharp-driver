@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using NUnit.Framework;
 
@@ -84,6 +85,16 @@ namespace Cassandra.Tests
             ex = Assert.Throws<ArgumentNullException>(() =>
                 Cluster.Builder().AddContactPoints(contactPoints).WithCredentials(null, null));
             Assert.That(ex.Message, Contains.Substring("username"));
+        }
+
+        [Test]
+        public void AddContactPointsThrowsWhenNameCouldNotBeResolved()
+        {
+            const string hostName = "not_existent_host_100003030";
+            var ex = Assert.Throws<SocketException>(() => Cluster.Builder()
+                                                  .AddContactPoint(hostName)
+                                                  .Build());
+            Assert.AreEqual(ex.SocketErrorCode, SocketError.HostNotFound);
         }
     }
 }

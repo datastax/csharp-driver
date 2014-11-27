@@ -28,6 +28,20 @@ namespace Cassandra
     /// <inheritdoc />
     public class Cluster : ICluster
     {
+        private static int _maxProtocolVersion = 3;
+        private static readonly Logger _logger = new Logger(typeof(Cluster));
+        private int _binaryProtocolVersion;
+        private readonly ConcurrentBag<Session> _connectedSessions = new ConcurrentBag<Session>();
+        private ControlConnection _controlConnection;
+        private volatile bool _initialized;
+        private volatile Exception _initException;
+        private readonly object _initLock = new Object();
+        private readonly Metadata _metadata;
+        /// <inheritdoc />
+        public event Action<Host> HostAdded;
+        /// <inheritdoc />
+        public event Action<Host> HostRemoved;
+
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
         ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
@@ -57,13 +71,6 @@ namespace Cassandra
             return new Builder();
         }
 
-        private readonly int _binaryProtocolVersion;
-        private readonly Configuration _configuration;
-        private readonly ConcurrentDictionary<Guid, Session> _connectedSessions = new ConcurrentDictionary<Guid, Session>();
-        private readonly Logger _logger = new Logger(typeof (Cluster));
-        private readonly Metadata _metadata;
-        private static int _maxProtocolVersion = 3;
-
         /// <summary>
         /// Gets or sets the maximum protocol version used by this driver
         /// </summary>
@@ -76,62 +83,87 @@ namespace Cassandra
         /// <summary>
         ///  Gets the cluster configuration.
         /// </summary>
-        public Configuration Configuration
-        {
-            get { return _configuration; }
-        }
+        public Configuration Configuration { get; private set; }
 
         /// <inheritdoc />
         public Metadata Metadata
         {
-            get { return _metadata; }
+            get
+            {
+                Init();
+                return _metadata;
+            }
         }
 
         private Cluster(IEnumerable<IPEndPoint> contactPoints, Configuration configuration)
         {
-            _configuration = configuration;
+            Configuration = configuration;
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
-
-            var controlpolicies = new Policies(
-                _configuration.Policies.LoadBalancingPolicy,
-                new ExponentialReconnectionPolicy(2*1000, 5*60*1000),
-                Policies.DefaultRetryPolicy);
-
-            foreach (IPEndPoint ep in contactPoints)
-                Metadata.AddHost(ep);
-
-            //Use 1 connection per host
-            //The connection will be reused, it wont create a connection per host.
-            var controlPoolingOptions = new PoolingOptions()
-                .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                .SetMaxConnectionsPerHost(HostDistance.Local, 1)
-                .SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 0)
-                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 127);
-
-            var controlConnection = new ControlConnection(
-                this, 
-                controlpolicies,
-                new ProtocolOptions(_configuration.ProtocolOptions.Port, configuration.ProtocolOptions.SslOptions),
-                controlPoolingOptions, 
-                _configuration.SocketOptions,
-                new ClientOptions(true, _configuration.ClientOptions.QueryAbortTimeout, null),
-                _configuration.AuthProvider,
-                _configuration.AuthInfoProvider,
-                _configuration.AddressTranslator);
-
-            _metadata.SetupControlConnection(controlConnection);
-            _binaryProtocolVersion = controlConnection.ProtocolVersion;
-            if (controlConnection.ProtocolVersion > MaxProtocolVersion)
+            foreach (var ep in contactPoints)
             {
-                _binaryProtocolVersion = MaxProtocolVersion;
+                _metadata.AddHost(ep);
             }
-            _logger.Info("Binary protocol version: [" + _binaryProtocolVersion + "]");
+        }
+
+        /// <summary>
+        /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
+        /// </summary>
+        private void Init()
+        {
+            if (_initialized)
+            {
+                //It was already initialized
+                return;
+            }
+            lock (_initLock)
+            {
+                if (_initialized)
+                {
+                    //It was initialized when waiting on the lock
+                    return;
+                }
+                if (_initException != null)
+                {
+                    //There was an exception that is not possible to recover from
+                    throw _initException;
+                }
+                _controlConnection = new ControlConnection(this, _metadata);
+                _metadata.ControlConnection = _controlConnection;
+                try
+                {
+                    _controlConnection.Init();
+                    _binaryProtocolVersion = _controlConnection.ProtocolVersion;
+                    if (_controlConnection.ProtocolVersion > MaxProtocolVersion)
+                    {
+                        _binaryProtocolVersion = MaxProtocolVersion;
+                    }
+                    Configuration.Policies.LoadBalancingPolicy.Initialize(this);
+                }
+                catch (NoHostAvailableException)
+                {
+                    //No host available now, maybe later it can recover from
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    //There was an error that the driver is not able to recover from
+                    //Store the exception for the following times
+                    _initException = ex;
+                    //Throw the actual exception for the first time
+                    throw;
+                }
+                _logger.Info("Cluster Connected using binary protocol version: [" + _binaryProtocolVersion + "]");
+                _initialized = true;
+                _metadata.Hosts.Added += OnHostAdded;
+                _metadata.Hosts.Removed += OnHostRemoved;
+            }
         }
 
         /// <inheritdoc />
         public ICollection<Host> AllHosts()
         {
-            return Metadata.AllHosts();
+            //Do not connect at first
+            return _metadata.AllHosts();
         }
 
         /// <summary>
@@ -139,7 +171,7 @@ namespace Cassandra
         /// </summary>
         public ISession Connect()
         {
-            return Connect(_configuration.ClientOptions.DefaultKeyspace);
+            return Connect(Configuration.ClientOptions.DefaultKeyspace);
         }
 
         /// <summary>
@@ -148,11 +180,12 @@ namespace Cassandra
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public ISession Connect(string keyspace)
         {
-            var scs = new Session(this, _configuration, keyspace, _binaryProtocolVersion);
-            scs.Init(true);
-            _connectedSessions.TryAdd(scs.Guid, scs);
+            Init();
+            var session = new Session(this, Configuration, keyspace, _binaryProtocolVersion);
+            session.Init(true);
+            _connectedSessions.Add(session);
             _logger.Info("Session connected!");
-            return scs;
+            return session;
         }
 
         /// <summary>
@@ -167,9 +200,9 @@ namespace Cassandra
         /// <returns>a new session on this cluster set to default keyspace.</returns>
         public ISession ConnectAndCreateDefaultKeyspaceIfNotExists(Dictionary<string, string> replication = null, bool durableWrites = true)
         {
-            var session = Connect("");
-            session.CreateKeyspaceIfNotExists(_configuration.ClientOptions.DefaultKeyspace, replication, durableWrites);
-            session.ChangeKeyspace(_configuration.ClientOptions.DefaultKeyspace);
+            var session = Connect(null);
+            session.CreateKeyspaceIfNotExists(Configuration.ClientOptions.DefaultKeyspace, replication, durableWrites);
+            session.ChangeKeyspace(Configuration.ClientOptions.DefaultKeyspace);
             return session;
         }
 
@@ -181,44 +214,61 @@ namespace Cassandra
         /// <inheritdoc />
         public Host GetHost(IPEndPoint address)
         {
-            return _metadata.GetHost(address);
+            return Metadata.GetHost(address);
         }
 
         /// <inheritdoc />
-        public ICollection<IPEndPoint> GetReplicas(byte[] partitionKey)
+        public ICollection<Host> GetReplicas(byte[] partitionKey)
         {
-            return _metadata.GetReplicas(partitionKey);
+            return Metadata.GetReplicas(partitionKey);
         }
 
+        /// <inheritdoc />
+        public ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey)
+        {
+            return Metadata.GetReplicas(keyspace, partitionKey);
+        }
+
+        private void OnHostRemoved(Host h)
+        {
+            if (HostRemoved != null)
+            {
+                HostRemoved(h);
+            }
+        }
+
+        private void OnHostAdded(Host h)
+        {
+            if (HostAdded != null)
+            {
+                HostAdded(h);
+            }
+        }
+
+        /// <summary>
+        /// Updates cluster metadata for a given keyspace or keyspace table
+        /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            return _metadata.RefreshSchema(keyspace, table);
+            return Metadata.RefreshSchema(keyspace, table);
         }
 
         /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            foreach (KeyValuePair<Guid, Session> kv in _connectedSessions)
+            if (!_initialized)
             {
-                Session ses;
-                if (_connectedSessions.TryRemove(kv.Key, out ses))
-                {
-                    if (!ses.IsDisposed)
-                    {
-                        ses.WaitForAllPendingActions(timeoutMs);
-                        ses.Dispose();
-                    }
-                }
+                return;
+            }
+            Session session;
+            while (_connectedSessions.TryTake(out session))
+            {
+                session.Dispose();
             }
             _metadata.ShutDown(timeoutMs);
+            _controlConnection.Dispose();
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
-        }
-
-        internal void SessionDisposed(Session s)
-        {
-            Session ses;
-            _connectedSessions.TryRemove(s.Guid, out ses);
         }
     }
 }

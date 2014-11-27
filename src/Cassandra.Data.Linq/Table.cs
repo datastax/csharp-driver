@@ -97,7 +97,6 @@ namespace Cassandra.Data.Linq
                 List<MemberInfo> props = GetEntityType().GetPropertiesOrFields();
                 foreach (MemberInfo prop in props)
                 {
-                    Type tpy = prop.GetTypeFromPropertyOrField();
                     if (
                         prop.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() as
                         CounterAttribute != null)

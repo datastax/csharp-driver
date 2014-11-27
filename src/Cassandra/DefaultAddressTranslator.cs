@@ -19,9 +19,9 @@ using System.Net;
 namespace Cassandra
 {
     /// <summary>
-    ///     The default <c>AddressTranslater</c> used by the driver that do no translation.
+    /// The default <c>AddressTranslater</c> used by the driver that do no translation.
     /// </summary>
-    public sealed class DefaultAddressTranslator : IAddressTranslator
+    internal class DefaultAddressTranslator : IAddressTranslator
     {
         /// <inheritdoc />
         public IPEndPoint Translate(IPEndPoint address)

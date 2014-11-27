@@ -36,16 +36,31 @@ namespace Cassandra
     public interface ICluster : IDisposable
     {
         /// <summary>
-        ///  Gets read-only metadata on the connected cluster. <p> This includes the
+        ///  Gets read-only metadata on the connected cluster. 
+        /// <para>This includes the
         ///  know nodes (with their status as seen by the driver) as well as the schema
-        ///  definitions.</p>
+        ///  definitions.
+        /// </para>
+        /// <para>This method may trigger the creation of a connection if none has been established yet.
+        /// </para>
         /// </summary>
         Metadata Metadata { get; }
-
+        /// <summary>
+        /// Cluster client configuration
+        /// </summary>
+        Configuration Configuration { get; }
         /// <summary>
         ///  Returns all known hosts of this cluster.
         /// </summary>
         ICollection<Host> AllHosts();
+        /// <summary>
+        /// Event that gets triggered when a new host is added to the cluster
+        /// </summary>
+        event Action<Host> HostAdded;
+        /// <summary>
+        /// Event that gets triggered when a host has been removed from the cluster
+        /// </summary>
+        event Action<Host> HostRemoved;
         /// <summary>
         ///  Creates a new session on this cluster.
         /// </summary>
@@ -64,11 +79,18 @@ namespace Cassandra
         /// <returns>The host or null if not found</returns>
         Host GetHost(IPEndPoint address);
         /// <summary>
-        /// Gets a collection of replicas for a given partitionKey
+        /// Gets a collection of replicas for a given partitionKey. Backward-compatibility only, use GetReplicas(keyspace, partitionKey) instead.
         /// </summary>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
-        ICollection<IPEndPoint> GetReplicas(byte[] partitionKey);
+        ICollection<Host> GetReplicas(byte[] partitionKey);
+        /// <summary>
+        /// Gets a collection of replicas for a given partitionKey on a given keyspace
+        /// </summary>
+        /// <param name="keyspace">Byte array representing the partition key</param>
+        /// <param name="partitionKey">Byte array representing the partition key</param>
+        /// <returns></returns>
+        ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey);
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the
         ///  sessions of this <c>* Cluster</c> instance and reclaim all resources

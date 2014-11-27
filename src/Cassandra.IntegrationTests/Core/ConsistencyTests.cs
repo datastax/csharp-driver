@@ -697,9 +697,9 @@ namespace Cassandra.IntegrationTests.Core
         public void testRFThreeDowngradingCL(Builder builder)
         {
             var clusterInfo = TestUtils.CcmSetup(3, builder);
-            createSchema(clusterInfo.Session, 3);
             try
             {
+                createSchema(clusterInfo.Session, 3);
                 init(clusterInfo, 12, ConsistencyLevel.All);
                 query(clusterInfo, 12, ConsistencyLevel.All);
 
@@ -942,9 +942,9 @@ namespace Cassandra.IntegrationTests.Core
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var clusterInfo = TestUtils.CcmSetup(3, builder, null, 3);
-            createMultiDCSchema(clusterInfo.Session, 3, 3);
             try
             {
+                createMultiDCSchema(clusterInfo.Session, 3, 3);
                 init(clusterInfo, 12, ConsistencyLevel.Two);
                 query(clusterInfo, 12, ConsistencyLevel.Two);
 

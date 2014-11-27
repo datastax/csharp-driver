@@ -65,7 +65,7 @@ namespace Cassandra
 
         public static IDictionary<string, int> ConvertStringToMapInt(string source)
         {
-            string[] elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
+            var elements = source.Replace("{\"", "").Replace("\"}", "").Replace("\"\"", "\"").Replace("\":", ":").Split(',');
             var map = new SortedDictionary<string, int>();
 
             if (source != "{}")

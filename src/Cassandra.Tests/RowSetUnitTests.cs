@@ -114,20 +114,9 @@ namespace Cassandra.Tests
             };
 
             //use linq to iterate and map it to a list
-            try 
-            {
-                //The row set should throw an exception when getting the next page.
-                var rowList = rs.ToList();
-                Assert.Fail("It should throw a TestException");
-            }
-            catch (TestException)
-            {
-                //An exception of type TestException is expected. 
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail("Expected exception of type TestException, got: " + ex.GetType());
-            }
+            //The row set should throw an exception when getting the next page.
+            Assert.Throws<TestException>(() => { rs.ToList(); });
+
         }
 
         /// <summary>
@@ -283,12 +272,31 @@ namespace Cassandra.Tests
             Assert.AreEqual(rows[rowLength * 3].GetValue<string>(0), "page_3_row_0_col_0");
         }
 
+        [Test]
+        public void NotExistentColumnThrows()
+        {
+            var row = CreateSampleRowSet().First();
+            var ex = Assert.Throws<ArgumentException>(() => row.GetValue<string>("not_existent_col"));
+            StringAssert.Contains("Column", ex.Message);
+            StringAssert.Contains("not found", ex.Message);
+        }
+
+        [Test]
+        public void NullValuesWithStructTypeColumnThrows()
+        {
+            //Row with all null values
+            var row = CreateSampleRowSet().Last();
+            Assert.IsNull(row.GetValue<string>("text_sample"));
+            var ex = Assert.Throws<NullReferenceException>(() => row.GetValue<int>("int_sample"));
+            Assert.DoesNotThrow(() => row.GetValue<int?>("int_sample"));
+        }
+
         /// <summary>
         /// Creates a rowset.
         /// The columns are named: col_0, ..., col_n
         /// The rows values are: row_0_col_0, ..., row_m_col_n
         /// </summary>
-        public RowSet CreateStringsRowset(int columnLength, int rowLength, string valueModifier = null)
+        private static RowSet CreateStringsRowset(int columnLength, int rowLength, string valueModifier = null)
         {
             var columns = new List<CqlColumn>();
             var columnIndexes = new Dictionary<string, int>();
@@ -318,6 +326,45 @@ namespace Cassandra.Tests
             return rs;
         }
 
-        public class TestException : Exception { }
+        /// <summary>
+        /// Creates a RowSet with few rows with int, text columns (null values in the last row)
+        /// </summary>
+        private static RowSet CreateSampleRowSet()
+        {
+            var columns = new List<CqlColumn>
+            {
+                new CqlColumn()
+                {
+                    Index = 0,
+                    Name = "text_sample",
+                    TypeCode = ColumnTypeCode.Text,
+                    Type = typeof (string)
+                },
+                new CqlColumn()
+                {
+                    Index = 1,
+                    Name = "int_sample",
+                    TypeCode = ColumnTypeCode.Int,
+                    Type = typeof(int)
+                }
+            };
+            var columnIndexes = columns.ToDictionary(c => c.Name, c => c.Index);
+            var rs = new RowSet();
+            var rowValues = new[]
+            {
+                Encoding.UTF8.GetBytes("text value"),
+                TypeCodec.EncodeInt(2, null, 100)
+            };
+            rs.AddRow(new Row(2, rowValues, columns.ToArray(), columnIndexes));
+            rowValues = new byte[][]
+            {
+                null,
+                null
+            };
+            rs.AddRow(new Row(2, rowValues, columns.ToArray(), columnIndexes));
+            return rs;
+        }
+
+        private class TestException : Exception { }
     }
 }

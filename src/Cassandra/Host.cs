@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 
@@ -54,14 +55,14 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Determines if the host, due to the connection error can be resurrected if no other host is alive.
-        /// </summary>
-        public bool Resurrect { get; set; }
-
-        /// <summary>
         ///  Gets the node address.
         /// </summary>
         public IPEndPoint Address { get; private set; }
+
+        /// <summary>
+        /// Tokens assigned to the host
+        /// </summary>
+        internal IEnumerable<string> Tokens { get; set; }
 
         /// <summary>
         ///  Gets the name of the datacenter this host is part of. The returned
@@ -69,7 +70,7 @@ namespace Cassandra
         ///  possible for this information to not be available. In that case this method
         ///  returns <c>null</c> and caller should always expect that possibility.
         /// </summary>
-        public string Datacenter { get; private set; }
+        public string Datacenter { get; internal set; }
 
         /// <summary>
         ///  Gets the name of the rack this host is part of. The returned rack name is
@@ -94,7 +95,6 @@ namespace Cassandra
             if (IsConsiderablyUp)
             {
                 Logger.Warning("Host " + this.Address.ToString() + " considered as DOWN");
-                Thread.MemoryBarrier();
                 _nextUpTime = DateTimeOffset.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
                 if (Down != null)
                 {
@@ -109,7 +109,10 @@ namespace Cassandra
             }
             return false;
         }
-
+        
+        /// <summary>
+        /// Returns true if the host was DOWN and it was set as UP
+        /// </summary>
         public bool BringUpIfDown()
         {
             if (!_isUpNow)
@@ -125,6 +128,14 @@ namespace Cassandra
         {
             Datacenter = datacenter;
             Rack = rack;
+        }
+
+        /// <summary>
+        /// The hash value of the address of the host
+        /// </summary>
+        public override int GetHashCode()
+        {
+            return Address.GetHashCode();
         }
     }
 }

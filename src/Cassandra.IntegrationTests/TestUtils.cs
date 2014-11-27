@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -202,22 +203,21 @@ namespace Cassandra.IntegrationTests
         }
 
         /// <summary>
-        /// Executes a windows command
+        /// Spawns a new process (platform independent)
         /// </summary>
-        public static ProcessOutput ExecuteCommand(string args, int timeout = 300000)
+        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout = 300000)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
             {
-                process.StartInfo.FileName = "cmd.exe";
-                process.StartInfo.Arguments = "/c " + args;
+                process.StartInfo.FileName = processName;
+                process.StartInfo.Arguments = args;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 process.StartInfo.CreateNoWindow = true;
-
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))
@@ -284,14 +284,36 @@ namespace Cassandra.IntegrationTests
         public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000, bool throwOnProcessError = false)
         {
             ccmConfigDir = EscapePath(ccmConfigDir);
-            ccmArgs = "ccm " + ccmArgs + " --config-dir=" + ccmConfigDir;
+            var args = ccmArgs + " --config-dir=" + ccmConfigDir;
             Trace.TraceInformation("Executing ccm: " + ccmArgs);
-            var output = ExecuteCommand(ccmArgs, timeout);
+            var processName = "/usr/local/bin/ccm";
+            if (IsWin)
+            {
+                processName = "cmd.exe";
+                args = "/c ccm " + args;
+            }
+            var output = ExecuteProcess(processName, args, timeout);
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
             }
             return output;
+        }
+
+        public static bool IsWin
+        {
+            get
+            {
+                switch (Environment.OSVersion.Platform) 
+                {
+                case PlatformID.Win32NT:
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.WinCE:
+                    return true;
+                }
+                return false;
+            }
         }
 
         private static void ValidateOutput(ProcessOutput output)
@@ -362,6 +384,10 @@ namespace Cassandra.IntegrationTests
             }
             output.OutputText.AppendLine(startOutput.ToString());
 
+            if (ConfigurationManager.AppSettings["CcmStatus"] != "true")
+            {
+                return output;   
+            }
             //Nodes are starting, but we dont know for sure if they are have started.
             var allNodesAreUp = false;
             var safeCounter = 0;
@@ -527,6 +553,7 @@ namespace Cassandra.IntegrationTests
                         if (keyspaceName != null)
                         {
                             clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
+                            WaitForSchemaAgreement(clusterInfo.Cluster);
                             clusterInfo.Session.ChangeKeyspace(keyspaceName);
                         }
                     }
@@ -630,17 +657,39 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
+        public static void WaitForSchemaAgreement(ICluster cluster)
         {
-            WaitForSchemaAgreement(clusterInfo.Cluster.AllHosts().Count);
+            const int maxRetries = 20;
+            var hostsLength = cluster.AllHosts().Count;
+            if (hostsLength == 1)
+            {
+                return;
+            }
+            var cc = cluster.Metadata.ControlConnection;
+            var counter = 0;
+            var nodesDown = cluster.AllHosts().Count(h => !h.IsConsiderablyUp);
+            while (counter++ < maxRetries)
+            {
+                Trace.TraceInformation("Waiting for test schema agreement");
+                Thread.Sleep(500);
+                var hosts = new List<Guid>();
+                //peers
+                hosts.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
+                //local
+                hosts.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
+
+                var differentSchemas = hosts.GroupBy(v => v).Count();
+                if (differentSchemas <= 1 + nodesDown)
+                {
+                    //There is 1 schema version or 1 + nodes that are considered as down
+                    break;
+                }
+            }
         }
 
-        public static void WaitForSchemaAgreement(int hostsLength)
+        public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
         {
-            if (hostsLength > 0)
-            {
-                Thread.Sleep(hostsLength * 1500);
-            }
+            WaitForSchemaAgreement(clusterInfo.Cluster);
         }
     }
 

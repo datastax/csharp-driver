@@ -355,29 +355,28 @@ namespace Cassandra.IntegrationTests.Core
 
         private void CreateTable(string tableName)
         {
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-                                                                    id int PRIMARY KEY,
-                                                                    label text,
-                                                                    number int
-                                                                    );", tableName)));
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                                                                id int PRIMARY KEY,
+                                                                label text,
+                                                                number int
+                                                                );", tableName));
+            TestUtils.WaitForSchemaAgreement(Session.Cluster);
         }
 
         private void CreateTwoTableTestEnv(string table1, string table2)
         {
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0} (
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0} (
                                                                           id int PRIMARY KEY,
                                                                           label text,
                                                                           number int
-                                                                          );", table1)));
+                                                                          );", table1));
 
-            Session.WaitForSchemaAgreement(
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0} (
-                                                                          id int PRIMARY KEY,
-                                                                          label text,
-                                                                          number int
-                                                                          );", table2)));
+            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0} (
+                                                                        id int PRIMARY KEY,
+                                                                        label text,
+                                                                        number int
+                                                                        );", table2));
+            TestUtils.WaitForSchemaAgreement(Session.Cluster);
         }
     }
 }

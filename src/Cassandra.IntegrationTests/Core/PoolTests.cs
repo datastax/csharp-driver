@@ -128,10 +128,15 @@ namespace Cassandra.IntegrationTests.Core
                 //Execute in parallel more than 100 actions
                 Parallel.Invoke(parallelOptions, actions.ToArray());
 
+                //Wait for it to be killed
+                Thread.Sleep(30000);
+
                 //Execute serially selects
                 for (var i = 0; i < 100; i++)
                 {
-                    selectAction();
+                    var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                    Assert.Greater(rs.Count(), 0);
+                    Assert.AreEqual(IpPrefix + "4", rs.Info.QueriedHost.ToString());
                 }
                 //The control connection should be using the available node
                 StringAssert.StartsWith(IpPrefix + "4", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
@@ -154,7 +159,7 @@ namespace Cassandra.IntegrationTests.Core
                 MaxDegreeOfParallelism = 1000
             };
 
-            var policy = new ConstantReconnectionPolicy(1000);
+            var policy = new ConstantReconnectionPolicy(5000);
             var builder = Cluster.Builder().WithReconnectionPolicy(policy);
             var clusterInfo = TestUtils.CcmSetup(4, builder);
             try
@@ -185,6 +190,9 @@ namespace Cassandra.IntegrationTests.Core
                 Trace.TraceInformation("Start invoking with kill nodes");
                 Parallel.Invoke(parallelOptions, actions.ToArray());
 
+                //Wait for the nodes to be killed
+                Thread.Sleep(30000);
+
                 actions = new List<Action>();
                 for (var i = 0; i < 100; i++)
                 {
@@ -192,7 +200,6 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 //Check that the control connection is using first host
-                //StringAssert.StartsWith(IpPrefix + "4", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
                 //bring back some nodes
                 actions.Insert(3, () => TestUtils.CcmStart(clusterInfo, 3));
                 actions.Insert(50, () => TestUtils.CcmStart(clusterInfo, 2));
@@ -201,6 +208,19 @@ namespace Cassandra.IntegrationTests.Core
                 //Execute in parallel more than 100 actions
                 Trace.TraceInformation("Start invoking with restart nodes");
                 Parallel.Invoke(parallelOptions, actions.ToArray());
+
+
+                //Wait for the nodes to be restarted
+                Thread.Sleep(30000);
+
+                var queriedHosts = new List<IPEndPoint>();
+                for (var i = 0; i < 100; i++)
+                {
+                    var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                    queriedHosts.Add(rs.Info.QueriedHost);
+                }
+                //Check that one of the restarted nodes were queried
+                Assert.True(queriedHosts.Any(address => address.ToString().StartsWith(IpPrefix + "3")));
                 //Check that the control connection is still using last host
                 StringAssert.StartsWith(IpPrefix + "4", clusterInfo.Cluster.Metadata.ControlConnection.BindAddress.ToString());
             }
@@ -404,6 +424,31 @@ namespace Cassandra.IntegrationTests.Core
                     Thread.Sleep(1000);
                 }
                 Assert.False(cluster.AllHosts().ToList()[0].IsUp);
+            }
+            finally
+            {
+                TestUtils.CcmRemove(clusterInfo);
+            }
+        }
+
+        /// <summary>
+        /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
+        /// </summary>
+        [Test]
+        public void ClusterInitializationRecoversFromNoHostAvailable()
+        {
+            var cluster = Cluster.Builder()
+                .AddContactPoint(IpPrefix + "1")
+                .Build();
+            //initially it will throw as there is no node reachable
+            Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+
+            var clusterInfo = TestUtils.CcmSetup(1);
+            try
+            {
+                //Now the node is ready to accept connections
+                var session = cluster.Connect("system");
+                TestHelper.ParallelInvoke(() => session.Execute("SELECT * from schema_keyspaces"), 20);
             }
             finally
             {

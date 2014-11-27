@@ -46,19 +46,19 @@ namespace Cassandra.IntegrationTests.Core
         public static void createSchema(ISession session, int replicationFactor)
         {
             session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, TestUtils.SIMPLE_KEYSPACE, replicationFactor));
-            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
+            TestUtils.WaitForSchemaAgreement(session.Cluster);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
-            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
+            TestUtils.WaitForSchemaAgreement(session.Cluster);
         }
 
         public static void createMultiDCSchema(ISession session, int dc1RF = 1, int dc2RF = 1)
         {
             session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_GENERIC_FORMAT, TestUtils.SIMPLE_KEYSPACE, "NetworkTopologyStrategy",
                                               string.Format("'dc1' : {0}, 'dc2' : {1}", dc1RF, dc2RF)));
-            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
+            TestUtils.WaitForSchemaAgreement(session.Cluster);
             session.ChangeKeyspace(TestUtils.SIMPLE_KEYSPACE);
-            TestUtils.WaitForSchemaAgreement(session.Cluster.AllHosts().Count);
+            TestUtils.WaitForSchemaAgreement(session.Cluster);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TABLE));
         }
 
