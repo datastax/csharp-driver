@@ -241,7 +241,7 @@ namespace Cassandra
         /// </summary>
         internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
         {
-            var hostPool = _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, Configuration));
+            var hostPool = _connectionPool.GetOrAdd(host.Address, address => new HostConnectionPool(host, distance, Configuration));
             //It can change from the last time, when trying lower protocol versions
             hostPool.ProtocolVersion = (byte) BinaryProtocolVersion;
             return hostPool;
