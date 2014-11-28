@@ -24,6 +24,8 @@ using System.Threading.Tasks;
 
 namespace Cassandra.Tests
 {
+    using CqlQueryTools = Cassandra.Data.Linq.CqlQueryTools;
+
     [TestFixture]
     public class LinqToCqlUnitTests
     {
@@ -393,6 +395,35 @@ APPLY BATCH".Replace("\r", ""));
             Assert.Greater(actualCqlQueries.Count, 0);
             Assert.AreEqual("CREATE TABLE \"CounterTestTable1\"(\"RowKey1\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY(\"RowKey1\", \"RowKey2\"));", actualCqlQueries[0]);
             Assert.AreEqual("CREATE TABLE \"CounterTestTable2\"(\"RowKey1\" int, \"RowKey2\" int, \"CKey1\" int, \"Value\" counter, PRIMARY KEY((\"RowKey1\", \"RowKey2\"), \"CKey1\"));", actualCqlQueries[1]);
+        }
+
+        [Table]
+        private class TableWithStaticColumn
+        {
+            [PartitionKey]
+            public int PartitionKey1 { get; set; }
+
+            [StaticColumn]
+            public string StaticField { get; set; }
+
+            [ClusteringKey(1)]
+            public int ClusteringKey1 { get; set; }
+
+            public decimal Value { get; set; }
+        }
+
+        [Test]
+        public void CreateTableStaticColumnTest()
+        {
+            var sessionMock = new Mock<ISession>();
+            var table = sessionMock.Object.GetTable<TableWithStaticColumn>();
+
+            var list = CqlQueryTools.GetCreateCQL(table, false);
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list, Is.Not.Empty);
+
+            Assert.That(list[0], Contains.Substring(@"""StaticField"" text static"));
         }
 
         [Test]
