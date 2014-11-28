@@ -302,6 +302,11 @@ namespace Cassandra.Data.Linq
                 else
                     sb.Append(GetCqlTypeFromType(tpy));
 
+                if (prop.GetCustomAttributes(typeof(StaticColumnAttribute), true).Any())
+                {
+                    sb.Append(" static");
+                }
+
                 sb.Append(", ");
                 var pk = prop.GetCustomAttributes(typeof (PartitionKeyAttribute), true).FirstOrDefault() as PartitionKeyAttribute;
                 if (pk != null)
