@@ -57,5 +57,14 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual(1000L, result[0].identifier);
             Assert.AreEqual(25, result[0].user_age);
         }
+
+        [Test]
+        public void Linq_CqlQueryBase_Execute_Anonymous_Single_Value_Type()
+        {
+            //It does not have much sense to use an anonymous type with a single value but here it goes!
+            var table = GetSession(TestDataHelper.CreateMultipleValuesRowSet(new[] { "age" }, new[] { 25 })).GetTable<AllTypesEntity>();
+            var result = (from e in table select new { user_age = e.IntValue}).Execute().ToList();
+            Assert.AreEqual(25, result[0].user_age);
+        }
     }
 }

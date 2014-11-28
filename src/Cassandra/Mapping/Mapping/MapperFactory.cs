@@ -95,7 +95,9 @@ namespace Cassandra.Mapping.Mapping
             var pocoData = GetPocoData<T>();
 
             // See if we retrieved only one column and if that column does not exist in the PocoData
-            if (rows.Columns.Length == 1 && pocoData.Columns.Contains(rows.Columns[0].Name) == false)
+            if (rows.Columns.Length == 1 && 
+                !Cassandra.Utils.IsAnonymousType(pocoData.PocoType) && 
+                !pocoData.Columns.Contains(rows.Columns[0].Name))
             {
                 // Map the single column value directly to the POCO
                 return CreateMapperForSingleColumnToPoco<T>(rows, pocoData);
