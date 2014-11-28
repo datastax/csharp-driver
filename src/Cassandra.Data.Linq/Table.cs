@@ -26,6 +26,10 @@ using Cassandra.Mapping.TypeConversion;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// A Linq IQueryProvider that represents a table in Cassandra
+    /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
     public class Table<TEntity> : CqlQuery<TEntity>, ITable
     {
         private readonly ISession _session;
@@ -104,8 +108,7 @@ namespace Cassandra.Data.Linq
 
         public TableType GetTableType()
         {
-            //TODO: Check for Counter columns
-            return TableType.Standard;
+            return PocoData.Columns.Any(c => c.IsCounter) ? TableType.Counter : TableType.Standard;
         }
 
         /// <summary>
@@ -113,7 +116,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
-            return new CqlInsert<TEntity>(entity, this, MapperFactory);
+            return new CqlInsert<TEntity>(entity, this, StatementFactory, MapperFactory);
         }
     }
 }

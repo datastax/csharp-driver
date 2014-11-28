@@ -17,6 +17,7 @@
 using System.Linq;
 using System.Linq.Expressions;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
@@ -24,8 +25,8 @@ namespace Cassandra.Data.Linq
     {
         private bool _ifExists = false;
 
-        internal CqlDelete(Expression expression, IQueryProvider table, PocoData pocoData)
-            : base(expression, table, pocoData)
+        internal CqlDelete(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, stmtFactory, pocoData)
         {
         }
 

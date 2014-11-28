@@ -11,28 +11,8 @@ using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping.Linq
 {
-    [TestFixture]
-    public class LinqToCqlSelectUnitTests
+    public class LinqToCqlSelectUnitTests : MappingTestBase
     {
-        private static ISession GetSession(Action<string, object[]> callback, RowSet rs = null)
-        {
-            if (rs == null)
-            {
-                rs = new RowSet();
-            }
-            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
-            sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(() => TaskHelper.ToTask(rs))
-                .Callback<BoundStatement>(stmt => callback(stmt.PreparedStatement.Cql, stmt.QueryValues))
-                .Verifiable();
-            sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(query => TaskHelper.ToTask(new PreparedStatement(null, null, query, null)))
-                .Verifiable();
-            return sessionMock.Object;
-        }
-
         [Test]
         public void Select_AllowFiltering_Test()
         {

@@ -52,10 +52,10 @@ namespace Cassandra.IntegrationTests.Linq
             CqlQuery<TestTable> query3 = query.Where(i => i.Token <= time);
             query3 = query3.OrderByDescending(i => i.Token);
 
-            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 ALLOW FILTERING", query.ToString());
-            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 AND \"time\" >= 3 ORDER BY \"time\" ASC ALLOW FILTERING",
+            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? ALLOW FILTERING", query.ToString());
+            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" >= ? ORDER BY \"time\" ALLOW FILTERING",
                          query2.ToString());
-            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = 1 AND \"date\" = 2 AND \"time\" <= 3 ORDER BY \"time\" DESC ALLOW FILTERING",
+            Assert.AreEqual("SELECT * FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" <= ? ORDER BY \"time\" DESC ALLOW FILTERING",
                          query3.ToString());
 
             List<TestTable> result2 = query2.Execute().ToList();

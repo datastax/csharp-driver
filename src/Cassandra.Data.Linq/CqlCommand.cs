@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
@@ -27,6 +29,7 @@ namespace Cassandra.Data.Linq
     {
         private readonly Expression _expression;
         private readonly IQueryProvider _table;
+        private readonly StatementFactory _statementFactory;
         protected DateTimeOffset? _timestamp = null;
         protected int? _ttl = null;
 
@@ -61,10 +64,11 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        internal CqlCommand(Expression expression, IQueryProvider table, PocoData pocoData)
+        internal CqlCommand(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
         {
             _expression = expression;
             _table = table;
+            _statementFactory = stmtFactory;
             PocoData = pocoData;
         }
 
@@ -121,9 +125,17 @@ namespace Cassandra.Data.Linq
 
         public Task<RowSet> ExecuteAsync()
         {
-            InitializeStatement();
+            object[] values;
+            var cqlQuery = GetCql(out values);
             var session = GetTable().GetSession();
-            return session.ExecuteAsync(this);
+            return _statementFactory
+                .GetStatementAsync(Cql.New(cqlQuery, values))
+                .Continue(t1 =>
+                {
+                    var stmt = t1.Result;
+                    this.CopyQueryPropertiesTo(stmt);
+                    return session.ExecuteAsync(stmt);
+                }).Unwrap();
         }
 
         /// <summary>

@@ -17,13 +17,14 @@
 using System.Linq;
 using System.Linq.Expressions;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
     public class CqlUpdate : CqlCommand
     {
-        internal CqlUpdate(Expression expression, IQueryProvider table, PocoData pocoData)
-            : base(expression, table, pocoData)
+        internal CqlUpdate(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, stmtFactory, pocoData)
         {
         }
 

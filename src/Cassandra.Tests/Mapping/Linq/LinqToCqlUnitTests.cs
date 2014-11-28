@@ -474,20 +474,6 @@ APPLY BATCH".Replace("\r", ""));
         }
 
         [Test]
-        public void UpdateIf_With_Where_Clause()
-        {
-            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
-            var query = table
-                .Where(t => t.BooleanValue == true && t.DoubleValue > 1d)
-                .Select(t => new AllTypesDecorated { StringValue = "updated value"})
-                .UpdateIf(t => t.IntValue == 100);
-            Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?", 
-                query.ToString());
-            Trace.TraceInformation(query.ToString());
-        }
-
-        [Test]
         public void DeleteIf_With_Where_Clause()
         {
             var table = SessionExtensions.GetTable<AllTypesDecorated>(null);

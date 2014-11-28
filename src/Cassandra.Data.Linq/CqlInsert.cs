@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
@@ -27,8 +28,8 @@ namespace Cassandra.Data.Linq
         private bool _ifNotExists;
         private readonly MapperFactory _mapperFactory;
 
-        internal CqlInsert(TEntity entity, IQueryProvider table, MapperFactory mapperFactory)
-            : base(null, table, mapperFactory.GetPocoData<TEntity>())
+        internal CqlInsert(TEntity entity, IQueryProvider table, StatementFactory stmtFactory, MapperFactory mapperFactory)
+            : base(null, table, stmtFactory, mapperFactory.GetPocoData<TEntity>())
         {
             _entity = entity;
             _mapperFactory = mapperFactory;
