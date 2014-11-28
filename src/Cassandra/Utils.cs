@@ -176,9 +176,14 @@ namespace Cassandra
             {
                 return false;
             }
+            return IsAnonymousType(value.GetType());
+        }
 
-            var type = value.GetType();
-
+        /// <summary>
+        /// Determines if the type is anonymous
+        /// </summary>
+        public static bool IsAnonymousType(Type type)
+        {
             return type.IsGenericType
                    && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
                    && (type.Name.Contains("AnonymousType") || type.Name.Contains("AnonType"))

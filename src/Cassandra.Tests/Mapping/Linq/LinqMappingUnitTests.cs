@@ -46,7 +46,16 @@ namespace Cassandra.Tests.Mapping.Linq
         {
             var table = GetSession(TestDataHelper.GetSingleValueRowSet("int_val", 1)).GetTable<int>();
             var result = table.Execute().ToList();
-            CollectionAssert.AreEqual(new [] {1}, result.ToArray(), new TestHelper.PropertyComparer());
+            CollectionAssert.AreEqual(new[] { 1 }, result.ToArray(), new TestHelper.PropertyComparer());
+        }
+
+        [Test]
+        public void Linq_CqlQueryBase_Execute_Anonymous_Type()
+        {
+            var table = GetSession(TestDataHelper.CreateMultipleValuesRowSet(new [] {"age", "long_value"}, new [] {25, 1000})).GetTable<AllTypesEntity>();
+            var result = (from e in table select new { user_age = e.IntValue, identifier = e.Int64Value }).Execute().ToList();
+            Assert.AreEqual(1000L, result[0].identifier);
+            Assert.AreEqual(25, result[0].user_age);
         }
     }
 }

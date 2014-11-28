@@ -202,8 +202,30 @@ namespace Cassandra.Mapping.Mapping
             ParameterExpression row = Expression.Parameter(CassandraRowType, "row");
 
             // T poco = new T();
-            ParameterExpression poco = Expression.Variable(pocoData.PocoType, "poco");
-            methodBodyExpressions.Add(Expression.Assign(poco, Expression.New(pocoData.PocoType)));       // TODO: Constructor selection?
+            var poco = Expression.Variable(pocoData.PocoType, "poco");
+            if (pocoData.PocoType.GetConstructor(Type.EmptyTypes) != null)
+            {
+                //It has default constructor
+                methodBodyExpressions.Add(Expression.Assign(poco, Expression.New(pocoData.PocoType)));
+            }
+            else if (Cassandra.Utils.IsAnonymousType(pocoData.PocoType))
+            {
+                var constructor = pocoData.PocoType.GetConstructors()[0];
+                if (rows.Columns.Length != constructor.GetParameters().Length)
+                {
+                    throw new NotSupportedException("RowSet columns length is {0} but Anonymous type contains only");
+                }
+                var parameterInfos = constructor.GetParameters();
+                var parameterExpressions = new List<Expression>();
+                for (var i = 0; i < rows.Columns.Length; i++)
+                {
+                    var c = rows.Columns[i];
+                    var param = parameterInfos[i];
+                    var getValueT = GetExpressionToGetColumnValueFromRow(row, c, param.ParameterType);
+                    parameterExpressions.Add(getValueT);
+                }
+                methodBodyExpressions.Add(Expression.Assign(poco, Expression.New(constructor, parameterExpressions)));
+            }
 
             // Keep track of any variables we need in the method body, starting with the poco variable
             var methodBodyVariables = new List<ParameterExpression> { poco };

@@ -370,7 +370,7 @@ namespace Cassandra.IntegrationTests.Linq
 
             var anonMovie = new {Director = "Quentin Tarantino", Year = 2005};
             table.Where(m => m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == anonMovie.Director)
-                 .Select(m => new NerdMovie {Year = anonMovie.Year, MainActor = "George Clooney"})
+                 .Select(m => new {Year = anonMovie.Year, MainActor = "George Clooney"})
                  .Update()
                  .Execute();
 
@@ -378,13 +378,21 @@ namespace Cassandra.IntegrationTests.Linq
             List<NerdMovie> all =
                 (from m in table where CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar") select m).Execute().ToList();
 
+            Assert.Throws<CqlLinqNotSupportedException>(() =>
+                //Trying to select fields that are not part of m
+                (from m in table
+                 where m.Director == "Quentin Tarantino"
+                 select new ExtMovie { Size = all.Count, TheMaker = m.Director }).Execute());
             List<ExtMovie> nmT =
                 (from m in table
                  where m.Director == "Quentin Tarantino"
-                 select new ExtMovie {TheDirector = m.MainActor, Size = all.Count, TheMaker = m.Director}).Execute().ToList();
-            var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Z = 10, Y = m.Year}).Execute().ToList();
+                 select new ExtMovie { TheDirector = m.MainActor, TheMaker = m.Director }).Execute().ToList();
+            Assert.Throws<CqlLinqNotSupportedException>(() =>
+                (from m in table where m.Director == "Quentin Tarantino" select new { Z = 10, Y = m.Year }).Execute());
 
-            var nmX = (from m in table where m.Director == "Quentin Tarantino" select new {m.MainActor, Z = 10, m.Year}).Execute().ToList();
+            var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Y = m.Year}).Execute().ToList();
+
+            var nmX = (from m in table where m.Director == "Quentin Tarantino" select new {m.MainActor, m.Year}).Execute().ToList();
 
             (from m in table
              where m.Movie.Equals("Pulp Fiction") && m.Maker.Equals("Pixar") && m.Director == "Quentin Tarantino"

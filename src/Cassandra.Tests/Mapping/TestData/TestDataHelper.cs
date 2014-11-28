@@ -49,6 +49,26 @@ namespace Cassandra.Tests.Mapping.TestData
             return rs;
         }
 
+        public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues)
+        {
+            var rs = new RowSet();
+            rs.Columns = new CqlColumn[columnNames.Length];
+            for (var i = 0; i < columnNames.Length; i++)
+            {
+                IColumnInfo typeInfo;
+                var typeCode = TypeCodec.GetColumnTypeCodeInfo(typeof(T), out typeInfo);
+                rs.Columns[i] =
+                    new CqlColumn { Name = columnNames[i], TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = i };
+            }
+            var columnIndexes = rs.Columns.ToDictionary(c => c.Name, c => c.Index);
+
+            var values = genericValues
+                .Select(v => TypeCodec.Encode(ProtocolVersion, v));
+            var row = new Row(ProtocolVersion, values.ToArray(), rs.Columns, columnIndexes);
+            rs.AddRow(row);
+            return rs;
+        }
+
         public static RowSet GetUsersRowSet(IEnumerable<PlainUser> users)
         {
             var rs = new RowSet();

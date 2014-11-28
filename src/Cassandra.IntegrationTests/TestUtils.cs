@@ -285,7 +285,7 @@ namespace Cassandra.IntegrationTests
         {
             ccmConfigDir = EscapePath(ccmConfigDir);
             var args = ccmArgs + " --config-dir=" + ccmConfigDir;
-            Trace.TraceInformation("Executing ccm: " + ccmArgs);
+            Trace.TraceInformation("Executing ccm: " + args);
             var processName = "/usr/local/bin/ccm";
             if (IsWin)
             {

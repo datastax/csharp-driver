@@ -94,7 +94,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
         {
-            var visitor = new CqlExpressionVisitor(MapperFactory.GetPocoData<TEntity>());
+            var visitor = new CqlExpressionVisitor(PocoData);
             visitor.Evaluate(Expression);
             object[] values;
             var cql = visitor.GetSelect(out values);

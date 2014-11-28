@@ -669,29 +669,40 @@ namespace Cassandra.Data.Linq
             {
                 return node;
             }
-            if (_phasePhase.Get() == ParsePhase.Condition)
+            switch (_phasePhase.Get())
             {
-                _currentCondition.Get().Item1.Append("?");
-                _currentCondition.Get().Item2.Add(node.Value);
-                return node;
-            }
-            if (_phasePhase.Get() == ParsePhase.SelectBinding)
-            {
-                var columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
-                _projections[columnName] = node.Value;
-                _selectFields.Add(columnName);
-                return node;
-            }
-            if (_phasePhase.Get() == ParsePhase.Take)
-            {
-                _limit = (int) node.Value;
-                return node;
-            }
-            if (_phasePhase.Get() == ParsePhase.OrderBy || _phasePhase.Get() == ParsePhase.OrderByDescending)
-            {
-                var columnName = _pocoData.GetColumnNameByMemberName((string) node.Value);
-                _orderBy.Add(Tuple.Create(columnName, _phasePhase.Get() == ParsePhase.OrderBy));
-                return node;
+                case ParsePhase.Condition:
+                    _currentCondition.Get().Item1.Append("?");
+                    _currentCondition.Get().Item2.Add(node.Value);
+                    return node;
+                case ParsePhase.SelectBinding:
+                {
+                    var columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
+                    if (columnName == null)
+                    {
+                        //selecting a field that is not part of PocoType
+                        break;
+                    }
+                    _projections[columnName] = node.Value;
+                    _selectFields.Add(columnName);
+                    return node;
+                }
+                case ParsePhase.Take:
+                    _limit = (int) node.Value;
+                    return node;
+                case ParsePhase.OrderBy:
+                case ParsePhase.OrderByDescending:
+                {
+                    var columnName = _pocoData.GetColumnNameByMemberName((string) node.Value);
+                    if (columnName == null)
+                    {
+                        //order by a field that is not part of PocoType
+                        break;
+                    }
+                    _orderBy.Add(Tuple.Create(columnName, _phasePhase.Get() == ParsePhase.OrderBy));
+                    return node;
+                }
+
             }
             throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
         }
@@ -750,6 +761,11 @@ namespace Cassandra.Data.Linq
                 case ParsePhase.SelectBinding:
                 {
                     var columnName = _pocoData.GetColumnName(node.Member);
+                    if (columnName == null)
+                    {
+                        //Not valid: Trying to select fields that are not part of PocoType
+                        break;
+                    }
                     if (node.Expression == null)
                     {
                         var value = Expression.Lambda(node).Compile().DynamicInvoke();
@@ -759,7 +775,7 @@ namespace Cassandra.Data.Linq
                     }
                     if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
                     {
-                        var value = Expression.Lambda(node.Expression).Compile().DynamicInvoke();
+                        var value = Expression.Lambda(node).Compile().DynamicInvoke();
                         _projections[columnName] = value;
                         _selectFields.Add(columnName);
                         return node;
