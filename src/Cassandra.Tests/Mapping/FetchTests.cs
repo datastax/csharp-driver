@@ -148,13 +148,13 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
-        public void Fetch_Invalid_AllProps_Conversion_Throws()
+        public void Fetch_Invalid_Constructor_Throws()
         {
             var usersOriginal = TestDataHelper.GetUserList();
             var rowset = TestDataHelper.GetUsersRowSet(usersOriginal);
             var mappingClient = GetMappingClient(rowset);
             var ex = Assert.Throws<ArgumentException>(() => mappingClient.Fetch<SomeClassWithNoDefaultConstructor>("SELECT * FROM users"));
-            StringAssert.Contains("default constructor", ex.Message);
+            StringAssert.Contains("constructor", ex.Message);
         }
 
         private class SomeClassWithNoDefaultConstructor

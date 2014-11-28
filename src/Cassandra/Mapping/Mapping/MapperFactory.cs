@@ -210,12 +210,15 @@ namespace Cassandra.Mapping.Mapping
                 //It has default constructor
                 methodBodyExpressions.Add(Expression.Assign(poco, Expression.New(pocoData.PocoType)));
             }
-            else if (Cassandra.Utils.IsAnonymousType(pocoData.PocoType))
+            else
             {
-                var constructor = pocoData.PocoType.GetConstructors()[0];
-                if (rows.Columns.Length != constructor.GetParameters().Length)
+                var constructor = pocoData.PocoType.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == rows.Columns.Length);
+                if (constructor == null)
                 {
-                    throw new NotSupportedException("RowSet columns length is {0} but Anonymous type contains only");
+                    throw new ArgumentException(
+                        String.Format("RowSet columns length is {0} but type {1} does not contain a constructor with the same amount of parameters", 
+                        rows.Columns.Length,
+                        pocoData.PocoType));
                 }
                 var parameterInfos = constructor.GetParameters();
                 var parameterExpressions = new List<Expression>();
@@ -232,7 +235,7 @@ namespace Cassandra.Mapping.Mapping
             // Keep track of any variables we need in the method body, starting with the poco variable
             var methodBodyVariables = new List<ParameterExpression> { poco };
 
-            foreach (CqlColumn dbColumn in rows.Columns)
+            foreach (var dbColumn in rows.Columns)
             {
                 // Try to find a corresponding column on the POCO and if not found, don't map that column from the RowSet
                 PocoColumn pocoColumn;

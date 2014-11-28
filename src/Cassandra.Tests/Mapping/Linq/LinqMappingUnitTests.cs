@@ -63,8 +63,17 @@ namespace Cassandra.Tests.Mapping.Linq
         {
             //It does not have much sense to use an anonymous type with a single value but here it goes!
             var table = GetSession(TestDataHelper.CreateMultipleValuesRowSet(new[] { "age" }, new[] { 25 })).GetTable<AllTypesEntity>();
-            var result = (from e in table select new { user_age = e.IntValue}).Execute().ToList();
+            var result = (from e in table select new { user_age = e.IntValue }).Execute().ToList();
             Assert.AreEqual(25, result[0].user_age);
+        }
+
+        [Test]
+        public void Linq_CqlQueryBase_Execute_NoDefaultConstructor()
+        {
+            var table = GetSession(TestDataHelper.CreateMultipleValuesRowSet(new[] { "age", "long_value" }, new[] { 25, 1000 })).GetTable<AllTypesEntity>();
+            var result = (from e in table select new Tuple<int, long>(e.IntValue, e.Int64Value)).Execute().ToList();
+            Assert.AreEqual(25, result[0].Item1);
+            Assert.AreEqual(1000L, result[0].Item2);
         }
     }
 }

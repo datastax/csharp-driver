@@ -352,14 +352,32 @@ namespace Cassandra.Data.Linq
             {
                 throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
             }
-            for (var i = 0; i < node.Members.Count; i++)
+            for (var i = 0; i < node.Arguments.Count; i++)
             {
                 var binding = node.Arguments[i];
                 if (binding.NodeType == ExpressionType.Parameter)
                 {
                     throw new CqlLinqNotSupportedException(binding, _phasePhase.Get());
                 }
-                using (_currentBindingName.Set(node.Members[i].Name))
+
+                string bindingName;
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                if (node.Members != null && i < node.Members.Count)
+                {
+                    bindingName = node.Members[i].Name;
+                }
+                else
+                {
+                    var memberExpression = binding as MemberExpression;
+                    if (memberExpression == null)
+                    {
+                        throw new CqlLinqNotSupportedException(binding, _phasePhase.Get());
+                    }
+
+                    bindingName = memberExpression.Member.Name;
+                }
+
+                using (_currentBindingName.Set(bindingName))
                 {
                     Visit(binding);
                 }
