@@ -79,6 +79,7 @@
     <Compile Include="Mapping\Pocos\InsertUser.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedCaseInsensitiveEntity.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedEntity.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedEntityWithStaticField.cs" />
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
     <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />

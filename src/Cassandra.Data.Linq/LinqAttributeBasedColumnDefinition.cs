@@ -17,6 +17,7 @@ namespace Cassandra.Data.Linq
         public bool IsExplicitlyDefined { get; private set; }
         public bool SecondaryIndex { get; private set; }
         public bool IsCounter { get; private set; }
+        public bool IsStatic { get; private set; }
 
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
@@ -52,6 +53,7 @@ namespace Cassandra.Data.Linq
             }
             SecondaryIndex = HasAttribute(memberInfo, typeof (SecondaryIndexAttribute));
             IsCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
+            IsStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));
             //TODO: Create Linq's Ignore attribute
             Ignore = false;
         }

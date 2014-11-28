@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Mapping.Mapping
 {
@@ -18,6 +19,7 @@ namespace Cassandra.Mapping.Mapping
         private readonly bool _isExplicitlyDefined;
         private bool _secondaryIndex = false;
         private bool _isCounter = false;
+        private const bool IsStatic = false;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -59,6 +61,11 @@ namespace Cassandra.Mapping.Mapping
             get { return _isCounter; }
         }
 
+        bool IColumnDefinition.IsStatic
+        {
+            get { return IsStatic; }
+        }
+
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
         /// </summary>
@@ -93,6 +100,7 @@ namespace Cassandra.Mapping.Mapping
                     _columnType = columnAttribute.Type;
             }
             //TODO: Handle Counter, Partition and secondary indexes
+
             var ignoreAttribute = memberInfo.GetCustomAttributes(typeof(IgnoreAttribute), true).FirstOrDefault();
             if (ignoreAttribute != null)
                 _ignore = true;

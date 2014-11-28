@@ -47,5 +47,10 @@ namespace Cassandra.Mapping.Mapping
         /// Determines if this column is a counter column
         /// </summary>
         bool IsCounter { get; }
+
+        /// <summary>
+        /// Determines if this column is a static column
+        /// </summary>
+        bool IsStatic { get; }
     }
 }

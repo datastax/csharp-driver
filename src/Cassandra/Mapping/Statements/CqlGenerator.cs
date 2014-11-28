@@ -190,7 +190,12 @@ namespace Cassandra.Mapping.Statements
                     .Append(" ");
                 var columnType = column.IsCounter ? "counter" : GetTypeString(column);
                 createTable    
-                    .Append(columnType)
+                    .Append(columnType);
+                if (column.IsStatic)
+                {
+                    createTable.Append(" static");
+                }
+                createTable
                     .Append(", ");
                 if (column.SecondaryIndex)
                 {
