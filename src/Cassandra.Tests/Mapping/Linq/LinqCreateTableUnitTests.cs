@@ -103,6 +103,30 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Create_With_Static()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .PartitionKey(t => t.UuidValue)
+                .Column(t => t.UuidValue, cm => cm.WithName("id"))
+                .Column(t => t.StringValue, cm => cm.WithName("name").AsStatic())
+                .Column(t => t.IntValue, cm => cm.WithName("item_id"))
+                .Column(t => t.DecimalValue, cm => cm.WithName("value"))
+                .ClusteringKey("item_id")
+                .TableName("items_by_id")
+                .ExplicitColumns();
+            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            table.Create();
+            Assert.That(createQuery, Contains.Substring("name text static"));
+        }
+
+        [Test]
         public void Create_With_Secondary_Index()
         {
             var createQueries = new List<string>();
@@ -211,6 +235,24 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual(@"CREATE TABLE tbl1 (i_id bigint, val1 text, val2 text, Date timestamp, PRIMARY KEY (i_id))", createQueries[0]);
             //keyspace.table in index creation
             Assert.AreEqual(@"CREATE INDEX ON tbl1 (val2)", createQueries[1]);
+        }
+
+        [Test]
+        public void Create_With_Static_Column_Linq_Decorated()
+        {
+            var createQueries = new List<string>();
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(createQueries.Add);
+
+            var table = sessionMock.Object.GetTable<LinqDecoratedEntityWithStaticField>();
+
+            table.Create();
+
+            Assert.That(createQueries, Is.Not.Empty);
+            Assert.That(createQueries[0], Is.EqualTo("CREATE TABLE Items (Key int, KeyName text static, ItemId int, Value decimal, PRIMARY KEY (Key, ItemId))"));
         }
     }
 }

@@ -17,6 +17,7 @@ namespace Cassandra.Mapping.FluentMapping
         private readonly bool _isExplicitlyDefined;
         private bool _secondaryIndex;
         private bool _isCounter;
+        private bool _isStatic;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -56,6 +57,11 @@ namespace Cassandra.Mapping.FluentMapping
         bool IColumnDefinition.IsCounter
         {
             get { return _isCounter; }
+        }
+
+        bool IColumnDefinition.IsStatic
+        {
+            get { return _isStatic; }
         }
 
         /// <summary>
@@ -128,6 +134,15 @@ namespace Cassandra.Mapping.FluentMapping
         public ColumnMap AsCounter()
         {
             _isCounter = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Tells the mapper that this is a static column
+        /// </summary>
+        public ColumnMap AsStatic()
+        {
+            _isStatic = true;
             return this;
         }
     }

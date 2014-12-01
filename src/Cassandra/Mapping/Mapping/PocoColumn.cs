@@ -35,6 +35,11 @@ namespace Cassandra.Mapping.Mapping
         /// </summary>
         public bool IsCounter { get; set; }
 
+        /// <summary>
+        /// Determines that it is a static column
+        /// </summary>
+        public bool IsStatic { get; private set; }
+
         private PocoColumn()
         {
         }
@@ -50,7 +55,8 @@ namespace Cassandra.Mapping.Mapping
                 MemberInfo = columnDefinition.MemberInfo,
                 MemberInfoType = columnDefinition.MemberInfoType,
                 SecondaryIndex = columnDefinition.SecondaryIndex,
-                IsCounter = columnDefinition.IsCounter
+                IsCounter = columnDefinition.IsCounter,
+                IsStatic = columnDefinition.IsStatic
             };
         }
     }

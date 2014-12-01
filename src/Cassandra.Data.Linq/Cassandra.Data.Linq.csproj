@@ -74,6 +74,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SecondaryIndexAttribute.cs" />
     <Compile Include="SessionExtensions.cs" />
+    <Compile Include="StaticColumnAttribute.cs" />
     <Compile Include="Table.cs" />
     <Compile Include="TableAttribute.cs" />
     <Compile Include="TableType.cs" />
