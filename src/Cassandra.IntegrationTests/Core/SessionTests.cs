@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
                 var taskList = new List<Task>();
                 for (var i = 0; i < 500; i++)
                 {
-                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_columns")));
+                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")));
                 }
                 //Most task should be pending
                 Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
@@ -67,9 +67,9 @@ namespace Cassandra.IntegrationTests.Core
 
                 //Create more async operations that can be finished
                 var taskList = new List<Task>();
-                for (var i = 0; i < 1000; i++)
+                for (var i = 0; i < 512; i++)
                 {
-                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_columns")));
+                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")));
                 }
                 //Most task should be pending
                 Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
