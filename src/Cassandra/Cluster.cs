@@ -263,6 +263,7 @@ namespace Cassandra
             Session session;
             while (_connectedSessions.TryTake(out session))
             {
+                session.WaitForAllPendingActions(timeoutMs);
                 session.Dispose();
             }
             _metadata.ShutDown(timeoutMs);
