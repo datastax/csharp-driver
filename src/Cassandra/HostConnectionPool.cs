@@ -25,7 +25,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a pool of connections to a host
     /// </summary>
-    internal class HostConnectionPool
+    internal class HostConnectionPool : IDisposable
     {
         private readonly static Logger _logger = new Logger(typeof(HostConnectionPool));
         private ConcurrentBag<Connection> _connections;
@@ -57,10 +57,10 @@ namespace Cassandra
 
         public HostConnectionPool(Host host, HostDistance hostDistance, Configuration configuration)
         {
-            this.Host = host;
-            this.Host.Down += OnHostDown;
-            this.HostDistance = hostDistance;
-            this.Configuration = configuration;
+            Host = host;
+            Host.Down += OnHostDown;
+            HostDistance = hostDistance;
+            Configuration = configuration;
         }
 
         /// <summary>
@@ -174,6 +174,22 @@ namespace Cassandra
                 }
                 Interlocked.Decrement(ref _creating);
             }
+        }
+
+        public void Dispose()
+        {
+            Host.Down -= OnHostDown;
+            var connections = _connections;
+            if (connections == null)
+            {
+                return;
+            }
+            _logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", Host.Address, connections.Count));
+            foreach (var c in connections)
+            {
+                c.Dispose();
+            }
+            _connections = null;
         }
     }
 }
