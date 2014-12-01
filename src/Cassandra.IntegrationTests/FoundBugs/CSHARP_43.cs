@@ -19,23 +19,32 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
     [Category("short")]
-    public class FoundBugTests : SingleNodeClusterTest
+    public class CSHARP_43 : TestGlobals
     {
+        ISession _session = null;
+
+        [SetUp]
+        public void SetupFixture()
+        {
+            _session = TestClusterManager.GetTestCluster(1).Session;
+        }
+
         [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-43
         //LINQ query with multiple "where" generate wrong cql and it is failed to execute
-        public void Bug_CSHARP_43()
+        public void BugCSharp43()
         {
             int userId = 1;
             int date = 2;
             int time = 3;
 
-            Table<TestTable> table = Session.GetTable<TestTable>();
+            Table<TestTable> table = _session.GetTable<TestTable>();
             table.CreateIfNotExists();
 
             table.Insert(new TestTable {UserId = 1, Date = 2, Token = 1}).Execute();

@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -26,34 +28,39 @@ using System.Threading.Tasks;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("long")]
-    public class MultiThreadingTests : TwoNodesClusterTest
+    public class MultiThreadingTests : TestGlobals
     {
-        public override void TestFixtureSetUp()
+        Builder _builder = null;
+        private const int NodeCount = 2;
+
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
         {
-            this.Builder = Cluster.Builder()
-                .WithReconnectionPolicy(new ConstantReconnectionPolicy(100))
-                .WithQueryTimeout(60 * 1000);
-
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
-            rp.ReconnectionEvent += (s, ev) =>
-            {
-                Thread.Sleep((int)ev.DelayMs);
-            };
-            this.Builder.WithLoadBalancingPolicy(rp);
+            rp.ReconnectionEvent += (s, ev) => Thread.Sleep((int)ev.DelayMs);
+            _builder = Cluster.Builder()
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(100))
+                .WithQueryTimeout(60 * 1000)
+                .WithLoadBalancingPolicy(rp);
 
-            base.TestFixtureSetUp();
+            _builder = _builder.AddContactPoint(TestClusterManager.GetTestCluster(NodeCount).InitialContactPoint);
         }
 
+        /** name of test: ParallelInsertTest
+         * 
+         * @param nothingActually.
+         * 
+         */
         [Test]
         public void ParallelInsertTest()
         {
-            var localSession = Cluster.Connect();
-            string keyspaceName = "kp_pi1";
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
+            string keyspaceName = "kp_pi1_" + Randomm.RandomAlphaNum(10);
 
-            localSession.Execute(
-                string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName));
+            localSession.Execute(string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName));
 
-            TestUtils.WaitForSchemaAgreement(Cluster);
+            TestUtils.WaitForSchemaAgreement(localCluster);
             localSession.ChangeKeyspace(keyspaceName);
 
             for (int KK = 0; KK < 1; KK++)
@@ -70,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
                         isok boolean,
                         PRIMARY KEY(tweet_id))", tableName));
 
-                    TestUtils.WaitForSchemaAgreement(Cluster);
+                    TestUtils.WaitForSchemaAgreement(localCluster);
                 }
                 catch (AlreadyExistsException)
                 {
@@ -178,12 +185,13 @@ namespace Cassandra.IntegrationTests.Core
         public void InsertFireAndForget()
         {
             var keyspaceName = "kp_ifaf";
-            var localSession = Cluster.Connect();
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
             localSession.CreateKeyspaceIfNotExists(keyspaceName);
             localSession.ChangeKeyspace(keyspaceName);
 
             localSession.WaitForSchemaAgreement(
-                localSession.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, "sampletable")));
+                localSession.Execute(String.Format(TestUtils.CreateTableAllTypes, "sampletable")));
 
             var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
             var rowLength = 10000;
@@ -208,7 +216,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MassiveAsyncTest()
         {
-            var localSession = Cluster.Connect();
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
             string keyspaceName = "kp_mat";
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
@@ -232,7 +241,7 @@ namespace Cassandra.IntegrationTests.Core
             {
             }
 
-            int RowsNo = 10000;
+            int RowsNo = 1000;
 
             var ar = new bool[RowsNo];
 
@@ -290,7 +299,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void ShutdownAsyncTest()
         {
-            var localSession = Cluster.Connect();
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
@@ -313,7 +323,7 @@ namespace Cassandra.IntegrationTests.Core
             {
             }
 
-            int RowsNo = 10000;
+            int RowsNo = 1000;
 
             var ar = new bool[RowsNo];
 

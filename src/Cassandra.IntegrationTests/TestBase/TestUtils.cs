@@ -25,26 +25,28 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Cassandra.IntegrationTests.Core;
+using Cassandra.IntegrationTests.TestClusterManagement;
+using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.TestBase
 {
     /// <summary>
     ///  A number of static fields/methods handy for tests.
     /// </summary>
     internal static class TestUtils
     {
-        private static readonly Logger logger = new Logger(typeof(TestUtils));
+        private static readonly Logger _logger = new Logger(typeof (TestUtils));
+        private const int DefaultSleepIterationMs = 1000;
 
-        public static readonly string CREATE_KEYSPACE_SIMPLE_FORMAT =
+        public static readonly string CreateKeyspaceSimpleFormat =
             "CREATE KEYSPACE \"{0}\" WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
 
-        public static readonly string CREATE_KEYSPACE_GENERIC_FORMAT = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
+        public static readonly string CreateKeyspaceGenericFormat = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
 
-        public static readonly string SIMPLE_KEYSPACE = "ks";
-        public static readonly string SIMPLE_TABLE = "test";
+        public static readonly string CreateTableSimpleFormat = "CREATE TABLE {0} (k text PRIMARY KEY, t text, i int, f float)";
 
-        public static readonly string CREATE_TABLE_SIMPLE_FORMAT = "CREATE TABLE {0} (k text PRIMARY KEY, t text, i int, f float)";
-        public const string CREATE_TABLE_ALL_TYPES = @"
+        public const string CreateTableAllTypes = @"
             create table {0} (
             id uuid primary key,
             ascii_sample ascii,
@@ -84,38 +86,178 @@ namespace Cassandra.IntegrationTests
         public static readonly string SELECT_ALL_FORMAT = "SELECT * FROM {0}";
         public static readonly string SELECT_WHERE_FORMAT = "SELECT * FROM {0} WHERE {1}";
 
+        public static string GetTestClusterNameBasedOnCurrentEpochTime()
+        {
+            return "test_cluster_" + (int) (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+        }
+
+        public static string GetUniqueKeyspaceName()
+        {
+            return "TestKeySpace_" + Randomm.RandomAlphaNum(12);
+        }
+
+        public static string GetUniqueTableName()
+        {
+            return "TestTable_" + Randomm.RandomAlphaNum(12);
+        }
+
+        public static byte[] GetBytes(string str)
+        {
+            byte[] bytes = new byte[str.Length*sizeof (char)];
+            System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
+        /// <summary>
+        /// Validates that the bootstrapped node was added to the cluster and was queried.
+        /// </summary>
+        public static void ValidateBootStrappedNodeIsQueried(ITestCluster testCluster, int expectedTotalNodeCount, string newlyBootstrappedHost)
+        {
+            var hostsQueried = new List<string>();
+            DateTime timeInTheFuture = DateTime.Now.AddSeconds(120);
+            while (testCluster.Cluster.Metadata.AllHosts().ToList().Count() < expectedTotalNodeCount && DateTime.Now < timeInTheFuture)
+            {
+                var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
+                rs.Count();
+                hostsQueried.Add(rs.Info.QueriedHost.ToString());
+                Thread.Sleep(500);
+            }
+            Assert.That(testCluster.Cluster.Metadata.AllHosts().ToList().Count, Is.EqualTo(expectedTotalNodeCount));
+            timeInTheFuture = DateTime.Now.AddSeconds(120);
+            while (!hostsQueried.Contains(newlyBootstrappedHost) && DateTime.Now < timeInTheFuture)
+            {
+                var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
+                rs.Count();
+                hostsQueried.Add(rs.Info.QueriedHost.ToString());
+                Thread.Sleep(500);
+            }
+            // Validate host was queried
+            Assert.True(hostsQueried.Any(ip => ip.ToString() == newlyBootstrappedHost), "Newly bootstrapped node was not queried!");
+        }
+
         /// <summary>
         /// Determines if the test should use a remote ccm instance
         /// </summary>
         public static bool UseRemoteCcm
         {
-            get
-            {
-                return ConfigurationManager.AppSettings["UseRemote"] == "true";
-            }
+            get { return ConfigurationManager.AppSettings["UseRemote"] == "true"; }
         }
 
         // Wait for a node to be up and running
         // This is used because there is some delay between when a node has been
         // added through ccm and when it's actually available for querying'
-        public static void waitFor(string node, Cluster cluster, int maxTry)
+        public static Cluster WaitForUp(string nodeHost, Builder builder, int maxTry)
         {
-            waitFor(node, cluster, maxTry, false, false);
+            int tries = 0;
+            while (tries < maxTry)
+            {
+                try
+                {
+                    using (var cluster = Cluster
+                        .Builder()
+                        .AddContactPoint(nodeHost)
+                        //.WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
+                        .Build())
+                    {
+                        // wait for node to be 'UP' accn to cluster meta
+                        WaitForMeta(nodeHost, cluster, 2, true);
+
+                        // now try a basic query
+                        var session = cluster.Connect();
+                        var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
+                        Assert.Greater(rs.Count(), 0);
+                        return cluster;
+                    }
+                }
+                catch (NoHostAvailableException e)
+                {
+                    _logger.Info(string.Format("Caught expected exception: {0}. Still waiting for node host: {1} to be 'UP', waiting another {2} MS ... ", e.Message, nodeHost, DefaultSleepIterationMs));
+                }
+                tries++;
+                Thread.Sleep(DefaultSleepIterationMs);
+            }
+            return null;
         }
 
-        public static void waitForDown(string node, Cluster cluster, int maxTry)
+        private static void WaitForMeta(string nodeHost, Cluster cluster, int maxTry, bool waitForUp)
         {
-            waitFor(node, cluster, maxTry, true, false);
+            string expectedFinalNodeState = "UP";
+            if (!waitForUp)
+                expectedFinalNodeState = "DOWN";
+            for (int i = 0; i < maxTry; ++i)
+            {
+                try
+                {
+                    // Are all nodes in the cluster accounted for?
+                    bool disconnected = !cluster.RefreshSchema();
+                    if (disconnected)
+                    {
+                        string warnStr = "While waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", the cluster is now totally down, returning now ... ";
+                        _logger.Warning(warnStr);
+                        return;
+                    }
+
+                    Metadata metadata = cluster.Metadata;
+                    foreach (Host host in metadata.AllHosts())
+                    {
+                        bool hostFound = false;
+                        if (host.Address.ToString() == nodeHost)
+                        {
+                            hostFound = true;
+                            if (host.IsUp && waitForUp)
+                            {
+                                _logger.Info("Verified according to cluster meta that host " + nodeHost + " is " + expectedFinalNodeState + ", returning now ... ");
+                                return;
+                            }
+                            _logger.Warning("We're waiting for host " + nodeHost + " to be " + expectedFinalNodeState);
+                        }
+                        // Is the host even in the meta list?
+                        if (!hostFound)
+                        {
+                            if (!waitForUp)
+                            {
+                                _logger.Info("Verified according to cluster meta that host " + host.Address + " is not available in the MetaData hosts list, returning now ... ");
+                                return;
+                            }
+                            else
+                                _logger.Warning("We're waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", but this host was not found in the MetaData hosts list!");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    if (e.Message.Contains("None of the hosts tried for query are available") && !waitForUp)
+                    {
+                        _logger.Info("Verified according to cluster meta that host " + nodeHost + " is not available in the MetaData hosts list, returning now ... ");
+                        return;
+                    }
+                    _logger.Info("Exception caught while waiting for meta data: " + e.Message);
+                }
+                _logger.Warning("Waiting for node host: " + nodeHost + " to be " + expectedFinalNodeState);
+                Thread.Sleep(DefaultSleepIterationMs);
+            }
+            string errStr = "Node host should have been " + expectedFinalNodeState + " but was not after " + maxTry + " tries!";
+            _logger.Error(errStr);
+        }
+
+        public static void WaitFor(string node, Cluster cluster, int maxTry)
+        {
+            WaitFor(node, cluster, maxTry, false, false);
+        }
+
+        public static void WaitForDown(string node, Cluster cluster, int maxTry)
+        {
+            WaitFor(node, cluster, maxTry, true, false);
         }
 
         public static void waitForDecommission(string node, Cluster cluster, int maxTry)
         {
-            waitFor(node, cluster, maxTry, true, true);
+            WaitFor(node, cluster, maxTry, true, true);
         }
 
-        public static void waitForDownWithWait(String node, Cluster cluster, int waitTime)
+        public static void WaitForDownWithWait(String node, Cluster cluster, int waitTime)
         {
-            waitFor(node, cluster, 90, true, false);
+            WaitFor(node, cluster, 90, true, false);
 
             // FIXME: Once stop() works, remove this line
             try
@@ -128,78 +270,9 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        private static void waitFor(string node, Cluster cluster, int maxTry, bool waitForDead, bool waitForOut)
+        private static void WaitFor(string node, Cluster cluster, int maxTry, bool waitForDead, bool waitForOut)
         {
-            // In the case where the we've killed the last node in the cluster, if we haven't
-            // tried doing an actual query, the driver won't realize that last node is dead until'
-            // keep alive kicks in, but that's a fairly long time. So we cheat and trigger a force'
-            // the detection by forcing a request.
-            bool disconnected = false;
-            if (waitForDead || waitForOut)
-                disconnected = !cluster.RefreshSchema(null, null);
-
-            if (disconnected)
-                return;
-
-            IPAddress address;
-            try
-            {
-                address = IPAddress.Parse(node);
-            }
-            catch (Exception)
-            {
-                // That's a problem but that's not *our* problem
-                return;
-            }
-
-            Metadata metadata = cluster.Metadata;
-            for (int i = 0; i < maxTry; ++i)
-            {
-                bool found = false;
-                foreach (Host host in metadata.AllHosts())
-                {
-                    if (host.Address.Equals(address))
-                    {
-                        found = true;
-                        if (testHost(host, waitForDead))
-                            return;
-                    }
-                }
-                if (waitForDead && !found)
-                    return;
-                try
-                {
-                    Thread.Sleep(1000);
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            foreach (Host host in metadata.AllHosts())
-            {
-                if (host.Address.Equals(address))
-                {
-                    if (testHost(host, waitForDead))
-                    {
-                        return;
-                    }
-                    // logging it because this give use the timestamp of when this happens
-                    logger.Info(node + " is not " + (waitForDead ? "DOWN" : "UP") + " after " + maxTry + "s");
-                    throw new InvalidOperationException(node + " is not " + (waitForDead ? "DOWN" : "UP") + " after " + maxTry + "s");
-                }
-            }
-
-            if (waitForOut)
-            {
-            }
-            logger.Info(node + " is not part of the cluster after " + maxTry + "s");
-            throw new InvalidOperationException(node + " is not part of the cluster after " + maxTry + "s");
-        }
-
-        private static bool testHost(Host host, bool testForDown)
-        {
-            return testForDown ? !host.IsUp : host.IsConsiderablyUp;
+            WaitForMeta(node, cluster, maxTry, !waitForDead); 
         }
 
         /// <summary>
@@ -429,108 +502,6 @@ namespace Cassandra.IntegrationTests
         }
 
         /// <summary>
-        /// Starts a Cassandra cluster with the name, version and node count and ip prefix provided.
-        /// NOTE: this will eventually be replaced 
-        /// </summary>
-        public static ProcessOutput ExecuteLocalCcmClusterStart(
-            string ccmConfigDir, string cassandraVersion, string localIpPrefix, int nodeLength = 1, int secondDcNodeLength = 0, string clusterName = "test")
-        {
-            //Starting ccm cluster involves:
-            //  1.- Getting the Apache Cassandra Distro
-            //  2.- Compiling it
-            //  3.- Fill the config files
-            //  4.- Starting each node.
-
-            //Considerations: 
-            //  As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
-            //  Also, the process can exit before the nodes are actually up: Execute ccm status until they are up
-
-            var totalNodeLength = nodeLength + secondDcNodeLength;
-
-            //Only if ccm list succedes, create the cluster and continue.
-            var output = TestUtils.ExecuteLocalCcm("list", ccmConfigDir, 2000);
-            if (output.ExitCode != 0)
-            {
-                return output;
-            }
-
-            var ccmCommand = String.Format("create {0} -v {1}", clusterName, cassandraVersion);
-            //When creating a cluster, it could download the Cassandra binaries from the internet.
-            //Give enough time = 3 minutes.
-            var timeout = 180000;
-            output = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, timeout);
-            if (output.ExitCode != 0)
-            {
-                return output;
-            }
-            ccmCommand = String.Format("populate -i {0} -n ", localIpPrefix);
-            if (secondDcNodeLength > 0)
-            {
-                ccmCommand += String.Format("{0}:{1}", nodeLength, secondDcNodeLength);
-            }
-            else
-            {
-                ccmCommand += nodeLength;
-            }
-            var populateOutput = TestUtils.ExecuteLocalCcm(ccmCommand, ccmConfigDir, 300000);
-            if (populateOutput.ExitCode != 0)
-            {
-                return populateOutput;
-            }
-            output.OutputText.AppendLine(populateOutput.ToString());
-            var startOutput = TestUtils.ExecuteLocalCcm("start", ccmConfigDir);
-            if (startOutput.ExitCode != 0)
-            {
-                return startOutput;
-            }
-            output.OutputText.AppendLine(startOutput.ToString());
-
-            //Nodes are starting, but we dont know for sure if they are have started.
-            var allNodesAreUp = false;
-            var safeCounter = 0;
-            while (!allNodesAreUp && safeCounter < 10)
-            {
-                var statusOutput = TestUtils.ExecuteLocalCcm("status", ccmConfigDir, 1000);
-                if (statusOutput.ExitCode != 0)
-                {
-                    //Something went wrong
-                    output = statusOutput;
-                    break;
-                }
-                //Analyze the status output to see if all nodes are up
-                if (Regex.Matches(statusOutput.OutputText.ToString(), "UP", RegexOptions.Multiline).Count == totalNodeLength)
-                {
-                    //All nodes are up
-                    for (int x = 1; x <= totalNodeLength; x++)
-                    {
-                        var foundText = false;
-                        var sw = new Stopwatch();
-                        sw.Start();
-                        while (sw.ElapsedMilliseconds < 180000)
-                        {
-                            var logFileText =
-                                TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, String.Format("node{0}\\logs\\system.log", x)));
-                            if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
-                            {
-                                foundText = true;
-                                break;
-                            }
-                        }
-                        if (!foundText)
-                        {
-                            throw new TestInfrastructureException(String.Format("node{0} did not properly start", x));
-                        }
-                    }
-                    allNodesAreUp = true;
-                }
-                safeCounter++;
-            }
-
-            return output;
-        }
-
-
-        /// <summary>
         /// Stops the cluster and removes the config files
         /// </summary>
         /// <returns></returns>
@@ -614,165 +585,22 @@ namespace Cassandra.IntegrationTests
             return tempDirectory;
         }
 
-        public static CcmClusterInfo CcmSetup(string localIpPrefix, int nodeCount, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0, bool connect = true)
-        {
-            var clusterInfo = new CcmClusterInfo();
-            if (builder == null)
-            {
-                builder = Cluster.Builder();
-            }
-            if (UseRemoteCcm)
-            {
-                CCMBridge.ReusableCCMCluster.Setup(nodeCount);
-                clusterInfo.Cluster = CCMBridge.ReusableCCMCluster.Build(builder);
-                if (keyspaceName != null)
-                {
-                    clusterInfo.Session = CCMBridge.ReusableCCMCluster.Connect(keyspaceName);
-                }
-            }
-            else
-            {
-                //Create a local instance
-                clusterInfo.ConfigDir = TestUtils.CreateTempDirectory();
-                var output = TestUtils.ExecuteLocalCcmClusterStart(clusterInfo.ConfigDir, Options.Default.CASSANDRA_VERSION, localIpPrefix, nodeCount, secondDcNodeLength);
-
-                if (output.ExitCode != 0)
-                {
-                    throw new TestInfrastructureException("Local ccm could not start: " + output.ToString());
-                }
-                try
-                {
-                    if (connect)
-                    {
-                        clusterInfo.Cluster = builder
-                            .AddContactPoint(localIpPrefix + "1")
-                            .Build();
-                        clusterInfo.Session = clusterInfo.Cluster.Connect();
-                        if (keyspaceName == null)
-                            keyspaceName = SIMPLE_KEYSPACE;
-                        clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
-                        clusterInfo.Session.ChangeKeyspace(keyspaceName);
-                    }
-                }
-                catch
-                {
-                    CcmRemove(clusterInfo);
-                    throw;
-                }
-            }
-            return clusterInfo;
-        }
-
-
-
-        public static CcmClusterInfo CcmSetup(int nodeLength, Builder builder = null, string keyspaceName = null, int secondDcNodeLength = 0, bool connect = true)
-        {
-            var clusterInfo = new CcmClusterInfo();
-            if (builder == null)
-            {
-                builder = Cluster.Builder();
-            }
-            if (UseRemoteCcm)
-            {
-                CCMBridge.ReusableCCMCluster.Setup(nodeLength);
-                clusterInfo.Cluster = CCMBridge.ReusableCCMCluster.Build(builder);
-                if (keyspaceName != null)
-                {
-                    clusterInfo.Session = CCMBridge.ReusableCCMCluster.Connect(keyspaceName);
-                }
-            }
-            else
-            {
-                //Create a local instance
-                clusterInfo.ConfigDir = TestUtils.CreateTempDirectory();
-                var output = TestUtils.ExecuteLocalCcmClusterStart(clusterInfo.ConfigDir, Options.Default.CASSANDRA_VERSION, nodeLength, secondDcNodeLength);
-
-                if (output.ExitCode != 0)
-                {
-                    throw new TestInfrastructureException("Local ccm could not start: " + output.ToString());
-                }
-                try
-                {
-                    if (connect)
-                    {
-                        clusterInfo.Cluster = builder
-                            .AddContactPoint("127.0.0.1")
-                            .Build();
-                        clusterInfo.Session = clusterInfo.Cluster.Connect();
-                        if (keyspaceName != null)
-                        {
-                            clusterInfo.Session.CreateKeyspaceIfNotExists(keyspaceName);
-                            WaitForSchemaAgreement(clusterInfo.Cluster);
-                            clusterInfo.Session.ChangeKeyspace(keyspaceName);
-                        }
-                    }
-                }
-                catch
-                {
-                    CcmRemove(clusterInfo);
-                    throw;
-                }
-            }
-            return clusterInfo;
-        }
-
-        public static void CcmRemove(CcmClusterInfo info)
-        {
-            if (UseRemoteCcm)
-            {
-                CCMBridge.ReusableCCMCluster.Drop();
-            }
-            else
-            {
-                //Remove the cluster
-                TestUtils.ExecuteLocalCcmClusterRemove(info.ConfigDir);
-            }
-        }
-
-        /// <summary>
-        /// Starts a node
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="n"></param>
-        public static void CcmStart(CcmClusterInfo info, int n)
-        {
-            var cmd = string.Format("node{0} start", n);
-            ExecuteLocalCcm(cmd, info.ConfigDir, 5000);
-        }
-
-        /// <summary>
-        /// Stops a node in the cluster with the provided index (1 based)
-        /// </summary>
-        public static void CcmStopNode(CcmClusterInfo info, int n)
-        {
-            var cmd = string.Format("node{0} stop", n);
-            ExecuteLocalCcm(cmd, info.ConfigDir, 2000);
-        }
-
-        /// <summary>
-        /// Stops a node (not gently) in the cluster with the provided index (1 based)
-        /// </summary>
-        public static void CcmStopForce(CcmClusterInfo info, int n)
-        {
-            ExecuteLocalCcm(string.Format("node{0} stop --not-gently", n), info.ConfigDir, 2000);
-        }
-
-        public static void CcmBootstrapNode(CcmClusterInfo info, int node, string dc = null)
-        {
-            ProcessOutput output = null;
-            if (dc == null)
-            {
-                output = ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node), info.ConfigDir);
-            }
-            else
-            {
-                output = ExecuteLocalCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -d {4}", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node, dc), info.ConfigDir);
-            }
-            if (output.ExitCode != 0)
-            {
-                throw new TestInfrastructureException("Local ccm could not add node: " + output.ToString());
-            }
-        }
+        //public static void CcmBootstrapNode(CcmCluster ccmCluster, int node, string dc = null)
+        //{
+        //    ProcessOutput output = null;
+        //    if (dc == null)
+        //    {
+        //        output = ccmCluster.CcmBridge.ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node));
+        //    }
+        //    else
+        //    {
+        //        output = ccmCluster.CcmBridge.ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -d {4}", node, Options.Default.IP_PREFIX, node, 7000 + 100 * node, dc));
+        //    }
+        //    if (output.ExitCode != 0)
+        //    {
+        //        throw new TestInfrastructureException("Local ccm could not add node: " + output.ToString());
+        //    }
+        //}
 
         public static void CcmDecommissionNode(CcmClusterInfo info, int node)
         {

@@ -15,56 +15,67 @@
 //
 
 using System;
+using System.Collections;
+using System.Configuration;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using CommandLine;
 using CommandLine.Text;
-using System.Configuration;
-using System.Globalization;
-using System.Threading;
+using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.TestBase
 {
     public class TestGlobals
     {
         private static readonly Logger Logger = new Logger(typeof(TestGlobals));
 
+        public const int DefaultMaxClusterCmdRetries = 2;
+        public const string DefaultLocalIpPrefix = "127.0.0.";
+        public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
         public const int ClusterInitSleepMsPerIteration = 500;
         public const int ClusterInitSleepMsMax = 60 * 1000;
-        public const string TestClusterNameDefault = "test_cluster";
-        public const string TestKeyspaceDefault = "test_cluster_keyspace";
+        // Make current default test cluster name unique
+        public const string DefaultKeyspaceName = "test_cluster_keyspace";
 
-        private TestClusterManager _clusterManager = null;
-        private static bool _clusterManagerIsInitializing = false;
-        private static bool _clusterManagerIsInitalized = false;
-
-        public enum TestGroupEnum
-        {
-            All,
-            Unitary,
-            Integration
-        };
-
-        public enum TestRunModeEnum
-        {
-            NoStress,
-            FullTest,
-            Fixing,
-            Checking,
-            ShouldBeOk
-        };
-
-        public static TestGlobals Default = new TestGlobals();
+        private static TestClusterManager _clusterManager;
+        private static bool _clusterManagerIsInitializing;
+        private static bool _clusterManagerIsInitalized;
 
         [Option('c', "cassandra-version",
-            HelpText = "CCM Cassandra Version.", DefaultValue = "1.2.4")]
-        public string CassandraVersion { get; set; }
+            HelpText = "CCM Cassandra Version.", DefaultValue = "2.1.0" )]
+        public string CassandraVersionStr { get; set; }
+
+        public Version CassandraVersion
+        {
+            get
+            {
+                int mayor = 0, minor = 0, build = 0;
+                if (this.CassandraVersionStr != null)
+                {
+                    var versionParts = this.CassandraVersionStr.Split('.');
+                    if (versionParts.Length >= 2)
+                    {
+                        mayor = Convert.ToInt32(versionParts[0]);
+                        minor = Convert.ToInt32(versionParts[1]);
+                        if (versionParts.Length == 3)
+                        {
+                            int.TryParse(versionParts[2], out build);
+                        }
+                    }
+                }
+                return new Version(mayor, minor, build);
+            }
+        }
 
         [Option("use-ctool",
-            HelpText = "Pass in 'true' for this value to use ctool instead of ccm (default)", DefaultValue = false)]
+            HelpText = "Pass in 'true' for this value to use ctool instead of ccm (default)", DefaultValue = false, Required = true)]
         public bool UseCtool { get; set; }
 
         [Option('i', "ip-prefix",
-            HelpText = "CCM Ip prefix", DefaultValue = "127.0.0.")]
-        public string IpPrefix { get; set; }
+            HelpText = "CCM Ip prefix", DefaultValue = DefaultLocalIpPrefix)]
+        public string DefaultIpPrefix { get; set; }
 
         [Option("logger",
             HelpText = "Use Logger", DefaultValue = false)]
@@ -75,7 +86,7 @@ namespace Cassandra.IntegrationTests
         public string LogLevel { get; set; }
 
         [Option('h', "ssh-host",
-            HelpText = "CCM SSH host", DefaultValue = "127.0.0.1")]
+            HelpText = "CCM SSH host", DefaultValue = DefaultInitialContactPoint)]
         public string SSHHost { get; set; }
 
         [Option('t', "ssh-port",
@@ -89,10 +100,6 @@ namespace Cassandra.IntegrationTests
         [Option('p', "ssh-password", Required = true,
             HelpText = "CCM SSH password")]
         public string SSHPassword { get; set; }
-
-        [Option('m', "mode",
-            HelpText = "Test run mode", DefaultValue = TestRunModeEnum.Fixing)]
-        public TestRunModeEnum TestRunMode { get; set; }
 
         //test configuration
         [Option("compression",
@@ -108,25 +115,26 @@ namespace Cassandra.IntegrationTests
             if (ConfigurationManager.AppSettings.Count > 0)
             {
                 //Load the values from configuration
-                this.CassandraVersion = ConfigurationManager.AppSettings["CassandraVersion"] ?? this.CassandraVersion;
-                this.IpPrefix = ConfigurationManager.AppSettings["IpPrefix"] ?? this.IpPrefix;
-                this.LogLevel = ConfigurationManager.AppSettings["LogLevel"] ?? this.LogLevel;
-                if (ConfigurationManager.AppSettings["NoUseBuffering"] != null)
-                {
-                    this.NoUseBuffering = Convert.ToBoolean(ConfigurationManager.AppSettings["NoUseBuffering"]);
-                }
-                this.SSHHost = ConfigurationManager.AppSettings["SSHHost"] ?? this.SSHHost;
-                this.SSHPassword = ConfigurationManager.AppSettings["SSHPassword"] ?? this.SSHPassword;
-                if (ConfigurationManager.AppSettings["SSHPort"] != null)
-                {
-                    this.SSHPort = Convert.ToInt32(ConfigurationManager.AppSettings["SSHPort"]);
-                }
-                this.SSHUser = ConfigurationManager.AppSettings["SSHUser"] ?? this.SSHUser;
+                CassandraVersionStr = ConfigurationManager.AppSettings["CassandraVersion"] ?? CassandraVersionStr;
+                DefaultIpPrefix = ConfigurationManager.AppSettings["DefaultIpPrefix"] ?? this.DefaultIpPrefix;
+                LogLevel = ConfigurationManager.AppSettings["LogLevel"] ?? this.LogLevel;
 
-                bool useCtoolParsed = false;
+                if (ConfigurationManager.AppSettings["NoUseBuffering"] != null)
+                    this.NoUseBuffering = Convert.ToBoolean(ConfigurationManager.AppSettings["NoUseBuffering"]);
+
+                SSHHost = ConfigurationManager.AppSettings["SSHHost"] ?? this.SSHHost;
+                SSHPassword = ConfigurationManager.AppSettings["SSHPassword"] ?? this.SSHPassword;
+
+                if (ConfigurationManager.AppSettings["SSHPort"] != null)
+                    SSHPort = Convert.ToInt32(ConfigurationManager.AppSettings["SSHPort"]);
+
+                SSHUser = ConfigurationManager.AppSettings["SSHUser"] ?? this.SSHUser;
+
+                bool useCtoolParsed;
                 Boolean.TryParse(ConfigurationManager.AppSettings["UseCtool"], out useCtoolParsed);
-                this.UseCtool = useCtoolParsed;
+                UseCtool = useCtoolParsed;
             }
+
         }
 
         [HelpOption]
@@ -160,6 +168,75 @@ namespace Cassandra.IntegrationTests
                 }
                 return _clusterManager;
             }
+        }
+
+        [SetUp]
+        public void TestSetup()
+        {
+            VerifyAppropriateCassVersion();
+            VerifyLocalCcmOnly();
+        }
+
+        // If any test is designed for another test group, mark as ignored
+        private void VerifyLocalCcmOnly()
+        {
+            if (((ArrayList) TestContext.CurrentContext.Test.Properties["_CATEGORIES"]).Contains(TestCategories.CcmOnly) && UseCtool)
+            {
+                Assert.Ignore("Test Ignored: Requires CCM and tests are currently running using CTool");
+            }
+
+        }
+
+        // If any test is designed for another C* version, mark it as ignored
+        private void VerifyAppropriateCassVersion()
+        {
+            var test = TestContext.CurrentContext.Test;
+            var methodFullName = TestContext.CurrentContext.Test.FullName;
+            var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
+            var type = Assembly.GetExecutingAssembly().GetType(typeName);
+            if (type == null)
+            {
+                return;
+            }
+            var methodAttr = type.GetMethod(test.Name)
+                .GetCustomAttributes(true)
+                .Select(a => (Attribute)a)
+                .FirstOrDefault((a) => a is TestCassandraVersion);
+            var attr = Attribute.GetCustomAttributes(type).FirstOrDefault((a) => a is TestCassandraVersion);
+            if (attr == null && methodAttr == null)
+            {
+                //It does not contain the attribute, move on.
+                return;
+            }
+            if (methodAttr != null)
+            {
+                attr = methodAttr;
+            }
+            var versionAttr = (TestCassandraVersion)attr;
+            var executingVersion = CassandraVersion;
+            if (!VersionMatch(versionAttr, executingVersion))
+                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1} {2}", versionAttr.Major, versionAttr.Minor, versionAttr.Comparison >= 0 ? "or above" : "or below"));
+        }
+
+        protected bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
+        {
+            //Compare them as integers
+            var expectedVersion = versionAttr.Major * 10000 + versionAttr.Minor;
+            var actualVersion = executingVersion.Major * 10000 + executingVersion.Minor;
+            var comparison = (Comparison)actualVersion.CompareTo(expectedVersion);
+
+            if (comparison >= Comparison.Equal && versionAttr.Comparison == Comparison.GreaterThanOrEqualsTo)
+            {
+                return true;
+            }
+            return comparison == versionAttr.Comparison;
+        }
+
+        // this will run after every test
+        [TearDown]
+        public void TearDown()
+        {
+            // TODO: Remove all non-shareable test clusters now to save on resources in case we're using ctool
         }
 
 

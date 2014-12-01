@@ -14,24 +14,21 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.TestBase
 {
     /// <summary>
-    /// Represents a set of tests that reuse an test cluster of 1 node
+    /// Represents an error on the infrastructure setup
     /// </summary>
-    public abstract class SingleNodeClusterTest : MultipleNodesClusterTest
+    public class TestInfrastructureException: Exception
     {
-        public SingleNodeClusterTest() 
-            : base(1)
+        public TestInfrastructureException()
+        {
+
+        }
+
+        public TestInfrastructureException(string message) : base(message)
         {
 
         }

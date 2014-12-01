@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -27,20 +28,20 @@ namespace Cassandra.IntegrationTests.Core
     public class LargeDataTests : TestGlobals
     {
         private const int Key = 0;
-        private const string KeyspaceNameDefault = "LargeDataTests";
+        private const string KeyspaceNameDefault = "largedatatests";
         ISession _session = null; 
 
         [SetUp]
         public void SetupFixture()
         {
-            _session = TestClusterManager.GetTestCluster(2).Session;
+            _session = TestClusterManager.GetTestCluster(1).Session;
         }
 
         /// <summary>
         ///  Test a wide row 
         /// </summary>
         [Test]
-        public void LargeDataTests_WideRows()
+        public void WideRows()
         {
             string uniqueTableName = "wide_rows_" + Randomm.RandomAlphaNum(16);
             TestWideRows(_session, uniqueTableName);
@@ -50,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a batch that writes a row of size 10,000
         /// </summary>
         [Test]
-        public void LargeDataTests_WideBatchRows()
+        public void WideBatchRows()
         {
             string uniqueTableName = "wide_batch_rows" + Randomm.RandomAlphaNum(16);
             TestWideBatchRows(_session, uniqueTableName);
@@ -60,7 +61,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a wide row consisting of a ByteBuffer
         /// </summary>
         [Test]
-        public void LargeDataTests_WideByteRows()
+        public void WideByteRows()
         {
             string uniqueTableName = "wide_byte_rows" + Randomm.RandomAlphaNum(16);
             TestByteRows(_session, uniqueTableName);
@@ -70,7 +71,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test a row with a single extra large text value
         /// </summary>
         [Test]
-        public void LargeDataTests_LargeText()
+        public void LargeText()
         {
             string uniqueTableName = "large_text_" + Randomm.RandomAlphaNum(16);
             TestLargeText(_session, uniqueTableName);
@@ -80,7 +81,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Creates a table with 330 columns
         /// </summary>
         [Test]
-        public void LargeDataTests_WideTable()
+        public void WideTable()
         {
             string uniqueTableName = "wide_table" + Randomm.RandomAlphaNum(16);
             TestWideTable(_session, uniqueTableName);
@@ -90,7 +91,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test list with a single large text value
         /// </summary>
         [Test]
-        public void LargeDataTests_LargeListText()
+        public void LargeListText()
         {
             string uniqueTableName = GetUniqueTableName();
             CreateTable(_session, uniqueTableName, "list<text>");
@@ -109,7 +110,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test set with max allowed value size
         /// </summary>
         [Test]
-        public void LargeDataTests_Set_Val_Max()
+        public void Set_Val_Max()
         {
             string uniqueTableName = GetUniqueTableName();
             CreateTable(_session, uniqueTableName, "set<text>");
@@ -129,13 +130,15 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test set with max allowed value size plus one
         /// </summary>
         [Test]
-        public void LargeDataTests_Set_Val_MaxPlusOne()
+        public void Set_Val_MaxPlusOne()
         {
             string uniqueTableName = GetUniqueTableName();
             CreateTable(_session, uniqueTableName, "set<text>");
 
-            // given MAX = 65535, map string key max = MAX - 9 and map string value max = MAX 
-            string setVal = new string('a', UInt16.MaxValue - 8);
+            // given MAX = 65535
+            // for C* 2.1.x, set string value max = MAX - 8 
+            // for C* 2.0.x, set string value max = MAX - 6
+            string setVal = new string('a', UInt16.MaxValue - 6);
             try
             {
                 _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal, ConsistencyLevel.Quorum));
@@ -152,7 +155,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test map with max allowed key and value size
         /// </summary>
         [Test]
-        public void LargeDataTests_Map_Key_Max_Val_Max()
+        public void Map_Key_Max_Val_Max()
         {
             string uniqueTableName = GetUniqueTableName();
             CreateTable(_session, uniqueTableName, "map<text, text>");
@@ -174,13 +177,15 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test map with max allowed key size + 1
         /// </summary>
         [Test]
-        public void LargeDataTests_MapText_Key_MaxPlusOne()
+        public void Map_TextKey_MaxPlusOne()
         {
             string uniqueTableName = GetUniqueTableName();
             CreateTable(_session, uniqueTableName, "map<text, text>");
 
-            // given MAX = 65535, map string key max = MAX - 9 and map string value max = MAX 
-            string mapKey = new string('a', UInt16.MaxValue - 8);
+            // given MAX = 65535
+            // for C* 2.1.x -- map string key max = MAX - 9 and map string value max = MAX 
+            // for C* 2.0.x -- map string key max = MAX - 6
+            string mapKey = new string('a', UInt16.MaxValue - 6);
             string mapVal = new string('b', 1); // something safe
             try
             {
@@ -199,7 +204,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Test map with max allowed value size + 1
         /// </summary>
         [Test]
-        public void LargeDataTests_Map_Value_MaxPlusOne()
+        public void Map_Value_MaxPlusOne()
         {
             string uniqueTableName = GetUniqueTableName();
             CreateTable(_session, uniqueTableName, "map<text, text>");

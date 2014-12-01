@@ -14,31 +14,30 @@
 //   limitations under the License.
 //
 
-namespace Cassandra.IntegrationTests.Core.Policies
+namespace Cassandra.IntegrationTests.Policies
 {
-    public class AlwaysIgnoreRetryPolicy : IRetryPolicy
+    public class AlwaysRetryRetryPolicy : IRetryPolicy
     {
-        public static readonly AlwaysIgnoreRetryPolicy Instance = new AlwaysIgnoreRetryPolicy();
+        public static readonly AlwaysRetryRetryPolicy Instance = new AlwaysRetryRetryPolicy();
 
-        private AlwaysIgnoreRetryPolicy()
+        private AlwaysRetryRetryPolicy()
         {
         }
-
 
         public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
-            return RetryDecision.Ignore();
+            return RetryDecision.Retry(ConsistencyLevel.One);
         }
 
         public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
-            return RetryDecision.Ignore();
+            return RetryDecision.Retry(ConsistencyLevel.One);
         }
 
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            return RetryDecision.Ignore();
+            return RetryDecision.Retry(ConsistencyLevel.One);
         }
     }
 }
