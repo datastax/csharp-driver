@@ -30,6 +30,8 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class MetadataTests : TestGlobals
     {
+        private const int DefaultNodeCount = 1;
+
         [TestFixtureSetUp]
         public void FixureSetup()
         {
@@ -39,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void KeyspacesMetadataAvailableAtStartup()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
 
             // Basic status check
@@ -186,14 +188,14 @@ namespace Cassandra.IntegrationTests.Core
             QueryTools.ExecuteSyncNonQuery(session, stringBuilder.ToString());
             TestUtils.WaitForSchemaAgreement(session.Cluster);
 
-            var table = cluster.Metadata.GetTable(keyspaceName ?? keyspaceName, tableName);
+            var table = cluster.Metadata.GetTable(keyspaceName, tableName);
             Assert.AreEqual(tableName, table.Name);
             foreach (var metaCol in table.TableColumns)
             {
                 Assert.True(columns.Keys.Contains(metaCol.Name));
                 Assert.True(metaCol.TypeCode == columns.First(tpc => tpc.Key == metaCol.Name).Value);
                 Assert.True(metaCol.Table == tableName);
-                Assert.True(metaCol.Keyspace == (keyspaceName ?? keyspaceName));
+                Assert.True(metaCol.Keyspace == (keyspaceName));
             }
 
             if (tableOptions != null)
@@ -220,7 +222,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private void CheckMetadata(string tableName, string keyspaceName, TableOptions tableOptions = null)
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(2);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
 
@@ -233,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void CheckSimpleStrategyKeyspace()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(2);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var session = testCluster.Session;
             bool durableWrites = Randomm.Instance.NextBoolean();
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
@@ -254,7 +256,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void CheckNetworkTopologyStrategyKeyspace()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(2);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var session = testCluster.Session;
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
             bool durableWrites = Randomm.Instance.NextBoolean();
@@ -306,7 +308,7 @@ namespace Cassandra.IntegrationTests.Core
         public void CheckKeyspaceMetadata()
         {
             string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(2);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var session = testCluster.Session;
 
             const string strategyClass = "SimpleStrategy";
@@ -334,7 +336,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2,1)]
         public void UdtMetadataTest()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
@@ -383,7 +385,7 @@ namespace Cassandra.IntegrationTests.Core
             string tableName = TestUtils.GetUniqueTableName().ToLower();
             string cqlTable1 = "CREATE TABLE " + tableName + " (id int PRIMARY KEY, phone frozen<tuple<uuid, text, int>>, achievements list<frozen<tuple<text,int>>>)";
 
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
 
@@ -399,7 +401,7 @@ namespace Cassandra.IntegrationTests.Core
         public void TableMetadataCompositePartitionKeyTest()
         {
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
 
@@ -457,7 +459,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
             string tableName = TestUtils.GetUniqueTableName().ToLower();
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
 
@@ -492,7 +494,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
             string tableName = "products";
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
             session.CreateKeyspace(keyspaceName);
@@ -522,7 +524,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             string keyspaceName = TestUtils.GetUniqueKeyspaceName();
             string tableName = TestUtils.GetUniqueTableName().ToLower();
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(DefaultNodeCount);
             var cluster = testCluster.Cluster;
             var session = testCluster.Session;
 

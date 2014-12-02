@@ -462,9 +462,17 @@ namespace Cassandra.IntegrationTests.Core
             // Invalid cases
             List<Tuple<object, string[]>> objectsAndAssociateExceptionTypes = new List<Tuple<object, string[]>>();
             objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>(new[] {"one", "two"}, new string[] {"InvalidTypeException"})); // object type = array
-            objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>("some string", new string[] {"InvalidQueryException"})); // object type = string
+            objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>("some string", new string[] {
+                "InvalidQueryException", // C* 1.2
+                "ServerErrorException", // starting in C* 2.0
+                "NoHostAvailableException" // introduced in C* 2.1.2
+             }
+            )); // object type = string
             if (VersionMatch(new TestCassandraVersion(2, 0), CassandraVersion))
-                objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>(1, new string[] { "InvalidQueryException" })); // object type = int
+                objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>(1, new string[] { 
+                    "InvalidQueryException",
+                    "NoHostAvailableException" // introduced in C* 2.1.2
+                })); // object type = int
 
             foreach (var objAndExceptionType in objectsAndAssociateExceptionTypes)
                 AssertExceptionTypeIsThrown(_session, psList, objAndExceptionType.Item1, objAndExceptionType.Item2);
@@ -718,9 +726,9 @@ namespace Cassandra.IntegrationTests.Core
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 40);
 
             testCluster.Start(1);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 40);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 40, true);
 
-            Assert.True(nonShareableSession.Cluster.AllHosts().Select(h => h.IsUp).Count() > 0, "There should be one node up");
+            Assert.True(nonShareableSession.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
             for (var i = 0; i < 10; i++)
             {
                 var rowset = nonShareableSession.Execute(ps.Bind("124"));

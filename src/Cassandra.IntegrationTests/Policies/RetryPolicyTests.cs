@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Diagnostics;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
@@ -25,14 +26,6 @@ namespace Cassandra.IntegrationTests.Policies
     [TestFixture, Category("long")]
     public class RetryPolicyTests : TestGlobals
     {
-        private PolicyTestTools _policyTestTools = null;
-
-        [SetUp]
-        public void TestSetup()
-        {
-            _policyTestTools = new PolicyTestTools();
-        }
-
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
@@ -58,27 +51,29 @@ namespace Cassandra.IntegrationTests.Policies
         /// </summary>
         public void DowngradingConsistencyRetryPolicyTest(Builder builder)
         {
+            PolicyTestTools policyTestTools = new PolicyTestTools();
+
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
             testCluster.Builder = builder;
             testCluster.InitClient();
-            _policyTestTools.CreateSchema(testCluster.Session, 3);
+            policyTestTools.CreateSchema(testCluster.Session, 3);
 
             // FIXME: Race condition where the nodes are not fully up yet and assertQueried reports slightly different numbers
             TestUtils.WaitForSchemaAgreement(testCluster.Cluster);
 
-            _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.All);
+            policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.All);
 
-            _policyTestTools.Query(testCluster, 12, ConsistencyLevel.All);
-            _policyTestTools.AssertAchievedConsistencyLevel(ConsistencyLevel.All);
+            policyTestTools.Query(testCluster, 12, ConsistencyLevel.All);
+            policyTestTools.AssertAchievedConsistencyLevel(ConsistencyLevel.All);
 
             //Kill one node: 2 nodes alive
             testCluster.Stop(2);
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "2", testCluster.Cluster, 20);
 
             //After killing one node, the achieved consistency level should be downgraded
-            _policyTestTools.ResetCoordinators();
-            _policyTestTools.Query(testCluster, 12, ConsistencyLevel.All);
-            _policyTestTools.AssertAchievedConsistencyLevel(ConsistencyLevel.Two);
+            policyTestTools.ResetCoordinators();
+            policyTestTools.Query(testCluster, 12, ConsistencyLevel.All);
+            policyTestTools.AssertAchievedConsistencyLevel(ConsistencyLevel.Two);
         }
 
         /// <summary>
@@ -115,36 +110,46 @@ namespace Cassandra.IntegrationTests.Policies
 
         private void RetryPolicyTest(ITestCluster testCluster)
         {
-            _policyTestTools.CreateSchema(testCluster.Session, 2);
+            PolicyTestTools policyTestTools = new PolicyTestTools();
+            policyTestTools.TableName = TestUtils.GetUniqueTableName();
+            policyTestTools.CreateSchema(testCluster.Session, 2);
 
             // Test before state
-            _policyTestTools.InitPreparedStatement(testCluster, 12);
-            _policyTestTools.Query(testCluster, 12);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 6);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 6);
+            policyTestTools.InitPreparedStatement(testCluster, 12);
+            policyTestTools.Query(testCluster, 12);
+            int clusterPosQueried = 1;
+            int clusterPosNotQueried = 2;
+            if (!policyTestTools.Coordinators.ContainsKey(testCluster.ClusterIpPrefix + clusterPosQueried))
+            {
+                clusterPosQueried = 2;
+                clusterPosNotQueried = 1;
+            }
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried, 1);
 
             // Stop one of the nodes and test
-            _policyTestTools.ResetCoordinators();
-            testCluster.Stop(2);
-            string hostRecentlyStopped = testCluster.ClusterIpPrefix + "2";
-            TestUtils.WaitForDown(hostRecentlyStopped, testCluster.Cluster, 30);
-            _policyTestTools.Query(testCluster, 120);
+            policyTestTools.ResetCoordinators();
+            testCluster.Stop(clusterPosQueried);
+            TestUtils.WaitForDown(testCluster.ClusterIpPrefix + clusterPosQueried, testCluster.Cluster, 30);
+            policyTestTools.Query(testCluster, 120);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + clusterPosNotQueried, 120);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + clusterPosQueried, 0);
 
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 120);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 0);
-
-            // Start node and test
-            _policyTestTools.ResetCoordinators();
-            testCluster.Start(2);
-            TestUtils.WaitForUp(hostRecentlyStopped, testCluster.Builder, 30);
+            // Start the node that was just down, then down the node that was just up
+            policyTestTools.ResetCoordinators();
+            testCluster.Start(clusterPosQueried);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + clusterPosQueried, testCluster.Builder, 30);
 
             // Test successful reads
-            _policyTestTools.Query(testCluster, 120);
+            DateTime futureDateTime = DateTime.Now.AddSeconds(120);
+            while (policyTestTools.Coordinators.Count < 2 && DateTime.Now < futureDateTime)
+            {
+                policyTestTools.Query(testCluster, 120);
+                Thread.Sleep(75);
+            }
 
             // Ensure that the nodes were contacted
-            _policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "1", 1);
-            _policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "2", 1);
-            _policyTestTools.ResetCoordinators();
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried, 1);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosNotQueried, 1);
 
         }
 

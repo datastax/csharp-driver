@@ -84,28 +84,38 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// <summary>
-        /// Executes statements in parallel while killing nodes.
+        /// Executes statements in parallel while killing nodes, validates that there are no issues failing over to remaining, available nodes
         /// </summary>
         [Test]
         public void FailoverTest()
         {
             var parallelOptions = new ParallelOptions();
             parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
-            parallelOptions.MaxDegreeOfParallelism = 1000;
+            parallelOptions.MaxDegreeOfParallelism = 100;
 
             var policy = new ConstantReconnectionPolicy(Int32.MaxValue);
             ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(4);
             nonShareableTestCluster.Builder = new Builder().WithReconnectionPolicy(policy);
             nonShareableTestCluster.InitClient(); // this will replace the existing session using the newly assigned Builder instance
-
             var session = nonShareableTestCluster.Session;
 
+            // Check query to host distribution before killing nodes
+            var queriedHosts = new List<string>();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(120);
+            while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
+            {
+                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                queriedHosts.Add(rs.Info.QueriedHost.ToString());
+                Thread.Sleep(50);
+            }
+            Assert.AreEqual(4, (from singleHost in queriedHosts select singleHost).Distinct().Count(), "All hosts should have been queried!");
+
+            // Create List of actions
             Action selectAction = () =>
             {
                 var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
                 Assert.Greater(rs.Count(), 0);
             };
-
             var actions = new List<Action>();
             for (var i = 0; i < 100; i++)
             {
@@ -120,21 +130,13 @@ namespace Cassandra.IntegrationTests.Core
             //Execute in parallel more than 100 actions
             Parallel.Invoke(parallelOptions, actions.ToArray());
 
-            //Wait for it to be killed
-            DateTime timeInFuture = DateTime.Now.AddSeconds(60);
-            int queriedHostsSuccessInARow = 0;
-            while (timeInFuture < DateTime.Now && queriedHostsSuccessInARow < 50)
-            {
-                var rowSet = session.Execute("SELECT * FROM system.schema_columnfamilies");
-                Assert.Greater(rowSet.Count(), 0);
-                if (nonShareableTestCluster.ClusterIpPrefix + "4" == rowSet.Info.QueriedHost.ToString())
-                    queriedHostsSuccessInARow++;
-                else
-                    queriedHostsSuccessInARow = 0;
-            }
+            // Wait for the nodes to be killed
+            TestUtils.WaitForDown(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster, 20);
+            TestUtils.WaitForDown(nonShareableTestCluster.ClusterIpPrefix + "2", nonShareableTestCluster.Cluster, 20);
+            TestUtils.WaitForDown(nonShareableTestCluster.ClusterIpPrefix + "3", nonShareableTestCluster.Cluster, 20);
 
-            //Execute serially selects
-            for (var i = 0; i < 50; i++)
+            // Execute some more SELECTs
+            for (var i = 0; i < 250; i++)
             {
                 var rowSet2 = session.Execute("SELECT * FROM system.schema_columnfamilies");
                 Assert.Greater(rowSet2.Count(), 0);
@@ -143,30 +145,40 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// <summary>
-        /// Executes statements in parallel while killing nodes and restarting them.
+        /// Executes statements in parallel while killing nodes, validates that there are no issues failing over to remaining, available nodes
         /// </summary>
         [Test]
-        public void FailoverReconnectTest()
+        public void FailoverThenReconnect()
         {
             var parallelOptions = new ParallelOptions
             {
                 TaskScheduler = new ThreadPerTaskScheduler(),
-                MaxDegreeOfParallelism = 1000
+                MaxDegreeOfParallelism = 100
             };
 
-            var policy = new ConstantReconnectionPolicy(5000);
+            var policy = new ConstantReconnectionPolicy(500);
             ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(4);
             nonShareableTestCluster.Builder = new Builder().WithReconnectionPolicy(policy);
             nonShareableTestCluster.InitClient(); // this will replace the existing session using the newly assigned Builder instance
-
             var session = nonShareableTestCluster.Session;
 
+            // Check query to host distribution before killing nodes
+            var queriedHosts = new List<string>();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(120);
+            while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
+            {
+                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                queriedHosts.Add(rs.Info.QueriedHost.ToString());
+                Thread.Sleep(50);
+            }
+            Assert.AreEqual(4, (from singleHost in queriedHosts select singleHost).Distinct().Count(), "All hosts should have been queried!");
+
+            // Create list of actions
             Action selectAction = () =>
             {
                 var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
                 Assert.Greater(rs.Count(), 0);
             };
-
             var actions = new List<Action>();
             for (var i = 0; i < 100; i++)
             {
@@ -183,7 +195,6 @@ namespace Cassandra.IntegrationTests.Core
             actions.Insert(80, () => nonShareableTestCluster.Stop(3));
 
             //Execute in parallel more than 100 actions
-            Trace.TraceInformation("Start invoking with kill nodes");
             Parallel.Invoke(parallelOptions, actions.ToArray());
 
             //Wait for the nodes to be killed
@@ -212,14 +223,20 @@ namespace Cassandra.IntegrationTests.Core
             TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "2", nonShareableTestCluster.Builder, 20);
             TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "3", nonShareableTestCluster.Builder, 20);
 
-            var queriedHosts = new List<IPAddress>();
-            for (var i = 0; i < 100; i++)
+            queriedHosts.Clear();
+            // keep querying hosts until they are all queried, or time runs out
+            futureDateTime = DateTime.Now.AddSeconds(120);
+            while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
             {
                 var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
-                queriedHosts.Add(rs.Info.QueriedHost);
+                queriedHosts.Add(rs.Info.QueriedHost.ToString());
+                Thread.Sleep(50);
             }
             //Check that one of the restarted nodes were queried
-            Assert.True(queriedHosts.Any(address => address.ToString().StartsWith(nonShareableTestCluster.ClusterIpPrefix + "3")));
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4", queriedHosts);
             //Check that the control connection is still using last host
             StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
         }

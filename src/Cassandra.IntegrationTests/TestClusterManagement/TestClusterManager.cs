@@ -129,29 +129,33 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), nodeCount, DefaultKeyspaceName, true, initClusterAndSession, 2);
             }
 
-            // make sure the test cluster is fully queriable before returning, if not then remove this cluster and create a new one
-            try
+            // make sure the test cluster is fully queriable before returning if it's supposed to be 'UP'
+            // if this fails, then remove this cluster and create a new one
+            if (initClusterAndSession)
             {
-                foreach (var host in shareableTestCluster.Cluster.AllHosts())
+                try
                 {
-                    string hostStr = host.Address.ToString();
-                    TestUtils.WaitForUp(hostStr, shareableTestCluster.Builder, 5);
-                    TestUtils.ValidateBootStrappedNodeIsQueried(shareableTestCluster, nodeCount, hostStr);
+                    foreach (var host in shareableTestCluster.Cluster.AllHosts())
+                    {
+                        string hostStr = host.Address.ToString();
+                        TestUtils.WaitForUp(hostStr, shareableTestCluster.Builder, 5);
+                        TestUtils.ValidateBootStrappedNodeIsQueried(shareableTestCluster, nodeCount, hostStr);
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                _logger.Error("Unexpected Error occurred when trying to get shared test cluster with nodeCount: " + nodeCount + ", name: " + shareableTestCluster.Name);
-                _logger.Error("Error Message: " + e.Message);
-                _logger.Error("Error Stack Trace: " + e.StackTrace);
-                _logger.Error("Removing this cluster, and looping back to create a new one ... ");
-                RemoveExistingClusterWithNodeCount_Force(nodeCount);
-                KillAllCcmProcesses();
-                if (retryCount > MaxClusterCreationRetries)
-                    throw new Exception("Cluster with node count " + nodeCount + " has already failed " + retryCount + " times ... is there something wrong with this environment?");
-                else
+                catch (Exception e)
                 {
-                    return GetTestCluster(nodeCount, maxTries, initClusterAndSession, ++retryCount);
+                    _logger.Error("Unexpected Error occurred when trying to get shared test cluster with nodeCount: " + nodeCount + ", name: " + shareableTestCluster.Name);
+                    _logger.Error("Error Message: " + e.Message);
+                    _logger.Error("Error Stack Trace: " + e.StackTrace);
+                    _logger.Error("Removing this cluster, and looping back to create a new one ... ");
+                    RemoveExistingClusterWithNodeCount_Force(nodeCount);
+                    KillAllCcmProcesses();
+                    if (retryCount > MaxClusterCreationRetries)
+                        throw new Exception("Cluster with node count " + nodeCount + " has already failed " + retryCount + " times ... is there something wrong with this environment?");
+                    else
+                    {
+                        return GetTestCluster(nodeCount, maxTries, initClusterAndSession, ++retryCount);
+                    }
                 }
             }
             return shareableTestCluster;

@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Policies
         public Dictionary<string, int> Coordinators = new Dictionary<string, int>();
         public List<ConsistencyLevel> AchievedConsistencies = new List<ConsistencyLevel>();
         public PreparedStatement PreparedStatement;
-        public const string DefaultKeyspace = "policytesttoolsks";
+        public string DefaultKeyspace = "policytesttoolsks";
 
         public PolicyTestTools()
         {
@@ -54,7 +54,13 @@ namespace Cassandra.IntegrationTests.Policies
 
         public void CreateSchema(ISession session, int replicationFactor)
         {
-            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, DefaultKeyspace, replicationFactor));
+            try
+            {
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, DefaultKeyspace, replicationFactor));
+            }
+            catch (AlreadyExistsException)
+            {
+            }
             TestUtils.WaitForSchemaAgreement(session.Cluster);
             session.ChangeKeyspace(DefaultKeyspace);
             session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TableName));
@@ -90,11 +96,10 @@ namespace Cassandra.IntegrationTests.Policies
 
         public void AssertQueried(string host, int expectedHostQueryCount)
         {
-            int actualHostQueryCount = 0;
+            // if the host is not found, that's the same as it being queried zero times
+            int actualHostQueryCount = 0; 
             if (Coordinators.ContainsKey(host))
                 actualHostQueryCount = Coordinators[host];
-            else
-                Assert.Fail("host : " + host + " was not found in list of queried hosts!");
             Assert.AreEqual(expectedHostQueryCount, actualHostQueryCount, "For " + host);
         }
 
@@ -256,7 +261,7 @@ namespace Cassandra.IntegrationTests.Policies
                 {
                     string[] expectedErrMessages =
                     {
-                        "Keyspace '" + PolicyTestTools.DefaultKeyspace + "' does not exist",
+                        "Keyspace '" + DefaultKeyspace + "' does not exist",
                         "unconfigured columnfamily",
                         "Cassandra timeout during read query at consistency"
                     };

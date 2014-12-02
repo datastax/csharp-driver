@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.TestBase
         // Wait for a node to be up and running
         // This is used because there is some delay between when a node has been
         // added through ccm and when it's actually available for querying'
-        public static Cluster WaitForUp(string nodeHost, Builder builder, int maxTry)
+        public static Cluster WaitForUp(string nodeHost, Builder builder, int maxTry, bool doAddlQueryTest = false)
         {
             int tries = 0;
             while (tries < maxTry)
@@ -162,10 +162,13 @@ namespace Cassandra.IntegrationTests.TestBase
                         // wait for node to be 'UP' accn to cluster meta
                         WaitForMeta(nodeHost, cluster, 2, true);
 
-                        // now try a basic query
-                        var session = cluster.Connect();
-                        var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
-                        Assert.Greater(rs.Count(), 0);
+                        if (doAddlQueryTest)
+                        {
+                            // now try a basic query
+                            var session = cluster.Connect();
+                            var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
+                            Assert.Greater(rs.Count(), 0);
+                        }
                         return cluster;
                     }
                 }

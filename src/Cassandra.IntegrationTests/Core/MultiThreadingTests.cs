@@ -184,7 +184,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InsertFireAndForget()
         {
-            var keyspaceName = "kp_ifaf";
+            string keyspaceName = "fireandforget_" + Randomm.RandomAlphaNum(8);
             Cluster localCluster = _builder.Build();
             ISession localSession = localCluster.Connect();
             localSession.CreateKeyspaceIfNotExists(keyspaceName);

@@ -15,15 +15,12 @@
 //
 
  using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 ﻿using System.Threading;
- using Cassandra.IntegrationTests.TestBase;
- using Cassandra.IntegrationTests.TestClusterManagement;
-﻿using Moq;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -46,6 +43,14 @@ namespace Cassandra.IntegrationTests.Core
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
             WaitForAuthenticatedClusterToConnect(_testClusterForAuthTesting);
+        }
+
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
+        {
+            // Reset authentication configuration for test cluster before trying to remove
+            CcmCluster customTestCluster = GetTestCcmClusterForAuthTests();
+            customTestCluster.CcmBridge.ExecuteCcm("updateconf \"authenticator: AllowAllAuthenticator\"", 3000, true);
         }
 
         private CcmCluster GetTestCcmClusterForAuthTests()

@@ -232,13 +232,6 @@ namespace Cassandra.IntegrationTests.TestBase
             return comparison == versionAttr.Comparison;
         }
 
-        // this will run after every test
-        [TearDown]
-        public void TearDown()
-        {
-            // TODO: Remove all non-shareable test clusters now to save on resources in case we're using ctool
-        }
-
 
     }
 }
