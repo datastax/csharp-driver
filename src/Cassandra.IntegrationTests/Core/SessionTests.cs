@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
+using System.Diagnostics;
+using Cassandra.Tests;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -296,11 +298,27 @@ namespace Cassandra.IntegrationTests.Core
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Checks that having a disposed Session created by the cluster does not affects other sessions
+        /// </summary>
         [Test]
-        [Ignore("Not implemented")]
         public void SessionDisposedOnCluster()
         {
-            throw new NotImplementedException();
+            var cluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var session1 = cluster.Connect();
+            var session2 = cluster.Connect();
+            TestHelper.ParallelInvoke(() => session1.Execute("SELECT * from system.local"), 5);
+            TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
+            //Dispose the first session
+            Trace.TraceInformation("Dispose the first session");
+            session1.Dispose();
+
+            //All nodes should be up
+            Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
+            //And session2 should be queryable
+            TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
+            Trace.TraceInformation("Disposing cluster");
+            cluster.Dispose();
         }
     }
 }
