@@ -17,10 +17,8 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Numerics;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Cassandra.IntegrationTests.TestBase;
@@ -36,7 +34,8 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupFixture()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            if (_session == null)
+                _session = TestClusterManager.GetTestCluster(1).Session;
         }
 
         [Test]
@@ -149,7 +148,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void BigInsert()
+        public void LargeBatchInsert_MultipleTypes()
         {
             BigInsertTest(1000);
         }

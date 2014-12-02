@@ -59,9 +59,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         // first stop any existing CCM clusters
                         ShutDownAllCcmTestClusters();
                         KillAllCcmProcesses();
-                        //RemoveAllTestClusters();
-                        //int ccmProcsRemaining1 = CountCcmProcesses();
-                        //Console.WriteLine("ccmProcsRemaining1 " + ccmProcsRemaining1);
 
                         // Create new cluster via ccm
                         CcmCluster testClusterToAdd = new CcmCluster(TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
@@ -79,8 +76,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
                 if (!UseCtool)
                 {
-                    // ShutDownAllCcmTestClusters();
-                    // RemoveAllTestClusters();
                     KillAllCcmProcesses();
                 }
                 tries++;

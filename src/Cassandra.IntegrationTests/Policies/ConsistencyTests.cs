@@ -688,7 +688,7 @@ namespace Cassandra.IntegrationTests.Policies
                 queriesCompleted += queriesPerIteration;
             }
 
-            Assert.AreEqual(4, _policyTestTools.Coordinators.Count(), "The minimum number of hosts queried was not met!");
+            Assert.IsTrue(_policyTestTools.Coordinators.Count() >= 4, "The minimum number of hosts queried was not met!");
             int totalQueriesForAllHosts = _policyTestTools.Coordinators.Sum(c => c.Value);
             Assert.AreEqual(queriesCompleted, totalQueriesForAllHosts, 
                 "The sum of queries for all hosts should equal the number of queries recorded by the calling test!");
@@ -787,12 +787,21 @@ namespace Cassandra.IntegrationTests.Policies
         [Test]
         public void ReplicationFactorThree_TwoDcs_DcAware_DowngradingConsistencyRetryPolicy()
         {
+            // Seetup
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCmdRetries, true);
             testCluster.Builder = Cluster.Builder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
 
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "4", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "5", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "6", testCluster.Builder, 30, true);
+
+            // Test
             _policyTestTools.CreateMultiDcSchema(testCluster.Session, 3, 3);
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);

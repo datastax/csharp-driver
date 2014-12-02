@@ -159,20 +159,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
             
             // wait for it to finish starting if needs be
-            while (IsStarting || IsBeingCreated)
+            try
             {
-                try
-                {
-                    InitClient();
-                    IsStarting = false;
-                    IsStarted = true;
-                    IsBeingCreated = false;
-                    IsCreated = true;
-                }
-                catch (Cassandra.NoHostAvailableException e)
-                {
-                    Logger.Info(string.Format("NoHostAvailableException was thrown, still waiting for cluster with Name: {0}, InitialContactPoint: {1}, CcmDir: {2}", Name, InitialContactPoint, CcmBridge.CcmDir));
-                }
+                InitClient();
+                IsStarting = false;
+                IsStarted = true;
+                IsBeingCreated = false;
+                IsCreated = true;
+            }
+            catch (Cassandra.NoHostAvailableException e)
+            {
+                Logger.Error(string.Format("NoHostAvailableException was thrown, cluster with Name: {0}, InitialContactPoint: {1}, CcmDir: {2} was not successfully started!", Name, InitialContactPoint, CcmBridge.CcmDir));
+                Logger.Error("Error Message: " + e.Message);
+                Logger.Error("Error StackTrace: " + e.StackTrace);
             }
         }
 

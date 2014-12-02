@@ -124,7 +124,7 @@ namespace Cassandra.IntegrationTests.Policies
             // Bootstrap step
             testCluster.BootstrapNode(3, "dc1");
             string newlyBootstrappedIp = testCluster.ClusterIpPrefix + "3";
-            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40);
+            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40, true);
 
             // Validate expected nodes where queried
             policyTestTools.WaitForPolicyToolsQueryToHitBootstrappedIp(testCluster, newlyBootstrappedIp);
@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.ResetCoordinators();
             testCluster.BootstrapNode(4, "dc2");
             newlyBootstrappedIp = testCluster.ClusterIpPrefix + "4";
-            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40);
+            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40, true);
             policyTestTools.ResetCoordinators();
             policyTestTools.Query(testCluster, 12);
             policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);

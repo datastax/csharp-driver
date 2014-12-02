@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            _session = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCmdRetries, true, 1).Session;
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
@@ -646,7 +646,7 @@ namespace Cassandra.IntegrationTests.Core
         /// Verify that a prepared statement can be re-bound after a cluster is restarted, using client's "use keyspace" method
         /// </summary>
         [Test]
-        public void RePrepare()
+        public void RePrepareAfterNodeRestart()
         {
             ReprepareTest(true);
         }
@@ -655,7 +655,7 @@ namespace Cassandra.IntegrationTests.Core
         /// Verify that a prepared statement can be re-bound after a cluster is restarted, not using client's "use keyspace" method
         /// </summary>
         [Test]
-        public void RePrepare_NoUseKeyspace()
+        public void RePrepareAfterNodeRestart_NoUseKeyspace()
         {
             ReprepareTest(false);
         }

@@ -327,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
             var parallelOptions = new ParallelOptions
             {
                 TaskScheduler = new ThreadPerTaskScheduler(),
-                MaxDegreeOfParallelism = 1000
+                MaxDegreeOfParallelism = 100
             };
             ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(1);
             var session = nonShareableTestCluster.Session;
