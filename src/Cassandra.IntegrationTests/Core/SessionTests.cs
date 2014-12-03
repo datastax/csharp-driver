@@ -16,11 +16,12 @@
 
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using System.Diagnostics;
+using Cassandra.Tests;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -313,5 +314,27 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// <summary>
+        /// Checks that having a disposed Session created by the cluster does not affects other sessions
+        /// </summary>
+        [Test]
+        public void SessionDisposedOnCluster()
+        {
+            var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+            var session1 = cluster.Connect();
+            var session2 = cluster.Connect();
+            TestHelper.ParallelInvoke(() => session1.Execute("SELECT * from system.local"), 5);
+            TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
+            //Dispose the first session
+            Trace.TraceInformation("Dispose the first session");
+            session1.Dispose();
+
+            //All nodes should be up
+            Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
+            //And session2 should be queryable
+            TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
+            Trace.TraceInformation("Disposing cluster");
+            cluster.Dispose();
+        }
     }
 }
