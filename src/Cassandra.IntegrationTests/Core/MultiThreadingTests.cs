@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -26,34 +28,41 @@ using System.Threading.Tasks;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("long")]
-    public class MultiThreadingTests : TwoNodesClusterTest
+    public class MultiThreadingTests : TestGlobals
     {
-        public override void TestFixtureSetUp()
+        private static readonly Logger _logger = new Logger(typeof(MultiThreadingTests));
+
+        Builder _builder = null;
+        private const int NodeCount = 2;
+
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
         {
-            this.Builder = Cluster.Builder()
-                .WithReconnectionPolicy(new ConstantReconnectionPolicy(100))
-                .WithQueryTimeout(60 * 1000);
-
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
-            rp.ReconnectionEvent += (s, ev) =>
-            {
-                Thread.Sleep((int)ev.DelayMs);
-            };
-            this.Builder.WithLoadBalancingPolicy(rp);
+            rp.ReconnectionEvent += (s, ev) => Thread.Sleep((int)ev.DelayMs);
+            _builder = Cluster.Builder()
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(100))
+                .WithQueryTimeout(60 * 1000)
+                .WithLoadBalancingPolicy(rp);
 
-            base.TestFixtureSetUp();
+            _builder = _builder.AddContactPoint(TestClusterManager.GetTestCluster(NodeCount).InitialContactPoint);
         }
 
+        /** name of test: ParallelInsertTest
+         * 
+         * @param nothingActually.
+         * 
+         */
         [Test]
         public void ParallelInsertTest()
         {
-            var localSession = Cluster.Connect();
-            string keyspaceName = "kp_pi1";
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
+            string keyspaceName = "kp_pi1_" + Randomm.RandomAlphaNum(10);
 
-            localSession.Execute(
-                string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName));
+            localSession.Execute(string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName));
 
-            TestUtils.WaitForSchemaAgreement(Cluster);
+            TestUtils.WaitForSchemaAgreement(localCluster);
             localSession.ChangeKeyspace(keyspaceName);
 
             for (int KK = 0; KK < 1; KK++)
@@ -70,7 +79,7 @@ namespace Cassandra.IntegrationTests.Core
                         isok boolean,
                         PRIMARY KEY(tweet_id))", tableName));
 
-                    TestUtils.WaitForSchemaAgreement(Cluster);
+                    TestUtils.WaitForSchemaAgreement(localCluster);
                 }
                 catch (AlreadyExistsException)
                 {
@@ -177,81 +186,89 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InsertFireAndForget()
         {
-            var keyspaceName = "kp_ifaf";
-            var localSession = Cluster.Connect();
-            localSession.CreateKeyspaceIfNotExists(keyspaceName);
-            localSession.ChangeKeyspace(keyspaceName);
-
-            localSession.WaitForSchemaAgreement(
-                localSession.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, "sampletable")));
-
-            var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
-            var rowLength = 10000;
-            var rnd = new Random();
-            var taskList = new List<Task<RowSet>>();
-            for (var i = 0; i < rowLength; i++)
+            Cluster localCluster = null;
+            try
             {
-                taskList.Add(localSession.ExecuteAsync(insertStatement.Bind(Guid.NewGuid(), new byte[1024 * rnd.Next(10)])));
+                string keyspaceName = "fireandforget_" + Randomm.RandomAlphaNum(8);
+                localCluster = _builder.Build();
+                ISession localSession = localCluster.Connect();
+                localSession.CreateKeyspaceIfNotExists(keyspaceName);
+                localSession.ChangeKeyspace(keyspaceName);
+
+                localSession.WaitForSchemaAgreement(
+                    localSession.Execute(String.Format(TestUtils.CreateTableAllTypes, "sampletable")));
+
+                var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
+                var rowLength = 10000;
+                var rnd = new Random();
+                var taskList = new List<Task<RowSet>>();
+                for (var i = 0; i < rowLength; i++)
+                {
+                    taskList.Add(localSession.ExecuteAsync(insertStatement.Bind(Guid.NewGuid(), new byte[1024*rnd.Next(10)])));
+                }
+
+                var taskArray = taskList.ToArray();
+                Task.WaitAny(taskArray);
+                var rs = localSession.Execute("SELECT * FROM sampletable", ConsistencyLevel.One);
+                Assert.IsTrue(rs.Count() > 0, "Table should contain 1 or more rows by now");
+
+                Task.WaitAll(taskArray);
+                rs = localSession.Execute("SELECT * FROM sampletable", ConsistencyLevel.Quorum);
+
+                Assert.AreEqual(rowLength, rs.Count());
             }
-
-            var taskArray = taskList.ToArray();
-            Task.WaitAny(taskArray);
-            var rs = localSession.Execute("SELECT * FROM sampletable", ConsistencyLevel.One);
-            Assert.IsTrue(rs.Count() > 0, "Table should contain 1 or more rows by now");
-            
-            Task.WaitAll(taskArray);
-            rs = localSession.Execute("SELECT * FROM sampletable", ConsistencyLevel.Quorum);
-
-            Assert.AreEqual(rowLength, rs.Count());
+            catch (Exception e)
+            {
+                _logger.Error("Unexpected Exception was thrown! Message: " + e.Message);
+                throw e;
+            }
+            finally
+            {
+                if (localCluster != null)
+                    localCluster.Shutdown();
+            }
         }
 
         [Test]
         public void MassiveAsyncTest()
         {
-            var localSession = Cluster.Connect();
-            string keyspaceName = "kp_mat";
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
+            string keyspaceName = "kp_mat_" + Randomm.RandomAlphaNum(8);
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
                     string.Format(@"CREATE KEYSPACE {0} 
-         WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                     WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
                                   , keyspaceName)));
             localSession.ChangeKeyspace(keyspaceName);
 
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            try
-            {
-                localSession.WaitForSchemaAgreement(
-                    localSession.Execute(string.Format(@"CREATE TABLE {0}(
-         tweet_id uuid,
-         author text,
-         body text,
-         isok boolean,
-         PRIMARY KEY(tweet_id))", tableName)));
-            }
-            catch (AlreadyExistsException)
-            {
-            }
+            string tableName = "table" + Randomm.RandomAlphaNum(8);
+            localSession.WaitForSchemaAgreement(
+                localSession.Execute(string.Format(@"CREATE TABLE {0}(
+                        tweet_id uuid,
+                        author text,
+                        body text,
+                        isok boolean,
+                        PRIMARY KEY(tweet_id))", tableName)));
 
-            int RowsNo = 10000;
-
+            int RowsNo = 100;
             var ar = new bool[RowsNo];
-
             var thr = new Thread(() =>
             {
                 for (int i = 0; i < RowsNo; i++)
                 {
                     int tmpi = i;
                     localSession.BeginExecute(string.Format(@"INSERT INTO {0} (
-             tweet_id,
-             author,
-             isok,
-             body)
-    VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
-                                         , ConsistencyLevel.One, _ =>
-                                         {
-                                             ar[tmpi] = true;
-                                             Thread.MemoryBarrier();
-                                         }, null);
+                             tweet_id,
+                             author,
+                             isok,
+                             body)
+                            VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
+                        , ConsistencyLevel.One, _ =>
+                        {
+                            ar[tmpi] = true;
+                            Thread.MemoryBarrier();
+                        }, null);
                 }
             });
 
@@ -276,21 +293,14 @@ namespace Cassandra.IntegrationTests.Core
 
             var ret = localSession.Execute(string.Format(@"SELECT * from {0} LIMIT {1};", tableName, RowsNo + 100), ConsistencyLevel.Quorum);
             Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
-
-            try
-            {
-                localSession.Execute(string.Format(@"DROP TABLE {0};", tableName));
-            }
-            catch
-            {
-            }
             localSession.Dispose();
         }
 
         [Test]
         public void ShutdownAsyncTest()
         {
-            var localSession = Cluster.Connect();
+            Cluster localCluster = _builder.Build();
+            ISession localSession = localCluster.Connect();
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
             localSession.WaitForSchemaAgreement(
                 localSession.Execute(
@@ -313,7 +323,7 @@ namespace Cassandra.IntegrationTests.Core
             {
             }
 
-            int RowsNo = 10000;
+            int RowsNo = 1000;
 
             var ar = new bool[RowsNo];
 
