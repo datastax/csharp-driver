@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
+using Cassandra.IntegrationTests.TestBase;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,14 +24,20 @@ using System.Text;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class ConsistencyShortTests : SingleNodeClusterTest
+    public class ConsistencyShortTests : TestGlobals
     {
-        const string AllTypesTableName = "all_types_table_serial";
-        public override void TestFixtureSetUp()
-        {
-            base.TestFixtureSetUp();
+        ISession _session = null;
+        const string AllTypesTableName = "all_types_table_serial_consistencyshorttests";
 
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, AllTypesTableName)));
+        [SetUp]
+        public void SetupFixture()
+        {
+            _session = TestClusterManager.GetTestCluster(1).Session;
+            try
+            {
+                _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+            }
+            catch (Cassandra.AlreadyExistsException e) { }
         }
 
         [Test]
@@ -39,7 +46,7 @@ namespace Cassandra.IntegrationTests.Core
             //You can not specify local serial consistency as a valid read one.
             Assert.Throws<RequestInvalidException>(() =>
             {
-                Session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.LocalSerial);
+                _session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.LocalSerial);
             });
 
             //It should work
@@ -47,12 +54,12 @@ namespace Cassandra.IntegrationTests.Core
                 .SetConsistencyLevel(ConsistencyLevel.Quorum)
                 .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
             //Read consistency specified and write consistency specified
-            Session.Execute(statement);
+            _session.Execute(statement);
 
             //You can not specify serial consistency as a valid read one.
             Assert.Throws<RequestInvalidException>(() =>
             {
-                Session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.Serial);
+                _session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.Serial);
             });
         }
 
@@ -60,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
         public void LocalOneIsValidConsistencyTest()
         {
             //Local One is a valid read consistency
-            Assert.DoesNotThrow(() => Session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.LocalOne));
+            Assert.DoesNotThrow(() => _session.Execute("SELECT * FROM " + AllTypesTableName, ConsistencyLevel.LocalOne));
 
             Assert.Throws<ArgumentException>(() =>
             {
@@ -69,15 +76,15 @@ namespace Cassandra.IntegrationTests.Core
                     .SetConsistencyLevel(ConsistencyLevel.Quorum)
                     .SetSerialConsistencyLevel(ConsistencyLevel.LocalOne);
                 //Read consistency specified and write consistency specified
-                Session.Execute(statement);
+                _session.Execute(statement);
             });
         }
 
         [Test]
         public void PreparedStatementConsistencyShouldBeMantainedWhenBound()
         {
-            var ps = Session.Prepare("SELECT * FROM " + AllTypesTableName);
-            var rs = Session.Execute(ps.SetConsistencyLevel(ConsistencyLevel.Quorum).Bind());
+            var ps = _session.Prepare("SELECT * FROM " + AllTypesTableName);
+            var rs = _session.Execute(ps.SetConsistencyLevel(ConsistencyLevel.Quorum).Bind());
             Assert.AreEqual(ConsistencyLevel.Quorum, rs.Info.AchievedConsistency);
         }
     }

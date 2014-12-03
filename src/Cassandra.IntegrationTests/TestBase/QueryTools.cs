@@ -14,15 +14,13 @@
 //   limitations under the License.
 //
 
-using NUnit.Framework;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
+using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Cassandra.IntegrationTests.TestBase
 {
     internal static class QueryTools
     {

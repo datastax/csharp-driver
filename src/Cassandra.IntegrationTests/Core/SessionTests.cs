@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,26 +14,41 @@
 //   limitations under the License.
 //
 
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Diagnostics;
 using Cassandra.Tests;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class SessionTests : TwoNodesClusterTest
+    public class SessionTests : TestGlobals
     {
+        private static readonly Logger Logger = new Logger(typeof(TestGlobals));
+
+        ISession _session = null;
+        ITestCluster _testCluster = null;
+        const int NodeCount = 2;
+
+        [SetUp]
+        public void SetupTest()
+        {
+            // we just want to make sure there's a local 2 node cluster
+            _testCluster = TestClusterManager.GetTestCluster(NodeCount);
+            _session = _testCluster.Session;
+        }
+
         [Test]
         public void SessionCancelsPendingWhenDisposed()
         {
             Logger.Info("SessionCancelsPendingWhenDisposed");
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {
                 var localSession = localCluster.Connect();
@@ -48,7 +63,15 @@ namespace Cassandra.IntegrationTests.Core
                 Logger.Info("Start Disposing localSession");
                 localSession.Dispose();
                 //Wait for the worker threads to cancel the rest of the operations.
-                Thread.Sleep(10000);
+                DateTime timeInTheFuture = DateTime.Now.AddSeconds(11);
+                while (DateTime.Now < timeInTheFuture &&
+                       (taskList.Any(t => t.Status == TaskStatus.WaitingForActivation) ||
+                        taskList.All(t => t.Status == TaskStatus.RanToCompletion || t.Status == TaskStatus.Faulted)))
+                {
+                    int waitMs = 500;
+                    Logger.Info(string.Format("In method: {0}, waiting {1} more MS ... ", System.Reflection.MethodBase.GetCurrentMethod().Name, waitMs));
+                    Thread.Sleep(waitMs);
+                }
                 Assert.False(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "No more task should be pending");
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion || t.Status == TaskStatus.Faulted), "All task should be completed or faulted");
             }
@@ -62,7 +85,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SessionGracefullyWaitsPendingOperations()
         {
             Logger.Info("Starting SessionGracefullyWaitsPendingOperations");
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {
                 var localSession = (Session)localCluster.Connect();
@@ -97,7 +120,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionKeyspaceDoesNotExistOnConnectThrows()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {
                 var ex = Assert.Throws<InvalidQueryException>(() => localCluster.Connect("THIS_KEYSPACE_DOES_NOT_EXIST"));
@@ -112,7 +135,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionKeyspaceEmptyOnConnect()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {
                 Assert.DoesNotThrow(() =>
@@ -130,7 +153,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionKeyspaceDoesNotExistOnChangeThrows()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {
                 var localSession = localCluster.Connect();
@@ -147,7 +170,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SessionKeyspaceConnectCaseSensitive()
         {
             var localCluster = Cluster.Builder()
-                .AddContactPoint(IpPrefix + "1")
+                .AddContactPoint(_testCluster.InitialContactPoint)
                 .Build();
             try
             {
@@ -163,7 +186,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SessionUseStatementChangesKeyspace()
         {
             var localCluster = Cluster.Builder()
-                .AddContactPoint(IpPrefix + "1")
+                .AddContactPoint(_testCluster.InitialContactPoint)
                 .Build();
             try
             {
@@ -189,7 +212,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SessionUseStatementChangesKeyspaceCaseInsensitive()
         {
             var localCluster = Cluster.Builder()
-                .AddContactPoint(IpPrefix + "1")
+                .AddContactPoint(_testCluster.InitialContactPoint)
                 .Build();
             try
             {
@@ -215,7 +238,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SessionKeyspaceCreateCaseSensitive()
         {
             var localCluster = Cluster.Builder()
-                .AddContactPoint(IpPrefix + "1")
+                .AddContactPoint(_testCluster.InitialContactPoint)
                 .Build();
             try
             {
@@ -245,7 +268,7 @@ namespace Cassandra.IntegrationTests.Core
         public void ShouldCreateTheRightAmountOfConnections()
         {
             var localCluster1 = Cluster.Builder()
-                .AddContactPoint(IpPrefix + "1")
+                .AddContactPoint(_testCluster.InitialContactPoint)
                 .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3))
                 .Build();
             Cluster localCluster2 = null;
@@ -265,7 +288,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.That(pool12.OpenConnections.Count(), Is.EqualTo(3));
                 
                 localCluster2 = Cluster.Builder()
-                    .AddContactPoint(IpPrefix + "1")
+                    .AddContactPoint(_testCluster.InitialContactPoint)
                     .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
                     .Build();
                 var localSession2 = (Session)localCluster2.Connect();
@@ -291,20 +314,13 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test]
-        [Ignore("Not implemented")]
-        public void SessionFaultsTasksAfterDisposed()
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Checks that having a disposed Session created by the cluster does not affects other sessions
         /// </summary>
         [Test]
         public void SessionDisposedOnCluster()
         {
-            var cluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
+            var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             var session1 = cluster.Connect();
             var session2 = cluster.Connect();
             TestHelper.ParallelInvoke(() => session1.Execute("SELECT * from system.local"), 5);
