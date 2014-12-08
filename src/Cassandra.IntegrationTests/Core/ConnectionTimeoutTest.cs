@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
+using ﻿Cassandra.IntegrationTests.TestBase;
+using NUnit.Framework;
 using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -22,7 +23,7 @@ using System.Linq.Expressions;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("short")]
-    public class ConnectionTimeoutTest
+    public class ConnectionTimeoutTest : TestGlobals
     {
         [Test]
         public void ConnectionDroppingTimeoutTest()
@@ -63,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var builder = new Builder().WithDefaultKeyspace("system")
-                                           .AddContactPoints(Options.Default.IP_PREFIX + "1") // IP address that rejects
+                                           .AddContactPoints("127.9.9.9") // local IP that will most likely not be in use
                                            .WithQueryTimeout(500);
                 builder.SocketOptions.SetConnectTimeoutMillis(500);
                 var cluster = builder.Build();

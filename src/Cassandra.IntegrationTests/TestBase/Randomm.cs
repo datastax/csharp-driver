@@ -17,7 +17,7 @@
 using System;
 using System.Numerics;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Cassandra.IntegrationTests.TestBase
 {
     internal class Randomm : Random
     {
@@ -125,6 +125,18 @@ namespace Cassandra.IntegrationTests.Core
         public Guid NextGuid()
         {
             return Guid.NewGuid();
+        }
+
+        public static string RandomAlphaNum(int strLen)
+        {
+            string randomStr = "";
+            while (randomStr.Length < strLen)
+            {
+                randomStr += Guid.NewGuid().ToString().Replace("-", "");
+                if (randomStr.Length > strLen)
+                    randomStr = randomStr.Substring(0, strLen);
+            }
+            return randomStr;
         }
     }
 }

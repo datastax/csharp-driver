@@ -14,12 +14,9 @@
 //   limitations under the License.
 //
 
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.TestBase
 {
     /// <summary>
     /// It determines the Cassandra version required to execute the test
