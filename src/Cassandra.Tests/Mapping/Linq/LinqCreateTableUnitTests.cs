@@ -254,5 +254,22 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.That(createQueries, Is.Not.Empty);
             Assert.That(createQueries[0], Is.EqualTo("CREATE TABLE Items (Key int, KeyName text static, ItemId int, Value decimal, PRIMARY KEY (Key, ItemId))"));
         }
+
+        [Test]
+        public void Create_With_Varint()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var typeDefinition = new Map<VarintPoco>()
+                .PartitionKey(t => t.Id)
+                .TableName("tbl1");
+            var table = sessionMock.Object.GetTable<VarintPoco>(typeDefinition);
+            table.Create();
+            Assert.AreEqual(@"CREATE TABLE tbl1 (Id uuid, Name text, VarintValue varint, PRIMARY KEY (Id))", createQuery);
+        }
     }
 }

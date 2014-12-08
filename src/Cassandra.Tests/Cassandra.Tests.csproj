@@ -41,6 +41,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -86,6 +87,7 @@
     <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />
     <Compile Include="Mapping\Pocos\UserType.cs" />
     <Compile Include="Mapping\Pocos\UserWithPrimaryKeyDecoration.cs" />
+    <Compile Include="Mapping\Pocos\VarintPoco.cs" />
     <Compile Include="Mapping\TestData\TestDataGenerator.cs" />
     <Compile Include="Mapping\TestData\TestDataHelper.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
