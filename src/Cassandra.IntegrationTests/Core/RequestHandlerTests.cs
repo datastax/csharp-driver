@@ -24,6 +24,7 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     public class RequestHandlerTests : TestGlobals
     {
         private Session Session
