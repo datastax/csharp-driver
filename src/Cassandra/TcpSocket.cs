@@ -32,7 +32,7 @@ namespace Cassandra
     /// Similar to Netty's Channel or Node.js's net.Socket
     /// It handles TLS validation and encryption when required.
     /// </summary>
-    internal class TcpSocket
+    internal class TcpSocket: IDisposable
     {
         private static Logger _logger = new Logger(typeof(TcpSocket));
         private Socket _socket;
@@ -195,7 +195,7 @@ namespace Cassandra
             else
             {
                 //Stream mode
-                _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, new AsyncCallback(OnReceiveStreamCallback), null);
+                _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, OnReceiveStreamCallback, null);
             }
         }
 
@@ -218,7 +218,7 @@ namespace Cassandra
                 OnError(null, e.SocketError);
                 return;
             }
-            else if (e.BytesTransferred == 0)
+            if (e.BytesTransferred == 0)
             {
                 OnClosing();
                 return;
@@ -314,6 +314,17 @@ namespace Cassandra
             {
                 Closing();
             }
+            if (_receiveSocketEvent != null)
+            {
+                _sendSocketEvent.Dispose();
+                _receiveSocketEvent.Dispose();
+            }
+            else if (_socketStream != null)
+            {
+                _socketStream.Dispose();
+            }
+            //dereference to make the byte array GC-able as soon as possible
+            _receiveBuffer = null;
         }
 
         /// <summary>
@@ -321,13 +332,14 @@ namespace Cassandra
         /// </summary>
         public virtual void Write(Stream stream)
         {
-            if (_isClosing)
-            {
-                OnError(new SocketException((int)SocketError.Shutdown));
-            }
             //This can result in OOM
             //A neat improvement would be to write this sync in small buffers when buffer.length > X
             var buffer = Utils.ReadAllBytes(stream, 0);
+            if (_isClosing)
+            {
+                OnError(new SocketException((int)SocketError.Shutdown));
+                return;
+            }
             if (_sendSocketEvent != null)
             {
                 _sendSocketEvent.SetBuffer(buffer, 0, buffer.Length);
@@ -364,6 +376,7 @@ namespace Cassandra
                 {
                     return;
                 }
+                _isClosing = true;
                 //Try to close it.
                 //Some operations could make the socket to dispose itself
                 _socket.Shutdown(SocketShutdown.Both);
