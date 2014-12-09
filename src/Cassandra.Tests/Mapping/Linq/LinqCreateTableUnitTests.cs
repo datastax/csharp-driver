@@ -271,5 +271,20 @@ namespace Cassandra.Tests.Mapping.Linq
             table.Create();
             Assert.AreEqual(@"CREATE TABLE tbl1 (Id uuid, Name text, VarintValue varint, PRIMARY KEY (Id))", createQuery);
         }
+
+        [Test]
+        public void Create_With_Ignored_Prop()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var table = sessionMock.Object.GetTable<LinqDecoratedEntity>();
+            table.Create();
+            //It contains Ignored props: Ignored1 and Ignored2
+            Assert.AreEqual(@"CREATE TABLE ""x_t"" (""x_pk"" text, ""x_ck1"" int, ""x_ck2"" int, ""x_f1"" int, PRIMARY KEY (""x_pk"", ""x_ck1"", ""x_ck2""))", createQuery);
+        }
     }
 }

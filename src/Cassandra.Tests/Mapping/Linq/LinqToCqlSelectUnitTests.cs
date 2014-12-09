@@ -115,5 +115,23 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual("SELECT * FROM tbl1 WHERE id = ? ORDER BY string_val", query);
             CollectionAssert.AreEqual(parameters, new object[] { id });
         }
+
+        [Test]
+        public void Select_Expression_With_Ignored_In_Where_Clause_Throws_Test()
+        {
+            var session = GetSession((q, v) => { });
+            var table = session.GetTable<LinqDecoratedEntity>();
+            var ex = Assert.Throws<InvalidOperationException>(() => (from t in table where t.pk == "pkval" && t.Ignored1 == "aa" select t).Execute());
+            StringAssert.Contains("ignored", ex.Message);
+        }
+
+        [Test]
+        public void Select_Expression_With_Ignored_In_Order_Clause_Throws_Test()
+        {
+            var session = GetSession((q, v) => { });
+            var table = session.GetTable<LinqDecoratedEntity>();
+            var ex = Assert.Throws<InvalidOperationException>(() => (from t in table where t.pk == "pkval" orderby t.Ignored1 select t).Execute());
+            StringAssert.Contains("ignored", ex.Message);
+        }
     }
 }

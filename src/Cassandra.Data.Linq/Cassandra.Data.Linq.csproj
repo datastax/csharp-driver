@@ -66,6 +66,7 @@
     <Compile Include="CqlStringTool.cs" />
     <Compile Include="CqlToken.cs" />
     <Compile Include="CqlUpdate.cs" />
+    <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="ITable.cs" />
     <Compile Include="LinqAttributeBasedColumnDefinition.cs" />
     <Compile Include="LinqAttributeBasedTypeDefinition.cs" />

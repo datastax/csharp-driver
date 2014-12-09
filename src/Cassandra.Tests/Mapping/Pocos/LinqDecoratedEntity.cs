@@ -24,5 +24,11 @@ namespace Cassandra.Tests.Mapping.Pocos
 
         [Column("x_f1")]
         public int f1 { get; set; }
+
+        [Ignore]
+        public string Ignored1 { get; set; }
+
+        [Ignore]
+        public FluentUser Ignored2 { get; set; }
     }
 }

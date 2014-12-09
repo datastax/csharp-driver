@@ -54,8 +54,7 @@ namespace Cassandra.Data.Linq
             SecondaryIndex = HasAttribute(memberInfo, typeof (SecondaryIndexAttribute));
             IsCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
             IsStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));
-            //TODO: Create Linq's Ignore attribute
-            Ignore = false;
+            Ignore = HasAttribute(memberInfo, typeof(IgnoreAttribute));
         }
 
         /// <summary>
