@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-﻿using Moq;
+using Cassandra.IntegrationTests.TestBase;
+using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -23,14 +24,15 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    public class RequestHandlerTests : SingleNodeClusterTest
+    [Category("short")]
+    public class RequestHandlerTests : TestGlobals
     {
-        private new Session Session
+        private Session Session
         {
             get
             {
-                //We will need the solid session for the internal methods.
-                return (Session)base.Session;
+                // We will need the solid session for the internal methods.
+                return (Session)TestClusterManager.GetTestCluster(1).Session;
             }
         }
 

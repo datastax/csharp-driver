@@ -5,28 +5,36 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
 {
     [Category("short")]
-    public class LinqMappingTests : SingleNodeClusterTest
+    public class LinqMappingTests : TestGlobals
     {
         private const string TableName = "linqalltypestable";
+        ISession _session = null;
+
+        [TestFixtureSetUp]
+        public void SetupFixture()
+        {
+            _session = TestClusterManager.GetTestCluster(1).Session;
+        }
 
         [Test]
         public void CreateTableTest()
         {
-            var table = Session.GetTable<AllTypesEntity>(TableName);
+            var table = _session.GetTable<AllTypesEntity>(TableName);
             table.CreateIfNotExists();
-            Assert.DoesNotThrow(() => 
-                Session.Execute("SELECT * FROM " + TableName));
+            Assert.DoesNotThrow(() =>
+                _session.Execute("SELECT * FROM " + TableName));
         }
 
         [Test]
         public void MappingAsyncTest()
         {
-            var table = Session.GetTable<AllTypesEntity>(TableName);
+            var table = _session.GetTable<AllTypesEntity>(TableName);
             const int length = 100;
             var tasks = new List<Task>(length);
             for (var i = 0; i < length; i++)

@@ -16,28 +16,35 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Threading;
-using Cassandra.Data.Linq;
-using NUnit.Framework;
 using System.Diagnostics;
+using System.Linq;
+using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.Linq;
+using Cassandra.IntegrationTests.TestBase;
+using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq
+namespace Cassandra.IntegrationTests.FoundBugs
 {
     [Category("short")]
-    public class FoundBug3Tests : SingleNodeClusterTest
+    public class CSHARP_42 : TestGlobals
     {
+        ISession _session = null;
+
+        [SetUp]
+        public void SetupFixture()
+        {
+            _session = TestClusterManager.GetTestCluster(1).Session;
+        }
 
         [Test]
         //https://datastax-oss.atlassian.net/browse/CSHARP-42
         //Create table causes InvalidOperationException
         public void Bug_CSHARP_42()
         {
-            Table<SalesOrder> table = Session.GetTable<SalesOrder>();
+            Table<SalesOrder> table = _session.GetTable<SalesOrder>();
             table.CreateIfNotExists();
 
-            Batch batch = Session.CreateBatch();
+            Batch batch = _session.CreateBatch();
 
             var order = new SalesOrder
             {

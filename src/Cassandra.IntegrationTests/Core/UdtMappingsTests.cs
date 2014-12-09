@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
-﻿using NUnit.Framework;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,8 +26,18 @@ namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
     [TestCassandraVersion(2, 1)]
-    public class UdtMappingsTests : SingleNodeClusterTest
+    public class UdtMappingsTests : TestGlobals
     {
+        ISession _session = null;
+        private ITestCluster _testCluster = null;
+
+        [SetUp]
+        public void TestSetup()
+        {
+            _testCluster = TestClusterManager.GetTestCluster(1);
+            _session = _testCluster.Session;
+        }
+
         /// <summary>
         /// The protocol versions in which udts are supported
         /// </summary>
@@ -33,33 +45,27 @@ namespace Cassandra.IntegrationTests.Core
 
         private int _maxProtocolVersion;
 
-        public override void TestFixtureSetUp()
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
         {
+            _testCluster = TestClusterManager.GetTestCluster(1);
+            _session = _testCluster.Session;
+
             _maxProtocolVersion = Cluster.MaxProtocolVersion;
 
-            base.TestFixtureSetUp();
-            if (Options.Default.CassandraVersion >= new Version(2, 1))
+            if (CassandraVersion >= new Version(2, 1))
             {
                 const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int)";
                 const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";
                 const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
                 const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
 
-                Session.Execute(cqlType1);
-                Session.Execute(cqlType2);
-                Session.Execute(cqlTable1);
-                Session.Execute(cqlTable2);
+                _session.Execute(cqlType1);
+                _session.Execute(cqlType2);
+                _session.Execute(cqlTable1);
+                _session.Execute(cqlTable2);
 
-                //Nullify Session and cluster to force using local instances
-                Session = null;
-                Cluster = null;
             }
-        }
-
-        public override void TestFixtureTearDown()
-        {
-            Cluster.MaxProtocolVersion = _maxProtocolVersion;
-            base.TestFixtureTearDown();
         }
 
         [Test]
@@ -70,8 +76,8 @@ namespace Cassandra.IntegrationTests.Core
                 //Use all possible protocol versions
                 Cluster.MaxProtocolVersion = protocolVersion;
                 //Use a local cluster
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>("phone")
                         .Map(v => v.Alias, "alias")
@@ -97,8 +103,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Cluster.MaxProtocolVersion = protocolVersion;
                 //Use a local cluster
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>("phone")
                           .Map(v => v.Alias, "alias")
@@ -140,8 +146,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Cluster.MaxProtocolVersion = protocolVersion;
                 //Use a local cluster
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>()
                     );
@@ -164,8 +170,8 @@ namespace Cassandra.IntegrationTests.Core
             foreach (var protocolVersion in UdtProtocolVersionSupported)
             {
                 Cluster.MaxProtocolVersion = protocolVersion;
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>(),
                     UdtMap.For<Contact>()
@@ -210,8 +216,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Cluster.MaxProtocolVersion = protocolVersion;
                 //Use a local cluster
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 //Cassandra identifiers are lowercased by default
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>("phone")
@@ -248,8 +254,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingNotExistingFieldsTest()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+            var localSession = localCluster.Connect(DefaultKeyspaceName);
             Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
                 //there is no field named like this
                 UdtMap.For<Phone>("phone").Map(v => v.Number, "Alias_X_WTF")
@@ -265,8 +271,8 @@ namespace Cassandra.IntegrationTests.Core
                 //Use all possible protocol versions
                 Cluster.MaxProtocolVersion = protocolVersion;
                 //Use a local cluster
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>("phone")
                         .Map(v => v.Alias, "alias")
@@ -307,8 +313,8 @@ namespace Cassandra.IntegrationTests.Core
                 //Use all possible protocol versions
                 Cluster.MaxProtocolVersion = protocolVersion;
                 //Use a local cluster
-                var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-                var localSession = localCluster.Connect("tester");
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+                var localSession = localCluster.Connect(DefaultKeyspaceName);
                 localSession.UserDefinedTypes.Define(
                     UdtMap.For<Phone>(),
                     UdtMap.For<Contact>()
@@ -350,8 +356,8 @@ namespace Cassandra.IntegrationTests.Core
             const string cqlTable = "CREATE TABLE temp_table (id int PRIMARY KEY, sample_udt frozen<temp_udt>, sample_udt_list list<frozen<temp_udt>>)";
             const string cqlInsert = "INSERT INTO temp_table (id, sample_udt, sample_udt_list) VALUES (1, {text_sample: 'one', date_sample: 1}, [{text_sample: 'first'}])";
 
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+            var localSession = localCluster.Connect(DefaultKeyspaceName);
             localSession.Execute(cqlType);
             localSession.Execute(cqlTable);
             localSession.Execute(cqlInsert);
@@ -378,8 +384,8 @@ namespace Cassandra.IntegrationTests.Core
         public void MappingOnLowerProtocolVersionTest()
         {
             Cluster.MaxProtocolVersion = 2;
-            var localCluster = Cluster.Builder().AddContactPoint(IpPrefix + "1").Build();
-            var localSession = localCluster.Connect("tester");
+            var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
+            var localSession = localCluster.Connect(DefaultKeyspaceName);
             try
             {
                 Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));

@@ -139,12 +139,14 @@ namespace Cassandra
             {
                 return;
             }
-            //Cancel all pending operations and dispose every connection
-            var connections = GetAllConnections();
-            _logger.Info("Disposing session, closing " + connections.Count + " connections.");
-            foreach (var c in connections)
+            var hosts = Cluster.AllHosts().ToArray();
+            foreach (var host in hosts)
             {
-                c.Dispose();
+                HostConnectionPool pool;
+                if (_connectionPool.TryGetValue(host.Address, out pool))
+                {
+                    pool.Dispose();
+                }
             }
         }
 
@@ -222,15 +224,10 @@ namespace Cassandra
             var connections = new List<Connection>();
             foreach (var host in hosts)
             {
-                if (!host.IsUp)
+                HostConnectionPool pool;
+                if (_connectionPool.TryGetValue(host.Address, out pool))
                 {
-                    continue;
-                }
-                var distance = this.Policies.LoadBalancingPolicy.Distance(host);
-                var hostPool = this.GetConnectionPool(host, distance);
-                foreach (var c in hostPool.OpenConnections)
-                {
-                    connections.Add(c);
+                    connections.AddRange(pool.OpenConnections);
                 }
             }
             return connections;
@@ -241,7 +238,7 @@ namespace Cassandra
         /// </summary>
         internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
         {
-            var hostPool = _connectionPool.GetOrAdd(host.Address, new HostConnectionPool(host, distance, Configuration));
+            var hostPool = _connectionPool.GetOrAdd(host.Address, address => new HostConnectionPool(host, distance, Configuration));
             //It can change from the last time, when trying lower protocol versions
             hostPool.ProtocolVersion = (byte) BinaryProtocolVersion;
             return hostPool;
@@ -316,6 +313,8 @@ namespace Cassandra
         {
             if (timeout == Timeout.Infinite)
             {
+                //It is generally invoked with timeout infinite
+                //Do not honor that setting as it is best to cancel pending requests than waiting forever
                 timeout = Configuration.ClientOptions.QueryAbortTimeout;
             }
             var connections = GetAllConnections();

@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-﻿using Moq;
+using Cassandra.IntegrationTests.TestBase;
+using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -30,16 +31,16 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Timeout(600000)]
-    public class ConnectionTests : SingleNodeClusterTest
+    [Timeout(600000), Category("short")]
+    public class ConnectionTests : TestGlobals
     {
-        protected override bool ConnectToCluster
+        ISession _session = null;
+
+        [SetUp]
+        public void SetupFixture()
         {
-            get
-            {
-                //Do not create a session and cluster for the ccm cluster
-                return false;
-            }
+            // we just need to make sure that there is a query-able cluster
+            _session = TestClusterManager.GetTestCluster(1).Session;
         }
 
         public ConnectionTests()
@@ -289,7 +290,7 @@ namespace Cassandra.IntegrationTests.Core
                     eventHandle.Set();
                 };
                 //create a keyspace and check if gets received as an event
-                Query(connection, String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, "test_events_kp", 1)).Wait(1000);
+                Query(connection, String.Format(TestUtils.CreateKeyspaceSimpleFormat, "test_events_kp", 1)).Wait(1000);
                 eventHandle.WaitOne(2000);
                 Assert.IsNotNull(eventArgs);
                 Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
@@ -298,7 +299,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.IsNullOrEmpty((eventArgs as SchemaChangeEventArgs).Table);
 
                 //create a table and check if gets received as an event
-                Query(connection, String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, "test_events_kp.test_table", 1)).Wait(1000);
+                Query(connection, String.Format(TestUtils.CreateTableAllTypes, "test_events_kp.test_table", 1)).Wait(1000);
                 eventHandle.WaitOne(2000);
                 Assert.IsNotNull(eventArgs);
                 Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
@@ -350,15 +351,14 @@ namespace Cassandra.IntegrationTests.Core
         public void SslTest()
         {
             var certs = new X509CertificateCollection();
-            certs.Add(new X509Certificate(@"D:\var\ssl\cassandra_cert2.crt"));
             RemoteCertificateValidationCallback callback = (s, cert, chain, policyErrors) =>
             {
                 if (policyErrors == SslPolicyErrors.None)
                 {
-                    return true; 
+                    return true;
                 }
-                if (policyErrors == SslPolicyErrors.RemoteCertificateChainErrors && 
-                    chain.ChainStatus.Length == 1 && 
+                if ((policyErrors & SslPolicyErrors.RemoteCertificateChainErrors) == SslPolicyErrors.RemoteCertificateChainErrors &&
+                    chain.ChainStatus.Length == 1 &&
                     chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
                 {
                     //self issued
@@ -546,8 +546,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces"));
             }
-            //Wait for the first to finish
-            ValidateResult<OutputRows>(taskList[0].Result);
             Assert.Greater(connection.InFlight, 0);
 
             //Close the socket, this would trigger all pending ops to be called back
@@ -561,8 +559,6 @@ namespace Cassandra.IntegrationTests.Core
                 //Its alright, it will fail
             }
 
-            Assert.Greater(taskList.Count(t => t.Status == TaskStatus.RanToCompletion), 0);
-            Assert.Greater(taskList.Count(t => t.Status == TaskStatus.Faulted), 0);
             Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
 
             //A new call to write will be called back immediately with an exception
@@ -575,7 +571,7 @@ namespace Cassandra.IntegrationTests.Core
         /// It checks that the connection startup method throws an exception when using a greater protocol version
         /// </summary>
         [Test]
-        [TestCassandraVersion(2, 0, IntegrationTests.Comparison.LessThan)]
+        [TestCassandraVersion(2, 0, Comparison.LessThan)]
         public void StartupGreaterProtocolVersionThrows()
         {
             const byte protocolVersion = 2;
@@ -644,7 +640,7 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         private byte GetLatestProtocolVersion()
         {
-            var cassandraVersion = Options.Default.CassandraVersion;
+            var cassandraVersion = CassandraVersion;
             byte protocolVersion = 1;
             if (cassandraVersion >= Version.Parse("2.1"))
             {

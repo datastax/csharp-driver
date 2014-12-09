@@ -14,32 +14,28 @@
 //   limitations under the License.
 //
 using System;
-using System.Data.Common;
-using System.Globalization;
 using System.Text;
-using System.Threading;
 using Cassandra.Data;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
-using System.Configuration;
 
 namespace Cassandra.IntegrationTests.Data
 {
     [TestFixture, Category("short")]
-    public class AdoBasicTests : SingleNodeClusterTest
+    public class AdoBasicTests : TestGlobals
     {
         private CqlConnection _connection;
 
-        public override void TestFixtureSetUp()
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
         {
-            base.TestFixtureSetUp();
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
 
-            var host = "127.0.0.1";
-            if (TestUtils.UseRemoteCcm)
-            {
-                host = Options.Default.IP_PREFIX + "1";
-            }
+            // tests are 
+            string host = testCluster.InitialContactPoint;
             var cb = new CassandraConnectionStringBuilder();
-            cb.ContactPoints = new[] { host};
+            cb.ContactPoints = new[] {host};
             cb.Port = 9042;
             _connection = new CqlConnection(cb.ToString());
         }
@@ -51,7 +47,7 @@ namespace Cassandra.IntegrationTests.Data
             var cmd = _connection.CreateCommand();
 
             string keyspaceName = "keyspace_ado_1";
-            cmd.CommandText = string.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspaceName, 3);
+            cmd.CommandText = string.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspaceName, 3);
             cmd.ExecuteNonQuery();
 
             _connection.ChangeDatabase(keyspaceName);
@@ -99,9 +95,6 @@ namespace Cassandra.IntegrationTests.Data
             cmd.ExecuteNonQuery();
         }
 
-        /// <summary>
-        /// Tests that ExecuteScalar method returns the first column value of the first row, or null if no rows.
-        /// </summary>
         [Test]
         public void ExecuteScalarReturnsFirstColumn()
         {

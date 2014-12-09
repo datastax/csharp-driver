@@ -14,26 +14,10 @@
 //   limitations under the License.
 //
 
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.TestBase
 {
-    /// <summary>
-    /// Represents an error on the infrastructure setup
-    /// </summary>
-    public class TestInfrastructureException: Exception
+    public class TestCategories
     {
-        public TestInfrastructureException()
-        {
-
-        }
-
-        public TestInfrastructureException(string message) : base(message)
-        {
-
-        }
+        public const string CcmOnly = "CcmOnly";
     }
 }
