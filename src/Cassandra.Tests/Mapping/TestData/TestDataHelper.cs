@@ -49,7 +49,7 @@ namespace Cassandra.Tests.Mapping.TestData
             return rs;
         }
 
-        public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues)
+        public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues, int rowLength = 1)
         {
             var rs = new RowSet();
             rs.Columns = new CqlColumn[columnNames.Length];
@@ -61,11 +61,14 @@ namespace Cassandra.Tests.Mapping.TestData
                     new CqlColumn { Name = columnNames[i], TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = i };
             }
             var columnIndexes = rs.Columns.ToDictionary(c => c.Name, c => c.Index);
-
-            var values = genericValues
-                .Select(v => TypeCodec.Encode(ProtocolVersion, v));
-            var row = new Row(ProtocolVersion, values.ToArray(), rs.Columns, columnIndexes);
-            rs.AddRow(row);
+            for (var i = 0; i < rowLength; i++)
+            {
+                var values = genericValues
+                    .Select(v => TypeCodec.Encode(ProtocolVersion, v))
+                    .ToArray();
+                var row = new Row(ProtocolVersion, values, rs.Columns, columnIndexes);
+                rs.AddRow(row);   
+            }
             return rs;
         }
 

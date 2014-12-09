@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Moq;
@@ -14,10 +15,15 @@ namespace Cassandra.Tests.Mapping
     {
         protected ICqlClient GetMappingClient(RowSet rowset)
         {
+            return GetMappingClient(() => TaskHelper.ToTask(rowset));
+        }
+
+        protected ICqlClient GetMappingClient(Func<Task<RowSet>> getRowSetFunc)
+        {
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(TaskHelper.ToTask(rowset))
+                .Returns(getRowSetFunc)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))

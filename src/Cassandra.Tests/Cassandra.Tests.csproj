@@ -85,6 +85,7 @@
     <Compile Include="Mapping\Pocos\LinqDecoratedEntityWithStaticField.cs" />
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
+    <Compile Include="Mapping\Pocos\Song.cs" />
     <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />
     <Compile Include="Mapping\Pocos\UserType.cs" />
     <Compile Include="Mapping\Pocos\UserWithPrimaryKeyDecoration.cs" />
