@@ -325,6 +325,16 @@ namespace Cassandra.IntegrationTests.Linq
         }
 
         [Test]
+        public void DeleteIfTest()
+        {
+            var table = Session.GetTable<NerdMovie>();
+            Assert.DoesNotThrow(() => table
+                .Where(m => m.Movie == "title1" && m.Maker == "maker1" && m.Director == "director1")
+                .DeleteIf(m => m.MainActor == "whoever not existent")
+                .Execute());
+        }
+
+        [Test]
         public void LinqBatchInsertUpdateSelectTest()
         {
             Table<NerdMovie> table = Session.GetTable<NerdMovie>();

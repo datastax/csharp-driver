@@ -61,6 +61,7 @@
     <Compile Include="CqlParameterCollectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
     <Compile Include="Mapping\Linq\LinqCreateTableUnitTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlDeleteTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlSelectUnitTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlUnitTests.cs" />
     <Compile Include="Mapping\CqlGeneratorTests.cs" />
