@@ -22,11 +22,15 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 {
     public class Tweet
     {
-        [PartitionKey] public string author_id;
+        [PartitionKey] 
+        public string author_id;
 
         public string body;
-        [SecondaryIndex] public DateTimeOffset date;
-        [ClusteringKey(0)] public Guid tweet_id;
+        [SecondaryIndex] 
+        public DateTimeOffset date;
+
+        [ClusteringKey(0)] 
+        public Guid tweet_id;
 
         public void display()
         {

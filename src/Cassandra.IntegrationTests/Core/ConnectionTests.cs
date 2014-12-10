@@ -31,6 +31,8 @@ using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
+
+
     [Timeout(600000), Category("short")]
     public class ConnectionTests : TestGlobals
     {

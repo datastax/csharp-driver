@@ -52,9 +52,9 @@ namespace Cassandra.IntegrationTests.TestBase
             return (ushort) Next(0, 65535);
         }
 
-        public int NextInt32()
+        public static int NextInt32()
         {
-            return Next();
+            return Instance.Next();
         }
 
         public Int64 NextInt64()
@@ -125,6 +125,11 @@ namespace Cassandra.IntegrationTests.TestBase
         public Guid NextGuid()
         {
             return Guid.NewGuid();
+        }
+
+        public static int RandomInt()
+        {
+            return NextInt32();
         }
 
         public static string RandomAlphaNum(int strLen)

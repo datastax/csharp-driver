@@ -319,14 +319,14 @@ namespace Cassandra.IntegrationTests.Policies
 
             // Test
             var session = testCluster.Session;
+            string uniqueTableName = TestUtils.GetUniqueTableName();
             policyTestTools.CreateSchema(session);
-            policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            session.Execute(String.Format("CREATE TABLE {0} (k uuid PRIMARY KEY, i int)", policyTestTools.TableName));
+            session.Execute(String.Format("CREATE TABLE {0} (k uuid PRIMARY KEY, i int)", uniqueTableName));
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
             {
                 var key = Guid.NewGuid();
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {1})", key, i))
+                var statement = new SimpleStatement(String.Format("INSERT INTO " + uniqueTableName + " (k, i) VALUES ({0}, {1})", key, i))
                     .SetRoutingKey(
                         new RoutingKey() {RawRoutingKey = TypeCodec.GuidShuffle(key.ToByteArray())})
                     .EnableTracing();
