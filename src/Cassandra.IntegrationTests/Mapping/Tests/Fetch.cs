@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             cqlClient.Insert(expectedVals);
 
             // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
-            List<ClassWithIgnoredAttributes> records = cqlClient.Fetch<ClassWithIgnoredAttributes>("SELECT * from " + table.Name);
+            List<ClassWithIgnoredAttributes> records = cqlClient.Fetch<ClassWithIgnoredAttributes>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, records.Count);
             Assert.AreEqual(expectedVals.SomePartitionKey, records[0].SomePartitionKey);
             ClassWithIgnoredAttributes defaultClassWithIgnoredAttributes = new ClassWithIgnoredAttributes();
@@ -108,7 +108,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
 
             cqlClient.Insert(expectedAuthor);
-            List<Author> authors = cqlClient.Fetch<Author>("SELECT * from " + table.Name);
+            List<Author> authors = cqlClient.Fetch<Author>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, authors.Count);
             expectedAuthor.AssertEquals(authors[0]);
         }
@@ -132,7 +132,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 cqlClient.Insert(expectedAuthor);
 
             Cql cql = new Cql("SELECT * from " + table.Name);
-            List<Author> actualAuthors = cqlClient.Fetch<Author>(cql);
+            List<Author> actualAuthors = cqlClient.Fetch<Author>(cql).ToList();
             Assert.AreEqual(totalInserts, actualAuthors.Count);
             Author.AssertListsContainTheSame(expectedAuthors, actualAuthors);
         }
@@ -161,51 +161,41 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
 
             Cql cql = new Cql("SELECT * from " + table.Name);
-            List<Author> actualAuthors = cqlClient.Fetch<Author>(cql);
+            List<Author> actualAuthors = cqlClient.Fetch<Author>(cql).ToList();
             Assert.AreEqual(1, actualAuthors.Count);
             expectedAuthorFromQuery.AssertEquals(actualAuthors[0]);
         }
 
         /// <summary>
-        /// Page through results according to the page setting in CQL object used for th Fetch request
+        /// Page through results from a mapped Fetch request
+        /// 
+        /// @Jira CSHARP-215 https://datastax-oss.atlassian.net/browse/CSHARP-215
         /// </summary>
-        [Test, NUnit.Framework.Ignore("TBD")]
+        [Test]
         public void Fetch_Lazy()
         {
             Table<Author> table = _session.GetTable<Author>();
             table.Create();
-            int totalAuthorsToInsert = 100;
-            int pageSize = 10;
-            Assert.AreEqual(0, totalAuthorsToInsert%pageSize);
-            int expectedNumberOfPages = totalAuthorsToInsert/pageSize;
-            int actualNumberOfPages = 0;
 
             var cqlClient = CqlClientConfiguration
                 .ForSession(_session)
                 .UseIndividualMapping<FluentUserMapping>()
                 .BuildCqlClient();
-            List<Author> expectedAuthors = Author.GetRandomList(totalAuthorsToInsert);
+            List<Author> expectedAuthors = Author.GetRandomList(100);
             foreach (Author expectedAuthor in expectedAuthors)
                 cqlClient.Insert(expectedAuthor);
 
             Cql cql = new Cql("SELECT * from " + table.Name);
-            cql.QueryOptions.SetPageSize(pageSize);
+            List<Author> authorsFetchedAndSaved = new List<Author>();
+            var authorsFetched = cqlClient.Fetch<Author>(cql).GetEnumerator();
+            while (authorsFetched.MoveNext())
+                authorsFetchedAndSaved.Add(authorsFetched.Current);
 
-            List<Author> allAuthorsFetched = new List<Author>();
-            List<Author> authorsFetchedSinglePage = cqlClient.Fetch<Author>(cql);
-            while (authorsFetchedSinglePage.Count > 0)
-            {
-                actualNumberOfPages++;
-                allAuthorsFetched.AddRange(authorsFetchedSinglePage);
-                authorsFetchedSinglePage = cqlClient.Fetch<Author>(cql);
-            }
-
-            Assert.AreEqual(expectedAuthors.Count, allAuthorsFetched.Count);
-            foreach (var authorFetched in allAuthorsFetched)
+            Assert.AreEqual(expectedAuthors.Count, authorsFetchedAndSaved.Count);
+            foreach (var authorFetched in authorsFetchedAndSaved)
             {
                 Author.AssertListContains(expectedAuthors, authorFetched);
             }
-            Assert.AreEqual(expectedNumberOfPages, actualNumberOfPages);
         }
 
         /////////////////////////////////////////

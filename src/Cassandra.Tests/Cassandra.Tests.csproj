@@ -41,6 +41,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -60,6 +61,7 @@
     <Compile Include="CqlParameterCollectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
     <Compile Include="Mapping\Linq\LinqCreateTableUnitTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlDeleteTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlSelectUnitTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlUnitTests.cs" />
     <Compile Include="Mapping\CqlGeneratorTests.cs" />
@@ -83,9 +85,11 @@
     <Compile Include="Mapping\Pocos\LinqDecoratedEntityWithStaticField.cs" />
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
+    <Compile Include="Mapping\Pocos\Song.cs" />
     <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />
     <Compile Include="Mapping\Pocos\UserType.cs" />
     <Compile Include="Mapping\Pocos\UserWithPrimaryKeyDecoration.cs" />
+    <Compile Include="Mapping\Pocos\VarintPoco.cs" />
     <Compile Include="Mapping\TestData\TestDataGenerator.cs" />
     <Compile Include="Mapping\TestData\TestDataHelper.cs" />
     <Compile Include="PoliciesUnitTests.cs" />

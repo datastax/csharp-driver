@@ -36,17 +36,17 @@ namespace Cassandra.Mapping
             }
         }
 
-        public Task<List<T>> FetchAsync<T>(CqlQueryOptions options = null)
+        public Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions options = null)
         {
             return FetchAsync<T>(Cql.New(string.Empty, new object[0], options ?? CqlQueryOptions.None));
         }
 
-        public Task<List<T>> FetchAsync<T>(string cql, params object[] args)
+        public Task<IEnumerable<T>> FetchAsync<T>(string cql, params object[] args)
         {
             return FetchAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public Task<List<T>> FetchAsync<T>(Cql cql)
+        public Task<IEnumerable<T>> FetchAsync<T>(Cql cql)
         {
             //Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
@@ -57,7 +57,7 @@ namespace Cassandra.Mapping
                     {
                         var rs = t2.Result;
                         var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                        return rs.Select(mapper).ToList();
+                        return rs.Select(mapper);
                     })).Unwrap();
         }
 
@@ -250,18 +250,18 @@ namespace Cassandra.Mapping
             return _mapperFactory.TypeConverter.ConvertCqlArgument<TValue, TDatabase>(value);
         }
 
-        public List<T> Fetch<T>(CqlQueryOptions queryOptions = null)
+        public IEnumerable<T> Fetch<T>(CqlQueryOptions queryOptions = null)
         {
             // Just let the SQL be auto-generated
             return Fetch<T>(Cql.New(string.Empty, new object[0], queryOptions ?? CqlQueryOptions.None));
         }
 
-        public List<T> Fetch<T>(string cql, params object[] args)
+        public IEnumerable<T> Fetch<T>(string cql, params object[] args)
         {
             return Fetch<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public List<T> Fetch<T>(Cql cql)
+        public IEnumerable<T> Fetch<T>(Cql cql)
         {
             //Use the async method
             var t = FetchAsync<T>(cql);

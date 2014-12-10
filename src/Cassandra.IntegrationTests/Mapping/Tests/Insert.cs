@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Generic;
+using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Tests;
 using Cassandra.IntegrationTests.Mapping.Structures;
@@ -140,7 +141,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
 
             cqlClient.Insert(privateClassInstance);
-            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name);
+            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);

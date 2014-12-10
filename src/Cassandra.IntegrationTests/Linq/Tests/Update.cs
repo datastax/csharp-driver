@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         }
 
         [Test]
-        [Ignore("TBD"), Explicit("TBD")]
+        [NUnit.Framework.Ignore("TBD"), Explicit("TBD")]
         public void LinqUpdate_BatchUpdate()
         {
             Table<Movie> table = _session.GetTable<Movie>();

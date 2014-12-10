@@ -48,6 +48,11 @@ namespace Cassandra.IntegrationTests.Core
             _builder = _builder.AddContactPoint(TestClusterManager.GetNonShareableTestCluster(NodeCount).InitialContactPoint);
         }
 
+        /** name of test: ParallelInsertTest
+         * 
+         * @param nothingActually.
+         * 
+         */
         [Test]
         public void ParallelInsertTest()
         {
@@ -193,7 +198,6 @@ namespace Cassandra.IntegrationTests.Core
                 localSession.WaitForSchemaAgreement(
                     localSession.Execute(String.Format(TestUtils.CreateTableAllTypes, "sampletable")));
                 var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
-
                 var rowLength = 100;
                 var rnd = new Random();
                 var taskList = new List<Task<RowSet>>();

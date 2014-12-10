@@ -742,8 +742,13 @@ namespace Cassandra.Data.Linq
                     }
                     if (node.Expression.NodeType == ExpressionType.Parameter)
                     {
-                        var columnName = Escape(_pocoData.GetColumnName(node.Member));
-                        clause.Append(columnName);
+                        var columnName = _pocoData.GetColumnName(node.Member);
+                        if (columnName == null)
+                        {
+                            throw new InvalidOperationException(
+                                "Trying to order by a field or property that is ignored or not part of the mapping definition.");
+                        }
+                        clause.Append(Escape(columnName));
                         return node;
                     }
                     if (node.Expression.NodeType == ExpressionType.Constant)
@@ -809,7 +814,13 @@ namespace Cassandra.Data.Linq
                 case ParsePhase.OrderByDescending:
                 case ParsePhase.OrderBy:
                 {
-                    _orderBy.Add(Tuple.Create(_pocoData.GetColumnName(node.Member), _phasePhase.Get() == ParsePhase.OrderBy));
+                    var columnName = _pocoData.GetColumnName(node.Member);
+                    if (columnName == null)
+                    {
+                        throw new InvalidOperationException(
+                            "Trying to order by a field or property that is ignored or not part of the mapping definition.");
+                    }
+                    _orderBy.Add(Tuple.Create(columnName, _phasePhase.Get() == ParsePhase.OrderBy));
                     if ((node.Expression is ConstantExpression))
                     {
                         return node;

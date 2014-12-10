@@ -10,17 +10,17 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Gets a list of all T from Cassandra.
         /// </summary>
-        List<T> Fetch<T>(CqlQueryOptions queryOptions = null);
+        IEnumerable<T> Fetch<T>(CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement and parameter values specified.
         /// </summary>
-        List<T> Fetch<T>(string cql, params object[] args);
+        IEnumerable<T> Fetch<T>(string cql, params object[] args);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement specified.
         /// </summary>
-        List<T> Fetch<T>(Cql cql);
+        IEnumerable<T> Fetch<T>(Cql cql);
         
         /// <summary>
         /// Gets a single T from Cassandra using the CQL statement and parameter values specified.  Will throw if

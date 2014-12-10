@@ -21,7 +21,7 @@ namespace Cassandra.Tests.Mapping
             var userTask = mappingClient.FetchAsync<PlainUser>("SELECT * FROM users");
             var users = userTask.Result;
             Assert.NotNull(users);
-            Assert.AreEqual(0, users.Count);
+            Assert.AreEqual(0, users.Count());
         }
 
         [Test]
@@ -52,7 +52,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
-            var taskList = new List<Task<List<PlainUser>>>();
+            var taskList = new List<Task<IEnumerable<PlainUser>>>();
             for (var i = 0; i < times; i++)
             {
                 var t = mappingClient.FetchAsync<PlainUser>("SELECT * FROM users");
@@ -60,7 +60,7 @@ namespace Cassandra.Tests.Mapping
             }
 
             Task.WaitAll(taskList.Select(t => (Task)t).ToArray(), 5000);
-            Assert.True(taskList.All(t => t.Result.Count == 10));
+            Assert.True(taskList.All(t => t.Result.Count() == 10));
             sessionMock.Verify();
             //Prepare should be called just once
             sessionMock
@@ -119,7 +119,7 @@ namespace Cassandra.Tests.Mapping
             var usersOriginal = TestDataHelper.GetUserList();
             var rowset = TestDataHelper.GetUsersRowSet(usersOriginal);
             var mappingClient = GetMappingClient(rowset);
-            var users = mappingClient.Fetch<FluentUser>("SELECT * FROM users");
+            var users = mappingClient.Fetch<FluentUser>("SELECT * FROM users").ToList();
             Assert.AreEqual(usersOriginal.Count, users.Count);
             for (var i = 0; i < users.Count; i++)
             {
@@ -160,6 +160,31 @@ namespace Cassandra.Tests.Mapping
         private class SomeClassWithNoDefaultConstructor
         {
             public SomeClassWithNoDefaultConstructor(string w) { }
+        }
+
+        [Test]
+        public void Fetch_Lazily_Pages()
+        {
+            const int pageSize = 10;
+            const int totalPages = 4;
+            var rs = TestDataHelper.CreateMultipleValuesRowSet(new[] {"title", "artist"}, new[] {"Once in a Livetime", "Dream Theater"}, pageSize);
+            rs.PagingState = new byte[] {1};
+            rs.FetchNextPage = state =>
+            {
+                var pageNumber = state[0];
+                pageNumber++;
+                var nextRs = TestDataHelper.CreateMultipleValuesRowSet(new[] {"title", "artist"}, new[] {"Once in a Livetime " + pageNumber, "Dream Theater"}, pageSize);
+                if (pageNumber < totalPages)
+                {
+                    nextRs.PagingState = new[] { pageNumber };
+                }
+                return nextRs;
+            };
+            var mappingClient = GetMappingClient(rs);
+            var songs = mappingClient.Fetch<Song>("SELECT * FROM songs");
+            //Page to all the values
+            var allSongs = songs.ToList();
+            Assert.AreEqual(pageSize * totalPages, allSongs.Count);
         }
     }
 }

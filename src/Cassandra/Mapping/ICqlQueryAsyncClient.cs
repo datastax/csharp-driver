@@ -11,17 +11,17 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Gets a list of all T from Cassandra.
         /// </summary>
-        Task<List<T>> FetchAsync<T>(CqlQueryOptions queryOptions = null);
+        Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions queryOptions = null);
         
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement and parameter values specified.
         /// </summary>
-        Task<List<T>> FetchAsync<T>(string cql, params object[] args);
+        Task<IEnumerable<T>> FetchAsync<T>(string cql, params object[] args);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement specified.
         /// </summary>
-        Task<List<T>> FetchAsync<T>(Cql cql);
+        Task<IEnumerable<T>> FetchAsync<T>(Cql cql);
 
         /// <summary>
         /// Gets a single T from Cassandra using the CQL statement and parameter values specified.  Will throw if

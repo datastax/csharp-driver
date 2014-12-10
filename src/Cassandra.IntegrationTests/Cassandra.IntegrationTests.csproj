@@ -61,6 +61,7 @@
     </Compile>
     <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
+    <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Tests\DeleteIf.cs" />
     <Compile Include="Linq\Tests\Delete.cs" />
     <Compile Include="Linq\Tests\Select.cs" />
@@ -126,8 +127,6 @@
     <Compile Include="TestBase\TestUtils.cs" />
     <Compile Include="TestBase\TestCassandraVersion.cs" />
     <Compile Include="TestBase\TestInfrastructureException.cs" />
-    <Compile Include="FoundBugs\CSHARP_42.cs" />
-    <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Mapping\Structures\Author.cs" />
     <Compile Include="Linq\Structures\CassandraLog.cs" />
     <Compile Include="Linq\Structures\FollowedTweet.cs" />
