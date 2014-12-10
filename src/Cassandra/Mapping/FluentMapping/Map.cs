@@ -184,7 +184,7 @@ namespace Cassandra.Mapping.FluentMapping
         }
 
         /// <summary>
-        /// Specifies that when mapping, we should only map columns that are explicitly defined here.  Use the <see cref="Column{TProp}"/> method
+        /// Specifies that when mapping, we should only map columns that are explicitly defined here.  "/> method
         /// to define columns.
         /// </summary>
         public Map<TPoco> ExplicitColumns()

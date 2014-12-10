@@ -20,17 +20,26 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Globalization;
 using System.Threading;
-using NUnit.Framework;
+﻿using Cassandra.IntegrationTests.TestBase;
+﻿using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class SessionExecuteAsyncTests : TwoNodesClusterTest
+    public class SessionExecuteAsyncTests : TestGlobals
     {
+        ISession _session = null;
+
+        [SetUp]
+        public void SetupFixture()
+        {
+            _session = TestClusterManager.GetTestCluster(2).Session;
+        }
+
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
-            var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_keyspaces"));
+            var task = _session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_keyspaces"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
             Assert.True(rowset.Count() > 0, "Returned result set of keyspaces should be greater than zero.");
@@ -39,8 +48,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncPreparedToSync()
         {
-            var statement = Session.Prepare("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?");
-            var task = Session.ExecuteAsync(statement.Bind("system"));
+            var statement = _session.Prepare("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?");
+            var task = _session.ExecuteAsync(statement.Bind("system"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
             Assert.True(rowset.Count() > 0, "Returned result set of keyspaces should be greater than zero.");
@@ -50,7 +59,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SessionExecuteAsyncSyntaxErrorQuery()
         {
             //Execute an invalid query 
-            var task = Session.ExecuteAsync(new SimpleStatement("SELECT WILL FAIL"));
+            var task = _session.ExecuteAsync(new SimpleStatement("SELECT WILL FAIL"));
             task.ContinueWith(t =>
             {
                 Assert.NotNull(t.Exception);
@@ -58,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
 
             task.ContinueWith(t =>
             {
-                Assert.Fail("It should not continued");
+                Assert.Fail("Task should not have continued");
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
             Exception exThrown = null;
@@ -78,9 +87,9 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncCQLQueriesParallel()
         {
-            var task1 = Session.ExecuteAsync(new SimpleStatement("select keyspace_name FROM system.schema_keyspaces"));
-            var task2 = Session.ExecuteAsync(new SimpleStatement("select cluster_name from system.local"));
-            var task3 = Session.ExecuteAsync(new SimpleStatement("select column_name from system.schema_columns"));
+            var task1 = _session.ExecuteAsync(new SimpleStatement("select keyspace_name FROM system.schema_keyspaces"));
+            var task2 = _session.ExecuteAsync(new SimpleStatement("select cluster_name from system.local"));
+            var task3 = _session.ExecuteAsync(new SimpleStatement("select column_name from system.schema_columns"));
             //forcing the calling thread to wait for all the parallel task to finish
             Task.WaitAll(new[] { task1, task2, task3 });
             Assert.True(task1.Result.First().GetValue<string>("keyspace_name") != null, "Returned result set of keyspaces should be greater than zero.");
