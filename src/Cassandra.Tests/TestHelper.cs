@@ -7,6 +7,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
 
 namespace Cassandra.Tests
 {
@@ -142,7 +143,7 @@ namespace Cassandra.Tests
         {
             return someObject.GetType()
                              .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                             .Where(p => p.GetCustomAttributes(typeof(Cassandra.Mapping.IgnoreAttribute), true).Length == 0)
+                             .Where(p => p.GetCustomAttributes(typeof(IgnoreAttribute), true).Length == 0)
                              .ToDictionary(prop => prop.Name, prop => prop.GetValue(someObject, null));
         }
 

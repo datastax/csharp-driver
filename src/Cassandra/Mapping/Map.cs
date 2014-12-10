@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Cassandra.Mapping.Mapping;
 
-namespace Cassandra.Mapping.FluentMapping
+namespace Cassandra.Mapping
 {
     /// <summary>
     /// A class for defining how to map a POCO via a fluent-style interface.  The mapping for Type T should be defined in the
@@ -184,7 +183,7 @@ namespace Cassandra.Mapping.FluentMapping
         }
 
         /// <summary>
-        /// Specifies that when mapping, we should only map columns that are explicitly defined here.  "/> method
+        /// Specifies that when mapping, we should only map columns that are explicitly defined here.  Use the Column method
         /// to define columns.
         /// </summary>
         public Map<TPoco> ExplicitColumns()
@@ -278,7 +277,7 @@ namespace Cassandra.Mapping.FluentMapping
         /// </summary>
         private MemberInfo GetPropertyOrField<TProp>(Expression<Func<TPoco, TProp>> expression)
         {
-            // Take the body of the lamdba expression
+            // Take the body of the lambda expression
             Expression body = expression.Body;
 
             // We'll get a Convert node for the Func<TPoco, object> where the actual property expression is the operand being converted to object

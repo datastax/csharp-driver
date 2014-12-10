@@ -16,7 +16,7 @@
 
 using System;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Mapping.Attributes
 {
     /// <summary>
     /// Indicates that the property or field is a counter column

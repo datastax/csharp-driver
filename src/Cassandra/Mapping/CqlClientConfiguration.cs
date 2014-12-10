@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
 using Cassandra;
-using Cassandra.Mapping.FluentMapping;
-using Cassandra.Mapping.Mapping;
 using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Mapping.Utils;

@@ -16,13 +16,13 @@
 
 using System;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Mapping.Attributes
 {
     /// <summary>
-    /// Indicates that the property or field is a counter column
+    /// Determines that there is a secondary index defined for the column
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
-    public class CounterAttribute : Attribute
+    public class SecondaryIndexAttribute : Attribute
     {
     }
 }

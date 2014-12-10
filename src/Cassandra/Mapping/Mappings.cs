@@ -1,8 +1,7 @@
 using System;
-using Cassandra.Mapping.Mapping;
 using Cassandra.Mapping.Utils;
 
-namespace Cassandra.Mapping.FluentMapping
+namespace Cassandra.Mapping
 {
     /// <summary>
     /// A class for defining how to map multiple POCOs via a fluent-style interface.  Inheritors should use the 

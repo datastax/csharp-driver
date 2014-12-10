@@ -15,8 +15,7 @@
 //
 
 using System;
-using Cassandra.Mapping.FluentMapping;
-using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Mapping.Utils;

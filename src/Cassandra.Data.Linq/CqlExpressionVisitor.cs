@@ -22,7 +22,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Data.Linq

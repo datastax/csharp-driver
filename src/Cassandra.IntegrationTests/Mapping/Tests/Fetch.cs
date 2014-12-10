@@ -209,7 +209,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             [Cassandra.Data.Linq.Column("somepartitionkey")]
             public string SomePartitionKey = "somePartitionKey";
 
-            [Cassandra.Mapping.IgnoreAttribute]
+            [Cassandra.Mapping.Attributes.Ignore]
             [Cassandra.Data.Linq.Column("this_should_be_ignored")]
             public string IgnoredStringAttribute = "someIgnoredString";
         }

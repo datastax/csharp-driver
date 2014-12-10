@@ -1,5 +1,5 @@
 ﻿using System;
-using Cassandra.Mapping.FluentMapping;
+using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 
 namespace Cassandra.Tests.Mapping.FluentMappings

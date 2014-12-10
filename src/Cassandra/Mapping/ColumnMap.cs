@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Reflection;
-using Cassandra.Mapping.Mapping;
 
-namespace Cassandra.Mapping.FluentMapping
+namespace Cassandra.Mapping
 {
     /// <summary>
     /// A class for defining how a property or field on a POCO is mapped to a column via a fluent-style interface.

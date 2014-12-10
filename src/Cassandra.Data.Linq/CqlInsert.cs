@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq

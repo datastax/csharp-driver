@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Cassandra.Mapping.Mapping;
 using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Mapping

@@ -1,15 +1,16 @@
 ﻿using System;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 
 namespace  Cassandra.Tests.Mapping.Pocos
 {
     /// <summary>
     /// A user decorated with attributes indicating how it should be mapped.
     /// </summary>
-    [TableName("users")]
+    [Table("users")]
     public class DecoratedUser
     {
-        [Column("userid")]
+        [Column("userid"), PartitionKey]
         public Guid Id { get; set; }
 
         public string Name { get; set; }

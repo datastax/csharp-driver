@@ -9,6 +9,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
 {
+    [Category("short")]
     public class Select : TestGlobals
     {
         ISession _session = null;

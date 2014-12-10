@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Cassandra.Data.Linq;
-using Cassandra.Mapping.FluentMapping;
+using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 

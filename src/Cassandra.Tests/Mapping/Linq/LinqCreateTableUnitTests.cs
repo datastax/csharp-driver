@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Cassandra.Data.Linq;
-using Cassandra.Mapping.FluentMapping;
+using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -285,6 +285,22 @@ namespace Cassandra.Tests.Mapping.Linq
             table.Create();
             //It contains Ignored props: Ignored1 and Ignored2
             Assert.AreEqual(@"CREATE TABLE ""x_t"" (""x_pk"" text, ""x_ck1"" int, ""x_ck2"" int, ""x_f1"" int, PRIMARY KEY (""x_pk"", ""x_ck1"", ""x_ck2""))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_MappingDecorated_TimeSeries()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(typeof(DecoratedTimeSeries));
+            var table = sessionMock.Object.GetTable<DecoratedTimeSeries>(definition);
+            table.Create();
+            //It contains Ignored props: Ignored1 and Ignored2
+            Assert.AreEqual(@"CREATE TABLE ""ks1"".""tbl1"" (""name"" text, ""Slice"" int, ""Time"" timeuuid, ""val"" double, ""Value2"" text, PRIMARY KEY ((""name"", ""Slice""), ""Time""))", createQuery);
         }
     }
 }

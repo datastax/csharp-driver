@@ -1,13 +1,13 @@
 ﻿using System;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 
 namespace  Cassandra.Tests.Mapping.Pocos
 {
     /// <summary>
     /// A user decorated with attributes indicating how it should be mapped, specifically the ExplicitColumnsAttribute.
     /// </summary>
-    [ExplicitColumns]
-    [TableName("users")]
+    [Table("users", ExplicitColumns = true)]
     public class ExplicitColumnsUser
     {
         [Column]

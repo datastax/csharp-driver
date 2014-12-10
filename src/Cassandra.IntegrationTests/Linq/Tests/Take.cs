@@ -128,7 +128,6 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             //without where clause
             List<Movie> actualMovieList = table.Take(0).ExecuteAsync().Result.ToList();
 
-            // TODO: Verify with Jorge that this is expected
             Assert.AreEqual(5, actualMovieList.Count());
         }
 

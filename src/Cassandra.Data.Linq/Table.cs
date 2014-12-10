@@ -19,8 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Cassandra.Mapping.FluentMapping;
-using Cassandra.Mapping.Mapping;
+using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 

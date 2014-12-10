@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 
 namespace  Cassandra.Tests.Mapping.Pocos
 {
-    [TableName("users")]
+    [Table("users")]
     public class InsertUser
     {
         // The main basic data types as properties

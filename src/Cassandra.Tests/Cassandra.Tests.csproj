@@ -60,6 +60,7 @@
     <Compile Include="CqlCommandTest.cs" />
     <Compile Include="CqlParameterCollectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
+    <Compile Include="Mapping\AttributeBasedTypeDefinitionTests.cs" />
     <Compile Include="Mapping\Linq\LinqCreateTableUnitTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlDeleteTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlSelectUnitTests.cs" />
@@ -86,9 +87,9 @@
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
     <Compile Include="Mapping\Pocos\Song.cs" />
+    <Compile Include="Mapping\Pocos\DecoratedTimeSeries.cs" />
     <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />
     <Compile Include="Mapping\Pocos\UserType.cs" />
-    <Compile Include="Mapping\Pocos\UserWithPrimaryKeyDecoration.cs" />
     <Compile Include="Mapping\Pocos\VarintPoco.cs" />
     <Compile Include="Mapping\TestData\TestDataGenerator.cs" />
     <Compile Include="Mapping\TestData\TestDataHelper.cs" />

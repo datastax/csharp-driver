@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Cassandra.Mapping.Mapping;
 using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Mapping.Statements

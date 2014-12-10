@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
-using Cassandra.Mapping.FluentMapping;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;

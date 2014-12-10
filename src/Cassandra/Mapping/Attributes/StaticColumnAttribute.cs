@@ -16,10 +16,10 @@
 
 using System;
 
-namespace Cassandra.Data.Linq
+namespace Cassandra.Mapping.Attributes
 {
     /// <summary>
-    /// Indicates that the property or field is a static column
+    /// Indicates that the property or field is a static column in Cassandra
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class StaticColumnAttribute : Attribute
