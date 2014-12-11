@@ -10,17 +10,14 @@ namespace Cassandra.Mapping.Statements
     /// </summary>
     internal class StatementFactory
     {
-        private readonly ISession _session;
-
         private readonly ConcurrentDictionary<string, Task<PreparedStatement>> _statementCache;
 
-        public StatementFactory(ISession session)
+        public StatementFactory()
         {
-            _session = session;
             _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
         }
 
-        public Task<Statement> GetStatementAsync(Cql cql)
+        public Task<Statement> GetStatementAsync(ISession session, Cql cql)
         {
             // Use a SimpleStatement if we're not supposed to prepare
             if (cql.QueryOptions.NoPrepare)
@@ -30,7 +27,7 @@ namespace Cassandra.Mapping.Statements
                 return TaskHelper.ToTask(statement);
             }
             return _statementCache
-                .GetOrAdd(cql.Statement, _session.PrepareAsync)
+                .GetOrAdd(cql.Statement, session.PrepareAsync)
                 .Continue(t =>
                 {
                     var boundStatement = t.Result.Bind(cql.Arguments);
@@ -39,16 +36,16 @@ namespace Cassandra.Mapping.Statements
                 });
         }
 
-        public Statement GetStatement(Cql cql)
+        public Statement GetStatement(ISession session, Cql cql)
         {
             // Just use async version's result
-            return GetStatementAsync(cql).Result;
+            return GetStatementAsync(session, cql).Result;
         }
 
-        public Task<BatchStatement> GetBatchStatementAsync(IEnumerable<Cql> cqlToBatch)
+        public Task<BatchStatement> GetBatchStatementAsync(ISession session, IEnumerable<Cql> cqlToBatch)
         {
             // Get all the statements async in parallel, then add to batch
-            return Task.Factory.ContinueWhenAll(cqlToBatch.Select(GetStatementAsync).ToArray(), (tasks) =>
+            return Task.Factory.ContinueWhenAll(cqlToBatch.Select(cql => GetStatementAsync(session, cql)).ToArray(), (tasks) =>
             {
                 var batch = new BatchStatement();
                 foreach (var t in tasks)
@@ -63,12 +60,12 @@ namespace Cassandra.Mapping.Statements
             }, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
-        public BatchStatement GetBatchStatement(IEnumerable<Cql> cqlToBatch)
+        public BatchStatement GetBatchStatement(ISession session, IEnumerable<Cql> cqlToBatch)
         {
             var batch = new BatchStatement();
-            foreach (Cql cql in cqlToBatch)
+            foreach (var cql in cqlToBatch)
             {
-                batch.Add(GetStatement(cql));
+                batch.Add(GetStatement(session, cql));
             }
             return batch;
         }

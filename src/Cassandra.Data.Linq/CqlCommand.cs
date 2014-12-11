@@ -128,7 +128,7 @@ namespace Cassandra.Data.Linq
             var cqlQuery = GetCql(out values);
             var session = GetTable().GetSession();
             return _statementFactory
-                .GetStatementAsync(Cql.New(cqlQuery, values))
+                .GetStatementAsync(session, Cql.New(cqlQuery, values))
                 .Continue(t1 =>
                 {
                     var stmt = t1.Result;

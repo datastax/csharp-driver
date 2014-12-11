@@ -57,7 +57,7 @@ namespace Cassandra.Data.Linq
             };
             var pocoDataFactory = new PocoDataFactory(definitions);
             var mapperFactory = new MapperFactory(new DefaultTypeConverter(), pocoDataFactory);
-            var statementFactory = new StatementFactory(session);
+            var statementFactory = new StatementFactory();
             return new Table<TEntity>(session, mapperFactory, statementFactory);
         }
 

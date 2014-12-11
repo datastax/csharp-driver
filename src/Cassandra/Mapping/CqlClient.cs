@@ -50,7 +50,7 @@ namespace Cassandra.Mapping
             //Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
             return _statementFactory
-                .GetStatementAsync(cql)
+                .GetStatementAsync(_session, cql)
                 .Continue(t1 => _session.ExecuteAsync(t1.Result)
                     .Continue(t2 =>
                     {
@@ -69,7 +69,7 @@ namespace Cassandra.Mapping
         {
             // Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(cql)
+            return _statementFactory.GetStatementAsync(_session, cql)
                 .Continue(t1 => _session.ExecuteAsync(t1.Result)
                     .Continue(t2 =>
                     {
@@ -89,7 +89,7 @@ namespace Cassandra.Mapping
         {
             // Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(cql)
+            return _statementFactory.GetStatementAsync(_session, cql)
                 .Continue(t1 => _session.ExecuteAsync(t1.Result)
                     .Continue(t2 =>
                     {
@@ -114,7 +114,7 @@ namespace Cassandra.Mapping
         {
             // Get the statement to execute and execute it
             _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(cql)
+            return _statementFactory.GetStatementAsync(_session, cql)
                 .Continue(t1 => _session.ExecuteAsync(t1.Result)
                     .Continue(t2 =>
                     {
@@ -135,7 +135,7 @@ namespace Cassandra.Mapping
         {
 
             _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(cql)
+            return _statementFactory.GetStatementAsync(_session, cql)
                 .Continue(t1 => _session.ExecuteAsync(t1.Result)
                     .Continue(t2 =>
                     {
@@ -212,7 +212,7 @@ namespace Cassandra.Mapping
         {
             // Execute the statement
             return _statementFactory
-                .GetStatementAsync(cql)
+                .GetStatementAsync(_session, cql)
                 .Continue(t =>
                 {
                     var statement = t.Result;
@@ -236,7 +236,7 @@ namespace Cassandra.Mapping
             if (batch == null) throw new ArgumentNullException("batch");
 
             return _statementFactory
-                .GetBatchStatementAsync(batch.Statements)
+                .GetBatchStatementAsync(_session, batch.Statements)
                 .Continue(t =>
                 {
                     var batchStatement = t.Result;

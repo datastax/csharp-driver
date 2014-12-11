@@ -9,7 +9,7 @@ using Cassandra.Mapping.Utils;
 namespace Cassandra.Mapping
 {
     /// <summary>
-    /// Factory responsible for creating PocoData instances.
+    /// Factory responsible for creating PocoData instances, uses AttributeBasedTypeDefinition to create new Poco information in case a definition was not provided.
     /// </summary>
     internal class PocoDataFactory
     {
@@ -18,6 +18,10 @@ namespace Cassandra.Mapping
         private readonly LookupKeyedCollection<Type, ITypeDefinition> _predefinedTypeDefinitions;
         private readonly ConcurrentDictionary<Type, PocoData> _cache;
 
+        /// <summary>
+        /// Creates a new factory responsible of PocoData instances.
+        /// </summary>
+        /// <param name="predefinedTypeDefinitions">Explicitly declared type definitions</param>
         public PocoDataFactory(LookupKeyedCollection<Type, ITypeDefinition> predefinedTypeDefinitions)
         {
             if (predefinedTypeDefinitions == null) throw new ArgumentNullException("predefinedTypeDefinitions");
@@ -30,14 +34,30 @@ namespace Cassandra.Mapping
         {
             return _cache.GetOrAdd(typeof(T), CreatePocoData);
         }
+
+        /// <summary>
+        /// Adds a definition to the local state.
+        /// Used when the local default (AttributeBasedTypeDefinition) is not valid for a given type.
+        /// </summary>
+        public void AddDefinition(Type type, ITypeDefinition definition)
+        {
+            //In case there isn't already Poco information in the local cache.
+            _cache.GetOrAdd(type, t => CreatePocoData(t, definition));
+        }
         
         private PocoData CreatePocoData(Type pocoType)
         {
             // Try to get mapping from predefined collection, otherwise fallback to using attributes
             ITypeDefinition typeDefinition;
             if (_predefinedTypeDefinitions.TryGetItem(pocoType, out typeDefinition) == false)
+            {
                 typeDefinition = new AttributeBasedTypeDefinition(pocoType);
+            }
+            return CreatePocoData(pocoType, typeDefinition);
+        }
 
+        private PocoData CreatePocoData(Type pocoType, ITypeDefinition typeDefinition)
+        {
             // Figure out the table name (if not specified, use the POCO class' name)
             string tableName = typeDefinition.TableName ?? pocoType.Name;
 
@@ -57,12 +77,11 @@ namespace Cassandra.Mapping
             // Create PocoColumn collection (where ordering is guaranteed to be consistent)
             LookupKeyedCollection<string, PocoColumn> columns = columnDefinitions
                 .Select(PocoColumn.FromColumnDefinition)
-                .ToLookupKeyedCollection(pc => pc.ColumnName,StringComparer.OrdinalIgnoreCase);
+                .ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
 
             var clusteringKeyNames = typeDefinition.ClusteringKeys ?? new Tuple<string, SortOrder>[0];
             return new PocoData(pocoType, tableName, typeDefinition.KeyspaceName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive, typeDefinition.CompactStorage, typeDefinition.AllowFiltering);
         }
-
 
         /// <summary>
         /// Gets any public instance fields that are settable for the given type.

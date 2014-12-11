@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 using Cassandra;
+using Cassandra.Mapping.Attributes;
 using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Mapping.Utils;
@@ -102,7 +103,7 @@ namespace Cassandra.Mapping
         public ICqlClient BuildCqlClient()
         {
             var pocoDataFactory = new PocoDataFactory(_typeDefinitions);
-            return new CqlClient(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(_session),
+            return new CqlClient(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(),
                                  new CqlGenerator(pocoDataFactory));
         }
 
