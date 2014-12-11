@@ -97,9 +97,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         [Test]
         public void Insert_TableNameLowerCase_PartitionKeyCamelCase()
         {
@@ -124,9 +121,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
-                /// <summary>
-        /// 
-        /// </summary>
         [Test]
         public void Insert_TableNameLowerCase_PartitionKeyLowerCase()
         {
@@ -146,6 +140,24 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
         }
+
+        /// <summary>
+        /// Attempting to insert a Poco into a table with a missing column field fails
+        /// </summary>
+        [Test]
+        public void Attributes_MislabledClusteringKey()
+        {
+            string tableName = typeof(PocoWithAdditionalField).Name.ToLower();
+            string createTableCql = "Create table " + tableName + "(somestring text PRIMARY KEY)";
+            _session.Execute(createTableCql);
+            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            PocoWithAdditionalField pocoWithCustomAttributes = new PocoWithAdditionalField();
+
+            // Validate expected exception
+            var ex = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
+            StringAssert.Contains("Unknown identifier someotherstring", ex.Message);
+        }
+
 
         /////////////////////////////////////////
         /// Private test classes
@@ -168,6 +180,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public string somepartitionkey = "somePartitionKey";
         }
 
+        private class PocoWithAdditionalField
+        {
+            [PartitionKey]
+            public string SomeString = "someStringValue";
+            public string SomeOtherString = "someOtherStringValue";
+        }
 
 
     }

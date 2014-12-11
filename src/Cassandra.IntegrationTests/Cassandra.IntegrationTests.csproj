@@ -79,8 +79,16 @@
     <Compile Include="Linq\Tests\UpdateIf.cs" />
     <Compile Include="Linq\Tests\Where.cs" />
     <Compile Include="Linq\Tests\OrderBy.cs" />
+    <Compile Include="Mapping\Structures\ContactMethod.cs" />
+    <Compile Include="Mapping\Structures\UserMapping.cs" />
+    <Compile Include="Mapping\Structures\RainbowColor.cs" />
+    <Compile Include="Mapping\Structures\User.cs" />
     <Compile Include="Mapping\Structures\ManyDataTypesPoco.cs" />
+    <Compile Include="Mapping\Structures\UserType.cs" />
+    <Compile Include="Mapping\Tests\Attributes.cs" />
+    <Compile Include="Mapping\Tests\CqlClient.cs" />
     <Compile Include="Mapping\Tests\Fetch.cs" />
+    <Compile Include="Mapping\Tests\FluentMapping.cs" />
     <Compile Include="Mapping\Tests\Insert.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
     <Compile Include="Core\ConnectionTests.cs" />

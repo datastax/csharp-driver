@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         {
             var table = _session.GetTable<AllDataTypesEntity>();
             AllDataTypesEntity expectedEntity = _entityList[1];
-            long count = table.Where(actualEntity => actualEntity.StringType == expectedEntity.StringType && actualEntity.GuidType == expectedEntity.GuidType).Count().ExecuteAsync().Result;
+            long count = table.Where(e => e.StringType == expectedEntity.StringType && e.GuidType == expectedEntity.GuidType).Count().Execute();
             Assert.AreEqual(1, count);
         }
 

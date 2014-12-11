@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     public class Fetch : TestGlobals
     {
         ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(CreateTable));
+        private readonly Logger _logger = new Logger(typeof(Fetch));
         string _uniqueKsName;
 
         [SetUp]
@@ -47,41 +47,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void TeardownTest()
         {
             _session.DeleteKeyspace(_uniqueKsName);
-        }
-
-        /// <summary>
-        /// Validate that the mapping mechanism ignores the class variable marked as "Ignore"
-        /// </summary>
-        [Test]
-        public void Fetch_IgnoreAttribute()
-        {
-            Table<ClassWithIgnoredAttributes> table = _session.GetTable<ClassWithIgnoredAttributes>();
-            table.Create();
-
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
-            ClassWithIgnoredAttributes expectedVals = new ClassWithIgnoredAttributes
-            {
-                SomePartitionKey = Guid.NewGuid().ToString(),
-                IgnoredStringAttribute = Guid.NewGuid().ToString(),
-            };
-
-            cqlClient.Insert(expectedVals);
-
-            // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
-            List<ClassWithIgnoredAttributes> records = cqlClient.Fetch<ClassWithIgnoredAttributes>("SELECT * from " + table.Name).ToList();
-            Assert.AreEqual(1, records.Count);
-            Assert.AreEqual(expectedVals.SomePartitionKey, records[0].SomePartitionKey);
-            ClassWithIgnoredAttributes defaultClassWithIgnoredAttributes = new ClassWithIgnoredAttributes();
-            Assert.AreEqual(defaultClassWithIgnoredAttributes.IgnoredStringAttribute, records[0].IgnoredStringAttribute);
-
-            // Query for the column that the Linq table create created, verify no value was uploaded to it
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name).GetRows().ToList();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual(expectedVals.SomePartitionKey, rows[0].GetValue<string>("somepartitionkey"));
-            Assert.AreEqual(null, rows[0].GetValue<string>("this_should_be_ignored"));
         }
 
         /// <summary>
@@ -196,22 +161,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             {
                 Author.AssertListContains(expectedAuthors, authorFetched);
             }
-        }
-
-        /////////////////////////////////////////
-        /// Private test classes
-        /////////////////////////////////////////
-
-        [Table("classwithignoredattributes")]
-        private class ClassWithIgnoredAttributes
-        {
-            [PartitionKey]
-            [Cassandra.Data.Linq.Column("somepartitionkey")]
-            public string SomePartitionKey = "somePartitionKey";
-
-            [Cassandra.Mapping.Attributes.Ignore]
-            [Cassandra.Data.Linq.Column("this_should_be_ignored")]
-            public string IgnoredStringAttribute = "someIgnoredString";
         }
 
     }
