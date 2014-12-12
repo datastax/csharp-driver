@@ -62,6 +62,7 @@
     <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
+    <Compile Include="Linq\Tests\Counter.cs" />
     <Compile Include="Linq\Tests\DeleteIf.cs" />
     <Compile Include="Linq\Tests\Delete.cs" />
     <Compile Include="Linq\Tests\Select.cs" />
@@ -80,13 +81,17 @@
     <Compile Include="Linq\Tests\Where.cs" />
     <Compile Include="Linq\Tests\OrderBy.cs" />
     <Compile Include="Mapping\Structures\ContactMethod.cs" />
+    <Compile Include="Mapping\Structures\ManyDataTypesPocoMappingCaseSensitive.cs" />
     <Compile Include="Mapping\Structures\UserMapping.cs" />
     <Compile Include="Mapping\Structures\RainbowColor.cs" />
     <Compile Include="Mapping\Structures\User.cs" />
     <Compile Include="Mapping\Structures\ManyDataTypesPoco.cs" />
     <Compile Include="Mapping\Structures\UserType.cs" />
-    <Compile Include="Mapping\Tests\Attributes.cs" />
+    <Compile Include="Mapping\Tests\AttributesMapping.cs" />
+    <Compile Include="Mapping\Tests\Counter.cs" />
     <Compile Include="Mapping\Tests\CqlClient.cs" />
+    <Compile Include="Mapping\Tests\CqlClientConfig.cs" />
+    <Compile Include="Mapping\Tests\CreateTable.cs" />
     <Compile Include="Mapping\Tests\Fetch.cs" />
     <Compile Include="Mapping\Tests\FluentMapping.cs" />
     <Compile Include="Mapping\Tests\Insert.cs" />

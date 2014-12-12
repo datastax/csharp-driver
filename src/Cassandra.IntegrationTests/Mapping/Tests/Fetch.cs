@@ -62,10 +62,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 .ForSession(_session)
                 .UseIndividualMapping<FluentUserMapping>()
                 .BuildCqlClient();
-            List<string> followersForAuthor = new List<string>()
-            {
-                "follower1", "follower2", ""
-            };
+            List<string> followersForAuthor = new List<string>() { "follower1", "follower2", "" };
             Author expectedAuthor = new Author
             {
                 AuthorId = Guid.NewGuid().ToString(),
@@ -77,6 +74,33 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(1, authors.Count);
             expectedAuthor.AssertEquals(authors[0]);
         }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping
+        /// </summary>
+        [Test]
+        public void Fetch_NoArgDefaultsToSelectAll()
+        {
+            var table = _session.GetTable<ManyDataTypesPoco>(new ManyDataTypesPocoMappingCaseSensitive());
+            table.Create();
+
+            var cqlClient = CqlClientConfiguration
+                .ForSession(_session)
+                .UseIndividualMapping<ManyDataTypesPocoMappingCaseSensitive>()
+                .BuildCqlClient();
+            List<ManyDataTypesPoco> manyTypesList = new List<ManyDataTypesPoco>();
+            for (int i = 0; i < 10; i++)
+                manyTypesList.Add(ManyDataTypesPoco.GetRandomInstance());
+            foreach (var manyTypesRecord in manyTypesList)
+                cqlClient.Insert(manyTypesRecord);
+
+            List<ManyDataTypesPoco> instancesRetrieved = cqlClient.Fetch<ManyDataTypesPoco>().ToList();
+            Assert.AreEqual(manyTypesList.Count, instancesRetrieved.Count);
+
+            foreach (var instanceRetrieved in instancesRetrieved)
+                ManyDataTypesPoco.AssertListContains(manyTypesList, instanceRetrieved);
+        }
+
 
         /// <summary>
         /// Successfully Fetch mapped records by passing in a Cql Object

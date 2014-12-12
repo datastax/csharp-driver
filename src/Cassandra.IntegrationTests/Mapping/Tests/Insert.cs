@@ -21,7 +21,6 @@ using Cassandra.IntegrationTests.Linq.Tests;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
-using Cassandra.Tests.Mapping.FluentMappings;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
@@ -48,24 +47,46 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.DeleteKeyspace(_uniqueKsName);
         }
 
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping
+        /// </summary>
+        [Test]
+        public void Insert_IntoTableCreatedWithFluentMapping()
+        {
+            var table = _session.GetTable<lowercaseclassnamepartitionkeylowercase>(
+                new Map<lowercaseclassnamepartitionkeylowercase>()
+                .TableName("lowercaseclassnamepartitionkeylowercase")
+                .PartitionKey(u => u.somepartitionkey)
+                );
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            var cqlClient = CqlClientConfiguration
+                .ForSession(_session)
+                .BuildCqlClient();
+            lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
+
+            cqlClient.Insert(privateClassInstance);
+            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+        }
+
+        /// <summary>
+        /// Attempt to insert a Poco into a nonexistent table
+        /// </summary>
         [Test]
         public void Insert_UnconfiguredTable()
         {
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
+            // Setup
+            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
             ManyDataTypesPoco manyTypesPoco = ManyDataTypesPoco.GetRandomInstance();
 
-            try
-            {
-                cqlClient.Insert(manyTypesPoco);
-            }
-            catch (InvalidQueryException e)
-            {
-                string expectedErrMsg = "unconfigured columnfamily " + typeof(ManyDataTypesPoco).Name.ToLower();
-                Assert.AreEqual(expectedErrMsg, e.Message);
-            }
+            // Validate Error Message
+            var e = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(manyTypesPoco));
+            string expectedErrMsg = "unconfigured columnfamily " + typeof(ManyDataTypesPoco).Name.ToLower();
+            Assert.AreEqual(expectedErrMsg, e.Message);
         }
 
         /// <summary>
@@ -74,7 +95,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// This also validates that a private class can be used by the CqlPoco client
         /// </summary>
         [Test]
-        public void Insert_TableNameDefaultsToLowerCase()
+        public void Insert_TableCreatedWithLinq_MappedTableNameDefaultsToLowerCase()
         {
             Table<PrivateClassWithClassNameCamelCase> table = _session.GetTable<PrivateClassWithClassNameCamelCase>();
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
@@ -82,43 +103,33 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             var cqlClient = CqlClientConfiguration
                 .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
                 .BuildCqlClient();
             PrivateClassWithClassNameCamelCase privateClassCamelCase = new PrivateClassWithClassNameCamelCase();
 
-            try
-            {
-                cqlClient.Insert(privateClassCamelCase);
-            }
-            catch (InvalidQueryException e)
-            {
-                string expectedErrMsg = "unconfigured columnfamily " + typeof(PrivateClassWithClassNameCamelCase).Name.ToLower();
-                Assert.AreEqual(expectedErrMsg, e.Message);
-            }
+            var e = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(privateClassCamelCase));
+            string expectedErrMsg = "unconfigured columnfamily " + typeof(PrivateClassWithClassNameCamelCase).Name.ToLower();
+            Assert.AreEqual(expectedErrMsg, e.Message);
         }
 
+        /// <summary>
+        /// Validate that mapped class properties are lower-cased by default
+        /// </summary>
         [Test]
         public void Insert_TableNameLowerCase_PartitionKeyCamelCase()
         {
+            // Setup
             Table<lowercaseclassnamepartitionkeycamelcase> table = _session.GetTable<lowercaseclassnamepartitionkeycamelcase>();
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
-
             var cqlClient = CqlClientConfiguration
                 .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
                 .BuildCqlClient();
             lowercaseclassnamepartitionkeycamelcase privateClassInstance = new lowercaseclassnamepartitionkeycamelcase();
 
-            try
-            {
-                cqlClient.Insert(privateClassInstance);
-            }
-            catch (InvalidQueryException e)
-            {
-                string expectedErrMsg = "Unknown identifier somepartitionkey";
-                Assert.AreEqual(expectedErrMsg, e.Message);
-            }
+            // Validate Error Msg
+            var ex = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(privateClassInstance));
+            string expectedErrMsg = "Unknown identifier somepartitionkey";
+            Assert.AreEqual(expectedErrMsg, ex.Message);
         }
 
         [Test]
@@ -130,7 +141,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             var cqlClient = CqlClientConfiguration
                 .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
                 .BuildCqlClient();
             lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
 
@@ -145,7 +155,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Attempting to insert a Poco into a table with a missing column field fails
         /// </summary>
         [Test]
-        public void Attributes_MislabledClusteringKey()
+        public void Insert_MislabledClusteringKey()
         {
             string tableName = typeof(PocoWithAdditionalField).Name.ToLower();
             string createTableCql = "Create table " + tableName + "(somestring text PRIMARY KEY)";

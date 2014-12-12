@@ -16,8 +16,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.Mapping.Tests;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Structures
@@ -121,7 +125,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             return allDataTypesRandomList;
         }
 
-        public static bool AssertListContains(List<ManyDataTypesPoco> expectedEntities, ManyDataTypesPoco actualEntity)
+        public static bool ListContains(List<ManyDataTypesPoco> expectedEntities, ManyDataTypesPoco actualEntity)
         {
             foreach (var expectedEntity in expectedEntities)
             {
@@ -133,6 +137,34 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
                 catch (AssertionException e) { }
             }
             return false;
+        }
+
+        public static void AssertListContains(List<ManyDataTypesPoco> expectedEntities, ManyDataTypesPoco actualEntity)
+        {
+            Assert.IsTrue(ListContains(expectedEntities, actualEntity));
+        }
+
+        public static void AssertListEqualsList(List<ManyDataTypesPoco> expectedEntities, List<ManyDataTypesPoco> actualEntities)
+        {
+            Assert.AreEqual(expectedEntities.Count, actualEntities.Count);
+            foreach (var expectedEntity in expectedEntities)
+                Assert.IsTrue(ListContains(actualEntities, expectedEntity));
+        }
+
+
+        /// <summary>
+        /// Test Assertion helper that will try the SELECT query a few times in case we need to wait for consistency
+        /// </summary>
+        public static void KeepTryingSelectAndAssert(ICqlClient cqlClient, string selectStatement, List<ManyDataTypesPoco> expectedInstanceList)
+        {
+            List<ManyDataTypesPoco> instancesQueried = cqlClient.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(5);
+            while (instancesQueried.Count < expectedInstanceList.Count && DateTime.Now < futureDateTime)
+            {
+                Thread.Sleep(50);
+                instancesQueried = cqlClient.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
+            }
+            AssertListEqualsList(expectedInstanceList, instancesQueried);
         }
 
     }
