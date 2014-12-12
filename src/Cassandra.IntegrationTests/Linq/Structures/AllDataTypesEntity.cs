@@ -103,7 +103,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public static List<AllDataTypesEntity> SetupDefaultTable(ISession session)
         {
             // drop table if exists, re-create
-            var table = session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(session, new Cassandra.Mapping.MappingConfiguration());
             table.Create();
 
             List<AllDataTypesEntity> allDataTypesRandomList = GetDefaultAllDataTypesList();

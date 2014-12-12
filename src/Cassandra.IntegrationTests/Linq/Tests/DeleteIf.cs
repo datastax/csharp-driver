@@ -8,6 +8,7 @@ using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Renci.SshNet.Messages.Authentication;
+using Cassandra.Mapping;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
 {
@@ -27,7 +28,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
-            _table = _session.GetTable<AllDataTypesEntity>();
+            _table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
 
         }
 
@@ -40,7 +41,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void DeleteIf_ConditionSucceeds()
         {
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             table.Create();
             Movie actualMovie = Movie.GetRandomMovie();
             table.Insert(actualMovie).Execute();
@@ -60,7 +61,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void DeleteIf_ConditionFails()
         {
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             table.Create();
             Movie actualMovie = Movie.GetRandomMovie();
             table.Insert(actualMovie).Execute();
@@ -80,7 +81,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void DeleteIf_ConditionBasedOnKey()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -107,7 +108,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void DeleteIf_NoSuchKey()
         {
             // Validate pre-test state
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];

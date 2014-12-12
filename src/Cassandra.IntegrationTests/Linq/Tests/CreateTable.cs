@@ -20,6 +20,7 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
@@ -55,7 +56,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void TableCreate_CreateIfNotExist()
         {
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
             WriteReadValidate(table);
         }
@@ -67,7 +68,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void TableCreate_Create()
         {
             // Test
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             WriteReadValidate(table);
         }
@@ -96,7 +97,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void TableCreate_CreateTable_AlreadyExists()
         {
             // Test
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             TableAttribute tableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
             table.Create();
             //Result Message:	Cassandra.AlreadyExistsException : Table test_cluster_keyspace.allDataTypes already exists
@@ -119,7 +120,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void TableCreate_CreateTable_SameNameDifferentTypeAlreadyExists()
         {
             // First table name creation works as expected
-            Table<AllDataTypesEntity> allDataTypesTable = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             allDataTypesTable.Create();
             TableAttribute allDataTypesTableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
             
@@ -163,7 +164,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         {
             // Setup
             TableAttribute tableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
 
             // Create then delete then cre-create the table
             table.Create();
@@ -226,7 +227,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void TableCreate_Create_TwoTablesSameName_TwoDifferentKeyspaces()
         {
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             WriteReadValidate(table);
 
@@ -235,7 +236,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.CreateKeyspace(newUniqueKsName);
             _session.ChangeKeyspace(newUniqueKsName);
 
-            table = _session.GetTable<AllDataTypesEntity>();
+            table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             WriteReadValidate(table);
         }
@@ -246,7 +247,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoDifferentKeyspaces()
         {
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
             WriteReadValidate(table);
 
@@ -255,7 +256,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.CreateKeyspace(newUniqueKsName);
             _session.ChangeKeyspace(newUniqueKsName);
 
-            table = _session.GetTable<AllDataTypesEntity>();
+            table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
             WriteReadValidate(table);
         }
@@ -297,7 +298,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void TableCreate_Create_EntityTypeWithColumnNameMeta()
         {
             // Test
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             AllDataTypesEntity expectedAllDataTypesEntityNoColumnMetaEntity = WriteReadValidate(table);
 

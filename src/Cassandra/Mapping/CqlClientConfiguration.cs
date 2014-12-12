@@ -9,7 +9,7 @@ using Cassandra.Mapping.Utils;
 namespace Cassandra.Mapping
 {
     /// <summary>
-    /// Main entry point for configuration CqlPoco and retrieving an instance of ICqlClient.  Use the <see cref="ForSession"/> method
+    /// Main entry point for configuration CqlPoco and retrieving an instance of IMapper.  Use the <see cref="ForSession"/> method
     /// to start configuring.
     /// </summary>
     public class CqlClientConfiguration
@@ -98,12 +98,12 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
-        /// Builds a ICqlClient using the configuration you've defined via the configuration interface.
+        /// Builds a IMapper using the configuration you've defined via the configuration interface.
         /// </summary>
-        public ICqlClient BuildCqlClient()
+        public IMapper BuildCqlClient()
         {
             var pocoDataFactory = new PocoDataFactory(_typeDefinitions);
-            return new CqlClient(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(),
+            return new Mapper(_session, new MapperFactory(_typeConverter, pocoDataFactory), new StatementFactory(),
                                  new CqlGenerator(pocoDataFactory));
         }
 

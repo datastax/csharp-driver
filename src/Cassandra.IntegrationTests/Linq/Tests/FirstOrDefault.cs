@@ -3,6 +3,7 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
@@ -22,7 +23,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             table.Create();
 
             //Insert some data
@@ -40,7 +41,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void LinqFirstOrDefault_Sync()
         {
             // Setup
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             var expectedMovie = _movieList.First();
 
             // Test
@@ -63,7 +64,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void LinqFirstOrDefault_Async()
         {
             // Setup
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             var expectedMovie = _movieList.Last();
 
             // Test
@@ -79,7 +80,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqFirstOrDefault_Async_NoSuchRecord()
         {
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             var first = table.FirstOrDefault(m => m.Director == "non_existant_" + Randomm.RandomAlphaNum(10)).ExecuteAsync().Result;
             Assert.IsNull(first);
         }

@@ -39,19 +39,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappingGeneric_StaticMappingClass_()
         {
-            var mapping = new ManyDataTypesPocoMappingCaseSensitive();
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             Assert.AreNotEqual(table.Name, table.Name.ToLower()); // make sure the case sensitivity rule is being used
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<ManyDataTypesPocoMappingCaseSensitive>()
-                .BuildCqlClient();
-            ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
+            var mapper = new Mapper(_session, config);
+            var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
-            cqlClient.Insert(manyTypesInstance);
-            List<ManyDataTypesPoco> instancesQueried = cqlClient.Fetch<ManyDataTypesPoco>().ToList();
+            mapper.Insert(manyTypesInstance);
+            var instancesQueried = mapper.Fetch<ManyDataTypesPoco>().ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             manyTypesInstance.AssertEquals(instancesQueried[0]);
         }
@@ -63,19 +60,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappingClassType_StaticMappingClass()
         {
-            var mapping = new ManyDataTypesPocoMappingCaseSensitive();
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<ManyDataTypesPocoMappingCaseSensitive>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
-            cqlClient.Insert(manyTypesInstance);
+            mapper.Insert(manyTypesInstance);
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name, "StringType", manyTypesInstance.StringType);
-            ManyDataTypesPoco.KeepTryingSelectAndAssert(cqlClient, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
+            ManyDataTypesPoco.KeepTryingSelectAndAssert(mapper, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
         }
 
         /// <summary>
@@ -85,21 +79,18 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappings_MappingDefinedDuringRuntime()
         {
-            var mapping = new Map<ManyDataTypesPoco>();
-            mapping.PartitionKey(c => c.StringType);
-            mapping.CaseSensitive();
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+                .PartitionKey(c => c.StringType)
+                .CaseSensitive());
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMappings(new ITypeDefinition[] { mapping })
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
-            cqlClient.Insert(manyTypesInstance);
+            mapper.Insert(manyTypesInstance);
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name, "StringType", manyTypesInstance.StringType);
-            ManyDataTypesPoco.KeepTryingSelectAndAssert(cqlClient, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
+            ManyDataTypesPoco.KeepTryingSelectAndAssert(mapper, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
         }
 
         /// <summary>
@@ -109,19 +100,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappings_StaticMappingClass()
         {
-            var mapping = new ManyDataTypesPocoMappingCaseSensitive();
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMappings(new ITypeDefinition[] { mapping })
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
-            cqlClient.Insert(manyTypesInstance);
+            mapper.Insert(manyTypesInstance);
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name, "StringType", manyTypesInstance.StringType);
-            ManyDataTypesPoco.KeepTryingSelectAndAssert(cqlClient, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
+            ManyDataTypesPoco.KeepTryingSelectAndAssert(mapper, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
         }
 
         /// <summary>
@@ -131,9 +119,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CqlClientConfiguration_UseIndividualMappings_EmptyTypeDefinitionList()
         {
             // Setup
-            var mapping = new Map<ManyDataTypesPoco>();
-            mapping.PartitionKey(c => c.StringType);
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+                .PartitionKey(c => c.StringType));
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
             // validate default lower-casing
@@ -142,16 +130,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(typeof(ManyDataTypesPoco).Name.ToLower(), table.Name.ToLower());
 
             // Test
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMappings(new ITypeDefinition[] {} )
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
-            cqlClient.Insert(manyTypesInstance);
+            mapper.Insert(manyTypesInstance);
 
             // Verify results
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name.ToLower(), "stringtype", manyTypesInstance.StringType);
-            ManyDataTypesPoco.KeepTryingSelectAndAssert(cqlClient, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
+            ManyDataTypesPoco.KeepTryingSelectAndAssert(mapper, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
         }
 
         /// <summary>
@@ -161,21 +146,19 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CqlClientConfiguration_MappingOmitted()
         {
             // Setup
-            var mapping = new Map<ManyDataTypesPoco>();
-            mapping.PartitionKey(c => c.StringType);
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+                .PartitionKey(c => c.StringType));
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
             // Test
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
-            cqlClient.Insert(manyTypesInstance);
+            mapper.Insert(manyTypesInstance);
 
             // Check results
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name.ToLower(), "stringtype", manyTypesInstance.StringType);
-            ManyDataTypesPoco.KeepTryingSelectAndAssert(cqlClient, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
+            ManyDataTypesPoco.KeepTryingSelectAndAssert(mapper, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
         }
 
 
@@ -185,19 +168,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Attributes_UseIndividualMapping_Default()
         {
-            var mapping = new ManyDataTypesPocoMappingCaseSensitive();
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             Assert.AreNotEqual(table.Name, table.Name.ToLower()); // make sure the case sensitivity rule is being used
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<ManyDataTypesPocoMappingCaseSensitive>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
-            cqlClient.Insert(manyTypesInstance);
-            List<ManyDataTypesPoco> instancesQueried = cqlClient.Fetch<ManyDataTypesPoco>().ToList();
+            mapper.Insert(manyTypesInstance);
+            List<ManyDataTypesPoco> instancesQueried = mapper.Fetch<ManyDataTypesPoco>().ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             manyTypesInstance.AssertEquals(instancesQueried[0]);
         }

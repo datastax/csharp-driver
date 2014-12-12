@@ -10,7 +10,7 @@ namespace Cassandra.Mapping
     /// The default CQL client implementation which uses the DataStax driver ISession provided in the constructor
     /// for running queries against a Cassandra cluster.
     /// </summary>
-    internal class CqlClient : ICqlClient
+    public class Mapper : IMapper
     {
         private readonly ISession _session;
         private readonly MapperFactory _mapperFactory;
@@ -18,7 +18,26 @@ namespace Cassandra.Mapping
         private readonly CqlGenerator _cqlGenerator;
         private readonly int _queryAbortTimeout = 3000;
 
-        public CqlClient(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator)
+        /// <summary>
+        /// Creates a new instance of the mapper using the configuration provided
+        /// </summary>
+        /// <param name="session">Session to be used to execute the statements</param>
+        /// <param name="config">Mapping definitions for the POCOs</param>
+        public Mapper(ISession session, MappingConfiguration config) 
+            : this(session, config.MapperFactory, config.StatementFactory, new CqlGenerator(config.MapperFactory.PocoDataFactory))
+        {
+            
+        }
+
+        /// <summary>
+        /// Creates a new instance of the mapper using <see cref="MappingConfiguration.Global"/> mapping definitions.
+        /// </summary>
+        public Mapper(ISession session) : this(session, MappingConfiguration.Global)
+        {
+            
+        }
+
+        internal Mapper(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator)
         {
             if (session == null) throw new ArgumentNullException("session");
             if (mapperFactory == null) throw new ArgumentNullException("mapperFactory");

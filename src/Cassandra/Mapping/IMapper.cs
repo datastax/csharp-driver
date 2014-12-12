@@ -5,7 +5,7 @@ namespace Cassandra.Mapping
     /// <summary>
     /// A client for creating, updating, deleting, and reading POCOs from a Cassandra cluster.
     /// </summary>
-    public interface ICqlClient : ICqlQueryAsyncClient, ICqlWriteAsyncClient, ICqlQueryClient, ICqlWriteClient
+    public interface IMapper : ICqlQueryAsyncClient, ICqlWriteAsyncClient, ICqlQueryClient, ICqlWriteClient
     {
         /// <summary>
         /// Creates a new batch.

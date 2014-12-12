@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class CqlClient : TestGlobals
+    public class CqlClientTest : TestGlobals
     {
         ISession _session = null;
         private readonly Logger _logger = new Logger(typeof(Attributes));

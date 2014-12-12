@@ -3,6 +3,7 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
@@ -34,7 +35,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqCount_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
         }
@@ -42,7 +43,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqCount_Where_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             AllDataTypesEntity expectedEntity = _entityList[1];
             long count = table.Where(e => e.StringType == expectedEntity.StringType && e.GuidType == expectedEntity.GuidType).Count().Execute();
             Assert.AreEqual(1, count);
@@ -51,7 +52,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqCount_Async()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
         }
@@ -59,7 +60,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqCount_Where_Async()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             AllDataTypesEntity expectedEntity = _entityList[2];
             long count = table.Where(e => e.StringType == expectedEntity.StringType && e.GuidType == expectedEntity.GuidType).Count().ExecuteAsync().Result;
             Assert.AreEqual(1, count);

@@ -36,28 +36,37 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.DeleteKeyspace(_uniqueKsName);
         }
 
+        private Table<T> GetTable<T>()
+        {
+            return new Table<T>(_session, new MappingConfiguration());
+        }
+
+        private IMapper GetMapper()
+        {
+            return new Mapper(_session, new MappingConfiguration());
+        }
+
         /// <summary>
         /// Validate that the mapping mechanism ignores the field marked with mapping attribute "Ignore"
         /// </summary>
         [Test]
         public void Attributes_Ignore()
         {
-            var definition = new AttributeBasedTypeDefinition(typeof(PocoWithIgnoredAttributes));
-            var table = _session.GetTable<PocoWithIgnoredAttributes>(definition);
+            var table = GetTable<PocoWithIgnoredAttributes>();
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var mapper = GetMapper();
             PocoWithIgnoredAttributes pocoToUpload = new PocoWithIgnoredAttributes
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
                 IgnoredStringAttribute = Guid.NewGuid().ToString(),
             };
-            cqlClient.Insert(pocoToUpload);
+            mapper.Insert(pocoToUpload);
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name.ToLower(), "somepartitionkey", pocoToUpload.SomePartitionKey);
 
             // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
-            List<PocoWithIgnoredAttributes> records = cqlClient.Fetch<PocoWithIgnoredAttributes>(cqlSelect).ToList();
+            List<PocoWithIgnoredAttributes> records = mapper.Fetch<PocoWithIgnoredAttributes>(cqlSelect).ToList();
             Assert.AreEqual(1, records.Count);
             Assert.AreEqual(pocoToUpload.SomePartitionKey, records[0].SomePartitionKey);
             PocoWithIgnoredAttributes defaultPoco = new PocoWithIgnoredAttributes();
@@ -123,20 +132,19 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Attributes_PartitionKey_ValueNull()
         {
-            var definition = new AttributeBasedTypeDefinition(typeof (PocoWithIgnoredAttributes));
-            Table<PocoWithIgnoredAttributes> table = _session.GetTable<PocoWithIgnoredAttributes>(definition);
+            var table = GetTable<PocoWithIgnoredAttributes>();
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var mapper = GetMapper();
             PocoWithIgnoredAttributes pocoWithCustomAttributesLynqAndMappingIncluded = new PocoWithIgnoredAttributes
             {
                 SomePartitionKey = null,
                 IgnoredStringAttribute = Guid.NewGuid().ToString(),
             };
-            cqlClient.Insert(pocoWithCustomAttributesLynqAndMappingIncluded);
+            mapper.Insert(pocoWithCustomAttributesLynqAndMappingIncluded);
 
             // Get records using mapped object
-            List<PocoWithIgnoredAttributes> records = cqlClient.Fetch<PocoWithIgnoredAttributes>("SELECT * from " + table.Name).ToList();
+            List<PocoWithIgnoredAttributes> records = mapper.Fetch<PocoWithIgnoredAttributes>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(0, records.Count);
 
             // Query for the column that the Linq table create created
@@ -507,10 +515,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mapping = new Map<SimplePocoWithPartitionKey>();
             mapping.CaseSensitive();
             mapping.PartitionKey(u => u.StringType);
-            var table = _session.GetTable<ManyDataTypesPoco>(mapping);
+            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().UseIndividualMappings(mapping));
 
             // Validate expected Exception
-            var ex = Assert.Throws<InvalidOperationException>(() => table.Create());
+            var ex = Assert.Throws<InvalidOperationException>(table.Create);
             StringAssert.Contains("No partition key defined", ex.Message);
         }
 
@@ -520,12 +528,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Attributes_PartitionKey()
         {
-            var definition = new AttributeBasedTypeDefinition(typeof(SimplePocoWithPartitionKey));
-            var table = _session.GetTable<SimplePocoWithPartitionKey>(definition);
+            var table = GetTable<SimplePocoWithPartitionKey>();
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             SimplePocoWithPartitionKey pocoToUpload = new SimplePocoWithPartitionKey();
             cqlClient.Insert(pocoToUpload);
             string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name.ToLower(), "stringtype", pocoToUpload.StringType);
@@ -543,11 +550,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test, NUnit.Framework.Ignore("Secondary Index doesn't seem be gettin created")]
         public void Attributes_SecondaryIndex()
         {
-            var definition = new AttributeBasedTypeDefinition(typeof(SimplePocoWithSecondaryIndex));
-            var table = _session.GetTable<SimplePocoWithSecondaryIndex>(definition);
+            var table = GetTable<SimplePocoWithSecondaryIndex>();
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             int expectedTotalRecords = 10;
             SimplePocoWithSecondaryIndex defaultInstance = new SimplePocoWithSecondaryIndex();
             for (int i = 0; i < expectedTotalRecords; i++)

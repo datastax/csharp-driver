@@ -119,7 +119,7 @@
     <Compile Include="Mapping\Attributes\StaticColumnAttribute.cs" />
     <Compile Include="Mapping\Cql.cs" />
     <Compile Include="Mapping\CqlBatch.cs" />
-    <Compile Include="Mapping\CqlClient.cs" />
+    <Compile Include="Mapping\Mapper.cs" />
     <Compile Include="Mapping\CqlClientConfiguration.cs" />
     <Compile Include="Mapping\CqlQueryOptions.cs" />
     <Compile Include="Mapping\ColumnMap.cs" />
@@ -127,7 +127,7 @@
     <Compile Include="Mapping\MappingConfiguration.cs" />
     <Compile Include="Mapping\Mappings.cs" />
     <Compile Include="Mapping\ICqlBatch.cs" />
-    <Compile Include="Mapping\ICqlClient.cs" />
+    <Compile Include="Mapping\IMapper.cs" />
     <Compile Include="Mapping\ICqlQueryAsyncClient.cs" />
     <Compile Include="Mapping\ICqlQueryClient.cs" />
     <Compile Include="Mapping\ICqlWriteAsyncClient.cs" />

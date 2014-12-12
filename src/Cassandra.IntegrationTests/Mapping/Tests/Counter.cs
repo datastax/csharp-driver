@@ -34,13 +34,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test, Category("medium"), NUnit.Framework.Ignore("Counter attribute doesn't seem to be getting used, pending question")]
         public void Counter_LinqAttributes_Success()
         {
-            //var mapping = new Map<PocoWithCounter>();
-            var definition = new AttributeBasedTypeDefinition(typeof(PocoWithCounterAttribute));
-            var table = _session.GetTable<PocoWithCounterAttribute>(definition);
+            var config = new MappingConfiguration();
+            var table = new Table<PocoWithCounterAttribute>(_session, config);
             table.Create();
-            var cqlClient = CqlClientConfiguration.ForSession(_session)
-                .UseIndividualMappings(definition)
-                .BuildCqlClient();
+            var cqlClient = new Mapper(_session, config);
 
             List<PocoWithCounterAttribute> counterPocos = new List<PocoWithCounterAttribute>();
             for (int i = 0; i < 10; i++)
@@ -89,13 +86,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test, Category("large"), NUnit.Framework.Ignore("Counter attribute doesn't seem to be getting used, pending question")]
         public void Counter_LinqAttributes_Parallel()
         {
-            //var mapping = new Map<PocoWithCounter>();
-            var definition = new AttributeBasedTypeDefinition(typeof(PocoWithCounterAttribute));
-            var table = _session.GetTable<PocoWithCounterAttribute>(definition);
+            var table = new Table<PocoWithCounterAttribute>(_session, new MappingConfiguration());
             table.Create();
-            var cqlClient = CqlClientConfiguration.ForSession(_session)
-                .UseIndividualMappings(definition)
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, new MappingConfiguration());
 
             List<PocoWithCounterAttribute> counterPocos = new List<PocoWithCounterAttribute>();
             for (int i = 0; i < 100; i++)
@@ -117,11 +110,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 string bountSessionToStr = boundStatement.ToString();
                 Cql cql = new Cql(boundStatement.ToString());
                 for (int j = 0; j < counterIncrements; j++)
-                    cqlClient.Execute(bountSessionToStr);
+                    mapper.Execute(bountSessionToStr);
                 pocoWithCounter.Counter += counterIncrements;
             });
 
-            List<PocoWithCounterAttribute> countersQueried = cqlClient.Fetch<PocoWithCounterAttribute>().ToList();
+            List<PocoWithCounterAttribute> countersQueried = mapper.Fetch<PocoWithCounterAttribute>().ToList();
             foreach (PocoWithCounterAttribute pocoWithCounterExpected in counterPocos)
             {
                 bool counterFound = false;
@@ -144,9 +137,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test, Category("medium")]
         public void Counter_LinqAttributes_AttemptInsert()
         {
-            //var mapping = new Map<PocoWithCounter>();
-            var definition = new AttributeBasedTypeDefinition(typeof(PocoWithCounterAttribute));
-            var table = _session.GetTable<PocoWithCounterAttribute>(definition);
+            var table = new Table<PocoWithCounterAttribute>(_session, new MappingConfiguration());
             table.Create();
 
             PocoWithCounterAttribute pocoAndLinqAttributesPocos = new PocoWithCounterAttribute()
@@ -156,7 +147,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
 
             // Validate Error Message
-            var e = Assert.Throws<InvalidQueryException>(() => _session.Execute(table.Insert(pocoAndLinqAttributesPocos)));
+            var e = Assert.Throws<InvalidQueryException>(() => table.Insert(pocoAndLinqAttributesPocos).Execute());
             string expectedErrMsg = "INSERT statement are not allowed on counter tables, use UPDATE instead";
             Assert.AreEqual(expectedErrMsg, e.Message);
         }

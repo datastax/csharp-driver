@@ -5,6 +5,7 @@ using System.Text;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
@@ -25,7 +26,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
-            _table = _session.GetTable<AllDataTypesEntity>();
+            _table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
 
         }
 
@@ -38,7 +39,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqSelect_SelectAll_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = _table;
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
 
@@ -53,7 +54,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqSelect_SelectAll_Async()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = _table;
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
 

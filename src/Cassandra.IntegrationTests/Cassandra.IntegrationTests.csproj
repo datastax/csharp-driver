@@ -87,9 +87,9 @@
     <Compile Include="Mapping\Structures\User.cs" />
     <Compile Include="Mapping\Structures\ManyDataTypesPoco.cs" />
     <Compile Include="Mapping\Structures\UserType.cs" />
-    <Compile Include="Mapping\Tests\AttributesMapping.cs" />
+    <Compile Include="Mapping\Tests\Attributes.cs" />
     <Compile Include="Mapping\Tests\Counter.cs" />
-    <Compile Include="Mapping\Tests\CqlClient.cs" />
+    <Compile Include="Mapping\Tests\CqlClientTest.cs" />
     <Compile Include="Mapping\Tests\CqlClientConfig.cs" />
     <Compile Include="Mapping\Tests\CreateTable.cs" />
     <Compile Include="Mapping\Tests\Fetch.cs" />

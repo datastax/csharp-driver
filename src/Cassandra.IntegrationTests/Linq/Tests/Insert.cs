@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Tests
@@ -38,7 +39,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqInsert_Batch()
         {
-            Table<Movie> nerdMoviesTable = _session.GetTable<Movie>();
+            Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
             Batch batch = _session.CreateBatch();
 
             Movie movie1 = Movie.GetRandomMovie();
@@ -75,7 +76,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqInsert_Batch_MissingPartitionKeyPart()
         {
-            Table<Movie> nerdMoviesTable = _session.GetTable<Movie>();
+            Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
             Batch batch = _session.CreateBatch();
             Movie movie1 = Movie.GetRandomMovie();
             Movie movie2 = Movie.GetRandomMovie();
@@ -111,7 +112,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqInsert_MissingPartitionKey_Sync()
         {
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             Movie objectMissingPartitionKey = new Movie() {MainActor = "doesntmatter"};
             string expectedErrMsg = "Invalid null value for partition key part unique_movie_title";
             try
@@ -127,7 +128,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqInsert_MissingPartitionKey_Async()
         {
-            var table = _session.GetTable<Movie>();
+            var table = new Table<Movie>(_session, new MappingConfiguration());
             Movie objectMissingPartitionKey = new Movie() {MainActor = "doesntmatter"};
             string expectedErrMsg = "Invalid null value for partition key part unique_movie_title";
             try

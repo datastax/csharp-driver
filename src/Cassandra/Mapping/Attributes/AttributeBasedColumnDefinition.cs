@@ -11,14 +11,13 @@ namespace Cassandra.Mapping.Attributes
     {
         private readonly MemberInfo _memberInfo;
         private readonly Type _memberInfoType;
-
         private readonly string _columnName;
         private readonly Type _columnType;
         private readonly bool _ignore;
         private readonly bool _isExplicitlyDefined;
-        private bool _secondaryIndex = false;
-        private bool _isCounter = false;
-        private const bool IsStatic = false;
+        private readonly bool _secondaryIndex;
+        private readonly bool _isCounter;
+        private readonly bool _isStatic;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -62,7 +61,7 @@ namespace Cassandra.Mapping.Attributes
 
         bool IColumnDefinition.IsStatic
         {
-            get { return IsStatic; }
+            get { return _isStatic; }
         }
 
         /// <summary>
@@ -98,9 +97,18 @@ namespace Cassandra.Mapping.Attributes
                 if (columnAttribute.Type != null)
                     _columnType = columnAttribute.Type;
             }
-            var ignoreAttribute = memberInfo.GetCustomAttributes(typeof(IgnoreAttribute), true).FirstOrDefault();
-            if (ignoreAttribute != null)
-                _ignore = true;
+            _ignore = HasAttribute(memberInfo, typeof(IgnoreAttribute));
+            _secondaryIndex = HasAttribute(memberInfo, typeof(SecondaryIndexAttribute));
+            _isStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));
+            _isCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
+        }
+
+        /// <summary>
+        /// Determines if the member has an attribute applied
+        /// </summary>
+        private static bool HasAttribute(MemberInfo memberInfo, Type attributeType)
+        {
+            return memberInfo.GetCustomAttributes(attributeType, true).FirstOrDefault() != null;
         }
     }
 }

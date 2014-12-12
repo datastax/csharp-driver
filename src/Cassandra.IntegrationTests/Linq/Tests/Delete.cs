@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 using Renci.SshNet.Messages.Authentication;
 
@@ -27,7 +28,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
-            _table = _session.GetTable<AllDataTypesEntity>();
+            _table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
 
         }
 
@@ -40,7 +41,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_DeleteOneEquals_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -57,7 +58,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_DeleteOneViaEquals_Async()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -74,7 +75,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_DeleteMultipleContains_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
 
@@ -88,7 +89,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_DeleteMultipleContains_Async()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -103,7 +104,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_MissingKey_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
 
@@ -124,7 +125,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_NoSuchRecord()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -147,7 +148,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_MissingWhereAndSelectClause_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             try
             {
                 table.Delete().Execute(); // delete all ?
@@ -169,7 +170,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_MissingWhereClause_Sync()
         {
-            var table = _session.GetTable<AllDataTypesEntity>();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             try
             {
                 table.Select(m => m).Delete().Execute(); // delete all ?

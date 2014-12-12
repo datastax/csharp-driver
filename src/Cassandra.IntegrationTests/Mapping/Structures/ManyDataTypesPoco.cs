@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
         public static List<ManyDataTypesPoco> SetupDefaultTable(ISession session)
         {
             // drop table if exists, re-create
-            var table = session.GetTable<ManyDataTypesPoco>();
+            var table = new Table<ManyDataTypesPoco>(session, new MappingConfiguration());
             table.Create();
 
             List<ManyDataTypesPoco> allDataTypesRandomList = GetDefaultAllDataTypesList();
@@ -155,14 +155,14 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
         /// <summary>
         /// Test Assertion helper that will try the SELECT query a few times in case we need to wait for consistency
         /// </summary>
-        public static void KeepTryingSelectAndAssert(ICqlClient cqlClient, string selectStatement, List<ManyDataTypesPoco> expectedInstanceList)
+        public static void KeepTryingSelectAndAssert(IMapper mapper, string selectStatement, List<ManyDataTypesPoco> expectedInstanceList)
         {
-            List<ManyDataTypesPoco> instancesQueried = cqlClient.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
+            List<ManyDataTypesPoco> instancesQueried = mapper.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
             DateTime futureDateTime = DateTime.Now.AddSeconds(5);
             while (instancesQueried.Count < expectedInstanceList.Count && DateTime.Now < futureDateTime)
             {
                 Thread.Sleep(50);
-                instancesQueried = cqlClient.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
+                instancesQueried = mapper.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
             }
             AssertListEqualsList(expectedInstanceList, instancesQueried);
         }

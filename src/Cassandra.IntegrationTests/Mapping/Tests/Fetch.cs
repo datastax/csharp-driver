@@ -55,13 +55,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_UsingString_Success()
         {
-            Table<Author> table = _session.GetTable<Author>();
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, new MappingConfiguration().UseIndividualMapping<FluentUserMapping>());
             List<string> followersForAuthor = new List<string>() { "follower1", "follower2", "" };
             Author expectedAuthor = new Author
             {
@@ -69,8 +66,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 Followers = followersForAuthor,
             };
 
-            cqlClient.Insert(expectedAuthor);
-            List<Author> authors = cqlClient.Fetch<Author>("SELECT * from " + table.Name).ToList();
+            mapper.Insert(expectedAuthor);
+            List<Author> authors = mapper.Fetch<Author>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, authors.Count);
             expectedAuthor.AssertEquals(authors[0]);
         }
@@ -81,20 +78,20 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_NoArgDefaultsToSelectAll()
         {
-            var table = _session.GetTable<ManyDataTypesPoco>(new ManyDataTypesPocoMappingCaseSensitive());
+            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<ManyDataTypesPocoMappingCaseSensitive>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, config);
             List<ManyDataTypesPoco> manyTypesList = new List<ManyDataTypesPoco>();
             for (int i = 0; i < 10; i++)
+            {
                 manyTypesList.Add(ManyDataTypesPoco.GetRandomInstance());
+            }
             foreach (var manyTypesRecord in manyTypesList)
-                cqlClient.Insert(manyTypesRecord);
+                mapper.Insert(manyTypesRecord);
 
-            List<ManyDataTypesPoco> instancesRetrieved = cqlClient.Fetch<ManyDataTypesPoco>().ToList();
+            List<ManyDataTypesPoco> instancesRetrieved = mapper.Fetch<ManyDataTypesPoco>().ToList();
             Assert.AreEqual(manyTypesList.Count, instancesRetrieved.Count);
 
             foreach (var instanceRetrieved in instancesRetrieved)
@@ -108,20 +105,17 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_UsingCqlObject_Success()
         {
-            Table<Author> table = _session.GetTable<Author>();
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
             int totalInserts = 10;
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, new MappingConfiguration().UseIndividualMapping<FluentUserMapping>());
             List<Author> expectedAuthors = Author.GetRandomList(totalInserts);
             foreach (Author expectedAuthor in expectedAuthors)
-                cqlClient.Insert(expectedAuthor);
+                mapper.Insert(expectedAuthor);
 
             Cql cql = new Cql("SELECT * from " + table.Name);
-            List<Author> actualAuthors = cqlClient.Fetch<Author>(cql).ToList();
+            List<Author> actualAuthors = mapper.Fetch<Author>(cql).ToList();
             Assert.AreEqual(totalInserts, actualAuthors.Count);
             Author.AssertListsContainTheSame(expectedAuthors, actualAuthors);
         }
@@ -132,15 +126,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_ListUploadedAsNull()
         {
-            Table<Author> table = _session.GetTable<Author>();
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, new MappingConfiguration().UseIndividualMapping<FluentUserMapping>());
             Author expectedAuthor = Author.GetRandom();
             expectedAuthor.Followers = null;
-            cqlClient.Insert(expectedAuthor);
+            mapper.Insert(expectedAuthor);
 
             // Assert values from cql query
             Author expectedAuthorFromQuery = new Author
@@ -150,7 +141,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
 
             Cql cql = new Cql("SELECT * from " + table.Name);
-            List<Author> actualAuthors = cqlClient.Fetch<Author>(cql).ToList();
+            List<Author> actualAuthors = mapper.Fetch<Author>(cql).ToList();
             Assert.AreEqual(1, actualAuthors.Count);
             expectedAuthorFromQuery.AssertEquals(actualAuthors[0]);
         }
@@ -163,7 +154,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_Lazy()
         {
-            Table<Author> table = _session.GetTable<Author>();
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
 
             var cqlClient = CqlClientConfiguration
