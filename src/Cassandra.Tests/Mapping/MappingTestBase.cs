@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Moq;
@@ -10,7 +11,6 @@ using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
 {
-    [TestFixture]
     public abstract class MappingTestBase
     {
         protected ICqlClient GetMappingClient(RowSet rowset)
@@ -59,6 +59,21 @@ namespace Cassandra.Tests.Mapping
                 .Returns<string>(query => TaskHelper.ToTask(new PreparedStatement(null, null, query, null)))
                 .Verifiable();
             return sessionMock.Object;
+        }
+
+        /// <summary>
+        /// Gets a IQueryProvider with a new mapping configuration containing the definition provided
+        /// </summary>
+        protected Table<T> GetTable<T>(ISession session, ITypeDefinition definition)
+        {
+            return new Table<T>(session, new MappingConfiguration().UseIndividualMappings(definition));
+        }
+
+        [TearDown]
+        public virtual void TearDown()
+        {
+            //Clear the global mapping between tests
+            MappingConfiguration.Global.Clear();
         }
     }
 }

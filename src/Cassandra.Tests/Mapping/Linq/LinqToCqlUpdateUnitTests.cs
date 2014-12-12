@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
             var id = Guid.NewGuid();
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             table
                 .Where(t => t.UuidValue == id)
                 .Select(t => new AllTypesEntity { StringValue = "Billy the Vision", DecimalValue = 10M })
@@ -61,7 +61,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
             var id = Guid.NewGuid();
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             table
                 .Where(t => t.UuidValue == id)
                 .Where(t => t.DecimalValue > 20M)

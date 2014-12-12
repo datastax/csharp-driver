@@ -26,7 +26,6 @@ namespace Cassandra.Mapping
         {
             if (predefinedTypeDefinitions == null) throw new ArgumentNullException("predefinedTypeDefinitions");
             _predefinedTypeDefinitions = predefinedTypeDefinitions;
-
             _cache = new ConcurrentDictionary<Type, PocoData>();
         }
 
@@ -36,13 +35,17 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
-        /// Adds a definition to the local state.
+        /// Adds a definition to the local state in case no definition was explicitly defined.
         /// Used when the local default (AttributeBasedTypeDefinition) is not valid for a given type.
         /// </summary>
-        public void AddDefinition(Type type, ITypeDefinition definition)
+        public void AddDefinitionDefault(Type type, Func<ITypeDefinition> definitionHandler)
         {
             //In case there isn't already Poco information in the local cache.
-            _cache.GetOrAdd(type, t => CreatePocoData(t, definition));
+            if (_predefinedTypeDefinitions.Contains(type))
+            {
+                return;
+            }
+            _cache.GetOrAdd(type, t => CreatePocoData(t, definitionHandler()));
         }
         
         private PocoData CreatePocoData(Type pocoType)

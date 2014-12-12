@@ -82,6 +82,9 @@ namespace Cassandra.Data.Linq
             return visitor.GetSelect(out values);
         }
 
+        /// <summary>
+        /// Generates and returns cql query for this instance 
+        /// </summary>
         public override string ToString()
         {
             object[] _;

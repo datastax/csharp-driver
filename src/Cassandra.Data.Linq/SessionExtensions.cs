@@ -16,49 +16,29 @@
 
 using System;
 using Cassandra.Mapping;
-using Cassandra.Mapping.Statements;
-using Cassandra.Mapping.TypeConversion;
-using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Data.Linq
 {
     public static class SessionExtensions
     {
         /// <summary>
-        /// Creates a Linq IQueryProvider based on the type provided
+        /// <para>Extension method used for backward-compatibility, use <see cref="Table&lt;T&gt;(Cassandra.ISession)"/> constructor instead.</para>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
         /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, <strong>case-sensitive</strong> class and method names will be used.
+        /// </remarks>
         /// <typeparam name="TEntity">The object type</typeparam>
-        /// <param name="session"></param>
+        /// <param name="session">The session to be used to execute the statements</param>
         /// <param name="tableName">The table name in Cassandra. If null, it will be retrieved from the TEntity information.</param>
         /// <param name="keyspaceName">The keyspace in which the table exists. If null, the current session keyspace will be used.</param>
         /// <returns></returns>
         public static Table<TEntity> GetTable<TEntity>(this ISession session, string tableName = null, string keyspaceName = null)
         {
-            var mappingInformation = new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName);
-            return GetTable<TEntity>(session, mappingInformation);
-        }
-
-        /// <summary>
-        /// Creates a Linq IQueryProvider based on the type and mapping information provided
-        /// </summary>
-        /// <typeparam name="TEntity">The object type</typeparam>
-        /// <param name="session"></param>
-        /// <param name="mappingInformation">Instance of ITypeDefinition to obtain the mapping information.</param>
-        /// <returns></returns>
-        public static Table<TEntity> GetTable<TEntity>(this ISession session, ITypeDefinition mappingInformation)
-        {
-            if (mappingInformation == null)
-            {
-                throw new ArgumentNullException("mappingInformation");
-            }
-            var definitions = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType)
-            {
-                mappingInformation
-            };
-            var pocoDataFactory = new PocoDataFactory(definitions);
-            var mapperFactory = new MapperFactory(new DefaultTypeConverter(), pocoDataFactory);
-            var statementFactory = new StatementFactory();
-            return new Table<TEntity>(session, mapperFactory, statementFactory);
+            MappingConfiguration.Global.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
+                () => new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
+            return new Table<TEntity>(session, MappingConfiguration.Global);
         }
 
         public static Batch CreateBatch(this ISession session)

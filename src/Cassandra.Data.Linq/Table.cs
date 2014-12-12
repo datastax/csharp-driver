@@ -41,11 +41,32 @@ namespace Cassandra.Data.Linq
             get { return PocoData.TableName; }
         }
 
-        internal Table(ISession session, MapperFactory mapperFactory, StatementFactory stmtFactory)
+        /// <summary>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
+        /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, case-insensitive class and method names will be used.
+        /// </remarks>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        /// <param name="config">Mapping configuration</param>
+        public Table(ISession session, MappingConfiguration config)
         {
             _session = session;
-            var pocoData = mapperFactory.GetPocoData<TEntity>();
-            InternalInitialize(Expression.Constant(this), this, mapperFactory, stmtFactory, pocoData);
+            //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
+            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
+            var pocoData = config.MapperFactory.GetPocoData<TEntity>();
+            InternalInitialize(Expression.Constant(this), this, config.MapperFactory, config.StatementFactory, pocoData);
+        }
+
+        /// <summary>
+        /// Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using <see cref="MappingConfiguration.Global"/> configuration.
+        /// </summary>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        public Table(ISession session) : this(session, MappingConfiguration.Global)
+        {
+            _session = session;
         }
 
         /// <summary>

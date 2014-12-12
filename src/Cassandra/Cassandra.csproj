@@ -124,6 +124,7 @@
     <Compile Include="Mapping\CqlQueryOptions.cs" />
     <Compile Include="Mapping\ColumnMap.cs" />
     <Compile Include="Mapping\Map.cs" />
+    <Compile Include="Mapping\MappingConfiguration.cs" />
     <Compile Include="Mapping\Mappings.cs" />
     <Compile Include="Mapping\ICqlBatch.cs" />
     <Compile Include="Mapping\ICqlClient.cs" />

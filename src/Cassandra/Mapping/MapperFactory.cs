@@ -53,6 +53,11 @@ namespace Cassandra.Mapping
             get { return _typeConverter; }
         }
 
+        public PocoDataFactory PocoDataFactory
+        {
+            get { return _pocoDataFactory; }
+        }
+
         public MapperFactory(TypeConverter typeConverter, PocoDataFactory pocoDataFactory)
         {
             if (typeConverter == null) throw new ArgumentNullException("typeConverter");

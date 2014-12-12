@@ -29,7 +29,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Column(t => t.IntValue, cm => cm.WithName("id"))
                 .PartitionKey(t => t.IntValue)
                 .TableName("tbl1");
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             table.Where(t => t.IntValue == 100).DeleteIf(t => t.StringValue == "some value").Execute();
             Assert.AreEqual("DELETE FROM tbl1 WHERE id = ? IF val2 = ?", query);
             CollectionAssert.AreEqual(parameters, new object[] { 100, "some value" });

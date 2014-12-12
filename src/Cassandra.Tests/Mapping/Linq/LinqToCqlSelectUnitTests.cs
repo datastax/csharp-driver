@@ -32,7 +32,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.UuidValue)
                 .TableName("values");
 
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             table.Where(t => t.DecimalValue > 100M).AllowFiltering().Execute();
             Assert.AreEqual("SELECT * FROM values WHERE val2 > ? ALLOW FILTERING", query);
             Assert.AreEqual(parameters.Length, 1);
@@ -59,7 +59,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Column(t => t.IntValue, cm => cm.WithName("id"))
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             (from t in table where t.IntValue == 200 select new Tuple<double, int>(t.DoubleValue, t.IntValue)).Execute();
             Assert.AreEqual("SELECT val, id FROM tbl1 WHERE id = ?", query);
             CollectionAssert.AreEqual(parameters, new object[] { 200 });
@@ -81,7 +81,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Column(t => t.IntValue, cm => cm.WithName("id"))
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             (from t in table where t.IntValue == 200 select new PlainUser {Age = t.IntValue}).Execute();
             Assert.AreEqual("SELECT id FROM tbl1 WHERE id = ?", query);
             CollectionAssert.AreEqual(parameters, new object[] { 200 });
@@ -106,7 +106,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
             var id = Guid.NewGuid();
-            var table = session.GetTable<AllTypesEntity>(map);
+            var table = GetTable<AllTypesEntity>(session, map);
             (from t in table where t.UuidValue == id orderby t.StringValue descending select t).Execute();
             Assert.AreEqual("SELECT * FROM tbl1 WHERE id = ? ORDER BY string_val DESC", query);
             CollectionAssert.AreEqual(parameters, new object[] { id });

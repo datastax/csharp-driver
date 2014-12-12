@@ -96,6 +96,16 @@ namespace Cassandra.Data.Linq
             }
         }
 
+        internal static ITypeDefinition DetermineAttributes(Type type)
+        {
+            if (type.GetCustomAttributes(typeof(Cassandra.Data.Linq.TableAttribute), true).Length > 0)
+            {
+                return new LinqAttributeBasedTypeDefinition(type, null, null);
+            }
+            //Use the default mapping attributes
+            return new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(type);
+        }
+
         public IColumnDefinition GetColumnDefinition(FieldInfo field)
         {
             return new LinqAttributeBasedColumnDefinition(field);

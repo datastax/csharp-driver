@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Cassandra.Tests.Mapping.Linq
 {
     [TestFixture]
-    public class LinqCreateTableUnitTests
+    public class LinqCreateTableUnitTests : MappingTestBase
     {
         [Test]
         public void Create_With_Composite_Partition_Key()
@@ -26,7 +26,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var typeDefinition = new Map<AllTypesDecorated>()
                 .PartitionKey(t => t.StringValue, t => t.TimeUuidValue)
                 .Column(t => t.IntValue, cm => cm.WithName("int_value"));
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
@@ -48,7 +48,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.StringValue, t => t.IntValue)
                 .Column(t => t.IntValue, cm => cm.WithName("int_value"))
                 .ClusteringKey("DateTimeValue");
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
@@ -74,7 +74,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Column(t => t.Int64Value, cm => cm.WithName("bigint_value"))
                 .ClusteringKey("TimeUuidValue")
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(bigint_value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, " +
@@ -97,7 +97,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Column(t => t.Int64Value, cm => cm.AsCounter().WithName("visits"))
                 .TableName("item_visits")
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual("CREATE TABLE item_visits (visits counter, id uuid, PRIMARY KEY (id))", createQuery);
         }
@@ -121,7 +121,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .ClusteringKey("item_id")
                 .TableName("items_by_id")
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.That(createQuery, Contains.Substring("name text static"));
         }
@@ -143,7 +143,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .TableName("USERS")
                 .CaseSensitive()
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual(@"CREATE TABLE ""USERS"" (""city_id"" int, ""name"" text, ""user_id"" uuid, PRIMARY KEY (""user_id""))", createQueries[0]);
             Assert.AreEqual(@"CREATE INDEX ON ""USERS"" (""city_id"")", createQueries[1]);
@@ -166,7 +166,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .TableName("tbl1")
                 .CompactStorage()
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual(@"CREATE TABLE tbl1 (city_id int, name text, user_id uuid, PRIMARY KEY (user_id)) WITH COMPACT STORAGE", createQuery);
         }
@@ -189,7 +189,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .KeyspaceName("ks1")
                 .CaseSensitive()
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual(@"CREATE TABLE ""ks1"".""TBL1"" (""city_id"" int, ""name"" text, ""user_id"" uuid, PRIMARY KEY (""user_id""))", createQuery);
         }
@@ -211,7 +211,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .TableName("tbl2")
                 .KeyspaceName("KS2")
                 .ExplicitColumns();
-            var table = sessionMock.Object.GetTable<AllTypesDecorated>(typeDefinition);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             //keyspace.table in table creation
             Assert.AreEqual(@"CREATE TABLE KS2.tbl2 (city_id int, name text, user_id uuid, PRIMARY KEY (user_id))", createQueries[0]);
@@ -267,7 +267,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var typeDefinition = new Map<VarintPoco>()
                 .PartitionKey(t => t.Id)
                 .TableName("tbl1");
-            var table = sessionMock.Object.GetTable<VarintPoco>(typeDefinition);
+            var table = GetTable<VarintPoco>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual(@"CREATE TABLE tbl1 (Id uuid, Name text, VarintValue varint, PRIMARY KEY (Id))", createQuery);
         }
@@ -297,7 +297,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Returns(() => new RowSet())
                 .Callback<string>(q => createQuery = q);
             var definition = new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(typeof(DecoratedTimeSeries));
-            var table = sessionMock.Object.GetTable<DecoratedTimeSeries>(definition);
+            var table = GetTable<DecoratedTimeSeries>(sessionMock.Object, definition);
             table.Create();
             //It contains Ignored props: Ignored1 and Ignored2
             Assert.AreEqual(@"CREATE TABLE ""ks1"".""tbl1"" (""name"" text, ""Slice"" int, ""Time"" timeuuid, ""val"" double, ""Value2"" text, PRIMARY KEY ((""name"", ""Slice""), ""Time""))", createQuery);
