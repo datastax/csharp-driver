@@ -30,7 +30,7 @@ namespace Cassandra.Data.Linq
     /// <typeparam name="TEntity"></typeparam>
     public class CqlScalar<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlScalar(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+        internal CqlScalar(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
             : base(expression, table, null, stmtFactory, pocoData)
         {
 
@@ -51,7 +51,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetCount(out values);
         }

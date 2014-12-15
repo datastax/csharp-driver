@@ -133,5 +133,29 @@ namespace Cassandra.Tests.Mapping.Linq
             var ex = Assert.Throws<InvalidOperationException>(() => (from t in table where t.pk == "pkval" orderby t.Ignored1 select t).Execute());
             StringAssert.Contains("ignored", ex.Message);
         }
+
+        [Test]
+        public void Select_With_Keyspace_Defined()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            }, TestDataHelper.CreateMultipleValuesRowSet(new[] { "id" }, new[] { 5000 }));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.DoubleValue, cm => cm.WithName("val"))
+                .Column(t => t.IntValue, cm => cm.WithName("id"))
+                .PartitionKey(t => t.UuidValue)
+                .CaseSensitive()
+                .KeyspaceName("ks1")
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            (from t in table where t.IntValue == 199 select new { Age = t.IntValue }).Execute();
+            Assert.AreEqual(@"SELECT ""id"" FROM ""ks1"".""tbl1"" WHERE ""id"" = ?", query);
+            CollectionAssert.AreEqual(parameters, new object[] { 199 });
+        }
     }
 }

@@ -26,7 +26,7 @@ namespace Cassandra.Data.Linq
 {
     public abstract class CqlQueryBase<TEntity> : Statement
     {
-        private IQueryProvider _table;
+        internal ITable Table { get; private set; }
 
         public Expression Expression { get; private set; }
 
@@ -54,15 +54,15 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQueryBase(Expression expression, IQueryProvider table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
+        internal CqlQueryBase(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
         {
             InternalInitialize(expression, table, mapperFactory, stmtFactory, pocoData);
         }
 
-        internal void InternalInitialize(Expression expression, IQueryProvider table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
+        internal void InternalInitialize(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
         {
             Expression = expression;
-            _table = table;
+            Table = table;
             MapperFactory = mapperFactory;
             StatementFactory = stmtFactory;
             PocoData = pocoData;
@@ -70,7 +70,7 @@ namespace Cassandra.Data.Linq
 
         public ITable GetTable()
         {
-            return _table as ITable;
+            return Table;
         }
 
         protected abstract string GetCql(out object[] values);
@@ -93,7 +93,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             object[] values;
             var cql = visitor.GetSelect(out values);

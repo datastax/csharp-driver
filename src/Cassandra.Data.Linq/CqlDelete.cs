@@ -25,9 +25,10 @@ namespace Cassandra.Data.Linq
     {
         private bool _ifExists = false;
 
-        internal CqlDelete(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+        internal CqlDelete(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
             : base(expression, table, stmtFactory, pocoData)
         {
+
         }
 
         public CqlDelete IfExists()
@@ -38,7 +39,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetDelete(out values, _timestamp, _ifExists);
         }

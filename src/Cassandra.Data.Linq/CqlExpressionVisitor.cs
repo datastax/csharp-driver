@@ -80,9 +80,14 @@ namespace Cassandra.Data.Linq
         /// </summary>
         private readonly Tuple<StringBuilder, List<object>> _updateIfClause = Tuple.Create(new StringBuilder(), new List<object>());
 
-        public CqlExpressionVisitor(PocoData pocoData)
+        private readonly string _tableName;
+        private readonly string _keyspaceName;
+
+        public CqlExpressionVisitor(PocoData pocoData, string tableName, string keyspaceName)
         {
             _pocoData = pocoData;
+            _tableName = tableName;
+            _keyspaceName = keyspaceName;
             _currentCondition = new VisitingParam<Tuple<StringBuilder, List<object>>>(_whereClause);
         }
 
@@ -105,7 +110,7 @@ namespace Cassandra.Data.Linq
             }
 
             query.Append(" FROM ");
-            query.Append(Escape(_pocoData.TableName));
+            query.Append(GetEscapedTableName());
 
             if (_whereClause.Item1.Length > 0)
             {
@@ -154,7 +159,7 @@ namespace Cassandra.Data.Linq
             var query = new StringBuilder();
             var parameters = new List<object>();
             query.Append("DELETE FROM ");
-            query.Append(Escape(_pocoData.TableName));
+            query.Append(GetEscapedTableName());
             if (timestamp != null)
             {
                 query.Append(" USING TIMESTAMP ?");
@@ -199,7 +204,7 @@ namespace Cassandra.Data.Linq
             var query = new StringBuilder();
             var parameters = new List<object>();
             query.Append("UPDATE ");
-            query.Append(Escape(_pocoData.TableName));
+            query.Append(GetEscapedTableName());
             if (ttl != null || timestamp != null)
             {
                 query.Append(" USING ");
@@ -254,7 +259,7 @@ namespace Cassandra.Data.Linq
             var query = new StringBuilder();
             var parameters = new List<object>();
             query.Append("SELECT count(*) FROM ");
-            query.Append(Escape(_pocoData.TableName));
+            query.Append(GetEscapedTableName());
 
             if (_whereClause.Item1.Length > 0)
             {
@@ -272,12 +277,23 @@ namespace Cassandra.Data.Linq
             return query.ToString();
         }
 
+        private string GetEscapedTableName()
+        {
+            string name = null;
+            if (_keyspaceName != null)
+            {
+                name = Escape(_keyspaceName) + ".";
+            }
+            name += Escape(_tableName);
+            return name;
+        }
+
         public string GetInsert<T>(T poco, bool ifNotExists, int? ttl, DateTimeOffset? timestamp, List<object> parameters)
         {
             var query = new StringBuilder();
             var columns = _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString();
             var placeholders = Enumerable.Repeat("?", _pocoData.Columns.Count).ToCommaDelimitedString();
-            query.Append(String.Format("INSERT INTO {0} ({1}) VALUES ({2})", Escape(_pocoData.TableName), columns, placeholders));
+            query.Append(String.Format("INSERT INTO {0} ({1}) VALUES ({2})", GetEscapedTableName(), columns, placeholders));
 
             if (ifNotExists)
             {

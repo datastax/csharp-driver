@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -69,7 +69,37 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Update()
                 .Execute();
             Assert.AreEqual("UPDATE tbl1 SET string_val = ? WHERE id = ? AND val2 > ?", query);
-            CollectionAssert.AreEqual(new object[] { "Billy the Vision", id, 20M}, parameters);
+            CollectionAssert.AreEqual(new object[] { "Billy the Vision", id, 20M }, parameters);
+        }
+
+        [Test]
+        public void Update_With_Keyspace_Defined_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.DoubleValue, cm => cm.WithName("val"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id"))
+                .Column(t => t.DecimalValue, cm => cm.WithName("val2"))
+                .Column(t => t.StringValue, cm => cm.WithName("string_val"))
+                .PartitionKey(t => t.UuidValue)
+                .KeyspaceName("SomeKS")
+                .TableName("tbl1");
+            var id = Guid.NewGuid();
+            var table = GetTable<AllTypesEntity>(session, map);
+            table
+                .Where(t => t.UuidValue == id)
+                .Select(t => new AllTypesEntity { StringValue = "Aṣa" })
+                .Update()
+                .Execute();
+            Assert.AreEqual("UPDATE SomeKS.tbl1 SET string_val = ? WHERE id = ?", query);
+            CollectionAssert.AreEqual(new object[] { "Aṣa", id }, parameters);
         }
 
         [Test]

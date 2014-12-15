@@ -34,7 +34,7 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQuery(Expression expression, IQueryProvider table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
+        internal CqlQuery(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
             : base(expression, table, mapperFactory, stmtFactory, pocoData)
         {
         }
@@ -77,7 +77,7 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
         }

@@ -23,14 +23,14 @@ namespace Cassandra.Data.Linq
 {
     public class CqlUpdate : CqlCommand
     {
-        internal CqlUpdate(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+        internal CqlUpdate(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
             : base(expression, table, stmtFactory, pocoData)
         {
         }
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor(PocoData);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetUpdate(out values, _ttl, _timestamp);
         }

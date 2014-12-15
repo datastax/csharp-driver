@@ -27,12 +27,12 @@ namespace Cassandra.Data.Linq
     public abstract class CqlCommand : SimpleStatement
     {
         private readonly Expression _expression;
-        private readonly IQueryProvider _table;
         private readonly StatementFactory _statementFactory;
         protected DateTimeOffset? _timestamp = null;
         protected int? _ttl = null;
 
         internal PocoData PocoData { get; private set; }
+        internal ITable Table { get; private set; }
 
         /// <inheritdoc />
         public override string QueryString
@@ -63,10 +63,10 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        internal CqlCommand(Expression expression, IQueryProvider table, StatementFactory stmtFactory, PocoData pocoData)
+        internal CqlCommand(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
         {
             _expression = expression;
-            _table = table;
+            Table = table;
             _statementFactory = stmtFactory;
             PocoData = pocoData;
         }
@@ -119,7 +119,7 @@ namespace Cassandra.Data.Linq
 
         public ITable GetTable()
         {
-            return (_table as ITable);
+            return (Table as ITable);
         }
 
         public Task<RowSet> ExecuteAsync()

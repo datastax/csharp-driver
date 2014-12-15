@@ -32,13 +32,23 @@ namespace Cassandra.Data.Linq
     public class Table<TEntity> : CqlQuery<TEntity>, ITable
     {
         private readonly ISession _session;
+        private readonly string _name;
+        private readonly string _keyspaceName;
 
         /// <summary>
         /// Gets the name of the Table in Cassandra
         /// </summary>
         public string Name
         {
-            get { return PocoData.TableName; }
+            get { return _name ?? PocoData.TableName; }
+        }
+
+        /// <summary>
+        /// Gets the name of the keyspace used. If null, it uses the active session keyspace.
+        /// </summary>
+        public string KeyspaceName
+        {
+            get { return _keyspaceName ?? PocoData.KeyspaceName; }
         }
 
         /// <summary>
@@ -53,6 +63,9 @@ namespace Cassandra.Data.Linq
         public Table(ISession session, MappingConfiguration config)
         {
             _session = session;
+            //TODO: Use names
+            _keyspaceName = null;
+            _name = null;
             //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
             config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
