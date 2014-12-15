@@ -560,16 +560,24 @@ namespace Cassandra.Data.Linq
                     Visit(node.Arguments[0]);
                     return true;
                 case "CqlToken":
+                case "Token":
                     clause.Append("token(");
-                    for (var i = 0; i < node.Arguments.Count; i++)
+                    var tokenArgs = node.Arguments;
+                    for (var i = 0; i < tokenArgs.Count; i++)
                     {
-                        var arg = node.Arguments[i];
+                        var arg = tokenArgs[i];
                         if (i > 0)
                         {
                             clause.Append(", ");   
                         }
                         Visit(arg);
                     }
+                    clause.Append(")");
+                    return true;
+                case "MaxTimeUuid":
+                case "MinTimeUuid":
+                    clause.Append(name.ToLowerInvariant()).Append("(");
+                    Visit(node.Arguments[0]);
                     clause.Append(")");
                     return true;
             }
@@ -597,6 +605,10 @@ namespace Cassandra.Data.Linq
                     clause.Append(CqlTags[node.NodeType] + " (");
                     Visit(DropNullableConversion(node.Operand));
                     clause.Append(")");
+                }
+                else if (node.NodeType == ExpressionType.Convert)
+                {
+                    Visit(node.Operand);
                 }
                 else
                 {

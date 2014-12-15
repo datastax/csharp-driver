@@ -22,7 +22,7 @@ namespace Cassandra.Data.Linq
     {
         public readonly object[] Values;
 
-        internal CqlToken(object[] v)
+        private CqlToken(object[] v)
         {
             Values = v;
         }

@@ -54,6 +54,7 @@
     <Compile Include="CqlCommand.cs" />
     <Compile Include="CqlDelete.cs" />
     <Compile Include="CqlExpressionVisitor.cs" />
+    <Compile Include="CqlFunction.cs" />
     <Compile Include="CqlInsert.cs" />
     <Compile Include="CqlLinqNotSupportedException.cs" />
     <Compile Include="CqlMthHelps.cs" />
