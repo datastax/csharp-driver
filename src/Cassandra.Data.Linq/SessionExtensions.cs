@@ -40,15 +40,7 @@ namespace Cassandra.Data.Linq
             MappingConfiguration.Global.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
                 () => new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
             var config = MappingConfiguration.Global;
-            //For backwards compatibility support multiple table names for a given Entity
-            if (tableName != null && config.MapperFactory.GetPocoData<TEntity>().TableName != tableName)
-            {
-                //There is a name mismatch between the ones stored and the one provided
-                //Use an specific mapping configuration
-                config = new MappingConfiguration()
-                    .Define(new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
-            }
-            return new Table<TEntity>(session, config);
+            return new Table<TEntity>(session, config, tableName, keyspaceName);
         }
 
         public static Batch CreateBatch(this ISession session)

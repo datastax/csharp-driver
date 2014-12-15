@@ -53,6 +53,47 @@ namespace Cassandra.Data.Linq
 
         /// <summary>
         /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Use this constructor if you want to use a different table and keyspace names than the ones defined in the mapping configuration.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
+        /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, case-insensitive class and method names will be used.
+        /// </remarks>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        /// <param name="config">Mapping configuration</param>
+        /// <param name="tableName">Name of the table</param>
+        /// <param name="keyspaceName">Name of the keyspace were the table was created.</param>
+        public Table(ISession session, MappingConfiguration config, string tableName, string keyspaceName)
+        {
+            _session = session;
+            _name = tableName;
+            _keyspaceName = keyspaceName;
+            //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
+            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
+            var pocoData = config.MapperFactory.GetPocoData<TEntity>();
+            InternalInitialize(Expression.Constant(this), this, config.MapperFactory, config.StatementFactory, pocoData);
+        }
+
+        /// <summary>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Use this constructor if you want to use a different table name than the one defined in the mapping configuration.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
+        /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, case-insensitive class and method names will be used.
+        /// </remarks>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        /// <param name="config">Mapping configuration</param>
+        /// <param name="tableName">Name of the table</param>
+        public Table(ISession session, MappingConfiguration config, string tableName)
+            : this(session, config, tableName, null)
+        {
+
+        }
+
+        /// <summary>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
         /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
         /// </summary>
         /// <remarks>
@@ -61,16 +102,9 @@ namespace Cassandra.Data.Linq
         /// <param name="session">Session instance to be used to execute the statements</param>
         /// <param name="config">Mapping configuration</param>
         public Table(ISession session, MappingConfiguration config)
+            : this(session, config, null, null)
         {
-            _session = session;
-            //TODO: Use names
-            _keyspaceName = null;
-            _name = null;
-            //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
-            var pocoData = config.MapperFactory.GetPocoData<TEntity>();
-            InternalInitialize(Expression.Constant(this), this, config.MapperFactory, config.StatementFactory, pocoData);
+
         }
 
         /// <summary>

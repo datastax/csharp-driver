@@ -85,6 +85,10 @@ namespace Cassandra.Data.Linq
 
         public CqlExpressionVisitor(PocoData pocoData, string tableName, string keyspaceName)
         {
+            if (tableName == null)
+            {
+                throw new ArgumentNullException("tableName");
+            }
             _pocoData = pocoData;
             _tableName = tableName;
             _keyspaceName = keyspaceName;
