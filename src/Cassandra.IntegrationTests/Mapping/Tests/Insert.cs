@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Insert_IntoTableCreatedWithFluentMapping()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(
+            var config = new MappingConfiguration().Define(
                 new Map<lowercaseclassnamepartitionkeylowercase>()
                 .TableName("lowercaseclassnamepartitionkeylowercase")
                 .PartitionKey(u => u.somepartitionkey));
@@ -133,9 +133,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .BuildCqlClient();
+            var cqlClient = new Mapper(_session, new MappingConfiguration());
             lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
 
             cqlClient.Insert(privateClassInstance);
@@ -154,7 +152,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string tableName = typeof(PocoWithAdditionalField).Name.ToLower();
             string createTableCql = "Create table " + tableName + "(somestring text PRIMARY KEY)";
             _session.Execute(createTableCql);
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = new Mapper(_session, new MappingConfiguration());
             PocoWithAdditionalField pocoWithCustomAttributes = new PocoWithAdditionalField();
 
             // Validate expected exception

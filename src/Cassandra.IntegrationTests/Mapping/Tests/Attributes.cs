@@ -99,7 +99,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<PocoWithIgnoredAttributes_LinqAndMappingIncluded> table = _session.GetTable<PocoWithIgnoredAttributes_LinqAndMappingIncluded>();
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithIgnoredAttributes_LinqAndMappingIncluded pocoToInsert = new PocoWithIgnoredAttributes_LinqAndMappingIncluded
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<PocoWithIgnoredAttributes_LinqAndMappingIncluded> table = _session.GetTable<PocoWithIgnoredAttributes_LinqAndMappingIncluded>();
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithIgnoredAttributes_LinqAndMappingIncluded pocoWithCustomAttributesLinqAndMappingIncluded = new PocoWithIgnoredAttributes_LinqAndMappingIncluded
             {
                 SomePartitionKey = null,
@@ -191,7 +191,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
             string cqlSelectAll = "SELECT * from " + table.Name;
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithWrongFieldLabeledPartitionKey pocoWithCustomAttributes = new PocoWithWrongFieldLabeledPartitionKey();
             cqlClient.Insert(pocoWithCustomAttributes);
 
@@ -220,10 +220,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.Execute(createTableCql);
 
             // Instantiate CqlClient with mapping rule that resolves the missing key issue
-            var cqlClientWithMappping = CqlClientConfiguration.ForSession(_session).
-                    UseIndividualMapping<PocoWithPartitionKeyIncludedMapping>().
-                    BuildCqlClient();
-
+            var cqlClientWithMappping = new Mapper(_session, new MappingConfiguration().Define(new PocoWithPartitionKeyIncludedMapping()));
             // insert new record
             PocoWithPartitionKeyIncluded pocoWithCustomAttributesKeyIncluded = new PocoWithPartitionKeyIncluded();
             pocoWithCustomAttributesKeyIncluded.SomeList = stringList; // make it not empty
@@ -245,8 +242,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(pocoWithCustomAttributesKeyIncluded.SomeDouble, rows[0].GetValue<double>("somedouble"));
 
             // try to Select new record using poco that does not contain partition key, validate that the mapping mechanism matches what it can
-            var cqlClientNomapping = CqlClientConfiguration.ForSession(_session).
-                BuildCqlClient();
+            var cqlClientNomapping = GetMapper();
             List<PocoWithPartitionKeyOmitted> records_2 = cqlClientNomapping.Fetch<PocoWithPartitionKeyOmitted>(selectAllCql).ToList();
             Assert.AreEqual(1, records_2.Count);
             records_2.Clear();
@@ -285,7 +281,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string selectAllCql = "SELECT * from " + tableName;
             string createTableCql = "Create table " + tableName + "(somestring text PRIMARY KEY, somelist list<text>, somelist2 list<text>, somedouble double)";
             _session.Execute(createTableCql);
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
 
             // insert new record
             PocoWithPartitionKeyIncluded pocoWithCustomAttributesKeyIncluded = new PocoWithPartitionKeyIncluded();
@@ -315,7 +311,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string createTableCql = "Create table " + tableName + "(somestring text PRIMARY KEY, somelist list<text>, somedouble double)";
             _session.Execute(createTableCql);
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             List<string> stringList = new List<string>() { "string1", "string2" };
             PocoWithOnlyPartitionKeyNotLabeled pocoWithOnlyCustomAttributes = new PocoWithOnlyPartitionKeyNotLabeled();
             cqlClient.Insert(pocoWithOnlyCustomAttributes); // TODO: Question -- Should this fail?
@@ -342,7 +338,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string createTableCql = "Create table " + tableName + "(somestring text PRIMARY KEY, someotherstring text, somelist list<text>, somedouble double)";
             _session.Execute(createTableCql);
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithPartitionKeyNotLabeledAndOtherField pocoWithOnlyCustomAttributes = new PocoWithPartitionKeyNotLabeledAndOtherField();
             cqlClient.Insert(pocoWithOnlyCustomAttributes); 
 
@@ -362,7 +358,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string createTableCql = "Create table " + tableName + "(somestring varchar PRIMARY KEY)";
             _session.Execute(createTableCql);
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoMislabeledClusteringKey pocoWithCustomAttributes = new PocoMislabeledClusteringKey();
             cqlClient.Insert(pocoWithCustomAttributes); // TODO: Should this fail?
 
@@ -383,7 +379,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
             List<Guid> listOfGuids = new List<Guid>() { new Guid(), new Guid() };
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithCompositeKey pocoWithCustomAttributes = new PocoWithCompositeKey
             {
                 ListOfGuids = listOfGuids,
@@ -422,7 +418,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
             List<Guid> listOfGuids = new List<Guid>() { new Guid(), new Guid() };
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithCompositeKey pocoWithCustomAttributes = new PocoWithCompositeKey
             {
                 ListOfGuids = listOfGuids,
@@ -450,7 +446,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
             List<Guid> listOfGuids = new List<Guid>() { new Guid(), new Guid() };
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithCompositeKey pocoWithCustomAttributes = new PocoWithCompositeKey
             {
                 ListOfGuids = null,
@@ -476,7 +472,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<PocoWithClusteringKeys> table = _session.GetTable<PocoWithClusteringKeys>();
             table.Create();
 
-            var cqlClient = CqlClientConfiguration.ForSession(_session).BuildCqlClient();
+            var cqlClient = GetMapper();
             PocoWithClusteringKeys pocoWithCustomAttributes = new PocoWithClusteringKeys
             {
                 SomePartitionKey1 = Guid.NewGuid().ToString(),
@@ -515,7 +511,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mapping = new Map<SimplePocoWithPartitionKey>();
             mapping.CaseSensitive();
             mapping.PartitionKey(u => u.StringType);
-            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().UseIndividualMappings(mapping));
+            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().Define(mapping));
 
             // Validate expected Exception
             var ex = Assert.Throws<InvalidOperationException>(table.Create);

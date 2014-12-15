@@ -22,7 +22,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Deprecated_EntryPoint_Honors_Mapping_Defined()
         {
-            MappingConfiguration.Global.UseIndividualMappings(new Map<AllTypesEntity>().TableName("tbl1"));
+            MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
             var table = SessionExtensions.GetTable<AllTypesEntity>(null);
             Assert.AreEqual(@"SELECT * FROM tbl1", table.ToString());
         }
@@ -39,7 +39,7 @@ namespace Cassandra.Tests.Mapping.Linq
         {
             var table = new Table<AllTypesEntity>(null);
             Assert.AreEqual(@"SELECT * FROM AllTypesEntity", table.ToString());
-            var config = new MappingConfiguration().UseIndividualMappings(new Map<AllTypesEntity>().TableName("tbl3"));
+            var config = new MappingConfiguration().Define(new Map<AllTypesEntity>().TableName("tbl3"));
             table = new Table<AllTypesEntity>(null, config);
             Assert.AreEqual(@"SELECT * FROM tbl3", table.ToString());
         }

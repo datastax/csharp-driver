@@ -41,12 +41,12 @@ namespace Cassandra.Data.Linq
                 () => new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
             var config = MappingConfiguration.Global;
             //For backwards compatibility support multiple table names for a given Entity
-            if (config.MapperFactory.GetPocoData<TEntity>().TableName != tableName)
+            if (tableName != null && config.MapperFactory.GetPocoData<TEntity>().TableName != tableName)
             {
                 //There is a name mismatch between the ones stored and the one provided
                 //Use an specific mapping configuration
                 config = new MappingConfiguration()
-                    .UseIndividualMappings(new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
+                    .Define(new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
             }
             return new Table<TEntity>(session, config);
         }

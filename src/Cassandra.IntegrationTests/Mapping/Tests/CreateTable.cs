@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CreateTable_FluentMapping_Success()
         {
-            var mappingConfig = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var mappingConfig = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, mappingConfig);
             table.Create();
 
@@ -60,7 +60,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CreateTable_PartitionKeyOmitted()
         {
             Map<ManyDataTypesPoco> mappingWithoutPk = new Map<ManyDataTypesPoco>();
-            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().UseIndividualMappings(mappingWithoutPk));
+            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().Define(mappingWithoutPk));
 
             var e = Assert.Throws<InvalidOperationException>(() => table.Create());
             string expectedErrMsg = "Cannot create CREATE statement for POCO of type " + typeof(ManyDataTypesPoco).Name + 
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CreateTable_MakeAllPropertiesCaseSensitiveAtOnce()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+            var config = new MappingConfiguration().Define(new Map<ManyDataTypesPoco>()
                 .PartitionKey(u => u.StringType)
                 .CaseSensitive());
 

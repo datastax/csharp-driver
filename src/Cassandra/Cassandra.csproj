@@ -120,7 +120,6 @@
     <Compile Include="Mapping\Cql.cs" />
     <Compile Include="Mapping\CqlBatch.cs" />
     <Compile Include="Mapping\Mapper.cs" />
-    <Compile Include="Mapping\CqlClientConfiguration.cs" />
     <Compile Include="Mapping\CqlQueryOptions.cs" />
     <Compile Include="Mapping\ColumnMap.cs" />
     <Compile Include="Mapping\Map.cs" />

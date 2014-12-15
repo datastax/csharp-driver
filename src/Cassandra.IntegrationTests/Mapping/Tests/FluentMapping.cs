@@ -42,11 +42,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<ClassWithCamelCaseName> table = _session.GetTable<ClassWithCamelCaseName>();
             table.Create();
 
-            var cqlClient =
-                CqlClientConfiguration.
-                ForSession(_session).
-                UseIndividualMapping<ClassWithCamelCaseNameMapping>().
-                BuildCqlClient();
+            var cqlClient = new Mapper(_session, new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping()));
             ClassWithCamelCaseName classWithCamelCaseName = new ClassWithCamelCaseName
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
@@ -80,11 +76,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<ClassWithCamelCaseName> table = _session.GetTable<ClassWithCamelCaseName>();
             table.Create();
 
-            var cqlClient =
-                CqlClientConfiguration.
-                ForSession(_session).
-                UseIndividualMapping<ClassWithCamelCaseNameMapping_CaseSensitiveNotSpecifiedForClassName>().
-                BuildCqlClient();
+            var cqlClient = new Mapper(_session,
+                new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping_CaseSensitiveNotSpecifiedForClassName()));
             ClassWithCamelCaseName classWithCamelCaseName = new ClassWithCamelCaseName
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),

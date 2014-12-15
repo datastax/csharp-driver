@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
 
-            var mapper = new Mapper(_session, new MappingConfiguration().UseIndividualMapping<FluentUserMapping>());
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
             List<string> followersForAuthor = new List<string>() { "follower1", "follower2", "" };
             Author expectedAuthor = new Author
             {
@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_NoArgDefaultsToSelectAll()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
@@ -109,7 +109,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
             int totalInserts = 10;
 
-            var mapper = new Mapper(_session, new MappingConfiguration().UseIndividualMapping<FluentUserMapping>());
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
             List<Author> expectedAuthors = Author.GetRandomList(totalInserts);
             foreach (Author expectedAuthor in expectedAuthors)
                 mapper.Insert(expectedAuthor);
@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
-            var mapper = new Mapper(_session, new MappingConfiguration().UseIndividualMapping<FluentUserMapping>());
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
             Author expectedAuthor = Author.GetRandom();
             expectedAuthor.Followers = null;
             mapper.Insert(expectedAuthor);
@@ -157,17 +157,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
 
-            var cqlClient = CqlClientConfiguration
-                .ForSession(_session)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
             List<Author> expectedAuthors = Author.GetRandomList(100);
             foreach (Author expectedAuthor in expectedAuthors)
-                cqlClient.Insert(expectedAuthor);
+                mapper.Insert(expectedAuthor);
 
             Cql cql = new Cql("SELECT * from " + table.Name);
             List<Author> authorsFetchedAndSaved = new List<Author>();
-            var authorsFetched = cqlClient.Fetch<Author>(cql).GetEnumerator();
+            var authorsFetched = mapper.Fetch<Author>(cql).GetEnumerator();
             while (authorsFetched.MoveNext())
                 authorsFetchedAndSaved.Add(authorsFetched.Current);
 

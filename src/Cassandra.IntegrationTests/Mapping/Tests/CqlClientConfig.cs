@@ -14,7 +14,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     public class CqlClientConfig : TestGlobals
     {
         ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(CqlClientConfiguration));
+        private readonly Logger _logger = new Logger(typeof(CqlClientConfig));
         string _uniqueKsName;
 
         [SetUp]
@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappingGeneric_StaticMappingClass_()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
             Assert.AreNotEqual(table.Name, table.Name.ToLower()); // make sure the case sensitivity rule is being used
             table.Create();
@@ -60,7 +60,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappingClassType_StaticMappingClass()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappings_MappingDefinedDuringRuntime()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+            var config = new MappingConfiguration().Define(new Map<ManyDataTypesPoco>()
                 .PartitionKey(c => c.StringType)
                 .CaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
@@ -100,7 +100,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CqlClientConfiguration_UseIndividualMappings_StaticMappingClass()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CqlClientConfiguration_UseIndividualMappings_EmptyTypeDefinitionList()
         {
             // Setup
-            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+            var config = new MappingConfiguration().Define(new Map<ManyDataTypesPoco>()
                 .PartitionKey(c => c.StringType));
             var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CqlClientConfiguration_MappingOmitted()
         {
             // Setup
-            var config = new MappingConfiguration().UseIndividualMappings(new Map<ManyDataTypesPoco>()
+            var config = new MappingConfiguration().Define(new Map<ManyDataTypesPoco>()
                 .PartitionKey(c => c.StringType));
             var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
@@ -168,7 +168,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Attributes_UseIndividualMapping_Default()
         {
-            var config = new MappingConfiguration().UseIndividualMappings(new ManyDataTypesPocoMappingCaseSensitive());
+            var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
             Assert.AreNotEqual(table.Name, table.Name.ToLower()); // make sure the case sensitivity rule is being used
             table.Create();

@@ -18,8 +18,6 @@ namespace Cassandra.Mapping
         private static readonly MappingConfiguration GlobalInstance = new MappingConfiguration();
         private TypeConverter _typeConverter;
         private LookupKeyedCollection<Type, ITypeDefinition> _typeDefinitions;
-        private MapperFactory _mapperFactory;
-        private StatementFactory _statementFactory;
 
         static MappingConfiguration()
         {
@@ -38,31 +36,22 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Retrieves the MapperFactory associated with this configuration instance
         /// </summary>
-        internal MapperFactory MapperFactory
-        {
-            get
-            {
-                return _mapperFactory;
-            }
-        }
+        internal MapperFactory MapperFactory { get; private set; }
 
         /// <summary>
         /// Retrieves the StatementFactory associated with this configuration instance
         /// </summary>
-        internal StatementFactory StatementFactory
-        {
-            get
-            {
-                return _statementFactory;
-            }
-        }
+        internal StatementFactory StatementFactory { get; private set; }
 
+        /// <summary>
+        /// Creates a new instance of MappingConfiguration to store the mapping definitions to be used by the Mapper or Linq components.
+        /// </summary>
         public MappingConfiguration()
         {
             _typeConverter = new DefaultTypeConverter();
             _typeDefinitions = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
-            _mapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
-            _statementFactory = new StatementFactory();
+            MapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
+            StatementFactory = new StatementFactory();
         }
 
         /// <summary>
@@ -81,7 +70,7 @@ namespace Cassandra.Mapping
         /// allows you to define mappings with a fluent interface.  Will throw if a mapping has already been defined for a
         /// given POCO Type.
         /// </summary>
-        public MappingConfiguration UseIndividualMappings(params ITypeDefinition[] maps)
+        public MappingConfiguration Define(params ITypeDefinition[] maps)
         {
             if (maps == null) return this;
 
@@ -93,21 +82,10 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
-        /// Specifies an individual mapping in Type T. Usually Type T will be a sub-class of <see cref="Map{TPoco}"/>
-        /// and must have a parameter-less constructor.
-        /// </summary>
-        public MappingConfiguration UseIndividualMapping<T>()
-            where T : ITypeDefinition, new()
-        {
-            _typeDefinitions.Add(new T());
-            return this;
-        }
-
-        /// <summary>
         /// Specifies collections of <see cref="Mappings"/> specified.  Users should sub-class the <see cref="Mappings"/>
         /// class and use the fluent interface there to define mappings for POCOs.
         /// </summary>
-        public MappingConfiguration UseMappings(params Mappings[] mappings)
+        public MappingConfiguration Define(params Mappings[] mappings)
         {
             if (mappings == null) return this;
 
@@ -125,7 +103,7 @@ namespace Cassandra.Mapping
         /// Specifies a collection of mappings defined in Type T.  Type T should be a sub-class of <see cref="Mappings"/> and
         /// must have a parameter-less constructor.
         /// </summary>
-        public MappingConfiguration UseMappings<T>()
+        public MappingConfiguration Define<T>()
             where T : Mappings, new()
         {
             var mappings = new T();
@@ -142,8 +120,8 @@ namespace Cassandra.Mapping
         internal void Clear()
         {
             _typeDefinitions = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
-            _mapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
-            _statementFactory = new StatementFactory();
+            MapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
+            StatementFactory = new StatementFactory();
         }
     }
 }

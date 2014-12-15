@@ -35,11 +35,7 @@ namespace Cassandra.Tests.Mapping
         protected IMapper GetMappingClient(Mock<ISession> sessionMock)
         {
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
-            var mappingClient = CqlClientConfiguration
-                .ForSession(sessionMock.Object)
-                .UseIndividualMapping<FluentUserMapping>()
-                .BuildCqlClient();
-            return mappingClient;
+            return new Mapper(sessionMock.Object, new MappingConfiguration().Define(new FluentUserMapping()));
         }
 
         protected ISession GetSession(Action<string, object[]> callback, RowSet rs = null)
@@ -66,7 +62,7 @@ namespace Cassandra.Tests.Mapping
         /// </summary>
         protected Table<T> GetTable<T>(ISession session, ITypeDefinition definition)
         {
-            return new Table<T>(session, new MappingConfiguration().UseIndividualMappings(definition));
+            return new Table<T>(session, new MappingConfiguration().Define(definition));
         }
 
         [TearDown]

@@ -44,15 +44,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string cqlSelectAll2 = "SELECT * from " + table2.Name;
 
             // Now re-instantiate the cqlClient, but with mapping rule that resolves the missing key issue
-            var cqlClient1 = CqlClientConfiguration.
-                    ForSession(_session).
-                    UseIndividualMapping<Poco1Mapping>().
-                    BuildCqlClient();
-
-            var cqlClient2 = CqlClientConfiguration.
-                    ForSession(_session).
-                    UseIndividualMapping<Poco2Mapping>().
-                    BuildCqlClient();
+            var cqlClient1 = new Mapper(_session, new MappingConfiguration().Define(new Poco1Mapping()));
+            var cqlClient2 = new Mapper(_session, new MappingConfiguration().Define(new Poco2Mapping()));
 
             // insert new record into two separate tables
             Poco1 poco1 = new Poco1();
