@@ -18,7 +18,7 @@ using System.Collections.Generic;
 
 namespace Cassandra
 {
-    internal class BatchRequest : IRequest
+    internal class BatchRequest : ICqlRequest, IRequest
     {
         public const byte OpCode = 0x0D;
 
@@ -30,6 +30,7 @@ namespace Cassandra
         private readonly ConsistencyLevel? _serialConsistency;
 
         public ConsistencyLevel Consistency { get; set; }
+
         public int ProtocolVersion { get; set; }
 
         public BatchRequest(int protocolVersion, BatchStatement statement, ConsistencyLevel consistency)
