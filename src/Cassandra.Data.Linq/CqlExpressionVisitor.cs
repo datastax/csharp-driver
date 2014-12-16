@@ -45,7 +45,7 @@ namespace Cassandra.Data.Linq
         private static readonly HashSet<ExpressionType> CqlUnsupTags = new HashSet<ExpressionType>
         {
             ExpressionType.Or,
-            ExpressionType.OrElse,
+            ExpressionType.OrElse
         };
 
         private static readonly Dictionary<ExpressionType, ExpressionType> CqlInvTags = new Dictionary<ExpressionType, ExpressionType>
@@ -64,11 +64,11 @@ namespace Cassandra.Data.Linq
         /// The active condition (WHERE or UPDATE IF conditions)
         /// </summary>
         private readonly VisitingParam<Tuple<StringBuilder, List<object>>> _currentCondition;
-        private readonly VisitingParam<ParsePhase> _phasePhase = new VisitingParam<ParsePhase>(ParsePhase.None);
+        private readonly VisitingParam<ParsePhase> _parsePhase = new VisitingParam<ParsePhase>(ParsePhase.None);
         private readonly PocoData _pocoData;
         private bool _allowFiltering;
         private int _limit;
-        private readonly Dictionary<string, object> _projections = new Dictionary<string, object>();
+        private readonly List<Tuple<string, object, ExpressionType>> _projections = new List<Tuple<string, object, ExpressionType>>();
         private readonly List<Tuple<string, bool>> _orderBy = new List<Tuple<string, bool>>();
         private readonly List<string> _selectFields = new List<string>();
         /// <summary>
@@ -144,7 +144,7 @@ namespace Cassandra.Data.Linq
         }
 
         /// <summary>
-        /// Escapes an identier if necessary
+        /// Escapes an identifier if necessary
         /// </summary>
         private string Escape(string identifier)
         {
@@ -231,8 +231,28 @@ namespace Cassandra.Data.Linq
             var setStatements = new List<string>();
             foreach (var projection in _projections)
             {
-                setStatements.Add(Escape(projection.Key) + " = ?");
-                parameters.Add(projection.Value);
+                var columnName = Escape(projection.Item1);
+                string operation = null;
+                switch (projection.Item3)
+                {
+                    case ExpressionType.AddAssign:
+                        operation = " += ?";
+                        parameters.Add(projection.Item2);
+                        break;
+                    case ExpressionType.AddChecked:
+                        //Counter
+                        operation = " = " + columnName + " + 1";
+                        break;
+                    case ExpressionType.SubtractChecked:
+                        //Counter
+                        operation = " = " + columnName + " - 1";
+                        break;
+                    default:
+                        operation = " = ?";
+                        parameters.Add(projection.Item2);
+                        break;
+                }
+                setStatements.Add(columnName + operation);
             }
 
             if (setStatements.Count == 0)
@@ -332,9 +352,9 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitMemberInit(MemberInitExpression node)
         {
-            if (_phasePhase.Get() != ParsePhase.SelectBinding)
+            if (_parsePhase.Get() != ParsePhase.SelectBinding)
             {
-                throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+                throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
             }
             foreach (var binding in node.Bindings)
             {
@@ -352,11 +372,11 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
-            if (_phasePhase.Get() != ParsePhase.What)
+            if (_parsePhase.Get() != ParsePhase.What)
             {
                 return base.VisitLambda(node);
             }
-            using (_phasePhase.Set(ParsePhase.SelectBinding))
+            using (_parsePhase.Set(ParsePhase.SelectBinding))
             {
                 using (_currentBindingName.Set(node.Parameters[0].Name))
                 {
@@ -368,16 +388,16 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitNew(NewExpression node)
         {
-            if (_phasePhase.Get() != ParsePhase.SelectBinding)
+            if (_parsePhase.Get() != ParsePhase.SelectBinding)
             {
-                throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+                throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
             }
             for (var i = 0; i < node.Arguments.Count; i++)
             {
                 var binding = node.Arguments[i];
                 if (binding.NodeType == ExpressionType.Parameter)
                 {
-                    throw new CqlLinqNotSupportedException(binding, _phasePhase.Get());
+                    throw new CqlLinqNotSupportedException(binding, _parsePhase.Get());
                 }
 
                 string bindingName;
@@ -391,7 +411,7 @@ namespace Cassandra.Data.Linq
                     var memberExpression = binding as MemberExpression;
                     if (memberExpression == null)
                     {
-                        throw new CqlLinqNotSupportedException(binding, _phasePhase.Get());
+                        throw new CqlLinqNotSupportedException(binding, _parsePhase.Get());
                     }
 
                     bindingName = memberExpression.Member.Name;
@@ -411,12 +431,14 @@ namespace Cassandra.Data.Linq
             {
                 case "Select":
                     Visit(node.Arguments[0]);
-                    using (_phasePhase.Set(ParsePhase.What))
+                    using (_parsePhase.Set(ParsePhase.What))
+                    {
                         Visit(node.Arguments[1]);
+                    }
                     return node;
                 case "Where":
                     Visit(node.Arguments[0]);
-                    using (_phasePhase.Set(ParsePhase.Condition))
+                    using (_parsePhase.Set(ParsePhase.Condition))
                     {
                         if (_whereClause.Item1.Length != 0)
                         {
@@ -428,7 +450,7 @@ namespace Cassandra.Data.Linq
                 case "UpdateIf":
                 case "DeleteIf":
                     Visit(node.Arguments[0]);
-                    using (_phasePhase.Set(ParsePhase.Condition))
+                    using (_parsePhase.Set(ParsePhase.Condition))
                     {
                         if (_updateIfClause.Item1.Length != 0)
                         {
@@ -442,7 +464,7 @@ namespace Cassandra.Data.Linq
                     return node;
                 case "Take":
                     Visit(node.Arguments[0]);
-                    using (_phasePhase.Set(ParsePhase.Take))
+                    using (_parsePhase.Set(ParsePhase.Take))
                     {
                         Visit(node.Arguments[1]);
                     }
@@ -450,7 +472,7 @@ namespace Cassandra.Data.Linq
                 case "OrderBy":
                 case "ThenBy":
                     Visit(node.Arguments[0]);
-                    using (_phasePhase.Set(ParsePhase.OrderBy))
+                    using (_parsePhase.Set(ParsePhase.OrderBy))
                     {
                         Visit(node.Arguments[1]);
                     }
@@ -458,7 +480,7 @@ namespace Cassandra.Data.Linq
                 case "OrderByDescending":
                 case "ThenByDescending":
                     Visit(node.Arguments[0]);
-                    using (_phasePhase.Set(ParsePhase.OrderByDescending))
+                    using (_parsePhase.Set(ParsePhase.OrderByDescending))
                     {
                         Visit(node.Arguments[1]);
                     }
@@ -468,7 +490,7 @@ namespace Cassandra.Data.Linq
                     Visit(node.Arguments[0]);
                     if (node.Arguments.Count == 3)
                     {
-                        using (_phasePhase.Set(ParsePhase.Condition))
+                        using (_parsePhase.Set(ParsePhase.Condition))
                         {
                             Visit(node.Arguments[2]);
                         }
@@ -481,12 +503,12 @@ namespace Cassandra.Data.Linq
                     return node;
             }
 
-            if (_phasePhase.Get() == ParsePhase.Condition)
+            if (_parsePhase.Get() == ParsePhase.Condition)
             {
                 return EvaluateConditionFunction(node);
             }
 
-            throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+            throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
 
         private Expression EvaluateConditionFunction(MethodCallExpression node)
@@ -596,7 +618,7 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitUnary(UnaryExpression node)
         {
-            if (_phasePhase.Get() == ParsePhase.Condition)
+            if (_parsePhase.Get() == ParsePhase.Condition)
             {
                 var clause = _currentCondition.Get().Item1;
                 var parameters = _currentCondition.Get().Item2;
@@ -618,14 +640,14 @@ namespace Cassandra.Data.Linq
                 }
                 return node;
             }
-            if (_phasePhase.Get() == ParsePhase.SelectBinding)
+            if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
                 if (node.NodeType == ExpressionType.Convert && node.Type.Name == "Nullable`1")
                 {
                     return Visit(node.Operand);
                 }
             }
-            throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+            throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
 
         private static bool IsCompareTo(Expression node)
@@ -660,7 +682,7 @@ namespace Cassandra.Data.Linq
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            if (_phasePhase.Get() == ParsePhase.Condition)
+            if (_parsePhase.Get() == ParsePhase.Condition)
             {
                 if (CqlTags.ContainsKey(node.NodeType))
                 {
@@ -702,15 +724,19 @@ namespace Cassandra.Data.Linq
                     return node;
                 }
             }
-            else if (_phasePhase.Get() == ParsePhase.SelectBinding)
+            else if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
                 var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                var columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
-                _projections[columnName] = val;
-                _selectFields.Add(columnName);
+                var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                if (column == null)
+                {
+                    throw new ArgumentException("Trying to select a column does it excluded in the mappings");
+                }
+                _projections.Add(Tuple.Create(column.ColumnName, val, ExpressionType.Assign));
+                _selectFields.Add(column.ColumnName);
                 return node;
             }
-            throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+            throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
 
         protected override Expression VisitConstant(ConstantExpression node)
@@ -719,7 +745,7 @@ namespace Cassandra.Data.Linq
             {
                 return node;
             }
-            switch (_phasePhase.Get())
+            switch (_parsePhase.Get())
             {
                 case ParsePhase.Condition:
                     _currentCondition.Get().Item1.Append("?");
@@ -727,14 +753,23 @@ namespace Cassandra.Data.Linq
                     return node;
                 case ParsePhase.SelectBinding:
                 {
-                    var columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
-                    if (columnName == null)
+                    var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                    if (column == null)
                     {
                         //selecting a field that is not part of PocoType
                         break;
                     }
-                    _projections[columnName] = node.Value;
-                    _selectFields.Add(columnName);
+                    var expressionType = ExpressionType.Assign;
+                    if (column.IsCounter)
+                    {
+                        if (!(node.Value is long || node.Value is int))
+                        {
+                            throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                        }
+                        expressionType = Convert.ToInt64(node.Value) > 0L ? ExpressionType.AddChecked : ExpressionType.SubtractChecked;
+                    }
+                    _projections.Add(Tuple.Create(column.ColumnName, node.Value, expressionType));
+                    _selectFields.Add(column.ColumnName);
                     return node;
                 }
                 case ParsePhase.Take:
@@ -749,17 +784,17 @@ namespace Cassandra.Data.Linq
                         //order by a field that is not part of PocoType
                         break;
                     }
-                    _orderBy.Add(Tuple.Create(columnName, _phasePhase.Get() == ParsePhase.OrderBy));
+                    _orderBy.Add(Tuple.Create(columnName, _parsePhase.Get() == ParsePhase.OrderBy));
                     return node;
                 }
 
             }
-            throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+            throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            switch (_phasePhase.Get())
+            switch (_parsePhase.Get())
             {
                 case ParsePhase.Condition:
                 {
@@ -825,19 +860,19 @@ namespace Cassandra.Data.Linq
                     {
                         var value = Expression.Lambda(node).Compile().DynamicInvoke();
                         columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
-                        _projections[columnName] = value;
+                        _projections.Add(Tuple.Create(columnName, value, ExpressionType.Assign));
                         return node;
                     }
                     if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
                     {
                         var value = Expression.Lambda(node).Compile().DynamicInvoke();
-                        _projections[columnName] = value;
+                        _projections.Add(Tuple.Create(columnName, value, ExpressionType.Assign));
                         _selectFields.Add(columnName);
                         return node;
                     }
                     if (node.Expression.NodeType == ExpressionType.Parameter)
                     {
-                        _projections[columnName] = columnName;
+                        _projections.Add(Tuple.Create(columnName, (object)columnName, ExpressionType.Assign));
                         _selectFields.Add(columnName);
                         return node;
                     }
@@ -852,7 +887,7 @@ namespace Cassandra.Data.Linq
                         throw new InvalidOperationException(
                             "Trying to order by a field or property that is ignored or not part of the mapping definition.");
                     }
-                    _orderBy.Add(Tuple.Create(columnName, _phasePhase.Get() == ParsePhase.OrderBy));
+                    _orderBy.Add(Tuple.Create(columnName, _parsePhase.Get() == ParsePhase.OrderBy));
                     if ((node.Expression is ConstantExpression))
                     {
                         return node;
@@ -864,7 +899,7 @@ namespace Cassandra.Data.Linq
                     break;
                 }
             }
-            throw new CqlLinqNotSupportedException(node, _phasePhase.Get());
+            throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
     }
 }

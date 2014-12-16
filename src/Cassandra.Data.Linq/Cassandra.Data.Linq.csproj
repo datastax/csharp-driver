@@ -58,6 +58,7 @@
     <Compile Include="CqlInsert.cs" />
     <Compile Include="CqlLinqNotSupportedException.cs" />
     <Compile Include="CqlMthHelps.cs" />
+    <Compile Include="CqlOperator.cs" />
     <Compile Include="CqlQuery.cs" />
     <Compile Include="CqlQueryBase.cs" />
     <Compile Include="CqlQueryExtensions.cs" />

@@ -340,15 +340,12 @@ APPLY BATCH".Replace("\r", ""));
         public void LinqGeneratedUpdateStatementForCounterTest()
         {
             var table = SessionExtensions.GetTable<CounterTestTable1>(null);
-            string query;
-            string expectedQuery;
-
-            query = table
+            var query = table
                 .Where(r => r.RowKey1 == 5 && r.RowKey2 == 6)
                 .Select(r => new CounterTestTable1() { Value = 1 })
                 .Update()
                 .ToString();
-            expectedQuery = "UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + 1 WHERE \"RowKey1\" = 5 AND \"RowKey2\" = 6";
+            const string expectedQuery = "UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + 1 WHERE \"RowKey1\" = ? AND \"RowKey2\" = ?";
             Assert.AreEqual(expectedQuery, query);
         }
 

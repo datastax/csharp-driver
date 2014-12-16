@@ -69,5 +69,24 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual(key, parameters[0]);
             Assert.AreEqual("key2", parameters[1]);
         }
+
+        [Test]
+        public void Append_Operator_Linq_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            //This time is case sensitive
+            var table = GetTable<CollectionTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl"));
+            table
+                .Select(t => new { Scores = CqlOperator.Append(5) })
+                .Update()
+                .Execute();
+            Assert.AreEqual("UPDATE tbl SET StringValue = ?", query);
+        }
     }
 }

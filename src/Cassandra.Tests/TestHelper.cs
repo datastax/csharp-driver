@@ -67,7 +67,7 @@ namespace Cassandra.Tests
         /// Invokes actions in parallel using 1 thread per action
         /// </summary>
         public static void ParallelInvoke(IEnumerable<Action> actions)
-        {   
+        {
             var parallelOptions = new ParallelOptions
             {
                 TaskScheduler = new ThreadPerTaskScheduler(), 
