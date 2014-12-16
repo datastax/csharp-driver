@@ -31,6 +31,7 @@ namespace Cassandra.IntegrationTests.Core
     public class ExceptionsTests : TestGlobals
     {
         private readonly Logger _logger = new Logger(typeof(ExceptionsTests));
+        private static string _lastKnownInitialContactPoint = null;
 
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
@@ -357,17 +358,21 @@ namespace Cassandra.IntegrationTests.Core
         public void PreserveStackTraceTest()
         {
             // we need to make sure at least a single node cluster is available, running locally
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
-            PreserveStackTraceAssertions();
+            var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.GetTestCluster(1).InitialContactPoint).Build();
+            var session = cluster.Connect();
+
+            var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
+            Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertions"));
+            Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
         }
 
         [Test, Category(TestCategories.CcmOnly)]
         public void ExceptionsOnPartialTrust()
         {
             // we need to make sure at least a single node cluster is available, running locally
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            _lastKnownInitialContactPoint = TestClusterManager.GetTestCluster(1).InitialContactPoint;
             var appDomain = CreatePartialTrustDomain();
-            appDomain.DoCallBack(PreserveStackTraceAssertions);
+            appDomain.DoCallBack(PreserveStackTraceAssertionsOnConnect);
         }
 
         [Test]
@@ -422,15 +427,14 @@ namespace Cassandra.IntegrationTests.Core
         /// Helper Methods
         ///////////////////////
 
-        public static void PreserveStackTraceAssertions()
+        public static void PreserveStackTraceAssertionsOnConnect()
         {
-            var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
-            var session = cluster.Connect();
-
-            var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
+            var ex = Assert.Throws<SecurityException>(() => Cluster.Builder().AddContactPoint(_lastKnownInitialContactPoint).Build());
             //Must maintain the original call stack trace
-            Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertions"));
+            Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertionsOnConnect"));
             Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
+            Assert.True(ex.StackTrace.Contains("Cassandra.Builder.AddContactPoint"));
+            Assert.True(ex.StackTrace.Contains("Cassandra.Utils.ResolveHostByName"));
         }
 
         public static AppDomain CreatePartialTrustDomain()
