@@ -59,9 +59,10 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
     <Compile Include="Core\ConnectionTests.cs" />
-    <Compile Include="Core\ConsistencyShortTests.cs" />
+    <Compile Include="Core\ConsistencyTests.cs" />
     <Compile Include="Core\MultiThreadingTests.cs" />
     <Compile Include="Core\BasicTypeTests.cs" />
     <Compile Include="Core\BatchStatements.cs" />

@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
             }
-            catch (Cassandra.AlreadyExistsException e) { }
+            catch (Cassandra.AlreadyExistsException) { }
         }
 
         private const string AllTypesTableName = "all_types_table_queryparams";

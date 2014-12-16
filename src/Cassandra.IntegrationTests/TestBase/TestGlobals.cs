@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.TestBase
         }
 
         [SetUp]
-        public void TestSetup()
+        public void IndividualTestSetup()
         {
             VerifyAppropriateCassVersion();
             VerifyLocalCcmOnly();

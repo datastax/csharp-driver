@@ -411,9 +411,7 @@ namespace Cassandra.IntegrationTests.Core
                     cluster.Connect();
                     clusterIsUp = true;
                 }
-                catch (NoHostAvailableException e)
-                {
-                }
+                catch (NoHostAvailableException) { }
             }
 
             //Now the node is ready to accept connections
