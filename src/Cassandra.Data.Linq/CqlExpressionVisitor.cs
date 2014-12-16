@@ -236,14 +236,22 @@ namespace Cassandra.Data.Linq
                 switch (projection.Item3)
                 {
                     case ExpressionType.AddAssign:
-                        operation = " += ?";
+                        operation = " = " + columnName + " + ?";
                         parameters.Add(projection.Item2);
                         break;
-                    case ExpressionType.AddChecked:
+                    case ExpressionType.PreIncrementAssign:
+                        operation = " = ? + " + columnName;
+                        parameters.Add(projection.Item2);
+                        break;
+                    case ExpressionType.SubtractAssign:
+                        operation = " = " + columnName + " - ?";
+                        parameters.Add(projection.Item2);
+                        break;
+                    case ExpressionType.Increment:
                         //Counter
                         operation = " = " + columnName + " + 1";
                         break;
-                    case ExpressionType.SubtractChecked:
+                    case ExpressionType.Decrement:
                         //Counter
                         operation = " = " + columnName + " - 1";
                         break;
@@ -507,6 +515,11 @@ namespace Cassandra.Data.Linq
             {
                 return EvaluateConditionFunction(node);
             }
+            else if (_parsePhase.Get() == ParsePhase.SelectBinding)
+            {
+                //Applied operators and functions to UPDATE or SELECT statement
+                return EvaluateProjectionFunction(node);
+            }
 
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
@@ -604,6 +617,29 @@ namespace Cassandra.Data.Linq
                     return true;
             }
             return false;
+        }
+
+        private Expression EvaluateProjectionFunction(MethodCallExpression node)
+        {
+            var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+            object value = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke();
+            ExpressionType expressionType;
+            switch (node.Method.Name)
+            {
+                case "Append":
+                    expressionType = ExpressionType.AddAssign;
+                    break;
+                case "Prepend":
+                    expressionType = ExpressionType.PreIncrementAssign;
+                    break;
+                case "SubstractAssign":
+                    expressionType = ExpressionType.SubtractAssign;
+                    break;
+                default:
+                    throw new ArgumentException(String.Format("Projection {0} not supported", node.Method.Name));
+            }
+            _projections.Add(Tuple.Create(column.ColumnName, value, expressionType));
+            return node;
         }
 
         private static Expression DropNullableConversion(Expression node)
@@ -766,7 +802,7 @@ namespace Cassandra.Data.Linq
                         {
                             throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                         }
-                        expressionType = Convert.ToInt64(node.Value) > 0L ? ExpressionType.AddChecked : ExpressionType.SubtractChecked;
+                        expressionType = Convert.ToInt64(node.Value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
                     }
                     _projections.Add(Tuple.Create(column.ColumnName, node.Value, expressionType));
                     _selectFields.Add(column.ColumnName);

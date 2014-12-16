@@ -81,12 +81,56 @@ namespace Cassandra.Tests.Mapping.Linq
                 parameters = v;
             });
             //This time is case sensitive
-            var table = GetTable<CollectionTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl"));
+            var table = GetTable<CollectionTypesEntity>(session, new Map<CollectionTypesEntity>().TableName("tbl").Column(t => t.Scores, cm => cm.WithName("score_values")));
             table
-                .Select(t => new { Scores = CqlOperator.Append(5) })
+                .Select(t => new CollectionTypesEntity { Scores = CqlOperator.Append(new List<int> { 5, 6 }) })
+                .Where(t => t.Id == 1L)
                 .Update()
                 .Execute();
-            Assert.AreEqual("UPDATE tbl SET StringValue = ?", query);
+            Assert.AreEqual("UPDATE tbl SET score_values = score_values + ? WHERE Id = ?", query);
+            CollectionAssert.AreEqual(new object[] { new List<int> { 5, 6 }, 1L }, parameters);
+        }
+
+        [Test]
+        public void Prepend_Operator_Linq_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            //This time is case sensitive
+            var table = GetTable<CollectionTypesEntity>(session, new Map<CollectionTypesEntity>().TableName("tbl"));
+            table
+                .Select(t => new CollectionTypesEntity { Scores = CqlOperator.Prepend(new List<int> { 50, 60 }) })
+                .Where(t => t.Id == 10L)
+                .Update()
+                .Execute();
+            Assert.AreEqual("UPDATE tbl SET Scores = ? + Scores WHERE Id = ?", query);
+            CollectionAssert.AreEqual(new object[] { new List<int> { 50, 60 }, 10L }, parameters);
+        }
+
+        [Test]
+        public void SubstractAssign_Operator_Linq_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            //This time is case sensitive
+            var table = GetTable<CollectionTypesEntity>(session, new Map<CollectionTypesEntity>().TableName("tbl"));
+            table
+                .Select(t => new CollectionTypesEntity { Tags = CqlOperator.SubstractAssign(new[] { "clock" }) })
+                .Where(t => t.Id == 100L)
+                .Update()
+                .Execute();
+            Assert.AreEqual("UPDATE tbl SET Tags = Tags - ? WHERE Id = ?", query);
+            CollectionAssert.AreEqual(new object[] { new [] { "clock" }, 100L }, parameters);
         }
     }
 }
