@@ -16,6 +16,8 @@
 
 using System.Security;
 using System.Security.Permissions;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -26,63 +28,53 @@ using System.Threading;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("long")]
-    public class ExceptionsTests
+    public class ExceptionsTests : TestGlobals
     {
-        public ExceptionsTests()
-        {
-            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
-            Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
-        }
+        private readonly Logger _logger = new Logger(typeof(ExceptionsTests));
 
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
         /// </summary>
         [Test]
-        public void AlreadyExistsExceptionCcm()
+        public void AlreadyExistsException()
         {
-            var clusterInfo = TestUtils.CcmSetup(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ISession session = testCluster.Session;
+            
+            string keyspace = TestUtils.GetUniqueKeyspaceName();
+            string table = TestUtils.GetUniqueTableName();
+
+            String[] cqlCommands =
+            {
+                String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1),
+                String.Format("USE \"{0}\"", keyspace),
+                String.Format(TestUtils.CreateTableSimpleFormat, table)
+            };
+
+            // Create the schema once
+            session.Execute(cqlCommands[0]);
+            session.Execute(cqlCommands[1]);
+            session.Execute(cqlCommands[2]);
+
+            // Try creating the keyspace again
+            var ex = Assert.Throws<AlreadyExistsException>(() => session.Execute(cqlCommands[0]));
+            Assert.AreEqual(ex.Keyspace, keyspace);
+            Assert.AreEqual(ex.Table, null);
+            Assert.AreEqual(ex.WasTableCreation, false);
+
+            session.Execute(cqlCommands[1]);
+
+            // Try creating the table again
             try
             {
-                var session = clusterInfo.Session;
-                const string keyspace = "TestKeyspace";
-                const string table = "TestTable";
-
-                String[] cqlCommands =
-                {
-                    String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1),
-                    String.Format("USE \"{0}\"", keyspace),
-                    String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table)
-                };
-
-                // Create the schema once
-                session.Execute(cqlCommands[0]);
-                session.Execute(cqlCommands[1]);
                 session.Execute(cqlCommands[2]);
-
-                // Try creating the keyspace again
-                var ex = Assert.Throws<AlreadyExistsException>(() => session.Execute(cqlCommands[0]));
-                Assert.AreEqual(ex.Keyspace, keyspace);
-                Assert.AreEqual(ex.Table, null);
-                Assert.AreEqual(ex.WasTableCreation, false);
-
-                session.Execute(cqlCommands[1]);
-
-                // Try creating the table again
-                try
-                {
-                    session.Execute(cqlCommands[2]);
-                }
-                catch (AlreadyExistsException e)
-                {
-                    Assert.AreEqual(e.Keyspace, keyspace);
-                    Assert.AreEqual(e.Table, table.ToLower());
-                    Assert.AreEqual(e.WasTableCreation, true);
-                }
             }
-            finally
+            catch (AlreadyExistsException e)
             {
-                TestUtils.CcmRemove(clusterInfo);
+                Assert.AreEqual(e.Keyspace, keyspace);
+                Assert.AreEqual(e.Table, table.ToLower());
+                Assert.AreEqual(e.WasTableCreation, true);
             }
         }
 
@@ -111,12 +103,11 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-
         /// <summary>
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
         [Test]
-        public void InvalidConfigurationInQueryExceptionCCM()
+        public void InvalidConfigurationInQueryException()
         {
             var errorMessage = "Test Message";
 
@@ -135,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  the IP address "255.255.255.255" and test all available exception methods.
         /// </summary>
         [Test]
-        public void NoHostAvailableExceptionCCM()
+        public void NoHostAvailableException()
         {
             var ipAddress = "255.255.255.255";
             var errorsHashMap = new Dictionary<IPAddress, Exception>();
@@ -143,7 +134,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                var cluster = Cluster.Builder().AddContactPoint("255.255.255.255").Build();
+                var cluster = Cluster.Builder().AddContactPoint(ipAddress).Build();
             }
             catch (NoHostAvailableException e)
             {
@@ -158,48 +149,41 @@ namespace Cassandra.IntegrationTests.Core
         ///  the key at CL.ALL. Catch and test all available exception methods.
         /// </summary>
         [Test]
-        public void ReadTimeoutExceptionCcm()
+        public void ReadTimeoutException()
         {
-            var clusterInfo = TestUtils.CcmSetup(3);
-            try
-            {
-                var session = clusterInfo.Session;
+            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2);
+            ISession session = nonShareableTestCluster.Session;
 
-                var keyspace = "TestKeyspace";
-                var table = "TestTable";
-                var replicationFactor = 3;
-                var key = "1";
+            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
+            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
+            int replicationFactor = 2;
+            string key = "1";
 
-                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor));
-                Thread.Sleep(5000);
-                session.ChangeKeyspace(keyspace);
-                session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
-                Thread.Sleep(3000);
+            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, replicationFactor));
+            Thread.Sleep(5000);
+            session.ChangeKeyspace(keyspace);
+            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
+            Thread.Sleep(3000);
 
-                session.Execute(
-                    new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
-                        ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+            session.Execute(
+                new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
+                    ConsistencyLevel.All));
+            session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
 
-                TestUtils.CcmStopForce(clusterInfo, 2);
-                var ex = Assert.Throws<ReadTimeoutException>(() => 
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)));
-                Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
-                Assert.AreEqual(ex.ReceivedAcknowledgements, 2);
-                Assert.AreEqual(ex.RequiredAcknowledgements, 3);
-                Assert.AreEqual(ex.WasDataRetrieved, true);
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
+            nonShareableTestCluster.StopForce(2);
+            var ex = Assert.Throws<ReadTimeoutException>(() => 
+                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)));
+            Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
+            Assert.AreEqual(ex.ReceivedAcknowledgements, 1);
+            Assert.AreEqual(ex.RequiredAcknowledgements, 2);
+            Assert.AreEqual(ex.WasDataRetrieved, true);
         }
 
         /// <summary>
         ///  Tests SyntaxError. Tests basic message and copy abilities.
         /// </summary>
         [Test]
-        public void SyntaxErrorCCM()
+        public void SyntaxError()
         {
             var errorMessage = "Test Message";
 
@@ -217,7 +201,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests TraceRetrievalException. Tests basic message.
         /// </summary>
         [Test]
-        public void TraceRetrievalExceptionCCM()
+        public void TraceRetrievalException()
         {
             var errorMessage = "Test Message";
 
@@ -235,7 +219,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests TruncateException. Tests basic message and copy abilities.
         /// </summary>
         [Test]
-        public void TruncateExceptionCCM()
+        public void TruncateException()
         {
             var errorMessage = "Test Message";
 
@@ -253,7 +237,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests UnauthorizedException. Tests basic message and copy abilities.
         /// </summary>
         [Test]
-        public void UnauthorizedExceptionCCM()
+        public void UnauthorizedException()
         {
             var errorMessage = "Test Message";
 
@@ -274,91 +258,56 @@ namespace Cassandra.IntegrationTests.Core
         ///  test all available exception methods.
         /// </summary>
         [Test]
-        public void UnavailableExceptionCCM()
+        public void UnavailableException()
         {
-            var clusterInfo = TestUtils.CcmSetup(3);
-            try
+            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2);
+            ISession session = nonShareableTestCluster.Session;
+
+            string keyspaceName = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
+            string tableName = "TestTable_" + Randomm.RandomAlphaNum(10);
+            int replicationFactor = 2;
+            string key = "1";
+
+            session.WaitForSchemaAgreement(
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspaceName, replicationFactor)));
+            session.ChangeKeyspace(keyspaceName);
+            session.WaitForSchemaAgreement(session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, tableName)));
+
+            session.Execute(
+                new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, tableName, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
+            session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, tableName)).SetConsistencyLevel(ConsistencyLevel.All));
+
+            nonShareableTestCluster.StopForce(2);
+            // Ensure that gossip has reported the node as down.
+
+            bool expectedExceptionWasCaught = false;
+            int readTimeoutWasCaught = 0;
+            int maxReadTimeouts = 6; // as long as we're getting Read Timeouts, then we're on the right track
+
+            while (!expectedExceptionWasCaught && readTimeoutWasCaught < maxReadTimeouts)
             {
-                var session = clusterInfo.Session;
-
-                var keyspace = "TestKeyspace";
-                var table = "TestTable";
-                var replicationFactor = 3;
-                var key = "1";
-
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
-                    );
-                session.ChangeKeyspace(keyspace);
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
-                    );
-
-                session.Execute(
-                    new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
-                        ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
-
-                TestUtils.CcmStopNode(clusterInfo, 2);
-                // Ensure that gossip has reported the node as down.
-                Thread.Sleep(1000);
-
                 try
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
-                    Assert.Fail("It should throw an exception");
+                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, tableName)).SetConsistencyLevel(ConsistencyLevel.All));
                 }
-                catch (Exception ex)
+                catch (UnavailableException e)
                 {
-                    if (ex is UnavailableException)
-                    {
-                        var e = (UnavailableException)ex;
-                        Assert.AreEqual(e.Consistency, ConsistencyLevel.All);
-                        Assert.AreEqual(e.RequiredReplicas, replicationFactor);
-                        Assert.AreEqual(e.AliveReplicas, replicationFactor - 1);
-                    }
-                    else if (ex is ReadTimeoutException)
-                    {
-                        var e = (ReadTimeoutException)ex;
-                        Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                    }
-                    else
-                    {
-                        Assert.Fail("It can be either a UnavailableException or a ReadTimeoutException from Cassandra");
-                    }
+                    Assert.AreEqual(e.Consistency, ConsistencyLevel.All);
+                    Assert.AreEqual(e.RequiredReplicas, replicationFactor);
+                    Assert.AreEqual(e.AliveReplicas, replicationFactor - 1);
+                    expectedExceptionWasCaught = true;
                 }
+                catch (ReadTimeoutException e)
+                {
+                    Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
+                    _logger.Info("We caught a ReadTimeoutException as expected, extending the total time to wait ... ");
+                    readTimeoutWasCaught++;
+                }
+                _logger.Info("Expected exception was not thrown, trying again ... ");
+            }
 
-                try
-                {
-                    session.Execute(
-                        new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
-                            ConsistencyLevel.All));
-                    Assert.Fail("It should throw an exception");
-                }
-                catch (Exception ex)
-                {
-                    if (ex is UnavailableException)
-                    {
-                        var e = (UnavailableException)ex;
-                        Assert.AreEqual(e.Consistency, ConsistencyLevel.All);
-                        Assert.AreEqual(e.RequiredReplicas, replicationFactor);
-                        Assert.AreEqual(e.AliveReplicas, replicationFactor - 1);
-                    }
-                    else if (ex is WriteTimeoutException)
-                    {
-                        var e = (WriteTimeoutException)ex;
-                        Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                    }
-                    else
-                    {
-                        Assert.Fail("It can be either a UnavailableException or a ReadTimeoutException from Cassandra: {0}", ex.GetType().FullName);
-                    }
-                }
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
+            Assert.True(expectedExceptionWasCaught,
+                string.Format("Expected exception {0} was not caught after {1} read timeouts were caught!", "UnavailableException", maxReadTimeouts));
         }
 
         /// <summary>
@@ -367,75 +316,117 @@ namespace Cassandra.IntegrationTests.Core
         ///  same key at CL.ALL. Catch and test all available exception methods.
         /// </summary>
         [Test]
-        public void WriteTimeoutExceptionCCM()
+        public void WriteTimeoutException()
         {
-            var clusterInfo = TestUtils.CcmSetup(3);
+            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2);
+            ISession session = nonShareableTestCluster.Session;
+
+            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
+            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
+            int replicationFactor = 2;
+            string key = "1";
+
+            session.WaitForSchemaAgreement(
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, replicationFactor)));
+            session.ChangeKeyspace(keyspace);
+            session.WaitForSchemaAgreement(
+                session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table)));
+
+            session.Execute(
+                new SimpleStatement(
+                    String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
+            session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
+
+            nonShareableTestCluster.StopForce(2);
             try
             {
-                var session = clusterInfo.Session;
-
-                var keyspace = "TestKeyspace";
-                var table = "TestTable";
-                var replicationFactor = 3;
-                var key = "1";
-
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, replicationFactor))
-                    );
-                session.ChangeKeyspace(keyspace);
-                session.WaitForSchemaAgreement(
-                    session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table))
-                    );
-
                 session.Execute(
                     new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
                         ConsistencyLevel.All));
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
-
-                TestUtils.CcmStopForce(clusterInfo, 2);
-                try
-                {
-                    session.Execute(
-                        new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
-                            ConsistencyLevel.All));
-                }
-                catch (WriteTimeoutException e)
-                {
-                    Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                    Assert.AreEqual(e.ReceivedAcknowledgements, 2);
-                    Assert.AreEqual(e.RequiredAcknowledgements, 3);
-                    Assert.AreEqual(e.WriteType, "SIMPLE");
-                }
             }
-            finally
+            catch (WriteTimeoutException e)
             {
-                TestUtils.CcmRemove(clusterInfo);
+                Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
+                Assert.AreEqual(1, e.ReceivedAcknowledgements);
+                Assert.AreEqual(2, e.RequiredAcknowledgements);
+                Assert.AreEqual(e.WriteType, "SIMPLE");
             }
+        }
+
+        [Test, Category(TestCategories.CcmOnly)]
+        public void PreserveStackTraceTest()
+        {
+            // we need to make sure at least a single node cluster is available, running locally
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            PreserveStackTraceAssertions();
+        }
+
+        [Test, Category(TestCategories.CcmOnly)]
+        public void ExceptionsOnPartialTrust()
+        {
+            // we need to make sure at least a single node cluster is available, running locally
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            var appDomain = CreatePartialTrustDomain();
+            appDomain.DoCallBack(PreserveStackTraceAssertions);
         }
 
         [Test]
-        public void PreserveStackTraceTest()
+        public void RowSetIteratedTwice()
         {
-            var clusterInfo = TestUtils.CcmSetup(1);
-            try
-            {
-                PreserveStackTraceAssertions();
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
+            ISession session = TestClusterManager.GetTestCluster(1).Session;
+            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
+            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
+            string key = "1";
+
+            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1));
+            session.ChangeKeyspace(keyspace);
+            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
+
+            session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)));
+            var rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
+            //Linq Count iterates
+            Assert.AreEqual(1, rowset.Count());
+            Assert.AreEqual(0, rowset.Count());
         }
+
+        [Test]
+        public void RowSetPagingAfterSessionDispose()
+        {
+            ISession session = TestClusterManager.GetTestCluster(1).Session;
+            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
+            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
+
+            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1));
+            session.ChangeKeyspace(keyspace);
+            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
+
+            session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
+            session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
+            var rs = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
+            if (CassandraVersion.Major < 2)
+            {
+                //Paging should be ignored in 1.x
+                //But setting the page size should work
+                Assert.AreEqual(2, rs.InnerQueueCount);
+                return;
+            }
+            Assert.AreEqual(1, rs.InnerQueueCount);
+
+            session.Dispose();
+            //It should not fail, just do nothing
+            rs.FetchMoreResults();
+            Assert.AreEqual(1, rs.InnerQueueCount);
+        }
+
+        ///////////////////////
+        /// Helper Methods
+        ///////////////////////
 
         public static void PreserveStackTraceAssertions()
         {
-            var ipPrefix = AppDomain.CurrentDomain.GetData("ipPrefix");
-            if (ipPrefix == null)
-            {
-                ipPrefix = Options.Default.IP_PREFIX;
-            }
-            var cluster = Cluster.Builder().AddContactPoint(ipPrefix.ToString() + "1").Build();
+            var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
             var session = cluster.Connect();
+
             var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
             //Must maintain the original call stack trace
             Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertions"));
@@ -452,89 +443,5 @@ namespace Cassandra.IntegrationTests.Core
             return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
         }
 
-        [Test]
-        public void ExceptionsOnPartialTrustTest()
-        {
-
-            var clusterInfo = TestUtils.CcmSetup(1);
-            try
-            {
-                var appDomain = CreatePartialTrustDomain();
-                appDomain.SetData("ipPrefix", Options.Default.IP_PREFIX);
-                appDomain.DoCallBack(PreserveStackTraceAssertions);
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
-        }
-
-        [Test]
-        public void RowsetIteratedTwice()
-        {
-            var clusterInfo = TestUtils.CcmSetup(1);
-            try
-            {
-                var session = clusterInfo.Session;
-
-                var keyspace = "TestKeyspace";
-                var table = "TestTable";
-                var key = "1";
-
-                session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1));
-                session.ChangeKeyspace(keyspace);
-                session.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
-
-                session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)));
-                var rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
-                //Linq Count iterates
-                //The first time should give you the rows
-                Assert.AreEqual(1, rowset.Count());
-                //The following times should be consumed
-                Assert.AreEqual(0, rowset.Count());
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
-        }
-
-        [Test]
-        public void RowSetPagingAfterSessionDispose()
-        {
-            var clusterInfo = TestUtils.CcmSetup(1);
-            try 
-            {
-                var localSession = clusterInfo.Session;
-
-                var keyspace = "TestKeyspace";
-                var table = "TestTable";
-
-                localSession.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1));
-                localSession.ChangeKeyspace(keyspace);
-                localSession.Execute(String.Format(TestUtils.CREATE_TABLE_SIMPLE_FORMAT, table));
-
-                localSession.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
-                localSession.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
-                var rs = localSession.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
-                if (Options.Default.CassandraVersion.Major < 2)
-                {
-                    //Paging should be ignored in 1.x
-                    //But setting the page size should work
-                    Assert.AreEqual(2, rs.InnerQueueCount);
-                    return;
-                }
-                Assert.AreEqual(1, rs.InnerQueueCount);
-
-                localSession.Dispose();
-                //It should not fail, just do nothing
-                rs.FetchMoreResults();
-                Assert.AreEqual(1, rs.InnerQueueCount);
-            }
-            finally
-            {
-                TestUtils.CcmRemove(clusterInfo);
-            }
-        }
     }
 }

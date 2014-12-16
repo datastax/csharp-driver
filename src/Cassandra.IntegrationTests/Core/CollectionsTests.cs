@@ -21,22 +21,28 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class CollectionsTests : SingleNodeClusterTest
+    public class CollectionsTests : TestGlobals
     {
-        private const string AllTypesTableName = "all_types_table_collections";
+        ISession _session = null;
 
-        public override void TestFixtureSetUp()
+        [SetUp]
+        public void SetupFixture()
         {
-            base.TestFixtureSetUp();
-
-            //Create a table that can be reused within this test class
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, AllTypesTableName)));
+            _session = TestClusterManager.GetTestCluster(1).Session;
+            try
+            {
+                _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+            }
+            catch (Cassandra.AlreadyExistsException e) { }
         }
+
+        private const string AllTypesTableName = "all_types_table_collections";
 
         [Test]
         public void DecodeCollectionTest()
@@ -49,8 +55,8 @@ namespace Cassandra.IntegrationTests.Core
                 "['one', 'two']", 
                 "{'set_1one', 'set_2two'}");
 
-            Session.Execute(insertQuery);
-            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
+            _session.Execute(insertQuery);
+            var row = _session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
             var expectedMap = new SortedDictionary<string, string> { { "fruit", "apple" }, { "band", "Beatles" } };
             var expectedList = new List<string> { "one", "two" };
             var expectedSet = new List<string> { "set_1one", "set_2two" };
@@ -59,8 +65,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(expectedSet, row.GetValue<List<string>>("set_sample"));
         }
 
-        public void checkingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,
-                                              string pendingMode = "")
+        public void CheckingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,string pendingMode = "")
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
             string cassandraKeyDataTypeName = "";
@@ -90,7 +95,7 @@ namespace Cassandra.IntegrationTests.Core
             var tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
                     tweet_id uuid PRIMARY KEY,
                     some_collection {1}<{2}{3}>
                     );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
@@ -103,14 +108,14 @@ namespace Cassandra.IntegrationTests.Core
             var longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
-            int CollectionElementsNo = 100;
-            var orderedAsInputed = new List<Int32>(CollectionElementsNo);
+            int collectionElementsNo = 100;
+            var orderedAsInputed = new List<Int32>(collectionElementsNo);
 
             string inputSide = "some_collection + {1}";
             if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 inputSide = "{1} + some_collection";
 
-            for (int i = 0; i < CollectionElementsNo; i++)
+            for (int i = 0; i < collectionElementsNo; i++)
             {
                 int data = i*(i%2);
                 longQ.AppendFormat(@"UPDATE {0} SET some_collection = " + inputSide + " WHERE tweet_id = {2};"
@@ -119,7 +124,7 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             longQ.AppendLine("APPLY BATCH;");
-            QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
+            QueryTools.ExecuteSyncNonQuery(_session, longQ.ToString(), "Inserting...");
 
             if (CassandraCollectionType == "set")
             {
@@ -129,8 +134,8 @@ namespace Cassandra.IntegrationTests.Core
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName),
-                                            Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            var rs = _session.Execute(string.Format("SELECT * FROM {0};", tableName),
+                                            _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             {
                 int ind = 0;
                 foreach (Row row in rs.GetRows())
@@ -141,50 +146,50 @@ namespace Cassandra.IntegrationTests.Core
                     }
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
-                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
+            QueryTools.ExecuteSyncQuery(_session, string.Format("SELECT * FROM {0};", tableName),
+                                        _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            QueryTools.ExecuteSyncNonQuery(_session, string.Format("DROP TABLE {0};", tableName));
         }
 
-        public void insertingSingleCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null)
+        public void InsertingSingleCollection(string cassandraCollectionType, Type typeOfDataToBeInputed, Type typeOfKeyForMap = null)
         {
-            string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
+            string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(typeOfDataToBeInputed);
             string cassandraKeyDataTypeName = "";
 
-            string openBracket = CassandraCollectionType == "list" ? "[" : "{";
-            string closeBracket = CassandraCollectionType == "list" ? "]" : "}";
+            string openBracket = cassandraCollectionType == "list" ? "[" : "{";
+            string closeBracket = cassandraCollectionType == "list" ? "]" : "}";
             string mapSyntax = "";
 
-            object randomValue = Randomm.RandomVal(TypeOfDataToBeInputed);
-            if (TypeOfDataToBeInputed == typeof (string))
+            object randomValue = Randomm.RandomVal(typeOfDataToBeInputed);
+            if (typeOfDataToBeInputed == typeof (string))
                 randomValue = "'" + randomValue.ToString().Replace("'", "''") + "'";
 
             string randomKeyValue = string.Empty;
 
-            if (TypeOfKeyForMap != null)
+            if (typeOfKeyForMap != null)
             {
-                cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
+                cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(typeOfKeyForMap);
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
-                if (TypeOfKeyForMap == typeof (DateTimeOffset))
+                if (typeOfKeyForMap == typeof (DateTimeOffset))
                     randomKeyValue = "'" +
                                      (Randomm.RandomVal(typeof (DateTimeOffset))
                                              .GetType()
                                              .GetMethod("ToString", new[] {typeof (string)})
                                              .Invoke(Randomm.RandomVal(typeof (DateTimeOffset)), new object[1] {"yyyy-MM-dd H:mm:sszz00"}) + "'");
-                else if (TypeOfKeyForMap == typeof (string))
-                    randomKeyValue = "'" + Randomm.RandomVal(TypeOfDataToBeInputed).ToString().Replace("'", "''") + "'";
+                else if (typeOfKeyForMap == typeof (string))
+                    randomKeyValue = "'" + Randomm.RandomVal(typeOfDataToBeInputed).ToString().Replace("'", "''") + "'";
                 else
-                    randomKeyValue = Randomm.RandomVal(TypeOfDataToBeInputed).ToString();
+                    randomKeyValue = Randomm.RandomVal(typeOfDataToBeInputed).ToString();
             }
 
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
-         );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
+         );", tableName, cassandraCollectionType, mapSyntax, cassandraDataTypeName));
             }
             catch (AlreadyExistsException)
             {
@@ -193,7 +198,7 @@ namespace Cassandra.IntegrationTests.Core
             Guid tweet_id = Guid.NewGuid();
 
 
-            QueryTools.ExecuteSyncNonQuery(Session,
+            QueryTools.ExecuteSyncNonQuery(_session,
                                            string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES ({1}, {2});", tableName, tweet_id,
                                                          openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue) ? "" : " : ") +
                                                          randomValue + closeBracket));
@@ -202,11 +207,11 @@ namespace Cassandra.IntegrationTests.Core
             longQ.AppendLine("BEGIN BATCH ");
 
             int CollectionElementsNo = 100;
-            object rval = Randomm.RandomVal(TypeOfDataToBeInputed);
+            object rval = Randomm.RandomVal(typeOfDataToBeInputed);
             for (int i = 0; i < CollectionElementsNo; i++)
             {
                 object val = rval;
-                if (TypeOfDataToBeInputed == typeof (string))
+                if (typeOfDataToBeInputed == typeof (string))
                     val = "'" + val.ToString().Replace("'", "''") + "'";
 
                 longQ.AppendFormat(@"UPDATE {0} SET some_collection = some_collection + {1} WHERE tweet_id = {2};"
@@ -214,11 +219,11 @@ namespace Cassandra.IntegrationTests.Core
                                    openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue) ? "" : " : ") + val + closeBracket, tweet_id);
             }
             longQ.AppendLine("APPLY BATCH;");
-            QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
+            QueryTools.ExecuteSyncNonQuery(_session, longQ.ToString(), "Inserting...");
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
-                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
+            QueryTools.ExecuteSyncQuery(_session, string.Format("SELECT * FROM {0};", tableName),
+                                        _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            QueryTools.ExecuteSyncNonQuery(_session, string.Format("DROP TABLE {0};", tableName));
         }
 
         public void insertingSingleCollectionPrepared(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null)
@@ -271,7 +276,7 @@ namespace Cassandra.IntegrationTests.Core
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
                  tweet_id uuid PRIMARY KEY,
                  some_collection {1}<{2}{3}>
                  );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
@@ -281,172 +286,172 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             Guid tweet_id = Guid.NewGuid();
-            PreparedStatement prepInsert = QueryTools.PrepareQuery(Session,
+            PreparedStatement prepInsert = QueryTools.PrepareQuery(_session,
                                                                    string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES (?, ?);", tableName));
-            Session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
-                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("DROP TABLE {0};", tableName));
+            _session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
+            QueryTools.ExecuteSyncQuery(_session, string.Format("SELECT * FROM {0};", tableName),
+                                        _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            QueryTools.ExecuteSyncNonQuery(_session, string.Format("DROP TABLE {0};", tableName));
         }
 
         [Test]
-        public void testListOrderPrepending()
+        public void ListOrderPrepending()
         {
-            checkingOrderOfCollection("list", typeof (Int32), null, "prepending");
+            CheckingOrderOfCollection("list", typeof (Int32), null, "prepending");
         }
 
         [Test]
-        public void testListOrderAppending()
+        public void ListOrderAppending()
         {
-            checkingOrderOfCollection("list", typeof (Int32), null, "appending");
+            CheckingOrderOfCollection("list", typeof (Int32), null, "appending");
         }
 
         [Test]
-        public void testSetOrder()
+        public void SetOrder()
         {
-            checkingOrderOfCollection("set", typeof (Int32));
+            CheckingOrderOfCollection("set", typeof (Int32));
         }
 
         [Test]
-        public void testMap()
+        public void Map()
         {
-            insertingSingleCollection("map", typeof (string), typeof (DateTimeOffset));
+            InsertingSingleCollection("map", typeof (string), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testMapDouble()
+        public void MapDouble()
         {
-            insertingSingleCollection("map", typeof (Double), typeof (DateTimeOffset));
+            InsertingSingleCollection("map", typeof (Double), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testMapInt32()
+        public void MapInt32()
         {
-            insertingSingleCollection("map", typeof (Int32), typeof (DateTimeOffset));
+            InsertingSingleCollection("map", typeof (Int32), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testMapInt64()
+        public void MapInt64()
         {
-            insertingSingleCollection("map", typeof (Int64), typeof (DateTimeOffset));
+            InsertingSingleCollection("map", typeof (Int64), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testListDouble()
+        public void ListDouble()
         {
-            insertingSingleCollection("list", typeof (Double));
+            InsertingSingleCollection("list", typeof (Double));
         }
 
         [Test]
-        public void testListInt64()
+        public void ListInt64()
         {
-            insertingSingleCollection("list", typeof (Int64));
+            InsertingSingleCollection("list", typeof (Int64));
         }
 
         [Test]
-        public void testListInt32()
+        public void ListInt32()
         {
-            insertingSingleCollection("list", typeof (Int32));
+            InsertingSingleCollection("list", typeof (Int32));
         }
 
         [Test]
-        public void testListString()
+        public void ListString()
         {
-            insertingSingleCollection("list", typeof (string));
+            InsertingSingleCollection("list", typeof (string));
         }
 
         [Test]
-        public void testSetString()
+        public void SetString()
         {
-            insertingSingleCollection("set", typeof (string));
+            InsertingSingleCollection("set", typeof (string));
         }
 
         [Test]
-        public void testSetDouble()
+        public void SetDouble()
         {
-            insertingSingleCollection("set", typeof (Double));
+            InsertingSingleCollection("set", typeof (Double));
         }
 
         [Test]
-        public void testSetInt32()
+        public void SetInt32()
         {
-            insertingSingleCollection("set", typeof (Int32));
+            InsertingSingleCollection("set", typeof (Int32));
         }
 
         [Test]
-        public void testSetInt64()
+        public void SetInt64()
         {
-            insertingSingleCollection("set", typeof (Int64));
+            InsertingSingleCollection("set", typeof (Int64));
         }
 
         [Test]
-        public void testMapPrepared()
+        public void MapPrepared()
         {
             insertingSingleCollectionPrepared("map", typeof (string), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testMapDoublePrepared()
+        public void MapDoublePrepared()
         {
             insertingSingleCollectionPrepared("map", typeof (Double), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testMapInt32Prepared()
+        public void MapInt32Prepared()
         {
             insertingSingleCollectionPrepared("map", typeof (Int32), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testMapInt64Prepared()
+        public void MapInt64Prepared()
         {
             insertingSingleCollectionPrepared("map", typeof (Int64), typeof (DateTimeOffset));
         }
 
         [Test]
-        public void testListDoublePrepared()
+        public void ListDoublePrepared()
         {
             insertingSingleCollectionPrepared("list", typeof (Double));
         }
 
         [Test]
-        public void testListInt64Prepared()
+        public void ListInt64Prepared()
         {
             insertingSingleCollectionPrepared("list", typeof (Int64));
         }
 
         [Test]
-        public void testListInt32Prepared()
+        public void ListInt32Prepared()
         {
             insertingSingleCollectionPrepared("list", typeof (Int32));
         }
 
         [Test]
-        public void testListStringPrepared()
+        public void ListStringPrepared()
         {
             insertingSingleCollectionPrepared("list", typeof (string));
         }
 
         [Test]
-        public void testSetStringPrepared()
+        public void SetStringPrepared()
         {
             insertingSingleCollectionPrepared("set", typeof (string));
         }
 
         [Test]
-        public void testSetDoublePrepared()
+        public void SetDoublePrepared()
         {
             insertingSingleCollectionPrepared("set", typeof (Double));
         }
 
         [Test]
-        public void testSetInt32Prepared()
+        public void SetInt32Prepared()
         {
             insertingSingleCollectionPrepared("set", typeof (Int32));
         }
 
         [Test]
-        public void testSetInt64Prepared()
+        public void SetInt64Prepared()
         {
             insertingSingleCollectionPrepared("set", typeof (Int64));
         }

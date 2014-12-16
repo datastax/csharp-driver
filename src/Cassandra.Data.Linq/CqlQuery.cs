@@ -20,20 +20,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
     /// <summary>
     /// Represents a Linq query that gets evaluated as a CQL statement.
     /// </summary>
-    public class CqlQuery<TEntity> : CqlQueryBase<TEntity>, IQueryable, IQueryable<TEntity>, IOrderedQueryable
+    public class CqlQuery<TEntity> : CqlQueryBase<TEntity>, IQueryable<TEntity>, IOrderedQueryable
     {
         internal CqlQuery()
         {
-            InternalInitialize(Expression.Constant(this), (Table<TEntity>) this);
         }
 
-        internal CqlQuery(Expression expression, IQueryProvider table) : base(expression, table)
+        internal CqlQuery(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, mapperFactory, stmtFactory, pocoData)
         {
         }
 
@@ -42,9 +44,12 @@ namespace Cassandra.Data.Linq
             return GetEnumerator();
         }
 
+        /// <summary>
+        /// IQueryable.Provider implementation
+        /// </summary>
         public IQueryProvider Provider
         {
-            get { return GetTable() as IQueryProvider; }
+            get { return GetTable(); }
         }
 
         public IEnumerator<TEntity> GetEnumerator()
@@ -72,17 +77,18 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
         }
 
+        /// <summary>
+        /// Generates and returns cql query for this instance 
+        /// </summary>
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetSelect(out _, false);
+            return GetCql(out _);
         }
     }
 }

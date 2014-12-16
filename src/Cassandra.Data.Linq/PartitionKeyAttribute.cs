@@ -18,10 +18,13 @@ using System;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Indicates that the property or field is part of the Partition Key
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class PartitionKeyAttribute : Attribute
     {
-        public int Index = -1;
+        public int Index { get; set; }
 
         public PartitionKeyAttribute(int index = 0)
         {

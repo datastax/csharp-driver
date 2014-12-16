@@ -3,28 +3,35 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class TimeUuidSerializationTests : SingleNodeClusterTest
+    public class TimeUuidSerializationTests : TestGlobals
     {
-        private const string Keyspace = "ks1";
-        private const string Table = Keyspace + ".tbl1";
+        private const string Keyspace = "ks_fortimeuuidserializationtests";
+        private const string AllTypesTableName = "all_formats_table";
         private PreparedStatement _insertPrepared;
         private PreparedStatement _selectPrepared;
+        ISession _session = null;
 
-
-        public override void TestFixtureSetUp()
+        [SetUp]
+        public void SetupFixture()
         {
-            base.TestFixtureSetUp();
-            Session.Execute(String.Format(TestUtils.CREATE_KEYSPACE_SIMPLE_FORMAT, Keyspace, 1));
-            Session.Execute(String.Format(TestUtils.CREATE_TABLE_ALL_TYPES, Table));
-            var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", Table);
-            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", Table);
-            _insertPrepared = Session.Prepare(insertQuery);
-            _selectPrepared = Session.Prepare(selectQuery);
+            _session = TestClusterManager.GetTestCluster(1).Session;
+            _session.CreateKeyspaceIfNotExists(Keyspace);
+            try
+            {
+                _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+            }
+            catch (Cassandra.AlreadyExistsException e) { }
+
+            var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", AllTypesTableName);
+            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", AllTypesTableName);
+            _insertPrepared = _session.Prepare(insertQuery);
+            _selectPrepared = _session.Prepare(selectQuery);
         }
 
         [Test]
@@ -38,8 +45,8 @@ namespace Cassandra.IntegrationTests.Core
                 var rowId = rowIdArray[i];
                 var ticks = ticksArray[i];
                 var timeUuid = TimeUuid.NewId(new DateTimeOffset(ticks, TimeSpan.Zero));
-                Session.Execute(_insertPrepared.Bind(rowId, timeUuid));
-                var row = Session.Execute(_selectPrepared.Bind(rowId)).FirstOrDefault();
+                _session.Execute(_insertPrepared.Bind(rowId, timeUuid));
+                var row = _session.Execute(_selectPrepared.Bind(rowId)).FirstOrDefault();
                 Assert.NotNull(row);
                 var resultTimeUuidValue = row.GetValue<TimeUuid>("timeuuid_sample");
                 Assert.AreEqual(timeUuid, resultTimeUuidValue);
@@ -60,13 +67,13 @@ namespace Cassandra.IntegrationTests.Core
             for (var i = 0; i < 500; i++)
             {
                 tasks.Add(
-                    Session.ExecuteAsync(_insertPrepared.Bind(Guid.NewGuid(), TimeUuid.NewId())));
+                    _session.ExecuteAsync(_insertPrepared.Bind(Guid.NewGuid(), TimeUuid.NewId())));
             }
             Assert.DoesNotThrow(() => Task.WaitAll(tasks.ToArray()));
 
-            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} LIMIT 10000", Table);
+            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} LIMIT 10000", AllTypesTableName);
             Assert.DoesNotThrow(() =>
-                Session.Execute(selectQuery).Select(r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
+                _session.Execute(selectQuery).Select(r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
         }
 
         [Test]
@@ -74,11 +81,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             //TimeUuid and Guid are valid values for a timeuuid column value
             Assert.DoesNotThrow(() =>
-                Session.Execute(_insertPrepared.Bind(Guid.NewGuid(), TimeUuid.NewId())));
+                _session.Execute(_insertPrepared.Bind(Guid.NewGuid(), TimeUuid.NewId())));
 
             var validUuidV1Bytes = TimeUuid.NewId().ToByteArray();
             Assert.DoesNotThrow(() =>
-                Session.Execute(_insertPrepared.Bind(Guid.NewGuid(), new Guid(validUuidV1Bytes))));
+                _session.Execute(_insertPrepared.Bind(Guid.NewGuid(), new Guid(validUuidV1Bytes))));
         }
     }
 }

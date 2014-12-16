@@ -55,17 +55,19 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public void Append(IEnumerable<CqlCommand> cqlCommands)
+        public Batch Append(IEnumerable<CqlCommand> cqlCommands)
         {
-            foreach (CqlCommand cmd in cqlCommands)
+            foreach (var cmd in cqlCommands)
+            {
                 Append(cmd);
+            }
+            return this;
         }
 
         public void Execute()
         {
             EndExecute(BeginExecute(null, null));
         }
-
 
         protected abstract Task<RowSet> InternalExecuteAsync();
         

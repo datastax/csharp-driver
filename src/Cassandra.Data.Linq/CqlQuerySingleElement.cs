@@ -24,25 +24,23 @@ namespace Cassandra.Data.Linq
 {
     public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlQuerySingleElement(Expression expression, IQueryProvider table)
-            : base(expression, table)
+        internal CqlQuerySingleElement(Expression expression, CqlQuery<TEntity> source)
+            : base(expression, source.Table, source.MapperFactory, source.StatementFactory, source.PocoData)
         {
+            
         }
-
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetSelect(out _, false);
+            return GetCql(out _);
         }
 
         public new CqlQuerySingleElement<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
@@ -59,10 +57,7 @@ namespace Cassandra.Data.Linq
 
         public new Task<TEntity> ExecuteAsync()
         {
-            return base.ExecuteAsync().ContinueWith(t => 
-            {
-                return t.Result.FirstOrDefault();
-            });
+            return base.ExecuteAsync().Continue(t => t.Result.FirstOrDefault());
         }
 
         public new IAsyncResult BeginExecute(AsyncCallback callback, object state)
