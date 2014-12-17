@@ -18,15 +18,16 @@ namespace Cassandra.IntegrationTests.Core
         ISession _session = null;
 
         [SetUp]
-        public void SetupFixture()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
             _session.CreateKeyspaceIfNotExists(Keyspace);
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
             }
-            catch (Cassandra.AlreadyExistsException e) { }
+            catch (Cassandra.AlreadyExistsException) { }
 
             var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", AllTypesTableName);
             var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", AllTypesTableName);

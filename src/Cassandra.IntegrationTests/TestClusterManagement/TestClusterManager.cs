@@ -102,14 +102,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             ITestCluster shareableTestCluster = GetExistingClusterWithNodeCount(nodeCount);
 
-            // The following out is for debugging / session state experimentation purposes
             if (shareableTestCluster != null)
             {
                 _logger.Info("Found existing test cluster with nodeCount: " + nodeCount + ", name: " + shareableTestCluster.Name);
                 if (shareableTestCluster.Cluster.AllHosts().ToList().Count != nodeCount)
-                    _logger.Warning("why is there a different number of actual hosts in the session than nodes assigned to the TestCluster ?");
+                    throw new Exception("There a different number of actual hosts in the session than nodes assigned to the TestCluster!");
 
-                // make sure the existing TestCluster is running
+                // Make sure only the single TestCluster that we want running is running
                 if (!UseCtool)
                 {
                     StopAllCcmTestClustersExceptFor((CcmCluster)shareableTestCluster);
@@ -124,6 +123,40 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), nodeCount, DefaultKeyspaceName, true, initClusterAndSession, 2);
             }
 
+            // Make sure the test cluster is fully queriable before returning if it's supposed to be 'UP'
+            // if this fails, then remove this cluster and create a new one
+            if (initClusterAndSession)
+            {
+                try
+                {
+                    foreach (var host in shareableTestCluster.Cluster.AllHosts())
+                    {
+                        string[] hostElements = host.Address.ToString().Split(':');
+                        if (hostElements.Length < 2)
+                            throw new Exception("Host was not the expected format: " + host.Address.ToString());
+                        string hostStr = hostElements[0];
+                        int port = -1;
+                        Int32.TryParse(hostElements[1], out port);
+                        TestUtils.WaitForUp_new(hostElements[0], port, 10);
+                        //TestUtils.ValidateBootStrappedNodeIsQueried(shareableTestCluster, nodeCount, hostStr);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.Error("Unexpected Error occurred when trying to get shared test cluster with nodeCount: " + nodeCount + ", name: " + shareableTestCluster.Name);
+                    _logger.Error("Error Message: " + e.Message);
+                    _logger.Error("Error Stack Trace: " + e.StackTrace);
+                    _logger.Error("Removing this cluster, and looping back to create a new one ... ");
+                    RemoveExistingClusterWithNodeCount_Force(nodeCount);
+                    KillAllCcmProcesses();
+                    if (retryCount > MaxClusterCreationRetries)
+                        throw new Exception("Cluster with node count " + nodeCount + " has already failed " + retryCount + " times ... is there something wrong with this environment?");
+                    else
+                    {
+                        return GetTestCluster(nodeCount, maxTries, initClusterAndSession, ++retryCount);
+                    }
+                }
+            }
             return shareableTestCluster;
         }
 

@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                     AssertEquals(actualMovie, expectedMovie);
                     return true;
                 }
-                catch (AssertionException e) { }
+                catch (AssertionException) { }
             }
             return false;
         }

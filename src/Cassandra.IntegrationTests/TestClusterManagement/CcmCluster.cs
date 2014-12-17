@@ -32,21 +32,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             InitialContactPoint = ClusterIpPrefix + "1";
         }
 
-        ~CcmCluster()
-        {
-            try
-            {
-                if (IsStarted)
-                    ShutDown();
-            }
-            catch (Exception e)
-            {
-                Logger.Warning("Attempted to shutdown when current " + this.GetType().Name +
-                               " object was being destroyed and got the following Exception: " + e.Message);
-                Logger.Warning("Exception stack trace: " + e.StackTrace);
-            }
-        }
-
         public string Name { get; set; }
         public Builder Builder { get; set; }
         public Cluster Cluster { get; set; }

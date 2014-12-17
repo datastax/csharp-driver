@@ -37,6 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCmdRetries, true, 1).Session;
             try
             {

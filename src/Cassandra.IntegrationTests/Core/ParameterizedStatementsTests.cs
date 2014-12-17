@@ -31,15 +31,16 @@ namespace Cassandra.IntegrationTests.Core
         private int lastNodeCountUsed = 1;
 
         [SetUp]
-        public void Setup()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
 
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
             }
-            catch (Cassandra.AlreadyExistsException e) { }
+            catch (Cassandra.AlreadyExistsException) { }
         }
 
         private const string AllTypesTableName = "all_types_table_queryparams";

@@ -30,14 +30,15 @@ namespace Cassandra.IntegrationTests.Core
         const string AllTypesTableName = "all_types_table_serial_consistencyshorttests";
 
         [SetUp]
-        public void SetupFixture()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
             }
-            catch (Cassandra.AlreadyExistsException e) { }
+            catch (Cassandra.AlreadyExistsException) { }
         }
 
         [Test]

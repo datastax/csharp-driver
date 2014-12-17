@@ -32,6 +32,12 @@ namespace Cassandra.IntegrationTests.Core
     {
         private readonly Logger _logger = new Logger(typeof(ExceptionsTests));
 
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.

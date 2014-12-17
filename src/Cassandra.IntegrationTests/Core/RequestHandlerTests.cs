@@ -36,6 +36,12 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         [Test]
         public void RequestHandlerRetryDecisionTest()
         {

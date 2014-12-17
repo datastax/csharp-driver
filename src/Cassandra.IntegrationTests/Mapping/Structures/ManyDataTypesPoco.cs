@@ -134,7 +134,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
                     expectedEntity.AssertEquals(actualEntity);
                     return true;
                 }
-                catch (AssertionException e) { }
+                catch (AssertionException) { }
             }
             return false;
         }

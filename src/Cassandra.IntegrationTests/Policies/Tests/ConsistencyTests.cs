@@ -17,12 +17,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class ConsistencyTests : TestGlobals
@@ -30,8 +30,9 @@ namespace Cassandra.IntegrationTests.Policies
         private PolicyTestTools _policyTestTools = null;
 
         [SetUp]
-        public void TestSetup()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _policyTestTools = new PolicyTestTools();
         }
 

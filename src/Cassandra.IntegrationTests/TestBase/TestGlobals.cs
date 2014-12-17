@@ -32,6 +32,7 @@ namespace Cassandra.IntegrationTests.TestBase
         private static readonly Logger Logger = new Logger(typeof(TestGlobals));
 
         public const int DefaultMaxClusterCmdRetries = 2;
+        public const int DefaultCassandraPort = 9042;
         public const string DefaultLocalIpPrefix = "127.0.0.";
         public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
         public const int ClusterInitSleepMsPerIteration = 500;
@@ -170,8 +171,7 @@ namespace Cassandra.IntegrationTests.TestBase
             }
         }
 
-        [SetUp]
-        public void TestSetup()
+        public void IndividualTestSetup()
         {
             VerifyAppropriateCassVersion();
             VerifyLocalCcmOnly();

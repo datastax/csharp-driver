@@ -31,9 +31,10 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class StressTests : TestGlobals
     {
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [SetUp]
+        public void SetupTest()
         {
+            IndividualTestSetup();
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //For different threads
             Trace.AutoFlush = true;
