@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -29,6 +31,12 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             //Insert some data
             foreach (var movie in _movieList)
                 table.Insert(movie).Execute();
+
+            // Wait for data to be query-able
+            DateTime futureDateTime = DateTime.Now.AddSeconds(2); // it should not take very long for these records to become available for querying!
+            while (DateTime.Now < futureDateTime && table.Count().Execute() < _movieList.Count)
+                Thread.Sleep(200);
+            Assert.AreEqual(_movieList.Count(), table.Count().Execute(), "Setup failure: Expected number of records are not query-able");
         }
 
         [TearDown]

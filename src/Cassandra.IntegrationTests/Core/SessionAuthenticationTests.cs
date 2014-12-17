@@ -37,6 +37,12 @@ namespace Cassandra.IntegrationTests.Core
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
 
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {

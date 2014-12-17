@@ -31,8 +31,9 @@ namespace Cassandra.IntegrationTests.Core
         private int lastNodeCountUsed = 1;
 
         [SetUp]
-        public void Setup()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
 
             try

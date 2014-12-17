@@ -38,6 +38,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
+            TestUtils.WaitForSchemaAgreement(_session.Cluster);
             _session.ChangeKeyspace(_uniqueKsName);
         }
 
@@ -149,6 +150,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             string uniqueTableName = TestUtils.GetUniqueTableName();
             Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>(uniqueTableName);
             table.Create();
+            TestUtils.WaitForSchemaAgreement(_session.Cluster);
             WriteReadValidate(table);
 
             Assert.AreEqual(uniqueTableName, table.Name);
@@ -369,7 +371,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// This also validates that a private class can be used with the Table.Create() method.
         /// </summary>
         [Test]
-        public void Insert_ClassMissingPartitionKey()
+        public void TableCreate_ClassMissingPartitionKey()
         {
             Table<PrivateClassMissingPartitionKey> table = _session.GetTable<PrivateClassMissingPartitionKey>();
             try

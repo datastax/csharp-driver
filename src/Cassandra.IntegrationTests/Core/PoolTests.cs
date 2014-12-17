@@ -35,9 +35,10 @@ namespace Cassandra.IntegrationTests.Core
     {
         protected TraceLevel _originalTraceLevel;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [SetUp]
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
@@ -140,7 +141,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var rowSet2 = session.Execute("SELECT * FROM system.schema_columnfamilies");
                 Assert.Greater(rowSet2.Count(), 0);
-                Assert.AreEqual(nonShareableTestCluster.ClusterIpPrefix + "4", rowSet2.Info.QueriedHost.ToString());
+                Assert.AreEqual(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, rowSet2.Info.QueriedHost.ToString());
             }
         }
 
@@ -233,10 +234,10 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(50);
             }
             //Check that one of the restarted nodes were queried
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);
             //Check that the control connection is still using last host
             StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
         }
@@ -256,7 +257,7 @@ namespace Cassandra.IntegrationTests.Core
 
             //Wait for the join to be online
             string newlyBootstrappedHost = testCluster.ClusterIpPrefix + 2;
-            TestUtils.ValidateBootStrappedNodeIsQueried(testCluster, 2, newlyBootstrappedHost);
+            TestUtils.ValidateBootStrappedNodeIsQueried(testCluster, 2, newlyBootstrappedHost + ":" + DefaultCassandraPort);
         }
 
         [Test]
