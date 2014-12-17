@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using NUnit.Framework.Constraints;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -36,128 +37,147 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool initClusterAndSession, int maxTries)
+        public ITestCluster CreateNewCluster(string clusterName, int dc1NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
         {
-            return CreateNewClusterAndAddToList(clusterName, dc1NodeCount, 0, keyspaceName, isUsingDefaultConfig, initClusterAndSession, maxTries);
+            return CreateNewCluster(clusterName, dc1NodeCount, 0, keyspaceName, isUsingDefaultConfig, startCluster, maxTries);
         }
 
-        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool initClusterAndSession, int maxTries)
+        public ITestCluster CreateNewCluster(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
         {
-            int tries = 0;
-            while (tries < maxTries)
+            try
             {
-                try
+                if (UseCtool)
                 {
-                    if (UseCtool)
-                    {
-                        // Create new cluster via ctool
-                        // At this point we don't have the means to create remote 
-                        throw new Exception("Setup FAIL: CTool cluster creation won't work until you create CToolBridge");
-                    }
-                    else
-                    {
-                        // first stop any existing CCM clusters
-                        ShutDownAllCcmTestClusters();
-                        KillAllCcmProcesses();
-
-                        // Create new cluster via ccm
-                        CcmCluster testClusterToAdd = new CcmCluster(TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
-                        testClusterToAdd.Create(initClusterAndSession);
-                        _testClusters.Add(testClusterToAdd);
-                        return testClusterToAdd;
-                    }
+                    // Create new cluster via ctool
+                    // At this point we don't have the means to create remote 
+                    throw new Exception("Setup FAIL: CTool cluster creation won't work until you create CToolBridge");
                 }
-                catch (Exception e)
+                else
                 {
-                    _logger.Error("Unexpected Error occurred while trying to get test cluster with nodeCount: " + dc1NodeCount);
-                    _logger.Error("Error message: " + e.Message);
-                    _logger.Error("Stack trace: " + e.StackTrace);
-                    _logger.Error("Killing all Java processes and trying again ... ");
-                }
-                if (!UseCtool)
-                {
+                    // first stop any existing CCM clusters
+                    ShutDownAllCcmTestClusters();
                     KillAllCcmProcesses();
+
+                    // Create new cluster via ccm
+                    CcmCluster testCluster = new CcmCluster(TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
+                    testCluster.Create(startCluster);
+                    return testCluster;
                 }
-                tries++;
             }
+            catch (Exception e)
+            {
+                _logger.Error("Unexpected Error occurred while trying to get test cluster with nodeCount: " + dc1NodeCount);
+                _logger.Error("Error message: " + e.Message);
+                _logger.Error("Stack trace: " + e.StackTrace);
+                _logger.Error("Killing all Java processes and trying again ... ");
+            }
+            
             return null;
         }
 
         // Create a "non default" test cluster that will not be available via the standard "GetTestCluster" command
         // NOTE: right now this returns a bare "TestCluster" object that has not been initialized in any way
-        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int dc2NodeCount, int maxTries = DefaultMaxClusterCmdRetries, bool initClusterAndSession = true)
+        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int dc2NodeCount, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true)
         {
-            ITestCluster nonShareableTestCluster = CreateNewClusterAndAddToList(
-                TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, DefaultKeyspaceName, false, initClusterAndSession, maxTries);
-            return nonShareableTestCluster;
+            // This is a non-shareable cluster with a potentially two DCs
+            bool thisClusterShouldBeShareable = false;
+            return GetTestCluster(dc1NodeCount, dc2NodeCount, thisClusterShouldBeShareable, maxTries, startCluster, initClient);
         }
 
-        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int maxTries = DefaultMaxClusterCmdRetries, bool initClusterAndSession = true)
+        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true)
         {
-            return GetNonShareableTestCluster(dc1NodeCount, 0, maxTries, initClusterAndSession);
+            if (startCluster == false)
+                initClient = false;
+
+            // This is a non-shareable cluster with a single DC
+            bool thisClusterShouldBeShareable = false;
+            int secondDcNodeCount = 0;
+            return GetTestCluster(dc1NodeCount, secondDcNodeCount, thisClusterShouldBeShareable, maxTries, startCluster, initClient);
         }
 
-        // Get existing test cluster that can be shared, otherwise create a new one that can be shared.
-        public ITestCluster GetTestCluster(int nodeCount, int maxTries = DefaultMaxClusterCmdRetries, bool initClusterAndSession = true, int retryCount = 0)
+        public ITestCluster GetTestCluster(int dc1NodeCount, int dc2NodeCount, bool shareable = true, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true, int currentRetryCount = 0)
         {
-            ITestCluster shareableTestCluster = GetExistingClusterWithNodeCount(nodeCount);
+            ITestCluster testCluster = null;
+            if (shareable)
+                testCluster = GetExistingClusterWithNodeCount(dc1NodeCount);
 
-            if (shareableTestCluster != null)
+            // If we found a valid shareable test cluster, then switch to it and start it
+            if (testCluster != null)
             {
-                _logger.Info("Found existing test cluster with nodeCount: " + nodeCount + ", name: " + shareableTestCluster.Name);
-                if (shareableTestCluster.Cluster.AllHosts().ToList().Count != nodeCount)
-                    throw new Exception("There a different number of actual hosts in the session than nodes assigned to the TestCluster!");
+                _logger.Info("Found existing test cluster with nodeCount: " + dc1NodeCount + ", name: " + testCluster.Name);
+                if (testCluster.Cluster.AllHosts().ToList().Count != dc1NodeCount)
+                    _logger.Warning("There a different number of actual hosts in the session than nodes assigned to the TestCluster ! ");
 
                 // Make sure only the single TestCluster that we want running is running
                 if (!UseCtool)
-                {
-                    StopAllCcmTestClustersExceptFor((CcmCluster)shareableTestCluster);
-                }
-                shareableTestCluster.SwitchToThisStartAndConnect();
+                    StopAllCcmTestClustersExceptFor((CcmCluster)testCluster);
+                testCluster.SwitchToThisAndStart();
             }
 
             // If no Test Cluster was found, then we need to create a new one.
             else
             {
-                shareableTestCluster = CreateNewClusterAndAddToList(
-                    TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), nodeCount, DefaultKeyspaceName, true, initClusterAndSession, 2);
+                testCluster = CreateNewCluster(
+                    TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, DefaultKeyspaceName, shareable, startCluster, 2);
             }
 
-            // Make sure the test cluster is fully queriable before returning if it's supposed to be 'UP'
-            // if this fails, then remove this cluster and create a new one
-            if (initClusterAndSession)
+
+            // if this fails, then remove the cluster and try another creating another one
+            if (initClient)
             {
-                try
+                if (!TryToInititalizeClusterClient(testCluster))
                 {
-                    foreach (var host in shareableTestCluster.Cluster.AllHosts())
-                    {
-                        string[] hostElements = host.Address.ToString().Split(':');
-                        if (hostElements.Length < 2)
-                            throw new Exception("Host was not the expected format: " + host.Address.ToString());
-                        string hostStr = hostElements[0];
-                        int port = -1;
-                        Int32.TryParse(hostElements[1], out port);
-                        TestUtils.WaitForUp_new(hostElements[0], port, 10);
-                        //TestUtils.ValidateBootStrappedNodeIsQueried(shareableTestCluster, nodeCount, hostStr);
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Error("Unexpected Error occurred when trying to get shared test cluster with nodeCount: " + nodeCount + ", name: " + shareableTestCluster.Name);
-                    _logger.Error("Error Message: " + e.Message);
-                    _logger.Error("Error Stack Trace: " + e.StackTrace);
-                    _logger.Error("Removing this cluster, and looping back to create a new one ... ");
-                    RemoveExistingClusterWithNodeCount_Force(nodeCount);
+                    testCluster.ShutDown();
                     KillAllCcmProcesses();
-                    if (retryCount > MaxClusterCreationRetries)
-                        throw new Exception("Cluster with node count " + nodeCount + " has already failed " + retryCount + " times ... is there something wrong with this environment?");
-                    else
-                    {
-                        return GetTestCluster(nodeCount, maxTries, initClusterAndSession, ++retryCount);
-                    }
+                    if (currentRetryCount > MaxClusterCreationRetries)
+                        throw new Exception("Cluster with node count " + dc1NodeCount + " has already failed " + currentRetryCount + " times ... is there something wrong with this environment?");
+                    testCluster = null; // signal that we need to try again
                 }
             }
-            return shareableTestCluster;
+
+            // loop back, try again while we haven't exceeded max tries
+            if (testCluster == null && currentRetryCount < maxTries)
+                return GetTestCluster(dc1NodeCount, dc2NodeCount, shareable, maxTries, startCluster, initClient, ++currentRetryCount);
+
+            // fail out if the test cluster was never created
+            if (testCluster == null)
+                throw new Exception("Test cluster was not created successfully!");
+
+            // only add this to the test cluster list if its not there already
+            if (!_testClusters.Contains(testCluster))
+                _testClusters.Add(testCluster);
+
+            return testCluster;
+        }
+
+        // Get existing test cluster that can be shared, otherwise create a new one that can be shared.
+        public ITestCluster GetTestCluster(int dc1NodeCount, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true)
+        {
+            // Assume this is a shareable cluster with a single DC
+            bool thisClusterShouldBeShareable = true;
+            int secondDcNodeCount = 0;
+            return GetTestCluster(dc1NodeCount, secondDcNodeCount, thisClusterShouldBeShareable, maxTries, startCluster, initClient);
+        }
+
+        private bool TryToInititalizeClusterClient(ITestCluster testCluster)
+        {
+            try
+            {
+                foreach (string host in testCluster.ExpectedInitialHosts)
+                    TestUtils.WaitForUp(host, DefaultCassandraPort, 15);
+
+                // at this point we expect all the nodes to be up
+                testCluster.InitClient();
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.Error("Unexpected Error occurred when trying to get shared test cluster with InitialContactPoint: " + testCluster.InitialContactPoint + ", name: " + testCluster.Name);
+                _logger.Error("Error Message: " + e.Message);
+                _logger.Error("Error Stack Trace: " + e.StackTrace);
+                _logger.Error("Removing this cluster, and looping back to create a new one ... ");
+            }
+            return false;
         }
 
         public void KillAllCcmProcesses()
@@ -218,7 +238,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return null;
         }
 
-        public void RemoveExistingClusterWithNodeCount_Force(int nodeCount)
+        public void RemoveShareableClusterWithNodeCount(int nodeCount)
         {
             for (int i = 0; i < _testClusters.Count(); i++)
             {

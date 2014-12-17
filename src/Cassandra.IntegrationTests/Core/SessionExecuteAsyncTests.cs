@@ -33,8 +33,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupTest()
         {
-            IndividualTestSetup();
-            _session = TestClusterManager.GetTestCluster(2).Session;
+            _session = TestClusterManager.GetTestCluster(1).Session;
         }
 
         [Test]

@@ -143,7 +143,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Start the node that was just down, then down the node that was just up
             policyTestTools.ResetCoordinators();
             testCluster.Start(clusterPosQueried);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + clusterPosQueried, testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + clusterPosQueried, DefaultCassandraPort, 30);
 
             // Test successful reads
             DateTime futureDateTime = DateTime.Now.AddSeconds(120);

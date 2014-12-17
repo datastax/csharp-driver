@@ -37,8 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupTest()
         {
-            IndividualTestSetup();
-            _session = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCmdRetries, true, 1).Session;
+            _session = TestClusterManager.GetTestCluster(1).Session;
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
@@ -727,7 +726,7 @@ namespace Cassandra.IntegrationTests.Core
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 40);
 
             testCluster.Start(1);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 40, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 60);
 
             Assert.True(nonShareableSession.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
             for (var i = 0; i < 10; i++)

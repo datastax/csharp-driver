@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupFixture()
         {
-            _testCluster = TestClusterManager.GetTestCluster(4);
+            _testCluster = TestClusterManager.GetTestCluster(1);
             _session = _testCluster.Session;
         }
 
@@ -48,11 +48,10 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchPreparedStatementTest()
+        public void Batch_PreparedStatement()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             List<object[]> expectedValues = new List<object[]> { new object[] { 1, "label1", 1 }, new object[] { 2, "label2", 2 }, new object[] { 3, "label3", 3 } };
-
             CreateTable(tableName);
 
             PreparedStatement ps = _session.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
@@ -71,11 +70,10 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchPreparedStatementBasicAsyncTest()
+        public void Batch_PreparedStatement_AsyncTest()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             List<object[]> expectedValues = new List<object[]> { new object[] { 1, "label1", 1 }, new object[] { 2, "label2", 2 }, new object[] { 3, "label3", 3 } };
-
             CreateTable(tableName);
 
             PreparedStatement ps = _session.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
@@ -93,14 +91,12 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchSimpleStatementSingle()
+        public void Batch_SimpleStatementSingle()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-
             CreateTable(tableName);
 
             var batch = new BatchStatement();
-
             var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label 1", 10));
             batch.Add(simpleStatement);
             _session.Execute(batch);
@@ -114,12 +110,10 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchSimpleStatementSingleBinded()
+        public void Batch_SimpleStatement_Bound()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-
             CreateTable(tableName);
-
             var batch = new BatchStatement();
 
             var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
@@ -135,7 +129,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchSimpleStatementMultiple()
+        public void Batch_SimpleStatement_Multiple()
         {
             SimpleStatement simpleStatement = null;
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -160,7 +154,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchStatementTwoTablesTest()
+        public void Batch_UsingTwoTables()
         {
             var expectedValues = new List<object[]>();
             var batch = new BatchStatement();
@@ -182,7 +176,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchStatementOnTwoTablesWithOneInvalidTableTest()
+        public void Batch_UsingTwoTables_OneInvalidTable()
         {
             var batch = new BatchStatement();
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
@@ -190,37 +184,47 @@ namespace Cassandra.IntegrationTests.Core
             CreateTable(tableName);
 
             batch.Add(new SimpleStatement(String.Format(@"INSERT INTO {0} (id, label, number) VALUES ({1}, '{2}', {3})", tableName, 1, "label1", 1)));
-            batch.Add(new SimpleStatement(String.Format(@"INSERT INTO table2 (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
+            batch.Add(new SimpleStatement(String.Format(@"INSERT INTO table_randomnonexistent (id, label, number) VALUES ({0}, '{1}', {2})", 2, "label2", 2)));
 
-            Assert.Throws<InvalidQueryException>(
-                delegate { _session.Execute(batch); }, "expected InvalidQueryException, but did not get one");
+            Assert.Throws<InvalidQueryException>(() => _session.Execute(batch));
         }
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void BatchMixedStatements()
+        public void Batch_MixedStatements()
         {
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            CreateTable(tableName);
+            foreach (var protocolVersion in ProtocolVersionSupported)
+            {
+                //Use all possible protocol versions
+                Cluster.MaxProtocolVersion = protocolVersion;
+                //Use a local cluster
+                var localCluster = Cluster.Builder().AddContactPoint(_testCluster.ClusterIpPrefix + "1").Build();
+                var localSession = localCluster.Connect();
+                localSession.CreateKeyspaceIfNotExists("tester");
+                localSession.ChangeKeyspace("tester");
+                var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+                CreateTable(localSession, tableName);
+                TestUtils.WaitForSchemaAgreement(localSession.Cluster);
 
-            var simpleStatement =
-                new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, {2}, {3})", tableName, 1, "label", 2));
-            var ps = _session.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
-            var batchStatement = new BatchStatement();
-            var expectedValues = new List<object[]> { new object[] { 1, "label", 2 }, new object[] { 1, "test", 2 } };
+                var simpleStatement =
+                    new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES ({1}, {2}, {3})", tableName, 1, "label", 2));
+                var ps = localSession.Prepare(string.Format(@"INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
+                var batchStatement = new BatchStatement();
+                var expectedValues = new List<object[]> { new object[] { 1, "label", 2 }, new object[] { 1, "test", 2 } };
 
-            batchStatement.Add(ps.Bind(new object[] { 1, "test", 2 }));
-            batchStatement.Add(simpleStatement);
+                batchStatement.Add(ps.Bind(new object[] { 1, "test", 2 }));
+                batchStatement.Add(simpleStatement);
 
-            var rs = _session.Execute("SELECT * FROM " + tableName);
-            VerifyData(rs, expectedValues);
+                var rs = localSession.Execute("SELECT * FROM " + tableName);
+                VerifyData(rs, expectedValues);
+            }
         }
 
         [Test]
         [TestCassandraVersion(2, 1)]
-        public void BatchSerialConsistencyTest()
+        public void Batch_SerialConsistency()
         {
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = TestUtils.GetUniqueTableName().ToLower();
             CreateTable(tableName);
 
             var query = new SimpleStatement(String.Format("INSERT INTO {0} (id) values (-99999)", tableName));
@@ -247,13 +251,12 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 1)]
-        public void BatchTimestampTest()
+        public void Batch_Timestamp()
         {
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = TestUtils.GetUniqueTableName().ToLower();
             CreateTable(tableName);
 
             var query = new SimpleStatement(String.Format("INSERT INTO {0} (id) values (-99999)", tableName));
-
 
             Assert.DoesNotThrow(() =>
             {
@@ -270,7 +273,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0, Comparison.Equal)]
-        public void BatchPreparedStatementsFlagsNotSupportedInC2_0()
+        public void Batch_PreparedStatements_FlagsNotSupportedInC2_0()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             CreateTable(tableName);
@@ -305,7 +308,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void LargeBatchPreparedStatement()
+        public void Batch_PreparedStatement_Large()
         {
             string tableName = "table" + Guid.NewGuid().ToString("N");
 
@@ -353,13 +356,19 @@ namespace Cassandra.IntegrationTests.Core
 
         private void CreateTable(string tableName)
         {
-            QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
+            CreateTable(_session, tableName);
+        }
+
+        private void CreateTable(ISession session, string tableName)
+        {
+            QueryTools.ExecuteSyncNonQuery(session, string.Format(@"CREATE TABLE {0}(
                                                                 id int PRIMARY KEY,
                                                                 label text,
                                                                 number int
                                                                 );", tableName));
-            TestUtils.WaitForSchemaAgreement(_session.Cluster);
+            TestUtils.WaitForSchemaAgreement(session.Cluster);
         }
+
 
         private void CreateTwoTableTestEnv(string table1, string table2)
         {

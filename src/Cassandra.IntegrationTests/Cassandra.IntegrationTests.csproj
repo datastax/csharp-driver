@@ -57,6 +57,7 @@
     </Compile>
     <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
+    <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Tests\Counter.cs" />
     <Compile Include="Linq\Tests\DeleteIf.cs" />

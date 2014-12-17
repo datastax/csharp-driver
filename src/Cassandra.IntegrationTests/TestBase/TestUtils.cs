@@ -160,11 +160,11 @@ namespace Cassandra.IntegrationTests.TestBase
             get { return ConfigurationManager.AppSettings["UseRemote"] == "true"; }
         }
 
-        public static void WaitForUp_new(string nodeHost, int nodePort, int maxTry)
+        public static void WaitForUp(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
         {
-            int tries = 0;
             int msSleepPerIteration = 500;
-            while (tries < maxTry)
+            DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
+            while (DateTime.Now < futureDateTime)
             {
                 TcpClient tcpClient = new TcpClient();
                 try
@@ -180,16 +180,14 @@ namespace Cassandra.IntegrationTests.TestBase
                     tcpClient.Close();
                     Thread.Sleep(msSleepPerIteration);
                 }
-                tries++;
             }
-            throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + tries + " tries!");
+            throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + maxSecondsToKeepTrying + " seconds!");
         }
-
 
         // Wait for a node to be up and running
         // This is used because there is some delay between when a node has been
         // added through ccm and when it's actually available for querying'
-        public static Cluster WaitForUp(string nodeHost, Builder builder, int maxTry, bool doAddlQueryTest = false)
+        public static Cluster WaitForUp_old(string nodeHost, Builder builder, int maxTry, bool doAddlQueryTest = false)
         {
             int tries = 0;
             int msSleepPerIteration = 500;
