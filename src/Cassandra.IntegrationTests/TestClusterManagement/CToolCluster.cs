@@ -35,6 +35,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public bool IsUsingDefaultConfig { get; set; }
         public bool IsStarting { get; set; }
         public bool IsRemoved { get; set; }
+        public List<string> ExpectedInitialHosts { get; set; }
 
         public void StartClusterAndClient()
         {
@@ -85,7 +86,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new NotImplementedException();
         }
 
-        public void SwitchToThisStartAndConnect()
+        public void SwitchToThisAndStart()
         {
             throw new NotImplementedException();
         }

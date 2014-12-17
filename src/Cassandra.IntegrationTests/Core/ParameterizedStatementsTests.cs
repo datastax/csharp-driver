@@ -28,7 +28,6 @@ namespace Cassandra.IntegrationTests.Core
     public class ParameterizedStatementsTests : TestGlobals
     {
         ISession _session = null;
-        private int lastNodeCountUsed = 1;
 
         [SetUp]
         public void Setup()

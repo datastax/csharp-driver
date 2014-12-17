@@ -1,4 +1,7 @@
-﻿namespace Cassandra.IntegrationTests.TestClusterManagement
+﻿using System.Collections.Generic;
+using NUnit.Framework;
+
+namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public interface ITestCluster
     {
@@ -15,13 +18,8 @@
         bool IsCreated { get; set; }
         bool IsStarted { get; set; }
         bool IsUsingDefaultConfig { get; set; }
-        bool IsStarting { get; set; }
         bool IsRemoved { get; set; }
-
-        /// <summary>
-        /// Initializes the test cluster, including creating and starting Cassandra nodes.
-        /// </summary>
-        void StartClusterAndClient();
+        List<string> ExpectedInitialHosts { get; set; }
 
         /// <summary>
         /// Stops all clients and Cassandra nodes.
@@ -36,7 +34,7 @@
         /// <summary>
         /// Waits for the cluster to be initialized and available to handle requests
         /// </summary>
-        void SwitchToThisStartAndConnect();
+        void SwitchToThisAndStart();
 
         /// <summary>
         /// Creates the cluster with the option of starting it as well

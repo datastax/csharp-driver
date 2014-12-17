@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class ExceptionsTests : TestGlobals
     {
-        private readonly Logger _logger = new Logger(typeof(ExceptionsTests));
+        private static readonly Logger _logger = new Logger(typeof(ExceptionsTests));
         private static string _lastKnownInitialContactPoint = null;
 
         /// <summary>
@@ -362,7 +362,7 @@ namespace Cassandra.IntegrationTests.Core
             var session = cluster.Connect();
 
             var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
-            Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertions"));
+            Assert.True(ex.StackTrace.Contains("PreserveStackTraceTest"));
             Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
         }
 
@@ -372,7 +372,7 @@ namespace Cassandra.IntegrationTests.Core
             // we need to make sure at least a single node cluster is available, running locally
             _lastKnownInitialContactPoint = TestClusterManager.GetTestCluster(1).InitialContactPoint;
             var appDomain = CreatePartialTrustDomain();
-            appDomain.DoCallBack(PreserveStackTraceAssertionsOnConnect);
+            appDomain.DoCallBack(PreserveStackTraceOnConnectAndAssert);
         }
 
         [Test]
@@ -427,14 +427,15 @@ namespace Cassandra.IntegrationTests.Core
         /// Helper Methods
         ///////////////////////
 
-        public static void PreserveStackTraceAssertionsOnConnect()
+        public static void PreserveStackTraceOnConnectAndAssert()
         {
             var ex = Assert.Throws<SecurityException>(() => Cluster.Builder().AddContactPoint(_lastKnownInitialContactPoint).Build());
+            string stackTrace = ex.StackTrace;
+
             //Must maintain the original call stack trace
-            Assert.True(ex.StackTrace.Contains("PreserveStackTraceAssertionsOnConnect"));
-            Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
-            Assert.True(ex.StackTrace.Contains("Cassandra.Builder.AddContactPoint"));
-            Assert.True(ex.StackTrace.Contains("Cassandra.Utils.ResolveHostByName"));
+            StringAssert.Contains("PreserveStackTraceOnConnectAndAssert", stackTrace);
+            StringAssert.Contains("ExceptionsTests", stackTrace);
+            StringAssert.Contains("Cassandra.Utils.ResolveHostByName", stackTrace); // something actually from the Cassandra library
         }
 
         public static AppDomain CreatePartialTrustDomain()

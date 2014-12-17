@@ -26,7 +26,7 @@ using System.Linq;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("small")]
+    [Category("short")]
     public class ConsistencyTests : TestGlobals
     {
         private readonly Logger _logger = new Logger(typeof(Consistency));
@@ -47,7 +47,8 @@ namespace Cassandra.IntegrationTests.Core
             ITestCluster testCluster = TestClusterManager.GetTestCluster(nodes);
             _session = testCluster.Session;
             _ksName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspaceIfNotExists(_ksName, replication);
+            _session.CreateKeyspace(_ksName, replication);
+            TestUtils.WaitForSchemaAgreement(_session.Cluster);
             _session.ChangeKeyspace(_ksName);
 
             // Setup unique table
@@ -271,15 +272,15 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("Not enough replicas available for query at consistency Three (3 required but only 1 alive)", ex.Message);
         }
 
-        [Test, Category("large")]
+        [Test, Category("long")]
         public void Consistency_SimpleStatement_Three_SelectAndInsert()
         {
             int copies = 3;
             Dictionary<string, string> replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", copies.ToString() } };
             var testCluster = SetupSessionAndCluster(copies, replication);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 20, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", DefaultCassandraPort, 30);
 
             DoSimpleStatementSelectTest(ConsistencyLevel.Three);
             DoSimpleStatementInsertTest(ConsistencyLevel.Three);
@@ -301,14 +302,14 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("Not enough replicas available for query at consistency Two (2 required but only 1 alive)", ex.Message);
         }
 
-        [Test, Category("large")]
+        [Test, Category("long")]
         public void Consistency_SimpleStatement_Two_SelectAndInsert()
         {
             int copies = 2;
             Dictionary<string, string> replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", copies.ToString() } };
             var testCluster = SetupSessionAndCluster(copies, replication);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 20, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
 
             DoSimpleStatementSelectTest(ConsistencyLevel.Two);
             DoSimpleStatementInsertTest(ConsistencyLevel.Two);
@@ -534,15 +535,15 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("Not enough replicas available for query at consistency Three (3 required but only 1 alive)", ex.Message);
         }
 
-        [Test, Category("large")]
+        [Test, Category("long")]
         public void Consistency_PreparedStatement_Three_SelectAndInsert()
         {
             int copies = 3;
             Dictionary<string, string> replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", copies.ToString() } };
             var testCluster = SetupSessionAndCluster(copies, replication);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 20, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", DefaultCassandraPort, 30);
 
             DoPreparedSelectTest(ConsistencyLevel.Three);
             DoPreparedInsertTest(ConsistencyLevel.Three);
@@ -564,14 +565,14 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("Not enough replicas available for query at consistency Two (2 required but only 1 alive)", ex.Message);
         }
 
-        [Test, Category("large")]
+        [Test, Category("long")]
         public void Consistency_PreparedStatement_Two_SelectAndInsert()
         {
             int copies = 2;
             Dictionary<string, string> replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", copies.ToString() } };
             var testCluster = SetupSessionAndCluster(copies, replication);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 20, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
 
             DoPreparedSelectTest(ConsistencyLevel.Two);
             DoPreparedInsertTest(ConsistencyLevel.Two);
@@ -629,8 +630,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_Batch_LocalSerial()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoBatchInsertTest(ConsistencyLevel.LocalSerial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            DoBatchInsertTest(ConsistencyLevel.LocalSerial);
         }
 
         [Test]
@@ -651,8 +651,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_Batch_Serial()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoBatchInsertTest(ConsistencyLevel.Serial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            DoBatchInsertTest(ConsistencyLevel.Serial);
         }
 
         [Test]
@@ -661,8 +660,8 @@ namespace Cassandra.IntegrationTests.Core
             int copies = 2;
             Dictionary<string, string> replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", copies.ToString() } };
             var testCluster = SetupSessionAndCluster(copies, replication);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 20, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
 
             DoBatchInsertTest(ConsistencyLevel.Two);
         }
@@ -673,9 +672,9 @@ namespace Cassandra.IntegrationTests.Core
             int copies = 3;
             Dictionary<string, string> replication = new Dictionary<string, string> { { "class", ReplicationStrategies.SimpleStrategy }, { "replication_factor", copies.ToString() } };
             var testCluster = SetupSessionAndCluster(copies, replication);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 20, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 20, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", DefaultCassandraPort, 30);
 
             DoBatchInsertTest(ConsistencyLevel.Three);
         }
@@ -688,11 +687,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             // Add a few more records via batch statement
             BatchStatement batch = new BatchStatement();
+            batch.SetConsistencyLevel(expectedConsistencyLevel);
             var addlPocoList = ManyDataTypesEntity.GetDefaultAllDataTypesList();
             foreach (var manyDataTypesPoco in addlPocoList)
             {
-                SimpleStatement simpleStatement = (SimpleStatement)_table.Insert(manyDataTypesPoco);
-                simpleStatement = (SimpleStatement)simpleStatement.SetConsistencyLevel(expectedConsistencyLevel);
+                SimpleStatement simpleStatement = _table.Insert(manyDataTypesPoco);
                 batch.Add(simpleStatement);
             }
 

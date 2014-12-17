@@ -160,8 +160,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecuteCcm(string.Format("node{0} decommission", n));
         }
 
-        private int dead = 0;
-
         public ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = false)
         {
             // right now having a config dir is always a requirement

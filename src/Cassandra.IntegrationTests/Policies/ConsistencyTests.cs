@@ -668,7 +668,7 @@ namespace Cassandra.IntegrationTests.Policies
         [Test]
         public void ReplicationFactorThree_TwoDCs_DowngradingConsistencyRetryPolicy()
         {
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -788,18 +788,18 @@ namespace Cassandra.IntegrationTests.Policies
         public void ReplicationFactorThree_TwoDcs_DcAware_DowngradingConsistencyRetryPolicy()
         {
             // Seetup
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
 
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "4", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "5", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "6", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "4", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "5", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "6", DefaultCassandraPort, 30);
 
             // Test
             _policyTestTools.CreateMultiDcSchema(testCluster.Session, 3, 3);
