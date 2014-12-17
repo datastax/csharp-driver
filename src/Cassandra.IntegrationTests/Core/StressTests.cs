@@ -16,6 +16,7 @@
 
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

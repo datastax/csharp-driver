@@ -95,7 +95,7 @@ namespace Cassandra
             }
         }
 
-        private Cluster(IEnumerable<IPAddress> contactPoints, Configuration configuration)
+        private Cluster(IEnumerable<IPEndPoint> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
             _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
@@ -212,13 +212,13 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public Host GetHost(IPAddress address)
+        public Host GetHost(IPEndPoint address)
         {
             return Metadata.GetHost(address);
         }
 
         /// <inheritdoc />
-        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
+        public ICollection<Host> GetReplicas(byte[] partitionKey)
         {
             return Metadata.GetReplicas(partitionKey);
         }

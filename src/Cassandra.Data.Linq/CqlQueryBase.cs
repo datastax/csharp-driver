@@ -19,18 +19,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
     public abstract class CqlQueryBase<TEntity> : Statement
     {
-        private Expression _expression;
-        private IQueryProvider _table;
+        internal ITable Table { get; private set; }
 
-        public Expression Expression
-        {
-            get { return _expression; }
-        }
+        public Expression Expression { get; private set; }
 
         public Type ElementType
         {
@@ -38,6 +36,14 @@ namespace Cassandra.Data.Linq
         }
 
         public QueryTrace QueryTrace { get; protected set; }
+
+        internal MapperFactory MapperFactory { get; set; }
+
+        internal StatementFactory StatementFactory { get; set; }
+        /// <summary>
+        /// The information associated with the TEntity
+        /// </summary>
+        internal PocoData PocoData { get; set; }
 
         public override RoutingKey RoutingKey
         {
@@ -48,21 +54,23 @@ namespace Cassandra.Data.Linq
         {
         }
 
-        internal CqlQueryBase(Expression expression, IQueryProvider table)
+        internal CqlQueryBase(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
         {
-            _expression = expression;
-            _table = table;
+            InternalInitialize(expression, table, mapperFactory, stmtFactory, pocoData);
         }
 
-        internal void InternalInitialize(Expression expression, IQueryProvider table)
+        internal void InternalInitialize(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
         {
-            _expression = expression;
-            _table = table;
+            Expression = expression;
+            Table = table;
+            MapperFactory = mapperFactory;
+            StatementFactory = stmtFactory;
+            PocoData = pocoData;
         }
 
         public ITable GetTable()
         {
-            return _table as ITable;
+            return Table;
         }
 
         protected abstract string GetCql(out object[] values);
@@ -70,9 +78,14 @@ namespace Cassandra.Data.Linq
         protected Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();
-            SimpleStatement stmt = new SimpleStatement(cqlQuery).BindObjects(values);
-            this.CopyQueryPropertiesTo(stmt);
-            return session.ExecuteAsync(stmt);
+            return StatementFactory
+                .GetStatementAsync(session, Cql.New(cqlQuery, values))
+                .Continue(t1 =>
+                {
+                    var stmt = t1.Result;
+                    this.CopyQueryPropertiesTo(stmt);
+                    return session.ExecuteAsync(stmt);
+                }).Unwrap();
         }
 
         /// <summary>
@@ -80,33 +93,17 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             object[] values;
-            string cql = visitor.GetSelect(out values, withValues);
-            var adaptation =
-                InternalExecuteAsync(cql, values).ContinueWith((t) =>
-                {
-                    var rs = t.Result;
-                    QueryTrace = rs.Info.QueryTrace;
-
-                    CqlColumn[] cols = rs.Columns;
-                    var colToIdx = new Dictionary<string, int>();
-                    for (int idx = 0; idx < cols.Length; idx++)
-                        colToIdx.Add(cols[idx].Name, idx);
-                    return AdaptRows(rs, colToIdx, visitor);
-                }, TaskContinuationOptions.ExecuteSynchronously);
-            return adaptation;
-        }
-
-        internal IEnumerable<TEntity> AdaptRows(IEnumerable<Row> rows, Dictionary<string, int> colToIdx, CqlExpressionVisitor visitor)
-        {
-            foreach (Row row in rows)
+            var cql = visitor.GetSelect(out values);
+            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
             {
-                yield return CqlQueryTools.GetRowFromCqlRow<TEntity>(row, colToIdx, visitor.Mappings, visitor.Alter);
-            }
+                var rs = t.Result;
+                var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+                return rs.Select(mapper);
+            });
+            return adaptation;
         }
 
         /// <summary>
@@ -128,13 +125,6 @@ namespace Cassandra.Data.Linq
         {
             var task = (Task<IEnumerable<TEntity>>)ar;
             return task.Result;
-        }
-
-        protected struct CqlQueryTag
-        {
-            public Dictionary<string, string> Alter;
-            public Dictionary<string, Tuple<string, object, int>> Mappings;
-            public ISession Session;
         }
     }
 }

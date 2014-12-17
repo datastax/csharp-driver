@@ -16,7 +16,7 @@ namespace Cassandra.IntegrationTests.Linq
         private const string TableName = "linqalltypestable";
         ISession _session = null;
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetupFixture()
         {
             _session = TestClusterManager.GetTestCluster(1).Session;

@@ -24,7 +24,7 @@ namespace Cassandra
 {
     internal class Hosts : IEnumerable<Host>
     {
-        private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
+        private readonly ConcurrentDictionary<IPEndPoint, Host> _hosts = new ConcurrentDictionary<IPEndPoint, Host>();
         private readonly IReconnectionPolicy _rp;
         /// <summary>
         /// Event that gets triggered when a new host has been added
@@ -44,7 +44,7 @@ namespace Cassandra
             _rp = rp;
         }
 
-        public bool TryGet(IPAddress endpoint, out Host host)
+        public bool TryGet(IPEndPoint endpoint, out Host host)
         {
             return _hosts.TryGetValue(endpoint, out host);
         }
@@ -57,7 +57,7 @@ namespace Cassandra
         /// <summary>
         /// Adds the host if not exists
         /// </summary>
-        public Host Add(IPAddress key)
+        public Host Add(IPEndPoint key)
         {
             var newHost = new Host(key, _rp);
             var host = _hosts.GetOrAdd(key, newHost);
@@ -78,7 +78,7 @@ namespace Cassandra
             }
         }
 
-        public bool SetDownIfExists(IPAddress ep)
+        public bool SetDownIfExists(IPEndPoint ep)
         {
             Host host;
             if (_hosts.TryGetValue(ep, out host))
@@ -88,7 +88,7 @@ namespace Cassandra
             return false;
         }
 
-        public void RemoveIfExists(IPAddress ep)
+        public void RemoveIfExists(IPEndPoint ep)
         {
             Host host;
             if (_hosts.TryRemove(ep, out host))
@@ -102,9 +102,9 @@ namespace Cassandra
             }
         }
 
-        public IEnumerable<IPAddress> AllEndPointsToCollection()
+        public IEnumerable<IPEndPoint> AllEndPointsToCollection()
         {
-            return _hosts.Keys;
+            return new List<IPEndPoint>(_hosts.Keys);
         }
 
         public IEnumerator<Host> GetEnumerator()

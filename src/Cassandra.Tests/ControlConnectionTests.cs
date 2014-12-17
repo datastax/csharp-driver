@@ -15,14 +15,23 @@ namespace Cassandra.Tests
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
 
+        public ICluster GetCluster()
+        {
+            var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
+            clusterMock
+                .SetupGet(c => c.Configuration)
+                .Returns(new Configuration());
+            return clusterMock.Object;
+        }
+
         [Test]
         public void UpdateLocalNodeInfoModifiesHost()
         {
             var rp = new ConstantReconnectionPolicy(1000);
             var metadata = new Metadata(rp);
             var config = new Configuration();
-            var cc = new ControlConnection(Mock.Of<ICluster>(), metadata);
-            cc.Host = new Host(IPAddress.Parse("127.0.0.1"), rp);
+            var cc = new ControlConnection(GetCluster(), metadata);
+            cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
             {
                 { "cluster_name", "ut-cluster" }, { "data_center", "ut-dc" }, { "rack", "ut-rack" }, {"tokens", null}
@@ -39,8 +48,8 @@ namespace Cassandra.Tests
             var rp = new ConstantReconnectionPolicy(1000);
             var metadata = new Metadata(rp);
             var config = new Configuration();
-            var cc = new ControlConnection(Mock.Of<ICluster>(), metadata);
-            cc.Host = new Host(IPAddress.Parse("127.0.0.1"), rp);
+            var cc = new ControlConnection(GetCluster(), metadata);
+            cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var hostAddress2 = IPAddress.Parse("127.0.0.2");
             var hostAddress3 = IPAddress.Parse("127.0.0.3");
@@ -52,12 +61,12 @@ namespace Cassandra.Tests
             cc.UpdatePeersInfo(rows);
             Assert.AreEqual(3, metadata.AllHosts().Count);
             //using rpc_address
-            var host2 = metadata.GetHost(hostAddress2);
+            var host2 = metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
             Assert.NotNull(host2);
             Assert.AreEqual("ut-dc2", host2.Datacenter);
             Assert.AreEqual("ut-rack2", host2.Rack);
             //with rpc_address = 0.0.0.0, use peer
-            var host3 = metadata.GetHost(hostAddress3);
+            var host3 = metadata.GetHost(new IPEndPoint(hostAddress3, ProtocolOptions.DefaultPort));
             Assert.NotNull(host3);
             Assert.AreEqual("ut-dc3", host3.Datacenter);
             Assert.AreEqual("ut-rack3", host3.Rack);
@@ -68,8 +77,8 @@ namespace Cassandra.Tests
         {
             var rp = new ConstantReconnectionPolicy(1000);
             var metadata = new Metadata(rp);
-            var cc = new ControlConnection(Mock.Of<ICluster>(), metadata);
-            cc.Host = new Host(IPAddress.Parse("127.0.0.1"), rp);
+            var cc = new ControlConnection(GetCluster(), metadata);
+            cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
             {

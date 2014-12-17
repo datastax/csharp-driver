@@ -18,6 +18,9 @@ using System;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Indicates that the property or field is a counter column
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class CounterAttribute : Attribute
     {

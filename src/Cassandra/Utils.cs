@@ -176,9 +176,14 @@ namespace Cassandra
             {
                 return false;
             }
+            return IsAnonymousType(value.GetType());
+        }
 
-            var type = value.GetType();
-
+        /// <summary>
+        /// Determines if the type is anonymous
+        /// </summary>
+        public static bool IsAnonymousType(Type type)
+        {
             return type.IsGenericType
                    && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
                    && (type.Name.Contains("AnonymousType") || type.Name.Contains("AnonType"))
@@ -237,6 +242,15 @@ namespace Cassandra
         public static bool IsSerialConsistencyLevel(this ConsistencyLevel consistency)
         {
             return consistency == ConsistencyLevel.Serial || consistency == ConsistencyLevel.LocalSerial;
+        }
+
+        /// <summary>
+        /// Creates a new instance of the collection type with the values provided
+        /// </summary>
+        public static object ToCollectionType(Type collectionType, Type valueType, Array value)
+        {
+            var listType = collectionType.MakeGenericType(valueType);
+            return Activator.CreateInstance(listType, new object[] { value });
         }
     }
 }

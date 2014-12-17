@@ -101,6 +101,24 @@ namespace Cassandra.IntegrationTests.TestBase
             return "TestTable_" + Randomm.RandomAlphaNum(12);
         }
 
+        public static bool TableExists(ISession session, string keyspaceName, string tableName)
+        {
+            // SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='TestKeySpace_c3052b44be8b';
+            string cql = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='" + keyspaceName + "'";
+            RowSet rowSet = session.Execute(cql);
+            List<Row> rows = rowSet.GetRows().ToList();
+            if (rows != null && rows.Count > 0)
+            {
+                foreach (var row in rows)
+                {
+                    string cfName = (string)row["columnfamily_name"];
+                    if (cfName == tableName)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         public static byte[] GetBytes(string str)
         {
             byte[] bytes = new byte[str.Length*sizeof (char)];

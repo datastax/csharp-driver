@@ -36,7 +36,9 @@ namespace Cassandra.Data.Linq
         public override void Append(CqlCommand cqlCommand)
         {
             if (cqlCommand.GetTable().GetTableType() == TableType.Counter)
+            {
                 _batchType = BatchType.Counter;
+            }
             _batchScript.Add(cqlCommand);
         }
 

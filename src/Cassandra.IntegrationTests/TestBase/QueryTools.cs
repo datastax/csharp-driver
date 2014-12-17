@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.TestBase
             }
         }
 
-        internal static IPAddress ExecuteSyncNonQuery(ISession session, string query, string messageInstead = null,
+        internal static IPEndPoint ExecuteSyncNonQuery(ISession session, string query, string messageInstead = null,
                                                       ConsistencyLevel? consistency = null)
         {
             RowSet ret = session.Execute(query, consistency ?? session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
@@ -85,7 +85,7 @@ namespace Cassandra.IntegrationTests.TestBase
             return ret;
         }
 
-        internal static IPAddress ExecutePreparedQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
+        internal static IPEndPoint ExecutePreparedQuery(ISession session, PreparedStatement prepared, object[] values, string messageInstead = null)
         {
             RowSet ret = session.Execute(prepared.Bind(values).SetConsistencyLevel(session.Cluster.Configuration.QueryOptions.GetConsistencyLevel()));
             return ret.Info.QueriedHost;

@@ -31,7 +31,7 @@ namespace Cassandra
     {
         private static Logger _logger = new Logger(typeof(Session));
         
-        private readonly ConcurrentDictionary<IPAddress, HostConnectionPool> _connectionPool;
+        private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
         private int _disposed;
 
         public int BinaryProtocolVersion { get; internal set; }
@@ -61,7 +61,7 @@ namespace Cassandra
             Keyspace = keyspace;
             BinaryProtocolVersion = binaryProtocolVersion;
             UserDefinedTypes = new UdtMappingDefinitions(this);
-            _connectionPool = new ConcurrentDictionary<IPAddress, HostConnectionPool>();
+            _connectionPool = new ConcurrentDictionary<IPEndPoint, HostConnectionPool>();
         }
 
         /// <inheritdoc />
@@ -294,7 +294,7 @@ namespace Cassandra
             WaitForSchemaAgreement(rs.Info.QueriedHost);
         }
 
-        public bool WaitForSchemaAgreement(IPAddress hostAddress)
+        public bool WaitForSchemaAgreement(IPEndPoint hostAddress)
         {
             //TODO: Remove method
             if (Cluster.Metadata.AllHosts().Count == 1)

@@ -26,14 +26,14 @@ namespace Cassandra
         /// <summary>
         ///  Gets the host for which the authentication failed. 
         /// </summary>
-        public IPAddress Host { get; private set; }
+        public IPEndPoint Host { get; private set; }
 
         public AuthenticationException(string message)
             : base(message)
         {
         }
 
-        public AuthenticationException(string message, IPAddress host)
+        public AuthenticationException(string message, IPEndPoint host)
             : base(string.Format("Authentication error on host {0}: {1}", host, message))
         {
             Host = host;

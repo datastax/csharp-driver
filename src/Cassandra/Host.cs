@@ -57,7 +57,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the node address.
         /// </summary>
-        public IPAddress Address { get; private set; }
+        public IPEndPoint Address { get; private set; }
 
         /// <summary>
         /// Tokens assigned to the host
@@ -80,7 +80,7 @@ namespace Cassandra
         /// </summary>
         public string Rack { get; private set; }
 
-        public Host(IPAddress address, IReconnectionPolicy reconnectionPolicy)
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy)
         {
             Address = address;
             _reconnectionPolicy = reconnectionPolicy;

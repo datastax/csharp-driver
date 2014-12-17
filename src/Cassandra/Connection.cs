@@ -21,7 +21,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -86,11 +85,11 @@ namespace Cassandra
 
         public IFrameCompressor Compressor { get; set; }
 
-        public IPAddress Address
+        public IPEndPoint Address
         {
             get
             {
-                return _tcpSocket.IPEndPoint.Address;
+                return _tcpSocket.IPEndPoint;
             }
         }
 

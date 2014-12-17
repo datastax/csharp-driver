@@ -18,8 +18,6 @@
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Text;
-using System.Net;
 using System.Threading;
 
 namespace Cassandra
@@ -88,8 +86,7 @@ namespace Cassandra
         private Connection CreateConnection()
         {
             _logger.Info("Creating a new connection to the host " + Host.Address.ToString());
-            var endpoint = new IPEndPoint(Host.Address, Configuration.ProtocolOptions.Port);
-            var c = new Connection(ProtocolVersion, endpoint, Configuration);
+            var c = new Connection(ProtocolVersion, Host.Address, Configuration);
             c.Init();
             if (Configuration.PoolingOptions.GetHeartBeatInterval() != null)
             {

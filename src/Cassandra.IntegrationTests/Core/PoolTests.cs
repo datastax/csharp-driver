@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.Core
             nonShareableTestCluster.InitClient(); // this will replace the existing session using the newly assigned Builder instance
             var session = (Session)nonShareableTestCluster.Session;
 
-            var hosts = new List<IPAddress>();
+            var hosts = new List<IPEndPoint>();
             for (var i = 0; i < 50; i++)
             {
                 var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Core
                 hosts.Add(rs.Info.QueriedHost);
             }
 
-            var pool = session.GetConnectionPool(new Host(IPAddress.Parse(nonShareableTestCluster.InitialContactPoint), policy), HostDistance.Local);
+            var pool = session.GetConnectionPool(TestHelper.CreateHost(nonShareableTestCluster.InitialContactPoint), HostDistance.Local);
             var connections = pool.OpenConnections.ToArray();
             var expectedCoreConnections = nonShareableTestCluster.Cluster.Configuration
                 .GetPoolingOptions(connections.First().ProtocolVersion)

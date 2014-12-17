@@ -31,6 +31,6 @@ namespace Cassandra
         /// </summary>
         /// <param name="host"> the Cassandra host to connect to. </param>
         /// <returns>The authentication implmentation to use.</returns>
-        IAuthenticator NewAuthenticator(IPAddress host);
+        IAuthenticator NewAuthenticator(IPEndPoint host);
     }
 }

@@ -119,10 +119,10 @@ namespace Cassandra.IntegrationTests.Core
             string setVal = new string('a', UInt16.MaxValue - 9);
             _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal, ConsistencyLevel.Quorum));
 
-            using (var rs = _session.Execute(string.Format("SELECT * FROM {0} WHERE k = {1}", uniqueTableName, Key.ToString()), ConsistencyLevel.Quorum))
+            using (var rs = _session.Execute(string.Format("SELECT * FROM {0} WHERE k = {1}", uniqueTableName, Key), ConsistencyLevel.Quorum))
             {
                 Row row = rs.GetRows().FirstOrDefault();
-                Assert.AreEqual(setVal, ((List<string>)row["i"]).First());
+                Assert.AreEqual(setVal, ((string[])row["i"]).First());
             }
         }
 

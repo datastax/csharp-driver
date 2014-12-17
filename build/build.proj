@@ -18,8 +18,8 @@
     <NuGet>$(SourceFolder)\.nuget\nuget.exe</NuGet>
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
-    <!-- Version information -->
-    <Version>2.1.5</Version>
+    <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
+    <PackageVersion>2.5.0-beta1</PackageVersion>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   
@@ -50,10 +50,9 @@
 
   <!-- Creates nuget package(s) -->
   <Target Name="package" DependsOnTargets="generate-assembly-info;unit-test">
-    <Error Condition="$(PACKAGE_VERSION) == ''" Text="The PACKAGE_VERSION environment variable is not set." />
     <Message Text="Creating NuGet package(s)" Importance="high" />
     <MakeDir Directories="$(PackagesFolder)" />
-    <Exec Command="$(NuGet) pack &quot;%(NuSpecFiles.FullPath)&quot; -basepath $(SourceFolder) -o $(PackagesFolder) -version $(PACKAGE_VERSION)" />
+    <Exec Command="$(NuGet) pack &quot;%(NuSpecFiles.FullPath)&quot; -basepath $(SourceFolder) -o $(PackagesFolder) -version $(PackageVersion)" />
   </Target>
 
   <!-- Runs unit tests -->
@@ -84,9 +83,17 @@
     
     <!-- Require that the BUILD_NUMBER environment variable is present (should be set automatically by Jenkins) -->
     <Error Condition="$(BUILD_NUMBER) == ''" Text="The BUILD_NUMBER environment variable is not set." ContinueOnError="false" />
+
+    <!-- Make sure the PackageVersion is something we can parse for the AssemblyVersion and AssemblyFileVersion attributes -->
+    <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(PackageVersion), `^\d+\.\d+\.\d+`)) == false" 
+           Text="The PackageVersion specified must follow semantic versioning and contain at least 3 numeric parts (for example 2.0.6 or 2.0.0-beta1)" ContinueOnError="false" />
     
     <PropertyGroup>
       <GitHash />
+      <!-- AssemblyVersion attribute is the first two numeric parts of the package version (i.e. 2.0.0-beta1 == 2.0 or 2.0.6 == 2.0) -->
+      <AssemblyVersion>$([System.Text.RegularExpressions.Regex]::Match($(PackageVersion), `^\d+\.\d+`).Value)</AssemblyVersion>
+      <!-- AssemblyFileVersion uses all three parts of package version (i.e. 2.0.0-beta1 = 2.0.0 or 2.0.6 == 2.0.6) and then the build number is appended to that below -->
+      <AssemblyFileVersion>$([System.Text.RegularExpressions.Regex]::Match($(PackageVersion), `^\d+\.\d+\.\d+`).Value)</AssemblyFileVersion>
     </PropertyGroup>
     
     <!-- Get the Git commit hash and put it into the GitHash property -->
@@ -102,9 +109,9 @@
       AssemblyProduct="Cassandra .NET Driver" 
       ComVisible="false"
       AssemblyCopyright="Copyright © $([System.DateTime]::UtcNow.Year) by DataStax"
-      AssemblyVersion="$(Version)" 
-      AssemblyInformationalVersion="$(Version) (git $(GitHash))"
-      AssemblyFileVersion="$(Version).$(BUILD_NUMBER)" />
+      AssemblyVersion="$(AssemblyVersion)" 
+      AssemblyInformationalVersion="$(PackageVersion) (git $(GitHash))"
+      AssemblyFileVersion="$(AssemblyFileVersion).$(BUILD_NUMBER)" />
   </Target>
 
 </Project>

@@ -53,11 +53,12 @@
     <Compile Include="CqlArgumentException.cs" />
     <Compile Include="CqlCommand.cs" />
     <Compile Include="CqlDelete.cs" />
-    <Compile Include="CqlEqualityComparer.cs" />
     <Compile Include="CqlExpressionVisitor.cs" />
+    <Compile Include="CqlFunction.cs" />
     <Compile Include="CqlInsert.cs" />
     <Compile Include="CqlLinqNotSupportedException.cs" />
     <Compile Include="CqlMthHelps.cs" />
+    <Compile Include="CqlOperator.cs" />
     <Compile Include="CqlQuery.cs" />
     <Compile Include="CqlQueryBase.cs" />
     <Compile Include="CqlQueryExtensions.cs" />
@@ -67,16 +68,16 @@
     <Compile Include="CqlStringTool.cs" />
     <Compile Include="CqlToken.cs" />
     <Compile Include="CqlUpdate.cs" />
-    <Compile Include="EntityTrackingMode.cs" />
-    <Compile Include="EntityUpdateMode.cs" />
+    <Compile Include="IgnoreAttribute.cs" />
     <Compile Include="ITable.cs" />
+    <Compile Include="LinqAttributeBasedColumnDefinition.cs" />
+    <Compile Include="LinqAttributeBasedTypeDefinition.cs" />
     <Compile Include="ParsePhase.cs" />
     <Compile Include="PartitionKeyAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReflExt.cs" />
-    <Compile Include="SaveChangesMode.cs" />
     <Compile Include="SecondaryIndexAttribute.cs" />
     <Compile Include="SessionExtensions.cs" />
+    <Compile Include="StaticColumnAttribute.cs" />
     <Compile Include="Table.cs" />
     <Compile Include="TableAttribute.cs" />
     <Compile Include="TableType.cs" />
@@ -87,9 +88,6 @@
       <Project>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</Project>
       <Name>Cassandra</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="README.rst" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

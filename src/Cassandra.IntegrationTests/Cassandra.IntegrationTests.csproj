@@ -49,17 +49,48 @@
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
+    <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
+    <Compile Include="Linq\Structures\SalesOrder.cs" />
+    <Compile Include="Linq\Tests\Counter.cs" />
+    <Compile Include="Linq\Tests\DeleteIf.cs" />
+    <Compile Include="Linq\Tests\Delete.cs" />
+    <Compile Include="Linq\Tests\Select.cs" />
+    <Compile Include="Linq\Tests\Insert.cs" />
+    <Compile Include="Linq\Tests\Update.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />
+    <Compile Include="Linq\Structures\Movie.cs" />
+    <Compile Include="Linq\Tests\TableSelectDefault.cs" />
+    <Compile Include="Linq\Tests\Count.cs" />
+    <Compile Include="Linq\Tests\CreateTable.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesEntity.cs" />
+    <Compile Include="Linq\Tests\First.cs" />
+    <Compile Include="Linq\Tests\FirstOrDefault.cs" />
+    <Compile Include="Linq\Tests\Take.cs" />
+    <Compile Include="Linq\Tests\UpdateIf.cs" />
+    <Compile Include="Linq\Tests\Where.cs" />
+    <Compile Include="Linq\Tests\OrderBy.cs" />
+    <Compile Include="Mapping\Structures\ContactMethod.cs" />
+    <Compile Include="Mapping\Structures\ManyDataTypesPocoMappingCaseSensitive.cs" />
+    <Compile Include="Mapping\Structures\UserMapping.cs" />
+    <Compile Include="Mapping\Structures\RainbowColor.cs" />
+    <Compile Include="Mapping\Structures\User.cs" />
+    <Compile Include="Mapping\Structures\ManyDataTypesPoco.cs" />
+    <Compile Include="Mapping\Structures\UserType.cs" />
+    <Compile Include="Mapping\Tests\Attributes.cs" />
+    <Compile Include="Mapping\Tests\Counter.cs" />
+    <Compile Include="Mapping\Tests\CqlClientTest.cs" />
+    <Compile Include="Mapping\Tests\CqlClientConfig.cs" />
+    <Compile Include="Mapping\Tests\CreateTable.cs" />
+    <Compile Include="Mapping\Tests\Fetch.cs" />
+    <Compile Include="Mapping\Tests\FluentMapping.cs" />
+    <Compile Include="Mapping\Tests\Insert.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
     <Compile Include="Core\ConnectionTests.cs" />
     <Compile Include="Core\ConsistencyTests.cs" />
@@ -92,8 +123,7 @@
     <Compile Include="Core\TimeUuidSerializationTests.cs" />
     <Compile Include="Core\TupleTests.cs" />
     <Compile Include="Core\UdtMappingsTests.cs" />
-    <Compile Include="Data\AdoBasicTests.cs" />
-    <Compile Include="Linq\LinqMappingTests.cs" />
+    <Compile Include="Ado\AdoBasicTests.cs" />
     <Compile Include="TestClusterManagement\CcmBridge.cs" />
     <Compile Include="TestClusterManagement\CcmCluster.cs" />
     <Compile Include="TestClusterManagement\CToolBridge.cs" />
@@ -106,16 +136,11 @@
     <Compile Include="TestBase\TestUtils.cs" />
     <Compile Include="TestBase\TestCassandraVersion.cs" />
     <Compile Include="TestBase\TestInfrastructureException.cs" />
-    <Compile Include="FoundBugs\CSHARP_42.cs" />
-    <Compile Include="FoundBugs\CSHARP_43.cs" />
-    <Compile Include="Linq\LinqSessionTests.cs" />
-    <Compile Include="Linq\Structures\SalesOrder.cs" />
-    <Compile Include="Linq\Structures\Author.cs" />
+    <Compile Include="Mapping\Structures\Author.cs" />
     <Compile Include="Linq\Structures\CassandraLog.cs" />
     <Compile Include="Linq\Structures\FollowedTweet.cs" />
     <Compile Include="Linq\Structures\Statistics.cs" />
     <Compile Include="Linq\Structures\Tweet.cs" />
-    <Compile Include="Linq\Utils.cs" />
     <Compile Include="Core\ParameterizedStatementsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

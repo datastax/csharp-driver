@@ -81,34 +81,34 @@ namespace Cassandra.Tests
 
             //the primary replica and the next
             var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
-            Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("0,1", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(-100));
-            Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("0,1", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             //Greater than the greatest token
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(500000));
-            Assert.AreEqual("0,1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("0,1", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //The next replica should be the first
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(20));
-            Assert.AreEqual("2,0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("2,0", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //The closest replica and the next
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(19));
-            Assert.AreEqual("2,0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("2,0", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //Even if the replication factor is greater than the ring, it should return only ring size
             replicas = tokenMap.GetReplicas("ks2", new M3PToken(5));
-            Assert.AreEqual("1,2,0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("1,2,0", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
 
             //The primary replica only as the keyspace was not found
             replicas = tokenMap.GetReplicas(null, new M3PToken(0));
-            Assert.AreEqual("0", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("0", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             replicas = tokenMap.GetReplicas(null, new M3PToken(10));
-            Assert.AreEqual("1", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("1", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             replicas = tokenMap.GetReplicas("ks_does_not_exist", new M3PToken(20));
-            Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("2", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
             replicas = tokenMap.GetReplicas(null, new M3PToken(19));
-            Assert.AreEqual("2", String.Join(",", replicas.Select(h => h.Address.ToString().Last())));
+            Assert.AreEqual("2", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
         }
 
         [Test]

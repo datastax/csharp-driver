@@ -16,30 +16,29 @@
 
 using System.Linq;
 using System.Linq.Expressions;
+using Cassandra.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
     public class CqlUpdate : CqlCommand
     {
-        internal CqlUpdate(Expression expression, IQueryProvider table)
-            : base(expression, table)
+        internal CqlUpdate(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, stmtFactory, pocoData)
         {
         }
 
         protected override string GetCql(out object[] values)
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out values, _ttl, _timestamp, withValues);
+            return visitor.GetUpdate(out values, _ttl, _timestamp);
         }
 
         public override string ToString()
         {
             object[] _;
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out _, _ttl, _timestamp, false);
+            return GetCql(out _);
         }
     }
 }

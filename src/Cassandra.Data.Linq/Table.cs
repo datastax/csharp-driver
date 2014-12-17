@@ -19,28 +19,101 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Cassandra.Mapping;
+using Cassandra.Mapping.Statements;
+using Cassandra.Mapping.TypeConversion;
 
 namespace Cassandra.Data.Linq
 {
-    public class Table<TEntity> : CqlQuery<TEntity>, ITable, IQueryProvider
+    /// <summary>
+    /// A Linq IQueryProvider that represents a table in Cassandra
+    /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
+    public class Table<TEntity> : CqlQuery<TEntity>, ITable
     {
-        private static TableType _tableType = TableType.All;
-        private readonly string _keyspaceName;
         private readonly ISession _session;
-        private readonly string _tableName;
+        private readonly string _name;
+        private readonly string _keyspaceName;
 
-        internal Table(ISession session, string tableName, string keyspaceName)
+        /// <summary>
+        /// Gets the name of the Table in Cassandra
+        /// </summary>
+        public string Name
         {
-            _session = session;
-            _tableName = tableName;
-            _keyspaceName = keyspaceName;
+            get { return _name ?? PocoData.TableName; }
         }
 
-        internal Table(Table<TEntity> cp)
+        /// <summary>
+        /// Gets the name of the keyspace used. If null, it uses the active session keyspace.
+        /// </summary>
+        public string KeyspaceName
         {
-            _keyspaceName = cp._keyspaceName;
-            _tableName = cp._tableName;
-            _session = cp._session;
+            get { return _keyspaceName ?? PocoData.KeyspaceName; }
+        }
+
+        /// <summary>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Use this constructor if you want to use a different table and keyspace names than the ones defined in the mapping configuration.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
+        /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, case-insensitive class and method names will be used.
+        /// </remarks>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        /// <param name="config">Mapping configuration</param>
+        /// <param name="tableName">Name of the table</param>
+        /// <param name="keyspaceName">Name of the keyspace were the table was created.</param>
+        public Table(ISession session, MappingConfiguration config, string tableName, string keyspaceName)
+        {
+            _session = session;
+            _name = tableName;
+            _keyspaceName = keyspaceName;
+            //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
+            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
+            var pocoData = config.MapperFactory.GetPocoData<TEntity>();
+            InternalInitialize(Expression.Constant(this), this, config.MapperFactory, config.StatementFactory, pocoData);
+        }
+
+        /// <summary>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Use this constructor if you want to use a different table name than the one defined in the mapping configuration.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
+        /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, case-insensitive class and method names will be used.
+        /// </remarks>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        /// <param name="config">Mapping configuration</param>
+        /// <param name="tableName">Name of the table</param>
+        public Table(ISession session, MappingConfiguration config, string tableName)
+            : this(session, config, tableName, null)
+        {
+
+        }
+
+        /// <summary>
+        /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>
+        /// <para>Fluent configuration or attributes can be used to define mapping information.</para>
+        /// </summary>
+        /// <remarks>
+        /// In case no mapping information is defined, case-insensitive class and method names will be used.
+        /// </remarks>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        /// <param name="config">Mapping configuration</param>
+        public Table(ISession session, MappingConfiguration config)
+            : this(session, config, null, null)
+        {
+
+        }
+
+        /// <summary>
+        /// Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using <see cref="MappingConfiguration.Global"/> configuration.
+        /// </summary>
+        /// <param name="session">Session instance to be used to execute the statements</param>
+        public Table(ISession session) : this(session, MappingConfiguration.Global)
+        {
+            _session = session;
         }
 
         /// <summary>
@@ -48,21 +121,24 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
         {
-            return new CqlQuery<TElement>(expression, this);
+            return new CqlQuery<TElement>(expression, this, MapperFactory, StatementFactory, PocoData);
         }
 
-        public IQueryable CreateQuery(Expression expression)
+        IQueryable IQueryProvider.CreateQuery(Expression expression)
         {
+            //Implementation of IQueryProvider
             throw new NotImplementedException();
         }
 
-        public TResult Execute<TResult>(Expression expression)
+        TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
+            //Implementation of IQueryProvider
             throw new NotImplementedException();
         }
 
-        public object Execute(Expression expression)
+        object IQueryProvider.Execute(Expression expression)
         {
+            //Implementation of IQueryProvider
             throw new NotImplementedException();
         }
 
@@ -71,18 +147,25 @@ namespace Cassandra.Data.Linq
             return typeof (TEntity);
         }
 
-        public string GetQuotedTableName()
-        {
-            if (_keyspaceName != null)
-                return _keyspaceName.QuoteIdentifier() + "." + CalculateName(_tableName).QuoteIdentifier();
-            return CalculateName(_tableName).QuoteIdentifier();
-        }
-
         public void Create()
         {
-            List<string> cqls = CqlQueryTools.GetCreateCQL(this, false);
-            foreach (string cql in cqls)
+            var cqlQueries = CqlGenerator.GetCreate(PocoData, false);
+            foreach (var cql in cqlQueries)
+            {
                 _session.WaitForSchemaAgreement(_session.Execute(cql));
+            }
+        }
+
+        public void CreateIfNotExists()
+        {
+            try
+            {
+                Create();
+            }
+            catch (AlreadyExistsException)
+            {
+                //do nothing
+            }
         }
 
         public ISession GetSession()
@@ -92,60 +175,7 @@ namespace Cassandra.Data.Linq
 
         public TableType GetTableType()
         {
-            if (_tableType == TableType.All)
-            {
-                List<MemberInfo> props = GetEntityType().GetPropertiesOrFields();
-                foreach (MemberInfo prop in props)
-                {
-                    if (
-                        prop.GetCustomAttributes(typeof (CounterAttribute), true).FirstOrDefault() as
-                        CounterAttribute != null)
-                    {
-                        _tableType = TableType.Counter;
-                        break;
-                    }
-                }
-                if (_tableType == TableType.All)
-                    _tableType = TableType.Standard;
-            }
-            return _tableType;
-        }
-
-        internal static string CalculateName(string tableName)
-        {
-            var tableAttr = typeof (TEntity).GetCustomAttributes(typeof (TableAttribute), false).FirstOrDefault() as TableAttribute;
-            if (tableAttr != null)
-            {
-                if (!string.IsNullOrEmpty(tableAttr.Name))
-                {
-                    if (tableName != null)
-                        new ArgumentException("Table name mapping is already specified within [Table(...)] attribute", tableName);
-                    else
-                        tableName = tableAttr.Name;
-                }
-            }
-            return tableName ?? typeof (TEntity).Name;
-        }
-
-        public void CreateIfNotExists()
-        {
-            if (_session.BinaryProtocolVersion > 1)
-            {
-                List<string> cqls = CqlQueryTools.GetCreateCQL(this, true);
-                foreach (string cql in cqls)
-                    _session.WaitForSchemaAgreement(_session.Execute(cql));
-            }
-            else
-            {
-                try
-                {
-                    Create();
-                }
-                catch (AlreadyExistsException)
-                {
-                    //do nothing
-                }
-            }
+            return PocoData.Columns.Any(c => c.IsCounter) ? TableType.Counter : TableType.Standard;
         }
 
         /// <summary>
@@ -153,7 +183,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
-            return new CqlInsert<TEntity>(entity, this);
+            return new CqlInsert<TEntity>(entity, this, StatementFactory, MapperFactory);
         }
     }
 }

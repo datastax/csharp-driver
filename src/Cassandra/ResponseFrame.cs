@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
+using System;
 using System.IO;
+
 namespace Cassandra
 {
     internal class ResponseFrame
@@ -34,6 +36,9 @@ namespace Cassandra
 
         public ResponseFrame(FrameHeader header, Stream body)
         {
+            if (header == null) throw new ArgumentNullException("header");
+            if (body == null) throw new ArgumentNullException("body");
+
             Header = header;
             Body = body;
         }

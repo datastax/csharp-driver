@@ -16,7 +16,8 @@
 
 ﻿using System;
 using System.Reflection;
-using System.Threading.Tasks;
+﻿using System.Threading;
+﻿using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -106,6 +107,22 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Waits the task to transition to RanToComplete and returns the Task.Result.
+        /// It throws the inner exception of the AggregateException in case there is a single exception.
+        /// It throws the Aggregate exception when there is more than 1 inner exception.
+        /// It throws a TimeoutException when the task didn't complete in the expected time.
+        /// </summary>
+        /// <param name="task">the task to wait upon</param>
+        /// <param name="timeout">timeout in milliseconds</param>
+        /// <exception cref="TimeoutException" />
+        /// <exception cref="AggregateException" />
+        public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            WaitToComplete((Task) task, timeout);
+            return task.Result;
+        }
+
+        /// <summary>
         /// Waits the task to transition to RanToComplete.
         /// It throws the inner exception of the AggregateException in case there is a single exception.
         /// It throws the Aggregate exception when there is more than 1 inner exception.
@@ -115,7 +132,7 @@ namespace Cassandra
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static T WaitToComplete<T>(Task<T> task, int timeout = System.Threading.Timeout.Infinite)
+        public static void WaitToComplete(Task task, int timeout = Timeout.Infinite)
         {
             //It should wait and throw any exception
             try
@@ -136,7 +153,6 @@ namespace Cassandra
             {
                 throw new TimeoutException("The task didn't complete before timeout.");
             }
-            return task.Result;
         }
 
         /// <summary>
@@ -161,6 +177,74 @@ namespace Cassandra
         {
             PreserveStackHandler(ex);
             return ex;
+        }
+        public static Task<TOut> Continue<TIn, TOut>(this Task<TIn> task, Func<Task<TIn>, TOut> next)
+        {
+            if (!task.IsCompleted)
+            {
+                //Do an actual continuation
+                return ContinueContext(task, next);
+            }
+            //Use the task result to build the task
+            var tcs = new TaskCompletionSource<TOut>();
+            try
+            {
+                var res = next(task);
+                tcs.TrySetResult(res);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+            return tcs.Task;
+        }
+
+        public static Task<TOut> ContinueContext<TIn, TOut>(
+                Task<TIn> task,
+                Func<Task<TIn>, TOut> next)
+        {
+            var ctxt = SynchronizationContext.Current;
+            return task.ContinueWith(innerTask =>
+            {
+                var tcs = new TaskCompletionSource<TOut>();
+
+                try
+                {
+                    if (ctxt != null)
+                    {
+                        ctxt.Post(state =>
+                        {
+                            try
+                            {
+                                var res = next(innerTask);
+                                tcs.TrySetResult(res);
+                            }
+                            catch (Exception ex)
+                            {
+                                tcs.TrySetException(ex);
+                            }
+                        }, null);
+                    }
+                    else
+                    {
+                        var res = next(innerTask);
+                        tcs.TrySetResult(res);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return tcs.Task;
+            }, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
+        }
+
+        public static Task<T> ToTask<T>(T value)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            tcs.SetResult(value);
+            return tcs.Task;
         }
     }
 }

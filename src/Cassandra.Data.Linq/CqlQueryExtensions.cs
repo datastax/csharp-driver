@@ -46,7 +46,7 @@ namespace Cassandra.Data.Linq
         /// To execute this CqlQuery use <c>Execute()</c> method.</returns>
         public static CqlQuery<TResult> Select<TSource, TResult>(this CqlQuery<TSource> source, Expression<Func<TSource, TResult>> selector)
         {
-            var ret = (CqlQuery<TResult>) source.Provider.CreateQuery<TResult>(Expression.Call(
+            var ret = (CqlQuery<TResult>) source.Table.CreateQuery<TResult>(Expression.Call(
                 null, CqlMthHelps.SelectMi,
                 new[] {source.Expression, selector}));
             source.CopyQueryPropertiesTo(ret);
@@ -64,7 +64,7 @@ namespace Cassandra.Data.Linq
         /// that contains elements from the input sequence that satisfy the condition.</returns>
         public static CqlQuery<TSource> Where<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
-            var ret = (CqlQuery<TSource>) source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.WhereMi,
                 new[] {source.Expression, predicate}));
             source.CopyQueryPropertiesTo(ret);
@@ -80,7 +80,7 @@ namespace Cassandra.Data.Linq
         /// <returns>A single result: the number of rows matching the query.</returns>
         public static CqlScalar<long> Count<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlScalar<long>(source.Expression, source.Provider);
+            var ret = new CqlScalar<long>(source.Expression, source.Table, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -96,9 +96,9 @@ namespace Cassandra.Data.Linq
         /// that passes the test in the specified predicate function.</returns>
         public static CqlQuerySingleElement<TSource> First<TSource>(this Table<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
-            var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = new CqlQuerySingleElement<TSource>(source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.First_ForCQLTableMi,
-                new[] {source.Expression, Expression.Constant(1), predicate})).Expression, source.Provider);
+                new[] { source.Expression, Expression.Constant(1), predicate })).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -116,9 +116,9 @@ namespace Cassandra.Data.Linq
         /// otherwise the first element in source that passes the test specified by predicate.</returns>
         public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this Table<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
-            var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = new CqlQuerySingleElement<TSource>(source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.FirstOrDefault_ForCQLTableMi,
-                new[] {source.Expression, Expression.Constant(1), predicate})).Expression, source.Provider);
+                new[] {source.Expression, Expression.Constant(1), predicate})).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -132,9 +132,9 @@ namespace Cassandra.Data.Linq
         /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return first element in the sequence.</returns>
         public static CqlQuerySingleElement<TSource> First<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = new CqlQuerySingleElement<TSource>(source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.FirstMi,
-                new[] {source.Expression, Expression.Constant(1)})).Expression, source.Provider);
+                new[] {source.Expression, Expression.Constant(1)})).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -150,16 +150,16 @@ namespace Cassandra.Data.Linq
         /// otherwise the first element in source.</returns>
         public static CqlQuerySingleElement<TSource> FirstOrDefault<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlQuerySingleElement<TSource>(source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = new CqlQuerySingleElement<TSource>(source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.FirstOrDefaultMi,
-                new[] {source.Expression, Expression.Constant(1)})).Expression, source.Provider);
+                new[] {source.Expression, Expression.Constant(1)})).Expression, source);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
 
         public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlDelete(source.Expression, source.Provider);
+            var ret = new CqlDelete(source.Expression, source.Table, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -168,14 +168,14 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlDelete(Expression.Call(
                 null, CqlMthHelps.DeleteIfMi,
-                 new Expression[] { source.Expression, predicate }), source.Provider);
+                 new Expression[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
 
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlUpdate(source.Expression, source.Provider);
+            var ret = new CqlUpdate(source.Expression, source.Table, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -184,7 +184,7 @@ namespace Cassandra.Data.Linq
         {
             var ret = new CqlUpdate(Expression.Call(
                 null, CqlMthHelps.UpdateIfMi,
-                new[] {source.Expression, predicate}), source.Provider);
+                new[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -201,7 +201,7 @@ namespace Cassandra.Data.Linq
         /// with specified number of contiguous elements from the start of a sequence.</returns>
         public static CqlQuery<TSource> Take<TSource>(this CqlQuery<TSource> source, int count)
         {
-            var ret = (CqlQuery<TSource>) source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.TakeMi,
                 new[] {source.Expression, Expression.Constant(count)}));
             source.CopyQueryPropertiesTo(ret);
@@ -214,7 +214,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public static CqlQuery<TSource> AllowFiltering<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = (CqlQuery<TSource>)source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>)source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.AllowFilteringMi,
                 new[] {source.Expression}));
             source.CopyQueryPropertiesTo(ret);
@@ -231,7 +231,7 @@ namespace Cassandra.Data.Linq
         /// <returns>a CqlQuery&lt;TSource&gt; which after execution returns an IEnumerable&lt;TSource&gt; sorted in ascending manner according to a key.</returns>
         public static CqlQuery<TSource> OrderBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> keySelector)
         {
-            var ret = (CqlQuery<TSource>) source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.OrderByMi,
                 new[] {source.Expression, keySelector}));
             source.CopyQueryPropertiesTo(ret);
@@ -248,7 +248,7 @@ namespace Cassandra.Data.Linq
         /// <returns>a CqlQuery&lt;TSource&gt; which after execution returns an IEnumerable&lt;TSource&gt; sorted in descending manner according to a key.</returns>
         public static CqlQuery<TSource> OrderByDescending<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {
-            var ret = (CqlQuery<TSource>) source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.OrderByDescendingMi,
                 new[] {source.Expression, func}));
             source.CopyQueryPropertiesTo(ret);
@@ -258,7 +258,7 @@ namespace Cassandra.Data.Linq
 
         public static CqlQuery<TSource> ThenBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {
-            var ret = (CqlQuery<TSource>) source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.ThenByMi,
                 new[] {source.Expression, func}));
             source.CopyQueryPropertiesTo(ret);
@@ -267,7 +267,7 @@ namespace Cassandra.Data.Linq
 
         public static CqlQuery<TSource> ThenByDescending<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {
-            var ret = (CqlQuery<TSource>) source.Provider.CreateQuery<TSource>(Expression.Call(
+            var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
                 null, CqlMthHelps.ThenByDescendingMi,
                 new[] {source.Expression, func}));
             source.CopyQueryPropertiesTo(ret);

@@ -33,6 +33,7 @@ namespace Cassandra
         private readonly ProtocolOptions _protocolOptions;
         private readonly QueryOptions _queryOptions;
         private readonly SocketOptions _socketOptions;
+        private readonly IAddressTranslator _addressTranslator;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -107,6 +108,15 @@ namespace Cassandra
             get { return _authInfoProvider; }
         }
 
+        /// <summary>
+        ///  The address translator used to translate Cassandra node address.
+        /// </summary> 
+        /// <returns>the address translator in use.</returns>
+        internal IAddressTranslator AddressTranslator
+        {
+            get { return _addressTranslator; }
+        }
+
         internal Configuration() :
             this(new Policies(),
                  new ProtocolOptions(),
@@ -115,7 +125,8 @@ namespace Cassandra
                  new ClientOptions(),
                  NoneAuthProvider.Instance,
                  null,
-                 new QueryOptions())
+                 new QueryOptions(),
+                 new DefaultAddressTranslator())
         {
         }
 
@@ -126,7 +137,8 @@ namespace Cassandra
                                ClientOptions clientOptions,
                                IAuthProvider authProvider,
                                IAuthInfoProvider authInfoProvider,
-                               QueryOptions queryOptions)
+                               QueryOptions queryOptions,
+                               IAddressTranslator addressTranslator)
         {
             _policies = policies;
             _protocolOptions = protocolOptions;
@@ -136,6 +148,7 @@ namespace Cassandra
             _authProvider = authProvider;
             _authInfoProvider = authInfoProvider;
             _queryOptions = queryOptions;
+            _addressTranslator = addressTranslator;
         }
 
         /// <summary>

@@ -14,14 +14,12 @@
 //   limitations under the License.
 //
 
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cassandra
+namespace Cassandra.Tests
 {
     public class ThreadPerTaskScheduler : TaskScheduler
     {

@@ -26,7 +26,7 @@ namespace Cassandra
             Down
         };
 
-        public IPAddress Address;
+        public IPEndPoint Address;
         public Reason What;
     }
 }

@@ -19,13 +19,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Cassandra.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Represents an IQueryable that returns the first column of the first rows
+    /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
     public class CqlScalar<TEntity> : CqlQueryBase<TEntity>
     {
-        internal CqlScalar(Expression expression, IQueryProvider table) : base(expression, table)
+        internal CqlScalar(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
+            : base(expression, table, null, stmtFactory, pocoData)
         {
+
         }
 
         public new TEntity Execute()
@@ -43,41 +51,33 @@ namespace Cassandra.Data.Linq
 
         protected override string GetCql(out object[] values)
         {
-            var visitor = new CqlExpressionVisitor();
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetCount(out values);
         }
 
         public override string ToString()
         {
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
             object[] _;
-            return visitor.GetCount(out _, false);
+            return GetCql(out _);
         }
 
         public new Task<TEntity> ExecuteAsync()
         {
-            bool withValues = GetTable().GetSession().BinaryProtocolVersion > 1;
-
-            var visitor = new CqlExpressionVisitor();
-            visitor.Evaluate(Expression);
-
             object[] values;
-            string cql = visitor.GetCount(out values, withValues);
+            string cql = GetCql(out values);
 
-            Task<TEntity> adaptation =
-                InternalExecuteAsync(cql, values).ContinueWith((t) =>
+            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
+            {
+                var rs = t.Result;
+                var result = default(TEntity);
+                var row = rs.FirstOrDefault();
+                if (row != null)
                 {
-                    var rs = t.Result;
-                    var result = default(TEntity);
-                    var row = rs.FirstOrDefault();
-                    if (row != null)
-                    {
-                        result = (TEntity)row[0];
-                    }
-                    return result;
-                }, TaskContinuationOptions.ExecuteSynchronously);
+                    result = (TEntity)row[0];
+                }
+                return result;
+            });
             return adaptation;
         }
 

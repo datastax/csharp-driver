@@ -39,6 +39,6 @@ namespace Cassandra
         ///  are requested. </param>
         /// 
         /// <returns>The authentication informations to use.</returns>
-        IDictionary<string, string> GetAuthInfos(IPAddress host);
+        IDictionary<string, string> GetAuthInfos(IPEndPoint host);
     }
 }

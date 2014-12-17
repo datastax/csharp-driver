@@ -63,7 +63,7 @@ namespace Cassandra
             ShutDown();
         }
 
-        public Host GetHost(IPAddress address)
+        public Host GetHost(IPEndPoint address)
         {
             Host host;
             if (Hosts.TryGet(address, out host))
@@ -71,12 +71,12 @@ namespace Cassandra
             return null;
         }
 
-        internal Host AddHost(IPAddress address)
+        internal Host AddHost(IPEndPoint address)
         {
             return Hosts.Add(address);
         }
 
-        internal void RemoveHost(IPAddress address)
+        internal void RemoveHost(IPEndPoint address)
         {
             Hosts.RemoveIfExists(address);
         }
@@ -89,7 +89,7 @@ namespace Cassandra
             }
         }
 
-        internal void SetDownHost(IPAddress address, object sender = null)
+        internal void SetDownHost(IPEndPoint address, object sender = null)
         {
             Hosts.SetDownIfExists(address);
         }
@@ -98,11 +98,11 @@ namespace Cassandra
         {
             if (HostsEvent != null)
             {
-                HostsEvent(this, new HostsEventArgs { IPAddress = h.Address, What = HostsEventArgs.Kind.Down });
+                HostsEvent(this, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Down });
             }
         }
 
-        internal void BringUpHost(IPAddress address, object sender = null)
+        internal void BringUpHost(IPEndPoint address, object sender = null)
         {
             //Add the host if not already present
             var host = Hosts.Add(address);
@@ -114,7 +114,7 @@ namespace Cassandra
             }
             if (HostsEvent != null)
             {
-                HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
+                HostsEvent(sender ?? this, new HostsEventArgs {Address = address, What = HostsEventArgs.Kind.Up});
             }
         }
 
@@ -128,7 +128,7 @@ namespace Cassandra
         }
 
 
-        public IEnumerable<IPAddress> AllReplicas()
+        public IEnumerable<IPEndPoint> AllReplicas()
         {
             return Hosts.AllEndPointsToCollection();
         }
@@ -155,9 +155,9 @@ namespace Cassandra
             return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
         }
 
-        public ICollection<IPAddress> GetReplicas(byte[] partitionKey)
+        public ICollection<Host> GetReplicas(byte[] partitionKey)
         {
-            return GetReplicas(null, partitionKey).Select(h => h.Address).ToList();
+            return GetReplicas(null, partitionKey);
         }
 
         /// <summary>

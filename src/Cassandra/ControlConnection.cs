@@ -72,7 +72,7 @@ namespace Cassandra
         /// <summary>
         /// The address of the endpoint used by the ControlConnection
         /// </summary>
-        internal IPAddress BindAddress
+        internal IPEndPoint BindAddress
         {
             get
             {
@@ -129,7 +129,7 @@ namespace Cassandra
         /// <exception cref="DriverInternalError" />
         private void Connect(bool firstTime)
         {
-            var triedHosts = new Dictionary<IPAddress, Exception>();
+            var triedHosts = new Dictionary<IPEndPoint, Exception>();
             IEnumerable<Host> hostIterator = Metadata.Hosts;
             if (!firstTime)
             {
@@ -139,7 +139,7 @@ namespace Cassandra
             }
             foreach (var host in hostIterator)
             {
-                var address = new IPEndPoint(host.Address, _config.ProtocolOptions.Port);
+                var address = host.Address;
                 var c = new Connection((byte)_controlConnectionProtocolVersion, address, _config);
                 try
                 {
@@ -344,10 +344,10 @@ namespace Cassandra
 
         internal void UpdatePeersInfo(IEnumerable<Row> rs)
         {
-            var foundPeers = new HashSet<IPAddress>();
+            var foundPeers = new HashSet<IPEndPoint>();
             foreach (var row in rs)
             {
-                var address = GetAddressForPeerHost(row);
+                var address = GetAddressForPeerHost(row, _config.AddressTranslator, _config.ProtocolOptions.Port);
                 if (address == null)
                 {
                     _logger.Error("No address found for host, ignoring it.");
@@ -376,7 +376,7 @@ namespace Cassandra
         /// <summary>
         /// Uses system.peers values to build the Address translator
         /// </summary>
-        internal static IPAddress GetAddressForPeerHost(Row row)
+        internal static IPEndPoint GetAddressForPeerHost(Row row, IAddressTranslator translator, int port)
         {
             var address = row.GetValue<IPAddress>("rpc_address");
             if (address == null)
@@ -388,7 +388,8 @@ namespace Cassandra
                 address = row.GetValue<IPAddress>("peer");
                 _logger.Warning(String.Format("Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. If this is incorrect you should avoid the use of 0.0.0.0 server side.", address));
             }
-            return address;
+
+            return translator.Translate(new IPEndPoint(address, port));
         }
 
         /// <summary>
