@@ -180,7 +180,7 @@ namespace Cassandra.IntegrationTests.Core
         public void QueryCompressionSnappyTest()
         {
             var protocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy);
-            using (var connection = CreateConnection(protocolOptions))
+            using (var connection = CreateConnection(protocolOptions, null))
             {
                 connection.Init();
 
@@ -635,7 +635,7 @@ namespace Cassandra.IntegrationTests.Core
                 protocolOptions,
                 poolingOptions,
                 socketOptions,
-                new ClientOptions(),
+                new ClientOptions(false, 20000, null),
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),

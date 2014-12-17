@@ -15,7 +15,6 @@
         <tags>cassandra apache datastax driver database nosql</tags>
         <dependencies>
             <dependency id="lz4net" version="1.0.3.93" />
-            <dependency id="Snappy.NET" version="1.1.1.8" />
         </dependencies>
     </metadata>
     <files>

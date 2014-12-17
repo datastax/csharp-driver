@@ -49,15 +49,9 @@
     </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Crc32C.NET">
-      <HintPath>..\packages\Crc32C.NET.1.0.5.0\lib\net20\Crc32C.NET.dll</HintPath>
-    </Reference>
     <Reference Include="LZ4, Version=1.0.5.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\lz4net.1.0.5.93\lib\net40-client\LZ4.dll</HintPath>
-    </Reference>
-    <Reference Include="Snappy.NET">
-      <HintPath>..\packages\Snappy.NET.1.1.1.8\lib\net20\Snappy.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -68,6 +62,11 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Compression\Snappy\CorruptionException.cs" />
+    <Compile Include="Compression\Snappy\Memory.cs" />
+    <Compile Include="Compression\Snappy\SlowMemory.cs" />
+    <Compile Include="Compression\Snappy\SnappyDecompressor.cs" />
+    <Compile Include="Compression\Snappy\SnappyInternalUtils.cs" />
     <Compile Include="Exceptions\RequestInvalidException.cs" />
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />
@@ -112,7 +111,7 @@
     <Compile Include="IWaitableForDispose.cs" />
     <Compile Include="KeyType.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="LZ4Compressor.cs" />
+    <Compile Include="Compression\LZ4Compressor.cs" />
     <Compile Include="M3PToken.cs" />
     <Compile Include="Mapping\Attributes\ClusteringKeyAttribute.cs" />
     <Compile Include="Mapping\Attributes\ColumnAttribute.cs" />
@@ -313,7 +312,7 @@
     <Compile Include="Session.cs" />
     <Compile Include="SimpleAuthInfoProvider.cs" />
     <Compile Include="SimpleStatement.cs" />
-    <Compile Include="SnappyCompressor.cs" />
+    <Compile Include="Compression\SnappyCompressor.cs" />
     <Compile Include="SocketOptions.cs" />
     <Compile Include="SSLOptions.cs" />
     <Compile Include="RegularStatement.cs" />
@@ -333,8 +332,14 @@
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Compression\Snappy\notice.md" />
+    <None Include="Compression\Snappy\README.md" />
     <None Include="packages.config" />
     <None Include="README.rst" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Compression\Snappy\license-header.txt" />
+    <Content Include="Compression\Snappy\license.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
