@@ -29,11 +29,12 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const int Key = 0;
         private const string KeyspaceNameDefault = "largedatatests";
-        ISession _session = null; 
+        ISession _session = null;
 
         [SetUp]
-        public void SetupFixture()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
         }
 

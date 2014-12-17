@@ -35,9 +35,10 @@ namespace Cassandra.IntegrationTests.Core
         Builder _builder = null;
         private const int NodeCount = 2;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [SetUp]
+        public void SetupTest()
         {
+            IndividualTestSetup();
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) => Thread.Sleep((int)ev.DelayMs);
             _builder = Cluster.Builder()

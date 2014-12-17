@@ -37,7 +37,6 @@ namespace Cassandra.IntegrationTests.TestBase
     internal static class TestUtils
     {
         private static readonly Logger _logger = new Logger(typeof (TestUtils));
-        private const int DefaultSleepIterationMs = 1000;
 
         public static readonly string CreateKeyspaceSimpleFormat =
             "CREATE KEYSPACE \"{0}\" WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {1} }}";
@@ -161,12 +160,39 @@ namespace Cassandra.IntegrationTests.TestBase
             get { return ConfigurationManager.AppSettings["UseRemote"] == "true"; }
         }
 
+        public static void WaitForUp_new(string nodeHost, int nodePort, int maxTry)
+        {
+            int tries = 0;
+            int msSleepPerIteration = 500;
+            while (tries < maxTry)
+            {
+                TcpClient tcpClient = new TcpClient();
+                try
+                {
+                    tcpClient.Connect(nodeHost, nodePort);
+                    tcpClient.Close();
+                    return;
+                }
+                catch (Exception e)
+                {
+                    _logger.Info(string.Format("Caught expected exception, with message: {0}. Still waiting for node host: {1} to be available for connection, " +
+                        " waiting another {2} MS ... ", e.Message, nodeHost + ":" + nodePort, msSleepPerIteration));
+                    tcpClient.Close();
+                    Thread.Sleep(msSleepPerIteration);
+                }
+                tries++;
+            }
+            throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + tries + " tries!");
+        }
+
+
         // Wait for a node to be up and running
         // This is used because there is some delay between when a node has been
         // added through ccm and when it's actually available for querying'
         public static Cluster WaitForUp(string nodeHost, Builder builder, int maxTry, bool doAddlQueryTest = false)
         {
             int tries = 0;
+            int msSleepPerIteration = 500;
             while (tries < maxTry)
             {
                 try
@@ -192,16 +218,17 @@ namespace Cassandra.IntegrationTests.TestBase
                 }
                 catch (NoHostAvailableException e)
                 {
-                    _logger.Info(string.Format("Caught expected exception: {0}. Still waiting for node host: {1} to be 'UP', waiting another {2} MS ... ", e.Message, nodeHost, DefaultSleepIterationMs));
+                    _logger.Info(string.Format("Caught expected exception: {0}. Still waiting for node host: {1} to be 'UP', waiting another {2} MS ... ", e.Message, nodeHost, msSleepPerIteration));
                 }
                 tries++;
-                Thread.Sleep(DefaultSleepIterationMs);
+                Thread.Sleep(msSleepPerIteration);
             }
             return null;
         }
 
         private static void WaitForMeta(string nodeHost, Cluster cluster, int maxTry, bool waitForUp)
         {
+            int msSleepPerIteration = 500;
             string expectedFinalNodeState = "UP";
             if (!waitForUp)
                 expectedFinalNodeState = "DOWN";
@@ -255,7 +282,7 @@ namespace Cassandra.IntegrationTests.TestBase
                     _logger.Info("Exception caught while waiting for meta data: " + e.Message);
                 }
                 _logger.Warning("Waiting for node host: " + nodeHost + " to be " + expectedFinalNodeState);
-                Thread.Sleep(DefaultSleepIterationMs);
+                Thread.Sleep(msSleepPerIteration);
             }
             string errStr = "Node host should have been " + expectedFinalNodeState + " but was not after " + maxTry + " tries!";
             _logger.Error(errStr);
