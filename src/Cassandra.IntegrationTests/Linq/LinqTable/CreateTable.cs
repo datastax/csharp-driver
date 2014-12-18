@@ -265,7 +265,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method Create
-        /// Do not manually change the session to use the different keyspace
+        /// After manually change the session to use each different keyspace
         /// </summary>
         [Test]
         public void TableCreate_CreateTable_TwoDifferentKeyspaces_KeyspaceOverrideInConstructor()

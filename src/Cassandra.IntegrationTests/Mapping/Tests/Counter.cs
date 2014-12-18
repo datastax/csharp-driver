@@ -32,13 +32,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.DeleteKeyspace(_uniqueKsName);
         }
 
-        [Test, Category("medium"), NUnit.Framework.Ignore("Counter attribute doesn't seem to be getting used, pending question")]
-        public void Counter_LinqAttributes_Success()
+        [Test, Category("short")]
+        public void Counter_Success()
         {
-            var config = new MappingConfiguration();
-            var table = new Table<PocoWithCounterAttribute>(_session, config);
+            var config = new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(typeof(PocoWithCounterAttribute));
+            var table = new Table<PocoWithCounterAttribute>(_session, new MappingConfiguration().Define(config));
             table.Create();
-            var cqlClient = new Mapper(_session, config);
+            var cqlClient = new Mapper(_session, new MappingConfiguration().Define(config));
 
             List<PocoWithCounterAttribute> counterPocos = new List<PocoWithCounterAttribute>();
             for (int i = 0; i < 10; i++)
@@ -57,10 +57,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             foreach (PocoWithCounterAttribute pocoWithCounter in counterPocos)
             {
                 var boundStatement = updateSession.Bind(new object[] { pocoWithCounter.KeyPart1, pocoWithCounter.KeyPart2 });
-                string bountSessionToStr = boundStatement.ToString();
-                Cql cql = new Cql(boundStatement.ToString());
                 for (int j = 0; j < counterIncrements; j++)
-                    cqlClient.Execute(bountSessionToStr);
+                    _session.Execute(boundStatement);
                 pocoWithCounter.Counter += counterIncrements;
             }
 
@@ -84,12 +82,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// Do many counter updates in parallel
         /// </summary>
-        [Test, Category("large"), NUnit.Framework.Ignore("Counter attribute doesn't seem to be getting used, pending question")]
+        [Test, Category("long")]
         public void Counter_LinqAttributes_Parallel()
         {
-            var table = new Table<PocoWithCounterAttribute>(_session, new MappingConfiguration());
+            var config = new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(typeof(PocoWithCounterAttribute));
+            var table = new Table<PocoWithCounterAttribute>(_session, new MappingConfiguration().Define(config));
             table.Create();
-            var mapper = new Mapper(_session, new MappingConfiguration());
+            var cqlClient = new Mapper(_session, new MappingConfiguration().Define(config));
 
             List<PocoWithCounterAttribute> counterPocos = new List<PocoWithCounterAttribute>();
             for (int i = 0; i < 100; i++)
@@ -108,14 +107,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Parallel.ForEach(counterPocos, pocoWithCounter =>
             {
                 var boundStatement = updateSession.Bind(new object[] {pocoWithCounter.KeyPart1, pocoWithCounter.KeyPart2});
-                string bountSessionToStr = boundStatement.ToString();
-                Cql cql = new Cql(boundStatement.ToString());
                 for (int j = 0; j < counterIncrements; j++)
-                    mapper.Execute(bountSessionToStr);
+                    _session.Execute(boundStatement);
                 pocoWithCounter.Counter += counterIncrements;
             });
 
-            List<PocoWithCounterAttribute> countersQueried = mapper.Fetch<PocoWithCounterAttribute>().ToList();
+            List<PocoWithCounterAttribute> countersQueried = cqlClient.Fetch<PocoWithCounterAttribute>().ToList();
             foreach (PocoWithCounterAttribute pocoWithCounterExpected in counterPocos)
             {
                 bool counterFound = false;
@@ -135,7 +132,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// Validate expected error message when attempting to insert a row that contains a counter
         /// </summary>
-        [Test, Category("medium")]
+        [Test, Category("short")]
         public void Counter_LinqAttributes_AttemptInsert()
         {
             var table = new Table<PocoWithCounterAttribute>(_session, new MappingConfiguration());
