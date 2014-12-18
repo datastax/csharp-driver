@@ -25,6 +25,12 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("short")]
     public class ConnectionTimeoutTest : TestGlobals
     {
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         [Test]
         public void ConnectionDroppingTimeoutTest()
         {

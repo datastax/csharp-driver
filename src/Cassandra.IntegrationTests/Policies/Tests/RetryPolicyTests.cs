@@ -15,17 +15,23 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class RetryPolicyTests : TestGlobals
     {
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
@@ -137,7 +143,7 @@ namespace Cassandra.IntegrationTests.Policies
             // Start the node that was just down, then down the node that was just up
             policyTestTools.ResetCoordinators();
             testCluster.Start(clusterPosQueried);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + clusterPosQueried, testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + clusterPosQueried, DefaultCassandraPort, 30);
 
             // Test successful reads
             DateTime futureDateTime = DateTime.Now.AddSeconds(120);

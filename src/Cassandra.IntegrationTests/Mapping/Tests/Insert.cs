@@ -17,7 +17,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Tests;
+using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -35,6 +35,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [SetUp]
         public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
@@ -51,13 +52,37 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Successfully insert a new record into a table that was created with fluent mapping
         /// </summary>
         [Test]
-        public void Insert_IntoTableCreatedWithFluentMapping()
+        public void Insert_TableCreatedWithFluentMapping()
         {
-            var config = new MappingConfiguration().Define(
+            var mappingConfig = new MappingConfiguration().Define(
                 new Map<lowercaseclassnamepartitionkeylowercase>()
                 .TableName("lowercaseclassnamepartitionkeylowercase")
                 .PartitionKey(u => u.somepartitionkey));
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, config);
+            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
+            
+            var mapper = new Mapper(_session, mappingConfig);
+            mapper.Insert(privateClassInstance);
+            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping
+        /// </summary>
+        [Test]
+        public void Insert_TableCreatedWithFluentMapping_old()
+        {
+            var mappingConfig = new MappingConfiguration().Define(
+                new Map<lowercaseclassnamepartitionkeylowercase>()
+                .TableName("lowercaseclassnamepartitionkeylowercase")
+                .PartitionKey(u => u.somepartitionkey));
+            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
@@ -95,7 +120,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Insert_TableCreatedWithLinq_MappedTableNameDefaultsToLowerCase()
         {
-            var table = new Table<PrivateClassWithClassNameCamelCase>(_session, new MappingConfiguration());
+            Table<PrivateClassWithClassNameCamelCase> table = new Table<PrivateClassWithClassNameCamelCase>(_session, new MappingConfiguration());
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
             table.Create();
 
@@ -179,7 +204,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
         private class lowercaseclassnamepartitionkeylowercase
         {
-            [PartitionKey]
             public string somepartitionkey = "somePartitionKey";
         }
 

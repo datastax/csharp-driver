@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Util
 {
     public class AlwaysIgnoreRetryPolicy : IRetryPolicy
     {

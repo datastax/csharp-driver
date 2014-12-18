@@ -5,7 +5,7 @@ using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class UpdateIf : TestGlobals

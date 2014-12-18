@@ -31,8 +31,9 @@ namespace Cassandra.IntegrationTests.Core
         string _tableName = "users_tuples";
 
         [SetUp]
-        public void TestSetup()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
         }
 

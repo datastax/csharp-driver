@@ -37,6 +37,12 @@ namespace Cassandra.IntegrationTests.Core
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
 
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
@@ -55,7 +61,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private CcmCluster GetTestCcmClusterForAuthTests()
         {
-            CcmCluster customTestCluster = (CcmCluster)TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCmdRetries, false);
+            CcmCluster customTestCluster = (CcmCluster)TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, false);
             customTestCluster.CcmBridge.ExecuteCcm("updateconf \"authenticator: PasswordAuthenticator\"", 3000, true);
             customTestCluster.CcmBridge.Start();
             return customTestCluster;

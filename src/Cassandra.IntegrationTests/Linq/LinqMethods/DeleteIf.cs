@@ -10,7 +10,7 @@ using NUnit.Framework;
 using Renci.SshNet.Messages.Authentication;
 using Cassandra.Mapping;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class DeleteIf : TestGlobals

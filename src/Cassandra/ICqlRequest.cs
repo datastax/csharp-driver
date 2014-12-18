@@ -15,9 +15,6 @@
 //
 
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Cassandra
 {
@@ -26,6 +23,10 @@ namespace Cassandra
     /// </summary>
     internal interface ICqlRequest
     {
+        /// <summary>
+        /// Gets or sets the Consistency for the Request.
+        /// It defaults to the one provided by the Statement but it can be changed by the retry policy.
+        /// </summary>
         ConsistencyLevel Consistency { get; set; }
     }
 }

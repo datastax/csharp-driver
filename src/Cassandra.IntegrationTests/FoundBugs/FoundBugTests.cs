@@ -30,6 +30,12 @@ namespace Cassandra.IntegrationTests.FoundBugs
     {
         private readonly Logger _logger = new Logger(typeof(FoundBugTests));
 
+        [SetUp]
+        public void SetupTest()
+        {
+            IndividualTestSetup();
+        }
+
         [Test]
         public void Jira_CSHARP_80_82()
         {

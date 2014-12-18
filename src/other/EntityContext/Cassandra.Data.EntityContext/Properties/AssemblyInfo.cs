@@ -12,8 +12,8 @@
 [assembly: System.Reflection.AssemblyProduct("DataStax C# Driver EntityContext")]
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2014 by DataStax")]
-[assembly: System.Reflection.AssemblyVersion("2.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("2.1.0 (git 98df5d3)")]
-[assembly: System.Reflection.AssemblyFileVersion("2.1.0.300")]
+[assembly: System.Reflection.AssemblyVersion("2.1.1")]
+[assembly: System.Reflection.AssemblyInformationalVersion("2.1.1 (git 7150905)")]
+[assembly: System.Reflection.AssemblyFileVersion("2.1.1.0")]
 
 

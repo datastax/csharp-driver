@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class SessionTests : TestGlobals
     {
-        private static readonly Logger Logger = new Logger(typeof(TestGlobals));
+        private static readonly Logger Logger = new Logger(typeof(SessionTests));
 
         ISession _session = null;
         ITestCluster _testCluster = null;
@@ -39,6 +39,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupTest()
         {
+            IndividualTestSetup();
             // we just want to make sure there's a local 2 node cluster
             _testCluster = TestClusterManager.GetTestCluster(NodeCount);
             _session = _testCluster.Session;

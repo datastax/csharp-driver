@@ -31,9 +31,9 @@ namespace Cassandra.IntegrationTests.Core
         ISession _session = null;
 
         [SetUp]
-        public void SetupFixture()
+        public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(2).Session;
+            _session = TestClusterManager.GetTestCluster(1).Session;
         }
 
         [Test]

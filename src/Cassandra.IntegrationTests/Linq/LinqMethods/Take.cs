@@ -21,7 +21,7 @@ using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class Take : TestGlobals
@@ -58,10 +58,8 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             // Setup
             var table = _session.GetTable<Movie>();
 
-            //without where clause
+            // Without where clause
             List<Movie> actualMovieList = table.Take(0).Execute().ToList();
-            
-            // TODO: Verify with Jorge that this is expected
             Assert.AreEqual(5, actualMovieList.Count());
         }
 

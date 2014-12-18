@@ -32,9 +32,10 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const int DefaultNodeCount = 1;
 
-        [TestFixtureSetUp]
-        public void FixureSetup()
+        [SetUp]
+        public void SetupTest()
         {
+            IndividualTestSetup();
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
 

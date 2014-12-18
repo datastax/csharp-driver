@@ -35,9 +35,10 @@ namespace Cassandra.IntegrationTests.Core
     {
         protected TraceLevel _originalTraceLevel;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [SetUp]
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
@@ -140,7 +141,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var rowSet2 = session.Execute("SELECT * FROM system.schema_columnfamilies");
                 Assert.Greater(rowSet2.Count(), 0);
-                Assert.AreEqual(nonShareableTestCluster.ClusterIpPrefix + "4", rowSet2.Info.QueriedHost.ToString());
+                Assert.AreEqual(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, rowSet2.Info.QueriedHost.ToString());
             }
         }
 
@@ -219,9 +220,9 @@ namespace Cassandra.IntegrationTests.Core
             Parallel.Invoke(parallelOptions, actions.ToArray());
 
             //Wait for the nodes to be restarted
-            TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Builder, 20);
-            TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "2", nonShareableTestCluster.Builder, 20);
-            TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "3", nonShareableTestCluster.Builder, 20);
+            TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 30);
+            TestUtils.WaitForUp(nonShareableTestCluster.ClusterIpPrefix + "3", DefaultCassandraPort, 30);
 
             queriedHosts.Clear();
             // keep querying hosts until they are all queried, or time runs out
@@ -233,10 +234,10 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(50);
             }
             //Check that one of the restarted nodes were queried
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);
             //Check that the control connection is still using last host
             StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
         }
@@ -252,11 +253,11 @@ namespace Cassandra.IntegrationTests.Core
             testCluster.Builder = new Builder().WithReconnectionPolicy(policy);
             testCluster.InitClient(); // this will replace the existing session using the newly assigned Builder instance
             testCluster.BootstrapNode(2);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", DefaultCassandraPort, 60);
 
             //Wait for the join to be online
             string newlyBootstrappedHost = testCluster.ClusterIpPrefix + 2;
-            TestUtils.ValidateBootStrappedNodeIsQueried(testCluster, 2, newlyBootstrappedHost);
+            TestUtils.ValidateBootStrappedNodeIsQueried(testCluster, 2, newlyBootstrappedHost + ":" + DefaultCassandraPort);
         }
 
         [Test]
@@ -321,35 +322,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Explicit("This test needs to be rebuilt, when restarting the Cassandra node on Windows new connections are refused")]
-        public void DroppingConnectionsTest()
-        {
-            var parallelOptions = new ParallelOptions
-            {
-                TaskScheduler = new ThreadPerTaskScheduler(),
-                MaxDegreeOfParallelism = 100
-            };
-            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(1);
-            var session = nonShareableTestCluster.Session;
-            //For a node to be back up could take up to 60 seconds
-            const int bringUpNodeMilliseconds = 60000;
-            Action dropConnections = () =>
-            {
-                session.Execute("SELECT * FROM system.schema_keyspaces");
-                nonShareableTestCluster.StopForce(1);
-                Thread.Sleep(2000);
-                nonShareableTestCluster.Start(1);
-            };
-            Action query = () =>
-            {
-                Thread.Sleep(bringUpNodeMilliseconds);
-                //All the nodes should be up but the socket connections are not valid
-                session.Execute("SELECT * FROM system.schema_keyspaces");
-            };
-            Parallel.Invoke(parallelOptions, dropConnections, query);
-        }
-
-        [Test]
         public void HeartbeatShouldDetectNodeDown()
         {
             //Execute a couple of time
@@ -411,9 +383,7 @@ namespace Cassandra.IntegrationTests.Core
                     cluster.Connect();
                     clusterIsUp = true;
                 }
-                catch (NoHostAvailableException e)
-                {
-                }
+                catch (NoHostAvailableException) { }
             }
 
             //Now the node is ready to accept connections

@@ -23,7 +23,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
     [Category("short")]
     public class CreateTable : TestGlobals
@@ -38,6 +38,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
+            TestUtils.WaitForSchemaAgreement(_session.Cluster);
             _session.ChangeKeyspace(_uniqueKsName);
         }
 
@@ -58,7 +59,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
         }
 
         /// <summary>
@@ -70,7 +71,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             // Test
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
         }
 
         /// <summary>
@@ -84,7 +85,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             string uniqueTableName = TestUtils.GetUniqueTableName();
             Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>(uniqueTableName);
             table.Create();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
 
             Assert.AreEqual(uniqueTableName, table.Name);
             Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName));
@@ -123,7 +124,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             allDataTypesTable.Create();
             TableAttribute allDataTypesTableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
-            
+
             // Second creation attempt with same table name should fail
             Table<Movie> movieTable = _session.GetTable<Movie>(allDataTypesTableAttribute.Name);
             //Result Message:	Cassandra.AlreadyExistsException : Table test_cluster_keyspace.allDataTypes already exists
@@ -149,7 +150,8 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             string uniqueTableName = TestUtils.GetUniqueTableName();
             Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>(uniqueTableName);
             table.Create();
-            WriteReadValidate(table);
+            TestUtils.WaitForSchemaAgreement(_session.Cluster);
+            AllDataTypesEntity.WriteReadValidate(table);
 
             Assert.AreEqual(uniqueTableName, table.Name);
             Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName));
@@ -229,7 +231,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
 
             // Create in second keyspace
             string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
@@ -238,7 +240,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
 
             table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
         }
 
         /// <summary>
@@ -249,7 +251,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
 
             // Create in second keyspace
             string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
@@ -258,12 +260,12 @@ namespace Cassandra.IntegrationTests.Linq.Tests
 
             table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
-            WriteReadValidate(table);
+            AllDataTypesEntity.WriteReadValidate(table);
         }
 
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method Create
-        /// Do not manually change the session to use the different keyspace
+        /// After manually change the session to use each different keyspace
         /// </summary>
         [Test]
         public void TableCreate_CreateTable_TwoDifferentKeyspaces_KeyspaceOverrideInConstructor()
@@ -277,17 +279,17 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(uniqueKsName1);
             Table<AllDataTypesEntity> table1 = _session.GetTable<AllDataTypesEntity>(uniqueTableNameToBeShared, uniqueKsName1);
             table1.Create();
-            WriteReadValidate(table1);
+            AllDataTypesEntity.WriteReadValidate(table1);
 
             _session.ChangeKeyspace(uniqueKsName2);
             Table<AllDataTypesEntity> table2 = _session.GetTable<AllDataTypesEntity>(uniqueTableNameToBeShared, uniqueKsName2);
             table2.Create();
-            WriteReadValidate(table2);
+            AllDataTypesEntity.WriteReadValidate(table2);
 
             _session.ChangeKeyspace(uniqueKsName1);
-            WriteReadValidate(table1);
+            AllDataTypesEntity.WriteReadValidate(table1);
             _session.ChangeKeyspace(uniqueKsName2);
-            WriteReadValidate(table2);
+            AllDataTypesEntity.WriteReadValidate(table2);
         }
 
         /// <summary>
@@ -300,7 +302,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             // Test
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
-            AllDataTypesEntity expectedAllDataTypesEntityNoColumnMetaEntity = WriteReadValidate(table);
+            AllDataTypesEntity expectedAllDataTypesEntityNoColumnMetaEntity = AllDataTypesEntity.WriteReadValidate(table);
 
             // Do regular CQL query, validate that correct columns names are available as RowSet keys
             string cql = string.Format("Select * from \"{0}\".\"{1}\" where \"{2}\"='{3}'", _uniqueKsName, table.Name, "string_type",
@@ -369,7 +371,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// This also validates that a private class can be used with the Table.Create() method.
         /// </summary>
         [Test]
-        public void Insert_ClassMissingPartitionKey()
+        public void TableCreate_ClassMissingPartitionKey()
         {
             Table<PrivateClassMissingPartitionKey> table = _session.GetTable<PrivateClassMissingPartitionKey>();
             try
@@ -388,45 +390,6 @@ namespace Cassandra.IntegrationTests.Linq.Tests
 
         // AllDataTypes
 
-        private AllDataTypesEntity WriteReadValidateUsingTableMethods(Table<AllDataTypesEntity> table)
-        {
-            AllDataTypesEntity expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
-            string uniqueKey = expectedDataTypesEntityRow.StringType;
-
-            // insert record
-            _session.Execute(table.Insert(expectedDataTypesEntityRow));
-
-            // select record
-            List<AllDataTypesEntity> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
-            Assert.NotNull(listOfAllDataTypesObjects);
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesEntity actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
-            expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
-            return expectedDataTypesEntityRow;
-        }
-
-        private AllDataTypesEntity WriteReadValidateUsingSessionBatch(Table<AllDataTypesEntity> table)
-        {
-            Batch batch = _session.CreateBatch();
-            AllDataTypesEntity expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
-            string uniqueKey = expectedDataTypesEntityRow.StringType;
-            batch.Append(table.Insert(expectedDataTypesEntityRow));
-            batch.Execute();
-
-            List<AllDataTypesEntity> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
-            Assert.NotNull(listOfAllDataTypesObjects);
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesEntity actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
-            expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
-            return expectedDataTypesEntityRow;
-        }
-
-
-        private AllDataTypesEntity WriteReadValidate(Table<AllDataTypesEntity> table)
-        {
-            WriteReadValidateUsingSessionBatch(table);
-            return WriteReadValidateUsingTableMethods(table);
-        }
 
         // AllDataTypesNoColumnMeta
 

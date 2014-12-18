@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Tests;
+using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -21,6 +21,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [SetUp]
         public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
