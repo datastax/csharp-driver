@@ -171,6 +171,7 @@ namespace Cassandra.IntegrationTests.TestBase
             }
         }
 
+        [SetUp]
         public void IndividualTestSetup()
         {
             VerifyAppropriateCassVersion();

@@ -8,7 +8,7 @@ using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using NUnit.Framework.Constraints;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class First : TestGlobals
