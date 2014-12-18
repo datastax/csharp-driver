@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SetupFixture()
         {
             // we just need to make sure that there is a query-able cluster
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
         }
 
         public ConnectionTests()

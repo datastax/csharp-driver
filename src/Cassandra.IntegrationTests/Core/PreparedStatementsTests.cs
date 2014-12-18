@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            _session = TestClusterManager.GetTestCluster(3).Session;
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));

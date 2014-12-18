@@ -105,8 +105,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (testCluster != null)
             {
                 _logger.Info("Found existing test cluster with nodeCount: " + dc1NodeCount + ", name: " + testCluster.Name);
-                if (testCluster.Cluster.AllHosts().ToList().Count != dc1NodeCount)
-                    _logger.Warning("There a different number of actual hosts in the session than nodes assigned to the TestCluster ! ");
 
                 // make sure the existing TestCluster is running
                 if (!UseCtool)
