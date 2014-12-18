@@ -7,7 +7,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     public class Counter : TestGlobals
     {
