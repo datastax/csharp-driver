@@ -110,14 +110,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cassandra.Data.Linq\Cassandra.Data.Linq.csproj">
-      <Project>{7fd62b8b-365d-48d6-8c21-2ef215294f64}</Project>
-      <Name>Cassandra.Data.Linq</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Data\Cassandra.Data.csproj">
-      <Project>{ee00ce02-f1e6-4f7d-b43c-f6fadce4c72b}</Project>
-      <Name>Cassandra.Data</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
       <Name>Cassandra</Name>

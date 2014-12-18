@@ -67,6 +67,67 @@
     <Compile Include="Compression\Snappy\SlowMemory.cs" />
     <Compile Include="Compression\Snappy\SnappyDecompressor.cs" />
     <Compile Include="Compression\Snappy\SnappyInternalUtils.cs" />
+    <Compile Include="Data\CqlBatchTransaction.cs" />
+    <Compile Include="Data\CqlCommand.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Data\CqlCommandBuilder.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Data\CqlConnection.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Data\CqlDataAdapter.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Data\CqlParameter.cs" />
+    <Compile Include="Data\CqlParameterCollection.cs" />
+    <Compile Include="Data\CqlProviderFactory.cs" />
+    <Compile Include="Data\CqlReader.cs" />
+    <Compile Include="Data\Linq\AllowFilteringAttribute.cs" />
+    <Compile Include="Data\Linq\Batch.cs" />
+    <Compile Include="Data\Linq\BatchV1.cs" />
+    <Compile Include="Data\Linq\BatchV2.cs" />
+    <Compile Include="Data\Linq\ClusteringKeyAttribute.cs" />
+    <Compile Include="Data\Linq\ColumnAttribute.cs" />
+    <Compile Include="Data\Linq\CompactStorageAttribute.cs" />
+    <Compile Include="Data\Linq\CounterAttribute.cs" />
+    <Compile Include="Data\Linq\CqlArgumentException.cs" />
+    <Compile Include="Data\Linq\CqlCommand.cs" />
+    <Compile Include="Data\Linq\CqlDelete.cs" />
+    <Compile Include="Data\Linq\CqlExpressionVisitor.cs" />
+    <Compile Include="Data\Linq\CqlFunction.cs" />
+    <Compile Include="Data\Linq\CqlInsert.cs" />
+    <Compile Include="Data\Linq\CqlLinqNotSupportedException.cs" />
+    <Compile Include="Data\Linq\CqlMthHelps.cs" />
+    <Compile Include="Data\Linq\CqlOperator.cs" />
+    <Compile Include="Data\Linq\CqlQuery.cs" />
+    <Compile Include="Data\Linq\CqlQueryBase.cs" />
+    <Compile Include="Data\Linq\CqlQueryExtensions.cs" />
+    <Compile Include="Data\Linq\CqlQuerySingleElement.cs" />
+    <Compile Include="Data\Linq\CqlQueryTools.cs" />
+    <Compile Include="Data\Linq\CqlScalar.cs" />
+    <Compile Include="Data\Linq\CqlStringTool.cs" />
+    <Compile Include="Data\Linq\CqlToken.cs" />
+    <Compile Include="Data\Linq\CqlUpdate.cs" />
+    <Compile Include="Data\Linq\IgnoreAttribute.cs" />
+    <Compile Include="Data\Linq\ITable.cs" />
+    <Compile Include="Data\Linq\LinqAttributeBasedColumnDefinition.cs" />
+    <Compile Include="Data\Linq\LinqAttributeBasedTypeDefinition.cs" />
+    <Compile Include="Data\Linq\ParsePhase.cs" />
+    <Compile Include="Data\Linq\PartitionKeyAttribute.cs" />
+    <Compile Include="Data\Linq\SecondaryIndexAttribute.cs" />
+    <Compile Include="Data\Linq\SessionExtensions.cs" />
+    <Compile Include="Data\Linq\StaticColumnAttribute.cs" />
+    <Compile Include="Data\Linq\Table.cs" />
+    <Compile Include="Data\Linq\TableAttribute.cs" />
+    <Compile Include="Data\Linq\TableType.cs" />
+    <Compile Include="Data\Linq\VisitingParam.cs" />
+    <Compile Include="DSE\DseAuthProvider.cs" />
+    <Compile Include="DSE\KerberosAuthenticator.SSPI.cs" />
+    <Compile Include="DSE\SASL.cs" />
+    <Compile Include="DSE\SSPI.cs" />
+    <Compile Include="DSE\WindowsAPI.cs" />
     <Compile Include="Exceptions\RequestInvalidException.cs" />
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />
@@ -334,6 +395,7 @@
   <ItemGroup>
     <None Include="Compression\Snappy\notice.md" />
     <None Include="Compression\Snappy\README.md" />
+    <None Include="Data\README.rst" />
     <None Include="packages.config" />
     <None Include="README.rst" />
   </ItemGroup>
@@ -341,6 +403,7 @@
     <Content Include="Compression\Snappy\license-header.txt" />
     <Content Include="Compression\Snappy\license.txt" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,15 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F6762B3F-9260-4FB4-A61F-E7654A056802}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra", "Cassandra\Cassandra.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data", "Cassandra.Data\Cassandra.Data.csproj", "{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Data.Linq", "Cassandra.Data.Linq\Cassandra.Data.Linq.csproj", "{7FD62B8B-365D-48D6-8C21-2EF215294F64}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.IntegrationTests", "Cassandra.IntegrationTests\Cassandra.IntegrationTests.csproj", "{D584651E-23C0-4714-9B92-6113C44BA6B8}"
 EndProject
@@ -18,8 +14,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{9A8259D4
 		..\build\build.proj = ..\build\build.proj
 		..\build\CassandraCSharpDriver.nuspec = ..\build\CassandraCSharpDriver.nuspec
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.DSE", "Cassandra.DSE\Cassandra.DSE.csproj", "{63B858E0-A7A8-4849-9069-58CE6A18771B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{C29E0F5F-FC0E-466B-A2B7-30756AF22956}"
 	ProjectSection(SolutionItems) = preProject
@@ -50,26 +44,6 @@ Global
 		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|x86.ActiveCfg = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Debug|Mixed Platforms.Build.0 = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{EE00CE02-F1E6-4F7D-B43C-F6FADCE4C72B}.Release|x86.ActiveCfg = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|Mixed Platforms.Build.0 = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{7FD62B8B-365D-48D6-8C21-2EF215294F64}.Release|x86.ActiveCfg = Release|Any CPU
 		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
@@ -80,16 +54,6 @@ Global
 		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|x86.ActiveCfg = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Debug|Mixed Platforms.Build.0 = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{63B858E0-A7A8-4849-9069-58CE6A18771B}.Release|x86.ActiveCfg = Release|Any CPU
 		{49996688-1380-4854-A32C-048C4014E478}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{49996688-1380-4854-A32C-048C4014E478}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49996688-1380-4854-A32C-048C4014E478}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
