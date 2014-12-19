@@ -154,6 +154,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 {
                     tcpClient.Connect(nodeHost, nodePort);
                     tcpClient.Close();
+                    _logger.Info("Verified that node " + nodeHost + ":" + nodePort + " is UP (success) via manual socket connection check, exiting now ...");
                     return;
                 }
                 catch (Exception e)
@@ -165,6 +166,31 @@ namespace Cassandra.IntegrationTests.TestBase
                 }
             }
             throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + maxSecondsToKeepTrying + " seconds!");
+        }
+
+        public static void WaitForDown_new(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
+        {
+            int msSleepPerIteration = 500;
+            DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
+            while (DateTime.Now < futureDateTime)
+            {
+                TcpClient tcpClient = new TcpClient();
+                try
+                {
+                    tcpClient.Connect(nodeHost, nodePort);
+                    tcpClient.Close();
+                    _logger.Info(string.Format("Still waiting for node host: {0} to be UNavailable for connection to default Cassandra port, waiting another {1} MS ... ", 
+                        nodeHost + ":" + nodePort, msSleepPerIteration));
+                    Thread.Sleep(msSleepPerIteration);
+                }
+                catch (Exception e)
+                {
+                    _logger.Info("Verified that node " + nodeHost + ":" + nodePort + " is DOWN (success) via manual socket connection check, exiting now ...");
+                    tcpClient.Close();
+                    return;
+                }
+            }
+            throw new Exception("Node: " + nodeHost + ":" + nodePort + " was still available for connection after " + maxSecondsToKeepTrying + " seconds, but should have been UNavailable by now!");
         }
 
         // Wait for a node to be up and running
