@@ -34,8 +34,6 @@ namespace Cassandra.IntegrationTests.Core
     [Timeout(600000), Category("short")]
     public class ConnectionTests : TestGlobals
     {
-        ISession _session = null;
-
         [SetUp]
         public void SetupFixture()
         {

@@ -264,7 +264,7 @@ namespace Cassandra
                 throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
             }
             var prepared = (OutputPrepared)output;
-            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, prepared.ResultMetadata);
+            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, _connection.Keyspace, prepared.ResultMetadata);
             _tcs.TrySetResult((T)(object)statement);
         }
 
@@ -315,6 +315,20 @@ namespace Cassandra
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
             var request = new PrepareRequest(_request.ProtocolVersion, boundStatement.PreparedStatement.Cql);
+            if (boundStatement.PreparedStatement.Keyspace != null && _session.Keyspace != boundStatement.PreparedStatement.Keyspace)
+            {
+                _logger.Warning(String.Format("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
+                                              " {0} and back to {1}. Use keyspace and table identifiers in your queries and avoid switching keyspaces.",
+                                              boundStatement.PreparedStatement.Keyspace, _session.Keyspace));
+                //Use the current task scheduler to avoid blocking on a io worker thread
+                Task.Factory.StartNew(() =>
+                {
+                    //Change the keyspace is a blocking operation
+                    _connection.Keyspace = boundStatement.PreparedStatement.Keyspace;
+                    _connection.Send(request, ResponseReprepareHandler);
+                });
+                return;
+            }
             _connection.Send(request, ResponseReprepareHandler);
         }
 
