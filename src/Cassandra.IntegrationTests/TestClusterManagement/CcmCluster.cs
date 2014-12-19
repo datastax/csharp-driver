@@ -104,6 +104,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             Cluster = Builder.AddContactPoint(InitialContactPoint).Build();
             Session = Cluster.Connect();
             Session.CreateKeyspaceIfNotExists(DefaultKeyspace);
+            TestUtils.WaitForSchemaAgreement(Cluster);
             Session.ChangeKeyspace(DefaultKeyspace);
         }
 
