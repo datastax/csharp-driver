@@ -126,5 +126,37 @@ namespace Cassandra.Tests.Mapping
                 )), Times.Exactly(1));
             sessionMock.Verify();
         }
+
+        [Test]
+        public void Insert_Udt()
+        {
+            var album = new Album
+            {
+                Id = Guid.NewGuid(),
+                Name = "Images and Words",
+                PublishingDate = DateTimeOffset.Now,
+                Songs = new List<Song>
+                {
+                    new Song {Artist = "Dream Theater", Title = "Pull me under"},
+                    new Song {Artist = "Dream Theater", Title = "Under a glass moon"}
+                }
+            };
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TaskHelper.ToTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            mapper.Insert(album);
+            sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
+                stmt.QueryValues.Length > 0 &&
+                stmt.PreparedStatement.Cql == "INSERT INTO Album (Id, Name, PublishingDate, Songs) VALUES (?, ?, ?, ?)"
+                )), Times.Exactly(1));
+            sessionMock.Verify();
+        }
     }
 }

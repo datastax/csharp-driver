@@ -75,7 +75,7 @@ namespace Cassandra.Tests.Mapping.TestData
         public static RowSet GetUsersRowSet(IEnumerable<PlainUser> users)
         {
             var rs = new RowSet();
-            rs.Columns = new []
+            rs.Columns = new[]
             {
                 new CqlColumn { Name = "userid", TypeCode = ColumnTypeCode.Uuid, Type = typeof(Guid), Index = 0},
                 new CqlColumn { Name = "name", TypeCode = ColumnTypeCode.Text, Type = typeof(string), Index = 1},

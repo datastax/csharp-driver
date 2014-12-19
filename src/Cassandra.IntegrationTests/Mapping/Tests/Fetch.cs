@@ -21,6 +21,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Tests;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.FluentMappings;
 using NUnit.Framework;
@@ -32,12 +33,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     {
         ISession _session = null;
         private readonly Logger _logger = new Logger(typeof(Fetch));
-        string _uniqueKsName;
+        private string _uniqueKsName;
+        private ITestCluster _testCluster;
 
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            _testCluster = TestClusterManager.GetTestCluster(1);
+            _session = _testCluster.Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
@@ -175,5 +178,23 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void Fetch_With_Udt()
+        {
+            var mapper = new Mapper(_session, new MappingConfiguration());
+            _session.Execute("CREATE TYPE song (id uuid, title text, artist text)");
+            _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>)");
+            _session.UserDefinedTypes.Define(UdtMap.For<Cassandra.Tests.Mapping.Pocos.Song>());
+            _session.Execute("INSERT INTO albums (id, name, songs) VALUES (uuid(), 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])");
+            var result = mapper.Fetch<Cassandra.Tests.Mapping.Pocos.Album>("SELECT * from albums LIMIT 1").ToList();
+            Assert.AreEqual(1, result.Count);
+            var album = result[0];
+            Assert.AreEqual("Legend", album.Name);
+            Assert.AreEqual(1, album.Songs.Count);
+            var song = album.Songs[0];
+            Assert.AreEqual("Bob Marley", song.Artist);
+            Assert.AreEqual("Africa Unite", song.Title);
+        }
     }
 }
