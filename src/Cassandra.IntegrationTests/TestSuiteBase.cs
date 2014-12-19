@@ -20,7 +20,7 @@ namespace Cassandra.IntegrationTests
             if (TestClusterManager != null)
             {
                 _logger.Info("In final tear-down method, shutting down shared " + TestClusterManager.GetType().Name + " object");
-                TestClusterManager.ShutDownAllCcmTestClusters();
+                //TestClusterManager.ShutDownAllCcmTestClusters();
                 TestClusterManager.RemoveAllTestClusters();
             }
         }
