@@ -57,6 +57,54 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Create_With_Fluent_Clustering_Key()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                .Column(t => t.Int64Value, cm => cm.WithName("long_value"))
+                .PartitionKey(t => t.StringValue)
+                .ClusteringKey("DateTimeValue")
+                .ClusteringKey(t => t.Int64Value);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
+                            "long_value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "PRIMARY KEY (StringValue, DateTimeValue, long_value))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Fluent_Clustering_Key_And_Clustering_Order()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                .Column(t => t.Int64Value, cm => cm.WithName("long_value"))
+                .PartitionKey(t => t.StringValue)
+                .ClusteringKey(t => t.Int64Value, SortOrder.Descending)
+                .ClusteringKey(t => t.DateTimeValue);
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
+                            "long_value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "PRIMARY KEY (StringValue, long_value, DateTimeValue)) WITH CLUSTERING ORDER BY (long_value DESC)", createQuery);
+        }
+
+        [Test]
         public void Create_With_Composite_Partition_Key_And_Clustering_Key_Explicit()
         {
             string createQuery = null;
