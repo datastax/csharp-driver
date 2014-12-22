@@ -342,6 +342,13 @@ namespace Cassandra
                     return ColumnTypeCode.Tuple;
                 }
             }
+            if (type.IsArray)
+            {
+                IColumnInfo valueTypeInfo;
+                ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetElementType(), out valueTypeInfo);
+                typeInfo = new ListColumnInfo { ValueTypeCode = valueTypeCode, ValueTypeInfo = valueTypeInfo };
+                return ColumnTypeCode.List;
+            }
 
             //Determine if its a Udt type
             var udtMap = GetUdtMap(type);
@@ -498,29 +505,22 @@ namespace Cassandra
             {
                 throw new DriverInternalError("Expected SetColumnInfo, obtained " + typeInfo.GetType());
             }
-            var listTypecode = (typeInfo as SetColumnInfo).KeyTypeCode;
-            var listTypeinfo = (typeInfo as SetColumnInfo).KeyTypeInfo;
-            var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-            var index = 0;
-            var count = DecodeCollectionLength(protocolVersion, value, ref index);
-            var result = Array.CreateInstance(valueType, count);
-            for (var i = 0; i < count; i++)
-            {
-                var valueBufferLength = DecodeCollectionLength(protocolVersion, value, ref index);
-                var valBuf = new byte[valueBufferLength];
-                Buffer.BlockCopy(value, index, valBuf, 0, valueBufferLength);
-                index += valueBufferLength;
-                result.SetValue(Decode(protocolVersion, valBuf, listTypecode, listTypeinfo), i);
-            }
-            if (cSharpType == null || !cSharpType.IsGenericType)
-            {
-                //Return as an array
-                return result;
-            }
-            //Is a generic type is expected, check if supported
-            if (cSharpType.GetGenericTypeDefinition() == typeof(List<>))
+            var childTypeCode = ((SetColumnInfo) typeInfo).KeyTypeCode;
+            var childTypeInfo = ((SetColumnInfo)typeInfo).KeyTypeInfo;
+            var valueType = GetDefaultTypeFromCqlType(childTypeCode, childTypeInfo);
+            var result = DecodeCollection(protocolVersion, valueType, childTypeCode, childTypeInfo, value);
+            if (cSharpType == null)
             {
                 return Utils.ToCollectionType(typeof(List<>), valueType, result);
+            }
+            //Is a generic type is expected, check if supported
+            if (cSharpType.IsArray)
+            {
+                return result;
+            }
+            if (!cSharpType.IsGenericType)
+            {
+                return Utils.ToCollectionType(typeof (List<>), valueType, result);
             }
             if (cSharpType.GetGenericTypeDefinition() == typeof(SortedSet<>))
             {
@@ -530,7 +530,7 @@ namespace Cassandra
             {
                 return Utils.ToCollectionType(typeof(HashSet<>), valueType, result);
             }
-            return result;
+            return Utils.ToCollectionType(typeof(List<>), valueType, result);
         }
 
         /// <summary>
@@ -550,6 +550,22 @@ namespace Cassandra
                 //length is expressed in int
                 result = BytesToInt32(buffer, index);
                 index += 4;
+            }
+            return result;
+        }
+
+        private static Array DecodeCollection(int protocolVersion, Type childType, ColumnTypeCode childTypeCode, IColumnInfo childTypeInfo, byte[] value)
+        {
+            var index = 0;
+            var count = DecodeCollectionLength(protocolVersion, value, ref index);
+            var result = Array.CreateInstance(childType, count);
+            for (var i = 0; i < count; i++)
+            {
+                var valueBufferLength = DecodeCollectionLength(protocolVersion, value, ref index);
+                var valBuf = new byte[valueBufferLength];
+                Buffer.BlockCopy(value, index, valBuf, 0, valueBufferLength);
+                index += valueBufferLength;
+                result.SetValue(Decode(protocolVersion, valBuf, childTypeCode, childTypeInfo), i);
             }
             return result;
         }
@@ -788,23 +804,15 @@ namespace Cassandra
             {
                 throw new InvalidTypeException("Expected ListColumnInfo typeInfo, obtained " + typeInfo.GetType());
             }
-            var listTypecode = (typeInfo as ListColumnInfo).ValueTypeCode;
-            var listTypeinfo = (typeInfo as ListColumnInfo).ValueTypeInfo;
-            var valueType = GetDefaultTypeFromCqlType(listTypecode, listTypeinfo);
-            var index = 0;
-            var count = DecodeCollectionLength(protocolVersion, value, ref index);
-            var openType = typeof(List<>);
-            var listType = openType.MakeGenericType(valueType);
-            var result = (IList) Activator.CreateInstance(listType);
-            for (var i = 0; i < count; i++)
+            var childTypeCode = ((ListColumnInfo) typeInfo).ValueTypeCode;
+            var childTypeInfo = ((ListColumnInfo) typeInfo).ValueTypeInfo;
+            var valueType = GetDefaultTypeFromCqlType(childTypeCode, childTypeInfo);
+            var result = DecodeCollection(protocolVersion, valueType, childTypeCode, childTypeInfo, value);
+            if (cSharpType != null && cSharpType.IsArray)
             {
-                var valueBufferLength = DecodeCollectionLength(protocolVersion, value, ref index);
-                var valueBuffer = new byte[valueBufferLength];
-                Buffer.BlockCopy(value, index, valueBuffer, 0, valueBufferLength);
-                index += valueBufferLength;
-                result.Add(Decode(protocolVersion, valueBuffer, listTypecode, listTypeinfo));
+                return result;
             }
-            return result;
+            return Utils.ToCollectionType(typeof(List<>), valueType, result);
         }
 
         private static Type GetDefaultTypeFromList(IColumnInfo typeInfo)

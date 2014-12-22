@@ -185,7 +185,7 @@ namespace Cassandra
             return GetValue<T>(ColumnIndexes[name]);
         }
 
-        private object ConvertToObject(int i, byte[] buffer, Type cSharpType = null)
+        private object ConvertToObject(int i, byte[] buffer, Type cSharpType)
         {
             return TypeCodec.Decode(ProtocolVersion, buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
         }

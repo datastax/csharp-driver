@@ -145,10 +145,12 @@ namespace Cassandra.Tests
                 //Lists
                 new object[] {new List<int>(new [] {1, 2, 1000}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Int}},
                 new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
+                new object[] {new double[] {5D, 4.333D, 1.2D}, ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
                 //Sets
                 new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}},
                 new object[] {new SortedSet<string>(new [] {"a", "b", "c"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
-                new object[] {new HashSet<string>(new [] {"ADADD", "AA", "a"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}}
+                new object[] {new HashSet<string>(new [] {"ADADD", "AA", "a"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
+                new object[] {new string[] {"ADADD", "AA", "a"}, ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}}
             };
             foreach (var version in _protocolVersions)
             {
@@ -160,6 +162,24 @@ namespace Cassandra.Tests
                     var decoded = (IEnumerable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], originalType);
                     Assert.IsInstanceOf(originalType, decoded);
                     CollectionAssert.AreEqual(valueToEncode, decoded);
+                }
+            }
+        }
+
+        [Test]
+        public void EncodeListSetInvalid()
+        {
+            var values = new object[]
+            {
+                new List<object>(),
+                //any class
+                new List<TypeCodecTests>()
+            };
+            foreach (var version in _protocolVersions)
+            {
+                foreach (var value in values)
+                {
+                    Assert.Throws<InvalidTypeException>(() => TypeCodec.Encode(version, value));
                 }
             }
         }
