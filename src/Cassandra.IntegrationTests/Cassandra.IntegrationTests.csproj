@@ -61,6 +61,7 @@
     <Compile Include="Linq\Tests\Counter.cs" />
     <Compile Include="Linq\Tests\DeleteIf.cs" />
     <Compile Include="Linq\Tests\Delete.cs" />
+    <Compile Include="Linq\Tests\LinqUdtTests.cs" />
     <Compile Include="Linq\Tests\Select.cs" />
     <Compile Include="Linq\Tests\Insert.cs" />
     <Compile Include="Linq\Tests\Update.cs" />
