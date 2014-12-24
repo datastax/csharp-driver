@@ -27,6 +27,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Moq;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -140,7 +141,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var rowSet2 = session.Execute("SELECT * FROM system.schema_columnfamilies");
                 Assert.Greater(rowSet2.Count(), 0);
-                Assert.AreEqual(nonShareableTestCluster.ClusterIpPrefix + "4", rowSet2.Info.QueriedHost.ToString());
+                StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", rowSet2.Info.QueriedHost.ToString());
             }
         }
 
@@ -419,6 +420,41 @@ namespace Cassandra.IntegrationTests.Core
             //Now the node is ready to accept connections
             var session = cluster.Connect("system");
             TestHelper.ParallelInvoke(() => session.Execute("SELECT * from schema_keyspaces"), 20);
+        }
+
+        /// <summary>
+        /// Tests that when a peer is added or set as down, the address translator is invoked
+        /// </summary>
+        [Test]
+        public void AddressTranslatorIsCalledPerEachPeer()
+        {
+            var invokedEndPoints = new List<IPEndPoint>();
+            var translatorMock = new Mock<IAddressTranslator>(MockBehavior.Strict);
+            translatorMock
+                .Setup(t => t.Translate(It.IsAny<IPEndPoint>()))
+                .Callback<IPEndPoint>(invokedEndPoints.Add)
+                .Returns<IPEndPoint>(e => e);
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(3);
+            var cluster = Cluster.Builder()
+                .AddContactPoint(testCluster.InitialContactPoint)
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(int.MaxValue))
+                .WithAddressTranslator(translatorMock.Object)
+                .Build();
+            cluster.Connect();
+            //2 peers translated
+            Assert.AreEqual(2, invokedEndPoints.Count);
+            Assert.True(cluster.AllHosts().All(h => h.IsUp));
+            testCluster.Stop(3);
+            //Wait for the C* event to notify the control connection
+            Thread.Sleep(30000);
+            //Should be down
+            Assert.False(cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 3).IsUp);
+            
+            //Should have been translated
+            Assert.AreEqual(3, invokedEndPoints.Count);
+            //The recently translated should be the host #3
+            Assert.AreEqual(3, TestHelper.GetLastAddressByte(invokedEndPoints.Last()));
+            cluster.Dispose();
         }
     }
 }
