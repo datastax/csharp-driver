@@ -260,7 +260,7 @@ namespace Cassandra
             {
                 if (e is TopologyChangeEventArgs)
                 {
-                    var tce = e as TopologyChangeEventArgs;
+                    var tce = (TopologyChangeEventArgs) e;
                     if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
                     {
                         Refresh(false);
@@ -274,22 +274,23 @@ namespace Cassandra
                 }
                 if (e is StatusChangeEventArgs)
                 {
-                    //Translate address
-                    var sce = e as StatusChangeEventArgs;
+                    var sce = (StatusChangeEventArgs) e;
+                    //The address in the Cassandra event message needs to be translated
+                    var address = TranslateAddress(sce.Address);
                     if (sce.What == StatusChangeEventArgs.Reason.Up)
                     {
-                        Metadata.BringUpHost(sce.Address, this);
+                        Metadata.BringUpHost(address, this);
                         return;
                     }
                     if (sce.What == StatusChangeEventArgs.Reason.Down)
                     {
-                        Metadata.SetDownHost(sce.Address, this);
+                        Metadata.SetDownHost(address, this);
                         return;
                     }
                 }
                 if (e is SchemaChangeEventArgs)
                 {
-                    var ssc = e as SchemaChangeEventArgs;
+                    var ssc = (SchemaChangeEventArgs) e;
                     if (!String.IsNullOrEmpty(ssc.Table))
                     {
                         Metadata.RefreshTable(ssc.Keyspace, ssc.Table);
@@ -303,6 +304,11 @@ namespace Cassandra
                     Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
                 }
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+        }
+
+        private IPEndPoint TranslateAddress(IPEndPoint value)
+        {
+            return _config.AddressTranslator.Translate(value);
         }
 
         private void RefreshNodeList()

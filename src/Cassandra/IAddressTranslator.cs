@@ -28,13 +28,13 @@ namespace Cassandra
     ///     yaml file. In most case, this is the correct address to use by the driver and that is
     ///     what is used by default. However, sometimes the addresses received through this
     ///     mechanism will either not be reachable directly by the driver or should not be the
-    ///     prefered address to use to reach the node (for instance, the rpc_address set on
+    ///     preferred address to use to reach the node (for instance, the rpc_address set on
     ///     Cassandra nodes might be a private IP, but some clients may have to use a public IP,
     ///     or pass by a router to reach that node). This interface allows to deal with such cases,
     ///     by allowing to translate an address as sent by a Cassandra node to another address
     ///     to be used by the driver for connection.
     ///     Please note that the contact points addresses provided while creating the
-    ///     <c>Cluster</c> instance are not "tanslated", only IP address retrieve from or sent
+    ///     <c>Cluster</c> instance are not "translated", only IP address retrieve from or sent
     ///     by Cassandra nodes to the driver are.
     /// </remarks>
     public interface IAddressTranslator

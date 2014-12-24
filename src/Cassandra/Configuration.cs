@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
@@ -140,6 +142,14 @@ namespace Cassandra
                                QueryOptions queryOptions,
                                IAddressTranslator addressTranslator)
         {
+            if (addressTranslator == null)
+            {
+                throw new ArgumentNullException("addressTranslator");
+            }
+            if (queryOptions == null)
+            {
+                throw new ArgumentNullException("queryOptions");
+            }
             _policies = policies;
             _protocolOptions = protocolOptions;
             _poolingOptions = poolingOptions;
