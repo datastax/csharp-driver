@@ -15,13 +15,18 @@ namespace Cassandra.Tests
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
 
-        public ICluster GetCluster()
+        private ICluster GetCluster(Configuration config)
         {
             var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
             clusterMock
                 .SetupGet(c => c.Configuration)
-                .Returns(new Configuration());
+                .Returns(config);
             return clusterMock.Object;
+        }
+
+        private ICluster GetCluster()
+        {
+            return GetCluster(new Configuration());
         }
 
         [Test]
@@ -87,6 +92,46 @@ namespace Cassandra.Tests
             cc.UpdatePeersInfo(rows);
             //Only local host present
             Assert.AreEqual(1, metadata.AllHosts().Count);
+        }
+
+        [Test]
+        public void UpdatePeersInfoUsesAddressTranslator()
+        {
+            var invokedEndPoints = new List<IPEndPoint>();
+            var translatorMock = new Mock<IAddressTranslator>(MockBehavior.Strict);
+            translatorMock
+                .Setup(t => t.Translate(It.IsAny<IPEndPoint>()))
+                .Callback<IPEndPoint>(invokedEndPoints.Add)
+                .Returns<IPEndPoint>(e => e);
+            const int portNumber = 9999;
+            var rp = new ConstantReconnectionPolicy(1000);
+            var metadata = new Metadata(rp);
+            var config = new Configuration(new Policies(),
+                 new ProtocolOptions(portNumber),
+                 null,
+                 new SocketOptions(),
+                 new ClientOptions(),
+                 NoneAuthProvider.Instance,
+                 null,
+                 new QueryOptions(),
+                 translatorMock.Object);
+            var cc = new ControlConnection(GetCluster(config), metadata);
+            cc.Host = TestHelper.CreateHost("127.0.0.1");
+            metadata.AddHost(cc.Host.Address);
+            var hostAddress2 = IPAddress.Parse("127.0.0.2");
+            var hostAddress3 = IPAddress.Parse("127.0.0.3");
+            var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
+            {
+                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}},
+                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}}
+            });
+            cc.UpdatePeersInfo(rows);
+            Assert.AreEqual(3, metadata.AllHosts().Count);
+            Assert.AreEqual(2, invokedEndPoints.Count);
+            Assert.AreEqual(hostAddress2, invokedEndPoints[0].Address);
+            Assert.AreEqual(portNumber, invokedEndPoints[0].Port);
+            Assert.AreEqual(hostAddress3, invokedEndPoints[1].Address);
+            Assert.AreEqual(portNumber, invokedEndPoints[1].Port);
         }
     }
 }
