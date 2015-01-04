@@ -19,7 +19,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         private const int MaxClusterCreationRetries = 2;
         private readonly Mutex _mutex = new Mutex();
         private List<Tuple<int, int>> _ipPrefixesInUse = new List<Tuple<int, int>>();
-
         private List<ITestCluster> _testClusters = new List<ITestCluster>();
 
         public TestClusterManager()
@@ -37,12 +36,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public ITestCluster CreateNewCluster(string clusterName, int dc1NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
+        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
         {
-            return CreateNewCluster(clusterName, dc1NodeCount, 0, keyspaceName, isUsingDefaultConfig, startCluster, maxTries);
+            return CreateNewClusterAndAddToList(clusterName, dc1NodeCount, 0, keyspaceName, isUsingDefaultConfig, startCluster, maxTries);
         }
 
-        public ITestCluster CreateNewCluster(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
+        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
         {
             try
             {
@@ -56,11 +55,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     // first stop any existing CCM clusters
                     ShutDownAllCcmTestClusters();
-                    KillAllCcmProcesses();
+                    KillAllCcmProcesses(); // Kill C* in case still running from previous test runs
 
                     // Create new cluster via ccm
-                    CcmCluster testCluster = new CcmCluster(TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
+                    CcmCluster testCluster = new CcmCluster(CassandraVersion, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
                     testCluster.Create(startCluster);
+                    _testClusters.Add(testCluster);
                     return testCluster;
                 }
             }
@@ -105,45 +105,42 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (testCluster != null)
             {
                 _logger.Info("Found existing test cluster with nodeCount: " + dc1NodeCount + ", name: " + testCluster.Name);
-
-                // make sure the existing TestCluster is running
-                if (!UseCtool)
-                    StopAllCcmTestClustersExceptFor((CcmCluster)testCluster);
+                ShutDownAllCcmTestClustersExceptFor((CcmCluster) testCluster);
                 testCluster.SwitchToThisAndStart();
             }
-
             // If no Test Cluster was found, then we need to create a new one.
             else
             {
-                testCluster = CreateNewCluster(
+                testCluster = CreateNewClusterAndAddToList(
                     TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, DefaultKeyspaceName, shareable, startCluster, 2);
             }
 
-
-            // if this fails, then remove the cluster and try another creating another one
+            // Try to initialize the cluster / session
             if (initClient)
             {
-                if (!TryToInititalizeClusterClient(testCluster))
+                bool clientWasInitialized = TryToInititalizeClusterClient(testCluster);
+                if (!clientWasInitialized)
                 {
-                    testCluster.ShutDown();
-                    KillAllCcmProcesses();
+                    RemoveTestCluster(testCluster);
+                    foreach (string host in testCluster.ExpectedInitialHosts)
+                        TestUtils.WaitForDown(host, DefaultCassandraPort, 30);
+                    //KillAllCcmProcesses();
+
                     if (currentRetryCount > MaxClusterCreationRetries)
                         throw new Exception("Cluster with node count " + dc1NodeCount + " has already failed " + currentRetryCount + " times ... is there something wrong with this environment?");
+
                     testCluster = null; // signal that we need to try again
                 }
             }
 
             // loop back, try again while we haven't exceeded max tries
-            if (testCluster == null && currentRetryCount < maxTries)
-                return GetTestCluster(dc1NodeCount, dc2NodeCount, shareable, maxTries, startCluster, initClient, ++currentRetryCount);
-
-            // fail out if the test cluster was never created
             if (testCluster == null)
-                throw new Exception("Test cluster was not created successfully!");
-
-            // only add this to the test cluster list if its not there already
-            if (!_testClusters.Contains(testCluster))
-                _testClusters.Add(testCluster);
+            {
+                if (currentRetryCount < maxTries)
+                    return GetTestCluster(dc1NodeCount, dc2NodeCount, shareable, maxTries, startCluster, initClient, ++currentRetryCount);
+                else
+                    throw new Exception("Test cluster was not created successfully!");
+            }
 
             return testCluster;
         }
@@ -162,7 +159,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             try
             {
                 foreach (string host in testCluster.ExpectedInitialHosts)
-                    TestUtils.WaitForUp(host, DefaultCassandraPort, 15);
+                    TestUtils.WaitForUp(host, DefaultCassandraPort, 30);
 
                 // at this point we expect all the nodes to be up
                 testCluster.InitClient();
@@ -243,22 +240,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 ITestCluster existingTestCluster = _testClusters[i];
                 if (existingTestCluster.Dc1NodeCount == nodeCount && existingTestCluster.IsUsingDefaultConfig == true)
                 {
-                    try
-                    {
-                        existingTestCluster.Remove();
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error("Unexpected Error occurred when trying to get shared test cluster with nodeCount: " + nodeCount + ", name: " + existingTestCluster.Name);
-                        _logger.Error("Error Message: " + e.Message);
-                        _logger.Error("Error Stack Trace: " + e.StackTrace);
-                        _logger.Error("Forcibly removing the test cluster from the list anyway ... ");
-                    }
-                    _testClusters.Remove(existingTestCluster);
+                    RemoveTestCluster(existingTestCluster);
                 }
             }
         }
 
+        public void RemoveTestCluster(ITestCluster testCluster)
+        {
+            _logger.Warning("Removing test cluster with initial contact point: " + testCluster.InitialContactPoint + " and name: " + testCluster.Name);
+            // remove Cassandra instance 
+            testCluster.Remove();
+            // remove from list
+            _testClusters.Remove(testCluster);
+        }
 
         private void WaitForTestClusterToInitialize(ITestCluster testCluster)
         {
@@ -271,28 +265,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public void ShutDownAllCcmTestClusters(bool throwOnError = false)
+        public void ShutDownAllCcmTestClusters()
         {
             foreach (ITestCluster existingTestCluster in _testClusters)
             {
                 if (existingTestCluster.IsStarted)
                 {
-                    try
-                    {
-                        _logger.Info("Shutting down cluster: " + existingTestCluster.Name + " initial contact point: " + existingTestCluster.InitialContactPoint);
-                        existingTestCluster.SwitchToThisCluster();
-                        existingTestCluster.ShutDown();
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error("Unexpected Error caught when shutting down cluster with name: " + existingTestCluster.Name + " initial contact point: " +existingTestCluster.InitialContactPoint);
-                        _logger.Error("Error message: " + e.Message);
-                        _logger.Error("Error stack trace: " + e.StackTrace);
-                        if (throwOnError)
-                        {
-                            throw e;
-                        }
-                    }
+                    _logger.Info("Shutting down cluster: " + existingTestCluster.Name + " initial contact point: " + existingTestCluster.InitialContactPoint);
+                    //existingTestCluster.SwitchToThisCluster();
+                    existingTestCluster.ShutDown();
+                    foreach (string host in existingTestCluster.ExpectedInitialHosts)
+                        TestUtils.WaitForDown(host, DefaultCassandraPort, 30);
                 }
             }
         }
@@ -313,7 +296,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        private void StopAllCcmTestClustersExceptFor(CcmCluster ccmClusterWeDontWantToStop)
+        private void ShutDownAllCcmTestClustersExceptFor(CcmCluster ccmClusterWeDontWantToStop)
         {
             // if we are checking
             foreach (ITestCluster existingTestCluster in _testClusters)

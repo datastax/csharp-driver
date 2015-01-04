@@ -154,6 +154,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 {
                     tcpClient.Connect(nodeHost, nodePort);
                     tcpClient.Close();
+                    _logger.Info("Verified that node " + nodeHost + ":" + nodePort + " is UP (success) via manual socket connection check, exiting now ...");
                     return;
                 }
                 catch (Exception e)
@@ -167,43 +168,29 @@ namespace Cassandra.IntegrationTests.TestBase
             throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + maxSecondsToKeepTrying + " seconds!");
         }
 
-        // Wait for a node to be up and running
-        // This is used because there is some delay between when a node has been
-        // added through ccm and when it's actually available for querying'
-        public static Cluster WaitForUp_old(string nodeHost, Builder builder, int maxTry, bool doAddlQueryTest = false)
+        public static void WaitForDown(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
         {
-            int tries = 0;
-            while (tries < maxTry)
+            int msSleepPerIteration = 500;
+            DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
+            while (DateTime.Now < futureDateTime)
             {
+                TcpClient tcpClient = new TcpClient();
                 try
                 {
-                    using (var cluster = Cluster
-                        .Builder()
-                        .AddContactPoint(nodeHost)
-                        //.WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
-                        .Build())
-                    {
-                        // wait for node to be 'UP' accn to cluster meta
-                        WaitForMeta(nodeHost, cluster, 2, true);
-
-                        if (doAddlQueryTest)
-                        {
-                            // now try a basic query
-                            var session = cluster.Connect();
-                            var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
-                            Assert.Greater(rs.Count(), 0);
-                        }
-                        return cluster;
-                    }
+                    tcpClient.Connect(nodeHost, nodePort);
+                    tcpClient.Close();
+                    _logger.Info(string.Format("Still waiting for node host: {0} to be UNavailable for connection to default Cassandra port, waiting another {1} MS ... ", 
+                        nodeHost + ":" + nodePort, msSleepPerIteration));
+                    Thread.Sleep(msSleepPerIteration);
                 }
-                catch (NoHostAvailableException e)
+                catch (Exception e)
                 {
-                    _logger.Info(string.Format("Caught expected exception: {0}. Still waiting for node host: {1} to be 'UP', waiting another {2} MS ... ", e.Message, nodeHost, DefaultSleepIterationMs));
+                    _logger.Info("Verified that node " + nodeHost + ":" + nodePort + " is DOWN (success) via manual socket connection check, exiting now ...");
+                    tcpClient.Close();
+                    return;
                 }
-                tries++;
-                Thread.Sleep(DefaultSleepIterationMs);
             }
-            return null;
+            throw new Exception("Node: " + nodeHost + ":" + nodePort + " was still available for connection after " + maxSecondsToKeepTrying + " seconds, but should have been UNavailable by now!");
         }
 
         private static void WaitForMeta(string nodeHost, Cluster cluster, int maxTry, bool waitForUp)
