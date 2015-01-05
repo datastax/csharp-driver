@@ -55,6 +55,11 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="CqlFunctions\Structures\EntityWithNullableTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Structures\EntityWithTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Tests\MaxTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Tests\MinTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Tests\Token.cs" />
     <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
