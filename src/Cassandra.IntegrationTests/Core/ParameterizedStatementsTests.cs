@@ -28,7 +28,6 @@ namespace Cassandra.IntegrationTests.Core
     public class ParameterizedStatementsTests : TestGlobals
     {
         ISession _session = null;
-        private int lastNodeCountUsed = 1;
 
         [SetUp]
         public void Setup()
@@ -39,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
             }
-            catch (Cassandra.AlreadyExistsException e) { }
+            catch (Cassandra.AlreadyExistsException) { }
         }
 
         private const string AllTypesTableName = "all_types_table_queryparams";
