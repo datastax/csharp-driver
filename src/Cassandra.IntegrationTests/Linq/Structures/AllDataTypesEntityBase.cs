@@ -85,7 +85,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                     AssertEquals(expectedEntity, actualEntity);
                     return true;
                 }
-                catch (AssertionException e) { }
+                catch (AssertionException) { }
             }
             return false;
         }
@@ -99,7 +99,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                     AssertEquals(expectedEntity, actualEntity);
                     return true;
                 }
-                catch (AssertionException e) { }
+                catch (AssertionException) { }
             }
             return false;
         }

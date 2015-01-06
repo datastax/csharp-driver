@@ -108,7 +108,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             {
                 var boundStatement = updateSession.Bind(new object[] {pocoWithCounter.KeyPart1, pocoWithCounter.KeyPart2});
                 string bountSessionToStr = boundStatement.ToString();
-                Cql cql = new Cql(boundStatement.ToString());
                 for (int j = 0; j < counterIncrements; j++)
                     mapper.Execute(bountSessionToStr);
                 pocoWithCounter.Counter += counterIncrements;
