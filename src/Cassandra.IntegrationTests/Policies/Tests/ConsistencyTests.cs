@@ -17,12 +17,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class ConsistencyTests : TestGlobals
@@ -30,11 +30,19 @@ namespace Cassandra.IntegrationTests.Policies
         private PolicyTestTools _policyTestTools = null;
 
         [SetUp]
-        public void TestSetup()
+        public void SetupTest()
         {
             _policyTestTools = new PolicyTestTools();
         }
 
+        /// <summary>
+        /// Verify that replication factor one consistency is enforced, 
+        /// with load balancing policy TokenAware, RoundRobin
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage
+        /// @test_category load_balancing:round_robin,token_aware
+        /// </summary>
         [Test]
         public void ReplicationFactorOne_TokenAware()
         {
@@ -46,14 +54,14 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.One);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.One);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + awareCoord, 12);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + awareCoord + ":" + DefaultCassandraPort, 12);
 
             _policyTestTools.ResetCoordinators();
             testCluster.StopForce(awareCoord);
-            TestUtils.WaitForDownWithWait(testCluster.ClusterIpPrefix + awareCoord, testCluster.Cluster, 30);
+            TestUtils.WaitForDownWithWait(testCluster.ClusterIpPrefix + awareCoord + ":" + DefaultCassandraPort, testCluster.Cluster, 30);
 
             var acceptedList = new List<ConsistencyLevel> 
             {
@@ -158,6 +166,14 @@ namespace Cassandra.IntegrationTests.Policies
             }
         }
 
+        /// <summary>
+        /// Verify that replication factor two is enforced, 
+        /// with load balancing policy TokenAware, RoundRobin
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage
+        /// @test_category load_balancing:round_robin,token_aware
+        /// </summary>
         [Test]
         public void ReplicationFactorTwo_TokenAware()
         {
@@ -169,14 +185,14 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
             int coordinatorsWithMoreThanZeroQueries = 0;
             foreach (var coordinator in _policyTestTools.Coordinators)
             {
                 coordinatorsWithMoreThanZeroQueries++;
-                _policyTestTools.AssertQueried(coordinator.Key.ToString(), 6);
+                _policyTestTools.AssertQueried(coordinator.Key, 6);
             }
             Assert.AreEqual(2, coordinatorsWithMoreThanZeroQueries);
 
@@ -287,6 +303,14 @@ namespace Cassandra.IntegrationTests.Policies
             }
         }
 
+        /// <summary>
+        /// Verify that replication factor three is enforced, 
+        /// with load balancing policy TokenAware, RoundRobin
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage
+        /// @test_category load_balancing:round_robin,token_aware
+        /// </summary>
         [Test]
         public void ReplicationFactorThree_TokenAware()
         {
@@ -298,12 +322,12 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
-            string coordinatorUsedIp = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorUsedIp = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorUsedIp.Split('.').Last());
 
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 4);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 4);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3", 4);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 4);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 4);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, 4);
 
             _policyTestTools.ResetCoordinators();
             testCluster.StopForce(awareCoord);
@@ -413,7 +437,12 @@ namespace Cassandra.IntegrationTests.Policies
         }
 
         /// <summary>
+        /// Validate client behavior with replication one, three nodes
+        /// load balancing policy TokenAware, RoundRobin, after a node is taken down
         /// 
+        /// @test_category consistency
+        /// @test_category connection:outage,retry_policy
+        /// @test_category load_balancing:round_robin,token_aware
         /// </summary>
         [Test]
         public void ReplicationFactorOne_DowngradingConsistencyRetryPolicy()
@@ -427,10 +456,10 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.One);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.One);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + awareCoord, 12);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + awareCoord + ":" + DefaultCassandraPort, 12);
 
             _policyTestTools.ResetCoordinators();
             testCluster.StopForce(awareCoord);
@@ -536,6 +565,14 @@ namespace Cassandra.IntegrationTests.Policies
             }
         }
 
+        /// <summary>
+        /// Validate client behavior with replication two, three nodes
+        /// load balancing policy TokenAware, RoundRobin, after a node is taken down
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage,retry_policy
+        /// @test_category load_balancing:round_robin,token_aware
+        /// </summary>
         [Test]
         public void ReplicationFactorTwo_DowngradingConsistencyRetryPolicy()
         {
@@ -549,7 +586,7 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First(); ;
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
             int coordinatorsWithMoreThanZeroQueries = 0;
@@ -665,6 +702,14 @@ namespace Cassandra.IntegrationTests.Policies
             }
         }
 
+        /// <summary>
+        /// Validate client behavior with replication three, multiple DCs
+        /// load balancing policy TokenAware, RoundRobin, after a node is taken down
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage,retry_policy
+        /// @test_category load_balancing:round_robin,token_aware
+        /// </summary>
         [Test]
         public void ReplicationFactorThree_TwoDCs_DowngradingConsistencyRetryPolicy()
         {
@@ -784,7 +829,16 @@ namespace Cassandra.IntegrationTests.Policies
             }
         }
 
-        [Test]
+        /// <summary>
+        /// Validate client behavior with replication three, multiple DCs
+        /// with load balancing policy TokenAware, DCAwareRoundRobin, 
+        /// with retry policy DowngradingConsistencyRetryPolicy
+        /// after a node is taken down
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage,retry_policy
+        /// @test_category load_balancing:round_robin,token_aware,dc_aware
+        /// </summary>
         public void ReplicationFactorThree_TwoDcs_DcAware_DowngradingConsistencyRetryPolicy()
         {
             // Seetup
@@ -807,12 +861,12 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
             // Validate expected number of host / query counts
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 0);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3", 0);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "4", 4);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "5", 4);
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "6", 4);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 0);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 0);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, 0);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, 4);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "5:" + DefaultCassandraPort, 4);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "6:" + DefaultCassandraPort, 4);
 
             _policyTestTools.ResetCoordinators();
             testCluster.StopForce(2);
@@ -905,7 +959,16 @@ namespace Cassandra.IntegrationTests.Policies
             }
         }
 
-        [Test]
+        /// <summary>
+        /// Validate client behavior with replication three, only one DC
+        /// with load balancing policy TokenAware, DCAwareRoundRobin, 
+        /// with retry policy DowngradingConsistencyRetryPolicy
+        /// after a node is taken down
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage,retry_policy
+        /// @test_category load_balancing:round_robin
+        /// </summary>
         public void ReplicationFactorThree_RoundRobin_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
@@ -914,7 +977,16 @@ namespace Cassandra.IntegrationTests.Policies
             TestReplicationFactorThree(testCluster);
         }
 
-        [Test]
+        /// <summary>
+        /// Validate client behavior with replication three, only one DC
+        /// with load balancing policy TokenAware, RoundRobin, 
+        /// with retry policy DowngradingConsistencyRetryPolicy
+        /// after a node is taken down
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage,retry_policy
+        /// @test_category load_balancing:round_robin
+        /// </summary>
         public void ReplicationFactorThree_TokenAware_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
@@ -932,8 +1004,8 @@ namespace Cassandra.IntegrationTests.Policies
         public void TestReplicationFactorThree(ITestCluster testCluster)
         {
             _policyTestTools.CreateSchema(testCluster.Session, 3);
-            _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.All);
-            _policyTestTools.Query(testCluster, 12, ConsistencyLevel.All);
+            _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Three);
+            _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Three);
 
             _policyTestTools.ResetCoordinators();
             testCluster.StopForce(2);

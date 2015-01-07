@@ -34,19 +34,19 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class PoolTests : TestGlobals
     {
-        protected TraceLevel _originalTraceLevel;
+        protected TraceLevel OriginalTraceLevel;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            OriginalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            Diagnostics.CassandraTraceSwitch.Level = _originalTraceLevel;
+            Diagnostics.CassandraTraceSwitch.Level = OriginalTraceLevel;
         }
 
         [Test]
@@ -234,10 +234,10 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(50);
             }
             //Check that one of the restarted nodes were queried
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);
             //Check that the control connection is still using last host
             StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
         }
@@ -260,7 +260,7 @@ namespace Cassandra.IntegrationTests.Core
             TestUtils.ValidateBootStrappedNodeIsQueried(testCluster, 2, newlyBootstrappedHost);
         }
 
-        [Test]
+        [Test, Category("short")]
         public void InitialKeyspaceRaceTest()
         {
             ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
@@ -293,7 +293,7 @@ namespace Cassandra.IntegrationTests.Core
             Parallel.Invoke(parallelOptions, actions.ToArray());
         }
 
-        [Test]
+        [Test, Category("short")]
         public void ConnectWithWrongKeyspaceNameTest()
         {
             ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
@@ -308,7 +308,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES"));
         }
 
-        [Test]
+        [Test, Category("short")]
         public void ConnectShouldResolveNames()
         {
             ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
@@ -328,7 +328,7 @@ namespace Cassandra.IntegrationTests.Core
             //Kill connections the node silently
             //Do nothing for a while
             //Check if the node is considered as down
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
 
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
