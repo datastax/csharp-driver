@@ -16,22 +16,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Mapping.Tests;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Mapping.Structures
+namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table("allDataTypes")]
-    public class ManyDataTypesPoco
+    [Table("ManyDataTypesEntity")]
+    public class ManyDataTypesEntity
     {
         public const int DefaultListLength = 5;
 
+        [PartitionKey]
         public string StringType { get; set; }
         public Guid GuidType { get; set; }
         public DateTime DateTimeType { get; set; }
@@ -43,14 +41,14 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
         public int? NullableIntType { get; set; }
         public int IntType { get; set; }
         public Int64 Int64Type { get; set; }
-        public TimeUuid TimeUuidType { get; set; }
-        public TimeUuid? NullableTimeUuidType { get; set; }
+        //public TimeUuid TimeUuidType { get; set; }
+        //public TimeUuid? NullableTimeUuidType { get; set; }
         public Dictionary<string, long> DictionaryStringLongType { get; set; }
         public Dictionary<string, string> DictionaryStringStringType { get; set; }
         public List<Guid> ListOfGuidsType { get; set; }
         public List<string> ListOfStringsType { get; set; }
 
-        public static ManyDataTypesPoco GetRandomInstance()
+        public static ManyDataTypesEntity GetRandomInstance()
         {
             Dictionary<string, long> dictionaryStringLong = new Dictionary<string, long>() { { "key_" + Randomm.RandomAlphaNum(10), (long)1234321 } };
             Dictionary<string, string> dictionaryStringString = new Dictionary<string, string>() { { "key_" + Randomm.RandomAlphaNum(10), "value_" + Randomm.RandomAlphaNum(10) } };
@@ -58,7 +56,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             List<string> listOfStringsType = new List<string>() { Randomm.RandomAlphaNum(20), Randomm.RandomAlphaNum(12), "" };
 
 
-            ManyDataTypesPoco randomRow = new ManyDataTypesPoco
+            ManyDataTypesEntity randomRow = new ManyDataTypesEntity
             {
                 StringType = "StringType_val_" + Randomm.RandomAlphaNum(10),
                 GuidType = Guid.NewGuid(),
@@ -71,8 +69,8 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
                 NullableIntType = null,
                 IntType = 98765,
                 Int64Type = (Int64)9876,
-                TimeUuidType = TimeUuid.NewId(),
-                NullableTimeUuidType = null,
+                //TimeUuidType = TimeUuid.NewId(),
+                //NullableTimeUuidType = null,
                 DictionaryStringLongType = dictionaryStringLong,
                 DictionaryStringStringType = dictionaryStringString,
                 ListOfGuidsType = listOfGuidsType,
@@ -81,7 +79,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             return randomRow;
         }
 
-        public void AssertEquals(ManyDataTypesPoco actualRow)
+        public void AssertEquals(ManyDataTypesEntity actualRow)
         {
             Assert.AreEqual(StringType, actualRow.StringType);
             Assert.AreEqual(GuidType, actualRow.GuidType);
@@ -93,17 +91,17 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             Assert.AreEqual(FloatType, actualRow.FloatType);
             Assert.AreEqual(IntType, actualRow.IntType);
             Assert.AreEqual(Int64Type, actualRow.Int64Type);
-            Assert.AreEqual(TimeUuidType, actualRow.TimeUuidType);
-            Assert.AreEqual(NullableTimeUuidType, actualRow.NullableTimeUuidType);
+            //Assert.AreEqual(TimeUuidType, actualRow.TimeUuidType);
+            //Assert.AreEqual(NullableTimeUuidType, actualRow.NullableTimeUuidType);
             Assert.AreEqual(DictionaryStringLongType, actualRow.DictionaryStringLongType);
             Assert.AreEqual(DictionaryStringStringType, actualRow.DictionaryStringStringType);
             Assert.AreEqual(ListOfGuidsType, actualRow.ListOfGuidsType);
             Assert.AreEqual(ListOfStringsType, actualRow.ListOfStringsType);
         }
 
-        public static List<ManyDataTypesPoco> GetDefaultAllDataTypesList()
+        public static List<ManyDataTypesEntity> GetDefaultAllDataTypesList()
         {
-            List<ManyDataTypesPoco> movieList = new List<ManyDataTypesPoco>();
+            List<ManyDataTypesEntity> movieList = new List<ManyDataTypesEntity>();
             for (int i = 0; i < DefaultListLength; i++)
             {
                 movieList.Add(GetRandomInstance());
@@ -111,21 +109,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             return movieList;
         }
 
-        public static List<ManyDataTypesPoco> SetupDefaultTable(ISession session)
-        {
-            // drop table if exists, re-create
-            var table = new Table<ManyDataTypesPoco>(session, new MappingConfiguration());
-            table.Create();
-
-            List<ManyDataTypesPoco> allDataTypesRandomList = GetDefaultAllDataTypesList();
-            //Insert some data
-            foreach (var allDataTypesEntity in allDataTypesRandomList)
-                table.Insert(allDataTypesEntity).Execute();
-
-            return allDataTypesRandomList;
-        }
-
-        public static bool ListContains(List<ManyDataTypesPoco> expectedEntities, ManyDataTypesPoco actualEntity)
+        public static bool ListContains(List<ManyDataTypesEntity> expectedEntities, ManyDataTypesEntity actualEntity)
         {
             foreach (var expectedEntity in expectedEntities)
             {
@@ -139,33 +123,18 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             return false;
         }
 
-        public static void AssertListContains(List<ManyDataTypesPoco> expectedEntities, ManyDataTypesPoco actualEntity)
+        public static void AssertListContains(List<ManyDataTypesEntity> expectedEntities, ManyDataTypesEntity actualEntity)
         {
             Assert.IsTrue(ListContains(expectedEntities, actualEntity));
         }
 
-        public static void AssertListEqualsList(List<ManyDataTypesPoco> expectedEntities, List<ManyDataTypesPoco> actualEntities)
+        public static void AssertListEqualsList(List<ManyDataTypesEntity> expectedEntities, List<ManyDataTypesEntity> actualEntities)
         {
             Assert.AreEqual(expectedEntities.Count, actualEntities.Count);
             foreach (var expectedEntity in expectedEntities)
                 Assert.IsTrue(ListContains(actualEntities, expectedEntity));
         }
 
-
-        /// <summary>
-        /// Test Assertion helper that will try the SELECT query a few times in case we need to wait for consistency
-        /// </summary>
-        public static void KeepTryingSelectAndAssert(IMapper mapper, string selectStatement, List<ManyDataTypesPoco> expectedInstanceList)
-        {
-            List<ManyDataTypesPoco> instancesQueried = mapper.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
-            DateTime futureDateTime = DateTime.Now.AddSeconds(5);
-            while (instancesQueried.Count < expectedInstanceList.Count && DateTime.Now < futureDateTime)
-            {
-                Thread.Sleep(50);
-                instancesQueried = mapper.Fetch<ManyDataTypesPoco>(selectStatement).ToList();
-            }
-            AssertListEqualsList(expectedInstanceList, instancesQueried);
-        }
 
     }
 }

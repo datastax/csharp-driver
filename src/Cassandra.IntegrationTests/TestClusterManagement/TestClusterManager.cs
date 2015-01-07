@@ -85,20 +85,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         // Create a "non default" test cluster that will not be available via the standard "GetTestCluster" command
         // NOTE: right now this returns a bare "TestCluster" object that has not been initialized in any way
-        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int dc2NodeCount, int maxTries = DefaultMaxClusterCmdRetries, bool initClusterAndSession = true)
+        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int dc2NodeCount, int maxTries = DefaultMaxClusterCreateRetries, bool initClusterAndSession = true)
         {
             ITestCluster nonShareableTestCluster = CreateNewClusterAndAddToList(
                 TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, DefaultKeyspaceName, false, initClusterAndSession, maxTries);
             return nonShareableTestCluster;
         }
 
-        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int maxTries = DefaultMaxClusterCmdRetries, bool initClusterAndSession = true)
+        public ITestCluster GetNonShareableTestCluster(int dc1NodeCount, int maxTries = DefaultMaxClusterCreateRetries, bool initClusterAndSession = true)
         {
             return GetNonShareableTestCluster(dc1NodeCount, 0, maxTries, initClusterAndSession);
         }
 
         // Get existing test cluster that can be shared, otherwise create a new one that can be shared.
-        public ITestCluster GetTestCluster(int nodeCount, int maxTries = DefaultMaxClusterCmdRetries, bool initClusterAndSession = true, int retryCount = 0)
+        public ITestCluster GetTestCluster(int nodeCount, int maxTries = DefaultMaxClusterCreateRetries, bool initClusterAndSession = true, int retryCount = 0)
         {
             ITestCluster shareableTestCluster = GetExistingClusterWithNodeCount(nodeCount);
 

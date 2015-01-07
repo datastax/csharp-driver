@@ -17,7 +17,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Tests;
+using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -35,6 +35,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [SetUp]
         public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
@@ -48,23 +49,46 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Successfully insert a new record into a table that was created with fluent mapping
+        /// Successfully insert a new record into a table that was created with fluent mapping, using Mapper.Insert
         /// </summary>
         [Test]
-        public void Insert_IntoTableCreatedWithFluentMapping()
+        public void Insert_WithMapperInsert()
         {
-            var config = new MappingConfiguration().Define(
-                new Map<lowercaseclassnamepartitionkeylowercase>()
-                .TableName("lowercaseclassnamepartitionkeylowercase")
-                .PartitionKey(u => u.somepartitionkey));
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, config);
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepartitionkeylowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepartitionkeylowercase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
-            var mapper = new Mapper(_session, new MappingConfiguration());
+            // Insert using Mapper.Insert
             lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
-
+            var mapper = new Mapper(_session, mappingConfig);
             mapper.Insert(privateClassInstance);
+            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, 
+        /// using Session.Execute to insert an Insert object created with table.Insert()
+        /// </summary>
+        [Test]
+        public void Insert_WithSessionExecuteTableInsert()
+        {
+            // Setup
+            string uniqueTableName = TestUtils.GetUniqueTableName();
+            Assert.AreNotEqual(uniqueTableName.ToLower(), uniqueTableName);
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepartitionkeylowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepartitionkeylowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert using Session.Execute
+            lowercaseclassnamepartitionkeylowercase defaultPocoInstance = new lowercaseclassnamepartitionkeylowercase();
+            _session.Execute(table.Insert(defaultPocoInstance));
+            var mapper = new Mapper(_session, mappingConfig);
             List<lowercaseclassnamepartitionkeylowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
@@ -93,18 +117,24 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// This also validates that a private class can be used by the CqlPoco client
         /// </summary>
         [Test]
-        public void Insert_TableCreatedWithLinq_MappedTableNameDefaultsToLowerCase()
+        public void Insert_ClassAndPartitionKeyAreCamelCase()
         {
-            var table = new Table<PrivateClassWithClassNameCamelCase>(_session, new MappingConfiguration());
+            var mappingConfig = new MappingConfiguration().Define(new Map<PrivateClassWithClassNameCamelCase>().PartitionKey(c => c.SomePartitionKey));
+            Table<PrivateClassWithClassNameCamelCase> table = new Table<PrivateClassWithClassNameCamelCase>(_session, mappingConfig);
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             var mapper = new Mapper(_session, new MappingConfiguration());
             PrivateClassWithClassNameCamelCase privateClassCamelCase = new PrivateClassWithClassNameCamelCase();
+            mapper.Insert(privateClassCamelCase);
 
-            var e = Assert.Throws<InvalidQueryException>(() => mapper.Insert(privateClassCamelCase));
-            string expectedErrMsg = "unconfigured columnfamily " + typeof(PrivateClassWithClassNameCamelCase).Name.ToLower();
-            Assert.AreEqual(expectedErrMsg, e.Message);
+            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+
+            Assert.IsFalse(TestUtils.TableExists(_session, _uniqueKsName, typeof (PrivateClassWithClassNameCamelCase).Name));
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, typeof(PrivateClassWithClassNameCamelCase).Name.ToLower()));
         }
 
         /// <summary>
@@ -114,33 +144,56 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_TableNameLowerCase_PartitionKeyCamelCase()
         {
             // Setup
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, new MappingConfiguration());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepartitionkeycamelcase>().PartitionKey(c => c.SomePartitionKey));
+            Table<lowercaseclassnamepartitionkeycamelcase> table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
             var mapper = new Mapper(_session, new MappingConfiguration());
             lowercaseclassnamepartitionkeycamelcase privateClassInstance = new lowercaseclassnamepartitionkeycamelcase();
 
-            // Validate Error Msg
-            var ex = Assert.Throws<InvalidQueryException>(() => mapper.Insert(privateClassInstance));
-            string expectedErrMsg = "Unknown identifier somepartitionkey";
-            Assert.AreEqual(expectedErrMsg, ex.Message);
+            // Validate state of table
+            mapper.Insert(privateClassInstance);
+            List<lowercaseclassnamepartitionkeycamelcase> instancesQueried = mapper.Fetch<lowercaseclassnamepartitionkeycamelcase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepartitionkeycamelcase defaultPocoInstance = new lowercaseclassnamepartitionkeycamelcase();
+            Assert.AreEqual(defaultPocoInstance.SomePartitionKey, instancesQueried[0].SomePartitionKey);
+
+            // Attempt to select from Camel Case partition key
+            string cqlCamelCasePartitionKey = "SELECT * from " + typeof (lowercaseclassnamepartitionkeycamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
+            var ex = Assert.Throws<InvalidQueryException>(() => _session.Execute(cqlCamelCasePartitionKey));
+            string expectedErrMsg = "Undefined name SomePartitionKey in where clause";
+            StringAssert.Contains(expectedErrMsg, ex.Message);
+
+            // Validate that select on lower case key does not fail
+            string cqlLowerCasePartitionKey = "SELECT * from " + typeof(lowercaseclassnamepartitionkeycamelcase).Name + " where \"somepartitionkey\" = '" + defaultPocoInstance.SomePartitionKey + "'";
+            List<Row> rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual(defaultPocoInstance.SomePartitionKey, rows[0].GetValue<string>("somepartitionkey"));
         }
 
         [Test]
         public void Insert_TableNameLowerCase_PartitionKeyLowerCase()
         {
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, new MappingConfiguration());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepartitionkeylowercase>().PartitionKey(c => c.somepartitionkey));
+            Table<lowercaseclassnamepartitionkeylowercase> table = new Table<lowercaseclassnamepartitionkeylowercase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             var cqlClient = new Mapper(_session, new MappingConfiguration());
-            lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
+            lowercaseclassnamepartitionkeylowercase defaultPocoInstance = new lowercaseclassnamepartitionkeylowercase();
 
-            cqlClient.Insert(privateClassInstance);
+            cqlClient.Insert(defaultPocoInstance);
             List<lowercaseclassnamepartitionkeylowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+
+            // using standard cql
+            string cqlLowerCasePartitionKey = "SELECT * from " + typeof(lowercaseclassnamepartitionkeylowercase).Name + " where \"somepartitionkey\" = '" + defaultPocoInstance.somepartitionkey + "'";
+            List<Row> rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual(defaultPocoInstance.somepartitionkey, rows[0].GetValue<string>("somepartitionkey"));
+
         }
 
         /// <summary>
@@ -167,25 +220,21 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
         private class PrivateClassWithClassNameCamelCase
         {
-            [PartitionKey]
             public string SomePartitionKey = "somePartitionKey";
         }
 
         private class lowercaseclassnamepartitionkeycamelcase
         {
-            [PartitionKey]
             public string SomePartitionKey = "somePartitionKey";
         }
 
         private class lowercaseclassnamepartitionkeylowercase
         {
-            [PartitionKey]
             public string somepartitionkey = "somePartitionKey";
         }
 
         private class PocoWithAdditionalField
         {
-            [PartitionKey]
             public string SomeString = "someStringValue";
             public string SomeOtherString = "someOtherStringValue";
         }

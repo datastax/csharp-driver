@@ -25,6 +25,7 @@ using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System.Net;
 using System.Collections;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -33,11 +34,15 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string AllTypesTableName = "all_types_table_prepared";
         ISession _session = null;
+        ITestCluster _testCluster = null;
+        private string _keyspace;
 
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCmdRetries, true, 1).Session;
+            _testCluster = TestClusterManager.GetTestCluster(3);
+            _keyspace = _testCluster.DefaultKeyspace;
+            _session = _testCluster.Session;
             try
             {
                 _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
@@ -416,16 +421,20 @@ namespace Cassandra.IntegrationTests.Core
             AssertValid(_session, psDouble, new byte[8]);
         }
 
-        [Test]
+        [Test, Timeout(120000)]
         public void Bound_Double_Invalids()
         {
-            var psDouble = _session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
+            using (var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build())
+            {
+                var session = localCluster.Connect(_keyspace);
+                var psDouble = session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
 
-            //Double: Only doubles, longs and blobs (8 bytes)
-            AssertExceptionTypeIsThrown(_session, psDouble, (short)1, new string[] { "InvalidTypeException"});
-            AssertExceptionTypeIsThrown(_session, psDouble, 1F, new string[] { "InvalidTypeException"});
-            AssertExceptionTypeIsThrown(_session, psDouble, 100, new string[] { "InvalidTypeException"});
-            AssertExceptionTypeIsThrown(_session, psDouble, (short)100, new string[] { "InvalidTypeException"});
+                //Double: Only doubles, longs and blobs (8 bytes)
+                AssertExceptionTypeIsThrown(session, psDouble, (short)1, new string[] { "InvalidTypeException" });
+                AssertExceptionTypeIsThrown(session, psDouble, 1F, new string[] { "InvalidTypeException" });
+                AssertExceptionTypeIsThrown(session, psDouble, 100, new string[] { "InvalidTypeException" });
+                AssertExceptionTypeIsThrown(session, psDouble, (short)100, new string[] { "InvalidTypeException" });   
+            }
         }
 
         [Test]
@@ -461,7 +470,6 @@ namespace Cassandra.IntegrationTests.Core
 
             // Invalid cases
             List<Tuple<object, string[]>> objectsAndAssociateExceptionTypes = new List<Tuple<object, string[]>>();
-            objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>(new[] {"one", "two"}, new string[] {"InvalidTypeException"})); // object type = array
             objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>("some string", new string[] {
                 "InvalidQueryException", // C* 1.2
                 "ServerErrorException", // starting in C* 2.0
@@ -521,6 +529,23 @@ namespace Cassandra.IntegrationTests.Core
                 .InstanceOf<InvalidQueryException>().Or
                 .InstanceOf<ServerErrorException>(),
                 () => _session.Execute(ps.Bind(Guid.NewGuid(), null, null, "yeah, this is extra")));
+        }
+
+        [Test, Timeout(180000), Ignore("This test is triggering the infinite re-prepare loop, not sure if it's supposed to be here")]
+        public void Bound_With_ChangingKeyspace()
+        {
+            using (var localCluster = Cluster.Builder()
+                .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(15000))
+                .AddContactPoint(_testCluster.InitialContactPoint)
+                .Build())
+            {
+                var session = localCluster.Connect("system");
+                session.Execute("CREATE KEYSPACE bound_changeks_test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}");
+                TestUtils.WaitForSchemaAgreement(localCluster);
+                var ps = session.Prepare("SELECT * FROM system.local");
+                session.ChangeKeyspace("bound_changeks_test");
+                Assert.DoesNotThrow(() => TestHelper.ParallelInvoke(() => session.Execute(ps.Bind()), 10));
+            }
         }
 
         [Test]
@@ -726,7 +751,7 @@ namespace Cassandra.IntegrationTests.Core
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 40);
 
             testCluster.Start(1);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 40, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 60);
 
             Assert.True(nonShareableSession.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
             for (var i = 0; i < 10; i++)

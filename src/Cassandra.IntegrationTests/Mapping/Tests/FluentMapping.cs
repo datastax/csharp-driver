@@ -11,8 +11,11 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
+    /// <summary>
+    /// Use predefined classes that contain fluent mapping to manage Linq-mapped resources
+    /// </summary>
     [Category("short")]
-    public class FluentMapping : TestGlobals
+    public class FluentMappingPredefined : TestGlobals
     {
         ISession _session = null;
         private readonly Logger _logger = new Logger(typeof(Attributes));
@@ -34,15 +37,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Validate that Fluent Mapping 
+        /// Validate Fluent Mapping default case sensitivity rules
         /// </summary>
         [Test]
         public void Attributes_FluentMapping_CaseSensitive()
         {
-            Table<ClassWithCamelCaseName> table = _session.GetTable<ClassWithCamelCaseName>();
+            var config = new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping());
+            var table = new Table<ClassWithCamelCaseName>(_session, config);
             table.Create();
 
-            var cqlClient = new Mapper(_session, new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping()));
+            var cqlClient = new Mapper(_session, config);
             ClassWithCamelCaseName classWithCamelCaseName = new ClassWithCamelCaseName
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
@@ -62,7 +66,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<Row> rows = _session.Execute(cqlSelect).GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(classWithCamelCaseName.SomePartitionKey, rows[0].GetValue<string>("SomePartitionKey"));
-            Assert.AreEqual(null, rows[0].GetValue<string>("IgnoredStringAttribute"));
+            var ex = Assert.Throws<ArgumentException>(() => rows[0].GetValue<string>("IgnoredStringAttribute"));
+            StringAssert.Contains("Column IgnoredStringAttribute not found", ex.Message);
         }
 
         /// <summary>
@@ -73,11 +78,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Attributes_FluentMapping_CaseSensitive_NotSpecifiedForClassName()
         {
-            Table<ClassWithCamelCaseName> table = _session.GetTable<ClassWithCamelCaseName>();
+            var config = new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping_CaseSensitiveNotSpecifiedForClassName());
+            var table = new Table<ClassWithCamelCaseName>(_session, config);
             table.Create();
 
-            var cqlClient = new Mapper(_session,
-                new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping_CaseSensitiveNotSpecifiedForClassName()));
+            var cqlClient = new Mapper(_session, config);
             ClassWithCamelCaseName classWithCamelCaseName = new ClassWithCamelCaseName
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
@@ -97,7 +102,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<Row> rows = _session.Execute(cqlSelect).GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(classWithCamelCaseName.SomePartitionKey, rows[0].GetValue<string>("SomePartitionKey"));
-            Assert.AreEqual(null, rows[0].GetValue<string>("IgnoredStringAttribute"));
+            var ex = Assert.Throws<ArgumentException>(() => rows[0].GetValue<string>("IgnoredStringAttribute"));
+            StringAssert.Contains("Column IgnoredStringAttribute not found", ex.Message);
         }
 
 
@@ -107,9 +113,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
         private class ClassWithCamelCaseName
         {
-            [Cassandra.Data.Linq.PartitionKey]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
-
             public string IgnoredStringAttribute = "someIgnoredStringDefaultValue";
         }
 
@@ -118,6 +122,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public ClassWithCamelCaseNameMapping()
             {
                 TableName(typeof(ClassWithCamelCaseName).Name).CaseSensitive();
+                PartitionKey(u => u.SomePartitionKey);
                 Column(u => u.SomePartitionKey).CaseSensitive();
                 Column(u => u.IgnoredStringAttribute, cm => cm.Ignore());
             }
@@ -128,6 +133,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public ClassWithCamelCaseNameMapping_CaseSensitiveNotSpecifiedForClassName()
             {
                 TableName(typeof(ClassWithCamelCaseName).Name); // no case sensitivity mentioned
+                PartitionKey(u => u.SomePartitionKey);
                 Column(u => u.SomePartitionKey).CaseSensitive();
                 Column(u => u.IgnoredStringAttribute, cm => cm.Ignore());
             }

@@ -17,6 +17,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [SetUp]
         public void SetupTest()
         {
+            IndividualTestSetup();
             _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
@@ -36,10 +37,15 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CqlClient_TwoInstancesBasedOnSameSession()
         {
             // Setup
-            var table1 = _session.GetTable<Poco1>();
+            MappingConfiguration config1 = new MappingConfiguration();
+            config1.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Poco1), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Poco1)));
+            var table1 = new Table<Poco1>(_session, config1);
             table1.Create();
             string cqlSelectAll1 = "SELECT * from " + table1.Name;
-            var table2 = _session.GetTable<Poco2>();
+
+            MappingConfiguration config2 = new MappingConfiguration();
+            config2.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Poco2), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Poco2)));
+            var table2 = new Table<Poco2>(_session, config2);
             table2.Create();
             string cqlSelectAll2 = "SELECT * from " + table2.Name;
 

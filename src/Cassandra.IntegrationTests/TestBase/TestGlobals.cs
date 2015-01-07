@@ -31,7 +31,8 @@ namespace Cassandra.IntegrationTests.TestBase
     {
         private static readonly Logger Logger = new Logger(typeof(TestGlobals));
 
-        public const int DefaultMaxClusterCmdRetries = 2;
+        public const int DefaultCassandraPort = 9042;
+        public const int DefaultMaxClusterCreateRetries = 2;
         public const string DefaultLocalIpPrefix = "127.0.0.";
         public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
         public const int ClusterInitSleepMsPerIteration = 500;
@@ -171,7 +172,7 @@ namespace Cassandra.IntegrationTests.TestBase
         }
 
         [SetUp]
-        public void TestSetup()
+        public void IndividualTestSetup()
         {
             VerifyAppropriateCassVersion();
             VerifyLocalCcmOnly();
@@ -215,14 +216,14 @@ namespace Cassandra.IntegrationTests.TestBase
             var versionAttr = (TestCassandraVersion)attr;
             var executingVersion = CassandraVersion;
             if (!VersionMatch(versionAttr, executingVersion))
-                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1} {2}", versionAttr.Major, versionAttr.Minor, versionAttr.Comparison >= 0 ? "or above" : "or below"));
+                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1}.{2} {3}", versionAttr.Major, versionAttr.Minor, versionAttr.Build, versionAttr.Comparison >= 0 ? "or above" : "or below"));
         }
 
         protected bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
         {
             //Compare them as integers
-            var expectedVersion = versionAttr.Major * 10000 + versionAttr.Minor;
-            var actualVersion = executingVersion.Major * 10000 + executingVersion.Minor;
+            var expectedVersion = versionAttr.Major * 100000000 + versionAttr.Minor * 10000 + versionAttr.Build;
+            var actualVersion = executingVersion.Major * 100000000 + executingVersion.Minor * 10000 + executingVersion.Build;
             var comparison = (Comparison)actualVersion.CompareTo(expectedVersion);
 
             if (comparison >= Comparison.Equal && versionAttr.Comparison == Comparison.GreaterThanOrEqualsTo)

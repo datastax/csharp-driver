@@ -17,12 +17,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class ConsistencyTests : TestGlobals
@@ -30,8 +30,9 @@ namespace Cassandra.IntegrationTests.Policies
         private PolicyTestTools _policyTestTools = null;
 
         [SetUp]
-        public void TestSetup()
+        public void SetupTest()
         {
+            IndividualTestSetup();
             _policyTestTools = new PolicyTestTools();
         }
 
@@ -46,7 +47,7 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.One);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.One);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
             _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + awareCoord, 12);
@@ -169,14 +170,14 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
             int coordinatorsWithMoreThanZeroQueries = 0;
             foreach (var coordinator in _policyTestTools.Coordinators)
             {
                 coordinatorsWithMoreThanZeroQueries++;
-                _policyTestTools.AssertQueried(coordinator.Key.ToString(), 6);
+                _policyTestTools.AssertQueried(coordinator.Key, 6);
             }
             Assert.AreEqual(2, coordinatorsWithMoreThanZeroQueries);
 
@@ -298,7 +299,7 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
-            string coordinatorUsedIp = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorUsedIp = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorUsedIp.Split('.').Last());
 
             _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 4);
@@ -427,7 +428,7 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.One);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.One);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First();
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
             _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + awareCoord, 12);
@@ -549,7 +550,7 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.InitPreparedStatement(testCluster, 12, ConsistencyLevel.Two);
             _policyTestTools.Query(testCluster, 12, ConsistencyLevel.Two);
 
-            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.ToString();
+            string coordinatorHostQueried = _policyTestTools.Coordinators.First().Key.Split(':').First(); ;
             int awareCoord = int.Parse(coordinatorHostQueried.Split('.').Last());
 
             int coordinatorsWithMoreThanZeroQueries = 0;
@@ -668,7 +669,7 @@ namespace Cassandra.IntegrationTests.Policies
         [Test]
         public void ReplicationFactorThree_TwoDCs_DowngradingConsistencyRetryPolicy()
         {
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -788,18 +789,18 @@ namespace Cassandra.IntegrationTests.Policies
         public void ReplicationFactorThree_TwoDcs_DcAware_DowngradingConsistencyRetryPolicy()
         {
             // Seetup
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
 
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "4", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "5", testCluster.Builder, 30, true);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "6", testCluster.Builder, 30, true);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "2", testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "3", testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "4", testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "5", testCluster.Builder, 30);
+            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "6", testCluster.Builder, 30);
 
             // Test
             _policyTestTools.CreateMultiDcSchema(testCluster.Session, 3, 3);

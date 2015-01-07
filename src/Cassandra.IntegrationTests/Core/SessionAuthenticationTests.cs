@@ -55,7 +55,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private CcmCluster GetTestCcmClusterForAuthTests()
         {
-            CcmCluster customTestCluster = (CcmCluster)TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCmdRetries, false);
+            CcmCluster customTestCluster = (CcmCluster)TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, false);
             customTestCluster.CcmBridge.ExecuteCcm("updateconf \"authenticator: PasswordAuthenticator\"", 3000, true);
             customTestCluster.CcmBridge.Start();
             return customTestCluster;
