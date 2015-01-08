@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]

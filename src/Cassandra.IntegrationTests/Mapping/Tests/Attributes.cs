@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         private Table<T> GetTable<T>()
@@ -141,13 +141,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             MappingConfiguration config = new MappingConfiguration();
             config.MapperFactory.PocoDataFactory.AddDefinitionDefault(
-                typeof(PocoWithIgnoredAttributes_LinqAndMappingIncluded), 
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithIgnoredAttributes_LinqAndMappingIncluded)));
-            var table = new Table<PocoWithIgnoredAttributes_LinqAndMappingIncluded>(_session, config);
+                typeof(PocoWithIgnrdAttr_LinqAndMapping), 
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithIgnrdAttr_LinqAndMapping)));
+            var table = new Table<PocoWithIgnrdAttr_LinqAndMapping>(_session, config);
             table.Create();
 
             var cqlClient = GetMapper();
-            PocoWithIgnoredAttributes_LinqAndMappingIncluded pocoToInsert = new PocoWithIgnoredAttributes_LinqAndMappingIncluded
+            PocoWithIgnrdAttr_LinqAndMapping pocoToInsert = new PocoWithIgnrdAttr_LinqAndMapping
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
                 IgnoredStringAttribute = Guid.NewGuid().ToString(),
@@ -155,10 +155,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             cqlClient.Insert(pocoToInsert);
 
             // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
-            List<PocoWithIgnoredAttributes_LinqAndMappingIncluded> records = cqlClient.Fetch<PocoWithIgnoredAttributes_LinqAndMappingIncluded>("SELECT * from " + table.Name).ToList();
+            List<PocoWithIgnrdAttr_LinqAndMapping> records = cqlClient.Fetch<PocoWithIgnrdAttr_LinqAndMapping>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, records.Count);
             Assert.AreEqual(pocoToInsert.SomePartitionKey, records[0].SomePartitionKey);
-            PocoWithIgnoredAttributes_LinqAndMappingIncluded defaultPoco = new PocoWithIgnoredAttributes_LinqAndMappingIncluded();
+            PocoWithIgnrdAttr_LinqAndMapping defaultPoco = new PocoWithIgnrdAttr_LinqAndMapping();
             Assert.AreEqual(defaultPoco.IgnoredStringAttribute, records[0].IgnoredStringAttribute);
             Assert.AreEqual(defaultPoco.SomeNonIgnoredDouble, records[0].SomeNonIgnoredDouble);
 
@@ -207,21 +207,21 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             MappingConfiguration config = new MappingConfiguration();
             config.MapperFactory.PocoDataFactory.AddDefinitionDefault(
-                typeof(PocoWithIgnoredAttributes_LinqAndMappingIncluded),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithIgnoredAttributes_LinqAndMappingIncluded)));
-            var table = new Table<PocoWithIgnoredAttributes_LinqAndMappingIncluded>(_session, config);
+                typeof(PocoWithIgnrdAttr_LinqAndMapping),
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithIgnrdAttr_LinqAndMapping)));
+            var table = new Table<PocoWithIgnrdAttr_LinqAndMapping>(_session, config);
             table.Create();
 
             var cqlClient = GetMapper();
-            PocoWithIgnoredAttributes_LinqAndMappingIncluded pocoWithCustomAttributesLinqAndMappingIncluded = new PocoWithIgnoredAttributes_LinqAndMappingIncluded
+            PocoWithIgnrdAttr_LinqAndMapping pocoWithCustomAttributesLinqAndMapping = new PocoWithIgnrdAttr_LinqAndMapping
             {
                 SomePartitionKey = null,
                 IgnoredStringAttribute = Guid.NewGuid().ToString(),
             };
-            cqlClient.Insert(pocoWithCustomAttributesLinqAndMappingIncluded);
+            cqlClient.Insert(pocoWithCustomAttributesLinqAndMapping);
 
             // Get records using mapped object
-            List<PocoWithIgnoredAttributes_LinqAndMappingIncluded> records = cqlClient.Fetch<PocoWithIgnoredAttributes_LinqAndMappingIncluded>("SELECT * from " + table.Name).ToList();
+            List<PocoWithIgnrdAttr_LinqAndMapping> records = cqlClient.Fetch<PocoWithIgnrdAttr_LinqAndMapping>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(0, records.Count);
 
             // Query for the column that the Linq table create created
@@ -232,25 +232,25 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// Validate that an insert query which includes a Poco that has the wrong field labeled as "PartitionKey" will silently fail.
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Attributes_PartitionKey_OnWrongField()
         {
             // Create table using Linq -- includes partition key that is not assigned by the mapping attribute
             MappingConfiguration config = new MappingConfiguration();
             config.MapperFactory.PocoDataFactory.AddDefinitionDefault(
-                typeof(PocoWithWrongFieldLabeledPartitionKey),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithWrongFieldLabeledPartitionKey)));
-            var table = new Table<PocoWithWrongFieldLabeledPartitionKey>(_session, config);
+                typeof(PocoWithWrongFieldLabeledPk),
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithWrongFieldLabeledPk)));
+            var table = new Table<PocoWithWrongFieldLabeledPk>(_session, config);
             table.Create();
 
             string cqlSelectAll = "SELECT * from " + table.Name;
 
             var cqlClient = GetMapper();
-            PocoWithWrongFieldLabeledPartitionKey pocoWithCustomAttributes = new PocoWithWrongFieldLabeledPartitionKey();
+            PocoWithWrongFieldLabeledPk pocoWithCustomAttributes = new PocoWithWrongFieldLabeledPk();
             cqlClient.Insert(pocoWithCustomAttributes);
 
             // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
-            List<PocoWithWrongFieldLabeledPartitionKey> records = cqlClient.Fetch<PocoWithWrongFieldLabeledPartitionKey>(cqlSelectAll).ToList();
+            List<PocoWithWrongFieldLabeledPk> records = cqlClient.Fetch<PocoWithWrongFieldLabeledPk>(cqlSelectAll).ToList();
             Assert.AreEqual(1, records.Count); // for this case, the mapper is not picky about what field is marked as "partition key"
 
             // Query for the column that the Linq table create created, verify no value was uploaded to it
@@ -358,7 +358,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Verify that inserting a mapped object without specifying Cassandra.Mapping.Attributes.PartitionKey does not fail
         /// This also validates that not all columns need to be included for the Poco insert / fetch to succeed
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Attributes_PartitionKeyNotLabeled()
         {
             string tableName = typeof(PocoWithOnlyPartitionKeyNotLabeled).Name.ToLower();
@@ -368,7 +368,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var cqlClient = GetMapper();
             List<string> stringList = new List<string>() { "string1", "string2" };
             PocoWithOnlyPartitionKeyNotLabeled pocoWithOnlyCustomAttributes = new PocoWithOnlyPartitionKeyNotLabeled();
-            cqlClient.Insert(pocoWithOnlyCustomAttributes); // TODO: Question -- Should this fail?
+            cqlClient.Insert(pocoWithOnlyCustomAttributes); 
 
             // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
             List<PocoWithOnlyPartitionKeyNotLabeled> records = cqlClient.Fetch<PocoWithOnlyPartitionKeyNotLabeled>("SELECT * from " + tableName).ToList();
@@ -385,7 +385,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// Verify that inserting a mapped object without including PartitionKey succeeds when it is not the only field in the Poco class
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Attributes_PartitionKeyNotLabeled_AnotherNonLabelFieldIncluded()
         {
             string tableName = typeof(PocoWithPartitionKeyNotLabeledAndOtherField).Name.ToLower();
@@ -607,7 +607,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Expect the mapping mechanism to recognize / use the Partition key Attribute from 
         /// the Poco class it's derived from
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Attributes_SecondaryIndex()
         {
             var table = GetTable<SimplePocoWithSecondaryIndex>();
@@ -664,7 +664,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Expect the mapping mechanism to recognize / use the Column Attribute from 
         /// the Poco class it's derived from, including the custom label option
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2,0)]
         public void Attributes_Column_CustomLabels()
         {
             // Setup
@@ -749,8 +749,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// Test poco class that uses both Linq and Cassandra.Mapping attributes at the same time
         /// </summary>
-        [Cassandra.Data.Linq.Table("pocowithignoredattributes_linqandmappingincluded")]
-        private class PocoWithIgnoredAttributes_LinqAndMappingIncluded
+        [Cassandra.Data.Linq.Table("pocowithignrdattr_linqandmapping")]
+        private class PocoWithIgnrdAttr_LinqAndMapping
         {
             [Cassandra.Data.Linq.PartitionKey]
             [Cassandra.Mapping.Attributes.PartitionKey]
@@ -768,8 +768,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// See PocoWithIgnoredAttributes for correctly implemented counterpart
         /// </summary>
-        [Cassandra.Data.Linq.Table("pocowithwrongfieldlabeledpartitionkey")]
-        private class PocoWithWrongFieldLabeledPartitionKey
+        [Cassandra.Data.Linq.Table("pocowithwrongfieldlabeledpk")]
+        private class PocoWithWrongFieldLabeledPk
         {
             [Cassandra.Data.Linq.PartitionKey]
             [Cassandra.Data.Linq.Column("somepartitionkey")]

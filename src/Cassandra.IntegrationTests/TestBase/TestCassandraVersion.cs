@@ -37,9 +37,10 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <param name="comparisonOperator">Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0, "less than or equal to " = -1</param>
         public TestCassandraVersion(int major, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
         {
-            this.Major = major;
-            this.Minor = minor;
-            this.Comparison = comparison;
+            Major = major;
+            Minor = minor;
+            Build = 0;
+            Comparison = comparison;
         }
 
         /// <summary>
@@ -48,7 +49,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <param name="comparisonOperator">Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0, "less than or equal to " = -1</param>
         public TestCassandraVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo) : this(major, minor, comparison)
         {
-            this.Build = build;
+            Build = build;
         }
     }
 

@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
@@ -49,7 +50,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -165,6 +166,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             foreach (Author expectedAuthor in expectedAuthors)
                 mapper.Insert(expectedAuthor);
 
+            // wait until all records are available to be fetched: 
+            List<Author> authors = mapper.Fetch<Author>("SELECT * from " + table.Name).ToList();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(10);
+            while (authors.Count < expectedAuthors.Count && DateTime.Now < futureDateTime)
+                authors = mapper.Fetch<Author>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(expectedAuthors.Count, authors.Count, "Setup FAIL: Less than expected number of authors uploaded");
+
             Cql cql = new Cql("SELECT * from " + table.Name);
             List<Author> authorsFetchedAndSaved = new List<Author>();
             var authorsFetched = mapper.Fetch<Author>(cql).GetEnumerator();
@@ -178,8 +186,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
-        [Test]
-        [TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 0)]
         public void Fetch_With_Udt()
         {
             var mapper = new Mapper(_session, new MappingConfiguration());

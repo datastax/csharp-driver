@@ -219,7 +219,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1}.{2} {3}", versionAttr.Major, versionAttr.Minor, versionAttr.Build, versionAttr.Comparison >= 0 ? "or above" : "or below"));
         }
 
-        protected bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
+        public static bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
         {
             //Compare them as integers
             var expectedVersion = versionAttr.Major * 100000000 + versionAttr.Minor * 10000 + versionAttr.Build;

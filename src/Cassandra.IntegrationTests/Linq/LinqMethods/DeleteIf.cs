@@ -35,10 +35,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void DeleteIf_ConditionSucceeds()
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(0, count);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void DeleteIf_ConditionFails()
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 ex.Message);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void DeleteIf_NoMatchingRecord()
         {
             // Validate pre-test state

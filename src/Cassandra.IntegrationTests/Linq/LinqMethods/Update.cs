@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -67,9 +67,32 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         /// <summary>
-        /// Successfully update multiple records using a Batch update
+        /// Successfully update multiple records using a single (non-batch) update, using async execute
         /// </summary>
         [Test]
+        public void LinqUpdate_Single_Async()
+        {
+            // Setup
+            Table<Movie> table = new Table<Movie>(_session, new MappingConfiguration());
+            table.CreateIfNotExists();
+            Movie movieToUpdate = _movieList[1];
+
+            var expectedMovie = new Movie(movieToUpdate.Title, movieToUpdate.Director, "something_different_" + Randomm.RandomAlphaNum(10), movieToUpdate.MovieMaker, 1212);
+            table.Where(m => m.Title == movieToUpdate.Title && m.MovieMaker == movieToUpdate.MovieMaker && m.Director == movieToUpdate.Director)
+                 .Select(m => new Movie { Year = expectedMovie.Year, MainActor = expectedMovie.MainActor })
+                 .Update()
+                 .Execute();
+
+            List<Movie> actualMovieList = table.ExecuteAsync().Result.ToList();
+            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
+            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
+            Movie.AssertListContains(actualMovieList, expectedMovie);
+        }
+
+        /// <summary>
+        /// Successfully update multiple records using a Batch update
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
         public void LinqUpdate_Batch()
         {
             // Setup

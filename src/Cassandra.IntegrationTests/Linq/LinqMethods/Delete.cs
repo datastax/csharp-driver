@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]
@@ -141,9 +141,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void Delete_MissingWhereAndSelectClause_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            var ex = Assert.Throws<SyntaxError>(() => table.Delete().Execute());
-            StringAssert.Contains("expecting K_WHERE", ex.Message);
+            Assert.Throws<SyntaxError>(() => _table.Delete().Execute());
         }
 
         /// <summary>
@@ -153,15 +151,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void Delete_MissingWhereClause_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            var ex = Assert.Throws<Cassandra.SyntaxError>(() => table.Select(m => m).Delete().Execute());
-            StringAssert.Contains("expecting K_WHERE", ex.Message);
+            Assert.Throws<SyntaxError>(() => _table.Select(m => m).Delete().Execute());
         }
 
         /// <summary>
-        /// 
+        /// Successfully delete a record using the IfExists condition
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Delete_IfExists()
         {
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -179,9 +175,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         /// <summary>
-        /// 
+        /// Successfully delete a record using the IfExists condition, when the row doesn't exist.  
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Delete_IfExists_RowDoesntExist()
         {
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());

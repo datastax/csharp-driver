@@ -48,12 +48,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [TearDown]
         public void TeardownTest()
         {
-            try
-            {
-                _session.DeleteKeyspace(_uniqueKsName);
-            }
-            catch (InvalidConfigurationInQueryException) {} // keyspace has already been dropped
-            // _testCluster.Cluster.Shutdown(); // avoid keyspace switching issues
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -62,7 +57,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// @Jira CSHARP-42  https://datastax-oss.atlassian.net/browse/CSHARP-42
         ///  - Jira detail: CreateIfNotExists causes InvalidOperationException
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateIfNotExist()
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -73,7 +68,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// <summary>
         /// Successfully create a table using the method Create
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create()
         {
             // Test
@@ -87,7 +82,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// overriding the default table name using fluent mapping
         /// Validate default table casing rules
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_NameOverride_DefaultLowercase()
         {
             // Test
@@ -111,7 +106,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// overriding the default table name using fluent mapping, enforcing case-sensitivity
         /// Validate default table casing rules
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_NameOverride_CaseSensitive()
         {
             // Setup
@@ -172,7 +167,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// <summary>
         /// Successfully create two tables of the same type in the same keyspace, but with different names
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_TwoTablesWithSameMappedType_DifferentNames()
         {
             // Create and test first table
@@ -262,7 +257,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method Create
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_TwoTablesSameName_TwoDifferentKeyspaces()
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -282,7 +277,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method CreateIfNotExists
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoDifferentKeyspaces()
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -303,7 +298,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// Successfully create a table that contains no column meta data using the method Create
         /// Validate the state of the table in C* after it's created
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_EntityTypeWithColumnNameMeta()
         {
             // Test
@@ -340,7 +335,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// Successfully create a table that contains no column meta data using the method Create
         /// Validate the state of the table in C* after it's created
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_EntityTypeWithoutColumnNameMeta()
         {
             // Test

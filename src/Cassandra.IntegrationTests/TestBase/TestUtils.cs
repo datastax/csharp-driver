@@ -101,6 +101,20 @@ namespace Cassandra.IntegrationTests.TestBase
             return "TestTable_" + Randomm.RandomAlphaNum(12);
         }
 
+        public static void TryToDeleteKeyspace(ISession session, string keyspaceName)
+        {
+            if (session != null)
+            {
+                try
+                {
+                    session.DeleteKeyspace(keyspaceName);
+                }
+                catch (Cassandra.InvalidConfigurationInQueryException)
+                {
+                } // We don't care if the KS doesn't exist
+            }
+        }
+
         public static bool TableExists(ISession session, string keyspaceName, string tableName)
         {
             // SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='TestKeySpace_c3052b44be8b';

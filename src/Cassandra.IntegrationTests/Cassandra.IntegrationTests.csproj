@@ -91,9 +91,13 @@
     <Compile Include="Mapping\Tests\CqlClientTest.cs" />
     <Compile Include="Mapping\Tests\CqlClientConfig.cs" />
     <Compile Include="Mapping\Tests\CreateTable.cs" />
+    <Compile Include="Mapping\Tests\Single.cs" />
+    <Compile Include="Mapping\Tests\First.cs" />
     <Compile Include="Mapping\Tests\Fetch.cs" />
     <Compile Include="Mapping\Tests\FluentMapping.cs" />
     <Compile Include="Mapping\Tests\Insert.cs" />
+    <Compile Include="Mapping\Tests\Delete.cs" />
+    <Compile Include="Mapping\Tests\Update.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
     <Compile Include="Core\ConnectionTests.cs" />
     <Compile Include="Core\MultiThreadingTests.cs" />

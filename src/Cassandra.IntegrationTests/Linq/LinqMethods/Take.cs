@@ -25,7 +25,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), TestCassandraVersion(2, 0)]
     public class Take : TestGlobals
     {
         ISession _session = null;
@@ -56,7 +56,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]

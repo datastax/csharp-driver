@@ -36,10 +36,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void LinqInsert_Batch()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
@@ -76,7 +76,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Movie.DisplayMovies(taskselectAllFromWhereWithFuture.Result);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void LinqInsert_Batch_MissingPartitionKeyPart()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
