@@ -60,7 +60,14 @@
     <Compile Include="CqlFunctions\Tests\MaxTimeUuid.cs" />
     <Compile Include="CqlFunctions\Tests\MinTimeUuid.cs" />
     <Compile Include="CqlFunctions\Tests\Token.cs" />
+    <Compile Include="Linq\CqlOperatorTests\Prepend.cs" />
+    <Compile Include="Linq\CqlOperatorTests\SubstractAssign.cs" />
+    <Compile Include="Linq\CqlOperatorTests\Append.cs" />
     <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
+    <Compile Include="Linq\Structures\EntityWithAllCollectionTypes.cs" />
+    <Compile Include="Linq\Structures\EntityWithArrayType.cs" />
+    <Compile Include="Linq\Structures\EntityWithDictionaryType.cs" />
+    <Compile Include="Linq\Structures\EntityWithListType.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Tests\Counter.cs" />
