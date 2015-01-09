@@ -364,7 +364,7 @@ namespace Cassandra.Mapping
                 if (pocoDestType.IsArray)
                 {
                     // new T[] { }
-                    createEmptyCollection = Expression.NewArrayInit(pocoDestType);
+                    createEmptyCollection = Expression.NewArrayInit(pocoDestType.GetElementType());
                     return true;
                 }
 

@@ -97,7 +97,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         /// <summary>
         /// Validate that the a List can be prepended to, then validate that the expected data exists in Cassandra
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Issue with converting back to array, pending question")]
+        [Test]
         public void Prepend_ToArray()
         {
             Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
@@ -109,18 +109,12 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 
             string[] arrToAdd = new string[] { "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), };
             EntityWithArrayType singleEntity = expectedEntities.First();
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
-            List<string> strValsAsList = new List<string>();
-            strValsAsList.AddRange(expectedEntity.ArrayType);
-            strValsAsList.AddRange(arrToAdd);
-            expectedEntity.ArrayType = strValsAsList.ToArray();
             // Append the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Prepend(arrToAdd) }).Update().Execute();
             // Validate the final state of the data
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
-            expectedEntity.AssertEquals(entityList[0]);
+            CollectionAssert.AreEqual(arrToAdd.Concat(singleEntity.ArrayType).OrderBy(v => v), entityList[0].ArrayType.OrderBy(v => v));
         }
 
         /// <summary>

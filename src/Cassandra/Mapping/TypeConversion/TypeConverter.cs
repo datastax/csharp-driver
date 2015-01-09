@@ -119,7 +119,7 @@ namespace Cassandra.Mapping.TypeConversion
                 return dateMapper;
             }
 
-            if (dbType.IsGenericType && pocoType.IsGenericType)
+            if (dbType.IsGenericType && (pocoType.IsGenericType || pocoType.IsArray))
             {
                 Type sourceGenericDefinition = dbType.GetGenericTypeDefinition();
                 Type[] sourceGenericArgs = dbType.GetGenericArguments();

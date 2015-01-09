@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         /// <summary>
         /// Validate that the a List can be appended to, then validate that the expected data exists in Cassandra
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Issue with converting back to array, pending question")]
+        [Test]
         public void Append_ToArray()
         {
             Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
@@ -282,7 +282,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         /// <summary>
         /// Validate that the a List can be appended to and then queried, using a table that contains all collection types
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Issue with converting back to array, pending question")]
+        [Test]
         public void Append_ToList_TableWithAllCollectionTypes()
         {
             Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> tupleAllCollectionTypes = EntityWithAllCollectionTypes.SetupDefaultTable(_session);
@@ -293,20 +293,17 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             Console.WriteLine(originalEntityListInCass.Count);
 
             EntityWithAllCollectionTypes singleEntity = expectedEntities.First();
-            EntityWithAllCollectionTypes expectedEntity = singleEntity.Clone();
-            expectedEntity.ListType.AddRange(new List<int> { 5, 6 });
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ListType = CqlOperator.Append(expectedEntity.ListType) }).Update().Execute();
+            var toAppend = new List<int> { 5, 6 };
+            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ListType = CqlOperator.Append(toAppend) }).Update().Execute();
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ListType, singleEntity.ListType);
-            entityList.First().AssertEquals(expectedEntity);
-
+            CollectionAssert.AreEqual(singleEntity.ListType.Concat(toAppend), entityList.First().ListType);
         }
 
         /// <summary>
         /// Validate that the an Array can be appended to and then queried
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Issue with converting back to array, pending question")]
+        [Test]
         public void Append_ToArray_TableWithAllCollectionTypes()
         {
             Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> tupleAllCollectionTypes = EntityWithAllCollectionTypes.SetupDefaultTable(_session);
@@ -314,20 +311,17 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             List<EntityWithAllCollectionTypes> expectedEntities = tupleAllCollectionTypes.Item2;
 
             EntityWithAllCollectionTypes singleEntity = expectedEntities.First();
-            EntityWithAllCollectionTypes expectedEntity = singleEntity.Clone();
-            expectedEntity.ArrayType = new string[] { "tag1", "tag2", "tag3" };
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ArrayType = CqlOperator.Append(expectedEntity.ArrayType) }).Update().Execute();
+            var toAppend = new string[] { "tag1", "tag2", "tag3" };
+            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ArrayType = CqlOperator.Append(toAppend) }).Update().Execute();
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
-            entityList.First().AssertEquals(expectedEntity);
-
+            CollectionAssert.AreEqual(singleEntity.ArrayType.Concat(toAppend), entityList.First().ArrayType);
         }
 
         /// <summary>
         /// Validate that the a Dictionary can be appended to and then queried
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Issue with converting back to array, pending question")]
+        [Test]
         public void Append_ToDictionary_TableWithAllCollectionTypes()
         {
             Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> tupleAllCollectionTypes = EntityWithAllCollectionTypes.SetupDefaultTable(_session);
@@ -340,9 +334,8 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { DictionaryType = CqlOperator.Append(expectedEntity.DictionaryType) }).Update().Execute();
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
+            CollectionAssert.AreEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
             entityList.First().AssertEquals(expectedEntity);
-
         }
     }
 
