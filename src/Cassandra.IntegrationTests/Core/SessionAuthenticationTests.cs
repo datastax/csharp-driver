@@ -15,7 +15,8 @@
 //
 
  using System;
-using System.Linq;
+ using System.Diagnostics;
+ using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 ﻿using System.Threading;
@@ -33,7 +34,6 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture]
     public class SessionAuthenticationTests : TestGlobals
     {
-        private static readonly Logger _logger = new Logger(typeof(SessionAuthenticationTests));
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
 
@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             DateTime timeInTheFuture = DateTime.Now.AddSeconds(60);
             ISession session = null;
-            _logger.Info("Validating that test cluster with name: " + testCluster.Name + " can be connected to ... ");
+            Trace.TraceInformation("Validating that test cluster with name: " + testCluster.Name + " can be connected to ... ");
 
             while (DateTime.Now < timeInTheFuture && session == null)
             {
@@ -186,8 +186,8 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (Exception e)
                 {
-                    _logger.Info("Failed to connect to authenticated cluster, error msg: " + e.Message);
-                    _logger.Info("Waiting 1 second then trying again ... ");
+                    Trace.TraceInformation("Failed to connect to authenticated cluster, error msg: " + e.Message);
+                    Trace.TraceInformation("Waiting 1 second then trying again ... ");
                     Thread.Sleep(1000);
                     session = null;
                 }

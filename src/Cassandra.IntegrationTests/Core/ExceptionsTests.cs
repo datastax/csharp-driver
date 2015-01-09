@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Diagnostics;
 using System.Security;
 using System.Security.Permissions;
 using Cassandra.IntegrationTests.TestBase;
@@ -30,8 +31,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class ExceptionsTests : TestGlobals
     {
-        private static readonly Logger _logger = new Logger(typeof(ExceptionsTests));
-        private static string _lastKnownInitialContactPoint = null;
+        private static string _lastKnownInitialContactPoint;
 
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
@@ -301,10 +301,10 @@ namespace Cassandra.IntegrationTests.Core
                 catch (ReadTimeoutException e)
                 {
                     Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                    _logger.Info("We caught a ReadTimeoutException as expected, extending the total time to wait ... ");
+                    Trace.TraceInformation("We caught a ReadTimeoutException as expected, extending the total time to wait ... ");
                     readTimeoutWasCaught++;
                 }
-                _logger.Info("Expected exception was not thrown, trying again ... ");
+                Trace.TraceInformation("Expected exception was not thrown, trying again ... ");
             }
 
             Assert.True(expectedExceptionWasCaught,

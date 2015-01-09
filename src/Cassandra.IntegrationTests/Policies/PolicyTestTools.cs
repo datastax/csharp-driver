@@ -28,10 +28,7 @@ namespace Cassandra.IntegrationTests.Policies
 {
     public class PolicyTestTools
     {
-        public static readonly bool DEBUG = false;
-        private static readonly Logger _logger = new Logger(typeof(PolicyTestTools));
-
-        public string TableName = null;
+        public string TableName;
 
         // Coordinators are: Dictionary<(string>HostIpThatWasQueriedAtLeastOnce, (int)NumberOfTimesThisHostWasQueried>
         public Dictionary<string, int> Coordinators = new Dictionary<string, int>();
@@ -109,24 +106,12 @@ namespace Cassandra.IntegrationTests.Policies
         /// </summary>
         public void AssertQueriedSet(String[] hosts, int n)
         {
-            try
+            int queriedInSet = 0;
+            foreach (var host in hosts)
             {
-                int queriedInSet = 0;
-                foreach (var host in hosts)
-                {
-                    queriedInSet += Coordinators.ContainsKey(host) ? (int)Coordinators[host] : 0;
-                }
-
-                if (DEBUG)
-                    Debug.WriteLine(String.Format("Expected: {0}\tReceived: {1}", n, queriedInSet));
-                else
-                    Assert.AreEqual(queriedInSet, n, String.Format("For [{0}]", String.Join(", ", hosts)));
-
+                queriedInSet += Coordinators.ContainsKey(host) ? (int) Coordinators[host] : 0;
             }
-            catch (Exception e)
-            {
-                throw new ApplicationException("", e);// RuntimeException(e);
-            }
+            Assert.AreEqual(queriedInSet, n, String.Format("For [{0}]", String.Join(", ", hosts)));
         }
 
         public void AssertQueriedAtLeast(string host, int n)
@@ -250,7 +235,7 @@ namespace Cassandra.IntegrationTests.Policies
         {
             int secondsToPoll = 120;
             DateTime futureDateTime = DateTime.Now.AddSeconds(120);
-            _logger.Info("Polling for " + secondsToPoll + " seconds while we wait for bootstrapped IP to join the ring, be found by the client");
+            Trace.TraceInformation("Polling for " + secondsToPoll + " seconds while we wait for bootstrapped IP to join the ring, be found by the client");
             while (!Coordinators.ContainsKey(newlyBootstrappedIp) && DateTime.Now < futureDateTime)
             {
                 try
@@ -267,7 +252,7 @@ namespace Cassandra.IntegrationTests.Policies
                     };
                     Assert.IsTrue(e.Message.Contains(expectedErrMessages[0]) || e.Message.Contains(expectedErrMessages[1]) || e.Message.Contains(expectedErrMessages[2]),
                         "Error message '" + e.Message + "' did not contain one of these acceptable error messages: " + string.Join(",", expectedErrMessages));
-                    _logger.Info("Caught acceptable one of these acceptable error messages: " + string.Join(",", expectedErrMessages));
+                    Trace.TraceInformation("Caught acceptable one of these acceptable error messages: " + string.Join(",", expectedErrMessages));
                 }
                 Thread.Sleep(250);
             }

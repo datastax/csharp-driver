@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
-using NUnit.Framework.Constraints;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -15,7 +12,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     /// </summary>
     public class TestClusterManager : TestGlobals
     {
-        private readonly Logger _logger = new Logger(typeof(TestClusterManager));
         private const int MaxClusterCreationRetries = 2;
         private readonly Mutex _mutex = new Mutex();
         private List<Tuple<int, int>> _ipPrefixesInUse = new List<Tuple<int, int>>();
@@ -48,14 +44,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 if (UseCtool)
                 {
                     // Create new cluster via ctool
-                    // At this point we don't have the means to create remote 
+                    // At this point we don't have the means to create remote clusters
                     throw new Exception("Setup FAIL: CTool cluster creation won't work until you create CToolBridge");
                 }
                 else
                 {
                     // first stop any existing CCM clusters
                     ShutDownAllCcmTestClusters();
-                    KillAllCcmProcesses(); // Kill C* in case still running from previous test runs
 
                     // Create new cluster via ccm
                     CcmCluster testCluster = new CcmCluster(CassandraVersion, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
@@ -66,10 +61,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
             catch (Exception e)
             {
-                _logger.Error("Unexpected Error occurred while trying to get test cluster with nodeCount: " + dc1NodeCount);
-                _logger.Error("Error message: " + e.Message);
-                _logger.Error("Stack trace: " + e.StackTrace);
-                _logger.Error("Killing all Java processes and trying again ... ");
+                Trace.TraceError("Unexpected Error occurred while trying to get test cluster with nodeCount: " + dc1NodeCount);
+                Trace.TraceError("Error message: " + e.Message);
+                Trace.TraceError("Stack trace: " + e.StackTrace);
+                Trace.TraceError("Killing all Java processes and trying again ... ");
             }
             
             return null;
@@ -104,7 +99,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             // If we found a valid shareable test cluster, then switch to it and start it
             if (testCluster != null)
             {
-                _logger.Info("Found existing test cluster with nodeCount: " + dc1NodeCount + ", name: " + testCluster.Name);
+                Trace.TraceInformation("Found existing test cluster with nodeCount: " + dc1NodeCount + ", name: " + testCluster.Name);
                 ShutDownAllCcmTestClustersExceptFor((CcmCluster) testCluster);
                 testCluster.SwitchToThisAndStart();
             }
@@ -124,7 +119,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     RemoveTestCluster(testCluster);
                     foreach (string host in testCluster.ExpectedInitialHosts)
                         TestUtils.WaitForDown(host, DefaultCassandraPort, 30);
-                    //KillAllCcmProcesses();
 
                     if (currentRetryCount > MaxClusterCreationRetries)
                         throw new Exception("Cluster with node count " + dc1NodeCount + " has already failed " + currentRetryCount + " times ... is there something wrong with this environment?");
@@ -167,51 +161,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
             catch (Exception e)
             {
-                _logger.Error("Unexpected Error occurred when trying to get shared test cluster with InitialContactPoint: " + testCluster.InitialContactPoint + ", name: " + testCluster.Name);
-                _logger.Error("Error Message: " + e.Message);
-                _logger.Error("Error Stack Trace: " + e.StackTrace);
-                _logger.Error("Removing this cluster, and looping back to create a new one ... ");
+                Trace.TraceError("Unexpected Error occurred when trying to get shared test cluster with InitialContactPoint: " + testCluster.InitialContactPoint + ", name: " + testCluster.Name);
+                Trace.TraceError("Error Message: " + e.Message);
+                Trace.TraceError("Error Stack Trace: " + e.StackTrace);
+                Trace.TraceError("Removing this cluster, and looping back to create a new one ... ");
             }
             return false;
-        }
-
-        public void KillAllCcmProcesses()
-        {
-            // TODO: get Jenkins Proc ID, make sure the proc ID you're killing isn't Jenkins
-            Process[] procs = Process.GetProcessesByName("java");
-            if (procs.Length > 0)
-                _logger.Warning("found " + procs.Length + " java procs that are about to be killed ... ");
-            foreach (Process proc in procs)
-            {
-                _logger.Warning(string.Format("KILLING process with ID: {0}, and name: {1}", proc.Id, proc.MachineName));
-                try
-                {
-                    proc.Kill();
-                }
-                catch (Exception e)
-                {
-                    _logger.Error("FAILED to kill process ID: " + proc.Id);
-                    _logger.Error("Exception Message: " + e.Message);
-                }
-            }
-        }
-
-        public int CountCcmProcesses()
-        {
-            // TODO: get Jenkins Proc ID, don't count it
-            int ccmProcessCount = Process.GetProcessesByName("java").Length;
-            return ccmProcessCount;
-        }
-
-        public void WaitForCcmProcessesToGoAway(int msToWait)
-        {
-            DateTime futureDateTime = DateTime.Now.AddMilliseconds(msToWait);
-            while (CountCcmProcesses() > 0 && DateTime.Now < futureDateTime)
-            {
-                int sleepMs = 500;
-                _logger.Warning("Found Ccm Processes still running! Sleeping for " + sleepMs + " MS ... ");
-                Thread.Sleep(sleepMs);
-            }
         }
 
         public ITestCluster GetExistingClusterWithNodeCount(int nodeCount)
@@ -247,7 +202,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void RemoveTestCluster(ITestCluster testCluster)
         {
-            _logger.Warning("Removing test cluster with initial contact point: " + testCluster.InitialContactPoint + " and name: " + testCluster.Name);
+            Trace.TraceWarning("Removing test cluster with initial contact point: " + testCluster.InitialContactPoint + " and name: " + testCluster.Name);
             // remove Cassandra instance 
             testCluster.Remove();
             // remove from list
@@ -271,7 +226,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 if (existingTestCluster.IsStarted)
                 {
-                    _logger.Info("Shutting down cluster: " + existingTestCluster.Name + " initial contact point: " + existingTestCluster.InitialContactPoint);
+                    Trace.TraceWarning("Shutting down cluster: " + existingTestCluster.Name + " initial contact point: " + existingTestCluster.InitialContactPoint);
                     //existingTestCluster.SwitchToThisCluster();
                     existingTestCluster.ShutDown();
                     foreach (string host in existingTestCluster.ExpectedInitialHosts)
@@ -287,7 +242,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 ITestCluster existingTestCluster = _testClusters[j];
                 if (!existingTestCluster.IsRemoved)
                 {
-                    _logger.Info("Removing cluster: " + existingTestCluster.Name + " initial contact point: " +
+                    Trace.TraceWarning("Removing cluster: " + existingTestCluster.Name + " initial contact point: " +
                                  existingTestCluster.InitialContactPoint);
                     existingTestCluster.Remove();
                 }

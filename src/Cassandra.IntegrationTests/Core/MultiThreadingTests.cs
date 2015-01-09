@@ -30,9 +30,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class MultiThreadingTests : TestGlobals
     {
-        private static readonly Logger _logger = new Logger(typeof(MultiThreadingTests));
-
-        Builder _builder = null;
+        Builder _builder;
         private const int NodeCount = 2;
 
         [TestFixtureSetUp]
@@ -219,7 +217,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (Exception e)
             {
-                _logger.Error("Unexpected Exception was thrown! Message: " + e.Message);
+                Trace.TraceError("Unexpected Exception was thrown! Message: " + e.Message);
                 throw e;
             }
             finally

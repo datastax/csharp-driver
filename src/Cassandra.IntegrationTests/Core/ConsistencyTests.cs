@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Diagnostics;
 using System.Runtime.ConstrainedExecution;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
@@ -29,7 +30,6 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class ConsistencyTests : TestGlobals
     {
-        private readonly Logger _logger = new Logger(typeof(Consistency));
         private ISession _session;
         private string _ksName;
         private Table<ManyDataTypesEntity> _table;
@@ -72,7 +72,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (Exception e)
             {
-                _logger.Warning("Error occurred during teardown: " + e.Message);
+                Trace.TraceWarning("Error occurred during teardown: " + e.Message);
             }
         }
 

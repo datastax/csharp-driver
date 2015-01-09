@@ -31,8 +31,6 @@ namespace Cassandra.IntegrationTests.Policies
     [TestFixture, Category("long")]
     public class LoadBalancingPolicyTests : TestGlobals
     {
-        private static readonly Logger _logger = new Logger(typeof(LoadBalancingPolicyTests));
-
         /// <summary>
         /// Validate that two sessions connected to the same DC use separate Policy instances
         /// </summary>
@@ -246,7 +244,7 @@ namespace Cassandra.IntegrationTests.Policies
             }
             catch (NoHostAvailableException)
             {
-                _logger.Info("Expected NoHostAvailableException exception was thrown.");
+                Trace.TraceInformation("Expected NoHostAvailableException exception was thrown.");
             }
         }
 

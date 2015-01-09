@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
@@ -8,8 +9,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class CcmCluster : ITestCluster
     {
-        private static readonly Logger Logger = new Logger(typeof(CcmCluster));
-
         public CcmBridge CcmBridge;
         public CcmClusterInfo CcmClusterInfo = null;
         public Version CassandraVersion;
@@ -84,7 +83,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             int totalMsSlept = 0;
             while (IsBeingCreated || !IsCreated)
             {
-                Logger.Info(string.Format("Cluster with name: {0}, CcmDir: {1} is being created. Sleeping another {2} MS ... ", Name,
+                Trace.TraceInformation(string.Format("Cluster with name: {0}, CcmDir: {1} is being created. Sleeping another {2} MS ... ", Name,
                     CcmBridge.CcmDir.FullName, sleepMs));
                 Thread.Sleep(sleepMs);
                 totalMsSlept += sleepMs;
@@ -121,7 +120,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Remove()
         {
-            Logger.Info(string.Format("Removing Cluster with Name: '{0}', InitialContactPoint: {1}, and CcmDir: {2}", Name, InitialContactPoint, CcmBridge.CcmDir));
+            Trace.TraceInformation(string.Format("Removing Cluster with Name: '{0}', InitialContactPoint: {1}, and CcmDir: {2}", Name, InitialContactPoint, CcmBridge.CcmDir));
             CcmBridge.SwitchToThis();
             CcmBridge.Remove();
             IsRemoved = true;
