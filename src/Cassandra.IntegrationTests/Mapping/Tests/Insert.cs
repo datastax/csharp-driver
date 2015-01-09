@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -50,10 +49,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Successfully insert a new record into a table that was created with fluent mapping, using Mapper.Insert
+        /// Successfully insert a new record into a table that was created with fluent mapping
         /// </summary>
         [Test]
-        public void Insert_WithMapperInsert()
+        public void Insert_Sync()
         {
             // Setup
             var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
@@ -72,6 +71,184 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, inserting asynchronously
+        /// </summary>
+        [Test]
+        public void Insert_Async()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert using Mapper.Insert
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
+            mapper.InsertAsync(privateClassInstance).Wait();
+
+            // Validate data in C*
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(2);
+            while (instancesQueried.Count < 1 && futureDateTime > DateTime.Now)
+            {
+                instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            }
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including every acceptable consistency level
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistency_Success()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+            var mapper = new Mapper(_session, mappingConfig);
+
+            // Insert the data
+            var consistencyLevels = new ConsistencyLevel[]
+            {
+                ConsistencyLevel.All,
+                ConsistencyLevel.Any,
+                ConsistencyLevel.EachQuorum,
+                ConsistencyLevel.LocalOne,
+                ConsistencyLevel.LocalQuorum,
+                ConsistencyLevel.Quorum,
+            };
+            foreach (var consistencyLevel in consistencyLevels)
+            {
+                lowercaseclassnamepklowercase pocoInstance = new lowercaseclassnamepklowercase();
+                pocoInstance.somepartitionkey = Guid.NewGuid().ToString();
+                mapper.Insert(pocoInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel));
+
+                // Assert final state of C* data
+                string cql = "Select * from " + typeof(lowercaseclassnamepklowercase).Name + " where somepartitionkey ='" + pocoInstance.somepartitionkey + "'";
+                List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>(cql).ToList();
+                DateTime futureDateTime = DateTime.Now.AddSeconds(2);
+                while (instancesQueried.Count < 1 && futureDateTime > DateTime.Now)
+                {
+                    instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>(cql).ToList();
+                }
+                Assert.AreEqual(1, instancesQueried.Count, "Unexpected failure for consistency level: " + consistencyLevel);
+                Assert.AreEqual(pocoInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+            }
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including a consistency level of 'Serial'
+        /// Validate expected error message
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistency_Serial()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            var mapper = new Mapper(_session, mappingConfig);
+            lowercaseclassnamepklowercase pocoInstance = new lowercaseclassnamepklowercase();
+
+            // Assert final state of C* data
+            var err = Assert.Throws<RequestInvalidException>(
+                () => mapper.Insert(pocoInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Serial)));
+            Assert.AreEqual("Serial consistency specified as a non-serial one.", err.Message);
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            Assert.AreEqual(0, instancesQueried.Count);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including consistency levels that will cause the request to fail silently.
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistencyLevel_Fail()
+        {
+            // Setup
+            var mappingConfig =
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            var consistencyLevels = new ConsistencyLevel[]
+            {
+                ConsistencyLevel.Three,
+                ConsistencyLevel.Two
+            };
+            foreach (var consistencyLevel in consistencyLevels)
+            {
+                lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+                var mapper = new Mapper(_session, mappingConfig);
+                mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel));
+
+                // Assert final state of C* data
+                List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+                Assert.AreEqual(0, instancesQueried.Count, "Unexpected failure for consistency level: " + consistencyLevel);
+            }
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including a consistency level that one greater than the current node count
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistency_OneMoreCopyThanNodeCount()
+        {
+            // Setup
+            var mappingConfig =
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
+            mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two));
+
+            // Assert final state of C* data
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            Assert.AreEqual(0, instancesQueried.Count);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, inserting asynchronously
+        /// including a consistency level that one greater than the current node count
+        /// </summary>
+        [Test]
+        public void Insert_Async_WithConsistency_OneMoreCopyThanNodeCount()
+        {
+            // Setup
+            var mappingConfig =
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
+            mapper.InsertAsync(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two)).Wait();
+
+            // Assert final state of C* data
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            Assert.AreEqual(0, instancesQueried.Count);
+        }
+
+        /// <summary>
         /// Successfully insert a new record into a table that was created with fluent mapping, using Mapper.Insert
         /// </summary>
         [Test]
@@ -85,7 +262,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var table = new Table<ClassWithTwoPartitionKeys>(_session, mappingConfig);
             table.Create();
 
-            // Insert using Mapper.Insert
+            // Insert the data
             ClassWithTwoPartitionKeys defaultInstance = new ClassWithTwoPartitionKeys();
             ClassWithTwoPartitionKeys instance = new ClassWithTwoPartitionKeys();
             var mapper = new Mapper(_session, mappingConfig);
@@ -129,7 +306,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
-            // Insert using Session.Execute
+            // Insert the data
             lowercaseclassnamepklowercase defaultPocoInstance = new lowercaseclassnamepklowercase();
             _session.Execute(table.Insert(defaultPocoInstance));
             var mapper = new Mapper(_session, mappingConfig);

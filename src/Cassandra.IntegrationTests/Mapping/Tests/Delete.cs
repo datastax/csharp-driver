@@ -67,7 +67,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Successfully delete a single record using a mapped instance
+        /// Successfully delete a single record using a mapped instance, async
         /// </summary>
         [Test]
         public void Delete_Async_Success()
@@ -81,6 +81,76 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<Movie> actualMovieList = _movieTable.Execute().ToList();
             Assert.AreEqual(_movieList.Count - 1, actualMovieList.Count());
             Assert.IsFalse(Movie.ListContains(actualMovieList, movieToDelete));
+        }
+
+        /// <summary>
+        /// Successfully delete a single record using a mapped instance, async
+        /// with
+        /// </summary>
+        [Test]
+        public void Delete_ConsistencyLevel_Valids()
+        {
+            // Setup
+            Movie movieToDelete = _movieList[1];
+
+            // Insert the data
+            var consistencyLevels = new ConsistencyLevel[]
+            {
+                ConsistencyLevel.All,
+                ConsistencyLevel.Any,
+                ConsistencyLevel.EachQuorum,
+                ConsistencyLevel.LocalOne,
+                ConsistencyLevel.LocalQuorum,
+                ConsistencyLevel.One,
+                ConsistencyLevel.Quorum,
+            };
+            foreach (var consistencyLevel in consistencyLevels)
+            {
+                // Delete the record
+                _mapper.DeleteAsync(movieToDelete, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel)).Wait();
+
+                List<Movie> actualMovieList = _movieTable.Execute().ToList();
+                DateTime futureDateTime = DateTime.Now.AddSeconds(2);
+                while (actualMovieList.Count == _movieList.Count && futureDateTime > DateTime.Now)
+                {
+                    actualMovieList = _movieTable.Execute().ToList();
+                }
+                Assert.AreEqual(_movieList.Count - 1, actualMovieList.Count(), "Unexpected failure for consistency level: " + consistencyLevel);
+                Assert.IsFalse(Movie.ListContains(actualMovieList, movieToDelete));
+
+                // re-insert the movie
+                _mapper.Insert(movieToDelete);
+                actualMovieList.Clear();
+                actualMovieList = _movieTable.Execute().ToList();
+                futureDateTime = DateTime.Now.AddSeconds(2);
+                while (actualMovieList.Count < _movieList.Count && futureDateTime > DateTime.Now)
+                {
+                    actualMovieList = _movieTable.Execute().ToList();
+                }
+                Assert.AreEqual(actualMovieList.Count, _movieList.Count);
+            }
+        }
+
+        /// <summary>
+        /// Successfully delete a single record using a mapped instance, async
+        /// Also set the consistency level to one more than the current number of nodes
+        /// Expect the request to fail silently.
+        /// </summary>
+        [Test]
+        public void Delete_ConsistencyLevel_Invalids()
+        {
+            // Setup
+            Movie movieToDelete = _movieList[1];
+
+            // Attempt to Delete the record
+            _mapper.DeleteAsync(movieToDelete, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two)).Wait();
+            List<Movie> actualMovieList = _movieTable.Execute().ToList();
+            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
+
+            _mapper.DeleteAsync(movieToDelete, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Three)).Wait();
+            actualMovieList = _movieTable.Execute().ToList();
+            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
+
         }
 
 

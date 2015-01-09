@@ -17,9 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -57,7 +55,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Successfully Fetch mapped records by passing in a static query string
         /// </summary>
         [Test]
-        public void Fetch_UsingString_Success()
+        public void Fetch_UsingString()
         {
             Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
@@ -102,12 +100,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 ManyDataTypesPoco.AssertListContains(manyTypesList, instanceRetrieved);
         }
 
-
         /// <summary>
         /// Successfully Fetch mapped records by passing in a Cql Object
         /// </summary>
         [Test]
-        public void Fetch_UsingCqlObject_Success()
+        public void Fetch_UsingCqlObject()
         {
             Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
@@ -122,6 +119,90 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<Author> actualAuthors = mapper.Fetch<Author>(cql).ToList();
             Assert.AreEqual(totalInserts, actualAuthors.Count);
             Author.AssertListsContainTheSame(expectedAuthors, actualAuthors);
+        }
+
+        /// <summary>
+        /// Successfully Fetch mapped records by passing in a Cql Object, 
+        /// using all available acceptable consistency levels
+        /// </summary>
+        [Test]
+        public void Fetch_WithConsistencyLevel_Valids()
+        {
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
+            table.Create();
+            int totalInserts = 10;
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            List<Author> expectedAuthors = Author.GetRandomList(totalInserts);
+            foreach (Author expectedAuthor in expectedAuthors)
+                mapper.Insert(expectedAuthor);
+
+            var consistencyLevels = new[]
+            {
+                ConsistencyLevel.All,
+                ConsistencyLevel.LocalOne,
+                ConsistencyLevel.LocalQuorum,
+                ConsistencyLevel.Quorum,
+                ConsistencyLevel.One,
+            };
+            foreach (var consistencyLevel in consistencyLevels)
+            {
+                Cql cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(consistencyLevel));
+                List<Author> actualAuthors = mapper.Fetch<Author>(cql).ToList();
+                Assert.AreEqual(totalInserts, actualAuthors.Count);
+                Author.AssertListsContainTheSame(expectedAuthors, actualAuthors);
+            }
+        }
+
+        /// <summary>
+        /// Attempte to Fetch mapped records by passing in a Cql Object, 
+        /// using consistency levels that are only valid for writes
+        /// </summary>
+        [Test]
+        public void Fetch_WithConsistencyLevel_Invalids_OnlySupportedForWrites()
+        {
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
+            table.Create();
+            int totalInserts = 10;
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            List<Author> expectedAuthors = Author.GetRandomList(totalInserts);
+            foreach (Author expectedAuthor in expectedAuthors)
+                mapper.Insert(expectedAuthor);
+
+            Cql cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.EachQuorum));
+            var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
+            Assert.AreEqual("EACH_QUORUM ConsistencyLevel is only supported for writes", err.Message);
+
+            cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.Any));
+            err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
+            Assert.AreEqual("ANY ConsistencyLevel is only supported for writes", err.Message);
+        }
+
+        /// <summary>
+        /// Successfully Fetch mapped records by passing in a Cql Object, 
+        /// with consistency level set larger than available node count.
+        /// Assert expected failure message.
+        /// </summary>
+        [Test]
+        public void Fetch_WithConsistencyLevel_Invalids_NotEnoughReplicas()
+        {
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
+            table.Create();
+            int totalInserts = 10;
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            List<Author> expectedAuthors = Author.GetRandomList(totalInserts);
+            foreach (Author expectedAuthor in expectedAuthors)
+                mapper.Insert(expectedAuthor);
+
+            Cql cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.Two));
+            var err = Assert.Throws<UnavailableException>(() => mapper.Fetch<Author>(cql));
+            Assert.AreEqual("Not enough replicas available for query at consistency Two (2 required but only 1 alive)", err.Message);
+
+            cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.Three));
+            err = Assert.Throws<UnavailableException>(() => mapper.Fetch<Author>(cql));
+            Assert.AreEqual("Not enough replicas available for query at consistency Three (3 required but only 1 alive)", err.Message);
         }
 
         /// <summary>
