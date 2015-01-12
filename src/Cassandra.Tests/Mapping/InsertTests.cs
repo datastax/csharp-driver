@@ -42,7 +42,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             //Execute Insert and wait
@@ -72,7 +72,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             //Execute
@@ -113,7 +113,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
 
             // Insert the new user
@@ -148,7 +148,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             mapper.Insert(album);

@@ -1,24 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
-    public class CcmCluster : TestGlobals, ITestCluster
+    public class CcmCluster : ITestCluster
     {
-        private static readonly Logger Logger = new Logger(typeof(CcmCluster));
-
         public CcmBridge CcmBridge;
         public CcmClusterInfo CcmClusterInfo = null;
+        public Version CassandraVersion;
 
-        public CcmCluster(string name, int dc1NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true) :
-            this(name, dc1NodeCount, 0, clusterIpPrefix, defaultKeyspace, isUsingDefaultConfig)
+        public CcmCluster(Version cassandraVersion, string name, int dc1NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true) :
+            this(cassandraVersion, name, dc1NodeCount, 0, clusterIpPrefix, defaultKeyspace, isUsingDefaultConfig)
         {
         }
 
-        public CcmCluster(string name, int dc1NodeCount, int dc2NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true)
+        public CcmCluster(Version cassandraVersion, string name, int dc1NodeCount, int dc2NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true)
         {
+            CassandraVersion = cassandraVersion;
             Name = name;
             Dc1NodeCount = dc1NodeCount;
             Dc2NodeCount = dc2NodeCount;
@@ -27,24 +29,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             IsCreated = false;
             IsBeingCreated = false;
             IsStarted = false;
-            IsStarting = false;
             ClusterIpPrefix = clusterIpPrefix;
             InitialContactPoint = ClusterIpPrefix + "1";
+            SetExpectedHosts();
         }
 
-        ~CcmCluster()
+        private void SetExpectedHosts()
         {
-            try
-            {
-                if (IsStarted)
-                    ShutDown();
-            }
-            catch (Exception e)
-            {
-                Logger.Warning("Attempted to shutdown when current " + this.GetType().Name +
-                               " object was being destroyed and got the following Exception: " + e.Message);
-                Logger.Warning("Exception stack trace: " + e.StackTrace);
-            }
+            if (ExpectedInitialHosts == null)
+                ExpectedInitialHosts = new List<string>();
+
+            // number of hosts should equal the total number of nodes in both data centers
+            for (int i = 1; i <= Dc1NodeCount + Dc2NodeCount; i++)
+                ExpectedInitialHosts.Add(ClusterIpPrefix + i);
         }
 
         public string Name { get; set; }
@@ -59,34 +56,34 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public bool IsBeingCreated { get; set; }
         public bool IsCreated { get; set; }
         public bool IsStarted { get; set; }
-        public bool IsStarting { get; set; }
         public bool IsUsingDefaultConfig { get; set; }
         public bool IsRemoved { get; set; }
+        public List<string> ExpectedInitialHosts { get; set; }
 
         // So far, for CCM only
         private ProcessOutput _proc { get; set; }
 
         public void Create(bool startTheCluster = true)
         {
-            // if it's already being created, then wait until this step is complete
+            // if it's already being created in another thread, then wait until this step is complete
             if (!IsBeingCreated)
             {
                 IsBeingCreated = true;
-                if (startTheCluster)
-                    IsStarting = true;
                 if (Dc2NodeCount > 0)
                     CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, Dc2NodeCount, CassandraVersion.ToString(), startTheCluster);
                 else
                     CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, CassandraVersion.ToString(), startTheCluster);
                 IsBeingCreated = false;
                 IsCreated = true;
+                if (startTheCluster)
+                    IsStarted = true;
             }
             int sleepMs = 300;
             int sleepMsMax = 60000;
             int totalMsSlept = 0;
             while (IsBeingCreated || !IsCreated)
             {
-                Logger.Info(string.Format("Cluster with name: {0}, CcmDir: {1} is being created. Sleeping another {2} MS ... ", Name,
+                Trace.TraceInformation(string.Format("Cluster with name: {0}, CcmDir: {1} is being created. Sleeping another {2} MS ... ", Name,
                     CcmBridge.CcmDir.FullName, sleepMs));
                 Thread.Sleep(sleepMs);
                 totalMsSlept += sleepMs;
@@ -95,36 +92,26 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     throw new Exception("Failed to create cluster in " + sleepMsMax + " MS!");
                 }
             }
-
-            if (startTheCluster)
-                SwitchToThisStartAndConnect();
-        }
-
-        public void CreateAndStart()
-        {
-            Create(true);
-        }
-
-        public void StartClusterAndClient()
-        {
-            IsStarting = true;
-            SwitchToThisStartAndConnect();
         }
 
         public void InitClient()
         {
+            if (Cluster != null && IsStarted)
+                Cluster.Shutdown();
             if (Builder == null)
                 Builder = new Builder();
-            if (Cluster != null)
-                Cluster.Shutdown();
             Cluster = Builder.AddContactPoint(InitialContactPoint).Build();
             Session = Cluster.Connect();
             Session.CreateKeyspaceIfNotExists(DefaultKeyspace);
+            TestUtils.WaitForSchemaAgreement(Cluster);
             Session.ChangeKeyspace(DefaultKeyspace);
         }
 
         public void ShutDown()
         {
+            if (!IsStarted)
+                return;
+
             if (Cluster != null)
                 Cluster.Shutdown();
             CcmBridge.Stop();
@@ -133,7 +120,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Remove()
         {
-            Logger.Info(string.Format("Removing Cluster with Name: '{0}', InitialContactPoint: {1}, and CcmDir: {2}", Name, InitialContactPoint, CcmBridge.CcmDir));
+            Trace.TraceInformation(string.Format("Removing Cluster with Name: '{0}', InitialContactPoint: {1}, and CcmDir: {2}", Name, InitialContactPoint, CcmBridge.CcmDir));
+            CcmBridge.SwitchToThis();
             CcmBridge.Remove();
             IsRemoved = true;
         }
@@ -148,31 +136,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmBridge.SwitchToThis();
         }
 
-        public void SwitchToThisStartAndConnect()
+        public void SwitchToThisAndStart()
         {
             // only send the 'start' command if it isn't already in the process of starting
-            if (!IsStarted && !IsStarting)
+            if (!IsStarted)
             {
                 SwitchToThisCluster();
                 Start();
-                IsStarting = true;
             }
-            
-            // wait for it to finish starting if needs be
-            try
-            {
-                InitClient();
-                IsStarting = false;
-                IsStarted = true;
-                IsBeingCreated = false;
-                IsCreated = true;
-            }
-            catch (Cassandra.NoHostAvailableException e)
-            {
-                Logger.Error(string.Format("NoHostAvailableException was thrown, cluster with Name: {0}, InitialContactPoint: {1}, CcmDir: {2} was not successfully started!", Name, InitialContactPoint, CcmBridge.CcmDir));
-                Logger.Error("Error Message: " + e.Message);
-                Logger.Error("Error StackTrace: " + e.StackTrace);
-            }
+            IsStarted = true;
         }
 
         public void StopForce(int nodeIdToStop)
@@ -188,6 +160,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void Start()
         {
             CcmBridge.Start();
+            IsStarted = true;
         }
 
         public void Start(int nodeIdToStart)

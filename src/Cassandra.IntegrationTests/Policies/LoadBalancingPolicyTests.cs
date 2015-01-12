@@ -31,8 +31,6 @@ namespace Cassandra.IntegrationTests.Policies
     [TestFixture, Category("long")]
     public class LoadBalancingPolicyTests : TestGlobals
     {
-        private static readonly Logger _logger = new Logger(typeof(LoadBalancingPolicyTests));
-
         /// <summary>
         /// Validate that two sessions connected to the same DC use separate Policy instances
         /// </summary>
@@ -40,7 +38,7 @@ namespace Cassandra.IntegrationTests.Policies
         public void TwoSessionsConnectedToSameDcUseSeparatePolicyInstances()
         {
             var builder = Cluster.Builder();
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
 
             using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", testCluster.ClusterIpPrefix)).Build())
             using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", testCluster.ClusterIpPrefix)).Build())
@@ -81,7 +79,7 @@ namespace Cassandra.IntegrationTests.Policies
             int bootStrapPos = 2;
             testCluster.BootstrapNode(bootStrapPos);
             string newlyBootstrappedIp = testCluster.ClusterIpPrefix + bootStrapPos;
-            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40);
+            TestUtils.WaitForUp(newlyBootstrappedIp, DefaultCassandraPort, 30);
 
             // Validate expected nodes where queried
             policyTestTools.WaitForPolicyToolsQueryToHitBootstrappedIp(testCluster, newlyBootstrappedIp);
@@ -107,7 +105,7 @@ namespace Cassandra.IntegrationTests.Policies
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             testCluster.InitClient();
 
@@ -124,7 +122,7 @@ namespace Cassandra.IntegrationTests.Policies
             // Bootstrap step
             testCluster.BootstrapNode(3, "dc1");
             string newlyBootstrappedIp = testCluster.ClusterIpPrefix + "3";
-            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40, true);
+            TestUtils.WaitForUp(newlyBootstrappedIp, DefaultCassandraPort, 30);
 
             // Validate expected nodes where queried
             policyTestTools.WaitForPolicyToolsQueryToHitBootstrappedIp(testCluster, newlyBootstrappedIp);
@@ -148,7 +146,7 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.ResetCoordinators();
             testCluster.BootstrapNode(4, "dc2");
             newlyBootstrappedIp = testCluster.ClusterIpPrefix + "4";
-            TestUtils.WaitForUp(newlyBootstrappedIp, testCluster.Builder, 40, true);
+            TestUtils.WaitForUp(newlyBootstrappedIp, DefaultCassandraPort, 30);
             policyTestTools.ResetCoordinators();
             policyTestTools.Query(testCluster, 12);
             policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
@@ -195,7 +193,7 @@ namespace Cassandra.IntegrationTests.Policies
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             testCluster.InitClient();
 
@@ -246,7 +244,7 @@ namespace Cassandra.IntegrationTests.Policies
             }
             catch (NoHostAvailableException)
             {
-                _logger.Info("Expected NoHostAvailableException exception was thrown.");
+                Trace.TraceInformation("Expected NoHostAvailableException exception was thrown.");
             }
         }
 
@@ -259,7 +257,7 @@ namespace Cassandra.IntegrationTests.Policies
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 
@@ -506,7 +504,7 @@ namespace Cassandra.IntegrationTests.Policies
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCmdRetries, true);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
             testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 

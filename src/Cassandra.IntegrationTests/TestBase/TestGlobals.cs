@@ -17,6 +17,7 @@
 using System;
 using System.Collections;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -29,9 +30,8 @@ namespace Cassandra.IntegrationTests.TestBase
 {
     public class TestGlobals
     {
-        private static readonly Logger Logger = new Logger(typeof(TestGlobals));
-
-        public const int DefaultMaxClusterCmdRetries = 2;
+        public const int DefaultCassandraPort = 9042;
+        public const int DefaultMaxClusterCreateRetries = 2;
         public const string DefaultLocalIpPrefix = "127.0.0.";
         public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
         public const int ClusterInitSleepMsPerIteration = 500;
@@ -155,7 +155,7 @@ namespace Cassandra.IntegrationTests.TestBase
                     while (_clusterManagerIsInitializing)
                     {
                         int SleepMs = 1000;
-                        Logger.Info("Shared " + _clusterManagerIsInitializing.GetType().Name + " object is initializing. Sleeping " + SleepMs + " MS ... ");
+                        Trace.TraceInformation("Shared " + _clusterManagerIsInitializing.GetType().Name + " object is initializing. Sleeping " + SleepMs + " MS ... ");
                         Thread.Sleep(SleepMs);
                     }
                 }
@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.TestBase
         }
 
         [SetUp]
-        public void TestSetup()
+        public void IndividualTestSetup()
         {
             VerifyAppropriateCassVersion();
             VerifyLocalCcmOnly();

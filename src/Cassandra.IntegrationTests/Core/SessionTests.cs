@@ -30,10 +30,8 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class SessionTests : TestGlobals
     {
-        private static readonly Logger Logger = new Logger(typeof(TestGlobals));
-
-        ISession _session = null;
-        ITestCluster _testCluster = null;
+        ISession _session;
+        ITestCluster _testCluster;
         const int NodeCount = 2;
 
         [SetUp]
@@ -47,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionCancelsPendingWhenDisposed()
         {
-            Logger.Info("SessionCancelsPendingWhenDisposed");
+            Trace.TraceInformation("SessionCancelsPendingWhenDisposed");
             var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {
@@ -60,7 +58,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Most task should be pending
                 Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
                 //Force it to close connections
-                Logger.Info("Start Disposing localSession");
+                Trace.TraceInformation("Start Disposing localSession");
                 localSession.Dispose();
                 //Wait for the worker threads to cancel the rest of the operations.
                 DateTime timeInTheFuture = DateTime.Now.AddSeconds(11);
@@ -69,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
                         taskList.All(t => t.Status == TaskStatus.RanToCompletion || t.Status == TaskStatus.Faulted)))
                 {
                     int waitMs = 500;
-                    Logger.Info(string.Format("In method: {0}, waiting {1} more MS ... ", System.Reflection.MethodBase.GetCurrentMethod().Name, waitMs));
+                    Trace.TraceInformation(string.Format("In method: {0}, waiting {1} more MS ... ", System.Reflection.MethodBase.GetCurrentMethod().Name, waitMs));
                     Thread.Sleep(waitMs);
                 }
                 Assert.False(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "No more task should be pending");
@@ -84,7 +82,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionGracefullyWaitsPendingOperations()
         {
-            Logger.Info("Starting SessionGracefullyWaitsPendingOperations");
+            Trace.TraceInformation("Starting SessionGracefullyWaitsPendingOperations");
             var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
             try
             {

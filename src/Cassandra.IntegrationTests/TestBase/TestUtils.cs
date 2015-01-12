@@ -36,7 +36,6 @@ namespace Cassandra.IntegrationTests.TestBase
     /// </summary>
     internal static class TestUtils
     {
-        private static readonly Logger _logger = new Logger(typeof (TestUtils));
         private const int DefaultSleepIterationMs = 1000;
 
         public static readonly string CreateKeyspaceSimpleFormat =
@@ -161,43 +160,54 @@ namespace Cassandra.IntegrationTests.TestBase
             get { return ConfigurationManager.AppSettings["UseRemote"] == "true"; }
         }
 
-        // Wait for a node to be up and running
-        // This is used because there is some delay between when a node has been
-        // added through ccm and when it's actually available for querying'
-        public static Cluster WaitForUp(string nodeHost, Builder builder, int maxTry, bool doAddlQueryTest = false)
+        public static void WaitForUp(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
         {
-            int tries = 0;
-            while (tries < maxTry)
+            int msSleepPerIteration = 500;
+            DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
+            while (DateTime.Now < futureDateTime)
             {
+                TcpClient tcpClient = new TcpClient();
                 try
                 {
-                    using (var cluster = Cluster
-                        .Builder()
-                        .AddContactPoint(nodeHost)
-                        //.WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
-                        .Build())
-                    {
-                        // wait for node to be 'UP' accn to cluster meta
-                        WaitForMeta(nodeHost, cluster, 2, true);
-
-                        if (doAddlQueryTest)
-                        {
-                            // now try a basic query
-                            var session = cluster.Connect();
-                            var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
-                            Assert.Greater(rs.Count(), 0);
-                        }
-                        return cluster;
-                    }
+                    tcpClient.Connect(nodeHost, nodePort);
+                    tcpClient.Close();
+                    Trace.TraceInformation("Verified that node " + nodeHost + ":" + nodePort + " is UP (success) via manual socket connection check, exiting now ...");
+                    return;
                 }
-                catch (NoHostAvailableException e)
+                catch (Exception e)
                 {
-                    _logger.Info(string.Format("Caught expected exception: {0}. Still waiting for node host: {1} to be 'UP', waiting another {2} MS ... ", e.Message, nodeHost, DefaultSleepIterationMs));
+                    Trace.TraceInformation(string.Format("Caught expected exception, with message: {0}. Still waiting for node host: {1} to be available for connection, " +
+                        " waiting another {2} MS ... ", e.Message, nodeHost + ":" + nodePort, msSleepPerIteration));
+                    tcpClient.Close();
+                    Thread.Sleep(msSleepPerIteration);
                 }
-                tries++;
-                Thread.Sleep(DefaultSleepIterationMs);
             }
-            return null;
+            throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + maxSecondsToKeepTrying + " seconds!");
+        }
+
+        public static void WaitForDown(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
+        {
+            int msSleepPerIteration = 500;
+            DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
+            while (DateTime.Now < futureDateTime)
+            {
+                TcpClient tcpClient = new TcpClient();
+                try
+                {
+                    tcpClient.Connect(nodeHost, nodePort);
+                    tcpClient.Close();
+                    Trace.TraceInformation(string.Format("Still waiting for node host: {0} to be UNavailable for connection to default Cassandra port, waiting another {1} MS ... ", 
+                        nodeHost + ":" + nodePort, msSleepPerIteration));
+                    Thread.Sleep(msSleepPerIteration);
+                }
+                catch (Exception e)
+                {
+                    Trace.TraceInformation("Verified that node " + nodeHost + ":" + nodePort + " is DOWN (success) via manual socket connection check, exiting now ...");
+                    tcpClient.Close();
+                    return;
+                }
+            }
+            throw new Exception("Node: " + nodeHost + ":" + nodePort + " was still available for connection after " + maxSecondsToKeepTrying + " seconds, but should have been UNavailable by now!");
         }
 
         private static void WaitForMeta(string nodeHost, Cluster cluster, int maxTry, bool waitForUp)
@@ -214,7 +224,7 @@ namespace Cassandra.IntegrationTests.TestBase
                     if (disconnected)
                     {
                         string warnStr = "While waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", the cluster is now totally down, returning now ... ";
-                        _logger.Warning(warnStr);
+                        Trace.TraceWarning(warnStr);
                         return;
                     }
 
@@ -227,21 +237,21 @@ namespace Cassandra.IntegrationTests.TestBase
                             hostFound = true;
                             if (host.IsUp && waitForUp)
                             {
-                                _logger.Info("Verified according to cluster meta that host " + nodeHost + " is " + expectedFinalNodeState + ", returning now ... ");
+                                Trace.TraceInformation("Verified according to cluster meta that host " + nodeHost + " is " + expectedFinalNodeState + ", returning now ... ");
                                 return;
                             }
-                            _logger.Warning("We're waiting for host " + nodeHost + " to be " + expectedFinalNodeState);
+                            Trace.TraceWarning("We're waiting for host " + nodeHost + " to be " + expectedFinalNodeState);
                         }
                         // Is the host even in the meta list?
                         if (!hostFound)
                         {
                             if (!waitForUp)
                             {
-                                _logger.Info("Verified according to cluster meta that host " + host.Address + " is not available in the MetaData hosts list, returning now ... ");
+                                Trace.TraceInformation("Verified according to cluster meta that host " + host.Address + " is not available in the MetaData hosts list, returning now ... ");
                                 return;
                             }
                             else
-                                _logger.Warning("We're waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", but this host was not found in the MetaData hosts list!");
+                                Trace.TraceWarning("We're waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", but this host was not found in the MetaData hosts list!");
                         }
                     }
                 }
@@ -249,16 +259,16 @@ namespace Cassandra.IntegrationTests.TestBase
                 {
                     if (e.Message.Contains("None of the hosts tried for query are available") && !waitForUp)
                     {
-                        _logger.Info("Verified according to cluster meta that host " + nodeHost + " is not available in the MetaData hosts list, returning now ... ");
+                        Trace.TraceInformation("Verified according to cluster meta that host " + nodeHost + " is not available in the MetaData hosts list, returning now ... ");
                         return;
                     }
-                    _logger.Info("Exception caught while waiting for meta data: " + e.Message);
+                    Trace.TraceInformation("Exception caught while waiting for meta data: " + e.Message);
                 }
-                _logger.Warning("Waiting for node host: " + nodeHost + " to be " + expectedFinalNodeState);
+                Trace.TraceWarning("Waiting for node host: " + nodeHost + " to be " + expectedFinalNodeState);
                 Thread.Sleep(DefaultSleepIterationMs);
             }
             string errStr = "Node host should have been " + expectedFinalNodeState + " but was not after " + maxTry + " tries!";
-            _logger.Error(errStr);
+            Trace.TraceError(errStr);
         }
 
         public static void WaitFor(string node, Cluster cluster, int maxTry)

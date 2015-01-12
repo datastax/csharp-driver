@@ -24,7 +24,7 @@ using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
-    public class CcmBridge : TestGlobals, IDisposable
+    public class CcmBridge : IDisposable
     {
         public DirectoryInfo CcmDir;
         private Renci.SshNet.SshClient _sshClient;
@@ -40,7 +40,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
             if (instantiateSshClient)
             {
-                _sshClient = new Renci.SshNet.SshClient(SSHHost, SSHPort, SSHUser, SSHPassword);
+                string sshHost = "TBD";
+                int sshPort = -1;
+                string sshUser  = "TBD";
+                string sshPassword = "TBD";
+                _sshClient = new Renci.SshNet.SshClient(sshHost, sshPort, sshUser, sshPassword);
                 _sshClient.Connect();
 
                 _sshShellStream = _sshClient.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
@@ -159,8 +163,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             ExecuteCcm(string.Format("node{0} decommission", n));
         }
-
-        private int dead = 0;
 
         public ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = false)
         {

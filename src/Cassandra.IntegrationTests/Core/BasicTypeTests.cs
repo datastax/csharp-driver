@@ -271,7 +271,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <returns>The name of the table</returns>
         private string CreateSimpleTableAndInsert(int rowsInTable)
         {
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = TestUtils.GetUniqueTableName();
             QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"
                 CREATE TABLE {0}(
                 id uuid PRIMARY KEY,
@@ -287,20 +287,12 @@ namespace Cassandra.IntegrationTests.Core
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(toExceed);
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
-            try
-            {
-                var query = String.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, label text, number {1});", tableName, cassandraDataTypeName);
-                QueryTools.ExecuteSyncNonQuery(_session, query);
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-
+            string tableName = TestUtils.GetUniqueTableName();
+            var query = String.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, label text, number {1});", tableName, cassandraDataTypeName);
+            QueryTools.ExecuteSyncNonQuery(_session, query);
 
             object Minimum = toExceedWith.GetField("MinValue").GetValue(this);
             object Maximum = toExceedWith.GetField("MaxValue").GetValue(this);
-
 
             var row1 = new object[3] { Guid.NewGuid(), "Minimum", Minimum };
             var row2 = new object[3] { Guid.NewGuid(), "Maximum", Maximum };
@@ -344,7 +336,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public void TestCounters()
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N");
+            string tableName = TestUtils.GetUniqueTableName();
             try
             {
                 var query = string.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, incdec counter);", tableName);
@@ -373,7 +365,7 @@ namespace Cassandra.IntegrationTests.Core
         public void InsertingSingleValue(Type tp)
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = TestUtils.GetUniqueTableName();
             try
             {
                 var query = string.Format(@"CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, value {1});", tableName, cassandraDataTypeName);
@@ -419,7 +411,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public void TimestampTest()
         {
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = TestUtils.GetUniqueTableName();
             var createQuery = string.Format(@"CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, ts timestamp);", tableName);
             QueryTools.ExecuteSyncNonQuery(_session, createQuery);
 
@@ -439,7 +431,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public void BigInsertTest(int RowsNo = 5000)
         {
-            string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            string tableName = TestUtils.GetUniqueTableName();
             try
             {
                 QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(

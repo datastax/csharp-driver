@@ -49,7 +49,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             var taskList = new List<Task<IEnumerable<PlainUser>>>();
@@ -81,7 +81,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             var ex = Assert.Throws<InvalidQueryException>(() => mappingClient.Fetch<PlainUser>("SELECT WILL FAIL FOR INVALID"));
@@ -204,7 +204,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             mapper.Fetch<PlainUser>(new Cql("SELECT").WithOptions(o => o.SetConsistencyLevel(ConsistencyLevel.EachQuorum).SetSerialConsistencyLevel(ConsistencyLevel.Serial)));

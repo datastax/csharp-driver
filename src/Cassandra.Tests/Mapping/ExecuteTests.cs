@@ -30,7 +30,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             mapper.ExecuteAsync(new Cql("UPDATE").WithOptions(o => o.SetConsistencyLevel(ConsistencyLevel.EachQuorum).SetSerialConsistencyLevel(ConsistencyLevel.Serial))).Wait();

@@ -36,7 +36,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id)));
@@ -70,7 +70,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Title, s => s.Id)));
@@ -111,7 +111,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id).ClusteringKey(s => s.ReleaseDate)));
@@ -145,7 +145,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Title)));

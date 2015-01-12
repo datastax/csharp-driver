@@ -27,7 +27,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, null, null)))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             return GetMappingClient(sessionMock);
         }
@@ -56,7 +56,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(query => TaskHelper.ToTask(new PreparedStatement(null, null, query, null)))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
             return sessionMock.Object;
         }
@@ -67,6 +67,14 @@ namespace Cassandra.Tests.Mapping
         protected Table<T> GetTable<T>(ISession session, ITypeDefinition definition)
         {
             return new Table<T>(session, new MappingConfiguration().Define(definition));
+        }
+
+        /// <summary>
+        /// Gets a dummy prepared statement with the query provided
+        /// </summary>
+        protected PreparedStatement GetPrepared(string query = null)
+        {
+            return new PreparedStatement(null, null, query, null, null);
         }
 
         [TearDown]

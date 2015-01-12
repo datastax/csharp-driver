@@ -28,11 +28,24 @@ namespace Cassandra
     /// </summary>
     public class PreparedStatement
     {
-        internal readonly string Cql;
-        internal readonly byte[] Id;
         internal readonly RowSetMetadata Metadata;
         internal readonly RowSetMetadata ResultMetadata;
         private volatile RoutingKey _routingKey;
+
+        /// <summary>
+        /// The cql query
+        /// </summary>
+        internal string Cql { get; private set; }
+
+        /// <summary>
+        /// The prepared statement identifier
+        /// </summary>
+        internal byte[] Id { get; private set; }
+
+        /// <summary>
+        /// The keyspace were the prepared statement was first executed
+        /// </summary>
+        internal string Keyspace { get; private set; }
 
         /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
@@ -53,12 +66,13 @@ namespace Cassandra
             private set;
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, RowSetMetadata resultMetadata)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, RowSetMetadata resultMetadata)
         {
             Metadata = metadata;
             Id = id;
             Cql = cql;
             ResultMetadata = resultMetadata;
+            Keyspace = keyspace;
         }
 
         /// <summary>

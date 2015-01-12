@@ -84,6 +84,17 @@ namespace Cassandra.Tests
             ParallelInvoke(new List<Action>(Enumerable.Repeat<Action>(action, 100)));
         }
 
+        /// <summary>
+        /// Invokes the same action multiple times serially using the current thread
+        /// </summary>
+        internal static void Invoke(Action action, int times)
+        {
+            for (var i = 0; i < times; i++)
+            {
+                action();
+            }
+        }
+
         public static void AssertPropertiesEqual(object actual, object expected)
         {
             var properties = expected.GetType().GetProperties();

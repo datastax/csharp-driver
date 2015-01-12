@@ -28,7 +28,7 @@ using NUnit.Framework;
 namespace Cassandra.Tests.Mapping.Linq
 {
     [TestFixture]
-    public class LinqToCqlUnitTests
+    public class LinqToCqlUnitTests : MappingTestBase
     {
         [Test]
         public void TestCqlFromLinq()
@@ -236,7 +236,7 @@ APPLY BATCH".Replace("\r", ""));
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Callback<string>(actualCqlQueries.Add)
-                .Returns(TaskHelper.ToTask(new PreparedStatement(null, null, "Mock query", null)));
+                .Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
 
             //Execute all linq queries
             foreach (var q in linqQueries)

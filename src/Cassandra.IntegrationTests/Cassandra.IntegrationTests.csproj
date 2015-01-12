@@ -69,6 +69,7 @@
     <Compile Include="Linq\Structures\EntityWithDictionaryType.cs" />
     <Compile Include="Linq\Structures\EntityWithListType.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
+    <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Tests\Counter.cs" />
     <Compile Include="Linq\Tests\DeleteIf.cs" />
@@ -106,7 +107,7 @@
     <Compile Include="Mapping\Tests\Insert.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
     <Compile Include="Core\ConnectionTests.cs" />
-    <Compile Include="Core\ConsistencyShortTests.cs" />
+    <Compile Include="Core\ConsistencyTests.cs" />
     <Compile Include="Core\MultiThreadingTests.cs" />
     <Compile Include="Core\BasicTypeTests.cs" />
     <Compile Include="Core\BatchStatements.cs" />

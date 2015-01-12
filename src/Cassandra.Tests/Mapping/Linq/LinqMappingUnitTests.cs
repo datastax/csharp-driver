@@ -19,7 +19,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TaskHelper.ToTask(result))
                 .Verifiable();
-            sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(new PreparedStatement(null, null, "Mock query", null)));
+            sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
             sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
             return sessionMock.Object;
         }
