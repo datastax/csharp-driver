@@ -83,10 +83,10 @@ namespace Cassandra.Mapping
         /// Gets a Func that can collect all the values on a given POCO T and return an object[] of those values in the same
         /// order as the PocoColumns for T's PocoData.
         /// </summary>
-        public Func<T, object[]> GetValueCollector<T>(string cql, bool primaryKeyValuesOnly = false)
+        public Func<T, object[]> GetValueCollector<T>(string cql, bool primaryKeyValuesOnly = false, bool primaryKeyValuesLast = false)
         {
             Tuple<Type, string> key = Tuple.Create(typeof (T), cql);
-            Delegate valueCollectorFunc = _valueCollectorFuncCache.GetOrAdd(key, _ => CreateValueCollector<T>(primaryKeyValuesOnly));
+            Delegate valueCollectorFunc = _valueCollectorFuncCache.GetOrAdd(key, _ => CreateValueCollector<T>(primaryKeyValuesOnly, primaryKeyValuesLast));
             return (Func<T, object[]>) valueCollectorFunc;
         }
         
@@ -119,7 +119,9 @@ namespace Cassandra.Mapping
         /// Creates a Func that collects all the values from a POCO (of type T) into an object[], with the values being in the array in the
         /// same order as the POCO's PocoData.Columns collection.
         /// </summary>
-        private Func<T, object[]> CreateValueCollector<T>(bool primaryKeyValuesOnly)
+        /// <param name="primaryKeyValuesOnly">Determines if only the primary key values should be extracted</param>
+        /// <param name="primaryKeyValuesLast">Determines if only the values should contain first the non primary keys and then the primary keys</param>
+        private Func<T, object[]> CreateValueCollector<T>(bool primaryKeyValuesOnly, bool primaryKeyValuesLast)
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
 
@@ -128,9 +130,21 @@ namespace Cassandra.Mapping
             ParameterExpression poco = Expression.Parameter(pocoData.PocoType, "poco");
 
             // Figure out which collection of columns to use
-            IList<PocoColumn> columns = primaryKeyValuesOnly == false
-                                            ? pocoData.Columns
-                                            : pocoData.GetPrimaryKeyColumns();
+            IList<PocoColumn> columns = pocoData.Columns;
+            if (primaryKeyValuesOnly)
+            {
+                //pk columns only
+                columns = pocoData.GetPrimaryKeyColumns();
+            }
+            if (primaryKeyValuesLast)
+            {
+                //normal columns + pk columns
+                var pkColumns = pocoData.GetPrimaryKeyColumns();
+                columns = pocoData.Columns
+                    .Except(pkColumns)
+                    .Concat(pkColumns)
+                    .ToList();
+            }
 
             // Create a variable to hold our return value, and initialize as an object[] of correct size
             var values = Expression.Variable(typeof (object[]), "values");

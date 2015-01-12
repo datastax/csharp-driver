@@ -43,7 +43,7 @@ namespace Cassandra.Mapping
         {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateUpdate<T>();
-            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
+            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql, primaryKeyValuesLast: true);
             object[] values = getBindValues(poco);
 
             _statements.Add(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));

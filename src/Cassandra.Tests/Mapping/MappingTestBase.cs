@@ -32,10 +32,14 @@ namespace Cassandra.Tests.Mapping
             return GetMappingClient(sessionMock);
         }
 
-        protected IMapper GetMappingClient(Mock<ISession> sessionMock)
+        protected IMapper GetMappingClient(Mock<ISession> sessionMock, MappingConfiguration config = null)
         {
+            if (config == null)
+            {
+                config = new MappingConfiguration().Define(new FluentUserMapping());
+            }
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
-            return new Mapper(sessionMock.Object, new MappingConfiguration().Define(new FluentUserMapping()));
+            return new Mapper(sessionMock.Object, config);
         }
 
         protected ISession GetSession(Action<string, object[]> callback, RowSet rs = null)

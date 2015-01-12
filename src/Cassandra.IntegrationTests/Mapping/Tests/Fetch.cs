@@ -165,7 +165,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             foreach (Author expectedAuthor in expectedAuthors)
                 mapper.Insert(expectedAuthor);
 
-            Cql cql = new Cql("SELECT * from " + table.Name);
+            Cql cql = new Cql("SELECT * from " + table.Name).WithOptions(o => o.SetConsistencyLevel(ConsistencyLevel.Quorum));
             List<Author> authorsFetchedAndSaved = new List<Author>();
             var authorsFetched = mapper.Fetch<Author>(cql).GetEnumerator();
             while (authorsFetched.MoveNext())

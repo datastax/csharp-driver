@@ -97,6 +97,7 @@
     <Compile Include="Mapping\Pocos\VarintPoco.cs" />
     <Compile Include="Mapping\TestData\TestDataGenerator.cs" />
     <Compile Include="Mapping\TestData\TestDataHelper.cs" />
+    <Compile Include="Mapping\UpdateTests.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResponseFrameTest.cs" />
