@@ -93,9 +93,9 @@ namespace Cassandra.Tests.Mapping
             var song = new Song()
             {
                 Id = Guid.NewGuid(),
-                Artist = "Nirvana",
+                Artist = "Dream Theater",
                 ReleaseDate = DateTimeOffset.Now,
-                Title = "In Bloom"
+                Title = "A Change of Seasons"
             };
             string query = null;
             object[] parameters = null;
@@ -118,6 +118,43 @@ namespace Cassandra.Tests.Mapping
             mapper.Update(song);
             Assert.AreEqual("UPDATE Song SET Title = ?, Artist = ? WHERE Id = ? AND ReleaseDate = ?", query);
             CollectionAssert.AreEqual(new object[] { song.Title, song.Artist, song.Id, song.ReleaseDate }, parameters);
+            sessionMock.Verify();
+        }
+
+        [Test]
+        public void Update_Sets_Consistency()
+        {
+            var song = new Song()
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Dream Theater",
+                ReleaseDate = DateTimeOffset.Now,
+                Title = "Lines in the Sand"
+            };
+            ConsistencyLevel? consistency = null;
+            ConsistencyLevel? serialConsistency = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Callback<IStatement>(b =>
+                {
+                    consistency = b.ConsistencyLevel;
+                    serialConsistency = b.SerialConsistencyLevel;
+                })
+                .Returns(TaskHelper.ToTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TaskHelper.ToTask(new PreparedStatement(null, null, cql, null)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Title)));
+            mapper.Update(song, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum));
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, consistency);
+            Assert.AreEqual(ConsistencyLevel.Any, serialConsistency);
+            mapper.Update(song, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two).SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial));
+            Assert.AreEqual(ConsistencyLevel.Two, consistency);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, serialConsistency);
             sessionMock.Verify();
         }
     }
