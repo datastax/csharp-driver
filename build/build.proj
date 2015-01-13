@@ -19,7 +19,7 @@
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
-    <PackageVersion>2.5.0-beta1</PackageVersion>
+    <PackageVersion>2.5.0-rc1</PackageVersion>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   
@@ -113,5 +113,4 @@
       AssemblyInformationalVersion="$(PackageVersion) (git $(GitHash))"
       AssemblyFileVersion="$(AssemblyFileVersion).$(BUILD_NUMBER)" />
   </Target>
-
 </Project>

@@ -11,7 +11,7 @@
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
         <description>A C# client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.</description>
         <releaseNotes />
-        <copyright>Copyright (C) 2014 DataStax Inc.</copyright>
+        <copyright>Copyright (C) 2015 DataStax Inc.</copyright>
         <tags>cassandra apache datastax driver database nosql</tags>
         <dependencies>
             <dependency id="lz4net" version="1.0.3.93" />
@@ -20,9 +20,5 @@
     <files>
         <file src="Cassandra\bin\Release\Cassandra.dll" target="lib\net40\Cassandra.dll "/>
         <file src="Cassandra\bin\Release\Cassandra.xml" target="lib\net40\Cassandra.xml "/>
-        <file src="Cassandra.Data\bin\Release\Cassandra.Data.dll" target="lib\net40\Cassandra.Data.dll "/>
-        <file src="Cassandra.Data\bin\Release\Cassandra.Data.xml" target="lib\net40\Cassandra.Data.xml "/>
-        <file src="Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.dll" target="lib\net40\Cassandra.Data.Linq.dll "/>
-        <file src="Cassandra.Data.Linq\bin\Release\Cassandra.Data.Linq.xml" target="lib\net40\Cassandra.Data.Linq.xml "/>
     </files>
 </package>
