@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
 
@@ -131,6 +132,19 @@ namespace Cassandra.Tests
                 return null;
 
             return dateTime.Value.ToMillisecondPrecision();
+        }
+
+        public static Task<T> DelayedTask<T>(T result, int dueTimeMs)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            var timer = new Timer(delegate(object self)
+            {
+                ((Timer)self).Dispose();
+                tcs.TrySetResult(result);
+            });
+
+            timer.Change(dueTimeMs, -1);
+            return tcs.Task;
         }
 
         /// <summary>

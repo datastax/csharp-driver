@@ -236,7 +236,8 @@ namespace Cassandra.Mapping
                 {
                     var statement = t.Result;
                     return _session.ExecuteAsync(statement);
-                });
+                })
+                .Unwrap();
         }
 
         public ICqlBatch CreateBatch()

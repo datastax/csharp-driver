@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
@@ -156,6 +157,36 @@ namespace Cassandra.Tests.Mapping
                 stmt.QueryValues.Length > 0 &&
                 stmt.PreparedStatement.Cql == "INSERT INTO Album (Id, Name, PublishingDate, Songs) VALUES (?, ?, ?, ?)"
                 )), Times.Exactly(1));
+            sessionMock.Verify();
+        }
+
+        [Test]
+        public void Insert_Poco_Returns_WhenResponse_IsReceived()
+        {
+            var newUser = new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = "Dummy"
+            };
+
+            var rowsetReturned = false;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>
+                {
+                    rowsetReturned = true;
+                    return t.Result;
+                }))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            //Execute
+            mappingClient.Insert(newUser);
+            Assert.True(rowsetReturned);
             sessionMock.Verify();
         }
     }
