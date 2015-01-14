@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void AlreadyExistsException()
         {
             ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
@@ -82,7 +82,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests DriverInternalError. Tests basic message, rethrow, and copy abilities.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void DriverInternalError()
         {
             var errorMessage = "Test Message";
@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void InvalidConfigurationInQueryException()
         {
             var errorMessage = "Test Message";
@@ -126,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
         ///  Tests the NoHostAvailableException. by attempting to build a cluster using
         ///  the IP address "255.255.255.255" and test all available exception methods.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void NoHostAvailableException()
         {
             var ipAddress = "255.255.255.255";
@@ -183,7 +183,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests SyntaxError. Tests basic message and copy abilities.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void SyntaxError()
         {
             var errorMessage = "Test Message";
@@ -201,7 +201,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests TraceRetrievalException. Tests basic message.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void TraceRetrievalException()
         {
             var errorMessage = "Test Message";
@@ -219,7 +219,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests TruncateException. Tests basic message and copy abilities.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void TruncateException()
         {
             var errorMessage = "Test Message";
@@ -237,7 +237,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         ///  Tests UnauthorizedException. Tests basic message and copy abilities.
         /// </summary>
-        [Test]
+        [Test, Category("short")]
         public void UnauthorizedException()
         {
             var errorMessage = "Test Message";
@@ -358,24 +358,23 @@ namespace Cassandra.IntegrationTests.Core
         public void PreserveStackTraceTest()
         {
             // we need to make sure at least a single node cluster is available, running locally
-            var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.GetTestCluster(1).InitialContactPoint).Build();
+            var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.GetNonShareableTestCluster(1).InitialContactPoint).Build();
             var session = cluster.Connect();
 
             var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
             Assert.True(ex.StackTrace.Contains("PreserveStackTraceTest"));
-            Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
         }
 
         [Test, Category(TestCategories.CcmOnly)]
         public void ExceptionsOnPartialTrust()
         {
             // we need to make sure at least a single node cluster is available, running locally
-            _lastKnownInitialContactPoint = TestClusterManager.GetTestCluster(1).InitialContactPoint;
+            _lastKnownInitialContactPoint = TestClusterManager.GetNonShareableTestCluster(1).InitialContactPoint;
             var appDomain = CreatePartialTrustDomain();
             appDomain.DoCallBack(PreserveStackTraceOnConnectAndAssert);
         }
 
-        [Test]
+        [Test, Category("short")]
         public void RowSetIteratedTwice()
         {
             ISession session = TestClusterManager.GetTestCluster(1).Session;
@@ -394,10 +393,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(0, rowset.Count());
         }
 
-        [Test]
+        [Test, Category("short")]
         public void RowSetPagingAfterSessionDispose()
         {
-            ISession session = TestClusterManager.GetTestCluster(1).Session;
+            ISession session = TestClusterManager.GetTestCluster(1).Cluster.Connect();
             string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
             string table = "TestTable_" + Randomm.RandomAlphaNum(10);
 

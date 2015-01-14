@@ -100,6 +100,20 @@ namespace Cassandra.IntegrationTests.TestBase
             return "TestTable_" + Randomm.RandomAlphaNum(12);
         }
 
+        public static void TryToDeleteKeyspace(ISession session, string keyspaceName)
+        {
+            if (session != null)
+            {
+                try
+                {
+                    session.DeleteKeyspace(keyspaceName);
+                }
+                catch (Cassandra.InvalidConfigurationInQueryException)
+                {
+                } // We don't care if the KS doesn't exist
+            }
+        }
+
         public static bool TableExists(ISession session, string keyspaceName, string tableName)
         {
             // SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='TestKeySpace_c3052b44be8b';
@@ -145,7 +159,7 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
                 rs.Count();
-                hostsQueried.Add(rs.Info.QueriedHost.ToString());
+                hostsQueried.Add(rs.Info.QueriedHost.ToString().Split(':').First());
                 Thread.Sleep(500);
             }
             // Validate host was queried
