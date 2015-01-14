@@ -55,7 +55,12 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             Assert.AreEqual(expectedMovie.Year, actualMovie.Year);
         }
 
-        public static bool AssertListContains(List<Movie> expectedMovies, Movie actualMovie)
+        public static void AssertListContains(List<Movie> expectedMovies, Movie actualMovie)
+        {
+            Assert.IsTrue(ListContains(expectedMovies, actualMovie));
+        }
+
+        public static bool ListContains(List<Movie> expectedMovies, Movie actualMovie)
         {
             foreach (var expectedMovie in expectedMovies)
             {

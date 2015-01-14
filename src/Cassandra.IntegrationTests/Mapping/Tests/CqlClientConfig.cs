@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -165,8 +165,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// 
         /// </summary>
-        [Test]
-        public void Attributes_UseIndividualMapping_Default()
+        [Test, TestCassandraVersion(2,0)]
+        public void CqlClientConfiguration_UseIndividualMapping_Default()
         {
             var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);

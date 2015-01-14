@@ -470,7 +470,6 @@ namespace Cassandra.IntegrationTests.Core
 
             // Invalid cases
             List<Tuple<object, string[]>> objectsAndAssociateExceptionTypes = new List<Tuple<object, string[]>>();
-            objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>(new[] {"one", "two"}, new string[] {"InvalidTypeException"})); // object type = array
             objectsAndAssociateExceptionTypes.Add(new Tuple<object, string[]>("some string", new string[] {
                 "InvalidQueryException", // C* 1.2
                 "ServerErrorException", // starting in C* 2.0

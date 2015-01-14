@@ -18,15 +18,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Reflection.Emit;
 using System.Text;
-using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class LoadBalancingPolicyTests : TestGlobals
@@ -56,6 +54,10 @@ namespace Cassandra.IntegrationTests.Policies
         /// <summary>
         /// Using a default round robin load balancing policy, connected to a cluster with one DC,
         /// validate that the session behaves as expected when a node is added and then another is decommissioned.
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage
+        /// @test_category load_balancing:round_robin
         /// </summary>
         [Test]
         public void RoundRobin_OneDc_OneNodeAdded_OneNodeDecommissioned()
@@ -71,7 +73,7 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.Query(testCluster, 12);
 
             // Validate that all host were queried equally
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 12);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 12);
 
             // Add new node to the end of second cluster, remove node from beginning of first cluster
             policyTestTools.ResetCoordinators();
@@ -84,21 +86,25 @@ namespace Cassandra.IntegrationTests.Policies
             // Validate expected nodes where queried
             policyTestTools.WaitForPolicyToolsQueryToHitBootstrappedIp(testCluster, newlyBootstrappedIp);
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "1", 6);
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "2", 6);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 6);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 6);
 
             // decommission old node
             policyTestTools.ResetCoordinators();
             testCluster.DecommissionNode(1);
-            TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 60);
+            TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, testCluster.Cluster, 60);
 
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 12);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 12);
         }
 
         /// <summary>
         /// Using a default round robin load balancing policy, connected to a cluster with multiple DCs,
         /// validate that the session behaves as expected when a node is added and then another is decommissioned from each DC.
+        /// 
+        /// @test_category consistency
+        /// @test_category connection:outage
+        /// @test_category load_balancing:round_robin
         /// </summary>
         [Test]
         public void RoundRobin_TwoDCs_EachDcHasOneNodeAddedAndDecommissioned()
@@ -114,8 +120,8 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.Query(testCluster, 12);
 
             // Validate that all host were queried equally
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 6);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 6);
 
             // Add new node to the end of first cluster, remove node from beginning of first cluster
             policyTestTools.ResetCoordinators();
@@ -127,20 +133,20 @@ namespace Cassandra.IntegrationTests.Policies
             // Validate expected nodes where queried
             policyTestTools.WaitForPolicyToolsQueryToHitBootstrappedIp(testCluster, newlyBootstrappedIp);
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "1", 4);
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "2", 4);
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "3", 4);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 4);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 4);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, 4);
 
             // Remove node from beginning of first cluster
             policyTestTools.ResetCoordinators();
             testCluster.DecommissionNode(1);
-            TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 20);
+            TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, testCluster.Cluster, 20);
 
             // Validate expected nodes where queried
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 6);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3", 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, 6);
 
             // Add new node to the end of second cluster, remove node from beginning of first cluster
             policyTestTools.ResetCoordinators();
@@ -149,24 +155,26 @@ namespace Cassandra.IntegrationTests.Policies
             TestUtils.WaitForUp(newlyBootstrappedIp, DefaultCassandraPort, 30);
             policyTestTools.ResetCoordinators();
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 4);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3", 4);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "4", 4);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 4);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, 4);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, 4);
 
             // Remove node from beginning of second cluster
             policyTestTools.ResetCoordinators();
             testCluster.DecommissionNode(2);
             TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + "2", testCluster.Cluster, 20);
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3", 6);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "4", 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, 6);
         }
 
         /// <summary>
         /// Validated that the driver fails as expected with a non-existing datacenter is specified via DCAwareRoundRobinPolicy 
+        /// 
+        /// @test_category load_balancing:dc_aware
         /// </summary>
         [Test]
         public void RoundRobin_DcAware_BuildClusterWithNonExistentDc()
@@ -187,6 +195,8 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Validated that the driver only uses the DC specified by DCAwareRoundRobinPolicy 
+        /// 
+        /// @test_category load_balancing:dc_aware
         /// </summary>
         [Test]
         public void RoundRobin_TwoDCs_DcAware()
@@ -201,12 +211,15 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.InitPreparedStatement(testCluster, 12);
             policyTestTools.Query(testCluster, 12);
 
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 12);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 12);
         }
 
         /// <summary>
         /// Validate that the driver behaves as expected as every node of a single DC cluster is force-stopped
+        /// 
+        /// @test_category connection:outage
+        /// @test_category load_balancing:dc_aware
         /// </summary>
         [Test]
         public void RoundRobin_OneDc_AllNodesForceStoppedOneAtATime()
@@ -223,16 +236,16 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.InitPreparedStatement(testCluster, 12);
             policyTestTools.Query(testCluster, 12);
 
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 6);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 6);
 
             policyTestTools.ResetCoordinators();
             testCluster.StopForce(1);
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 20);
 
             policyTestTools.Query(testCluster, 12);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 12);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 12);
 
             testCluster.StopForce(2);
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "2", testCluster.Cluster, 20);
@@ -251,6 +264,9 @@ namespace Cassandra.IntegrationTests.Policies
         /// <summary>
         /// Validate that the expected nodes are queried when using a TokenAware RoundRobin policy, 
         /// using two data centers, replication factor 2 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
         /// </summary>
         [Test]
         public void RoundRobin_TokenAware_TwoDCsWithOneNodeEach_ReplicationFactorTwo()
@@ -266,12 +282,15 @@ namespace Cassandra.IntegrationTests.Policies
             policyTestTools.InitPreparedStatement(testCluster, 12);
             policyTestTools.Query(testCluster, 12);
 
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 6);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2", 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 6);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, 6);
         }
 
         /// <summary>
         /// Validate that no hops occur when inserting into a single partition 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
         /// </summary>
         [Test]
         public void TokenAware_TargetPartition_NoHops()
@@ -305,6 +324,9 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Validate that no hops occur when inserting GUID values into the key 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
         /// </summary>
         [Test]
         public void TokenAware_Guid_NoHops()
@@ -341,6 +363,9 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Validate that no hops occur when inserting into a composite key 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
         /// </summary>
         [Test]
         public void TokenAware_Composite_NoHops()
@@ -377,6 +402,10 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Validate that no hops occur when inserting string values via a prepared statement 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
+        /// @test_category prepared_statements
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
         public void TokenAware_BindString_NoHops()
@@ -415,6 +444,10 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Validate that no hops occur when inserting int values via a prepared statement 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
+        /// @test_category prepared_statements
         /// </summary>
         [Test]
         public void TokenAware_BindInt_NoHops()
@@ -451,6 +484,9 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Validate that hops occur when the wrong partition is targeted 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
+        /// @test_category replication_strategy
         /// </summary>
         [Test]
         public void TokenAware_TargetWrongPartition_HopsOccur()
@@ -483,6 +519,8 @@ namespace Cassandra.IntegrationTests.Policies
         /// <summary>
         /// Validate that the expected nodes are queried when using a TokenAware RoundRobin policy, 
         /// executing non-prepared statements 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
         /// </summary>
         [Test]
         public void RoundRobin_TokenAware_NotPrepared()
@@ -493,6 +531,8 @@ namespace Cassandra.IntegrationTests.Policies
         /// <summary>
         /// Validate that the expected nodes are queried when using a TokenAware RoundRobin policy, 
         /// executing prepared statements 
+        /// 
+        /// @test_category load_balancing:dc_aware,round_robin
         /// </summary>
         [Test]
         public void RoundRobin_TokenAware_Prepared()
@@ -518,21 +558,21 @@ namespace Cassandra.IntegrationTests.Policies
             // we just hit only one node.
             int nodePosToDecommission = 2;
             int nodePositionToNotDecommission = 1;
-            if (policyTestTools.Coordinators.ContainsKey(testCluster.ClusterIpPrefix + "1"))
+            if (policyTestTools.Coordinators.ContainsKey(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort))
             {
                 nodePosToDecommission = 1;
                 nodePositionToNotDecommission = 2;
             }
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePosToDecommission, 12);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePositionToNotDecommission, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePosToDecommission + ":" + DefaultCassandraPort, 12);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePositionToNotDecommission + ":" + DefaultCassandraPort, 0);
 
             // now try again having stopped the node that was just queried
             policyTestTools.ResetCoordinators();
             testCluster.DecommissionNode(nodePosToDecommission);
-            TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + nodePosToDecommission, testCluster.Cluster, 40);
+            TestUtils.waitForDecommission(testCluster.ClusterIpPrefix + nodePosToDecommission + ":" + DefaultCassandraPort, testCluster.Cluster, 40);
             policyTestTools.Query(testCluster, 12, usePrepared);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePosToDecommission, 0);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePositionToNotDecommission, 12);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePosToDecommission + ":" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + nodePositionToNotDecommission + ":" + DefaultCassandraPort, 12);
         }
 
     }

@@ -24,7 +24,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Util
 {
     public class PolicyTestTools
     {
@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.Policies
         }
 
         /// <summary>
-        ///     Verifies that exactly n queries were received by the specified set of hosts.  Request distribution within 
+        ///     Verifies that exactly numberOfInsertsToMake queries were received by the specified set of hosts.  Request distribution within 
         ///     the set is not tested.
         /// </summary>
         public void AssertQueriedSet(String[] hosts, int n)
@@ -135,26 +135,26 @@ namespace Cassandra.IntegrationTests.Policies
         /// <summary>
         ///  Init methods that handle writes using batch and consistency options.
         /// </summary>
-        public void InitPreparedStatement(ITestCluster testCluster, int n)
+        public void InitPreparedStatement(ITestCluster testCluster, int numberOfInsertsToMake)
         {
-            InitPreparedStatement(testCluster, n, false, ConsistencyLevel.One);
+            InitPreparedStatement(testCluster, numberOfInsertsToMake, false, ConsistencyLevel.One);
         }
 
-        public void InitPreparedStatement(ITestCluster testCluster, int n, bool batch)
+        public void InitPreparedStatement(ITestCluster testCluster, int numberOfInsertsToMake, bool batch)
         {
-            InitPreparedStatement(testCluster, n, batch, ConsistencyLevel.One);
+            InitPreparedStatement(testCluster, numberOfInsertsToMake, batch, ConsistencyLevel.One);
         }
 
-        public void InitPreparedStatement(ITestCluster testCluster, int n, ConsistencyLevel consistencyLevel)
+        public void InitPreparedStatement(ITestCluster testCluster, int numberOfInsertsToMake, ConsistencyLevel consistencyLevel)
         {
-            InitPreparedStatement(testCluster, n, false, consistencyLevel);
+            InitPreparedStatement(testCluster, numberOfInsertsToMake, false, consistencyLevel);
         }
 
-        public void InitPreparedStatement(ITestCluster testCluster, int n, bool batch, ConsistencyLevel consistencyLevel)
+        public void InitPreparedStatement(ITestCluster testCluster, int numberOfInsertsToMake, bool batch, ConsistencyLevel consistencyLevel)
         {
             // We don't use insert for our test because the resultSet don't ship the queriedHost
             // Also note that we don't use tracing because this would trigger requests that screw up the test
-            for (int i = 0; i < n; ++i)
+            for (int i = 0; i < numberOfInsertsToMake; ++i)
                 if (batch)
                     // BUG: WriteType == SIMPLE                    
                 {
