@@ -19,7 +19,7 @@ using System;
 namespace Cassandra.IntegrationTests.TestBase
 {
     /// <summary>
-    /// It determines the Cassandra version required to execute the test
+    /// Quantifies the Cassandra version to determine whether a test should be run.
     /// </summary>
     public class TestCassandraVersion : Attribute
     {
@@ -27,17 +27,29 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public int Minor { get; set; }
 
+        public int Build { get; set; }
+
         public Comparison Comparison { get; set; }
 
         /// <summary>
-        /// It determines Cassandra version required to execute
+        /// Creates the TestCassandraVersion object
         /// </summary>
         /// <param name="comparisonOperator">Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0, "less than or equal to " = -1</param>
-        public TestCassandraVersion(int mayor, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
+        public TestCassandraVersion(int major, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
         {
-            this.Major = mayor;
-            this.Minor = minor;
-            this.Comparison = comparison;
+            Major = major;
+            Minor = minor;
+            Build = 0;
+            Comparison = comparison;
+        }
+
+        /// <summary>
+        /// Creates the TestCassandraVersion object with the option of specifying a Build
+        /// </summary>
+        /// <param name="comparisonOperator">Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0, "less than or equal to " = -1</param>
+        public TestCassandraVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo) : this(major, minor, comparison)
+        {
+            Build = build;
         }
     }
 

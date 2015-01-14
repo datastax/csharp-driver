@@ -15,13 +15,13 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class RetryPolicyTests : TestGlobals
@@ -38,6 +38,8 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy with LoggingRetryPolicy
+        /// 
+        /// @test_category connection:retry_policy
         /// </summary>
         [Test]
         public void LoggingRetryPolicy_DowngradingConsistency()
@@ -48,6 +50,8 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
+        /// 
+        /// @test_category connection:retry_policy
         /// </summary>
         public void DowngradingConsistencyRetryPolicyTest(Builder builder)
         {
@@ -78,6 +82,8 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Test AlwaysIgnoreRetryPolicy with Logging enabled
+        /// 
+        /// @test_category connection:retry_policy,outage
         /// </summary>
         [Test]
         public void AlwaysIgnoreRetryPolicyTest()
@@ -94,6 +100,8 @@ namespace Cassandra.IntegrationTests.Policies
 
         /// <summary>
         /// Test AlwaysIgnoreRetryPolicy with Logging enabled
+        /// 
+        /// @test_category connection:retry_policy,outage
         /// </summary>
         [Test]
         public void AlwaysRetryRetryPolicyTest()
@@ -124,15 +132,15 @@ namespace Cassandra.IntegrationTests.Policies
                 clusterPosQueried = 2;
                 clusterPosNotQueried = 1;
             }
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried, 1);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried + ":" + DefaultCassandraPort, 1);
 
             // Stop one of the nodes and test
             policyTestTools.ResetCoordinators();
             testCluster.Stop(clusterPosQueried);
             TestUtils.WaitForDown(testCluster.ClusterIpPrefix + clusterPosQueried, testCluster.Cluster, 30);
             policyTestTools.Query(testCluster, 120);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + clusterPosNotQueried, 120);
-            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + clusterPosQueried, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + clusterPosNotQueried + ":" + DefaultCassandraPort, 120);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + clusterPosQueried + ":" + DefaultCassandraPort, 0);
 
             // Start the node that was just down, then down the node that was just up
             policyTestTools.ResetCoordinators();
@@ -148,8 +156,8 @@ namespace Cassandra.IntegrationTests.Policies
             }
 
             // Ensure that the nodes were contacted
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried, 1);
-            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosNotQueried, 1);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried + ":" + DefaultCassandraPort, 1);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosNotQueried + ":" + DefaultCassandraPort, 1);
 
         }
 

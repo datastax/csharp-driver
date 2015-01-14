@@ -14,10 +14,10 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Tests;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -44,30 +44,262 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
         /// Successfully insert a new record into a table that was created with fluent mapping
         /// </summary>
         [Test]
-        public void Insert_IntoTableCreatedWithFluentMapping()
+        public void Insert_Sync()
         {
-            var config = new MappingConfiguration().Define(
-                new Map<lowercaseclassnamepartitionkeylowercase>()
-                .TableName("lowercaseclassnamepartitionkeylowercase")
-                .PartitionKey(u => u.somepartitionkey));
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, config);
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
-            var mapper = new Mapper(_session, new MappingConfiguration());
-            lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
-
+            // Insert using Mapper.Insert
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
             mapper.Insert(privateClassInstance);
-            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
-            lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
+            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, inserting asynchronously
+        /// </summary>
+        [Test]
+        public void Insert_Async()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert using Mapper.Insert
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
+            mapper.InsertAsync(privateClassInstance).Wait();
+
+            // Validate data in C*
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(2);
+            while (instancesQueried.Count < 1 && futureDateTime > DateTime.Now)
+            {
+                instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            }
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including every acceptable consistency level
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistency_Success()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+            var mapper = new Mapper(_session, mappingConfig);
+
+            // Insert the data
+            var consistencyLevels = new ConsistencyLevel[]
+            {
+                ConsistencyLevel.All,
+                ConsistencyLevel.Any,
+                ConsistencyLevel.EachQuorum,
+                ConsistencyLevel.LocalOne,
+                ConsistencyLevel.LocalQuorum,
+                ConsistencyLevel.Quorum,
+            };
+            foreach (var consistencyLevel in consistencyLevels)
+            {
+                lowercaseclassnamepklowercase pocoInstance = new lowercaseclassnamepklowercase();
+                pocoInstance.somepartitionkey = Guid.NewGuid().ToString();
+                mapper.Insert(pocoInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel));
+
+                // Assert final state of C* data
+                string cql = "Select * from " + typeof(lowercaseclassnamepklowercase).Name + " where somepartitionkey ='" + pocoInstance.somepartitionkey + "'";
+                List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>(cql).ToList();
+                DateTime futureDateTime = DateTime.Now.AddSeconds(2);
+                while (instancesQueried.Count < 1 && futureDateTime > DateTime.Now)
+                {
+                    instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>(cql).ToList();
+                }
+                Assert.AreEqual(1, instancesQueried.Count, "Unexpected failure for consistency level: " + consistencyLevel);
+                Assert.AreEqual(pocoInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+            }
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including a consistency level of 'Serial'
+        /// Validate expected error message
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistency_Serial()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            var mapper = new Mapper(_session, mappingConfig);
+            lowercaseclassnamepklowercase pocoInstance = new lowercaseclassnamepklowercase();
+
+            // Assert final state of C* data
+            var err = Assert.Throws<RequestInvalidException>(
+                () => mapper.Insert(pocoInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Serial)));
+            Assert.AreEqual("Serial consistency specified as a non-serial one.", err.Message);
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
+            Assert.AreEqual(0, instancesQueried.Count);
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including consistency levels that will cause the request to fail silently.
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistencyLevel_Fail()
+        {
+            // Setup
+            var mappingConfig =
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            var consistencyLevels = new ConsistencyLevel[]
+            {
+                ConsistencyLevel.Three,
+                ConsistencyLevel.Two
+            };
+            foreach (var consistencyLevel in consistencyLevels)
+            {
+                lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+                var mapper = new Mapper(_session, mappingConfig);
+                Assert.Throws<UnavailableException>(() => mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel)));
+            }
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping,
+        /// including a consistency level that one greater than the current node count
+        /// </summary>
+        [Test]
+        public void Insert_WithConsistency_OneMoreCopyThanNodeCount()
+        {
+            // Setup
+            var mappingConfig =
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
+            Assert.Throws<UnavailableException>(() => mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two)));
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, inserting asynchronously
+        /// including a consistency level that one greater than the current node count
+        /// </summary>
+        [Test]
+        public void Insert_Async_WithConsistency_OneMoreCopyThanNodeCount()
+        {
+            // Setup
+            var mappingConfig =
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
+            var mapper = new Mapper(_session, mappingConfig);
+            Assert.Throws<AggregateException>(() => mapper.InsertAsync(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two)).Wait());
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, using Mapper.Insert
+        /// </summary>
+        [Test]
+        public void Insert_WithMapperInsert_TwoPartitionKeys_OnlyOne()
+        {
+            // Setup
+            var mappingConfig = new MappingConfiguration().Define(new Map<ClassWithTwoPartitionKeys>()
+                .TableName(typeof (ClassWithTwoPartitionKeys).Name).CaseSensitive()
+                .PartitionKey(new string[] {"PartitionKey1", "PartitionKey2" }).CaseSensitive()
+                );
+            var table = new Table<ClassWithTwoPartitionKeys>(_session, mappingConfig);
+            table.Create();
+
+            // Insert the data
+            ClassWithTwoPartitionKeys defaultInstance = new ClassWithTwoPartitionKeys();
+            ClassWithTwoPartitionKeys instance = new ClassWithTwoPartitionKeys();
+            var mapper = new Mapper(_session, mappingConfig);
+            mapper.Insert(instance);
+
+            List<ClassWithTwoPartitionKeys> instancesRetrieved = new List<ClassWithTwoPartitionKeys>();
+            DateTime futureDateTime = DateTime.Now.AddSeconds(5);
+            while (instancesRetrieved.Count < 1 && DateTime.Now < futureDateTime)
+                instancesRetrieved = mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\"").ToList();
+            Assert.AreEqual(1, instancesRetrieved.Count);
+            Assert.AreEqual(defaultInstance.PartitionKey1, instancesRetrieved[0].PartitionKey1);
+            Assert.AreEqual(defaultInstance.PartitionKey2, instancesRetrieved[0].PartitionKey2);
+            instancesRetrieved.Clear();
+
+            futureDateTime = DateTime.Now.AddSeconds(5);
+            string cqlSelect = "SELECT * from \"" + table.Name + "\" where \"PartitionKey1\" = '" + instance.PartitionKey1 + "' and \"PartitionKey2\" = '" + instance.PartitionKey2 + "'";
+            while (instancesRetrieved.Count < 1 && DateTime.Now < futureDateTime)
+                instancesRetrieved = mapper.Fetch<ClassWithTwoPartitionKeys>(cqlSelect).ToList();
+            Assert.AreEqual(1, instancesRetrieved.Count);
+            Assert.AreEqual(defaultInstance.PartitionKey1, instancesRetrieved[0].PartitionKey1);
+            Assert.AreEqual(defaultInstance.PartitionKey2, instancesRetrieved[0].PartitionKey2);
+
+            var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey1\" = '" + instance.PartitionKey1 + "'"));
+            Assert.AreEqual("Partition key part PartitionKey2 must be restricted since preceding part is", err.Message);
+
+            err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey2\" = '" + instance.PartitionKey2 + "'"));
+        }
+
+        /// <summary>
+        /// Successfully insert a new record into a table that was created with fluent mapping, 
+        /// using Session.Execute to insert an Insert object created with table.Insert()
+        /// </summary>
+        [Test, TestCassandraVersion(2,0)]
+        public void Insert_WithSessionExecuteTableInsert()
+        {
+            // Setup
+            string uniqueTableName = TestUtils.GetUniqueTableName();
+            Assert.AreNotEqual(uniqueTableName.ToLower(), uniqueTableName);
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
+            Assert.AreEqual(table.Name, table.Name.ToLower());
+            table.Create();
+
+            // Insert the data
+            lowercaseclassnamepklowercase defaultPocoInstance = new lowercaseclassnamepklowercase();
+            _session.Execute(table.Insert(defaultPocoInstance));
+            var mapper = new Mapper(_session, mappingConfig);
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
         }
 
@@ -93,18 +325,24 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// This also validates that a private class can be used by the CqlPoco client
         /// </summary>
         [Test]
-        public void Insert_TableCreatedWithLinq_MappedTableNameDefaultsToLowerCase()
+        public void Insert_ClassAndPartitionKeyAreCamelCase()
         {
-            var table = new Table<PrivateClassWithClassNameCamelCase>(_session, new MappingConfiguration());
+            var mappingConfig = new MappingConfiguration().Define(new Map<PrivateClassWithClassNameCamelCase>().PartitionKey(c => c.SomePartitionKey));
+            Table<PrivateClassWithClassNameCamelCase> table = new Table<PrivateClassWithClassNameCamelCase>(_session, mappingConfig);
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             var mapper = new Mapper(_session, new MappingConfiguration());
             PrivateClassWithClassNameCamelCase privateClassCamelCase = new PrivateClassWithClassNameCamelCase();
+            mapper.Insert(privateClassCamelCase);
 
-            var e = Assert.Throws<InvalidQueryException>(() => mapper.Insert(privateClassCamelCase));
-            string expectedErrMsg = "unconfigured columnfamily " + typeof(PrivateClassWithClassNameCamelCase).Name.ToLower();
-            Assert.AreEqual(expectedErrMsg, e.Message);
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
+            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+
+            Assert.IsFalse(TestUtils.TableExists(_session, _uniqueKsName, typeof (PrivateClassWithClassNameCamelCase).Name));
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, typeof(PrivateClassWithClassNameCamelCase).Name.ToLower()));
         }
 
         /// <summary>
@@ -114,33 +352,56 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_TableNameLowerCase_PartitionKeyCamelCase()
         {
             // Setup
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, new MappingConfiguration());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepkcamelcase>().PartitionKey(c => c.SomePartitionKey));
+            Table<lowercaseclassnamepkcamelcase> table = new Table<lowercaseclassnamepkcamelcase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
             var mapper = new Mapper(_session, new MappingConfiguration());
-            lowercaseclassnamepartitionkeycamelcase privateClassInstance = new lowercaseclassnamepartitionkeycamelcase();
+            lowercaseclassnamepkcamelcase privateClassInstance = new lowercaseclassnamepkcamelcase();
 
-            // Validate Error Msg
-            var ex = Assert.Throws<InvalidQueryException>(() => mapper.Insert(privateClassInstance));
-            string expectedErrMsg = "Unknown identifier somepartitionkey";
-            Assert.AreEqual(expectedErrMsg, ex.Message);
+            // Validate state of table
+            mapper.Insert(privateClassInstance);
+            List<lowercaseclassnamepkcamelcase> instancesQueried = mapper.Fetch<lowercaseclassnamepkcamelcase>("SELECT * from " + table.Name).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            lowercaseclassnamepkcamelcase defaultPocoInstance = new lowercaseclassnamepkcamelcase();
+            Assert.AreEqual(defaultPocoInstance.SomePartitionKey, instancesQueried[0].SomePartitionKey);
+
+            // Attempt to select from Camel Case partition key
+            string cqlCamelCasePartitionKey = "SELECT * from " + typeof (lowercaseclassnamepkcamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
+            var ex = Assert.Throws<InvalidQueryException>(() => _session.Execute(cqlCamelCasePartitionKey));
+            string expectedErrMsg = "Undefined name SomePartitionKey in where clause";
+            StringAssert.Contains(expectedErrMsg, ex.Message);
+
+            // Validate that select on lower case key does not fail
+            string cqlLowerCasePartitionKey = "SELECT * from " + typeof(lowercaseclassnamepkcamelcase).Name + " where \"somepartitionkey\" = '" + defaultPocoInstance.SomePartitionKey + "'";
+            List<Row> rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual(defaultPocoInstance.SomePartitionKey, rows[0].GetValue<string>("somepartitionkey"));
         }
 
         [Test]
         public void Insert_TableNameLowerCase_PartitionKeyLowerCase()
         {
-            var table = new Table<lowercaseclassnamepartitionkeycamelcase>(_session, new MappingConfiguration());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey));
+            Table<lowercaseclassnamepklowercase> table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             var cqlClient = new Mapper(_session, new MappingConfiguration());
-            lowercaseclassnamepartitionkeylowercase privateClassInstance = new lowercaseclassnamepartitionkeylowercase();
+            lowercaseclassnamepklowercase defaultPocoInstance = new lowercaseclassnamepklowercase();
 
-            cqlClient.Insert(privateClassInstance);
-            List<lowercaseclassnamepartitionkeylowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepartitionkeylowercase>("SELECT * from " + table.Name).ToList();
+            cqlClient.Insert(defaultPocoInstance);
+            List<lowercaseclassnamepklowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepklowercase>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
-            lowercaseclassnamepartitionkeylowercase defaultInstance = new lowercaseclassnamepartitionkeylowercase();
+            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
+
+            // using standard cql
+            string cqlLowerCasePartitionKey = "SELECT * from " + typeof(lowercaseclassnamepklowercase).Name + " where \"somepartitionkey\" = '" + defaultPocoInstance.somepartitionkey + "'";
+            List<Row> rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual(defaultPocoInstance.somepartitionkey, rows[0].GetValue<string>("somepartitionkey"));
+
         }
 
         /// <summary>
@@ -165,27 +426,29 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Private test classes
         /////////////////////////////////////////
 
+        private class ClassWithTwoPartitionKeys
+        {
+            public string PartitionKey1 = "somePartitionKey1";
+            public string PartitionKey2 = "somePartitionKey2";
+        }
+
         private class PrivateClassWithClassNameCamelCase
         {
-            [PartitionKey]
             public string SomePartitionKey = "somePartitionKey";
         }
 
-        private class lowercaseclassnamepartitionkeycamelcase
+        private class lowercaseclassnamepkcamelcase
         {
-            [PartitionKey]
             public string SomePartitionKey = "somePartitionKey";
         }
 
-        private class lowercaseclassnamepartitionkeylowercase
+        private class lowercaseclassnamepklowercase
         {
-            [PartitionKey]
             public string somepartitionkey = "somePartitionKey";
         }
 
         private class PocoWithAdditionalField
         {
-            [PartitionKey]
             public string SomeString = "someStringValue";
             public string SomeOtherString = "someOtherStringValue";
         }

@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
     [Table("allDataTypes")]
-    public class AllDataTypesEntityUtil
+    public class AllDataTypesEntityBase
     {
         public const int DefaultListLength = 5;
 
