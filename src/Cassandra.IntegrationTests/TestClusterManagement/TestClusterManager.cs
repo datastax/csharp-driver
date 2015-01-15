@@ -51,6 +51,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     // first stop any existing CCM clusters
                     ShutDownAllCcmTestClusters();
+                    KillAllCcmProcesses();
 
                     // Create new cluster via ccm
                     CcmCluster testCluster = new CcmCluster(CassandraVersion, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
@@ -69,6 +70,28 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             
             return null;
         }
+
+        public void KillAllCcmProcesses()
+        {
+            // TODO: get Jenkins Proc ID, make sure the proc ID you're killing isn't Jenkins
+            Process[] procs = Process.GetProcessesByName("java");
+            if (procs.Length > 0)
+                Trace.TraceWarning("found " + procs.Length + " java procs that are about to be killed ... ");
+            foreach (Process proc in procs)
+            {
+                Trace.TraceWarning(string.Format("KILLING java process with ID: {0}", proc.Id, proc.MachineName));
+                try
+                {
+                    proc.Kill();
+                }
+                catch (Exception e)
+                {
+                    Trace.TraceError("FAILED to kill process ID: " + proc.Id);
+                    Trace.TraceError("Exception Message: " + e.Message);
+                }
+            }
+        }
+
 
         // Create a "non default" test cluster that will not be available via the standard "GetTestCluster" command
         // NOTE: right now this returns a bare "TestCluster" object that has not been initialized in any way

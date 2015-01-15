@@ -33,19 +33,19 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class PoolTests : TestGlobals
     {
-        protected TraceLevel _originalTraceLevel;
+        protected TraceLevel OriginalTraceLevel;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
+            OriginalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            Diagnostics.CassandraTraceSwitch.Level = _originalTraceLevel;
+            Diagnostics.CassandraTraceSwitch.Level = OriginalTraceLevel;
         }
 
         [Test]
@@ -262,7 +262,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InitialKeyspaceRaceTest()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
 
             var cluster = Cluster.Builder()
                 .AddContactPoint(testCluster.InitialContactPoint)
@@ -295,7 +295,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void ConnectWithWrongKeyspaceNameTest()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
 
             var cluster = Cluster.Builder()
                 .AddContactPoint(testCluster.InitialContactPoint)
@@ -310,7 +310,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void ConnectShouldResolveNames()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
 
             var cluster = Cluster.Builder()
                 .AddContactPoint(testCluster.InitialContactPoint)
@@ -327,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
             //Kill connections the node silently
             //Do nothing for a while
             //Check if the node is considered as down
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
 
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
