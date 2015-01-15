@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void AlreadyExistsException()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
             ISession session = testCluster.Session;
             
             string keyspace = TestUtils.GetUniqueKeyspaceName();
@@ -358,19 +358,24 @@ namespace Cassandra.IntegrationTests.Core
         public void PreserveStackTraceTest()
         {
             // we need to make sure at least a single node cluster is available, running locally
-            var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.GetTestCluster(1).InitialContactPoint).Build();
-            var session = cluster.Connect();
-
-            var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
-            Assert.True(ex.StackTrace.Contains("PreserveStackTraceTest"));
-            Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
+            var session = TestClusterManager.GetNonShareableTestCluster(1).Session;
+            try // writing without delegate assertion since that is undependable for this use case
+            {
+                session.Execute("SELECT WILL FAIL");
+                Assert.Fail("Expected Exception was not thrown!");
+            }
+            catch (SyntaxError ex) 
+            {
+                Assert.True(ex.StackTrace.Contains("PreserveStackTraceTest"));
+                Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
+            }
         }
 
         [Test, Category(TestCategories.CcmOnly)]
         public void ExceptionsOnPartialTrust()
         {
             // we need to make sure at least a single node cluster is available, running locally
-            _lastKnownInitialContactPoint = TestClusterManager.GetTestCluster(1).InitialContactPoint;
+            _lastKnownInitialContactPoint = TestClusterManager.GetNonShareableTestCluster(1).InitialContactPoint;
             var appDomain = CreatePartialTrustDomain();
             appDomain.DoCallBack(PreserveStackTraceOnConnectAndAssert);
         }
@@ -378,7 +383,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void RowSetIteratedTwice()
         {
-            ISession session = TestClusterManager.GetTestCluster(1).Session;
+            ISession session = TestClusterManager.GetNonShareableTestCluster(1).Session;
             string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
             string table = "TestTable_" + Randomm.RandomAlphaNum(10);
             string key = "1";
@@ -397,7 +402,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void RowSetPagingAfterSessionDispose()
         {
-            ISession session = TestClusterManager.GetTestCluster(1).Session;
+            ISession session = TestClusterManager.GetNonShareableTestCluster(1).Session;
             string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
             string table = "TestTable_" + Randomm.RandomAlphaNum(10);
 
