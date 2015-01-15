@@ -18,7 +18,7 @@ PM> Install-Package CassandraCSharpDriver
 - Several load balancing and retry policies
 - Result paging
 - Query batching
-- Linq2Cql and Ado.Net support
+- [Linq2Cql][linq] and Ado.Net support
 
 ## Documentation
 
@@ -220,10 +220,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
   [apidocs]: http://www.datastax.com/drivers/csharp/2.1/
-  [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/2.1/
+  [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/
   [getting-started]: http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
   [jira]: https://datastax-oss.atlassian.net/browse/CSHARP
   [udt]: https://issues.apache.org/jira/browse/CASSANDRA-5590
   [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
+  [linq]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/linqComponent.html
