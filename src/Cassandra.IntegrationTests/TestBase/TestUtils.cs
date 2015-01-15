@@ -136,7 +136,7 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
                 rs.Count();
-                hostsQueried.Add(rs.Info.QueriedHost.ToString());
+                hostsQueried.Add(rs.Info.QueriedHost.Address.ToString());
                 Thread.Sleep(500);
             }
             Assert.That(testCluster.Cluster.Metadata.AllHosts().ToList().Count, Is.EqualTo(expectedTotalNodeCount));
@@ -145,7 +145,7 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
                 rs.Count();
-                hostsQueried.Add(rs.Info.QueriedHost.ToString());
+                hostsQueried.Add(rs.Info.QueriedHost.Address.ToString());
                 Thread.Sleep(500);
             }
             // Validate host was queried
