@@ -294,34 +294,37 @@ namespace Cassandra
                 {
                     return GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out typeInfo);
                 }
-                if (type.GetInterface("ISet`1") != null)
+                if (typeof (IEnumerable).IsAssignableFrom(type))
                 {
-                    IColumnInfo keyTypeInfo;
-                    ColumnTypeCode keyTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out keyTypeInfo);
-                    typeInfo = new SetColumnInfo {KeyTypeCode = keyTypeCode, KeyTypeInfo = keyTypeInfo};
-                    return ColumnTypeCode.Set;
-                }
-                if (type.GetInterface("IDictionary`2") != null || type.GetGenericTypeDefinition() == typeof(IDictionary<,>))
-                {
-                    IColumnInfo keyTypeInfo;
-                    ColumnTypeCode keyTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out keyTypeInfo);
-                    IColumnInfo valueTypeInfo;
-                    ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[1], out valueTypeInfo);
-                    typeInfo = new MapColumnInfo
+                    if (type.GetInterface("ISet`1") != null)
                     {
-                        KeyTypeCode = keyTypeCode,
-                        KeyTypeInfo = keyTypeInfo,
-                        ValueTypeCode = valueTypeCode,
-                        ValueTypeInfo = valueTypeInfo
-                    };
-                    return ColumnTypeCode.Map;
-                }
-                if (type.GetInterface("IEnumerable`1") != null || type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                {
-                    IColumnInfo valueTypeInfo;
-                    ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out valueTypeInfo);
-                    typeInfo = new ListColumnInfo {ValueTypeCode = valueTypeCode, ValueTypeInfo = valueTypeInfo};
-                    return ColumnTypeCode.List;
+                        IColumnInfo keyTypeInfo;
+                        ColumnTypeCode keyTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out keyTypeInfo);
+                        typeInfo = new SetColumnInfo {KeyTypeCode = keyTypeCode, KeyTypeInfo = keyTypeInfo};
+                        return ColumnTypeCode.Set;
+                    }
+                    if (type.GetInterface("IDictionary`2") != null || type.GetGenericTypeDefinition() == typeof(IDictionary<,>))
+                    {
+                        IColumnInfo keyTypeInfo;
+                        ColumnTypeCode keyTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out keyTypeInfo);
+                        IColumnInfo valueTypeInfo;
+                        ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[1], out valueTypeInfo);
+                        typeInfo = new MapColumnInfo
+                        {
+                            KeyTypeCode = keyTypeCode,
+                            KeyTypeInfo = keyTypeInfo,
+                            ValueTypeCode = valueTypeCode,
+                            ValueTypeInfo = valueTypeInfo
+                        };
+                        return ColumnTypeCode.Map;
+                    }
+                    if (type.GetInterface("IEnumerable`1") != null || type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                    {
+                        IColumnInfo valueTypeInfo;
+                        ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out valueTypeInfo);
+                        typeInfo = new ListColumnInfo {ValueTypeCode = valueTypeCode, ValueTypeInfo = valueTypeInfo};
+                        return ColumnTypeCode.List;
+                    }
                 }
                 if (typeof(IStructuralComparable).IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
                 {
