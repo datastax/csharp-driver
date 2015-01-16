@@ -24,6 +24,8 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Mapping;
+using Cassandra.Mapping.Statements;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -38,9 +40,19 @@ namespace Cassandra.IntegrationTests.Core
             "INSERT INTO \"" + typeof(ManyDataTypesEntity).Name + "\" (\"StringType\", \"GuidType\", \"DateTimeType\", \"DateTimeOffsetType\", \"BooleanType\", " +
             "\"DecimalType\", \"DoubleType\", \"FloatType\", \"NullableIntType\", \"IntType\", \"Int64Type\", " +
             "\"DictionaryStringLongType\", \"DictionaryStringStringType\", \"ListOfGuidsType\", \"ListOfStringsType\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        private string _simpleStatementInsertFormat =
+            "INSERT INTO \"" + typeof(ManyDataTypesEntity).Name + "\" (\"StringType\", \"GuidType\", \"BooleanType\", " +
+            "\"DecimalType\", \"DoubleType\", \"FloatType\", \"IntType\", \"Int64Type\") VALUES ('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7})";
 
         private List<ManyDataTypesEntity> _defaultPocoList;
         private int _defaultNodeCountOne = 1;
+        private PreparedStatement _preparedStatement;
+
+        [TearDown]
+        public void TeardownTest()
+        {
+            TestUtils.TryToDeleteKeyspace(_session, _ksName);
+        }
 
         private ITestCluster SetupSessionAndCluster(int nodes, Dictionary<string, string> replication = null)
         {
@@ -50,30 +62,30 @@ namespace Cassandra.IntegrationTests.Core
             _session.CreateKeyspace(_ksName, replication);
             TestUtils.WaitForSchemaAgreement(_session.Cluster);
             _session.ChangeKeyspace(_ksName);
-
-            // Setup unique table
-            _table = _session.GetTable<ManyDataTypesEntity>();
+            _table = new Table<ManyDataTypesEntity>(_session, new MappingConfiguration());
             _table.Create();
             _defaultPocoList = ManyDataTypesEntity.GetDefaultAllDataTypesList();
-            foreach (var manyDataTypesPoco in _defaultPocoList)
-            {
-                _session.Execute(_table.Insert(manyDataTypesPoco));
-            }
+            _preparedStatement = _session.Prepare(_preparedInsertStatementAsString);
+            foreach (var manyDataTypesEntity in _defaultPocoList)
+                _session.Execute(GetBoundInsertStatementBasedOnEntity(manyDataTypesEntity));
 
             return testCluster;
         }
 
-        [TearDown]
-        public void TeardownTest()
+        private BoundStatement GetBoundInsertStatementBasedOnEntity(ManyDataTypesEntity entity)
         {
-            try
-            {
-                _session.DeleteKeyspace(_ksName);
-            }
-            catch (Exception e)
-            {
-                Trace.TraceWarning("Error occurred during teardown: " + e.Message);
-            }
+            BoundStatement boundStatement = _preparedStatement.Bind(ConvertEntityToObjectArray(entity));
+            return boundStatement;
+        }
+
+        private string GetSimpleStatementInsertString(ManyDataTypesEntity entity)
+        {
+            string strForSimpleStatement = string.Format(_simpleStatementInsertFormat, 
+                new object[] {
+                entity.StringType, entity.GuidType, entity.BooleanType, entity.DecimalType, 
+                entity.DoubleType, entity.FloatType, entity.IntType, entity.Int64Type
+                });
+            return strForSimpleStatement;
         }
 
         //////////////////////////////////////////////////
@@ -84,7 +96,9 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_SimpleStatement_LocalSerial_Insert_Success()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            SimpleStatement simpleStatement = _table.Insert(ManyDataTypesEntity.GetRandomInstance());
+
+            string simpleStatementStr = GetSimpleStatementInsertString(ManyDataTypesEntity.GetRandomInstance());
+            SimpleStatement simpleStatement = new SimpleStatement(simpleStatementStr);
             simpleStatement = (SimpleStatement)simpleStatement.SetConsistencyLevel(ConsistencyLevel.Quorum).SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
             var result = _session.Execute(simpleStatement);
             Assert.AreEqual(ConsistencyLevel.Quorum, result.Info.AchievedConsistency);
@@ -125,7 +139,8 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_SimpleStatement_Serial_Insert_Success()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            SimpleStatement simpleStatement = _table.Insert(ManyDataTypesEntity.GetRandomInstance());
+            string simpleStatementStr = GetSimpleStatementInsertString(ManyDataTypesEntity.GetRandomInstance());
+            SimpleStatement simpleStatement = new SimpleStatement(simpleStatementStr);
             simpleStatement = (SimpleStatement)simpleStatement.SetConsistencyLevel(ConsistencyLevel.Quorum).SetSerialConsistencyLevel(ConsistencyLevel.Serial);
             var result = _session.Execute(simpleStatement);
             Assert.AreEqual(ConsistencyLevel.Quorum, result.Info.AchievedConsistency);
@@ -331,7 +346,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_PreparedStatement_LocalSerial_Insert_Success()
         {
             ManyDataTypesEntity mdtp = ManyDataTypesEntity.GetRandomInstance();
-            object[] vals = GetObjectArrayFromManyDataTypesPocoForPreparedInsert(mdtp);
+            object[] vals = ConvertEntityToObjectArray(mdtp);
             SetupSessionAndCluster(_defaultNodeCountOne);
 
             PreparedStatement preparedInsertStatement = _session.Prepare(_preparedInsertStatementAsString);
@@ -381,7 +396,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_PreparedStatement_Serial_Insert_Success()
         {
             ManyDataTypesEntity mdtp = ManyDataTypesEntity.GetRandomInstance();
-            object[] vals = GetObjectArrayFromManyDataTypesPocoForPreparedInsert(mdtp);
+            object[] vals = ConvertEntityToObjectArray(mdtp);
             SetupSessionAndCluster(_defaultNodeCountOne);
 
             PreparedStatement preparedInsertStatement = _session.Prepare(_preparedInsertStatementAsString);
@@ -591,70 +606,70 @@ namespace Cassandra.IntegrationTests.Core
         /// Begin Batch Tests
         //////////////////////////////////////////////////
 
-        [Test]
+        [Test, TestCassandraVersion(2,0)]
         public void Consistency_Batch_All()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.All);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_Any()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.Any);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_EachQuorum()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.EachQuorum);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_LocalOne()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.LocalOne);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_LocalQuorum()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.LocalQuorum);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_LocalSerial()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.LocalSerial);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_One()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.One);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_Quorum()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.Quorum);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_Serial()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
             DoBatchInsertTest(ConsistencyLevel.Serial);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_Two()
         {
             int copies = 2;
@@ -666,7 +681,7 @@ namespace Cassandra.IntegrationTests.Core
             DoBatchInsertTest(ConsistencyLevel.Two);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void Consistency_Batch_Three()
         {
             int copies = 3;
@@ -691,7 +706,8 @@ namespace Cassandra.IntegrationTests.Core
             var addlPocoList = ManyDataTypesEntity.GetDefaultAllDataTypesList();
             foreach (var manyDataTypesPoco in addlPocoList)
             {
-                SimpleStatement simpleStatement = _table.Insert(manyDataTypesPoco);
+                string simpleStatementStr = GetSimpleStatementInsertString(manyDataTypesPoco);
+                SimpleStatement simpleStatement = new SimpleStatement(simpleStatementStr);
                 batch.Add(simpleStatement);
             }
 
@@ -713,7 +729,8 @@ namespace Cassandra.IntegrationTests.Core
 
         private void DoSimpleStatementInsertTest(ConsistencyLevel expectedConsistencyLevel)
         {
-            SimpleStatement simpleStatement = _table.Insert(ManyDataTypesEntity.GetRandomInstance());
+            string simpleStatementStr = GetSimpleStatementInsertString(ManyDataTypesEntity.GetRandomInstance());
+            SimpleStatement simpleStatement = new SimpleStatement(simpleStatementStr);
             simpleStatement = (SimpleStatement)simpleStatement.SetConsistencyLevel(expectedConsistencyLevel);
             var result = _session.Execute(simpleStatement);
             Assert.AreEqual(expectedConsistencyLevel, result.Info.AchievedConsistency);
@@ -734,7 +751,7 @@ namespace Cassandra.IntegrationTests.Core
         private void DoPreparedInsertTest(ConsistencyLevel expectedConsistencyLevel)
         {
             ManyDataTypesEntity mdtp = ManyDataTypesEntity.GetRandomInstance();
-            object[] vals = GetObjectArrayFromManyDataTypesPocoForPreparedInsert(mdtp);
+            object[] vals = ConvertEntityToObjectArray(mdtp);
 
             // NOTE: We have to re-prepare every time since there is a unique Keyspace used for every test
             PreparedStatement preparedInsertStatement = _session.Prepare(_preparedInsertStatementAsString).SetConsistencyLevel(expectedConsistencyLevel);
@@ -746,7 +763,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(_defaultPocoList.Count + 1, selectResult.GetRows().ToList().Count);
         }
 
-        private static object[] GetObjectArrayFromManyDataTypesPocoForPreparedInsert(ManyDataTypesEntity mdtp)
+        private static object[] ConvertEntityToObjectArray(ManyDataTypesEntity mdtp)
         {
             // ToString() Example output: 
             // INSERT INTO "ManyDataTypesPoco" ("StringType", "GuidType", "DateTimeType", "DateTimeOffsetType", "BooleanType", 

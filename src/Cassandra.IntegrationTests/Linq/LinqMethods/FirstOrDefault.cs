@@ -6,14 +6,15 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), TestCassandraVersion(2, 0)]
     public class FirstOrDefault : TestGlobals
     {
         private ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private Table<Movie> _movieTable;
 
         [SetUp]
         public void SetupTest()
@@ -23,30 +24,31 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.Create();
+            MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable.Create();
 
             //Insert some data
             foreach (var movie in _movieList)
-                table.Insert(movie).Execute();
+                _movieTable.Insert(movie).Execute();
         }
 
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]
         public void LinqFirstOrDefault_Sync()
         {
-            // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
             var expectedMovie = _movieList.First();
 
             // Test
             var first =
-                table.FirstOrDefault(
+                _movieTable.FirstOrDefault(
                     m => m.Director == expectedMovie.Director && m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).Execute();
             Assert.IsNotNull(first);
             Assert.AreEqual(expectedMovie.MovieMaker, first.MovieMaker);
@@ -55,8 +57,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqFirstOrDefault_Sync_NoSuchRecord()
         {
-            var table = _session.GetTable<Movie>();
-            var first = table.FirstOrDefault(m => m.Director == "non_existant_" + Randomm.RandomAlphaNum(10)).Execute();
+            var first = _movieTable.FirstOrDefault(m => m.Director == "non_existant_" + Randomm.RandomAlphaNum(10)).Execute();
             Assert.IsNull(first);
         }
 
@@ -64,12 +65,12 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         public void LinqFirstOrDefault_Async()
         {
             // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
+            _movieTable = new Table<Movie>(_session, new MappingConfiguration());
             var expectedMovie = _movieList.Last();
 
             // Test
             var actualMovie =
-                table.FirstOrDefault(
+                _movieTable.FirstOrDefault(
                     m => m.Director == expectedMovie.Director && m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker)
                      .ExecuteAsync()
                      .Result;

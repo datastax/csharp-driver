@@ -1,20 +1,24 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 using NUnit.Framework.Constraints;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), TestCassandraVersion(2,0)]
     public class First : TestGlobals
     {
         ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
-        string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-
+        private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private Table<Movie> _movieTable;
+            
         [SetUp]
         public void SetupTest()
         {
@@ -23,48 +27,54 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
-            var table = _session.GetTable<Movie>();
-            table.Create();
+            MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable.Create();
 
             //Insert some data
             foreach (var movie in _movieList)
-                table.Insert(movie).Execute();
+                _movieTable.Insert(movie).Execute();
+
+            // Wait for data to be query-able
+            DateTime futureDateTime = DateTime.Now.AddSeconds(2); // it should not take very long for these records to become available for querying!
+            while (DateTime.Now < futureDateTime && _movieTable.Count().Execute() < _movieList.Count)
+                Thread.Sleep(200);
+            Assert.AreEqual(_movieList.Count(), _movieTable.Count().Execute(), "Setup failure: Expected number of records are not query-able");
         }
 
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]
         public void First_ExecuteAsync()
         {
-            var table = _session.GetTable<Movie>();
             var expectedMovie = _movieList.First();
 
-            var actualMovie = table.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).ExecuteAsync().Result;
+            var actualMovie = _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).ExecuteAsync().Result;
             Movie.AssertEquals(expectedMovie, actualMovie);
         }
 
         [Test]
         public void First_ExecuteSync()
         {
-            var table = _session.GetTable<Movie>();
             var expectedMovie = _movieList.First();
 
-            var actualMovie = table.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).Execute();
+            var actualMovie = _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).Execute();
             Movie.AssertEquals(expectedMovie, actualMovie);
         }
 
         [Test]
         public void First_NoSuchRecord()
         {
-            var table = _session.GetTable<Movie>();
             Movie existingMovie = _movieList.Last();
             string randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
 
-            Movie foundMovie = table.First(m => m.Title == existingMovie.Title && m.MovieMaker == randomStr).Execute();
+            Movie foundMovie = _movieTable.First(m => m.Title == existingMovie.Title && m.MovieMaker == randomStr).Execute();
             Assert.Null(foundMovie);
         }
 
@@ -75,36 +85,32 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void First_NoTranslationFromLinqToCql()
         {
-            var table = _session.GetTable<Movie>();
             //No translation in CQL
-            Assert.Throws<SyntaxError>(() => table.First(m => m.Year is int).Execute());
+            Assert.Throws<SyntaxError>(() => _movieTable.First(m => m.Year is int).Execute());
         }
 
         [Test]
         public void First_NoPartitionKey()
         {
-            var table = _session.GetTable<Movie>();
             //No partition key in Query
-            Assert.Throws<InvalidQueryException>(() => table.First(m => m.Year == 100).Execute());
-            Assert.Throws<InvalidQueryException>(() => table.First(m => m.MainActor == null).Execute());
+            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.Year == 100).Execute());
+            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.MainActor == null).Execute());
         }
 
         [Test]
         public void First_WrongConsistencyLevel()
         {
-            var table = _session.GetTable<Movie>();
-            Assert.Throws<InvalidQueryException>(() => table.First(m => m.MovieMaker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.MovieMaker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
         }
 
         [Test]
         public void First_MissingPartitionKey()
         {
-            var table = _session.GetTable<Movie>();
             string randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
 
             try
             {
-                table.First(m => m.Title == randomStr).Execute();
+                _movieTable.First(m => m.Title == randomStr).Execute();
                 Assert.Fail("expected exception was not thrown!");
             }
             catch (InvalidQueryException e)

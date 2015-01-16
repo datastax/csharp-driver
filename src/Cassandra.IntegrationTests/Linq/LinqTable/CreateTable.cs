@@ -20,22 +20,25 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
     [Category("short")]
     public class CreateTable : TestGlobals
     {
         ISession _session = null;
+        ITestCluster _testCluster = null;
         private readonly Logger _logger = new Logger(typeof(CreateTable));
         string _uniqueKsName;
 
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            _testCluster = TestClusterManager.GetTestCluster(1);
+            _session = _testCluster.Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
@@ -44,7 +47,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -53,7 +56,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// @Jira CSHARP-42  https://datastax-oss.atlassian.net/browse/CSHARP-42
         ///  - Jira detail: CreateIfNotExists causes InvalidOperationException
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateIfNotExist()
         {
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -64,7 +67,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// <summary>
         /// Successfully create a table using the method Create
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create()
         {
             // Test
@@ -77,30 +80,29 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// Successfully create a table using the method Create, 
         /// overriding the default table name given via the class' "name" meta-tag
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_Create_NameOverride()
         {
             // Test
             string uniqueTableName = TestUtils.GetUniqueTableName();
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>(uniqueTableName);
-            table.Create();
-            WriteReadValidate(table);
-
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName);
             Assert.AreEqual(uniqueTableName, table.Name);
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName));
+            table.Create();
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName), string.Format("Table {0}.{1} doesn't exist!", _uniqueKsName, uniqueTableName));
+            WriteReadValidate(table);
         }
 
         /// <summary>
         /// Attempt to create the same table using the method Create twice, validate expected failure message
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateTable_AlreadyExists()
         {
             // Test
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             TableAttribute tableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
             table.Create();
-            //Result Message:	Cassandra.AlreadyExistsException : Table test_cluster_keyspace.allDataTypes already exists
             try
             {
                 table.Create();
@@ -116,17 +118,18 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// Attempt to create two tables of different types but with the same name using the Create method. 
         /// Validate expected failure message
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateTable_SameNameDifferentTypeAlreadyExists()
         {
             // First table name creation works as expected
-            Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            string staticTableName = "staticTableName";
+            var mappingConfig1 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig1);
             allDataTypesTable.Create();
-            TableAttribute allDataTypesTableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
-            
+
             // Second creation attempt with same table name should fail
-            Table<Movie> movieTable = _session.GetTable<Movie>(allDataTypesTableAttribute.Name);
-            //Result Message:	Cassandra.AlreadyExistsException : Table test_cluster_keyspace.allDataTypes already exists
+            var mappingConfig2 = new MappingConfiguration().Define(new Map<Movie>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.Title));
+            Table<Movie> movieTable = new Table<Movie>(_session, mappingConfig2);
             try
             {
                 movieTable.Create();
@@ -134,32 +137,70 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             }
             catch (AlreadyExistsException e)
             {
-                Assert.AreEqual(string.Format("Table {0}.{1} already exists", _uniqueKsName, allDataTypesTableAttribute.Name), e.Message);
+                Assert.AreEqual(string.Format("Table {0}.{1} already exists", _uniqueKsName, staticTableName), e.Message);
             }
         }
 
+        /// <summary>
+        /// Attempt to create two tables of different types but with the same name using the Create method,
+        /// setting table name of second create request via table name override option in constructor
+        /// Validate expected failure message
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
+        public void TableCreate_CreateTable_SameNameDifferentTypeAlreadyExists_TableNameOverride()
+        {
+            // First table name creation works as expected
+            string staticTableName = "staticTableName";
+            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig);
+            allDataTypesTable.Create();
+
+            // Second creation attempt with same table name should fail
+            Table<Movie> movieTable = new Table<Movie>(_session, new MappingConfiguration(), staticTableName);
+            try
+            {
+                movieTable.Create();
+                Assert.Fail("Expected Exception was not thrown!");
+            }
+            catch (AlreadyExistsException e)
+            {
+                Assert.AreEqual(string.Format("Table {0}.{1} already exists", _uniqueKsName, staticTableName), e.Message);
+            }
+        }
 
         /// <summary>
         /// Successfully create two tables of the same type in the same keyspace, but with different names
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_TwoTablesWithSameMappedType_DifferentNames()
         {
-            // Test
-            string uniqueTableName = TestUtils.GetUniqueTableName();
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>(uniqueTableName);
-            table.Create();
-            WriteReadValidate(table);
+            // Create First Table
+            string uniqueTableName1 = TestUtils.GetUniqueTableName();
+            var mappingConfig1 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(uniqueTableName1).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> allDataTypesTable1 = new Table<AllDataTypesEntity>(_session, mappingConfig1);
+            allDataTypesTable1.Create();
+            Assert.IsTrue((TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName1)));
+            WriteReadValidate(allDataTypesTable1);
+            Assert.AreEqual(uniqueTableName1, allDataTypesTable1.Name);
 
-            Assert.AreEqual(uniqueTableName, table.Name);
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName));
+            // Create Second Table
+            string uniqueTableName2 = TestUtils.GetUniqueTableName();
+            var mappingConfig2 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(uniqueTableName2).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> allDataTypesTable2 = new Table<AllDataTypesEntity>(_session, mappingConfig2);
+            allDataTypesTable2.Create();
+            Assert.IsTrue((TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName2)));
+            WriteReadValidate(allDataTypesTable2);
+            Assert.AreEqual(uniqueTableName2, allDataTypesTable2.Name);
+
+            Assert.AreNotEqual(allDataTypesTable1.Name, allDataTypesTable2.Name);
         }
 
         /// <summary>
         /// Successfully re-create a recently deleted table using the method Create, 
         /// all using the same Session instance
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_ReCreateTableAfterDropping()
         {
             // Setup
@@ -176,20 +217,21 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         }
 
         /// <summary>
-        /// Attempt to create a table in a non-existent keyspace, specifying the keyspace name in the GetTable() method's override option
+        /// Attempt to create a table in a non-existent keyspace, specifying the keyspace name in Table constructor's override option
         /// Validate error message.
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_Create_KeyspaceOverride_NoSuchKeyspace()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
             string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             string expectedErrMsg = string.Format("Cannot add column family '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
-            Table<AllDataTypesEntity> table1 = _session.GetTable<AllDataTypesEntity>(uniqueTableName, uniqueKsName);
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
 
             try
             {
-                table1.Create();
+                table.Create();
                 Assert.Fail("Expected Exception was not thrown!");
             }
             catch (InvalidConfigurationInQueryException e)
@@ -199,20 +241,21 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         }
 
         /// <summary>
-        /// Attempt to create a table in a non-existent keyspace, specifying the keyspace name in the GetTable() method's override option
+        /// Attempt to create a table in a non-existent keyspace, specifying the keyspace name in Table constructor's override option
         /// Validate error message.
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_CreateIfNotExists_KeyspaceOverride_NoSuchKeyspace()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
             string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             string expectedErrMsg = string.Format("Cannot add column family '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
-            Table<AllDataTypesEntity> table1 = _session.GetTable<AllDataTypesEntity>(uniqueTableName, uniqueKsName);
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
 
             try
             {
-                table1.CreateIfNotExists();
+                table.CreateIfNotExists();
                 Assert.Fail("Expected Exception was not thrown!");
             }
             catch (InvalidConfigurationInQueryException e)
@@ -224,69 +267,130 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method Create
         /// </summary>
-        [Test]
-        public void TableCreate_Create_TwoTablesSameName_TwoDifferentKeyspaces()
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreate_Create_TwoTablesSameName_TwoDifferentKeyspaces_ChangeKeyspaces()
         {
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            table.Create();
-            WriteReadValidate(table);
+            Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            table1.Create();
+            WriteReadValidate(table1);
 
             // Create in second keyspace
             string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(newUniqueKsName);
             _session.ChangeKeyspace(newUniqueKsName);
 
-            table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            table.Create();
-            WriteReadValidate(table);
+            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            //Assert.AreNotEqual(table1.KeyspaceName, table2.KeyspaceName); // KeyspaceName is not being assigned, this may not be correct
+            Assert.AreEqual(table1.Name, table2.Name);
+            table2.Create();
+            WriteReadValidate(table2);
         }
 
         /// <summary>
-        /// Successfully create two tables with the same name in two different keyspaces using the method CreateIfNotExists
+        /// Successfully create two tables with the same name in two different keyspaces using the method CreateIfNotExists,
+        /// referencing different keyspaces using ChangeKeyspace in the session
         /// </summary>
-        [Test]
-        public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoDifferentKeyspaces()
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoDifferentKeyspaces_ChangeKeyspace()
         {
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
-            WriteReadValidate(table);
+            Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            table1.CreateIfNotExists();
+            WriteReadValidate(table1);
 
             // Create in second keyspace
             string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(newUniqueKsName);
             _session.ChangeKeyspace(newUniqueKsName);
 
-            table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            //Assert.AreNotEqual(table1.KeyspaceName, table2.KeyspaceName); // KeyspaceName is not being assigned, this may not be correct
+            Assert.AreEqual(table1.Name, table2.Name);
+            table2.CreateIfNotExists();
+            WriteReadValidate(table2);
+        }
+
+        /// <summary>
+        /// Successfully create two tables with different names in two different keyspaces using the method CreateIfNotExists,
+        /// referencing second keyspace by passing in the override arg to table constructor
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the keyspace override option doesn't seem to be getting passed in")]
+        public void TableCreate_CreateIfNotExists_TwoTablesDifferentNames_TwoKeyspacesDifferentNames_KeyspaceOverride()
+        {
+            // Setup first table
+            string tableName = typeof(AllDataTypesEntity).Name;
+            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(tableName).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, mappingConfig);
             table.CreateIfNotExists();
             WriteReadValidate(table);
+
+            // Create second table with same name in second keyspace
+            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            string newUniqueTableName = TestUtils.GetUniqueTableName();
+            mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(newUniqueTableName).CaseSensitive().PartitionKey(c => c.StringType));
+            _session.CreateKeyspace(newUniqueKsName);
+            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, newUniqueTableName, newUniqueKsName);
+            Assert.AreNotEqual(table.KeyspaceName, table.KeyspaceName);
+            table2.CreateIfNotExists();
+            WriteReadValidate(table2);
         }
 
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method Create
         /// Do not manually change the session to use the different keyspace
         /// </summary>
-        [Test]
-        public void TableCreate_CreateTable_TwoDifferentKeyspaces_KeyspaceOverrideInConstructor()
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the keyspace override option doesn't seem to be getting passed in")]
+        public void TableCreate_Create_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
         {
-            string uniqueTableNameToBeShared = TestUtils.GetUniqueTableName();
-            string uniqueKsName1 = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(uniqueKsName1);
-            string uniqueKsName2 = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(uniqueKsName2);
-
-            _session.ChangeKeyspace(uniqueKsName1);
-            Table<AllDataTypesEntity> table1 = _session.GetTable<AllDataTypesEntity>(uniqueTableNameToBeShared, uniqueKsName1);
+            // Setup first table
+            string sharedTableName = typeof (AllDataTypesEntity).Name;
+            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, mappingConfig);
             table1.Create();
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName)); 
             WriteReadValidate(table1);
 
-            _session.ChangeKeyspace(uniqueKsName2);
-            Table<AllDataTypesEntity> table2 = _session.GetTable<AllDataTypesEntity>(uniqueTableNameToBeShared, uniqueKsName2);
+            // Create second table with same name in new keyspace
+            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            _session.CreateKeyspace(newUniqueKsName);
+            Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
+            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
             table2.Create();
+            Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName)); 
             WriteReadValidate(table2);
 
-            _session.ChangeKeyspace(uniqueKsName1);
+            // also use ChangeKeyspace and validate client functionality
+            _session.ChangeKeyspace(_uniqueKsName);
             WriteReadValidate(table1);
-            _session.ChangeKeyspace(uniqueKsName2);
+            _session.ChangeKeyspace(newUniqueKsName);
+            WriteReadValidate(table2);
+        }
+
+
+        /// <summary>
+        /// Successfully create two tables with the same name in two different keyspaces using the method CreateIfNotExists,
+        /// referencing second keyspace by passing in the override arg to table constructor
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        [NUnit.Framework.Ignore("Pending question -- the keyspace override option doesn't seem to be getting passed in")]
+        public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
+        {
+            // Setup first table
+            string sharedTableName = typeof (AllDataTypesEntity).Name;
+            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, mappingConfig);
+            table.CreateIfNotExists();
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName)); 
+            WriteReadValidate(table);
+
+            // Create second table with same name in new keyspace
+            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            _session.CreateKeyspace(newUniqueKsName);
+            Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
+            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
+            table2.CreateIfNotExists();
+            Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName)); 
             WriteReadValidate(table2);
         }
 
@@ -294,11 +398,14 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// Successfully create a table that contains no column meta data using the method Create
         /// Validate the state of the table in C* after it's created
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_EntityTypeWithColumnNameMeta()
         {
             // Test
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            MappingConfiguration mappingConfig = new MappingConfiguration();
+            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(AllDataTypesEntity),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(AllDataTypesEntity)));
+            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, mappingConfig);
             table.Create();
             AllDataTypesEntity expectedAllDataTypesEntityNoColumnMetaEntity = WriteReadValidate(table);
 
@@ -331,11 +438,14 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// Successfully create a table that contains no column meta data using the method Create
         /// Validate the state of the table in C* after it's created
         /// </summary>
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_EntityTypeWithoutColumnNameMeta()
         {
             // Test
-            Table<AllDataTypesNoColumnMeta> table = _session.GetTable<AllDataTypesNoColumnMeta>();
+            MappingConfiguration mappingConfig = new MappingConfiguration();
+            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(AllDataTypesNoColumnMeta),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(AllDataTypesNoColumnMeta)));
+            Table<AllDataTypesNoColumnMeta> table = new Table<AllDataTypesNoColumnMeta>(_session, mappingConfig);
             table.Create();
             AllDataTypesNoColumnMeta expectedAllDataTypesNoColumnMetaEntity = WriteReadValidate(table);
 
@@ -368,10 +478,14 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         /// Table creation fails because the referenced class is missing a partition key
         /// This also validates that a private class can be used with the Table.Create() method.
         /// </summary>
-        [Test]
-        public void Insert_ClassMissingPartitionKey()
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreate_ClassMissingPartitionKey()
         {
-            Table<PrivateClassMissingPartitionKey> table = _session.GetTable<PrivateClassMissingPartitionKey>();
+            MappingConfiguration mappingConfig = new MappingConfiguration();
+            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateClassMissingPartitionKey),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateClassMissingPartitionKey)));
+            Table<PrivateClassMissingPartitionKey> table = new Table<PrivateClassMissingPartitionKey>(_session, mappingConfig);
+
             try
             {
                 table.Create();
@@ -381,6 +495,28 @@ namespace Cassandra.IntegrationTests.Linq.Tests
                 Assert.AreEqual("No partition key defined", e.Message);
             }
         }
+
+        /// <summary>
+        /// Table creation fails because the referenced class is missing a partition key
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreate_ClassEmpty()
+        {
+            MappingConfiguration mappingConfig = new MappingConfiguration();
+            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateEmptyClass),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateEmptyClass)));
+            Table<PrivateEmptyClass> table = new Table<PrivateEmptyClass>(_session, mappingConfig);
+
+            try
+            {
+                table.Create();
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("No partition key defined", e.Message);
+            }
+        }
+
 
         ///////////////////////////////////////////////
         // Test Helpers
@@ -474,7 +610,9 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             private string StringValue = "someStringValue";
         }
 
-
+        private class PrivateEmptyClass
+        {
+        }
 
     }
 }

@@ -9,14 +9,15 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class Insert : TestGlobals
     {
         ISession _session = null;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-        
+        private Table<Movie> _movieTable;
+
         [SetUp]
         public void SetupTest()
         {
@@ -25,18 +26,20 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
-            var table = _session.GetTable<Movie>();
-            table.Create();
-
+            MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable.Create();
         }
 
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void LinqInsert_Batch()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
@@ -73,7 +76,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Movie.DisplayMovies(taskselectAllFromWhereWithFuture.Result);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void LinqInsert_Batch_MissingPartitionKeyPart()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());

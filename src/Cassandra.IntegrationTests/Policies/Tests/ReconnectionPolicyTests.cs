@@ -17,11 +17,12 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies
+namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class ReconnectionPolicyTests : TestGlobals
@@ -29,13 +30,15 @@ namespace Cassandra.IntegrationTests.Policies
         private PolicyTestTools _policyTestTools = null;
 
         [SetUp]
-        public void TestSetup()
+        public void SetupTest()
         {
             _policyTestTools = new PolicyTestTools();
         }
 
         /// <summary>
         /// Test the ExponentialReconnectionPolicy.
+        /// 
+        /// @test_category connection:reconnection
         /// </summary>
         [Test]
         public void ExponentialReconnectionPolicyTest()
@@ -59,36 +62,28 @@ namespace Cassandra.IntegrationTests.Policies
                 new ExponentialReconnectionPolicy(-1, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException)
-            {
-            }
+            catch (ArgumentException){}
 
             try
             {
                 new ExponentialReconnectionPolicy(1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException)
-            {
-            }
+            catch (ArgumentException){}
 
             try
             {
                 new ExponentialReconnectionPolicy(-1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException)
-            {
-            }
+            catch (ArgumentException){}
 
             try
             {
                 new ExponentialReconnectionPolicy(2, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException)
-            {
-            }
+            catch (ArgumentException){}
 
             // Test nextDelays()
 
@@ -106,11 +101,13 @@ namespace Cassandra.IntegrationTests.Policies
             //long restartTime = 2 + 4 + 8 + 2;   // 16: 3 full cycles + 2 seconds
             //long retryTime = 30;                // 4th cycle start time
             //long breakTime = 62;                // time until next reconnection attempt
-            //reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
+            //ReconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
         /// <summary>
         /// Test the ConstantReconnectionPolicy.
+        /// 
+        /// @test_category connection:reconnection
         /// </summary>
         [Test]
         public void ConstantReconnectionPolicyTest()
@@ -152,7 +149,7 @@ namespace Cassandra.IntegrationTests.Policies
             //reconnectionPolicyTest(builder, restartTime, retryTime, breakTime);
         }
 
-        public void reconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
+        public void ReconnectionPolicyTest(Builder builder, long restartTime, long retryTime, long breakTime)
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
             _policyTestTools.CreateSchema(testCluster.Session, 1);
@@ -161,7 +158,7 @@ namespace Cassandra.IntegrationTests.Policies
             _policyTestTools.Query(testCluster, 12);
 
             // Ensure a basic test works
-            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 12);
+            _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 12);
             _policyTestTools.ResetCoordinators();
             testCluster.StopForce(1);
 
@@ -175,9 +172,7 @@ namespace Cassandra.IntegrationTests.Policies
                 _policyTestTools.Query(testCluster, 12);
                 Assert.Fail("Test race condition where node has not shut off quickly enough.");
             }
-            catch (NoHostAvailableException)
-            {
-            }
+            catch (NoHostAvailableException){}
 
             long elapsedSeconds;
             bool restarted = false;
@@ -197,7 +192,7 @@ namespace Cassandra.IntegrationTests.Policies
                 try
                 {
                     _policyTestTools.Query(testCluster, 12);
-                    _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 12);
+                    _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 12);
                     _policyTestTools.ResetCoordinators();
 
                     // Ensure the time when the query completes successfully is what was expected
@@ -213,7 +208,7 @@ namespace Cassandra.IntegrationTests.Policies
 
                 // The same query once more, just to be sure
                 _policyTestTools.Query(testCluster, 12);
-                _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 12);
+                _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 12);
                 _policyTestTools.ResetCoordinators();
 
                 // Ensure the reconnection times reset
@@ -250,7 +245,7 @@ namespace Cassandra.IntegrationTests.Policies
                     try
                     {
                         _policyTestTools.Query(testCluster, 12);
-                        _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1", 12);
+                        _policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, 12);
                         _policyTestTools.ResetCoordinators();
 
                         // Ensure the time when the query completes successfully is what was expected

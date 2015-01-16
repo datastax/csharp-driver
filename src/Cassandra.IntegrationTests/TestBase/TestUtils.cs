@@ -100,6 +100,12 @@ namespace Cassandra.IntegrationTests.TestBase
             return "TestTable_" + Randomm.RandomAlphaNum(12);
         }
 
+        public static void TryToDeleteKeyspace(ISession session, string keyspaceName)
+        {
+            if (session != null)
+                session.DeleteKeyspaceIfExists(keyspaceName);
+        }
+
         public static bool TableExists(ISession session, string keyspaceName, string tableName)
         {
             // SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='TestKeySpace_c3052b44be8b';
@@ -200,7 +206,7 @@ namespace Cassandra.IntegrationTests.TestBase
                         nodeHost + ":" + nodePort, msSleepPerIteration));
                     Thread.Sleep(msSleepPerIteration);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     Trace.TraceInformation("Verified that node " + nodeHost + ":" + nodePort + " is DOWN (success) via manual socket connection check, exiting now ...");
                     tcpClient.Close();

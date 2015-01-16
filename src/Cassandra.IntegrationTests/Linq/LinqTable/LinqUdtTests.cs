@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
-    [Category("short")]
-    [TestCassandraVersion(2, 1)]
+    [TestFixture, Category("short")]
     public class LinqUdtTests : TestGlobals
     {
         ISession _session = null;
-        private readonly string _keyspaceName = TestUtils.GetUniqueKeyspaceName();
+        private readonly string _uniqueKeyspaceName = TestUtils.GetUniqueKeyspaceName();
         private readonly Guid _sampleId = Guid.NewGuid();
         private ITestCluster _testCluster;
 
@@ -26,27 +23,30 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             return new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
         }
 
-        [TestFixtureSetUp]
-        public void SetupTest()
+        [SetUp]
+        public void Setup()
         {
             _testCluster = TestClusterManager.GetTestCluster(1);
-            _session = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build().Connect();
+            _session = _testCluster.Session;
 
-            _session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, _keyspaceName, 1));
-            _session.ChangeKeyspace(_keyspaceName);
+            _session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, _uniqueKeyspaceName, 1));
+            _session.ChangeKeyspace(_uniqueKeyspaceName);
             _session.Execute("CREATE TYPE song (id uuid, title text, artist text)");
             _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>, publishingdate timestamp)");
-            _session.Execute(new SimpleStatement("INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])").Bind(_sampleId));
+            _session.Execute(
+                new SimpleStatement(
+                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])").Bind
+                    (_sampleId));
             _session.UserDefinedTypes.Define(UdtMap.For<Song>());
         }
 
-        [TestFixtureTearDown]
+        [TearDown]
         public void TeardownTest()
         {
-            _session.Dispose();
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKeyspaceName);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 1, 0)]
         public void LinqUdt_Select()
         {
             var table = new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
@@ -60,7 +60,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Assert.AreEqual("Bob Marley", song.Artist);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2,1,0)]
         public void LinqUdt_Insert()
         {
             var table = GetAlbumTable();

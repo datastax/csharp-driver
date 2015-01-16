@@ -19,9 +19,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private Table<EntityWithTimeUuid> _tableEntityWithTimeUuid;
         private Table<EntityWithNullableTimeUuid> _tableEntityWithNullableTimeUuid;
 
-        private DateTimeOffset _dateBefore;
-        private DateTimeOffset _dateAfter;
-
         [TearDown]
         public void TeardownTest()
         {

@@ -10,7 +10,7 @@ using Cassandra.Mapping;
 using NUnit.Framework;
 using Renci.SshNet.Messages.Authentication;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class Delete : TestGlobals
@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]
@@ -111,15 +111,8 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             var selectQuery = table.Select(m => m).Where(m => m.BooleanType == true);
             var deleteQuery = selectQuery.Delete();
 
-            try
-            {
-                deleteQuery.Execute();
-                Assert.Fail("Expected exception was not thrown");
-            }
-            catch (InvalidQueryException e)
-            {
-                Assert.IsTrue(e.Message.Contains("Non PRIMARY KEY boolean_type found in where clause"));
-            }
+            var ex = Assert.Throws<InvalidQueryException>(() => deleteQuery.Execute());
+            StringAssert.Contains("Non PRIMARY KEY boolean_type found in where clause", ex.Message);
         }
 
         [Test]
@@ -148,19 +141,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_MissingWhereAndSelectClause_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            try
-            {
-                table.Delete().Execute(); // delete all ?
-                Assert.Fail("expected exception was not thrown!");
-            }
-            catch (SyntaxError e)
-            {
-                string partialExceptionMsg = "expecting K_WHERE";
-                Assert.IsTrue(e.Message.Contains(partialExceptionMsg));
-            }
-            // make sure nothing was deleted
-            Assert.AreEqual(_entityList.Count, table.Count().Execute());
+            Assert.Throws<SyntaxError>(() => _table.Delete().Execute());
         }
 
         /// <summary>
@@ -170,20 +151,80 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void Delete_MissingWhereClause_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            try
-            {
-                table.Select(m => m).Delete().Execute(); // delete all ?
-                Assert.Fail("expected exception was not thrown!");
-            }
-            catch (SyntaxError e)
-            {
-                string partialExceptionMsg = "expecting K_WHERE";
-                Assert.IsTrue(e.Message.Contains(partialExceptionMsg));
-            }
-            // make sure nothing was deleted
-            Assert.AreEqual(_entityList.Count, table.Count().Execute());
+            Assert.Throws<SyntaxError>(() => _table.Select(m => m).Delete().Execute());
         }
+
+        /// <summary>
+        /// Successfully delete a record using the IfExists condition
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        public void Delete_IfExists()
+        {
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count, count);
+            AllDataTypesEntity entityToDelete = _entityList[0];
+
+            var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType && m.GuidType == entityToDelete.GuidType);
+            var deleteQuery = selectQuery.Delete().IfExists();
+
+            deleteQuery.Execute();
+            count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count - 1, count);
+            Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
+        }
+
+        /// <summary>
+        /// Successfully delete a record using the IfExists condition, when the row doesn't exist.  
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        public void Delete_IfExists_RowDoesntExist()
+        {
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count, count);
+            AllDataTypesEntity entityToDelete = _entityList[0];
+
+            var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType && m.GuidType == entityToDelete.GuidType);
+            var deleteQuery = selectQuery.Delete().IfExists();
+
+            deleteQuery.Execute();
+            count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count - 1, count);
+            Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
+
+            // Executing again should not fail, should just be a no-op
+            deleteQuery.Execute();
+            count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count - 1, count);
+            Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
+
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [Test, TestCassandraVersion(2,1,2)]
+        public void Delete_IfExists_ClusteringKeyOmitted()
+        {
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count, count);
+            AllDataTypesEntity entityToDelete = _entityList[0];
+
+            var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType);
+            var deleteQuery = selectQuery.Delete().IfExists();
+
+            var ex = Assert.Throws<InvalidQueryException>(() => deleteQuery.Execute());
+            StringAssert.Contains(
+                "DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'guid_type' is not restricted",
+                ex.Message);
+
+            // make sure record was not deleted
+            count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count, count);
+        }
+
 
     }
 }

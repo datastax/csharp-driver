@@ -80,49 +80,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// <summary>
-        ///  Tests DriverInternalError. Tests basic message, rethrow, and copy abilities.
-        /// </summary>
-        [Test]
-        public void DriverInternalError()
-        {
-            var errorMessage = "Test Message";
-
-            try
-            {
-                throw new DriverInternalError(errorMessage);
-            }
-            catch (DriverInternalError e1)
-            {
-                try
-                {
-                    throw new DriverInternalError("", e1);
-                }
-                catch (DriverInternalError e2)
-                {
-                    Assert.AreEqual(e2.InnerException.Message, errorMessage);
-                }
-            }
-        }
-
-        /// <summary>
-        ///  Tests InvalidConfigurationInQueryException. Tests basic message abilities.
-        /// </summary>
-        [Test]
-        public void InvalidConfigurationInQueryException()
-        {
-            var errorMessage = "Test Message";
-
-            try
-            {
-                throw new InvalidConfigurationInQueryException(errorMessage);
-            }
-            catch (InvalidConfigurationInQueryException e)
-            {
-                Assert.AreEqual(e.Message, errorMessage);
-            }
-        }
-
-        /// <summary>
         ///  Tests the NoHostAvailableException. by attempting to build a cluster using
         ///  the IP address "255.255.255.255" and test all available exception methods.
         /// </summary>
@@ -135,7 +92,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                var cluster = Cluster.Builder().AddContactPoint(ipAddress).Build();
+                Cluster.Builder().AddContactPoint(ipAddress).Build();
             }
             catch (NoHostAvailableException e)
             {

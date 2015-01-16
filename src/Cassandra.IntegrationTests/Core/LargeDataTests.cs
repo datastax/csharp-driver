@@ -122,7 +122,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var rs = _session.Execute(string.Format("SELECT * FROM {0} WHERE k = {1}", uniqueTableName, Key), ConsistencyLevel.Quorum))
             {
                 Row row = rs.GetRows().FirstOrDefault();
-                Assert.AreEqual(setVal, ((string[])row["i"]).First());
+                Assert.AreEqual(setVal, ((List<string>)row["i"]).First());
             }
         }
 

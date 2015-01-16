@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class UpdateIf : TestGlobals
@@ -13,6 +14,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private Table<Movie> _movieTable;
 
         [SetUp]
         public void SetupTest()
@@ -22,26 +24,28 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
-            var table = _session.GetTable<Movie>();
-            table.Create();
+            MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable.Create();
 
             //Insert some data
             foreach (var movie in _movieList)
-                table.Insert(movie).Execute();
+                _movieTable.Insert(movie).Execute();
         }
 
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]
         [TestCassandraVersion(2, 0)]
         public void LinqTable_UpdateIf()
         {
-            var table = _session.GetTable<Movie>();
-            table.CreateIfNotExists();
+            _movieTable.CreateIfNotExists();
             var movie = new Movie()
             {
                 Title = "Dead Poets Society",
@@ -50,9 +54,9 @@ namespace Cassandra.IntegrationTests.Linq.Tests
                 Director = "Peter Weir",
                 MovieMaker = "Touchstone"
             };
-            table.Insert(movie).SetConsistencyLevel(ConsistencyLevel.Quorum).Execute();
+            _movieTable.Insert(movie).SetConsistencyLevel(ConsistencyLevel.Quorum).Execute();
 
-            var retrievedMovie = table
+            var retrievedMovie = _movieTable
                 .FirstOrDefault(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone")
                 .Execute();
             Movie.AssertEquals(movie, retrievedMovie);
@@ -60,13 +64,13 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Assert.AreEqual(1989, retrievedMovie.Year);
             Assert.AreEqual("Robin Williams", retrievedMovie.MainActor);
 
-            table
+            _movieTable
                 .Where(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone" && m.Director == "Peter Weir")
                 .Select(m => new Movie { MainActor = "Robin McLaurin Williams" })
                 .UpdateIf(m => m.Year == 1989)
                 .Execute();
 
-            retrievedMovie = table
+            retrievedMovie = _movieTable
                 .FirstOrDefault(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone")
                 .Execute();
             Assert.NotNull(retrievedMovie);
@@ -74,7 +78,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
 
             //Should not update as the if clause is not satisfied
-            var updateIf = table
+            var updateIf = _movieTable
                 .Where(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone" && m.Director == "Peter Weir")
                 .Select(m => new Movie { MainActor = "WHOEVER" })
                 .UpdateIf(m => m.Year == 1500);
@@ -82,7 +86,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Console.WriteLine(updateIfToStr);
 
             updateIf.Execute();
-            retrievedMovie = table
+            retrievedMovie = _movieTable
                 .FirstOrDefault(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone")
                 .Execute();
             Assert.NotNull(retrievedMovie);

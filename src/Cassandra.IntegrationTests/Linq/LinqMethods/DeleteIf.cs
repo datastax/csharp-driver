@@ -10,7 +10,7 @@ using NUnit.Framework;
 using Renci.SshNet.Messages.Authentication;
 using Cassandra.Mapping;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class DeleteIf : TestGlobals
@@ -35,10 +35,10 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void DeleteIf_ConditionSucceeds()
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Assert.AreEqual(0, count);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 0)]
         public void DeleteIf_ConditionFails()
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Assert.AreEqual(1, count);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(2, 1, 2)]
         public void DeleteIf_ConditionBasedOnKey()
         {
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -94,7 +94,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             }
             catch (InvalidQueryException e)
             {
-                string expectedErrMsg = "PRIMARY KEY part string_type found in SET part";
+                string expectedErrMsg = "PRIMARY KEY column 'string_type' cannot have IF conditions";
                 Assert.AreEqual(expectedErrMsg, e.Message);
             }
             // make sure record was not deleted
@@ -104,8 +104,8 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             Assert.AreEqual(1, rows.Count);
         }
 
-        [Test]
-        public void DeleteIf_NoSuchKey()
+        [Test, TestCassandraVersion(2, 1, 2)]
+        public void DeleteIf_NotAllKeysRestricted_ClusteringKeyOmitted()
         {
             // Validate pre-test state
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
@@ -116,13 +116,48 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             // Test
             var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType + Randomm.RandomAlphaNum(10));
             var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
-            deleteIfQuery.Execute();
+            var ex = Assert.Throws<InvalidQueryException>(() => deleteIfQuery.Execute());
+            StringAssert.Contains(
+                "DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'guid_type' is not restricted",
+                ex.Message);
+        }
 
-            // Validate post-test state
-            count = table.Count().Execute();
+        [Test, TestCassandraVersion(2, 1, 2)]
+        public void DeleteIf_NotAllKeysRestricted_PartitionKeyOmitted()
+        {
+            // Validate pre-test state
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
-            List<AllDataTypesEntity> rows = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType).Execute().ToList();
-            Assert.AreEqual(1, rows.Count);
+            AllDataTypesEntity entityToDelete = _entityList[0];
+
+            // Test
+            var selectQuery = table.Select(m => m).Where(m => m.GuidType == Guid.NewGuid());
+            var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
+
+            var ex = Assert.Throws<InvalidQueryException>(() => deleteIfQuery.Execute());
+            StringAssert.Contains(
+                "DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'string_type' is not restricted",
+                ex.Message);
+        }
+
+        [Test, TestCassandraVersion(2, 0)]
+        public void DeleteIf_NoMatchingRecord()
+        {
+            // Validate pre-test state
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count, count);
+            AllDataTypesEntity entityToDelete = _entityList[0];
+
+            // Test
+            var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType + Randomm.RandomAlphaNum(10) && m.GuidType == Guid.NewGuid());
+            var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
+
+            string deleteIfQueryToString = deleteIfQuery.ToString();
+            Console.WriteLine(deleteIfQueryToString);
+
+            Assert.DoesNotThrow(() => deleteIfQuery.Execute());
         }
 
 

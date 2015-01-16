@@ -234,10 +234,10 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(50);
             }
             //Check that one of the restarted nodes were queried
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3", queriedHosts);
-            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4", queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "1:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "2:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
+            Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);            
             //Check that the control connection is still using last host
             StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
         }

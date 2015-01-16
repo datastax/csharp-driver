@@ -4,9 +4,10 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.Tests
+namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
     public class OrderBy : TestGlobals
@@ -14,6 +15,7 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private Table<Movie> _movieTable;
 
         [SetUp]
         public void SetupTest()
@@ -23,25 +25,26 @@ namespace Cassandra.IntegrationTests.Linq.Tests
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
-            var table = _session.GetTable<Movie>();
-            table.Create();
+            MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
+                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable.Create();
 
             //Insert some data
             foreach (var movie in _movieList)
-                table.Insert(movie).Execute();
+                _movieTable.Insert(movie).Execute();
         }
 
         [TearDown]
         public void TeardownTest()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
+            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]
         public void LinqOrderBy()
         {
-            var table = _session.GetTable<Movie>();
-
             List<Movie> moreMovies = new List<Movie>();
             string sameTitle = "sameTitle";
             string sameMovieMaker = "sameMovieMaker";
@@ -51,10 +54,10 @@ namespace Cassandra.IntegrationTests.Linq.Tests
                 movie.Title = sameTitle;
                 movie.MovieMaker = sameMovieMaker;
                 moreMovies.Add(movie);
-                table.Insert(movie).Execute();
+                _movieTable.Insert(movie).Execute();
             }
 
-            var movieQuery = table.Where(m => m.Title == sameTitle && m.MovieMaker == sameMovieMaker);
+            var movieQuery = _movieTable.Where(m => m.Title == sameTitle && m.MovieMaker == sameMovieMaker);
 
             List<Movie> actualOrderedMovieList = movieQuery.Execute().ToList();
             List<Movie> expectedOrderedMovieList = moreMovies.OrderBy(m => m.Director).ToList();
@@ -70,10 +73,9 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqOrderBy_Unrestricted_Sync()
         {
-            var table = _session.GetTable<Movie>();
             try
             {
-                table.OrderBy(m => m.MainActor).Execute();
+                _movieTable.OrderBy(m => m.MainActor).Execute();
                 Assert.Fail("Expected Exception was not thrown!");
             }
             catch (InvalidQueryException e)
@@ -85,10 +87,9 @@ namespace Cassandra.IntegrationTests.Linq.Tests
         [Test]
         public void LinqOrderBy_Unrestricted_Async()
         {
-            var table = _session.GetTable<Movie>();
             try
             {
-                var nonUsedEnumerable = table.OrderBy(m => m.MainActor).ExecuteAsync().Result;
+                var nonUsedEnumerable = _movieTable.OrderBy(m => m.MainActor).ExecuteAsync().Result;
                 Assert.Fail("Expected Exception was not thrown!");
             }
             catch (Exception e) // Exception is gathered from the async task
