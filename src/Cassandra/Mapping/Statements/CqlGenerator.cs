@@ -159,7 +159,7 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Gets the CQL queries involved in a table creation (CREATE TABLE, CREATE INDEX)
         /// </summary>
-        public static List<string> GetCreate(PocoData pocoData, bool ifNotExists)
+        public static List<string> GetCreate(PocoData pocoData, string tableName, string keyspaceName, bool ifNotExists)
         {
             if (pocoData == null)
             {
@@ -173,11 +173,11 @@ namespace Cassandra.Mapping.Statements
             var commands = new List<string>();
             var secondaryIndexes = new List<string>();
             var createTable = new StringBuilder("CREATE TABLE ");
-            var tableName = Escape(pocoData.TableName, pocoData);
-            if (pocoData.KeyspaceName != null)
+            tableName = Escape(tableName, pocoData);
+            if (keyspaceName != null)
             {
                 //Use keyspace.tablename notation
-                tableName = Escape(pocoData.KeyspaceName, pocoData) + "." + tableName;
+                tableName = Escape(keyspaceName, pocoData) + "." + tableName;
             }
             createTable.Append(tableName);
             createTable.Append(" (");

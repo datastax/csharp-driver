@@ -245,7 +245,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// Validate error message.
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_CreateIfNotExists_KeyspaceOverride_NoSuchKeyspace()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
@@ -314,7 +313,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// referencing second keyspace by passing in the override arg to table constructor
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the keyspace override option doesn't seem to be getting passed in")]
         public void TableCreate_CreateIfNotExists_TwoTablesDifferentNames_TwoKeyspacesDifferentNames_KeyspaceOverride()
         {
             // Setup first table
@@ -330,7 +328,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(newUniqueTableName).CaseSensitive().PartitionKey(c => c.StringType));
             _session.CreateKeyspace(newUniqueKsName);
             Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, newUniqueTableName, newUniqueKsName);
-            Assert.AreNotEqual(table.KeyspaceName, table.KeyspaceName);
             table2.CreateIfNotExists();
             WriteReadValidate(table2);
         }

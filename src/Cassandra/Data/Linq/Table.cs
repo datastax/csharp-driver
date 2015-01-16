@@ -149,7 +149,7 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
-            var cqlQueries = CqlGenerator.GetCreate(PocoData, false);
+            var cqlQueries = CqlGenerator.GetCreate(PocoData, Name, KeyspaceName, false);
             foreach (var cql in cqlQueries)
             {
                 _session.WaitForSchemaAgreement(_session.Execute(cql));
