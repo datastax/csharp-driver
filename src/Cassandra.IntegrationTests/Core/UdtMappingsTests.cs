@@ -280,27 +280,27 @@ namespace Cassandra.IntegrationTests.Core
                         .Map(v => v.Number, "number")
                 );
 
-                var insert = new SimpleStatement("INSERT INTO users (id, main_phone) values (?, ?)");
+                const string insertQuery = "INSERT INTO users (id, main_phone) values (?, ?)";
                 
                 //All of the fields null
                 var id = 201;
                 var phone = new Phone();
-                localSession.Execute(insert.Bind(id, phone));
-                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?").Bind(id));
+                localSession.Execute(new SimpleStatement(insertQuery, id, phone));
+                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
                 Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
 
                 //Some fields null and others with value
                 id = 202;
                 phone = new Phone() {Alias = "Home phone"};
-                localSession.Execute(insert.Bind(id, phone));
-                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?").Bind(id));
+                localSession.Execute(new SimpleStatement(insertQuery, id, phone));
+                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
                 Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
 
                 //All fields filled in
                 id = 203;
                 phone = new Phone() { Alias = "Mobile phone", CountryCode = 54, Number = "1234567"};
-                localSession.Execute(insert.Bind(id, phone));
-                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?").Bind(id));
+                localSession.Execute(new SimpleStatement(insertQuery, id, phone));
+                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
                 Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
             }
         }
@@ -323,7 +323,6 @@ namespace Cassandra.IntegrationTests.Core
                           .Map(c => c.Birth, "birth_date")
                     );
 
-                var insert = new SimpleStatement("INSERT INTO users_contacts (id, contacts) values (?, ?)");
 
                 //All of the fields null
                 var id = 301;
@@ -340,8 +339,9 @@ namespace Cassandra.IntegrationTests.Core
                         }
                     }
                 };
-                localSession.Execute(insert.Bind(id, contacts));
-                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users_contacts WHERE id = ?").Bind(id));
+                var insert = new SimpleStatement("INSERT INTO users_contacts (id, contacts) values (?, ?)", id, contacts);
+                localSession.Execute(insert);
+                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users_contacts WHERE id = ?", id));
                 Assert.AreEqual(contacts, rs.First().GetValue<List<Contact>>("contacts"));
             }
         }
@@ -373,9 +373,9 @@ namespace Cassandra.IntegrationTests.Core
             row = localSession.Execute("SELECT id, sample_udt.text_sample from temp_table").First();
             Assert.AreEqual("one", row.GetValue<string>("sample_udt.text_sample"));
 
-            //Trying to bind to an unmapped type should throw
-            var statement = new SimpleStatement("INSERT INTO temp_table (id, sample_udt) VALUES (?, ?)");
-            Assert.Throws<InvalidTypeException>(() => localSession.Execute(statement.Bind(2, new DummyClass())));
+            //Trying to encode an unmapped type should throw
+            var statement = new SimpleStatement("INSERT INTO temp_table (id, sample_udt) VALUES (?, ?)", 2, new DummyClass());
+            Assert.Throws<InvalidTypeException>(() => localSession.Execute(statement));
 
             localCluster.Dispose();
         }

@@ -110,14 +110,14 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 0)]
-        public void Batch_SimpleStatement_Bound()
+        public void Batch_SimpleStatement_With_Query_Values()
         {
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             CreateTable(tableName);
             var batch = new BatchStatement();
 
-            var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName));
-            batch.Add(simpleStatement.Bind(100, "label 100", 10000));
+            var simpleStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, label, number) VALUES (?, ?, ?)", tableName), 100, "label 100", 10000);
+            batch.Add(simpleStatement);
             _session.Execute(batch);
 
             //Verify Results

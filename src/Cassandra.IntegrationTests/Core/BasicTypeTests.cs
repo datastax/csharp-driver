@@ -31,20 +31,18 @@ namespace Cassandra.IntegrationTests.Core
     {
         ISession _session = null;
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetupFixture()
         {
-            if (_session == null)
-                _session = TestClusterManager.GetTestCluster(1).Session;
+            _session = TestClusterManager.GetTestCluster(1).Session;
         }
 
         [Test]
         [TestCassandraVersion(2, 0)]
         public void QueryBinding()
         {
-            string tableName = CreateSimpleTableAndInsert(0);
-            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label) VALUES(?, ?)", tableName));
-            _session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label"}));
+            var tableName = CreateSimpleTableAndInsert(0);
+            _session.Execute(new SimpleStatement(string.Format("INSERT INTO {0}(id, label) VALUES(?, ?)", tableName), Guid.NewGuid(), "label"));
         }
 
         [Test]

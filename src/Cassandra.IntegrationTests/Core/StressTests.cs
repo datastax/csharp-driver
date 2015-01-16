@@ -179,7 +179,7 @@ namespace Cassandra.IntegrationTests.Core
                     IStatement statement = null;
                     if (bindableStatement is SimpleStatement)
                     {
-                        statement = ((SimpleStatement)bindableStatement).Bind(paramsArray).SetConsistencyLevel(consistency);
+                        statement = new SimpleStatement(((SimpleStatement)bindableStatement).QueryString, paramsArray).SetConsistencyLevel(consistency);
                     }
                     else if (bindableStatement is PreparedStatement)
                     {

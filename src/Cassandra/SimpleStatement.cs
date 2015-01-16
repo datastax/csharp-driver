@@ -54,11 +54,22 @@ namespace Cassandra
         /// <summary>
         ///  Creates a new instance of <c>SimpleStatement</c> with the provided CQL query.
         /// </summary>
-        /// <param name="query"> the query string.</param>
+        /// <param name="query">The cql query string.</param>
         public SimpleStatement(string query)
             : base(QueryProtocolOptions.Default)
         {
             _query = query;
+        }
+
+        /// <summary>
+        ///  Creates a new instance of <c>SimpleStatement</c> with the provided CQL query and values provided.
+        /// </summary>
+        /// <param name="query">The cql query string</param>
+        /// <param name="values">Parameter values required for the execution of <c>query</c></param>
+        public SimpleStatement(string query, params object[] values) : this(query)
+        {
+            // ReSharper disable once DoNotCallOverridableMethodsInConstructor
+            SetValues(values);
         }
 
         internal SimpleStatement(string query, QueryProtocolOptions queryProtocolOptions)
@@ -104,19 +115,14 @@ namespace Cassandra
         /// using a single instance of an anonymous type, with property names as parameter names.
         /// </para>
         /// </summary>
+        [Obsolete("The method Bind() is deprecated, use SimpleStatement constructor parameters to provide query values")]
         public SimpleStatement Bind(params object[] values)
         {
-            if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
-            {
-                var keyValues = Utils.GetValues(values[0]);
-                //Force named values to lowercase as identifiers are lowercased in Cassandra
-                QueryValueNames = keyValues.Keys.Select(k => k.ToLowerInvariant()).ToList();
-                values = keyValues.Values.ToArray();
-            }
             SetValues(values);
             return this;
         }
 
+        [Obsolete("The method BindObject() is deprecated, use SimpleStatement constructor parameters to provide query values")]
         public SimpleStatement BindObjects(object[] values)
         {
             return Bind(values);
@@ -126,6 +132,18 @@ namespace Cassandra
         {
             return new QueryRequest(protocolVersion, QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
                 // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
+        }
+
+        internal override void SetValues(object[] values)
+        {
+            if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
+            {
+                var keyValues = Utils.GetValues(values[0]);
+                //Force named values to lowercase as identifiers are lowercased in Cassandra
+                QueryValueNames = keyValues.Keys.Select(k => k.ToLowerInvariant()).ToList();
+                values = keyValues.Values.ToArray();
+            }
+            base.SetValues(values);
         }
     }
 }

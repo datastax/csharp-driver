@@ -22,7 +22,7 @@ namespace Cassandra.Mapping.Statements
             // Use a SimpleStatement if we're not supposed to prepare
             if (cql.QueryOptions.NoPrepare)
             {
-                Statement statement = new SimpleStatement(cql.Statement).Bind(cql.Arguments);
+                Statement statement = new SimpleStatement(cql.Statement, cql.Arguments);
                 cql.QueryOptions.CopyOptionsToStatement(statement);
                 return TaskHelper.ToTask(statement);
             }

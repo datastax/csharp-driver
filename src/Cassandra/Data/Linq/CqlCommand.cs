@@ -114,7 +114,7 @@ namespace Cassandra.Data.Linq
             object[] values;
             string query = GetCql(out values);
             SetQueryString(query);
-            BindObjects(values);
+            SetValues(values);
         }
 
         public ITable GetTable()

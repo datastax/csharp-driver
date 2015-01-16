@@ -604,7 +604,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         private class PrivateClassMissingPartitionKey
         {
+            //Is never used, but don't mind
+            #pragma warning disable 414
             private string StringValue = "someStringValue";
+            #pragma warning restore 414
         }
 
         private class PrivateEmptyClass

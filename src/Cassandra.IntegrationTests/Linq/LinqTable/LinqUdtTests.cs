@@ -35,8 +35,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>, publishingdate timestamp)");
             _session.Execute(
                 new SimpleStatement(
-                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])").Bind
-                    (_sampleId));
+                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])", 
+                    _sampleId));
             _session.UserDefinedTypes.Define(UdtMap.For<Song>());
         }
 
@@ -88,7 +88,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             };
             table.Insert(album).Execute();
             //Check that the values exists using core driver
-            var row = _session.Execute(new SimpleStatement("SELECT * FROM albums WHERE id = ?").Bind(id)).First();
+            var row = _session.Execute(new SimpleStatement("SELECT * FROM albums WHERE id = ?", id)).First();
             Assert.AreEqual("Mothership", row.GetValue<object>("name"));
             var songs = row.GetValue<List<Song>>("songs");
             Assert.NotNull(songs);

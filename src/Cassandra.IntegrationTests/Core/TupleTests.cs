@@ -112,8 +112,8 @@ namespace Cassandra.IntegrationTests.Core
                 new Tuple<string, int>(null, 100),
                 new Tuple<string, int>(@"¯\_(ツ)_/¯", 150)
             };
-            var insert = new SimpleStatement("INSERT INTO " + _tableName + " (id, achievements) values (?, ?)");
-            _session.Execute(insert.Bind(31, achievements));
+            var insert = new SimpleStatement("INSERT INTO " + _tableName + " (id, achievements) values (?, ?)", 31, achievements);
+            _session.Execute(insert);
             var row = _session.Execute("SELECT * FROM " + _tableName + " WHERE id = 31").First();
 
             Assert.AreEqual(achievements, row.GetValue<List<Tuple<string, int>>>("achievements"));

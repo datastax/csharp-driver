@@ -226,7 +226,7 @@ namespace Cassandra.IntegrationTests.Core
             var id = Guid.NewGuid();
             var insertStatement = _session.Prepare(String.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName));
             _session.Execute(insertStatement.Bind(id, "sample text").SetTimestamp(timestamp));
-            var row = _session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName)).Bind(id)).First();
+            var row = _session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
             Assert.NotNull(row.GetValue<string>("text_sample"));
         }
 

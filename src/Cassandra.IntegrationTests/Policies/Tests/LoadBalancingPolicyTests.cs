@@ -427,8 +427,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 key += (char)i;
                 var partitionKey = Encoding.UTF8.GetBytes(key);
-                var statement = new SimpleStatement("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES (?, ?)")
-                    .Bind(key, i)
+                var statement = new SimpleStatement("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES (?, ?)", key, i)
                     .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
                     .EnableTracing();
                 var rs = session.Execute(statement);
