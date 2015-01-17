@@ -66,63 +66,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(expectedSet, row.GetValue<List<string>>("set_sample"));
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        public void NestedCollectionsTest()
-        {
-            //Nested collections are supported in C* 2.1.3 and above
-            if (CassandraVersion < Version.Parse("2.1.3"))
-            {
-                Assert.Ignore("Nested frozen collections are supported in 2.1.3 and above");
-                return;
-            }
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
-            {
-                const string ks = "ks_frozen_collections";
-                const string table = ks + ".tbl1";
-                session.Execute(String.Format("CREATE KEYSPACE IF NOT EXISTS {0} WITH replication = {1};", ks, "{'class': 'SimpleStrategy', 'replication_factor' : 3}"));
-                session.Execute(String.Format("CREATE TABLE IF NOT EXISTS {0} " +
-                                              "(id int primary key, " +
-                                              "map1 map<text, frozen<list<text>>>," +
-                                              "map2 map<int, frozen<map<text, bigint>>>," +
-                                              "list1 list<frozen<map<text, float>>>)", table));
-                var insertQuery = String.Format("INSERT INTO {0} (id, map1, map2, list1) VALUES (?, ?, ?, ?)", table);
-                var map1Value = new Dictionary<string, IEnumerable<string>>
-                {
-                    {"km1_1", new List<string> {"v1", "v2"}},
-                    {"km1_2", new List<string> {"a1", "a2"}}
-                };
-                var map2Value = new Dictionary<int, IDictionary<string, long>>
-                {
-                    {100, new Dictionary<string, long> {{"n1", 1L}, {"n2", 2L}}}
-                };
-                var list1Value = new List<IDictionary<string, float>>
-                {
-                    new SortedDictionary<string, float> {{"m1", 1.123F}}
-                };
-                session.Execute(new SimpleStatement(insertQuery).Bind(1, map1Value, map2Value, list1Value));
-
-                var row = session.Execute(String.Format("SELECT * FROM {0} WHERE id = 1", table)).First();
-                var obtainedMap1 = row.GetValue<IDictionary<string, IEnumerable<string>>>("map1");
-                var obtainedMap2 = row.GetValue<IDictionary<int, IDictionary<string, long>>>("map2");
-                var obtainedList1 = row.GetValue<IList<IDictionary<string, float>>>("list1");
-                Assert.NotNull(obtainedMap1);
-                Assert.NotNull(obtainedMap2);
-                Assert.NotNull(obtainedList1);
-                Assert.AreEqual(2, obtainedMap1.Count);
-                Assert.AreEqual(1, obtainedMap2.Count);
-                Assert.AreEqual(1, obtainedList1.Count);
-                CollectionAssert.AreEqual(new[] { "v1", "v2" }, obtainedMap1["km1_1"]);
-                CollectionAssert.AreEqual(new[] { "a1", "a2" }, obtainedMap1["km1_2"]);
-                CollectionAssert.AreEqual(new Dictionary<string, long> { { "n1", 1L }, { "n2", 2L } }, obtainedMap2[100]);
-                CollectionAssert.AreEqual(new SortedDictionary<string, float> {{"m1", 1.123F}}, obtainedList1[0]);
-            }
-        }
-
         public void CheckingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,string pendingMode = "")
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
-            string cassandraKeyDataTypeName = "";
-
             string openBracket = CassandraCollectionType == "list" ? "[" : "{";
             string closeBracket = CassandraCollectionType == "list" ? "]" : "}";
             string mapSyntax = "";
@@ -131,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
 
             if (TypeOfKeyForMap != null)
             {
-                cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
+                string cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
                 if (TypeOfKeyForMap == typeof (DateTimeOffset))
