@@ -192,9 +192,7 @@ namespace Cassandra.IntegrationTests.Core
                 ISession localSession = localCluster.Connect();
                 localSession.CreateKeyspaceIfNotExists(keyspaceName);
                 localSession.ChangeKeyspace(keyspaceName);
-
-                localSession.WaitForSchemaAgreement(
-                    localSession.Execute(String.Format(TestUtils.CreateTableAllTypes, "sampletable")));
+                localSession.Execute(String.Format(TestUtils.CreateTableAllTypes, "sampletable"));
                 var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
                 var rowLength = 100;
                 var rnd = new Random();
@@ -232,21 +230,20 @@ namespace Cassandra.IntegrationTests.Core
             Cluster localCluster = _builder.Build();
             ISession localSession = localCluster.Connect();
             string keyspaceName = "kp_mat_" + Randomm.RandomAlphaNum(8);
-            localSession.WaitForSchemaAgreement(
-                localSession.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} 
-                     WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
-                                  , keyspaceName)));
+            localSession.Execute(
+                string.Format(@"CREATE KEYSPACE {0} 
+                    WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};"
+                                , keyspaceName));
             localSession.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Randomm.RandomAlphaNum(8);
-            localSession.WaitForSchemaAgreement(
-                localSession.Execute(string.Format(@"CREATE TABLE {0}(
-                        tweet_id uuid,
-                        author text,
-                        body text,
-                        isok boolean,
-                        PRIMARY KEY(tweet_id))", tableName)));
+            
+            localSession.Execute(string.Format(@"CREATE TABLE {0}(
+                    tweet_id uuid,
+                    author text,
+                    body text,
+                    isok boolean,
+                    PRIMARY KEY(tweet_id))", tableName));
 
             int RowsNo = 100;
             var ar = new bool[RowsNo];
@@ -299,22 +296,20 @@ namespace Cassandra.IntegrationTests.Core
             Cluster localCluster = _builder.Build();
             ISession localSession = localCluster.Connect();
             string keyspaceName = "keyspace" + Guid.NewGuid().ToString("N").ToLower();
-            localSession.WaitForSchemaAgreement(
-                localSession.Execute(
-                    string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName)));
+            localSession.Execute(
+                    string.Format(@"CREATE KEYSPACE {0} WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : 2 }};", keyspaceName));
             localSession.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                localSession.WaitForSchemaAgreement(
-                    localSession.Execute(string.Format(@"
-                        CREATE TABLE {0}(
-                        tweet_id uuid,
-                        author text,
-                        body text,
-                        isok boolean,
-                        PRIMARY KEY(tweet_id))", tableName)));
+                localSession.Execute(string.Format(@"
+                    CREATE TABLE {0}(
+                    tweet_id uuid,
+                    author text,
+                    body text,
+                    isok boolean,
+                    PRIMARY KEY(tweet_id))", tableName));
             }
             catch (AlreadyExistsException)
             {

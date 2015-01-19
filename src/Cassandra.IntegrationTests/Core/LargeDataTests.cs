@@ -233,15 +233,14 @@ namespace Cassandra.IntegrationTests.Core
         {
             session.CreateKeyspaceIfNotExists(KeyspaceNameDefault);
             session.ChangeKeyspace(KeyspaceNameDefault);
-            session.WaitForSchemaAgreement(
-                session.Execute(string.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k))", tableName, cqlType)));
+            session.Execute(string.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k))", tableName, cqlType));
         }
 
         // Test a wide row
         private static void TestWideRows(ISession session, string tableName)
         {
             string cql = string.Format("CREATE TABLE {0} (i INT, str {1}, PRIMARY KEY(i,str))", tableName, "text");
-            session.WaitForSchemaAgreement(session.Execute(cql));
+            session.Execute(cql);
 
             // Write data
             //Use a row length of 1024, we are testing the driver not Cassandra itself
@@ -268,7 +267,7 @@ namespace Cassandra.IntegrationTests.Core
         private static void TestWideBatchRows(ISession session, string tableName)
         {
             string cql = String.Format("CREATE TABLE {0} (i INT, str {1}, PRIMARY KEY(i,str))", tableName, "text");
-            session.WaitForSchemaAgreement(session.Execute(cql));
+            session.Execute(cql);
 
             // Write data        
             List<string> expectedStrings = new List<string>();
@@ -296,8 +295,7 @@ namespace Cassandra.IntegrationTests.Core
         // Test a wide row consisting of a ByteBuffer
         private static void TestByteRows(ISession session, string tableName)
         {
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "BLOB")));
+            session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "BLOB"));
 
             // Build small ByteBuffer sample
             var bw = new BEBinaryWriter();
@@ -322,8 +320,7 @@ namespace Cassandra.IntegrationTests.Core
         // Test a row with a single extra large text value
         private static void TestLargeText(ISession session, string tableName)
         {
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "text")));
+            session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "text"));
 
             // Write data
             var b = new StringBuilder();
@@ -364,7 +361,7 @@ namespace Cassandra.IntegrationTests.Core
         // Creates a table with 330 columns
         private static void TestWideTable(ISession session, String tableName)
         {
-            session.WaitForSchemaAgreement(session.Execute(GetTableDeclaration(tableName)));
+            session.Execute(GetTableDeclaration(tableName));
 
             // Write data            
             var insrt = new StringBuilder("INSERT INTO " + tableName + "(k");

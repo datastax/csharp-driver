@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.Core
             _session.CreateKeyspaceIfNotExists(Keyspace);
             try
             {
-                _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+                _session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
             }
             catch (Cassandra.AlreadyExistsException) { }
 

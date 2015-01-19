@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
                               + "    PRIMARY KEY (k, c)"
                               + ") WITH COMPACT STORAGE";
 
-            _session.WaitForSchemaAgreement(_session.Execute(tabledef));
+            _session.Execute(tabledef);
 
             _session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 's@foo:i@32', 1)");
             _session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 'i@42', 2)");

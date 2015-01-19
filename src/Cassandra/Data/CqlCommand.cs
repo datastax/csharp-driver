@@ -182,7 +182,7 @@ namespace Cassandra.Data
                 if (cm.StartsWith("CREATE ")
                     || cm.StartsWith("DROP ")
                     || cm.StartsWith("ALTER "))
-                    managedConnection.WaitForSchemaAgreement(managedConnection.Execute(_commandText, ConsistencyLevel));
+                    managedConnection.Execute(_commandText, ConsistencyLevel);
                 else
                     managedConnection.Execute(_commandText, ConsistencyLevel);
             }
@@ -193,7 +193,7 @@ namespace Cassandra.Data
                 if (cm.StartsWith("CREATE ")
                     || cm.StartsWith("DROP ")
                     || cm.StartsWith("ALTER "))
-                    managedConnection.WaitForSchemaAgreement(managedConnection.Execute(query));
+                    managedConnection.Execute(query);
                 else
                     managedConnection.Execute(query);
             }

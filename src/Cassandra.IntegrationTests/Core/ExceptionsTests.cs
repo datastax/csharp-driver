@@ -225,11 +225,9 @@ namespace Cassandra.IntegrationTests.Core
             string tableName = "TestTable_" + Randomm.RandomAlphaNum(10);
             int replicationFactor = 2;
             string key = "1";
-
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspaceName, replicationFactor)));
+            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspaceName, replicationFactor));
             session.ChangeKeyspace(keyspaceName);
-            session.WaitForSchemaAgreement(session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, tableName)));
+            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, tableName));
 
             session.Execute(
                 new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, tableName, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
@@ -284,11 +282,9 @@ namespace Cassandra.IntegrationTests.Core
             int replicationFactor = 2;
             string key = "1";
 
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, replicationFactor)));
+            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, replicationFactor));
             session.ChangeKeyspace(keyspace);
-            session.WaitForSchemaAgreement(
-                session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table)));
+                session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
 
             session.Execute(
                 new SimpleStatement(

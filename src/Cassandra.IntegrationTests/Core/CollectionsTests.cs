@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
             _session = TestClusterManager.GetTestCluster(1).Session;
             try
             {
-                _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+                _session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
             }
             catch (Cassandra.AlreadyExistsException) { }
         }

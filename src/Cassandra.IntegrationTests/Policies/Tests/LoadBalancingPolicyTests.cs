@@ -380,7 +380,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var session = testCluster.Session;
             policyTestTools.CreateSchema(session);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            session.WaitForSchemaAgreement(session.Execute(String.Format("CREATE TABLE {0} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))", policyTestTools.TableName)));
+            session.Execute(String.Format("CREATE TABLE {0} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))", policyTestTools.TableName));
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
             {
@@ -420,7 +420,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var session = testCluster.Session;
             policyTestTools.CreateSchema(session);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            session.WaitForSchemaAgreement(session.Execute(String.Format("CREATE TABLE {0} (k text PRIMARY KEY, i int)", policyTestTools.TableName)));
+            session.Execute(String.Format("CREATE TABLE {0} (k text PRIMARY KEY, i int)", policyTestTools.TableName));
             var traces = new List<QueryTrace>();
             string key = "value";
             for (var i = 100; i < 140; i++)

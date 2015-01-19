@@ -319,7 +319,6 @@ namespace Cassandra.IntegrationTests.Core
                         WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
                         AND durable_writes={3};", keyspaceName, strategyClass, 1, durableWrites);
             var rowSet = session.Execute(cql);
-            session.WaitForSchemaAgreement(rowSet);
             session.ChangeKeyspace(keyspaceName);
 
             for (var i = 0; i < 10; i++)
@@ -432,7 +431,7 @@ namespace Cassandra.IntegrationTests.Core
                     c int,
                     d int,
                     PRIMARY KEY ((a, b, c)))";
-            session.WaitForSchemaAgreement(session.Execute(cql));
+            session.Execute(cql);
 
             table = cluster.Metadata
                            .GetKeyspace(keyspaceName)

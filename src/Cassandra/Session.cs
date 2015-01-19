@@ -291,18 +291,11 @@ namespace Cassandra
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-            WaitForSchemaAgreement(rs.Info.QueriedHost);
+            
         }
 
         public bool WaitForSchemaAgreement(IPEndPoint hostAddress)
         {
-            //TODO: Remove method
-            if (Cluster.Metadata.AllHosts().Count == 1)
-            {
-                return true;
-            }
-            //This is trivial, but there isn't a reliable way to wait for all nodes to have the same schema.
-            Thread.Sleep(1000 + (int)(300 * Math.Pow(2, Cluster.Metadata.AllHosts().Count)));
             return false;
         }
 

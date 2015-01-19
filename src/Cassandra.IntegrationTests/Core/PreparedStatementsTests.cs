@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
             _session = _testCluster.Session;
             try
             {
-                _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+                _session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
             }
             catch (AlreadyExistsException) { }
         }
@@ -306,7 +306,7 @@ namespace Cassandra.IntegrationTests.Core
             var pageSize = 10;
             var totalRowLength = 1003;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, table)));
+            _session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
                 _session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
@@ -334,7 +334,7 @@ namespace Cassandra.IntegrationTests.Core
             var pageSize = 25;
             var totalRowLength = 300;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, table)));
+            _session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
                 _session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
@@ -368,7 +368,7 @@ namespace Cassandra.IntegrationTests.Core
             var totalRowLength = 300;
             var times = 10;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            _session.WaitForSchemaAgreement(_session.Execute(String.Format(TestUtils.CreateTableAllTypes, table)));
+            _session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
                 _session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
@@ -732,9 +732,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                nonShareableSession.WaitForSchemaAgreement(
-                    nonShareableSession.Execute("CREATE TABLE " + fqKeyspaceName + "test(k text PRIMARY KEY, i int)")
-                    );
+                nonShareableSession.Execute("CREATE TABLE " + fqKeyspaceName + "test(k text PRIMARY KEY, i int)");
             }
             catch (AlreadyExistsException)
             {

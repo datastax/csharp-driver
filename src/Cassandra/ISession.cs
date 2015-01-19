@@ -152,7 +152,9 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery);
+        [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);
+        [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         bool WaitForSchemaAgreement(IPEndPoint forHost);
     }
 }
