@@ -31,9 +31,12 @@ namespace Cassandra
     {
         private const string SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const string SelectSingleKeyspace = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{0}'";
+        private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
+        private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>(1, 0);
+        private readonly Configuration _config;
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
@@ -52,9 +55,10 @@ namespace Cassandra
 
         internal Hosts Hosts { get; private set; }
 
-        internal Metadata(IReconnectionPolicy rp)
+        internal Metadata(Configuration config)
         {
-            Hosts = new Hosts(rp);
+            _config = config;
+            Hosts = new Hosts(config.Policies.ReconnectionPolicy);
             Hosts.Down += OnHostDown;
         }
 
@@ -319,6 +323,44 @@ namespace Cassandra
             if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
             {
                 ksMetadata.ClearTableMetadata(tableName);
+            }
+        }
+
+        /// <summary>
+        /// Waits until that the schema version in all nodes is the same or the waiting time passed.
+        /// </summary>
+        internal void WaitForSchemaAgreement()
+        {
+            if (Hosts.Count == 1)
+            {
+                return;
+            }
+            var start = DateTime.Now;
+            var waitSeconds = _config.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
+            Logger.Verbose("Waiting for schema agreement");
+            try
+            {
+                var versions = new HashSet<Guid>();
+                while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
+                {
+                    versions.Clear();
+                    versions.Add(ControlConnection.Query(SelectSchemaVersionLocal, true).First().GetValue<Guid>("schema_version"));
+                    var peerVersions = ControlConnection.Query(SelectSchemaVersionPeers, true).Select(r => r.GetValue<Guid>("schema_version"));
+                    foreach (var v in peerVersions)
+                    {
+                        versions.Add(v);
+                    }
+                    if (versions.Count == 1)
+                    {
+                        return;
+                    }
+                    Thread.Sleep(500);
+                }
+                Logger.Info(String.Format("Waited for schema agreement, still {0} schema versions in the cluster.", versions.Count));
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
             }
         }
     }

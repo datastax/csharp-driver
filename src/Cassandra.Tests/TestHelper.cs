@@ -82,7 +82,7 @@ namespace Cassandra.Tests
         /// </summary>
         public static void ParallelInvoke(Action action, int times)
         {
-            ParallelInvoke(new List<Action>(Enumerable.Repeat<Action>(action, 100)));
+            ParallelInvoke(new List<Action>(Enumerable.Repeat(action, times)));
         }
 
         /// <summary>

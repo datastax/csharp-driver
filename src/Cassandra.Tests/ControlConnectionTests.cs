@@ -32,9 +32,8 @@ namespace Cassandra.Tests
         [Test]
         public void UpdateLocalNodeInfoModifiesHost()
         {
-            var rp = new ConstantReconnectionPolicy(1000);
-            var metadata = new Metadata(rp);
             var config = new Configuration();
+            var metadata = new Metadata(config);
             var cc = new ControlConnection(GetCluster(), metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
@@ -50,9 +49,8 @@ namespace Cassandra.Tests
         [Test]
         public void UpdatePeersInfoModifiesPool()
         {
-            var rp = new ConstantReconnectionPolicy(1000);
-            var metadata = new Metadata(rp);
             var config = new Configuration();
+            var metadata = new Metadata(config);
             var cc = new ControlConnection(GetCluster(), metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
@@ -80,8 +78,7 @@ namespace Cassandra.Tests
         [Test]
         public void UpdatePeersInfoWithNullRpcIgnores()
         {
-            var rp = new ConstantReconnectionPolicy(1000);
-            var metadata = new Metadata(rp);
+            var metadata = new Metadata(new Configuration());
             var cc = new ControlConnection(GetCluster(), metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
@@ -104,8 +101,7 @@ namespace Cassandra.Tests
                 .Callback<IPEndPoint>(invokedEndPoints.Add)
                 .Returns<IPEndPoint>(e => e);
             const int portNumber = 9999;
-            var rp = new ConstantReconnectionPolicy(1000);
-            var metadata = new Metadata(rp);
+            var metadata = new Metadata(new Configuration());
             var config = new Configuration(new Policies(),
                  new ProtocolOptions(portNumber),
                  null,

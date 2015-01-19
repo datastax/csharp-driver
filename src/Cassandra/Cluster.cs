@@ -98,7 +98,7 @@ namespace Cassandra
         private Cluster(IEnumerable<IPEndPoint> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
-            _metadata = new Metadata(configuration.Policies.ReconnectionPolicy);
+            _metadata = new Metadata(configuration);
             foreach (var ep in contactPoints)
             {
                 _metadata.AddHost(ep);

@@ -30,6 +30,7 @@ namespace Cassandra
         private readonly SSLOptions _sslOptions;
         private CompressionType _compression = CompressionType.NoCompression;
         private IFrameCompressor _compressor;
+        private int _maxSchemaAgreementWaitSeconds = 10;
 
         /// <summary>
         ///  The port used to connect to the Cassandra hosts.
@@ -67,6 +68,14 @@ namespace Cassandra
         public IFrameCompressor CustomCompressor
         {
             get { return _compressor; }
+        }
+
+        /// <summary>
+        /// Gets the maximum time to wait for schema agreement before returning from a DDL query.
+        /// </summary>
+        public int MaxSchemaAgreementWaitSeconds 
+        {
+            get { return _maxSchemaAgreementWaitSeconds; }
         }
 
         /// <summary>
@@ -121,6 +130,15 @@ namespace Cassandra
         public ProtocolOptions SetCustomCompressor(IFrameCompressor compressor)
         {
             _compressor = compressor;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the maximum time to wait for schema agreement before returning from a DDL query.
+        /// </summary>
+        public ProtocolOptions SetMaxSchemaAgreementWaitSeconds(int value)
+        {
+            _maxSchemaAgreementWaitSeconds = value;
             return this;
         }
     }

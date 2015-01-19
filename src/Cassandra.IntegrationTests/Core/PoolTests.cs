@@ -425,5 +425,47 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(3, TestHelper.GetLastAddressByte(invokedEndPoints.Last()));
             cluster.Dispose();
         }
+
+        /// <summary>
+        /// Tests that a node is down and the schema is not the same, it waits until the max wait time is reached
+        /// </summary>
+        [Test]
+        public void ClusterWaitsForSchemaChangesUntilMaxWaitTimeIsReached()
+        {
+            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, 0, true, false);
+            nonShareableTestCluster.Stop(2);
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
+                                        .Build())
+            {
+                var session = cluster.Connect();
+                //Will wait for all the nodes to have the same schema
+                session.Execute("CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}");
+            }
+        }
+
+        /// <summary>
+        /// Tests that a node is down and the schema is not the same, it waits until the max wait time is reached
+        /// </summary>
+        [Test]
+        public void ClusterWaitsForSchemaChangesUntilMaxWaitTimeIsReachedMultiple()
+        {
+            var index = 0;
+            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, 0, true, false);
+            nonShareableTestCluster.Stop(2);
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
+                                        .Build())
+            {
+                var session = cluster.Connect();
+                //Will wait for all the nodes to have the same schema
+                session.Execute("CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}");
+                session.ChangeKeyspace("ks1");
+                TestHelper.ParallelInvoke(() =>
+                {
+                    session.Execute("CREATE TABLE tbl1" + Interlocked.Increment(ref index) + " (id uuid primary key)");
+                }, 10);
+            }
+        }
     }
 }

@@ -89,8 +89,12 @@ namespace Cassandra
         /// <summary>
         /// Fills the common properties of the RowSet
         /// </summary>
-        private RowSet FillRowSet(RowSet rs)
+        private RowSet FillRowSet(RowSet rs, IOutput output)
         {
+            if (output != null && output.TraceId != null)
+            {
+                rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
+            }
             rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
             if (_request is ICqlRequest)
             {
@@ -229,7 +233,7 @@ namespace Cassandra
                     if (typeof(T).IsAssignableFrom(typeof(RowSet)))
                     {
                         var rs = new RowSet();
-                        _tcs.TrySetResult((T)(object) FillRowSet(rs));
+                        _tcs.TrySetResult((T)(object) FillRowSet(rs, null));
                     }
                     else
                     {
@@ -274,7 +278,13 @@ namespace Cassandra
         private void HandleRowSetResult(AbstractResponse response)
         {
             ValidateResult(response);
-            var output = ((ResultResponse)response).Output;
+            var output = ((ResultResponse)response).Output; 
+            if (output is OutputSchemaChange)
+            {
+                //Schema changes need to do blocking operations
+                HandleSchemaChange(output);
+                return;
+            }
             RowSet rs;
             if (output is OutputRows)
             {
@@ -288,12 +298,18 @@ namespace Cassandra
                 }
                 rs = new RowSet();
             }
-            if (output.TraceId != null)
+            _tcs.TrySetResult((T)(object)FillRowSet(rs, output));
+        }
+
+        private void HandleSchemaChange(IOutput output)
+        {
+            //Use one of the worker/executor threads to wait on the schema change
+            Task.Factory.StartNew(() =>
             {
-                rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
-            }
-            FillRowSet(rs);
-            _tcs.TrySetResult((T)(object)rs);
+                _session.Cluster.Metadata.WaitForSchemaAgreement();
+                //Set the result from the worker thread
+                _tcs.TrySetResult((T)(object)FillRowSet(new RowSet(), output));
+            });
         }
 
         private void PrepareAndRetry(byte[] id)

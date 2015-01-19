@@ -39,6 +39,14 @@ namespace Cassandra
         /// </summary>
         internal event Action<Host> Removed;
 
+        /// <summary>
+        /// Gets the total amount of hosts in the cluster
+        /// </summary>
+        internal int Count
+        {
+            get { return _hosts.Count; }
+        }
+
         public Hosts(IReconnectionPolicy rp)
         {
             _rp = rp;

@@ -120,7 +120,7 @@ namespace Cassandra
         }
 
         internal Configuration() :
-            this(new Policies(),
+            this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
                  null,
                  new SocketOptions(),
