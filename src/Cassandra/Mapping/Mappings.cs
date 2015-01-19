@@ -24,8 +24,6 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> For<TPoco>()
         {
-            Type pocoType = typeof (TPoco);
-
             ITypeDefinition map;
             if (Definitions.TryGetItem(typeof (TPoco), out map) == false)
             {

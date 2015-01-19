@@ -27,8 +27,6 @@ namespace Snappy
     {
         private static readonly IMemory _memory = new SlowMemory();
 
-        private static readonly bool _hasUnsage = _memory.FastAccessSupported();
-
         private SnappyInternalUtils()
         {
         }
