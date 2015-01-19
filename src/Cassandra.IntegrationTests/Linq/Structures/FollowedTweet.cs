@@ -17,6 +17,7 @@
 using System;
 using Cassandra.Data.Linq;
 using System.Diagnostics;
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {

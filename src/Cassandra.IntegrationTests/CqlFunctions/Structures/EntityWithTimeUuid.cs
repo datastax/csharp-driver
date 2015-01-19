@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.CqlFunctions.Structures
 {

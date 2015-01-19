@@ -23,6 +23,8 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using NUnit.Framework;
+#pragma warning disable 612
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {

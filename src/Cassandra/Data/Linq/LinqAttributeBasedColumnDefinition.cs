@@ -7,6 +7,7 @@ using Cassandra.Mapping;
 
 namespace Cassandra.Data.Linq
 {
+    [Obsolete]
     internal class LinqAttributeBasedColumnDefinition : IColumnDefinition
     {
         public MemberInfo MemberInfo { get; private set; }

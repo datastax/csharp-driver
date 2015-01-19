@@ -6,6 +6,8 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
+#pragma warning disable 618
+#pragma warning disable 612
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {

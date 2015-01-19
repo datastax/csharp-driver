@@ -11,6 +11,7 @@ namespace Cassandra.Data.Linq
     /// A type definition that uses Linq attributes on the class to determine its settings.
     /// It uses Linq default backward-compatible settings (like case sensitivity)
     /// </summary>
+    [Obsolete]
     internal class LinqAttributeBasedTypeDefinition : ITypeDefinition
     {
         private const BindingFlags PublicInstanceBindingFlags = BindingFlags.Public | BindingFlags.Instance;

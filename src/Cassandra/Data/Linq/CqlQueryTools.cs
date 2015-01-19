@@ -245,14 +245,5 @@ namespace Cassandra.Data.Linq
 
             throw new ArgumentException("Unsupported datatype " + tpy.Name + ". Supported are: " + supportedTypes.ToString() + ".");
         }
-
-        internal static string CalculateMemberName(MemberInfo prop)
-        {
-            string memName = prop.Name;
-            var propNameAttr = prop.GetCustomAttributes(typeof (ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
-            if (propNameAttr != null && !string.IsNullOrEmpty(propNameAttr.Name))
-                memName = propNameAttr.Name;
-            return memName;
-        }
     }
 }

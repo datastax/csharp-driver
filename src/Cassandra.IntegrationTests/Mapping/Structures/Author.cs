@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.LinqMethods;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Mapping.Structures
 {

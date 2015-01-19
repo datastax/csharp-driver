@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {

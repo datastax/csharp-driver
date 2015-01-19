@@ -18,6 +18,7 @@ using System;
 
 namespace Cassandra.Data.Linq
 {
+    [Obsolete("Linq attributes are deprecated, use mapping attributes defined in Cassandra.Mapping.Attributes instead.")]
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
     public sealed class ColumnAttribute : Attribute
     {

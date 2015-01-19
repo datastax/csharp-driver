@@ -21,6 +21,7 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Specifies table information for a given class
     /// </summary>
+    [Obsolete("Linq attributes are deprecated, use mapping attributes defined in Cassandra.Mapping.Attributes instead.")]
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
     public sealed class TableAttribute : Attribute
     {
