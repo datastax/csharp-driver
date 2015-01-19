@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,9 +12,13 @@ namespace Cassandra.Mapping.Statements
     internal class StatementFactory
     {
         private readonly ConcurrentDictionary<string, Task<PreparedStatement>> _statementCache;
+        private static readonly Logger Logger = new Logger(typeof(StatementFactory));
+
+        public int MaxPreparedStatementsThreshold { get; set; }
 
         public StatementFactory()
         {
+            MaxPreparedStatementsThreshold = 500;
             _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
         }
 
@@ -30,6 +35,10 @@ namespace Cassandra.Mapping.Statements
                 .GetOrAdd(cql.Statement, session.PrepareAsync)
                 .Continue(t =>
                 {
+                    if (_statementCache.Count > MaxPreparedStatementsThreshold)
+                    {
+                        Logger.Warning(String.Format("The prepared statement cache contains {0} queries. Use parameter markers for queries. You can configure this warning threshold using MappingConfiguration.SetMaxStatementPreparedThreshold() method.", _statementCache.Count));
+                    }
                     var boundStatement = t.Result.Bind(cql.Arguments);
                     cql.QueryOptions.CopyOptionsToStatement(boundStatement);
                     return (Statement)boundStatement;
