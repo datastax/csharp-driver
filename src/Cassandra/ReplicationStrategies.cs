@@ -19,7 +19,10 @@ using System.Globalization;
 
 namespace Cassandra
 {
-    internal static class ReplicationStrategies
+    /// <summary>
+    /// Provides utility methods to build replication strategies when creating a keyspace
+    /// </summary>
+    public static class ReplicationStrategies
     {
         public const string NetworkTopologyStrategy = "NetworkTopologyStrategy";
         public const string SimpleStrategy = "SimpleStrategy";
@@ -46,9 +49,14 @@ namespace Cassandra
             Dictionary<string, int> datacentersReplicationFactors)
         {
             var result = new Dictionary<string, string> {{"class", NetworkTopologyStrategy}};
-            if (datacentersReplicationFactors.Count > 0)
-                foreach (KeyValuePair<string, int> datacenter in datacentersReplicationFactors)
-                    result.Add(datacenter.Key, datacenter.Value.ToString(CultureInfo.InvariantCulture));
+            if (datacentersReplicationFactors.Count <= 0)
+            {
+                return result;
+            }
+            foreach (var datacenter in datacentersReplicationFactors)
+            {
+                result.Add(datacenter.Key, datacenter.Value.ToString(CultureInfo.InvariantCulture));
+            }
             return result;
         }
 
@@ -64,9 +72,14 @@ namespace Cassandra
         public static Dictionary<string, string> CreateReplicationProperty(string strategyClass, Dictionary<string, string> subOptions)
         {
             var result = new Dictionary<string, string> {{"class", strategyClass}};
-            if (subOptions.Count > 0)
-                foreach (KeyValuePair<string, string> elem in subOptions)
-                    result.Add(elem.Key, elem.Value);
+            if (subOptions.Count <= 0)
+            {
+                return result;
+            }
+            foreach (var elem in subOptions)
+            {
+                result.Add(elem.Key, elem.Value);
+            }
             return result;
         }
     }
