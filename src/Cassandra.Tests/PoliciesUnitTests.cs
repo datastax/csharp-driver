@@ -202,6 +202,7 @@ namespace Cassandra.Tests
                     }
                 }
             };
+            TestHelper.ParallelInvoke(action, 100);
         }
 
         [Test]
@@ -213,7 +214,6 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("0.0.0.1", "dc1"),
                 TestHelper.CreateHost("0.0.0.2", "dc2")
             };
-            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
             var clusterMock = new Mock<ICluster>();
             clusterMock
                 .Setup(c => c.AllHosts())
@@ -325,7 +325,6 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("0.0.0.9", "dc1"),
                 TestHelper.CreateHost("0.0.0.10", "dc2")
             };
-            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
             const string localDc = "dc1";
 
             var clusterMock = new Mock<ICluster>();
@@ -359,7 +358,6 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("0.0.0.9", "dc1"),
                 TestHelper.CreateHost("0.0.0.10", "dc2")
             };
-            var localHostsLength = hostList.Count(h => h.Datacenter == "dc1");
             const string localDc = "dc1";
             //to remove the host 3
             var hostToRemove = hostList.First(h => TestHelper.GetLastAddressByte(h) == 3);

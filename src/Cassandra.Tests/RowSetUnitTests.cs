@@ -287,7 +287,7 @@ namespace Cassandra.Tests
             //Row with all null values
             var row = CreateSampleRowSet().Last();
             Assert.IsNull(row.GetValue<string>("text_sample"));
-            var ex = Assert.Throws<NullReferenceException>(() => row.GetValue<int>("int_sample"));
+            Assert.Throws<NullReferenceException>(() => row.GetValue<int>("int_sample"));
             Assert.DoesNotThrow(() => row.GetValue<int?>("int_sample"));
         }
 

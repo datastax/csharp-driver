@@ -50,7 +50,7 @@ namespace Cassandra.Tests
             var frame = new ResponseFrame(new FrameHeader(), new MemoryStream(new byte[] { 1 }));
 
             // Act
-            var uut = new AbstractResponse(frame);
+            new AbstractResponse(frame);
 
             // Assert
             Assert.AreEqual(0, frame.Body.Position);
@@ -84,7 +84,7 @@ namespace Cassandra.Tests
             var frame = new ResponseFrame(header, body);
 
             // Act
-            var uut = new AbstractResponse(frame);
+            new AbstractResponse(frame);
 
             // Assert
             Assert.AreEqual(16, body.Position);

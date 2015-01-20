@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                var output = ValidateResult<OutputPrepared>(task.Result);
+                ValidateResult<OutputPrepared>(task.Result);
             }
         }
 
@@ -326,7 +326,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void StreamModeReadAndWrite()
         {
-            var socketOptions = new SocketOptions();
             using (var connection = CreateConnection(new ProtocolOptions(), new SocketOptions().SetStreamMode(true)))
             {
                 connection.Init();

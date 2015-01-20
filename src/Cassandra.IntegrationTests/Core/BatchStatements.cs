@@ -156,7 +156,6 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Batch_UsingTwoTables()
         {
-            var expectedValues = new List<object[]>();
             var batch = new BatchStatement();
 
             CreateTwoTableTestEnv("table1", "table2");

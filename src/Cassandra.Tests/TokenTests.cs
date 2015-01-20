@@ -64,7 +64,6 @@ namespace Cassandra.Tests
         [Test]
         public void TokenMapSimpleStrategyWithKeyspaceTest()
         {
-            var rp = new ConstantReconnectionPolicy(1);
             var hosts = new List<Host>
             {
                 { TestHelper.CreateHost("192.168.0.0", "dc1", "rack", new HashSet<string>{"0"})},
@@ -114,7 +113,6 @@ namespace Cassandra.Tests
         [Test]
         public void TokenMapNetworkTopologyStrategyWithKeyspaceTest()
         {
-            var rp = new ConstantReconnectionPolicy(1);
             var hosts = new List<Host>
             {
                 { TestHelper.CreateHost("192.168.0.0", "dc1", "rack1", new HashSet<string>{"0"})},

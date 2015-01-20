@@ -502,7 +502,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var traces = new List<QueryTrace>();
             for (var i = 1; i < 10; i++)
             {
-                var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
                 //The partition key is wrongly calculated
                 var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
                     .SetRoutingKey(new RoutingKey() {RawRoutingKey = new byte[] {0, 0, 0, 0}})

@@ -304,7 +304,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithDefaultKeyspace("DOES_NOT_EXISTS_" + Randomm.RandomAlphaNum(12))
                 .Build();
 
-            var ex = Assert.Throws<InvalidQueryException>(() => cluster.Connect());
+            Assert.Throws<InvalidQueryException>(() => cluster.Connect());
             Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES"));
         }
 
