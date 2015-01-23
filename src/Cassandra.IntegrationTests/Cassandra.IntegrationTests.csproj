@@ -91,6 +91,7 @@
     <Compile Include="Linq\Structures\EntityWithDictionaryType.cs" />
     <Compile Include="Linq\Structures\EntityWithListType.cs" />
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
+    <Compile Include="Core\CollectionsNestedTests.cs" />
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />

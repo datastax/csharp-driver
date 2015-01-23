@@ -371,5 +371,122 @@ namespace Cassandra.Tests
             Assert.AreEqual("alias", phonesSubType.Fields[0].Name);
             Assert.AreEqual("number", phonesSubType.Fields[1].Name);
         }
+
+        [Test]
+        public void EncodeDecodeNestedList()
+        {
+            var initialValues = new object[]
+            {
+                new object[] {new List<IEnumerable<int>>{new List<int>(new [] {1, 2, 1000})}, ColumnTypeCode.List, GetNestedListColumnInfo(1, ColumnTypeCode.Int)},
+                new object[] {new List<IEnumerable<IEnumerable<int>>>{new List<IEnumerable<int>> {new List<int>(new [] {1, 2, 1000})}}, ColumnTypeCode.List, GetNestedListColumnInfo(2, ColumnTypeCode.Int)}
+            };
+            foreach (var version in _protocolVersions)
+            {
+                foreach (object[] value in initialValues)
+                {
+                    var originalType = value[0].GetType();
+                    var valueToEncode = (IEnumerable)value[0];
+                    var encoded = TypeCodec.Encode(version, valueToEncode);
+                    var decoded = (IEnumerable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], originalType);
+                    Assert.IsInstanceOf(originalType, decoded);
+                    CollectionAssert.AreEqual(valueToEncode, decoded);
+                }
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeNestedSet()
+        {
+            var initialValues = new object[]
+            {
+                new object[] {new SortedSet<IEnumerable<int>>{new SortedSet<int>(new [] {1, 2, 1000})}, ColumnTypeCode.Set, GetNestedSetColumnInfo(1, ColumnTypeCode.Int)},
+                new object[] {new SortedSet<IEnumerable<IEnumerable<int>>>{new SortedSet<IEnumerable<int>> {new SortedSet<int>(new [] {1, 2, 1000})}}, ColumnTypeCode.Set, GetNestedSetColumnInfo(2, ColumnTypeCode.Int)}
+            };
+            foreach (var version in _protocolVersions)
+            {
+                foreach (object[] value in initialValues)
+                {
+                    var originalType = value[0].GetType();
+                    var valueToEncode = (IEnumerable)value[0];
+                    var encoded = TypeCodec.Encode(version, valueToEncode);
+                    var decoded = (IEnumerable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], originalType);
+                    //The return type is not respected
+                    CollectionAssert.AreEqual(valueToEncode, decoded);
+                }
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeNestedMap()
+        {
+            var initialValues = new object[]
+            {
+                new object[] {
+                    new SortedDictionary<string, IEnumerable<int>>{{"first", new List<int>(new [] {1, 2, 1000})}}, 
+                    ColumnTypeCode.Map,
+                    new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.List, ValueTypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int}}
+                },
+                new object[] {
+                    new SortedDictionary<int, IEnumerable<string>>{{120, new SortedSet<string>(new [] {"a", "b", "c"})}}, 
+                    ColumnTypeCode.Map,
+                    new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Int, ValueTypeCode = ColumnTypeCode.Set, ValueTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Text}}
+                },
+                new object[] {
+                    new SortedDictionary<string, IDictionary<string, int>>{{"first-b", new SortedDictionary<string, int> {{"A", 1}, {"B", 2}}}}, 
+                    ColumnTypeCode.Map,
+                    new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Map, ValueTypeInfo = new MapColumnInfo{ KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Int}}
+                }
+            };
+            foreach (var version in _protocolVersions)
+            {
+                foreach (object[] value in initialValues)
+                {
+                    var originalType = value[0].GetType();
+                    var valueToEncode = (IEnumerable)value[0];
+                    var encoded = TypeCodec.Encode(version, valueToEncode);
+                    var decoded = (IEnumerable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], originalType);
+                    Assert.IsInstanceOf(originalType, decoded);
+                    CollectionAssert.AreEqual(valueToEncode, decoded);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Helper method to generate a list column info of nested lists
+        /// </summary>
+        private static ListColumnInfo GetNestedListColumnInfo(int level, ColumnTypeCode singleType)
+        {
+            var columnInfo = new ListColumnInfo();
+            if (level == 0)
+            {
+                columnInfo.ValueTypeCode = singleType;
+                columnInfo.ValueTypeInfo = null;
+            }
+            else
+            {
+                columnInfo.ValueTypeCode = ColumnTypeCode.List;
+                columnInfo.ValueTypeInfo = GetNestedListColumnInfo(level - 1, singleType);
+            }
+            return columnInfo;
+        }
+
+        /// <summary>
+        /// Helper method to generate a set column info of nested sets
+        /// </summary>
+        private static SetColumnInfo GetNestedSetColumnInfo(int level, ColumnTypeCode singleType)
+        {
+            var columnInfo = new SetColumnInfo();
+            if (level == 0)
+            {
+                columnInfo.KeyTypeCode = singleType;
+                columnInfo.KeyTypeInfo = null;
+            }
+            else
+            {
+                columnInfo.KeyTypeCode = ColumnTypeCode.Set;
+                columnInfo.KeyTypeInfo = GetNestedSetColumnInfo(level - 1, singleType);
+            }
+            return columnInfo;
+        }
     }
 }

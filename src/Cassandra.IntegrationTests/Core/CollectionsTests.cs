@@ -22,6 +22,7 @@ using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -29,17 +30,17 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class CollectionsTests : TestGlobals
     {
-        ISession _session = null;
+        private ISession _session;
+        private ITestCluster _testCluster;
+        private string _contactPoint = DefaultInitialContactPoint;
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetupFixture()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-            try
-            {
-                _session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
-            }
-            catch (Cassandra.AlreadyExistsException) { }
+            _testCluster = TestClusterManager.GetTestCluster(1);
+            _contactPoint = _testCluster.InitialContactPoint;
+            _session = _testCluster.Session;
+            _session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
         }
 
         private const string AllTypesTableName = "all_types_table_collections";
@@ -68,8 +69,6 @@ namespace Cassandra.IntegrationTests.Core
         public void CheckingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,string pendingMode = "")
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);
-            string cassandraKeyDataTypeName = "";
-
             string openBracket = CassandraCollectionType == "list" ? "[" : "{";
             string closeBracket = CassandraCollectionType == "list" ? "]" : "}";
             string mapSyntax = "";
@@ -78,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
 
             if (TypeOfKeyForMap != null)
             {
-                cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
+                string cassandraKeyDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfKeyForMap);
                 mapSyntax = cassandraKeyDataTypeName + ",";
 
                 if (TypeOfKeyForMap == typeof (DateTimeOffset))
