@@ -140,7 +140,7 @@ namespace Cassandra
             return this;
         }
 
-        public IEnumerator<Row> GetEnumerator()
+        public virtual IEnumerator<Row> GetEnumerator()
         {
             while (!IsExhausted())
             {

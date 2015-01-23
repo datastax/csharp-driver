@@ -22,6 +22,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Moq;
 
 namespace Cassandra.Tests
 {
@@ -289,6 +290,25 @@ namespace Cassandra.Tests
             Assert.IsNull(row.GetValue<string>("text_sample"));
             Assert.Throws<NullReferenceException>(() => row.GetValue<int>("int_sample"));
             Assert.DoesNotThrow(() => row.GetValue<int?>("int_sample"));
+        }
+
+        [Test]
+        public void RowsetIsMockable()
+        {
+            var rowMock = new Mock<Row>();
+            rowMock.Setup(r => r.GetValue<int>(It.Is<string>(n => n == "int_value"))).Returns(100);
+            var rows = new Row[]
+            {
+                rowMock.Object
+            };
+            var mock = new Mock<RowSet>();
+            mock
+                .Setup(r => r.GetEnumerator()).Returns(() => ((IEnumerable<Row>)rows).GetEnumerator());
+
+            var rs = mock.Object;
+            var rowArray = rs.ToArray();
+            Assert.AreEqual(rowArray.Length, 1);
+            Assert.AreEqual(rowArray[0].GetValue<int>("int_value"), 100);
         }
 
         /// <summary>

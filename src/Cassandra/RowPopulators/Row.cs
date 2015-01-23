@@ -151,13 +151,14 @@ namespace Cassandra
 
 
         /// <summary>
-        /// Gets the stored value in the column specified by index
+        /// Gets the stored value in the column specified by index.
         /// </summary>
         /// <typeparam name="T">Target type</typeparam>
         /// <param name="index">Index of the column</param>
         /// <returns></returns>
-        public T GetValue<T>(int index)
+        public virtual T GetValue<T>(int index)
         {
+            //The method is marked virtual to allow to be mocked
             var type = typeof (T);
             var value = GetValue(type, index);
             //Check that the value is null but the type is not nullable (structs)
@@ -171,13 +172,14 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the stored value in the column specified by name
+        /// Gets the stored value in the column specified by name.
         /// </summary>
         /// <typeparam name="T">Target type</typeparam>
         /// <param name="name">Name of the column</param>
         /// <returns></returns>
-        public T GetValue<T>(string name)
+        public virtual T GetValue<T>(string name)
         {
+            //The method is marked virtual to allow to be mocked
             if (!ColumnIndexes.ContainsKey(name))
             {
                 throw new ArgumentException(String.Format("Column {0} not found", name));
