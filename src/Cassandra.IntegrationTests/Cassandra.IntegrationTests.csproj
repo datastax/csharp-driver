@@ -99,6 +99,7 @@
     <Compile Include="Linq\Structures\AllDataTypesEntity.cs" />
     <Compile Include="Mapping\Structures\ContactMethod.cs" />
     <Compile Include="Mapping\Structures\ManyDataTypesPocoMappingCaseSensitive.cs" />
+    <Compile Include="Mapping\Structures\NestedCollectionsPoco.cs" />
     <Compile Include="Mapping\Structures\UserMapping.cs" />
     <Compile Include="Mapping\Structures\RainbowColor.cs" />
     <Compile Include="Mapping\Structures\User.cs" />

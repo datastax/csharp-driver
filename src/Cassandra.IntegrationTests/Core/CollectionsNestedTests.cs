@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -15,20 +12,15 @@ namespace Cassandra.IntegrationTests.Core
     {
         private string _contactPoint = DefaultInitialContactPoint;
 
-        [TestFixtureSetUp]
+        [SetUp]
         public void SetupFixture()
         {
-            if (CassandraVersion < Version.Parse("2.1.3"))
-            {
-                Assert.Ignore("Nested frozen collections are supported in 2.1.3 and above");
-                return;
-            }
-
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
             _contactPoint = testCluster.InitialContactPoint;
+            _contactPoint = DefaultInitialContactPoint;
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Upsert()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -52,7 +44,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Update()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -90,7 +82,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Update_SpecificMapValByKey()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -127,7 +119,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Upsert_IdFoundInSetPart()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -147,7 +139,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_SimpleStatements()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -170,7 +162,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_PreparedStatements()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -196,8 +188,11 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        [Ignore("Pending question -- CQL doesn't allow collections with null, but this seems to be failing on a client-parsing level, is this OK?")]
+        /// <summary>
+        /// Validate that an appropriate "invalid null" error is thrown when attempting to insert a null value into a list (collection)
+        /// NOTE: This is an ugly error right now, but there are plans to make it prettier in the near future
+        /// </summary>
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_PreparedStatements_ListWithNullValue()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
@@ -212,19 +207,13 @@ namespace Cassandra.IntegrationTests.Core
                 var list1Value = GetList1Val();
                 list1Value.Add(null);
 
-                // Insert
-                session.Execute(preparedStatement.Bind(1, map1Value, map2Value, list1Value));
-
-                // Validate the end state of data in C*
-                string cqlSelectStr = String.Format("SELECT id, map1, map2, list1 FROM {0} WHERE id = 1", fqTableName);
-                PreparedStatement preparedSelect = session.Prepare(cqlSelectStr);
-                var row = session.Execute(preparedSelect.Bind(new object[] { })).First();
-
-                ValidateSelectedNestedFrozenRow(row, map1Value, GetMap2Val(), GetList1Val());
+                // Validate Null Reference error is thrown
+                var err = Assert.Throws<NullReferenceException>(() => session.Execute(preparedStatement.Bind(1, map1Value, map2Value, list1Value)));
+                Assert.AreEqual("Object reference not set to an instance of an object.", err.Message);
             }
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_BatchStatements()
         {
             using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())

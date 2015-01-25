@@ -27,9 +27,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     /// <summary>
-    /// Test Cassandra Authentication methodologies.
-    /// 
-    /// Note: Currently only CCM offers the option to updated clusters' Authentication mechanisms on the fly
+    /// Test Cassandra Authentication.
     /// </summary>
     [TestFixture]
     public class SessionAuthenticationTests : TestGlobals
@@ -48,9 +46,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            // Reset authentication configuration for test cluster before trying to remove
-            CcmCluster customTestCluster = GetTestCcmClusterForAuthTests();
-            customTestCluster.CcmBridge.ExecuteCcm("updateconf \"authenticator: AllowAllAuthenticator\"", 3000, true);
+            _testClusterForAuthTesting.Remove();
         }
 
         private CcmCluster GetTestCcmClusterForAuthTests()

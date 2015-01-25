@@ -374,10 +374,11 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         ////////////////////////////////////////////////////////////////////////
 
         /// <summary>
-        /// Use SubtractAssign to remove a single value from a dictionary that contains a single value
+        /// Attempt to use SubtractAssign to remove a single value from a dictionary that contains a single value
+        /// Validate Error response
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Pending question -- this might not be possible for C* Maps, but the error message doesn't look good either")]
-        public void SubtractAssign_FromDictionary_AllValues()
+        [Test]
+        public void SubtractAssign_FromDictionary_NotAllowed()
         {
             Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(_session);
             Table<EntityWithDictionaryType> table = tupleDictionaryType.Item1;
@@ -390,15 +391,9 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
                 { singleEntity.DictionaryType.First().Key, singleEntity.DictionaryType.First().Value }, 
             };
 
-            // Remove the values
+            // Attempt to remove the data
             var updateStatement = table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.SubstractAssign(dictToDelete) }).Update();
-            updateStatement.Execute();
-
-            // Validate the final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.DictionaryType, singleEntity.DictionaryType);
-            expectedEntity.AssertEquals(entityList[0]);
+            var err = Assert.Throws<InvalidQueryException>(() => updateStatement.Execute());
         }
 
 

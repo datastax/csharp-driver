@@ -83,7 +83,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// overriding the default table name given via the class' "name" meta-tag
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_Create_NameOverride()
         {
             // Test
@@ -149,7 +148,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// Validate expected failure message
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_CreateTable_SameNameDifferentTypeAlreadyExists_TableNameOverride()
         {
             // First table name creation works as expected
@@ -223,7 +221,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// Validate error message.
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the override option doesn't seem to be getting passed in")]
         public void TableCreate_Create_KeyspaceOverride_NoSuchKeyspace()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
@@ -339,7 +336,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// Do not manually change the session to use the different keyspace
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the keyspace override option doesn't seem to be getting passed in")]
         public void TableCreate_Create_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
         {
             // Setup first table
@@ -372,7 +368,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         /// referencing second keyspace by passing in the override arg to table constructor
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
-        [NUnit.Framework.Ignore("Pending question -- the keyspace override option doesn't seem to be getting passed in")]
         public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
         {
             // Setup first table

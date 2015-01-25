@@ -30,16 +30,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class Fetch : TestGlobals
     {
-        ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(Fetch));
+        ISession _session;
         private string _uniqueKsName;
-        private ITestCluster _testCluster;
 
         [SetUp]
         public void SetupTest()
         {
-            _testCluster = TestClusterManager.GetTestCluster(1);
-            _session = _testCluster.Session;
+            _session = TestClusterManager.GetTestCluster(1).Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
@@ -55,7 +52,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Successfully Fetch mapped records by passing in a static query string
         /// </summary>
         [Test]
-        public void Fetch_UsingString()
+        public void Fetch_UsingSelectCqlString()
         {
             Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
             table.Create();
@@ -72,6 +69,26 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<Author> authors = mapper.Fetch<Author>("SELECT * from " + table.Name).ToList();
             Assert.AreEqual(1, authors.Count);
             expectedAuthor.AssertEquals(authors[0]);
+        }
+
+        /// <summary>
+        /// Successfully Fetch mapped records by passing in a static 'select' query string
+        /// using a Poco that contains various nested collections
+        /// 
+        /// @test_category data_types:collections
+        /// </summary>
+        [Test, TestCassandraVersion(2, 1, 3)]
+        [NUnit.Framework.Ignore("Pending question regarding error: 'Non-frozen collections are not allowed inside collections'")]
+        public void Fetch_UsingSelectCqlString_NestedCollections()
+        {
+            NestedCollectionsPoco.SetupDefaultTable(_session);
+            var mapper = new Mapper(_session, NestedCollectionsPoco.GetDefaultMappingConfig());
+
+            NestedCollectionsPoco nestedCollectionsPocoExpected = NestedCollectionsPoco.GetRandomInstance();
+            mapper.Insert(nestedCollectionsPocoExpected);
+            List<NestedCollectionsPoco> pocos = mapper.Fetch<NestedCollectionsPoco>("SELECT * from " + typeof(NestedCollectionsPoco).Name).ToList();
+            Assert.AreEqual(1, pocos.Count);
+            nestedCollectionsPocoExpected.AssertEquals(pocos[0]);
         }
 
         /// <summary>
