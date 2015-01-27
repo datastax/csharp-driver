@@ -261,7 +261,8 @@ namespace Cassandra.Mapping
                 {
                     var batchStatement = t.Result;
                     return _session.ExecuteAsync(batchStatement);
-                });
+                })
+                .Unwrap();
         }
 
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)

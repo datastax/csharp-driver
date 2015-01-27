@@ -66,7 +66,7 @@ namespace Cassandra.Mapping.Statements
                     batch.Add(t.Result);
                 }
                 return batch;
-            }, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion);
+            }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         public BatchStatement GetBatchStatement(ISession session, IEnumerable<Cql> cqlToBatch)

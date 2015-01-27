@@ -25,9 +25,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
             // drop table if exists, re-create
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            #pragma warning disable 612
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
             _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            #pragma warning restore 612
             _movieTable.Create();
 
 

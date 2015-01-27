@@ -37,5 +37,37 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(ConsistencyLevel.EachQuorum, consistency);
             Assert.AreEqual(ConsistencyLevel.Serial, serialConsistency);
         }
+
+        [Test]
+        public void Execute_Batch_Returns_WhenResponse_IsReceived()
+        {
+            var newUser = new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = "Dummy"
+            };
+
+            var rowsetReturned = false;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
+                .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>
+                {
+                    rowsetReturned = true;
+                    return t.Result;
+                }))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            var batch = mapper.CreateBatch();
+            batch.Insert(newUser);
+            //Execute
+            mapper.Execute(batch);
+            Assert.True(rowsetReturned);
+            sessionMock.Verify();
+        }
     }
 }
