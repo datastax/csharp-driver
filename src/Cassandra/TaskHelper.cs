@@ -178,14 +178,26 @@ namespace Cassandra
             PreserveStackHandler(ex);
             return ex;
         }
+
+        /// <summary>
+        /// Smart ContinueWith
+        /// </summary>
         public static Task<TOut> Continue<TIn, TOut>(this Task<TIn> task, Func<Task<TIn>, TOut> next)
         {
             if (!task.IsCompleted)
             {
                 //Do an actual continuation
-                return ContinueContext(task, next);
+                return task.ContinueWith(innerTask => DoNext(innerTask, next), TaskContinuationOptions.ExecuteSynchronously).Unwrap();
             }
             //Use the task result to build the task
+            return DoNext(task, next);
+        }
+
+        /// <summary>
+        /// Invokes the next task immediately
+        /// </summary>
+        private static Task<TOut> DoNext<TIn, TOut>(Task<TIn> task, Func<Task<TIn>, TOut> next)
+        {
             var tcs = new TaskCompletionSource<TOut>();
             try
             {
@@ -197,47 +209,6 @@ namespace Cassandra
                 tcs.TrySetException(ex);
             }
             return tcs.Task;
-        }
-
-        public static Task<TOut> ContinueContext<TIn, TOut>(
-                Task<TIn> task,
-                Func<Task<TIn>, TOut> next)
-        {
-            var ctxt = SynchronizationContext.Current;
-            return task.ContinueWith(innerTask =>
-            {
-                var tcs = new TaskCompletionSource<TOut>();
-
-                try
-                {
-                    if (ctxt != null)
-                    {
-                        ctxt.Post(state =>
-                        {
-                            try
-                            {
-                                var res = next(innerTask);
-                                tcs.TrySetResult(res);
-                            }
-                            catch (Exception ex)
-                            {
-                                tcs.TrySetException(ex);
-                            }
-                        }, null);
-                    }
-                    else
-                    {
-                        var res = next(innerTask);
-                        tcs.TrySetResult(res);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-
-                return tcs.Task;
-            }, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
         }
 
         public static Task<T> ToTask<T>(T value)

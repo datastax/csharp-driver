@@ -14,8 +14,13 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using NUnit.Framework;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra.Tests
 {
@@ -100,6 +105,42 @@ namespace Cassandra.Tests
             operationState.BodyStream.Read(readBuffer, 0, 128);
             operationState.BodyStream.Read(readBuffer, 128, 128);
             Assert.AreEqual(writeBuffer, readBuffer);
+        }
+
+        [Test]
+        public void TaskHelper_Continue_Does_Not_Call_Synchonization_Post()
+        {
+            var ctxt = new LockSynchronisationContext();
+            SynchronizationContext.SetSynchronizationContext(ctxt);
+            var task = TestHelper.DelayedTask(new RowSet(), 1000);
+            var cTask = task
+                .Continue((rs) => TestHelper.DelayedTask(2, 500).Result)
+                .Continue(s => "last one");
+
+            ctxt.Post(state =>
+            {
+                cTask.Wait(3000);
+                Assert.AreEqual(cTask.Status, TaskStatus.RanToCompletion);
+            }, null);
+        }
+
+        class LockSynchronisationContext : SynchronizationContext
+        {
+            private readonly object _postLock = new object();
+
+            public override void Send(SendOrPostCallback codeToRun, object state)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Post(SendOrPostCallback codeToRun, object state)
+            {
+                lock (_postLock)
+                {
+                    codeToRun(state);
+                }
+            }
+
         }
     }
 }
