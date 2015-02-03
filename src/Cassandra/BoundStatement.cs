@@ -127,9 +127,8 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
-            //The consistency of each query will be not used.
-            var options = QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any);
-            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, options);
+            //Uses the default query options as the individual options of the query will be ignored
+            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, QueryProtocolOptions.Default);
         }
     }
 }

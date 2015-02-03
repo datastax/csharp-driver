@@ -27,7 +27,7 @@ namespace Cassandra
         private int _pageSize;
         private byte[] _pagingState;
         private IRetryPolicy _retryPolicy;
-        private ConsistencyLevel _serialConsistency;
+        private ConsistencyLevel _serialConsistency = QueryProtocolOptions.Default.SerialConsistency;
         private bool _skipMetadata;
         private bool _traceQuery;
         private object[] _values;
@@ -98,11 +98,6 @@ namespace Cassandra
         /// <inheritdoc />
         protected Statement(QueryProtocolOptions queryProtocolOptions)
         {
-            _pagingState = queryProtocolOptions.PagingState;
-            _values = queryProtocolOptions.Values;
-            _consistency = queryProtocolOptions.Consistency;
-            _pageSize = queryProtocolOptions.PageSize;
-            _serialConsistency = queryProtocolOptions.SerialConsistency;
         }
         
         /// <inheritdoc />
