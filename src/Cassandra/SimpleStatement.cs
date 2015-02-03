@@ -47,7 +47,7 @@ namespace Cassandra
             get { return _routingKey; }
         }
 
-        public SimpleStatement() : base(QueryProtocolOptions.Default)
+        public SimpleStatement()
         {
         }
 
@@ -56,18 +56,8 @@ namespace Cassandra
         /// </summary>
         /// <param name="query"> the query string.</param>
         public SimpleStatement(string query)
-            : base(QueryProtocolOptions.Default)
         {
             _query = query;
-        }
-
-        internal SimpleStatement(string query, QueryProtocolOptions queryProtocolOptions)
-            : base(queryProtocolOptions)
-        {
-            _query = query;
-            SetConsistencyLevel(queryProtocolOptions.Consistency);
-            SetSerialConsistencyLevel(queryProtocolOptions.SerialConsistency);
-            SetPageSize(queryProtocolOptions.PageSize);
         }
 
         /// <summary>
@@ -124,8 +114,8 @@ namespace Cassandra
 
         internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
-            return new QueryRequest(protocolVersion, QueryString, IsTracing, QueryProtocolOptions.CreateFromQuery(this, Cassandra.ConsistencyLevel.Any));
-                // this Cassandra.ConsistencyLevel.Any is not used due fact that BATCH got own CL 
+            //Uses the default query options as the individual options of the query will be ignored
+            return new QueryRequest(protocolVersion, QueryString, IsTracing, QueryProtocolOptions.Default);
         }
     }
 }

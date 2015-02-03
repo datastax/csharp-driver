@@ -75,16 +75,21 @@ namespace Cassandra
             SerialConsistency = serialConsistency;
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(Statement query, ConsistencyLevel defaultConsistencyLevel)
+        internal static QueryProtocolOptions CreateFromQuery(Statement query, QueryOptions queryOptions)
         {
             if (query == null)
             {
                 return Default;
             }
+            var consistency = query.ConsistencyLevel ?? queryOptions.GetConsistencyLevel();
+            var pageSize = query.PageSize != 0 ? query.PageSize : queryOptions.GetPageSize();
             var options = new QueryProtocolOptions(
-                query.ConsistencyLevel.HasValue ? query.ConsistencyLevel.Value : defaultConsistencyLevel,
+                consistency,
                 query.QueryValues,
-                query.SkipMetadata, query.PageSize, query.PagingState, query.SerialConsistencyLevel)
+                query.SkipMetadata, 
+                pageSize, 
+                query.PagingState, 
+                query.SerialConsistencyLevel)
             {
                 Timestamp = query.Timestamp
             };

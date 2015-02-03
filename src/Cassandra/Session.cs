@@ -249,24 +249,23 @@ namespace Cassandra
         /// </summary>
         internal IRequest GetRequest(IStatement statement)
         {
-            var defaultConsistency = Configuration.QueryOptions.GetConsistencyLevel();
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
+                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
                 options.ValueNames = s.QueryValueNames;
                 return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, defaultConsistency);
+                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
                 return new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)
             {
                 var s = (BatchStatement)statement;
-                var consistency = defaultConsistency;
+                var consistency = Configuration.QueryOptions.GetConsistencyLevel();
                 if (s.ConsistencyLevel != null)
                 {
                     consistency = s.ConsistencyLevel.Value;

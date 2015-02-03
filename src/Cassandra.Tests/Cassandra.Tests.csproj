@@ -63,6 +63,7 @@
     <Compile Include="PoliciesUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RowSetUnitTests.cs" />
+    <Compile Include="SessionUnitTests.cs" />
     <Compile Include="TestHelper.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TimeUuidTests.cs" />

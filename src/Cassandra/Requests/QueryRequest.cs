@@ -37,6 +37,16 @@ namespace Cassandra
             set { _queryOptions.PagingState = value; }
         }
 
+        public int PageSize
+        {
+            get { return _queryOptions.PageSize; }
+        }
+
+        public ConsistencyLevel SerialConsistency
+        {
+            get { return _queryOptions.SerialConsistency; }
+        }
+
         public int ProtocolVersion { get; set; }
 
         private readonly string _cqlQuery;

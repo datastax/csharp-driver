@@ -36,7 +36,7 @@ namespace Cassandra
         /// </summary>
         public abstract string QueryString { get; }
 
-        protected RegularStatement(QueryProtocolOptions queryProtocolOptions) : base(queryProtocolOptions)
+        protected RegularStatement()
         {
 
         }
