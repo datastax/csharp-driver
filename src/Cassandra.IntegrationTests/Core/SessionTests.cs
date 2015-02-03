@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
         ITestCluster _testCluster;
         const int NodeCount = 2;
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetupTest()
         {
             // we just want to make sure there's a local 2 node cluster
@@ -333,6 +333,20 @@ namespace Cassandra.IntegrationTests.Core
             TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
             Trace.TraceInformation("Disposing cluster");
             cluster.Dispose();
+        }
+
+        [Test, RequiresSTA]
+        public void Session_Connect_And_ShutDown_SupportsSTA()
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                using (var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build())
+                {
+                    var localSession = localCluster.Connect();
+                    var ps = localSession.Prepare("SELECT * FROM system.local");
+                    TestHelper.Invoke(() => localSession.Execute(ps.Bind()), 10);
+                }
+            });
         }
     }
 }

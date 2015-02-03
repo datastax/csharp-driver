@@ -324,7 +324,9 @@ namespace Cassandra
             }
             _logger.Info("Waiting for pending operations of " + connections.Count + " connections to complete.");
             var handles = connections.Select(c => c.WaitPending()).ToArray();
-            return WaitHandle.WaitAll(handles, timeout);
+            //WaitHandle.WaitAll() not supported on STAThreads (thanks COM!)
+            //Start new task and wait on the individual Task
+            return Task.Factory.StartNew(() => WaitHandle.WaitAll(handles, timeout)).Wait(timeout);
         }
     }
 }
