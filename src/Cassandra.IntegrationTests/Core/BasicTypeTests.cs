@@ -22,6 +22,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -30,12 +31,16 @@ namespace Cassandra.IntegrationTests.Core
     public class BasicTypeTests : TestGlobals
     {
         ISession _session = null;
+        ITestCluster _testCluster = null;
 
         [SetUp]
-        public void SetupFixture()
+        public void SetupTest()
         {
             if (_session == null)
-                _session = TestClusterManager.GetTestCluster(1).Session;
+            {
+                _testCluster = TestClusterManager.GetTestCluster(1);
+                _session = _testCluster.Session;
+            }
         }
 
         [Test]
@@ -44,7 +49,130 @@ namespace Cassandra.IntegrationTests.Core
         {
             string tableName = CreateSimpleTableAndInsert(0);
             var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label) VALUES(?, ?)", tableName));
-            _session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label"}));
+            _session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label" }));
+        }
+
+        /// <summary>
+        /// Validates that the Session.GetRequest (called within ExecuteAsync) method uses the session default paging size
+        /// which was set previously when the Builder was initialized
+        /// </summary>
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void PagingOnBoundStatementTest_Async_UsingConfigBasedPagingSetting()
+        {
+            var pageSize = 10;
+            var queryOptions = new QueryOptions().SetPageSize(pageSize);
+            Builder builder = new Builder().WithQueryOptions(queryOptions).WithDefaultKeyspace(DefaultKeyspaceName);
+            builder.AddContactPoint(_testCluster.InitialContactPoint);
+
+            using (ISession session = builder.Build().Connect())
+            {
+                var totalRowLength = 1003;
+                Tuple<string, string> tableNameAndStaticKeyVal = CreateTableWithCompositeIndexAndInsert(session, totalRowLength);
+                string statementToBeBound = "SELECT * from " + tableNameAndStaticKeyVal.Item1 + " where label=?";
+                PreparedStatement preparedStatementWithoutPaging = session.Prepare(statementToBeBound);
+                PreparedStatement preparedStatementWithPaging = session.Prepare(statementToBeBound);
+                BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(tableNameAndStaticKeyVal.Item2);
+                BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(tableNameAndStaticKeyVal.Item2);
+
+                var rsWithSessionPagingInherited = session.ExecuteAsync(boundStatemetWithPaging).Result;
+
+                var rsWithoutPagingInherited = _session.Execute(boundStatemetWithoutPaging);
+
+                //Check that the internal list of items count is pageSize
+                Assert.AreEqual(pageSize, rsWithSessionPagingInherited.InnerQueueCount);
+                Assert.AreEqual(totalRowLength, rsWithoutPagingInherited.InnerQueueCount);
+
+                var allTheRowsPaged = rsWithSessionPagingInherited.ToList();
+                Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void PagingOnBoundStatementTest()
+        {
+            var pageSize = 10;
+            var totalRowLength = 1003;
+            Tuple<string, string> tableNameAndStaticKeyVal = CreateTableWithCompositeIndexAndInsert((Session)_session, totalRowLength);
+            string statementToBeBound = "SELECT * from " + tableNameAndStaticKeyVal.Item1 + " where label=?";
+            PreparedStatement preparedStatementWithoutPaging = _session.Prepare(statementToBeBound);
+            PreparedStatement preparedStatementWithPaging = _session.Prepare(statementToBeBound);
+            BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(tableNameAndStaticKeyVal.Item2);
+            BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(tableNameAndStaticKeyVal.Item2);
+
+            boundStatemetWithPaging.SetPageSize(pageSize);
+
+            var rsWithPaging = _session.Execute(boundStatemetWithPaging);
+            var rsWithoutPaging = _session.Execute(boundStatemetWithoutPaging);
+
+            //Check that the internal list of items count is pageSize
+            Assert.AreEqual(pageSize, rsWithPaging.InnerQueueCount);
+            Assert.AreEqual(totalRowLength, rsWithoutPaging.InnerQueueCount);
+
+            var allTheRowsPaged = rsWithPaging.ToList();
+            Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void PagingOnBoundStatementTest_PageOverOneRow()
+        {
+            var pageSize = 10;
+            var totalRowLength = 11;
+            string tableName = CreateSimpleTableAndInsert(totalRowLength);
+
+            // insert a guid that we'll keep track of
+            Guid guid = Guid.NewGuid();
+            _session.Execute(string.Format("INSERT INTO {2} (id, label) VALUES({0},'{1}')", guid, "LABEL_12345", tableName));
+
+            string statementToBeBound = "SELECT * from " + tableName + " where id=?";
+            PreparedStatement preparedStatementWithoutPaging = _session.Prepare(statementToBeBound);
+            PreparedStatement preparedStatementWithPaging = _session.Prepare(statementToBeBound);
+            BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(guid);
+            BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(guid);
+
+            boundStatemetWithPaging.SetPageSize(pageSize);
+
+            var rsWithPaging = _session.Execute(boundStatemetWithPaging);
+            var rsWithoutPaging = _session.Execute(boundStatemetWithoutPaging);
+
+            //Check that the internal list of items count is pageSize
+            Assert.AreEqual(1, rsWithPaging.InnerQueueCount);
+            Assert.AreEqual(1, rsWithoutPaging.InnerQueueCount);
+
+            var allTheRowsPaged = rsWithPaging.ToList();
+            Assert.AreEqual(1, allTheRowsPaged.Count);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void PagingOnBoundStatementTest_PageOverZeroRows()
+        {
+            var pageSize = 10;
+            var totalRowLength = 11;
+            string tableName = CreateSimpleTableAndInsert(totalRowLength);
+
+            // insert a guid that we'll keep track of
+            Guid guid = Guid.NewGuid();
+
+            string statementToBeBound = "SELECT * from " + tableName + " where id=?";
+            PreparedStatement preparedStatementWithoutPaging = _session.Prepare(statementToBeBound);
+            PreparedStatement preparedStatementWithPaging = _session.Prepare(statementToBeBound);
+            BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(guid);
+            BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(guid);
+
+            boundStatemetWithPaging.SetPageSize(pageSize);
+
+            var rsWithPaging = _session.Execute(boundStatemetWithPaging);
+            var rsWithoutPaging = _session.Execute(boundStatemetWithoutPaging);
+
+            //Check that the internal list of items count is pageSize
+            Assert.AreEqual(0, rsWithPaging.InnerQueueCount);
+            Assert.AreEqual(0, rsWithoutPaging.InnerQueueCount);
+
+            var allTheRowsPaged = rsWithPaging.ToList();
+            Assert.AreEqual(0, allTheRowsPaged.Count);
         }
 
         [Test]
@@ -55,22 +183,18 @@ namespace Cassandra.IntegrationTests.Core
             var totalRowLength = 1003;
             var table = CreateSimpleTableAndInsert(totalRowLength);
             var statementWithPaging = new SimpleStatement("SELECT * FROM " + table);
-
             var statementWithoutPaging = new SimpleStatement("SELECT * FROM " + table);
             statementWithoutPaging.SetPageSize(int.MaxValue);
             statementWithPaging.SetPageSize(pageSize);
 
-            var rs = _session.Execute(statementWithPaging);
-
+            var rsWithPaging = _session.Execute(statementWithPaging);
             var rsWithoutPaging = _session.Execute(statementWithoutPaging);
 
-
             //Check that the internal list of items count is pageSize
-            Assert.True(rs.InnerQueueCount == pageSize);
-
+            Assert.True(rsWithPaging.InnerQueueCount == pageSize);
             Assert.True(rsWithoutPaging.InnerQueueCount == totalRowLength);
 
-            var allTheRowsPaged = rs.ToList();
+            var allTheRowsPaged = rsWithPaging.ToList();
             Assert.True(allTheRowsPaged.Count == totalRowLength);
         }
 
@@ -132,7 +256,7 @@ namespace Cassandra.IntegrationTests.Core
             var totalRowLength = 300;
             var times = 10;
             var table = CreateSimpleTableAndInsert(totalRowLength);
-            
+
             var statement = new SimpleStatement(String.Format("SELECT * FROM {0} LIMIT 10000", table))
                 .SetPageSize(pageSize);
 
@@ -162,61 +286,61 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TypeBlob()
         {
-            InsertingSingleValue(typeof (byte));
+            InsertingSingleValue(typeof(byte));
         }
 
         [Test]
         public void TypeASCII()
         {
-            InsertingSingleValue(typeof (Char));
+            InsertingSingleValue(typeof(Char));
         }
 
         [Test]
         public void TypeDecimal()
         {
-            InsertingSingleValue(typeof (Decimal));
+            InsertingSingleValue(typeof(Decimal));
         }
 
         [Test]
         public void TypeVarInt()
         {
-            InsertingSingleValue(typeof (BigInteger));
+            InsertingSingleValue(typeof(BigInteger));
         }
 
         [Test]
         public void TypeBigInt()
         {
-            InsertingSingleValue(typeof (Int64));
+            InsertingSingleValue(typeof(Int64));
         }
 
         [Test]
         public void TypeDouble()
         {
-            InsertingSingleValue(typeof (Double));
+            InsertingSingleValue(typeof(Double));
         }
 
         [Test]
         public void TypeFloat()
         {
-            InsertingSingleValue(typeof (Single));
+            InsertingSingleValue(typeof(Single));
         }
 
         [Test]
         public void TypeInt()
         {
-            InsertingSingleValue(typeof (Int32));
+            InsertingSingleValue(typeof(Int32));
         }
 
         [Test]
         public void TypeBoolean()
         {
-            InsertingSingleValue(typeof (Boolean));
+            InsertingSingleValue(typeof(Boolean));
         }
 
         [Test]
         public void TypeUUID()
         {
-            InsertingSingleValue(typeof (Guid));
+            InsertingSingleValue(typeof(Guid));
         }
 
         [Test]
@@ -228,43 +352,43 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TypeInt_Max()
         {
-            ExceedingCassandraType(typeof (Int32), typeof (Int32));
+            ExceedingCassandraType(typeof(Int32), typeof(Int32));
         }
 
         [Test]
         public void TypeBigInt_Max()
         {
-            ExceedingCassandraType(typeof (Int64), typeof (Int64));
+            ExceedingCassandraType(typeof(Int64), typeof(Int64));
         }
 
         [Test]
         public void TypeFloat_Max()
         {
-            ExceedingCassandraType(typeof (Single), typeof (Single));
+            ExceedingCassandraType(typeof(Single), typeof(Single));
         }
 
         [Test]
         public void TypeDouble_Max()
         {
-            ExceedingCassandraType(typeof (Double), typeof (Double));
+            ExceedingCassandraType(typeof(Double), typeof(Double));
         }
 
         [Test]
         public void ExceedingCassandraInt()
         {
-            ExceedingCassandraType(typeof (Int32), typeof (Int64), false);
+            ExceedingCassandraType(typeof(Int32), typeof(Int64), false);
         }
 
         [Test]
         public void ExceedingCassandraFloat()
         {
-            ExceedingCassandraType(typeof (Single), typeof (Double), false);
+            ExceedingCassandraType(typeof(Single), typeof(Double), false);
         }
 
         ////////////////////////////////////
         /// Test Helpers
         ////////////////////////////////////
-         
+
         /// <summary>
         /// Creates a table and inserts a number of records synchronously.
         /// </summary>
@@ -282,6 +406,28 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             return tableName;
+        }
+
+        /// <summary>
+        /// Creates a table with a composite index and inserts a number of records synchronously.
+        /// </summary>
+        /// <returns>The name of the table</returns>
+        private Tuple<string, string> CreateTableWithCompositeIndexAndInsert(ISession session, int rowsInTable)
+        {
+            string tableName = TestUtils.GetUniqueTableName();
+            string staticClusterKeyStr = "staticClusterKeyStr";
+            QueryTools.ExecuteSyncNonQuery(session, string.Format(@"
+                CREATE TABLE {0} (
+                id text,
+                label text,
+                PRIMARY KEY (label, id));",
+                tableName));
+            for (int i = 0; i < rowsInTable; i++)
+            {
+                session.Execute(string.Format("INSERT INTO {2} (label, id) VALUES('{0}','{1}')", staticClusterKeyStr, Guid.NewGuid().ToString(), tableName));
+            }
+            Tuple<string, string> infoTuple = new Tuple<string, string>(tableName, staticClusterKeyStr);
+            return infoTuple;
         }
 
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
