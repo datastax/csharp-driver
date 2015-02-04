@@ -120,7 +120,8 @@ namespace Cassandra
         internal override IQueryRequest CreateBatchRequest(int protocolVersion)
         {
             //Uses the default query options as the individual options of the query will be ignored
-            return new QueryRequest(protocolVersion, QueryString, IsTracing, QueryProtocolOptions.Default);
+            var options = QueryProtocolOptions.CreateFromQuery(this, new QueryOptions());
+            return new QueryRequest(protocolVersion, QueryString, IsTracing, options);
         }
 
         internal override void SetValues(object[] values)
