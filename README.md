@@ -10,6 +10,8 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.
 PM> Install-Package CassandraCSharpDriver
 ```
 
+[![Build Status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
+
 ## Features
 
 - Connection pooling
@@ -30,9 +32,11 @@ PM> Install-Package CassandraCSharpDriver
 
 You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira].
 
-## Upgrading from 1.x branch
+## Upgrading from previous versions
 
-If you are upgrading from the 1.x branch of the driver, be sure to have a look at the [upgrade guide](https://github.com/datastax/csharp-driver/blob/2.0/doc/upgrade-guide-2.0.md).
+If you are upgrading from the 2.1 branch of the driver, be sure to have a look at the [upgrade guide][upgrade-to-250].
+
+If you are upgrading from the 1.x branch of the driver, follow the [upgrade guide to 2.0][upgrade-to-200], and then the above document.
 
 ## Basic Usage
 
@@ -93,22 +97,15 @@ Session allows asynchronous execution of statements (for any type of statement: 
 var rs = await session.ExecuteAsync(statement);
 ```
 
-Or if you want to continue or wait for the async task to complete.
+### Avoid boilerplate mapping code
+
+The driver features a built-in [Mapper][mapper] and [Linq][linq] components that can use to avoid boilerplate mapping code between cql rows and your application entities.
 
 ```csharp
-//Execute a statement asynchronously using TPL
-var task = session.ExecuteAsync(statement);
-//The task can waited, awaited, continued, ...
-task.ContinueWith((t) =>
-{
-  var rs = t.Result;
-  //Iterate through the rows
-  foreach (var row in rs)
-  {
-    //Get the values from each row
-  }
-}, TaskContinuationOptions.OnlyOnRanToCompletion);
+User user = mapper.Single<User>("SELECT name, email FROM users WHERE id = ?", userId);
 ```
+
+See the [driver components documentation][components] for more information.
 
 ### Automatic pagination of results
 
@@ -128,7 +125,7 @@ foreach (var row in rs)
 
 ### User defined types mapping
 
-You can map your [User Defined Types][udt] to your application entities.
+You can map your [Cassandra User Defined Types][udt] to your application entities.
 
 For a given udt
 ```cql
@@ -219,7 +216,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://www.datastax.com/drivers/csharp/2.1/
+  [apidocs]: http://www.datastax.com/drivers/csharp/2.5/html/N_Cassandra.htm
   [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/
   [getting-started]: http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
@@ -228,3 +225,7 @@ limitations under the License.
   [udt]: https://issues.apache.org/jira/browse/CASSANDRA-5590
   [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
   [linq]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/linqComponent.html
+  [mapper]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/mapperComponent.html
+  [components]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/driverComponents.html
+  [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
+  [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
