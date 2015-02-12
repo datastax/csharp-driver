@@ -202,7 +202,7 @@ You can use Visual Studio or msbuild to build the solution.
 [Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
-Copyright 2014, DataStax
+Copyright 2012-2015, DataStax.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
