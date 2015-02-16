@@ -63,8 +63,14 @@ namespace Cassandra
 
             public override IToken Hash(byte[] partitionKey)
             {
-                if (_md5 == null) _md5 = MD5.Create();
-                return new RPToken(new BigInteger(_md5.ComputeHash(partitionKey)));
+                if (_md5 == null) 
+                    _md5 = MD5.Create();
+                var hash = _md5.ComputeHash(partitionKey);                
+                
+                byte[] paddedHash = new byte[1+hash.Length];
+                hash.CopyTo(paddedHash,0);
+
+                return new RPToken(new BigInteger(paddedHash));
             }
         }
     }
