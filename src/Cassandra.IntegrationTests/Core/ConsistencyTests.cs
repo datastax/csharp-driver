@@ -76,9 +76,9 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        //////////////////////////////////////////////////
-        /// Begin SimpleStatement Tests
-        //////////////////////////////////////////////////
+        /*******************************************
+        * Begin SimpleStatement Tests
+        *******************************************/
 
         [Test]
         public void Consistency_SimpleStatement_LocalSerial_Insert_Success()
@@ -323,9 +323,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("Not enough replicas available for query at consistency Two (2 required but only 1 alive)", ex.Message);
         }
 
-        //////////////////////////////////////////////////
-        /// Begin PreparedStatement Tests
-        //////////////////////////////////////////////////
+        /*************************************************
+        * Begin PreparedStatement Tests
+        *************************************************/
 
         [Test]
         public void Consistency_PreparedStatement_LocalSerial_Insert_Success()
@@ -587,9 +587,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("Not enough replicas available for query at consistency Two (2 required but only 1 alive)", ex.Message);
         }
 
-        //////////////////////////////////////////////////
-        /// Begin Batch Tests
-        //////////////////////////////////////////////////
+        /**************************************
+        * Begin Batch Tests
+        **************************************/
 
         [Test]
         public void Consistency_Batch_All()
@@ -679,9 +679,9 @@ namespace Cassandra.IntegrationTests.Core
             DoBatchInsertTest(ConsistencyLevel.Three);
         }
 
-        ///////////////////////////////////////
-        ///  Test Helper Methods
-        ///////////////////////////////////////
+        /**************************************
+        * Test Helper Methods
+        **************************************/
 
         private void DoBatchInsertTest(ConsistencyLevel expectedConsistencyLevel)
         {
