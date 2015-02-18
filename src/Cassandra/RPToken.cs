@@ -72,9 +72,7 @@ namespace Cassandra
                 {
                     reversedHash[y] = hash[x];
                 }
-                var bigInteger = new BigInteger(reversedHash);
-                if(bigInteger < 0)
-                    bigInteger *= -1;
+                var bigInteger = BigInteger.Abs(new BigInteger(reversedHash));
             
                 return new RPToken(bigInteger);
             }
