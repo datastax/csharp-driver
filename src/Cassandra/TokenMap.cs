@@ -128,8 +128,15 @@ namespace Cassandra
                     {
                         continue;
                     }
+                    
+                    // On a cluster running virtual nodes, one host can own 2 continuous ranges, but these
+                    // are not replicas (NetworkTopologyStrategy.Java - calculateNaturalEndpoints)
+                    if(tokenReplicas.Contains(h))
+                        continue;
+
                     replicasByDc[h.Datacenter] = dcReplicas + 1;
                     tokenReplicas.Add(h);
+                    
                     if (IsDoneForToken(replicationFactors, replicasByDc, datacenters))
                     {
                         break;
