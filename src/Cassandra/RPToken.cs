@@ -65,12 +65,17 @@ namespace Cassandra
             {
                 if (_md5 == null) 
                     _md5 = MD5.Create();
-                var hash = _md5.ComputeHash(partitionKey);                
                 
-                byte[] paddedHash = new byte[1+hash.Length];
-                hash.CopyTo(paddedHash,0);
-
-                return new RPToken(new BigInteger(paddedHash));
+                var hash = _md5.ComputeHash(partitionKey);
+                
+                var reversedHash = new byte[hash.Length];
+                for(int x = hash.Length - 1, y = 0; x >= 0; --x, ++y)
+                {
+                    reversedHash[y] = hash[x];
+                }
+                var bigInteger = BigInteger.Abs(new BigInteger(reversedHash));
+                
+                return new RPToken(bigInteger);
             }
         }
     }
