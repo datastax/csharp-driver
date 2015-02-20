@@ -346,7 +346,7 @@ namespace Cassandra.Data.Linq
                 if (timestamp != null)
                 {
                     query.Append(" TIMESTAMP ?");
-                    parameters.Add(timestamp.Value);
+                    parameters.Add((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
                 }
             }
 

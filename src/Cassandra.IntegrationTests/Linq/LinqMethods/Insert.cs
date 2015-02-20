@@ -78,6 +78,28 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test, TestCassandraVersion(2, 0)]
+        public void LinqInsert_WithSetTimestamp()
+        {
+            Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
+            Movie movie1 = Movie.GetRandomMovie();
+            nerdMoviesTable.Insert(movie1).Execute();
+
+            string mainActor = "Samuel L. Jackson";
+            movie1.MainActor = mainActor;
+
+            nerdMoviesTable
+                .Insert(movie1)
+                .SetTimestamp(DateTime.Now.AddDays(1))
+                .Execute();
+
+            Movie updatedMovie = nerdMoviesTable
+                .Execute()
+                .FirstOrDefault();
+
+            Assert.AreEqual(updatedMovie.MainActor, mainActor);
+        }
+
+        [Test, TestCassandraVersion(2, 0)]
         public void LinqInsert_Batch_MissingPartitionKeyPart()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
