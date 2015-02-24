@@ -341,7 +341,6 @@ namespace Cassandra
         private void IdleTimeoutHandler(object state)
         {
             //Ensure there are no more idle timeouts until the query finished sending
-            _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
             if (_isCanceled)
             {
                 if (!this.IsDisposed)
@@ -698,7 +697,15 @@ namespace Cassandra
             var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
             if (heartBeatInterval != null && !_isCanceled)
             {
-                _idleTimer.Change(heartBeatInterval.Value, Timeout.Infinite);
+                try
+                {
+                    _idleTimer.Change(heartBeatInterval.Value, Timeout.Infinite);
+                }
+                catch (ObjectDisposedException)
+                {
+                    //This connection is being disposed
+                    //Don't mind
+                }
             }
             //Send the next request, if exists
             SendQueueNext();
