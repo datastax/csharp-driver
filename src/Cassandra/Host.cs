@@ -37,6 +37,10 @@ namespace Cassandra
         /// It will provide the time were reconnection will be attempted
         /// </summary>
         internal event Action<Host, DateTimeOffset> Down;
+        /// <summary>
+        /// Event that gets raised when the host is considered back UP (available for queries) by the driver.
+        /// </summary>
+        internal event Action<Host> Up;
 
         /// <summary>
         /// Determines if the host is UP for the driver
@@ -119,6 +123,10 @@ namespace Cassandra
             {
                 Interlocked.Exchange(ref _reconnectionSchedule, _reconnectionPolicy.NewSchedule());
                 _isUpNow = true;
+                if (Up != null)
+                {
+                    Up(this);
+                }
                 return true;
             }
             return false;

@@ -27,9 +27,13 @@ namespace Cassandra
         private readonly ConcurrentDictionary<IPAddress, Host> _hosts = new ConcurrentDictionary<IPAddress, Host>();
         private readonly IReconnectionPolicy _rp;
         /// <summary>
-        /// Event that gets triggered when a new host has been added
+        /// Event that gets triggered when a host is considered as DOWN (not available)
         /// </summary>
         internal event Action<Host, DateTimeOffset> Down;
+        /// <summary>
+        /// Event that gets triggered when a host is considered back UP (available for queries)
+        /// </summary>
+        internal event Action<Host> Up;
         /// <summary>
         /// Event that gets triggered when a new host has been added to the pool
         /// </summary>
@@ -61,20 +65,32 @@ namespace Cassandra
         {
             var newHost = new Host(key, _rp);
             var host = _hosts.GetOrAdd(key, newHost);
-            if (Object.ReferenceEquals(newHost, host) && Added != null)
+            if (ReferenceEquals(newHost, host))
             {
-                //The node was added and there is an event handler
-                //Fire the event
-                Added(newHost);
+                //The node was added
+                host.Down += OnHostDown;
+                host.Up += OnHostUp;
+                if (Added != null)
+                {
+                    Added(newHost);
+                }
             }
             return host;
         }
 
-        private void OnHostDown(Host h, DateTimeOffset nextUpTime)
+        private void OnHostDown(Host sender, DateTimeOffset nextUpTime)
         {
             if (Down != null)
             {
-                Down(h, nextUpTime);
+                Down(sender, nextUpTime);
+            }
+        }
+
+        private void OnHostUp(Host sender)
+        {
+            if (Up != null)
+            {
+                Up(sender);
             }
         }
 
@@ -95,6 +111,7 @@ namespace Cassandra
             {
                 host.SetDown();
                 host.Down -= OnHostDown;
+                host.Up -= OnHostUp;
                 if (Removed != null)
                 {
                     Removed(host);

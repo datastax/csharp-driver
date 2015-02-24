@@ -56,6 +56,7 @@ namespace Cassandra
         {
             Hosts = new Hosts(rp);
             Hosts.Down += OnHostDown;
+            Hosts.Up += OnHostUp;
         }
 
         public void Dispose()
@@ -102,20 +103,20 @@ namespace Cassandra
             }
         }
 
+        private void OnHostUp(Host h)
+        {
+            if (HostsEvent != null)
+            {
+                HostsEvent(h, new HostsEventArgs { IPAddress = h.Address, What = HostsEventArgs.Kind.Up });
+            }
+        }
+
         internal void BringUpHost(IPAddress address, object sender = null)
         {
             //Add the host if not already present
             var host = Hosts.Add(address);
             //Bring it UP
-            if (!host.BringUpIfDown())
-            {
-                //If it was already UP, its OK
-                return;
-            }
-            if (HostsEvent != null)
-            {
-                HostsEvent(sender ?? this, new HostsEventArgs {IPAddress = address, What = HostsEventArgs.Kind.Up});
-            }
+            host.BringUpIfDown();
         }
 
         /// <summary>
@@ -280,7 +281,7 @@ namespace Cassandra
         public void ShutDown(int timeoutMs = Timeout.Infinite)
         {
             //it is really not required to be called, left as it is part of the public API
-            //unreference the control connection
+            //dereference the control connection
             ControlConnection = null;
         }
 
