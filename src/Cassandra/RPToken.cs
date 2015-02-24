@@ -52,6 +52,11 @@ namespace Cassandra
             return _value.GetHashCode();
         }
 
+        public override string ToString()
+        {
+            return _value.ToString();
+        }
+
         private class RPTokenFactory : TokenFactory
         {
             [ThreadStatic] private static MD5 _md5;

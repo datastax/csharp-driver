@@ -100,7 +100,6 @@ namespace Cassandra.IntegrationTests.Core
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
                 var cqlInsertStr = String.Format("INSERT INTO {0} (id, map1, map2, list1) VALUES (?, ?, ?, ?)", fqTableName);
                 Dictionary<string, IEnumerable<string>> map1Default = GetMap1Val();
-                int id = 1;
                 var cqlUpdateSingleMapValueStr = String.Format("UPDATE {0} set map1['{1}'] =? where id=?", fqTableName, map1Default.First().Key);
 
                 Dictionary<string, IEnumerable<string>> map1Value = GetMap1Val();

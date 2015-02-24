@@ -28,31 +28,31 @@ namespace Cassandra.Tests
     public class TokenTests
     {
         [Test]
-        public void MurmurHashTest()
+        public void Murmur_Hash_Test()
         {
             //inputs and result values from Cassandra
             var values = new Dictionary<byte[], M3PToken>()
             {
-                {new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},                             new M3PToken(-5563837382979743776L)},
-                {new byte[] {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17},                            new M3PToken(-1513403162740402161L)},
-                {new byte[] {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18},                           new M3PToken(-495360443712684655L)},
-                {new byte[] {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19},                          new M3PToken(1734091135765407943L)},
-                {new byte[] {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},                         new M3PToken(-3199412112042527988L)},
-                {new byte[] {6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21},                        new M3PToken(-6316563938475080831L)},
-                {new byte[] {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22},                       new M3PToken(8228893370679682632L)},
-                {new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                                    new M3PToken(5457549051747178710L)},
-                {new byte[] {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},    new M3PToken(-2824192546314762522L)},
-                {new byte[] {254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254},    new M3PToken(-833317529301936754)},
-                {new byte[] {000, 001, 002, 003, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},    new M3PToken(6463632673159404390L)},
-                {new byte[] {254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254},    new M3PToken(-1672437813826982685L)},
-                {new byte[] {254, 254, 254, 254},    new M3PToken(4566408979886474012L)},
-                {new byte[] {0, 0, 0, 0},    new M3PToken(-3485513579396041028L)},
-                {new byte[] {0, 1, 127, 127},    new M3PToken(6573459401642635627)},
-                {new byte[] {0, 255, 255, 255},    new M3PToken(123573637386978882)},
-                {new byte[] {255, 1, 2, 3},    new M3PToken(-2839127690952877842)},
-                {new byte[] {000, 001, 002, 003, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},    new M3PToken(6463632673159404390L)},
-                {new byte[] {226, 231},    new M3PToken(-8582699461035929883L)},
-                {new byte[] {226, 231, 226, 231, 226, 231, 1},    new M3PToken(2222373981930033306)},
+                {new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},                                    new M3PToken(-5563837382979743776L)},
+                {new byte[] {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17},                                   new M3PToken(-1513403162740402161L)},
+                {new byte[] {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18},                                  new M3PToken(-495360443712684655L)},
+                {new byte[] {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19},                                 new M3PToken(1734091135765407943L)},
+                {new byte[] {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},                                new M3PToken(-3199412112042527988L)},
+                {new byte[] {6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21},                               new M3PToken(-6316563938475080831L)},
+                {new byte[] {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22},                              new M3PToken(8228893370679682632L)},
+                {new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                                           new M3PToken(5457549051747178710L)},
+                {new byte[] {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},           new M3PToken(-2824192546314762522L)},
+                {new byte[] {254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254},           new M3PToken(-833317529301936754)},
+                {new byte[] {000, 001, 002, 003, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},           new M3PToken(6463632673159404390L)},
+                {new byte[] {254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254},      new M3PToken(-1672437813826982685L)},
+                {new byte[] {254, 254, 254, 254},                                                                       new M3PToken(4566408979886474012L)},
+                {new byte[] {0, 0, 0, 0},                                                                               new M3PToken(-3485513579396041028L)},
+                {new byte[] {0, 1, 127, 127},                                                                           new M3PToken(6573459401642635627)},
+                {new byte[] {0, 255, 255, 255},                                                                         new M3PToken(123573637386978882)},
+                {new byte[] {255, 1, 2, 3},                                                                             new M3PToken(-2839127690952877842)},
+                {new byte[] {000, 001, 002, 003, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},           new M3PToken(6463632673159404390L)},
+                {new byte[] {226, 231},                                                                                 new M3PToken(-8582699461035929883L)},
+                {new byte[] {226, 231, 226, 231, 226, 231, 1},                                                          new M3PToken(2222373981930033306)},
             };
             var factory = new M3PToken.M3PTokenFactory();
             foreach (var kv in values)
@@ -62,7 +62,31 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void TokenMapSimpleStrategyWithKeyspaceTest()
+        public void RandomPartitioner_Hash_Test()
+        {
+            //inputs and result values from Cassandra
+            Func<string, IToken> getToken = RPToken.Factory.Parse;
+            var values = new Dictionary<byte[], IToken>()
+            {
+                {new byte[] {0},                                                      getToken("143927757573010354572009627285182898319")},
+                {new byte[] {1},                                                      getToken("113842407384990359002707962975597223745")},
+                {new byte[] {2},                                                      getToken("129721498153058668219395762571499089729")},
+                {new byte[] {3},                                                      getToken("161634087634434392855851743730996420760")},
+                {new byte[] {1, 1, 1, 1, 1},                                          getToken("62826831507722661030027787191787718361")},
+                {new byte[] {1, 1, 1, 1, 3},                                          getToken("3280052967642184217852195524766331890")},
+                {new byte[] {1, 1, 1, 1, 3},                                          getToken("3280052967642184217852195524766331890")},
+                {TestHelper.HexToByteArray("00112233445566778899aabbccddeeff"),       getToken("146895617013011042239963905141456044092")},
+                {TestHelper.HexToByteArray("00112233445566778899aabbccddeef0"),       getToken("152768415488763703226794584233555130431")}
+            };
+            foreach (var kv in values)
+            {
+                Assert.AreEqual(kv.Value, RPToken.Factory.Hash(kv.Key));
+                Assert.AreEqual(kv.Value.ToString(), RPToken.Factory.Hash(kv.Key).ToString());
+            }
+        }
+
+        [Test]
+        public void TokenMap_SimpleStrategy_With_Keyspace_Test()
         {
             var rp = new ConstantReconnectionPolicy(1);
             var hosts = new List<Host>
@@ -112,7 +136,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void TokenMapNetworkTopologyStrategyWithKeyspaceTest()
+        public void TokenMap_NetworkTopologyStrategy_With_Keyspace_Test()
         {
             var rp = new ConstantReconnectionPolicy(1);
             var hosts = new List<Host>

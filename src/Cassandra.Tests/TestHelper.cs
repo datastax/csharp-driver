@@ -67,6 +67,14 @@ namespace Cassandra.Tests
             Parallel.Invoke(parallelOptions, actions.ToArray());
         }
 
+        public static byte[] HexToByteArray(string hex)
+        {
+            return Enumerable.Range(0, hex.Length)
+                             .Where(x => x % 2 == 0)
+                             .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                             .ToArray();
+        }
+
         /// <summary>
         /// Invokes the same action multiple times in parallel using 1 thread per action
         /// </summary>

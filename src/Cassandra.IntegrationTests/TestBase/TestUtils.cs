@@ -182,7 +182,7 @@ namespace Cassandra.IntegrationTests.TestBase
                         nodeHost + ":" + nodePort, msSleepPerIteration));
                     Thread.Sleep(msSleepPerIteration);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     Trace.TraceInformation("Verified that node " + nodeHost + ":" + nodePort + " is DOWN (success) via manual socket connection check, exiting now ...");
                     tcpClient.Close();
