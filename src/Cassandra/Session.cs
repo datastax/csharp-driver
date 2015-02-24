@@ -20,6 +20,7 @@ using System.Net;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+ using Cassandra.Tasks;
 
 namespace Cassandra
 {

@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {

@@ -280,7 +280,7 @@
     <Compile Include="TableColumn.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TableOptions.cs" />
-    <Compile Include="TaskHelper.cs" />
+    <Compile Include="Tasks\TaskHelper.cs" />
     <Compile Include="TcpSocket.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="TokenMap.cs" />
@@ -294,6 +294,7 @@
     <None Include="packages.config" />
     <None Include="README.rst" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
