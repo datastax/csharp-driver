@@ -19,7 +19,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading;
+﻿using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -90,19 +91,25 @@ namespace Cassandra
             return count;
         }
 
+        /// <summary>
+        /// Invokes the callback in a new thread using the default task scheduler
+        /// </summary>
         public void InvokeCallback(Exception ex, AbstractResponse response = null)
         {
             if (response is ErrorResponse)
             {
-                InvokeCallback(((ErrorResponse)response).Output.CreateException());
-                return;
+                //Create an exception from the response error
+                ex = ((ErrorResponse)response).Output.CreateException();
+                response = null;
             }
-            if (this.Callback == null)
+            if (Callback == null)
             {
                 _logger.Error("No callback for response");
                 return;
             }
-            this.Callback(ex, response);
+            //Invoke the callback in a new thread in the thread pool
+            //This way we don't let the user block on a thread used by the Connection
+            Task.Factory.StartNew(() => Callback(ex, response), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
     }
 }

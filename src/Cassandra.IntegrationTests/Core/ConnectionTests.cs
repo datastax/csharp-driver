@@ -322,6 +322,23 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test, Timeout(5000)]
+        public void SendAndWait()
+        {
+            using (var connection = CreateConnection())
+            {
+                connection.Init();
+                const string query = "SELECT * FROM system.schema_columns";
+                Query(connection, query).
+                    ContinueWith((t) =>
+                    {
+                        //Try to deadlock
+                        Query(connection, query).Wait();
+                    }, TaskContinuationOptions.ExecuteSynchronously).Wait();
+            }
+
+        }
+
         [Test]
         public void StreamModeReadAndWrite()
         {

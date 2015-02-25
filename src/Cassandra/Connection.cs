@@ -443,25 +443,23 @@ namespace Cassandra
             }
             //We are currently using an IO Thread
             //Use TaskScheduler assigned for reading
-            var ticks = DateTime.Now.Ticks;
             var closureBuffer = (byte[]) buffer.Clone();
             var closureBytesReceived = bytesReceived;
-            Console.WriteLine("Issue Reading\t {0}.{1}.{2} - {3} - {4}", buffer[0], buffer[1], buffer[2], closureBytesReceived, ticks);
             Task.Factory.StartNew(() =>
             {
-                Console.WriteLine("Reading\t\t {0}.{1}.{2} - {3} - {4}", closureBuffer[0], closureBuffer[1], closureBuffer[2], closureBytesReceived, ticks);
                 //Parse the data received
                 var streamIdAvailable = ReadParse(closureBuffer, 0, closureBytesReceived);
-                if (streamIdAvailable)
+                if (!streamIdAvailable)
                 {
-                    if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
-                    {
-                        _pendingWaitHandle.Set();
-                    }
-                    //Process a next item in the queue if possible.
-                    //Maybe there are there items in the write queue that were waiting on a fresh streamId
-                    SendQueueNext();
+                    return;
                 }
+                if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
+                {
+                    _pendingWaitHandle.Set();
+                }
+                //Process a next item in the queue if possible.
+                //Maybe there are there items in the write queue that were waiting on a fresh streamId
+                SendQueueNext();
             }, CancellationToken.None, TaskCreationOptions.None, _readScheduler);
         }
 
