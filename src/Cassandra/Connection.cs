@@ -61,8 +61,6 @@ namespace Cassandra
         private volatile byte[] _minimalBuffer;
         private volatile string _keyspace;
         private readonly object _keyspaceLock = new object();
-        /// <summary> TaskScheduler used to handle read tasks</summary>
-        private readonly TaskScheduler _readScheduler = new LimitedParallelismTaskScheduler(1);
         /// <summary> TaskScheduler used to handle write tasks</summary>
         private readonly TaskScheduler _writeScheduler = new LimitedParallelismTaskScheduler(1);
         /// <summary>
@@ -442,25 +440,19 @@ namespace Cassandra
                 return;
             }
             //We are currently using an IO Thread
-            //Use TaskScheduler assigned for reading
-            var closureBuffer = (byte[]) buffer.Clone();
-            var closureBytesReceived = bytesReceived;
-            Task.Factory.StartNew(() =>
+            //Parse the data received
+            var streamIdAvailable = ReadParse(buffer, 0, bytesReceived);
+            if (!streamIdAvailable)
             {
-                //Parse the data received
-                var streamIdAvailable = ReadParse(closureBuffer, 0, closureBytesReceived);
-                if (!streamIdAvailable)
-                {
-                    return;
-                }
-                if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
-                {
-                    _pendingWaitHandle.Set();
-                }
-                //Process a next item in the queue if possible.
-                //Maybe there are there items in the write queue that were waiting on a fresh streamId
-                SendQueueNext();
-            }, CancellationToken.None, TaskCreationOptions.None, _readScheduler);
+                return;
+            }
+            if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
+            {
+                _pendingWaitHandle.Set();
+            }
+            //Process a next item in the queue if possible.
+            //Maybe there are there items in the write queue that were waiting on a fresh streamId
+            SendQueueNext();
         }
 
         /// <summary>
@@ -609,18 +601,26 @@ namespace Cassandra
                 Request = request,
                 Callback = callback
             };
-            SendQueueProcess(state);
+            SendQueueProcess(state, true);
         }
 
         /// <summary>
         /// Try to write the item provided. Thread safe.
         /// </summary>
-        private void SendQueueProcess(OperationState state)
+        /// <param name="state">The request and callback</param>
+        /// <param name="useInlining">Determines if the current thread can be used to start sending the request</param>
+        private void SendQueueProcess(OperationState state, bool useInlining)
         {
             var canWrite = Interlocked.CompareExchange(ref _canWriteNext, 0, 1);
             if (canWrite == 1)
             {
-                //Start a new task using the write TaskScheduler
+                if (useInlining)
+                {
+                    //Use the current thread to start the write operation
+                    SendQueueProcessItem(state);
+                    return;
+                }
+                //Start a new task using the TaskScheduler for writing
                 Task.Factory.StartNew(() => SendQueueProcessItem(state), CancellationToken.None, TaskCreationOptions.None, _writeScheduler);
             }
             else
@@ -672,7 +672,7 @@ namespace Cassandra
             OperationState state;
             if (_writeQueue.TryDequeue(out state))
             {
-                SendQueueProcess(state);
+                SendQueueProcess(state, false);
             }
         }
 
