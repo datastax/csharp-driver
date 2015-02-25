@@ -15,26 +15,23 @@ namespace Cassandra.Tasks
     {
         [ThreadStatic]
         private static bool _isCurrentThreadProcessing;
-        private readonly ConcurrentQueue<Task> _tasks = new ConcurrentQueue<Task>();
+        private readonly LinkedList<Task> _tasks = new LinkedList<Task>();
         private readonly int _maxParallelismLevel;
-        /// <summary>
-        /// The number of task queued or running
-        /// </summary>
-        private int _taskProcessing;
+        private int _delegatesRunning;
+
 
         /// <summary>
         /// Gets the maximum concurrency level supported by this scheduler.
         /// </summary>
-        public sealed override int MaximumConcurrencyLevel
+        public override int MaximumConcurrencyLevel
         {
-            get { return _maxParallelismLevel; }
+            get {  return _maxParallelismLevel; }
         }
 
         /// <summary>
-        /// Initializes an instance of the LimitedParallelismTaskScheduler class with the
-        /// specified degree of parallelism.
+        /// Initializes an instance of the scheduler with the specified degree of parallelism.
         /// </summary>
-        /// <param name="maxParallelismLevel">The maximum degree of parallelism provided by this scheduler.</param>
+        /// <param name="maxParallelismLevel">The maximum degree of parallelism allowed by this scheduler.</param>
         public LimitedParallelismTaskScheduler(int maxParallelismLevel)
         {
             if (maxParallelismLevel < 1)
@@ -47,19 +44,20 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Queues a task to the scheduler.
         /// </summary>
+        /// <param name="task">The task to be queued.</param>
         protected sealed override void QueueTask(Task task)
         {
-            // Add the task to the list of tasks to be processed.
-            _tasks.Enqueue(task);
-            var processing = Interlocked.Increment(ref _taskProcessing);
-            if (processing > _maxParallelismLevel)
+            lock (_tasks)
             {
-                //There are too many tasks scheduled
-                //Do not notify of pending work
-                return;
+                _tasks.AddLast(task);
+                if (_delegatesRunning >= _maxParallelismLevel)
+                {
+                    //We are already processing items
+                    return;
+                }
+                _delegatesRunning++;
+                NotifyThreadPoolOfPendingWork();
             }
-            //There is pending items to processes
-            NotifyThreadPoolOfPendingWork();
         }
 
         /// <summary>
@@ -69,8 +67,6 @@ namespace Cassandra.Tasks
         {
             ThreadPool.UnsafeQueueUserWorkItem(_ =>
             {
-                // Note that the current thread is now processing work items.
-                // This is necessary to enable inlining of tasks into this thread.
                 _isCurrentThreadProcessing = true;
                 try
                 {
@@ -78,13 +74,22 @@ namespace Cassandra.Tasks
                     while (true)
                     {
                         Task item;
-                        var dequeued = _tasks.TryDequeue(out item);
-                        if (!dequeued)
+                        lock (_tasks)
                         {
-                            break;
+                            if (_tasks.Count == 0)
+                            {
+                                //We are done processing, and get out.
+                                _delegatesRunning--;
+                                break;
+                            }
+
+                            // Get the next item from the queue
+                            item = _tasks.First.Value;
+                            _tasks.RemoveFirst();
                         }
-                        Interlocked.Decrement(ref _taskProcessing);
-                        TryExecuteTask(item);
+
+                        // Execute the task we pulled out of the queue
+                        base.TryExecuteTask(item);
                     }
                 }
                 finally
@@ -94,20 +99,23 @@ namespace Cassandra.Tasks
             }, null);
         }
 
-        /// <summary>Attempts to execute the specified task on the current thread.</summary>
+        /// <summary>
+        /// Attempts to execute the specified task on the current thread.
+        /// </summary>
         /// <param name="task">The task to be executed.</param>
         /// <param name="taskWasPreviouslyQueued"></param>
         /// <returns>Whether the task could be executed on the current thread.</returns>
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+        protected sealed override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
         {
-            if (taskWasPreviouslyQueued)
+            // If this thread isn't already processing a task, we don't support inlining
+            if (!_isCurrentThreadProcessing)
             {
                 return false;
             }
-            if (!_isCurrentThreadProcessing)
+            // If the task was previously queued, remove it from the queue
+            if (taskWasPreviouslyQueued)
             {
-                // If this thread isn't already processing a task, we don't support inlining
-                return false;
+                TryDequeue(task);
             }
 
             // Try to run the task.
@@ -121,16 +129,40 @@ namespace Cassandra.Tasks
         /// <returns>Whether the task could be found and removed.</returns>
         protected sealed override bool TryDequeue(Task task)
         {
-            return false;
+            lock (_tasks)
+            {
+                return _tasks.Remove(task);
+            }
         }
 
+
         /// <summary>
-        /// Generates an enumerable of <see cref="T:System.Threading.Tasks.Task">Task</see> instances
-        /// currently queued to the scheduler waiting to be executed.
+        /// Gets an enumerable of the tasks currently scheduled on this scheduler.
         /// </summary>
+        /// <returns>An enumerable of the tasks currently scheduled.</returns>
         protected sealed override IEnumerable<Task> GetScheduledTasks()
         {
-            return _tasks.ToArray();
+            var lockTaken = false;
+            try
+            {
+                Monitor.TryEnter(_tasks, ref lockTaken);
+                if (lockTaken)
+                {
+                    return _tasks.ToArray();
+                }
+                else
+                {
+                    //Parallel calls to scheduled tasks from different threads is not supported
+                    throw new NotSupportedException();
+                }
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    Monitor.Exit(_tasks);
+                }
+            }
         }
     }
 }

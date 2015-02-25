@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
     [Timeout(600000), Category("short")]
     public class ConnectionTests : TestGlobals
     {
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetupFixture()
         {
             // we just need to make sure that there is a query-able cluster
@@ -545,8 +545,16 @@ namespace Cassandra.IntegrationTests.Core
             {
                 taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces"));
             }
-            Assert.Greater(connection.InFlight, 0);
-
+            for (var i = 0; i < 1000; i++)
+            {
+                if (connection.InFlight > 0)
+                {
+                    Trace.TraceInformation("Inflight {0}", connection.InFlight);
+                    break;
+                }
+                //Wait until there is an operation in flight
+                Thread.Sleep(50);
+            }
             //Close the socket, this would trigger all pending ops to be called back
             connection.Dispose();
             try

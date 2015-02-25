@@ -21,7 +21,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
  using Cassandra.Tasks;
@@ -33,6 +32,7 @@ namespace Cassandra
     /// </summary>
     internal class Connection : IDisposable
     {
+        // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Connection));
         private readonly TcpSocket _tcpSocket;
         private int _disposed;
@@ -48,29 +48,23 @@ namespace Cassandra
         /// Stores the available stream ids.
         /// </summary>
         private ConcurrentStack<short> _freeOperations;
-        /// <summary>
-        /// Contains the requests that were sent through the wire and that hasn't been received yet.
-        /// </summary>
+        /// <summary> Contains the requests that were sent through the wire and that hasn't been received yet.</summary>
         private ConcurrentDictionary<short, OperationState> _pendingOperations;
-        /// <summary>
-        /// It determines if the write queue can process the next (if it is not in-flight).
-        /// It has to be volatile as it can not be cached by the thread.
-        /// </summary>
-        private volatile bool _canWriteNext = true;
-        /// <summary>
-        /// Its for processing the next item in the write queue.
-        /// It can not be replaced by a Interlocked Increment as it must allow rollbacks (when there are no stream ids left).
-        /// </summary>
-        private readonly object _writeQueueLock = new object();
+        /// <summary> It contains the requests that could not be written due to streamIds not available</summary>
         private ConcurrentQueue<OperationState> _writeQueue;
-        private OperationState _receivingOperation;
+        private int _canWriteNext = 1;
+        private volatile OperationState _receivingOperation;
         /// <summary>
         /// Small buffer (less than 8 bytes) that is used when the next received message is smaller than 8 bytes, 
         /// and it is not possible to read the header.
         /// </summary>
-        private byte[] _minimalBuffer;
+        private volatile byte[] _minimalBuffer;
         private volatile string _keyspace;
         private readonly object _keyspaceLock = new object();
+        /// <summary> TaskScheduler used to handle read tasks</summary>
+        private readonly TaskScheduler _readScheduler = new LimitedParallelismTaskScheduler(1);
+        /// <summary> TaskScheduler used to handle write tasks</summary>
+        private readonly TaskScheduler _writeScheduler = new LimitedParallelismTaskScheduler(1);
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -290,7 +284,7 @@ namespace Cassandra
                 if (_writeQueue.Count > 0)
                 {
                     //Callback all the items in the write queue
-                    OperationState state = null;
+                    OperationState state;
                     while (_writeQueue.TryDequeue(out state))
                     {
                         state.InvokeCallback(ex);
@@ -398,11 +392,11 @@ namespace Cassandra
                 Compressor = new SnappyCompressor();
             }
 
-            //MAYBE: If really necessary, we can Wait on the BeginConnect result.
             //Init TcpSocket
             _tcpSocket.Init();
             _tcpSocket.Error += CancelPending;
             _tcpSocket.Closing += () => CancelPending(null, null);
+            //Read and write event handlers are going to be invoked using IO Threads
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             _tcpSocket.Connect();
@@ -447,18 +441,28 @@ namespace Cassandra
                 //All pending operations have been canceled, there is no point in reading from the wire.
                 return;
             }
-            //Parse the data received
-            var streamIdAvailable = ReadParse(buffer, 0, bytesReceived);
-            if (streamIdAvailable)
+            //We are currently using an IO Thread
+            //Use TaskScheduler assigned for reading
+            var ticks = DateTime.Now.Ticks;
+            var closureBuffer = (byte[]) buffer.Clone();
+            var closureBytesReceived = bytesReceived;
+            Console.WriteLine("Issue Reading\t {0}.{1}.{2} - {3} - {4}", buffer[0], buffer[1], buffer[2], closureBytesReceived, ticks);
+            Task.Factory.StartNew(() =>
             {
-                if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
+                Console.WriteLine("Reading\t\t {0}.{1}.{2} - {3} - {4}", closureBuffer[0], closureBuffer[1], closureBuffer[2], closureBytesReceived, ticks);
+                //Parse the data received
+                var streamIdAvailable = ReadParse(closureBuffer, 0, closureBytesReceived);
+                if (streamIdAvailable)
                 {
-                    _pendingWaitHandle.Set();
+                    if (_pendingWaitHandle != null && _pendingOperations.Count == 0 && _writeQueue.Count == 0)
+                    {
+                        _pendingWaitHandle.Set();
+                    }
+                    //Process a next item in the queue if possible.
+                    //Maybe there are there items in the write queue that were waiting on a fresh streamId
+                    SendQueueNext();
                 }
-                //Process a next item in the queue if possible.
-                //Maybe there are there items in the write queue that were waiting on a fresh streamId
-                SendQueueNext();
-            }
+            }, CancellationToken.None, TaskCreationOptions.None, _readScheduler);
         }
 
         /// <summary>
@@ -503,8 +507,10 @@ namespace Cassandra
                 else
                 {
                     //Its an event
-                    state = new OperationState();
-                    state.Callback = EventHandler;
+                    state = new OperationState
+                    {
+                        Callback = EventHandler
+                    };
                 }
                 state.Header = header;
                 _receivingOperation = state;
@@ -613,35 +619,31 @@ namespace Cassandra
         /// </summary>
         private void SendQueueProcess(OperationState state)
         {
-            if (!_canWriteNext)
+            var canWrite = Interlocked.CompareExchange(ref _canWriteNext, 0, 1);
+            if (canWrite == 1)
             {
-                //Double-checked locking for best performance
+                //Start a new task using the write TaskScheduler
+                Task.Factory.StartNew(() => SendQueueProcessItem(state), CancellationToken.None, TaskCreationOptions.None, _writeScheduler);
+            }
+            else
+            {
                 _writeQueue.Enqueue(state);
+            }
+        }
+
+        private void SendQueueProcessItem(OperationState state)
+        {
+            short streamId;
+            //Check if Cassandra can process a new operation
+            if (!_freeOperations.TryPop(out streamId))
+            {
+                //Queue it up for later.
+                //When receiving the next complete message, we can process it.
+                _writeQueue.Enqueue(state);
+                _logger.Info("Enqueued: " + _writeQueue.Count + ", if this message is recurrent consider configuring more connections per host or lower the pressure");
+                Interlocked.Exchange(ref _canWriteNext, 1);
                 return;
             }
-            short streamId = -1;
-            lock (_writeQueueLock)
-            {
-                if (!_canWriteNext)
-                {
-                    //We have to recheck as the world can change since the last instruction
-                    _writeQueue.Enqueue(state);
-                    return;
-                }
-                //Check if Cassandra can process a new operation
-                if (!_freeOperations.TryPop(out streamId))
-                {
-                    //Queue it up for later.
-                    //When receiving the next complete message, we can process it.
-                    _writeQueue.Enqueue(state);
-                    _logger.Info("Enqueued: " + _writeQueue.Count + ", if this message is recurrent consider configuring more connections per host or lower the pressure");
-                    return;
-                }
-                //Prevent the next to process
-                _canWriteNext = false;
-            }
-            
-            //At this point:
             //We have a valid stream id
             //Only 1 thread at a time can be here.
             try
@@ -656,25 +658,19 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                //Prevent dead locking
-                _canWriteNext = true;
                 _logger.Error(ex);
                 //The request was not written
                 _pendingOperations.TryRemove(streamId, out state);
                 _freeOperations.Push(streamId);
-                throw;
+                //We are done with it
+                state.InvokeCallback(ex);
             }
         }
-
         /// <summary>
         /// Try to write the next item in the write queue. Thread safe.
         /// </summary>
         protected virtual void SendQueueNext()
         {
-            if (!_canWriteNext)
-            {
-                return;
-            }
             OperationState state;
             if (_writeQueue.TryDequeue(out state))
             {
@@ -687,13 +683,14 @@ namespace Cassandra
         /// </summary>
         protected virtual void WriteCompletedHandler()
         {
+            //This handler is invoked by IO threads
+            //Make it quick
             if (WriteCompleted != null)
             {
                 WriteCompleted();
             }
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
-            _canWriteNext = true;
             //Set the idle timeout to avoid idle disconnects
             var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
             if (heartBeatInterval != null && !_isCanceled)
@@ -708,7 +705,9 @@ namespace Cassandra
                     //Don't mind
                 }
             }
+            Interlocked.Exchange(ref _canWriteNext, 1);
             //Send the next request, if exists
+            //It will use a new thread
             SendQueueNext();
         }
 
