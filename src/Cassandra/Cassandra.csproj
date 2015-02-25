@@ -262,6 +262,7 @@
     <Compile Include="RowPopulators\RowSet.cs" />
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
+    <Compile Include="Tasks\LimitedParallelismTaskScheduler.cs" />
     <Compile Include="TimeUuid.cs" />
     <Compile Include="TypeCodec.cs" />
     <Compile Include="RPToken.cs" />
