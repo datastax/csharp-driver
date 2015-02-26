@@ -47,20 +47,20 @@ namespace Cassandra
 
         public int? HeartbeatInterval
         {
-            get { return DefaultIfNotExists<int?>("HeartbeatInterval", null); }
-            set { base["HeartbeatInterval"] = value;
+            get { return DefaultIfNotExists<int>("HeartbeatInterval", null); }
+            set { base["HeartbeatInterval"] = value; }
         }
         
-        public bool UseConstantReconnectPolicy
+        public string ReconnectPolicy
         {
-            get { return DefaultIfNotExists<bool>("UseConstantReconnectPolicy", false); }
-            set { base["UseConstantReconnectPolicy"] = value;
+            get { return DefaultIfNotExists<string>("ReconnectPolicy", null); }
+            set { base["ReconnectPolicy"] = value; }
         }
         
-        public int? ConstantReconnectPolicyDelay
+        public long? ConstantReconnectPolicyDelay
         {
-            get { return DefaultIfNotExists<int?>("ConstantReconnectPolicyDelay", null); }
-            set { base["ConstantReconnectPolicyDelay"] = value;
+            get { return DefaultIfNotExists<long>("ConstantReconnectPolicyDelay", null as long?); }
+            set { base["ConstantReconnectPolicyDelay"] = value; }
         }
         
         public string Username
@@ -95,12 +95,23 @@ namespace Cassandra
         
             if(this.HeartbeatInterval.HasValue)
             {
-                builder.PoolingOptions.SetHeartBeatInterval(this.HeartbeatInterval.Value);
+                if (builder.PoolingOptions == null)
+                {
+                    builder.WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(this.HeartbeatInterval.Value));
+                }
+                else
+                {
+                    builder.PoolingOptions.SetHeartBeatInterval(this.HeartbeatInterval.Value);
+                }
             }
-            
-            if(this.UseConstantReconnectPolicy && this.ConstantReconnectPolicyDelay.HasValue)
+
+            if (!String.IsNullOrWhiteSpace(this.ReconnectPolicy))
             {
-                builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(this.ConstantReconnectionPolicyDelay));
+                if (string.Compare(this.ReconnectPolicy, "Constant", StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    long? value = this.ConstantReconnectPolicyDelay ?? 2000;
+                    builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(value.Value));
+                }
             }
             
             return builder;
@@ -115,7 +126,29 @@ namespace Cassandra
         {
             if (!base.ContainsKey(name))
                 return def;
+            
             return (T) Convert.ChangeType(base[name], typeof (T));
+        }
+
+        private Nullable<T> DefaultIfNotExists<T>(string name, Nullable<T> def) where T : struct
+        {
+            if (!base.ContainsKey(name))
+                return def;
+
+            Nullable<T> result = def;
+
+            try
+            {
+                result = (T)Convert.ChangeType(base[name], typeof(T));
+            }
+                
+            finally
+            {
+                // return the null value, if the Convert fails.
+            }
+
+            return result; 
+        
         }
 
         private T ThrowIfNotExists<T>(string name)

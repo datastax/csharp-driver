@@ -96,5 +96,48 @@ namespace Cassandra.Tests
                                                   .Build());
             Assert.AreEqual(ex.SocketErrorCode, SocketError.HostNotFound);
         }
+
+        [Test]
+        public void WithConnectionStringHeartbeatIntervalTest()
+        {
+            const int heartbeatInterval = 20000;
+            var builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points=127.0.0.1;HeartbeatInterval={0};", heartbeatInterval));
+            var config = builder.GetConfiguration();
+            Assert.IsNotNull(config.PoolingOptions);
+            Assert.AreEqual(heartbeatInterval, config.PoolingOptions.GetHeartBeatInterval().Value);
+
+            builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points=127.0.0.1;HeartbeatInterval={0};Username=user1", heartbeatInterval));
+            config = builder.GetConfiguration();
+            Assert.IsNotNull(config.PoolingOptions);
+            Assert.AreEqual(heartbeatInterval, config.PoolingOptions.GetHeartBeatInterval().Value);
+
+            builder = Cluster.Builder().WithConnectionString("Contact Points=127.0.0.1;Default Keyspace=ks1");
+            config = builder.GetConfiguration();
+            Assert.IsNull(config.PoolingOptions, "Please refactor the WithConnectionStringHeartbeatIntervalTest to check the HeartbeatInterval now that DefaultPoolingOptions is not null.");
+        }
+
+       [Test]
+        public void WithConnectionStringConstantReconnectPolicyDelayTest()
+        {
+            const string reconnectPolicy = "CONSTANT";
+            const int reconnectPolicyDelay = 20000;
+            const long defaultReconnectPolicyDelay = 2000;
+            var builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points=127.0.0.1;ReconnectPolicy={0};ConstantReconnectPolicyDelay={1};", reconnectPolicy, reconnectPolicyDelay));
+            var config = builder.GetConfiguration();
+            Assert.IsInstanceOf<ConstantReconnectionPolicy>(config.Policies.ReconnectionPolicy);
+            ConstantReconnectionPolicy check = config.Policies.ReconnectionPolicy as ConstantReconnectionPolicy;
+            Assert.AreEqual(reconnectPolicyDelay, check.ConstantDelayMs);
+
+            builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points=127.0.0.1;ReconnectPolicy={0};Username=user1", reconnectPolicy));
+            config = builder.GetConfiguration();
+            Assert.IsInstanceOf<ConstantReconnectionPolicy>(config.Policies.ReconnectionPolicy);
+            check = config.Policies.ReconnectionPolicy as ConstantReconnectionPolicy;
+            Assert.AreEqual(defaultReconnectPolicyDelay, check.ConstantDelayMs);
+
+            builder = Cluster.Builder().WithConnectionString("Contact Points=127.0.0.1;ReconnectPolicy=Unknown;");
+            config = builder.GetConfiguration();
+            Assert.IsNotNull(config.Policies);
+            Assert.IsNotInstanceOf<ConstantReconnectionPolicy>(config.Policies.ReconnectionPolicy);
+        }
     }
 }
