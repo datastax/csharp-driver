@@ -45,6 +45,24 @@ namespace Cassandra
             set { base["Contact Points"] = string.Join(",", value); }
         }
 
+        public int? HeartbeatInterval
+        {
+            get { return DefaultIfNotExists<int?>("HeartbeatInterval", null); }
+            set { base["HeartbeatInterval"] = value;
+        }
+        
+        public bool UseConstantReconnectPolicy
+        {
+            get { return DefaultIfNotExists<bool>("UseConstantReconnectPolicy", false); }
+            set { base["UseConstantReconnectPolicy"] = value;
+        }
+        
+        public int? ConstantReconnectPolicyDelay
+        {
+            get { return DefaultIfNotExists<int?>("ConstantReconnectPolicyDelay", null); }
+            set { base["ConstantReconnectPolicyDelay"] = value;
+        }
+        
         public string Username
         {
             get { return DefaultIfNotExists<string>("Username", null); }
@@ -74,6 +92,17 @@ namespace Cassandra
                 //Make sure the credentials are not null
                 builder.WithCredentials(Username, Password);
             }
+        
+            if(this.HeartbeatInterval.HasValue)
+            {
+                builder.PoolingOptions.SetHeartBeatInterval(this.HeartbeatInterval.Value);
+            }
+            
+            if(this.UseConstantReconnectPolicy && this.ConstantReconnectPolicyDelay.HasValue)
+            {
+                builder.WithReconnectionPolicy(new ConstantReconnectionPolicy(this.ConstantReconnectionPolicyDelay));
+            }
+            
             return builder;
         }
 
