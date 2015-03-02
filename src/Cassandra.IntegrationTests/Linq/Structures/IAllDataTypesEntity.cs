@@ -27,6 +27,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         string StringType { get; set; }
         Guid GuidType { get; set; }
         DateTime DateTimeType { get; set; }
+        DateTime? NullableDateTimeType { get; set; }
         DateTimeOffset DateTimeOffsetType { get; set; }
         bool BooleanType { get; set; }
         Decimal DecimalType { get; set; }

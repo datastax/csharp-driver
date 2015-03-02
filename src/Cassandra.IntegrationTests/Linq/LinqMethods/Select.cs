@@ -116,6 +116,21 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        public void LinqSelect_NullableDateTimeType_Sync()
+        {
+            List<AllDataTypesEntity> actualEntities = _table.Select(e => new AllDataTypesEntity { NullableDateTimeType = e.NullableDateTimeType }).Execute().ToList();
+            Assert.AreEqual(_entityList.Count, actualEntities.Count);
+            foreach (var entity in _entityList)
+            {
+                AllDataTypesEntity expectedEntity = new AllDataTypesEntity
+                {
+                    NullableDateTimeType = entity.NullableDateTimeType
+                };
+                AllDataTypesEntityUtil.AssertListContains(actualEntities, expectedEntity);
+            }
+        }
+
+        [Test]
         public void LinqSelect_DecimalType_Sync()
         {
             List<AllDataTypesEntity> actualEntities = _table.Select(e => new AllDataTypesEntity { DecimalType = e.DecimalType }).Execute().ToList();

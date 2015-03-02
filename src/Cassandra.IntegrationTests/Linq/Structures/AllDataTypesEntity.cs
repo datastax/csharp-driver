@@ -40,6 +40,9 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         [Column("date_time_type")]
         public DateTime DateTimeType { get; set; }
 
+        [Column("nullable_date_time_type")]
+        public DateTime? NullableDateTimeType { get; set; }
+
         [Column("date_time_offset_type")]
         public DateTimeOffset DateTimeOffsetType { get; set; }
 
