@@ -38,6 +38,8 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public DateTime DateTimeType { get; set; }
 
+        public DateTime? NullableDateTimeType { get; set; }
+
         public DateTimeOffset DateTimeOffsetType { get; set; }
 
         public bool BooleanType { get; set; }

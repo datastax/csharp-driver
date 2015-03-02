@@ -40,6 +40,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             entity.StringType = "StringType_val_" + Randomm.RandomAlphaNum(10);
             entity.GuidType = Guid.NewGuid();
             entity.DateTimeType = DateTime.Now.ToUniversalTime();
+            entity.NullableDateTimeType = Randomm.RandomInt() % 2 == 0 ? (DateTime?) null : DateTime.UtcNow;
             entity.DateTimeOffsetType = new DateTimeOffset();
             entity.BooleanType = false;
             entity.DecimalType = (decimal) 98765432.0;

@@ -113,10 +113,18 @@ namespace Cassandra.Mapping.TypeConversion
                     return enumMapper;
                 }
             }
-            if (dbType == typeof(DateTimeOffset) && pocoType == typeof(DateTime))
+            if (dbType == typeof(DateTimeOffset))
             {
-                Func<DateTimeOffset, DateTime> dateMapper = d => d.DateTime;
-                return dateMapper;
+                if (pocoType == typeof(DateTime))
+                {
+                    Func<DateTimeOffset, DateTime> dateMapper = d => d.DateTime;
+                    return dateMapper;
+                }
+                if (pocoType == typeof(DateTime?))
+                {
+                    Func<DateTimeOffset, DateTime?> dateMapper = d => d.DateTime;
+                    return dateMapper;
+                }
             }
 
             if (dbType.IsGenericType && (pocoType.IsGenericType || pocoType.IsArray))
