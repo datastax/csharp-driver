@@ -389,5 +389,56 @@ namespace Cassandra.IntegrationTests.Core
             var session = cluster.Connect("system");
             TestHelper.ParallelInvoke(() => session.Execute("SELECT * from schema_keyspaces"), 20);
         }
+
+        /// <summary>
+        /// Tests that the reconnection attempt (on a dead node) is attempted only once per try (when allowed by the reconnection policy).
+        /// </summary>
+        [Test]
+        [Timeout(120000)]
+        public void ReconnectionAttemptedOnlyOnce()
+        {
+            const int reconnectionDelay = 5000;
+            const int waitTime = reconnectionDelay * 3 + 4000;
+            var nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
+            var cluster = Cluster.Builder()
+                .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(reconnectionDelay))
+                .Build();
+            nonShareableTestCluster.Stop(2);
+            var session = cluster.Connect();
+            var connectionAttempts = 0;
+            cluster.Metadata.Hosts.Down += (h, s) =>
+            {
+                //Every time there is a connection attempt, it is marked as down
+                connectionAttempts++;
+                Trace.TraceInformation("--Considered as down at " + DateTime.Now.ToString("hh:mm:ss.fff"));
+            };
+            TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
+            Assert.AreEqual(1, connectionAttempts);
+            var watch = new Stopwatch();
+            watch.Start();
+            Action action = () =>
+            {
+                if (watch.ElapsedMilliseconds < waitTime)
+                {
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"));
+                }
+            };
+            var waitHandle = new AutoResetEvent(false);
+            var t = new Timer(s =>
+            {
+                waitHandle.Set();
+            }, null, waitTime, Timeout.Infinite);
+            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = 50 };
+            while (watch.ElapsedMilliseconds < waitTime)
+            {
+                Trace.TraceInformation("Executing multiple times");
+                Parallel.Invoke(parallelOptions, Enumerable.Repeat(action, 100).ToArray());
+                Thread.Sleep(100);
+            }
+            Assert.True(waitHandle.WaitOne(waitTime), "Wait time passed but it was not signaled");
+            t.Dispose();
+            Assert.AreEqual(4, connectionAttempts);
+        }
     }
 }

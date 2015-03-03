@@ -131,8 +131,11 @@ namespace Cassandra
             {
                 lock(_poolCreationLock)
                 {
-                    if (_connections != null && !_connections.All(c => c.IsClosed))
+                    if (!Host.IsConsiderablyUp || (_connections != null && !_connections.All(c => c.IsClosed)))
                     {
+                        //While waiting for the lock
+                        //The connections have been created
+                        //Or the host was set as down again
                         return;
                     }
                     _connections = new ConcurrentBag<Connection>();
@@ -144,6 +147,7 @@ namespace Cassandra
                         }
                         catch
                         {
+                            _logger.Warning(String.Format("Could not create connections to host {0}", Host.Address));
                             if (_connections.Count == 0)
                             {
                                 //Leave the pool to its previous state
