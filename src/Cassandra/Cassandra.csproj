@@ -359,6 +359,7 @@
     <Compile Include="RowPopulators\RowSet.cs" />
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
+    <Compile Include="Tasks\LimitedParallelismTaskScheduler.cs" />
     <Compile Include="TimeUuid.cs" />
     <Compile Include="TypeCodec.cs" />
     <Compile Include="RPToken.cs" />
@@ -377,7 +378,7 @@
     <Compile Include="TableColumn.cs" />
     <Compile Include="TableMetadata.cs" />
     <Compile Include="TableOptions.cs" />
-    <Compile Include="TaskHelper.cs" />
+    <Compile Include="Tasks\TaskHelper.cs" />
     <Compile Include="TcpSocket.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="TokenMap.cs" />

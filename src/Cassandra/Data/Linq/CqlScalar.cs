@@ -21,6 +21,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {

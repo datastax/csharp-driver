@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Cassandra.Mapping;
+using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;

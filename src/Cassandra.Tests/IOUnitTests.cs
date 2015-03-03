@@ -21,6 +21,7 @@ using NUnit.Framework;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra.Tests
 {

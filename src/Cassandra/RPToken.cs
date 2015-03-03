@@ -52,6 +52,11 @@ namespace Cassandra
             return _value.GetHashCode();
         }
 
+        public override string ToString()
+        {
+            return _value.ToString();
+        }
+
         private class RPTokenFactory : TokenFactory
         {
             [ThreadStatic] private static MD5 _md5;
@@ -63,8 +68,19 @@ namespace Cassandra
 
             public override IToken Hash(byte[] partitionKey)
             {
-                if (_md5 == null) _md5 = MD5.Create();
-                return new RPToken(new BigInteger(_md5.ComputeHash(partitionKey)));
+                if (_md5 == null) 
+                    _md5 = MD5.Create();
+                
+                var hash = _md5.ComputeHash(partitionKey);
+                
+                var reversedHash = new byte[hash.Length];
+                for(int x = hash.Length - 1, y = 0; x >= 0; --x, ++y)
+                {
+                    reversedHash[y] = hash[x];
+                }
+                var bigInteger = BigInteger.Abs(new BigInteger(reversedHash));
+                
+                return new RPToken(bigInteger);
             }
         }
     }

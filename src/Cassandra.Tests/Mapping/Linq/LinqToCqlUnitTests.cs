@@ -24,6 +24,7 @@ using Cassandra.Data.Linq;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
+using Cassandra.Tasks;
 #pragma warning disable 618
 
 namespace Cassandra.Tests.Mapping.Linq

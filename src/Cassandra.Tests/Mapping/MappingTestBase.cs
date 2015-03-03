@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Moq;
 using NUnit.Framework;

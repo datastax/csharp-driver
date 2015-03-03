@@ -198,7 +198,14 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 return;
             }
-            var methodAttr = type.GetMethod(test.Name)
+            var testName = test.Name;
+            if (testName.IndexOf('(') > 0)
+            {
+                //The test name could be a TestCase: NameOfTheTest(ParameterValue);
+                //Remove the parenthesis
+                testName = testName.Substring(0, testName.IndexOf('('));
+            }
+            var methodAttr = type.GetMethod(testName)
                 .GetCustomAttributes(true)
                 .Select(a => (Attribute)a)
                 .FirstOrDefault((a) => a is TestCassandraVersion);

@@ -102,7 +102,6 @@ namespace Cassandra.IntegrationTests.Core
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
             var cluster = testCluster.Cluster;
-
             //The control connection is connected to host 1
             Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
             testCluster.StopForce(1);
@@ -122,6 +121,14 @@ namespace Cassandra.IntegrationTests.Core
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
             var cluster = testCluster.Cluster;
+            var downEventFired = false;
+            cluster.Metadata.HostsEvent += (sender, e) =>
+            {
+                if (e.What == HostsEventArgs.Kind.Down)
+                {
+                    downEventFired = true;
+                }
+            };
 
             //The control connection is connected to host 1
             //All host are up
@@ -139,8 +146,53 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 Thread.Sleep(1000);
             }
-            Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp));
+            Assert.True(cluster.AllHosts().Any(h => TestHelper  .GetLastAddressByte(h) == 2 && !h.IsUp));
             Assert.AreNotEqual(counter, maxWait, "Waited but it was never notified via events");
+            Assert.True(downEventFired);
+        }
+
+        /// <summary>
+        /// Starts a cluster with 2 nodes, kills one of them (the one used by the control connection or the other) and checks that the Host Down event was fired.
+        /// Then restarts the node and checks that the Host Up event fired.
+        /// </summary>
+        [TestCase(true, Description = "Using the control connection host")]
+        [TestCase(false, Description = "Using the other host")]
+        public void MetadataHostsEventTest(bool useControlConnectionHost)
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(2);
+            var cluster = testCluster.Cluster;
+            var session = testCluster.Session;
+            var downEventFired = false;
+            var upEventFired = false;
+            cluster.Metadata.HostsEvent += (sender, e) =>
+            {
+                if (e.What == HostsEventArgs.Kind.Down)
+                {
+                    downEventFired = true;
+                }
+                else
+                {
+                    upEventFired = true;
+                }
+            };
+            //The host not used by the control connection
+            int hostToKill = TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress);
+            if (!useControlConnectionHost)
+            {
+                hostToKill = hostToKill == 1 ? 2 : 1;
+            }
+            testCluster.Stop(hostToKill);
+            Thread.Sleep(10000);
+            TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
+            Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == hostToKill && !h.IsUp));
+            Assert.True(downEventFired);
+            testCluster.Start(hostToKill);
+            Thread.Sleep(20000);
+            TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
+            Assert.True(cluster.AllHosts().All(h => h.IsConsiderablyUp));
+            //When the host of the control connection is used
+            //It can result that event UP is not fired as it is not received by the control connection (it reconnected but missed the event) 
+            Assert.True(upEventFired || useControlConnectionHost);
         }
 
         private void CheckPureMetadata(Cluster cluster, ISession session, string tableName, string keyspaceName, TableOptions tableOptions = null)

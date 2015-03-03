@@ -21,6 +21,7 @@ using System.Net;
 using System.Threading;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
