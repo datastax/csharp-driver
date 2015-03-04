@@ -273,6 +273,24 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
+        public void QueryPagingManual()
+        {
+            var pageSize = 10;
+            var totalRowLength = 15;
+            var table = CreateSimpleTableAndInsert(totalRowLength);
+            var rs = _session.Execute(new SimpleStatement("SELECT * FROM " + table).SetAutoPage(false).SetPageSize(pageSize));
+            Assert.NotNull(rs.PagingState);
+            //It should have just the first page of rows
+            Assert.AreEqual(pageSize, rs.InnerQueueCount);
+            //Linq iteration should not make it to page
+            Assert.AreEqual(pageSize, rs.Count());
+            rs = _session.Execute(new SimpleStatement("SELECT * FROM " + table).SetAutoPage(false).SetPageSize(pageSize).SetPagingState(rs.PagingState));
+            //It should only contain the following page rows
+            Assert.AreEqual(totalRowLength - pageSize, rs.Count());
+        }
+
+        [Test]
         public void LargeBatchInsert_MultipleTypes()
         {
             BigInsertTest(1000);

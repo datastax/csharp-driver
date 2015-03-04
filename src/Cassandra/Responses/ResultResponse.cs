@@ -49,7 +49,7 @@ namespace Cassandra
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(frame.Header.Version, BeBinaryReader, true, TraceId);
+                    Output = new OutputRows(frame.Header.Version, BeBinaryReader, TraceId);
                     break;
                 case ResultResponseKind.SetKeyspace:
                     Output = new OutputSetKeyspace(BeBinaryReader.ReadString());

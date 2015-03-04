@@ -20,6 +20,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
+// ReSharper disable StaticMemberInGenericType
 
 namespace Cassandra
 {
@@ -28,6 +29,7 @@ namespace Cassandra
     /// </summary>
     internal class RequestHandler<T>
     {
+        // ReSharper disable once InconsistentNaming
         private readonly static Logger _logger = new Logger(typeof(Session));
 
         private Connection _connection;
@@ -35,7 +37,8 @@ namespace Cassandra
         private readonly IRetryPolicy _retryPolicy;
         private readonly Session _session;
         private readonly IStatement _statement;
-        private int _retryCount = 0;
+        private readonly bool _autoPage = true;
+        private int _retryCount;
         private readonly TaskCompletionSource<T> _tcs;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -56,35 +59,14 @@ namespace Cassandra
             {
                 _retryPolicy = session.Policies.RetryPolicy;
             }
-            if (statement != null && statement.RetryPolicy != null)
+            if (statement != null)
             {
-                _retryPolicy = statement.RetryPolicy;
+                if (statement.RetryPolicy != null)
+                {
+                    _retryPolicy = statement.RetryPolicy;   
+                }
+                _autoPage = statement.AutoPage;
             }
-        }
-
-        /// <summary>
-        /// Determines if the host, due to the connection error can be resurrected if no other host is alive.
-        /// </summary>
-        private static bool CanBeResurrected(SocketException ex, Connection connection)
-        {
-            if (connection == null || connection.IsDisposed)
-            {
-                //It was never connected or the connection is being disposed manually
-                return false;
-            }
-            var isNetworkReset = false;
-            switch (ex.SocketErrorCode)
-            {
-                case SocketError.ConnectionRefused:
-                case SocketError.TimedOut:
-                case SocketError.ConnectionReset:
-                case SocketError.ConnectionAborted:
-                case SocketError.Fault:
-                case SocketError.Interrupted:
-                    isNetworkReset = true;
-                    break;
-            }
-            return isNetworkReset;
         }
 
         /// <summary>
@@ -101,9 +83,12 @@ namespace Cassandra
             {
                 rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
             }
-            if (rs.PagingState != null && _request is IQueryRequest && typeof(T) == typeof(RowSet))
+            rs.AutoPage = _autoPage;
+            if (_autoPage && rs.PagingState != null && _request is IQueryRequest && typeof(T) == typeof(RowSet))
             {
-                rs.FetchNextPage = (pagingState) =>
+                //Automatic paging is enabled and there are following result pages
+                //Set the Handler for fetching the next page.
+                rs.FetchNextPage = pagingState =>
                 {
                     if (_session.IsDisposed)
                     {
@@ -180,7 +165,7 @@ namespace Cassandra
         /// </summary>
         public RetryDecision GetRetryDecision(Exception ex)
         {
-            RetryDecision decision = RetryDecision.Rethrow();
+            var decision = RetryDecision.Rethrow();
             if (ex is SocketException)
             {
                 decision = RetryDecision.Retry(null);
@@ -191,17 +176,17 @@ namespace Cassandra
             }
             else if (ex is ReadTimeoutException)
             {
-                var e = ex as ReadTimeoutException;
+                var e = (ReadTimeoutException) ex;
                 decision = _retryPolicy.OnReadTimeout(_statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, _retryCount);
             }
             else if (ex is WriteTimeoutException)
             {
-                var e = ex as WriteTimeoutException;
+                var e = (WriteTimeoutException) ex;
                 decision = _retryPolicy.OnWriteTimeout(_statement, e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, _retryCount);
             }
             else if (ex is UnavailableException)
             {
-                var e = ex as UnavailableException;
+                var e = (UnavailableException) ex;
                 decision = _retryPolicy.OnUnavailable(_statement, e.Consistency, e.RequiredReplicas, e.AliveReplicas, _retryCount);
             }
             return decision;
@@ -248,10 +233,12 @@ namespace Cassandra
             }
         }
 
+        // ReSharper disable UnusedParameter.Local
         private void SetHostDown(Host host, Connection connection, Exception ex)
         {
             host.SetDown();
         }
+        // ReSharper restore UnusedParameter.Local
 
         /// <summary>
         /// Creates the prepared statement and transitions the task to completed

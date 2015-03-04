@@ -389,6 +389,33 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
+        public void Bound_Manual_Paging()
+        {
+            const int pageSize = 15;
+            const int totalRowLength = 20;
+            var table = "tbl" + Guid.NewGuid().ToString("N").ToLower();
+            _session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
+            var insertPs = _session.Prepare(String.Format("INSERT INTO {0} (id) VALUES (?)", table));
+            //Insert the rows
+            TestHelper.Invoke(() => _session.Execute(insertPs.Bind(Guid.NewGuid())), totalRowLength);
+
+            var ps = _session.Prepare(String.Format("SELECT * FROM {0} LIMIT 10000", table));
+            var rs = _session.Execute(ps.Bind().SetAutoPage(false).SetPageSize(pageSize));
+            Assert.False(rs.AutoPage);
+            Assert.NotNull(rs.PagingState);
+            //Dequeue all via Linq
+            var ids = rs.Select(r => r.GetValue<Guid>("id")).ToList();
+            Assert.AreEqual(pageSize, ids.Count);
+            //Retrieve the next page
+            var rs2 = _session.Execute(ps.Bind().SetAutoPage(false).SetPagingState(rs.PagingState));
+            Assert.Null(rs2.PagingState);
+            var ids2 = rs2.Select(r => r.GetValue<Guid>("id")).ToList();
+            Assert.AreEqual(totalRowLength - pageSize, ids2.Count);
+            Assert.AreEqual(totalRowLength, ids.Union(ids2).Count());
+        }
+
+        [Test]
         public void Bound_Int_Valids()
         {
             var psInt32 = _session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));

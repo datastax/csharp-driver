@@ -26,6 +26,10 @@ namespace Cassandra
     public interface IStatement
     {
         /// <summary>
+        /// Determines if the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages. Defaults to true.
+        /// </summary>
+        bool AutoPage { get; }
+        /// <summary>
         /// Gets the consistency level for this query.
         /// </summary>
         ConsistencyLevel? ConsistencyLevel { get; }
@@ -69,6 +73,13 @@ namespace Cassandra
         RoutingKey RoutingKey { get; }
         ConsistencyLevel SerialConsistencyLevel { get; }
         /// <summary>
+        /// Sets the paging behavior.
+        /// When set to true (default), the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages.
+        /// When false, the <see cref="RowSet"/> returned will only contain the rows contained in the result page and will not fetch additional pages.
+        /// </summary>
+        /// <returns>this <c>IStatement</c> object.</returns>
+        IStatement SetAutoPage(bool autoPage);
+        /// <summary>
         ///  Sets the consistency level for the query. <p> The default consistency level,
         ///  if this method is not called, is ConsistencyLevel.ONE.</p>
         /// </summary>
@@ -93,6 +104,11 @@ namespace Cassandra
         /// <returns>this <c>Query</c> object.</returns>
         /// </summary>
         IStatement SetPageSize(int pageSize);
+        /// <summary>
+        /// Sets the paging state, a token representing the current page state of query used to continue paging by retrieving the following result page.
+        /// </summary>
+        /// <param name="pagingState">The page state token</param>
+        /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetPagingState(byte[] pagingState);
         /// <summary>
         ///  Sets the retry policy to use for this query. <p> The default retry policy, if

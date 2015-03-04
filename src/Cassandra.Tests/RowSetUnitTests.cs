@@ -84,6 +84,7 @@ namespace Cassandra.Tests
         {
             //Create a rowset with 1 row
             var rs = CreateStringsRowset(1, 1, "a_");
+            Assert.True(rs.AutoPage);
             //It has paging state, stating that there are more pages
             rs.PagingState = new byte[] { 0 };
             //Add a handler to fetch next
@@ -97,6 +98,29 @@ namespace Cassandra.Tests
             Assert.AreEqual(2, rowList.Count);
             Assert.AreEqual("a_row_0_col_0", rowList[0].GetValue<string>("col_0"));
             Assert.AreEqual("b_row_0_col_0", rowList[1].GetValue<string>("col_0"));
+        }
+
+        [Test]
+        public void RowSetDoesNotCallFetchNextWhenAutoPageFalseTest()
+        {
+            //Create a rowset with 1 row
+            var rs = CreateStringsRowset(1, 1, "a_");
+            //Set to not to automatically page
+            rs.AutoPage = false;
+            //It has paging state, stating that there are more pages
+            rs.PagingState = new byte[] { 0 };
+            //Add a handler to fetch next
+            var called = false;
+            rs.FetchNextPage = (pagingState) =>
+            {
+                called = true;
+                return CreateStringsRowset(1, 1, "b_");
+            };
+
+            //use linq to iterate and map it to a list
+            var rowList = rs.ToList();
+            Assert.False(called);
+            Assert.AreEqual(1, rowList.Count);
         }
 
         /// <summary>

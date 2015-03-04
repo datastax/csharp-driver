@@ -32,6 +32,7 @@ namespace Cassandra
         private bool _traceQuery;
         private object[] _values;
         private DateTimeOffset? _timestamp;
+        private bool _autoPage = true;
 
         public virtual object[] QueryValues
         {
@@ -86,6 +87,12 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        public bool AutoPage
+        {
+            get { return _autoPage; }
+        }
+
+        /// <inheritdoc />
         public abstract RoutingKey RoutingKey { get; }
 
 
@@ -123,6 +130,13 @@ namespace Cassandra
         internal virtual void SetValues(object[] values)
         {
             _values = values;
+        }
+
+        /// <inheritdoc />
+        public IStatement SetAutoPage(bool autoPage)
+        {
+            _autoPage = autoPage;
+            return this;
         }
         
         /// <inheritdoc />

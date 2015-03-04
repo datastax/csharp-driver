@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+// ReSharper disable CheckNamespace
 
 namespace Cassandra
 {
@@ -37,7 +38,7 @@ namespace Cassandra
             get { return _traceId; }
         }
 
-        internal OutputRows(byte protocolVersion, BEBinaryReader reader, bool buffered, Guid? traceId)
+        internal OutputRows(byte protocolVersion, BEBinaryReader reader, Guid? traceId)
         {
             _protocolVersion = protocolVersion;
             _metadata = new RowSetMetadata(reader);
@@ -50,9 +51,9 @@ namespace Cassandra
         /// <summary>
         /// Process rows and sets the paging event handler
         /// </summary>
-        internal virtual void ProcessRows(RowSet rs, BEBinaryReader reader)
+        internal void ProcessRows(RowSet rs, BEBinaryReader reader)
         {
-            if (this._metadata != null)
+            if (_metadata != null)
             {
                 rs.Columns = _metadata.Columns;
                 rs.PagingState = _metadata.PagingState;
