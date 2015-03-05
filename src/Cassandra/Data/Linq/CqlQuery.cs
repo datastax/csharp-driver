@@ -22,6 +22,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -69,9 +70,31 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        /// <summary>
+        /// Sets the page size for this query.
+        /// The page size controls how much resulting rows will be retrieved
+        /// simultaneously (the goal being to avoid loading too much results
+        /// in memory for queries yielding large results). Please note that
+        /// while value as low as 1 can be used, it is highly discouraged to
+        /// use such a low value in practice as it will yield very poor
+        /// performance. If in doubt, leaving the default is probably a good
+        /// idea.
+        /// </summary>
+        /// <returns>This instance</returns>
         public new CqlQuery<TEntity> SetPageSize(int pageSize)
         {
             base.SetPageSize(pageSize);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the paging state, a token representing the current page state of query used to continue paging by retrieving the following result page.
+        /// Setting the paging state will disable automatic paging.
+        /// </summary>
+        /// <returns>This instance</returns>
+        public new CqlQuery<TEntity> SetPagingState(byte[] pagingState)
+        {
+            base.SetPagingState(pagingState);
             return this;
         }
 
@@ -80,6 +103,35 @@ namespace Cassandra.Data.Linq
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             return visitor.GetSelect(out values);
+        }
+
+        /// <summary>
+        /// Asynchronously executes the query and returns a task of a page of results
+        /// </summary>
+        public Task<IPage<TEntity>> ExecutePagedAsync()
+        {
+            SetAutoPage(false);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
+            visitor.Evaluate(Expression);
+            object[] values;
+            var cql = visitor.GetSelect(out values);
+            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
+            {
+                var rs = t.Result;
+                var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+                return (IPage<TEntity>) new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
+            });
+            return adaptation;
+        }
+
+        /// <summary>
+        /// Executes the query and returns a page of results
+        /// </summary>
+        public IPage<TEntity> ExecutePaged()
+        {
+            var config = GetTable().GetSession().GetConfiguration();
+            var task = ExecutePagedAsync();
+            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
 
         /// <summary>
