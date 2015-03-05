@@ -316,7 +316,9 @@ namespace Cassandra
             }
             if (_receiveSocketEvent != null)
             {
+                _sendSocketEvent.Completed -= OnSendCompleted;
                 _sendSocketEvent.Dispose();
+                _receiveSocketEvent.Completed -= OnReceiveCompleted;
                 _receiveSocketEvent.Dispose();
             }
             else if (_socketStream != null)
@@ -377,6 +379,16 @@ namespace Cassandra
                     return;
                 }
                 _isClosing = true;
+                if (_sendSocketEvent != null)
+                {
+                    _sendSocketEvent.Completed -= OnSendCompleted;
+                    _sendSocketEvent.Dispose();
+                }
+                if (_receiveSocketEvent != null)
+                {
+                    _receiveSocketEvent.Completed -= OnReceiveCompleted;
+                    _receiveSocketEvent.Dispose();
+                }
                 //Try to close it.
                 //Some operations could make the socket to dispose itself
                 _socket.Shutdown(SocketShutdown.Both);
