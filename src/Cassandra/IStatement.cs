@@ -106,6 +106,7 @@ namespace Cassandra
         IStatement SetPageSize(int pageSize);
         /// <summary>
         /// Sets the paging state, a token representing the current page state of query used to continue paging by retrieving the following result page.
+        /// Setting the paging state will disable automatic paging.
         /// </summary>
         /// <param name="pagingState">The page state token</param>
         /// <returns>this <c>IStatement</c> object.</returns>

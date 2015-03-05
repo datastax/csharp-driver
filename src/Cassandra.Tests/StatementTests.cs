@@ -77,5 +77,15 @@ namespace Cassandra.Tests
             Assert.AreEqual(values.Description, actualValues["description"]);
             Assert.AreEqual(values.Time, actualValues["time"]);
         }
+
+        [Test]
+        public void Statement_SetPagingState_Disables_AutoPage()
+        {
+            var statement = new SimpleStatement();
+            Assert.True(statement.AutoPage);
+            statement.SetPagingState(new byte[0]);
+            Assert.False(statement.AutoPage);
+            Assert.NotNull(statement.PagingState);
+        }
     }
 }

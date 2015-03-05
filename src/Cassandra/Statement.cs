@@ -143,7 +143,8 @@ namespace Cassandra
         public IStatement SetPagingState(byte[] pagingState)
         {
             _pagingState = pagingState;
-            return this;
+            //Disable automatic paging
+            return SetAutoPage(false);
         }
         
         /// <inheritdoc />
