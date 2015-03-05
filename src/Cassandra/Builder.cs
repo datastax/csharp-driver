@@ -113,6 +113,7 @@ namespace Cassandra
         public Builder WithPort(int port)
         {
             _port = port;
+            _addresses.ForEach(addr => addr.Port = port);
             return this;
         }
 
@@ -188,7 +189,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPAddress address)
         {
-            AddContactPoint(new IPEndPoint(address, ProtocolOptions.DefaultPort));
+            AddContactPoint(new IPEndPoint(address, _port));
             return this;
         }
 
