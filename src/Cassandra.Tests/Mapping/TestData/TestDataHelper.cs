@@ -10,10 +10,10 @@ namespace Cassandra.Tests.Mapping.TestData
     {
         private const int ProtocolVersion = 2;
 
-        public static List<PlainUser> GetUserList()
+        public static List<PlainUser> GetUserList(int length = 10)
         {
             // Generate some random users
-            return Enumerable.Range(1, 10).Select(idx => new PlainUser
+            return Enumerable.Range(1, length).Select(idx => new PlainUser
             {
                 UserId = Guid.NewGuid(),
                 Name = string.Format("Name {0}", idx),

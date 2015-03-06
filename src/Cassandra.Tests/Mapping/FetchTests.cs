@@ -189,6 +189,33 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void FetchPageAsync_Pocos_WithCqlAndOptions()
+        {
+            const int pageSize = 10;
+            var usersExpected = TestDataHelper.GetUserList(pageSize);
+            var rs = TestDataHelper.GetUsersRowSet(usersExpected);
+            rs.AutoPage = false;
+            rs.PagingState = new byte[] {1, 2, 3};
+
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt => !stmt.AutoPage && stmt.PageSize == pageSize)))
+                .Returns(() => TestHelper.DelayedTask(rs, 50))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            IPage<PlainUser> page = mappingClient.FetchPageAsync<PlainUser>(Cql.New("SELECT * FROM users").WithOptions(opt => opt.SetPageSize(pageSize))).Result;
+            Assert.Null(page.CurrentPagingState);
+            Assert.NotNull(page.PagingState);
+            Assert.AreEqual(rs.PagingState, page.PagingState);
+            CollectionAssert.AreEqual(page, usersExpected, new TestHelper.PropertyComparer());
+            sessionMock.Verify();
+        }
+
+        [Test]
         public void Fetch_Sets_Consistency()
         {
             ConsistencyLevel? consistency = null;

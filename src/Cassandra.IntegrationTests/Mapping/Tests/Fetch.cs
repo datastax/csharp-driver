@@ -284,6 +284,79 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
+        /// <summary>
+        /// Page through results from a mapped FetchPage request
+        /// 
+        /// @Jira CSHARP-262 https://datastax-oss.atlassian.net/browse/CSHARP-262
+        /// </summary>
+        [Test]
+        public void FetchPage_Manual_Explicit()
+        {
+            const int totalLength = 100;
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
+            table.Create();
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            List<Author> expectedAuthors = Author.GetRandomList(totalLength);
+            foreach (Author expectedAuthor in expectedAuthors)
+            {
+                mapper.Insert(expectedAuthor);
+            }
+
+            var ids = new HashSet<string>();
+            byte[] pagingState = null;
+            var safeCounter = 0;
+            do
+            {
+                IPage<Author> authors = mapper.FetchPage<Author>(10, pagingState, "SELECT * from " + table.Name);
+                foreach (var a in authors)
+                {
+                    ids.Add(a.AuthorId);
+                }
+                pagingState = authors.PagingState;
+            } while (pagingState != null && safeCounter++ < 100);
+
+            Assert.AreEqual(totalLength, ids.Count);
+        }
+
+        /// <summary>
+        /// Page through results from a mapped FetchPage with query options
+        /// 
+        /// @Jira CSHARP-262 https://datastax-oss.atlassian.net/browse/CSHARP-262
+        /// </summary>
+        [Test]
+        public void FetchPage_Manual_WithQueryOptions()
+        {
+            const int totalLength = 100;
+            const int pageSize = 10;
+            Table<Author> table = new Table<Author>(_session, new MappingConfiguration());
+            table.Create();
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            List<Author> expectedAuthors = Author.GetRandomList(totalLength);
+            foreach (Author expectedAuthor in expectedAuthors)
+            {
+                mapper.Insert(expectedAuthor);
+            }
+
+            var ids = new HashSet<string>();
+            byte[] pagingState = null;
+            var safeCounter = 0;
+            do
+            {
+                var state = pagingState;
+                IPage<Author> authors = mapper.FetchPage<Author>(Cql.New("SELECT * from " + table.Name).WithOptions(opt => opt.SetPageSize(pageSize).SetPagingState(state)));
+                foreach (var a in authors)
+                {
+                    ids.Add(a.AuthorId);
+                }
+                Assert.LessOrEqual(authors.Count, pageSize);
+                pagingState = authors.PagingState;
+            } while (pagingState != null && safeCounter++ < 100);
+
+            Assert.AreEqual(totalLength, ids.Count);
+        }
+
         [Test, TestCassandraVersion(2, 1, 0)]
         public void Fetch_With_Udt()
         {
