@@ -23,17 +23,21 @@ namespace Cassandra.Mapping
         internal CqlQueryOptions QueryOptions { get; private set; }
 
         /// <summary>
+        /// Determines if automatic paging is enabled. Defaults to true.
+        /// </summary>
+        internal bool AutoPage { get; set; }
+
+        /// <summary>
         /// Creates a new Cql instance using the CQL string and bind variable values specified.
         /// </summary>
         public Cql(string cql, params object[] args)
+            : this(cql, args, new CqlQueryOptions())
         {
-            Statement = cql;
-            Arguments = args;
-            QueryOptions = new CqlQueryOptions();
         }
 
         private Cql(string cql, object[] args, CqlQueryOptions queryOptions)
         {
+            AutoPage = true;
             Statement = cql;
             Arguments = args;
             QueryOptions = queryOptions;

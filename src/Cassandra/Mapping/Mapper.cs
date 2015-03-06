@@ -55,6 +55,22 @@ namespace Cassandra.Mapping
             }
         }
 
+        /// <summary>
+        /// Executes asynchronously and uses the delegate to adapt the RowSet into the return value.
+        /// </summary>
+        private Task<TResult> ExecuteAsyncAndAdapt<T, TResult>(Cql cql, Func<Statement, RowSet, TResult> adaptation)
+        {
+            _cqlGenerator.AddSelect<T>(cql);
+            return _statementFactory
+                .GetStatementAsync(_session, cql)
+                .Continue(t1 =>
+                    _session
+                    .ExecuteAsync(t1.Result)
+                    .Continue(t2 => adaptation(t1.Result, t2.Result)))
+                //From Task<Task<TResult>> to Task<TResult>
+                .Unwrap();
+        }
+
         public Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions options = null)
         {
             return FetchAsync<T>(Cql.New(string.Empty, new object[0], options ?? CqlQueryOptions.None));
@@ -67,17 +83,36 @@ namespace Cassandra.Mapping
 
         public Task<IEnumerable<T>> FetchAsync<T>(Cql cql)
         {
-            //Get the statement to execute and execute it
-            _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory
-                .GetStatementAsync(_session, cql)
-                .Continue(t1 => _session.ExecuteAsync(t1.Result)
-                    .Continue(t2 =>
-                    {
-                        var rs = t2.Result;
-                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                        return rs.Select(mapper);
-                    })).Unwrap();
+            //Use ExecuteAsyncAndAdapt with a delegate to handle the adaptation from RowSet to IEnumerable<T>
+            return ExecuteAsyncAndAdapt<T, IEnumerable<T>>(cql, (s, rs) =>
+            {
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return rs.Select(mapper);
+            });
+        }
+
+        public Task<IPage<T>> FetchPageAsync<T>(Cql cql)
+        {
+            if (cql == null)
+            {
+                throw new ArgumentNullException("cql");
+            }
+            cql.AutoPage = true;
+            return ExecuteAsyncAndAdapt<T, IPage<T>>(cql, (stmt, rs) =>
+            {
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return new Page<T>(rs.Select(mapper), stmt.PagingState, rs.PagingState);
+            });
+        }
+
+        public Task<IPage<T>> FetchPageAsync<T>(CqlQueryOptions options = null)
+        {
+            return FetchPageAsync<T>(Cql.New(string.Empty, new object[0], options ?? new CqlQueryOptions()));
+        }
+
+        public Task<IPage<T>> FetchPageAsync<T>(int pageSize, byte[] pagingState, string query, object[] args)
+        {
+            return FetchPageAsync<T>(Cql.New(query, args, new CqlQueryOptions().SetPageSize(pageSize).SetPagingState(pagingState)));
         }
 
         public Task<T> SingleAsync<T>(string cql, params object[] args)
@@ -87,17 +122,11 @@ namespace Cassandra.Mapping
 
         public Task<T> SingleAsync<T>(Cql cql)
         {
-            // Get the statement to execute and execute it
-            _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(_session, cql)
-                .Continue(t1 => _session.ExecuteAsync(t1.Result)
-                    .Continue(t2 =>
-                    {
-                        var rs = t2.Result;
-                        // Map to return type
-                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                        return mapper(rs.Single());
-                    })).Unwrap();
+            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            {
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return mapper(rs.Single());
+            });
         }
 
         public Task<T> SingleOrDefaultAsync<T>(string cql, params object[] args)
@@ -107,22 +136,17 @@ namespace Cassandra.Mapping
 
         public Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
-            // Get the statement to execute and execute it
-            _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(_session, cql)
-                .Continue(t1 => _session.ExecuteAsync(t1.Result)
-                    .Continue(t2 =>
-                    {
-                        var rs = t2.Result;
-                        var row = rs.SingleOrDefault();
-                        // Map to return type
-                        if (row == null)
-                        {
-                            return default(T);
-                        }
-                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                        return mapper(row);
-                    })).Unwrap();
+            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            {
+                var row = rs.SingleOrDefault();
+                // Map to return type
+                if (row == null)
+                {
+                    return default(T);
+                }
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return mapper(row);
+            });
         }
 
         public Task<T> FirstAsync<T>(string cql, params object[] args)
@@ -132,18 +156,13 @@ namespace Cassandra.Mapping
 
         public Task<T> FirstAsync<T>(Cql cql)
         {
-            // Get the statement to execute and execute it
-            _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(_session, cql)
-                .Continue(t1 => _session.ExecuteAsync(t1.Result)
-                    .Continue(t2 =>
-                    {
-                        var rs = t2.Result;
-                        var row = rs.First();
-                        // Map to return type
-                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                        return mapper(row);
-                    })).Unwrap();
+            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            {
+                var row = rs.First();
+                // Map to return type
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return mapper(row);
+            });
         }
 
         public Task<T> FirstOrDefaultAsync<T>(string cql, params object[] args)
@@ -154,21 +173,17 @@ namespace Cassandra.Mapping
         public Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
 
-            _cqlGenerator.AddSelect<T>(cql);
-            return _statementFactory.GetStatementAsync(_session, cql)
-                .Continue(t1 => _session.ExecuteAsync(t1.Result)
-                    .Continue(t2 =>
-                    {
-                        var rs = t2.Result;
-                        var row = rs.FirstOrDefault();
-                        // Map to return type
-                        if (row == null)
-                        {
-                            return default(T);
-                        }
-                        var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                        return mapper(row);
-                    })).Unwrap();
+            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            {
+                var row = rs.FirstOrDefault();
+                // Map to return type
+                if (row == null)
+                {
+                    return default(T);
+                }
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return mapper(row);
+            });
         }
 
         public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
@@ -286,6 +301,25 @@ namespace Cassandra.Mapping
         {
             //Use the async method
             var t = FetchAsync<T>(cql);
+            //Wait for it to be completed or throw
+            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            return t.Result;
+        }
+
+        public IPage<T> FetchPage<T>(CqlQueryOptions queryOptions = null)
+        {
+            return FetchPage<T>(Cql.New(string.Empty, new object[0], queryOptions ?? new CqlQueryOptions()));
+        }
+
+        public IPage<T> FetchPage<T>(int pageSize, byte[] pagingState, string cql, params object[] args)
+        {
+            return FetchPage<T>(Cql.New(cql, args, new CqlQueryOptions().SetPageSize(pageSize).SetPagingState(pagingState)));
+        }
+
+        public IPage<T> FetchPage<T>(Cql cql)
+        {
+            //Use the async method
+            var t = FetchPageAsync<T>(cql);
             //Wait for it to be completed or throw
             TaskHelper.WaitToComplete(t, _queryAbortTimeout);
             return t.Result;

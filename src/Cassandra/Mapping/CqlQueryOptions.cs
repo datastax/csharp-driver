@@ -17,6 +17,7 @@ namespace Cassandra.Mapping
         private int? _pageSize;
         private IRetryPolicy _retryPolicy;
         private ConsistencyLevel? _serialConsistencyLevel;
+        private byte[] _pagingState;
 
         private bool _noPrepare;
 
@@ -65,6 +66,16 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
+        /// Sets the token representing the page state for the query.
+        /// Use <c>null</c> to get the first page of results.
+        /// </summary>
+        public CqlQueryOptions SetPagingState(byte[] pagingState)
+        {
+            _pagingState = pagingState;
+            return this;
+        }
+
+        /// <summary>
         /// Sets the retry policy for the query.
         /// </summary>
         public CqlQueryOptions SetRetryPolicy(IRetryPolicy retryPolicy)
@@ -98,19 +109,26 @@ namespace Cassandra.Mapping
         internal virtual void CopyOptionsToStatement(IStatement statement)
         {
             if (_consistencyLevel.HasValue)
+            {
                 statement.SetConsistencyLevel(_consistencyLevel.Value);
-
+            }
             if (_tracingEnabled.HasValue)
+            {
                 statement.EnableTracing(_tracingEnabled.Value);
-
+            }
             if (_pageSize.HasValue)
+            {
                 statement.SetPageSize(_pageSize.Value);
-
+            }
+            statement.SetPagingState(_pagingState);
             if (_retryPolicy != null)
+            {
                 statement.SetRetryPolicy(_retryPolicy);
-
+            }
             if (_serialConsistencyLevel.HasValue)
+            {
                 statement.SetSerialConsistencyLevel(_serialConsistencyLevel.Value);
+            }
         }
 
         /// <summary>

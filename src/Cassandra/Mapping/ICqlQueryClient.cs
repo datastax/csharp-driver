@@ -21,6 +21,28 @@ namespace Cassandra.Mapping
         /// Gets a list of T from Cassandra using the CQL statement specified.
         /// </summary>
         IEnumerable<T> Fetch<T>(Cql cql);
+
+        /// <summary>
+        /// Gets a paged list of T results from Cassandra.
+        /// Suitable for manually page through all the results of a query.
+        /// </summary>
+        IPage<T> FetchPage<T>(Cql cql);
+
+        /// <summary>
+        /// Gets a paged list of T results from Cassandra using the CQL statement specified.
+        /// Suitable for manually page through all the results of a query.
+        /// </summary>
+        IPage<T> FetchPage<T>(CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Gets a paged list of T results from Cassandra.
+        /// Suitable for manually page through all the results of a query.
+        /// </summary>
+        /// <param name="pageSize">Amount of items to return</param>
+        /// <param name="pagingState">The token representing the state of the result page. To get the first page, use a null value.</param>
+        /// <param name="query">Cql query</param>
+        /// <param name="args">Query parameters</param>
+        IPage<T> FetchPage<T>(int pageSize, byte[] pagingState, string query, object[] args);
         
         /// <summary>
         /// Gets a single T from Cassandra using the CQL statement and parameter values specified.  Will throw if
