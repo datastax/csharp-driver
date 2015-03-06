@@ -316,6 +316,7 @@ namespace Cassandra
             }
             if (_receiveSocketEvent != null)
             {
+                //It is safe to call SocketAsyncEventArgs.Dispose() more than once
                 _sendSocketEvent.Dispose();
                 _receiveSocketEvent.Dispose();
             }
@@ -370,13 +371,13 @@ namespace Cassandra
 
         public void Dispose()
         {
+            if (_socket == null)
+            {
+                return;
+            }
+            _isClosing = true;
             try
             {
-                if (_socket == null)
-                {
-                    return;
-                }
-                _isClosing = true;
                 //Try to close it.
                 //Some operations could make the socket to dispose itself
                 _socket.Shutdown(SocketShutdown.Both);
@@ -385,6 +386,13 @@ namespace Cassandra
             catch
             {
                 //We should not mind if the socket shutdown or close methods throw an exception
+            }
+            if (_receiveSocketEvent != null)
+            {
+                //It is safe to call SocketAsyncEventArgs.Dispose() more than once
+                //Also checked: .NET 4.0, .NET 4.5 and Mono 3.10 and 3.12 implementations
+                _sendSocketEvent.Dispose();
+                _receiveSocketEvent.Dispose();
             }
         }
     }
