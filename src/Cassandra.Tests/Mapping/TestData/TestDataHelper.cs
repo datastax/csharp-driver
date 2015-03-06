@@ -31,7 +31,10 @@ namespace Cassandra.Tests.Mapping.TestData
             }).ToList();
         }
 
-        public static RowSet GetSingleValueRowSet<T>(string columnName, T value)
+        /// <summary>
+        /// Returns a RowSet with 1 column
+        /// </summary>
+        public static RowSet GetSingleColumnRowSet<T>(string columnName, T[] values)
         {
             var rs = new RowSet();
             IColumnInfo typeInfo;
@@ -42,11 +45,20 @@ namespace Cassandra.Tests.Mapping.TestData
             };
             var columnIndexes = rs.Columns.ToDictionary(c => c.Name, c => c.Index);
 
-            var values = new List<object> { value }
-                .Select(v => TypeCodec.Encode(ProtocolVersion, v));
-            var row = new Row(ProtocolVersion, values.ToArray(), rs.Columns, columnIndexes);
-            rs.AddRow(row);
+            foreach (var v in values)
+            {
+                var row = new Row(ProtocolVersion, new [] {TypeCodec.Encode(ProtocolVersion, v)}, rs.Columns, columnIndexes);
+                rs.AddRow(row);
+            }
             return rs;
+        }
+
+        /// <summary>
+        /// Returns a RowSet with a single column and row
+        /// </summary>
+        public static RowSet GetSingleValueRowSet<T>(string columnName, T value)
+        {
+            return GetSingleColumnRowSet(columnName, new T[] { value });
         }
 
         public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues, int rowLength = 1)

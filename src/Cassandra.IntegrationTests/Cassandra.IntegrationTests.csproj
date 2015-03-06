@@ -68,6 +68,7 @@
     <Compile Include="Linq\CqlOperatorTests\Append.cs" />
     <Compile Include="Linq\LinqMethods\Count.cs" />
     <Compile Include="Linq\LinqMethods\Counter.cs" />
+    <Compile Include="Linq\LinqMethods\ExecutePagedTests.cs" />
     <Compile Include="Linq\LinqTable\CreateTable.cs" />
     <Compile Include="Linq\LinqMethods\Delete.cs" />
     <Compile Include="Linq\LinqMethods\DeleteIf.cs" />
