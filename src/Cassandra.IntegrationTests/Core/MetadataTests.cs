@@ -458,8 +458,8 @@ namespace Cassandra.IntegrationTests.Core
 
             string tableName1 = TestUtils.GetUniqueTableName().ToLower();
             string cql = "CREATE TABLE " + tableName1 + " ( " +
-                    @"a text,
-                    b int,
+                    @"b int,
+                    a text,
                     c int,
                     d int,
                     PRIMARY KEY ((a, b), c))";
@@ -475,6 +475,8 @@ namespace Cassandra.IntegrationTests.Core
                                .GetKeyspace(keyspaceName)
                                .GetTableMetadata(tableName1);
             Assert.True(table.TableColumns.Count() == 4);
+            Assert.AreEqual(2, table.PartitionKeys.Length);
+            Assert.AreEqual("a, b", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
 
             string tableName2 = TestUtils.GetUniqueTableName().ToLower();
             cql = "CREATE TABLE " + tableName2 + " ( " +
@@ -489,6 +491,7 @@ namespace Cassandra.IntegrationTests.Core
                            .GetKeyspace(keyspaceName)
                            .GetTableMetadata(tableName2);
             Assert.True(table.TableColumns.Count() == 4);
+            Assert.AreEqual("a, b, c", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
 
             string tableName3 = TestUtils.GetUniqueTableName().ToLower();
             cql = "CREATE TABLE " + tableName3 + " ( " +
@@ -503,6 +506,8 @@ namespace Cassandra.IntegrationTests.Core
                            .GetKeyspace(keyspaceName)
                            .GetTableMetadata(tableName3);
             Assert.True(table.TableColumns.Count() == 4);
+            //Just 1 partition key
+            Assert.AreEqual("a", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
         }
 
         [Test]
@@ -538,6 +543,7 @@ namespace Cassandra.IntegrationTests.Core
                                .GetTableMetadata(tableName);
             Assert.NotNull(table);
             Assert.True(table.TableColumns.Count() == 7);
+            Assert.AreEqual("a, b", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
         }
 
         [Test, TestCassandraVersion(2, 1)]

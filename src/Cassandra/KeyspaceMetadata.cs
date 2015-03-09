@@ -187,11 +187,12 @@ namespace Cassandra
                                 .Replace("(", "")
                                 .Replace(")", "")
                                 .Split(',');
+            var partitionKeys = new TableColumn[keys.Length];
             for (var i = 0; i < keys.Length; i++)
             {
                 var name = keys[i].Replace("\"", "").Trim();
                 var dataType = TypeCodec.ParseDataType(keyTypes[i].Trim());
-                cols[name] = new TableColumn()
+                var c = new TableColumn()
                 {
                     Name = name,
                     Keyspace = tableMetadataRow.GetValue<string>("keyspace_name"),
@@ -200,9 +201,11 @@ namespace Cassandra
                     TypeInfo = dataType.TypeInfo,
                     KeyType = KeyType.Partition
                 };
+                cols[name] = c;
+                partitionKeys[i] = c;
             }
 
-            table = new TableMetadata(tableName, cols.Values.ToArray(), options);
+            table = new TableMetadata(tableName, cols.Values.ToArray(), partitionKeys, options);
             //Cache it
             _tables.AddOrUpdate(tableName, table, (k, o) => table);
             return table;

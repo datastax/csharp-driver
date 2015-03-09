@@ -31,14 +31,20 @@ namespace Cassandra
         public TableColumn[] TableColumns { get; private set; }
 
         /// <summary>
+        /// Gets an array of columns that are part of the partition key in correct order
+        /// </summary>
+        public TableColumn[] PartitionKeys { get; private set; }
+
+        /// <summary>
         /// Gets the table options
         /// </summary>
         public TableOptions Options { get; private set; }
 
-        internal TableMetadata(string name, TableColumn[] tableColumns, TableOptions options)
+        internal TableMetadata(string name, TableColumn[] tableColumns, TableColumn[] partitionKeys, TableOptions options)
         {
             Name = name;
             TableColumns = tableColumns;
+            PartitionKeys = partitionKeys;
             Options = options;
         }
     }
