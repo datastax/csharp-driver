@@ -33,6 +33,7 @@ namespace Cassandra
         internal readonly RowSetMetadata ResultMetadata;
         private readonly int _protocolVersion;
         private volatile RoutingKey _routingKey;
+        private string[] _routingNames;
 
         /// <summary>
         /// The cql query
@@ -68,7 +69,7 @@ namespace Cassandra
         /// <summary>
         /// Gets or sets the parameter indexes that are part of the partition key
         /// </summary>
-        public int[] RoutingIndexes { get; set; }
+        public int[] RoutingIndexes { get; internal set; }
 
         public ConsistencyLevel? ConsistencyLevel
         {
@@ -105,26 +106,50 @@ namespace Cassandra
         public BoundStatement Bind(params object[] values)
         {
             var bs = new BoundStatement(this);
-            bs.SetValues(values);
             if (values == null)
             {
                 return bs;
             }
-            if (values.Length == 1 && Utils.IsAnonymousType(values[0]))
+            var valuesByPosition = values;
+            var useNamedParameters = values.Length == 1 && Utils.IsAnonymousType(values[0]);
+            if (useNamedParameters)
             {
                 //Using named params
                 //Reorder the params according the position in the query
-                values = Utils.GetValues(Metadata.Columns.Select(c => c.Name), values[0]).ToArray();
+                valuesByPosition = Utils.GetValues(Metadata.Columns.Select(c => c.Name), values[0]).ToArray();
             }
-            if (_routingKey == null && RoutingIndexes != null)
+            bs.SetValues(valuesByPosition);
+            if (_routingKey != null)
+            {
+                //The routing key was specified by the user
+                return bs;
+            }
+            if (RoutingIndexes != null)
             {
                 var keys = new RoutingKey[RoutingIndexes.Length];
                 for (var i = 0; i < RoutingIndexes.Length; i++)
                 {
                     var index = RoutingIndexes[i];
-                    keys[i] = new RoutingKey(TypeCodec.Encode(_protocolVersion, values[index]));
+                    keys[i] = new RoutingKey(TypeCodec.Encode(_protocolVersion, valuesByPosition[index]));
                 }
                 bs.SetRoutingKey(keys);
+                return bs;
+            }
+            if (_routingNames != null && useNamedParameters)
+            {
+                var keys = new RoutingKey[_routingNames.Length];
+                var routingValues = Utils.GetValues(_routingNames, values[0]).ToArray();
+                if (routingValues.Length != keys.Length)
+                {
+                    //The routing names are not valid
+                    return bs;
+                }
+                for (var i = 0; i < routingValues.Length; i++)
+                {
+                    keys[i] = new RoutingKey(TypeCodec.Encode(_protocolVersion, routingValues[i]));
+                }
+                bs.SetRoutingKey(keys);
+                return bs;
             }
             return bs;
         }
@@ -189,10 +214,27 @@ namespace Cassandra
         /// </summary>
         /// <param name="routingKeyComponents"> the raw (binary) values to compose to
         ///  obtain the routing key. </param>
-        /// <returns>this <c>PreparedStatement</c> object.  <see>Query#GetRoutingKey</see></returns>
+        /// <returns>this <c>PreparedStatement</c> object.</returns>
         public PreparedStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
+        }
+
+        /// <summary>
+        /// For named query markers, it sets the parameter names that are part of the routing key.
+        /// <para>
+        /// Use this method ONLY if the parameter names are different from the partition key names.
+        /// </para>
+        /// </summary>
+        /// <returns>this <c>PreparedStatement</c> object.</returns>
+        public PreparedStatement SetRoutingNames(params string[] names)
+        {
+            if (names == null)
+            {
+                return this;
+            }
+            _routingNames = names;
             return this;
         }
     }

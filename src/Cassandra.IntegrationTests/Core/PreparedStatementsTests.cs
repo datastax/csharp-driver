@@ -25,6 +25,7 @@ using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System.Net;
 using System.Collections;
+using System.Threading;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -585,7 +586,46 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Prepare_With_Composite_Partition_Key()
+        public void Bound_With_Named_Parameters_Routing_Key()
+        {
+            Func<string, string, byte[]> calculateKey = (id1, id2) =>
+            {
+                return new byte[0]
+                .Concat(new byte[] { 0, (byte)id1.Length })
+                .Concat(System.Text.Encoding.UTF8.GetBytes(id1))
+                .Concat(new byte[] { 0 })
+                .Concat(new byte[] { 0, (byte)id2.Length })
+                .Concat(System.Text.Encoding.UTF8.GetBytes(id2))
+                .Concat(new byte[] { 0 }).ToArray();
+            };
+            _session.Execute("CREATE TABLE tbl_ps_multiple_pk_named (a uuid, b text, c text, d text, primary key ((a, b), c))");
+            Thread.Sleep(3000);
+            var ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE a = :a AND b = :b AND c = :ce");
+            //Parameters at position 1 and 0 are part of the routing key
+            CollectionAssert.AreEqual(new[] { 0, 1 }, ps.RoutingIndexes);
+            var anon = new {ce = "hello ce2", a = "aValue1", b = "bValue1"};
+            var statement = ps.Bind(anon);
+            Assert.NotNull(statement.RoutingKey);
+            CollectionAssert.AreEqual(calculateKey(anon.a, anon.b), statement.RoutingKey.RawRoutingKey); 
+            //Now with another parameters
+            anon = new { ce = "hello ce2", a = "aValue2", b = "bValue2" };
+            statement = ps.Bind(anon);
+            Assert.NotNull(statement.RoutingKey);
+            CollectionAssert.AreEqual(calculateKey(anon.a, anon.b), statement.RoutingKey.RawRoutingKey);
+
+            //With another query, named parameters are different
+            ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE b = :nice_name_b AND a = :nice_name_a AND c = :nice_name_c");
+            //Parameters names are different from partition keys
+            Assert.Null(ps.RoutingIndexes);
+            ps.SetRoutingNames("nice_name_a", "nice_name_b");
+            var anon2 = new { nice_name_b = "b", nice_name_a = "a", nice_name_c = "c" };
+            statement = ps.Bind(anon2);
+            Assert.NotNull(statement.RoutingKey);
+            CollectionAssert.AreEqual(calculateKey(anon2.nice_name_a, anon2.nice_name_b), statement.RoutingKey.RawRoutingKey);
+        }
+
+        [Test]
+        public void Prepared_With_Composite_Routing_Key()
         {
             _session.Execute("CREATE TABLE tbl_ps_multiple_pk (a uuid, b text, c text, d text, primary key ((a, b), c))");
             var ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?");
@@ -595,6 +635,7 @@ namespace Cassandra.IntegrationTests.Core
             ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :b AND a = :a AND c = :ce");
             //Parameters at position 1 and 0 are part of the routing key
             CollectionAssert.AreEqual(new[] { 1, 0 }, ps.RoutingIndexes);
+            Assert.NotNull(ps.Bind("a", Guid.NewGuid()).RoutingKey);
 
             ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
             //Parameters names are different from partition keys
