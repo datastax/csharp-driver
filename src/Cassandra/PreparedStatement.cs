@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Cassandra
@@ -55,10 +56,18 @@ namespace Cassandra
             get { return Metadata; }
         }
 
+        /// <summary>
+        /// Gets the routing key for the prepared statement.
+        /// </summary>
         public RoutingKey RoutingKey
         {
             get { return _routingKey; }
         }
+
+        /// <summary>
+        /// Gets or sets the parameter indexes that are part of the partition key
+        /// </summary>
+        public int[] RoutingIndexes { get; set; }
 
         public ConsistencyLevel? ConsistencyLevel
         {
@@ -73,40 +82,6 @@ namespace Cassandra
             Cql = cql;
             ResultMetadata = resultMetadata;
             Keyspace = keyspace;
-        }
-
-        /// <summary>
-        ///  Sets a default consistency level for all <c>BoundStatement</c> created
-        ///  from this object. <p> If no consistency level is set through this method, the
-        ///  BoundStatement created from this object will use the default consistency
-        ///  level (One). </p><p> Changing the default consistency level is not retroactive,
-        ///  it only applies to BoundStatement created after the change.</p>
-        /// </summary>
-        /// <param name="consistency"> the default consistency level to set. </param>
-        /// <returns>this <c>PreparedStatement</c> object.</returns>
-        public PreparedStatement SetConsistencyLevel(ConsistencyLevel consistency)
-        {
-            ConsistencyLevel = consistency;
-            return this;
-        }
-
-        /// <summary>
-        /// Set the routing key for this query.
-        /// <para>
-        /// The routing key is a hint for token aware load balancing policies but is never mandatory.
-        /// This method allows you to manually provide a routing key for this query.
-        /// </para>
-        /// <para>
-        /// If the partition key is composite, you should provide multiple routing key components.
-        /// </para>
-        /// </summary>
-        /// <param name="routingKeyComponents"> the raw (binary) values to compose to
-        ///  obtain the routing key. </param>
-        /// <returns>this <c>PreparedStatement</c> object.  <see>Query#GetRoutingKey</see></returns>
-        public PreparedStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
-        {
-            _routingKey = RoutingKey.Compose(routingKeyComponents);
-            return this;
         }
 
         /// <summary>
@@ -136,6 +111,73 @@ namespace Cassandra
             }
             bs.SetValues(values);
             return bs;
+        }
+
+        /// <summary>
+        ///  Sets a default consistency level for all <c>BoundStatement</c> created
+        ///  from this object. <p> If no consistency level is set through this method, the
+        ///  BoundStatement created from this object will use the default consistency
+        ///  level (One). </p><p> Changing the default consistency level is not retroactive,
+        ///  it only applies to BoundStatement created after the change.</p>
+        /// </summary>
+        /// <param name="consistency"> the default consistency level to set. </param>
+        /// <returns>this <c>PreparedStatement</c> object.</returns>
+        public PreparedStatement SetConsistencyLevel(ConsistencyLevel consistency)
+        {
+            ConsistencyLevel = consistency;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the partition keys of the query
+        /// </summary>
+        /// <returns>True if it was possible to set the routing indexes for this query</returns>
+        internal bool SetPartitionKeys(TableColumn[] keys)
+        {
+            var queryParameters = Metadata.Columns;
+            var routingIndexes = new List<int>();
+            foreach (var key in keys)
+            {
+                //find the position of the key in the parameters
+                for (var i = 0; i < queryParameters.Length; i++)
+                {
+                    if (queryParameters[i].Name != key.Name)
+                    {
+                        continue;
+                    }
+                    routingIndexes.Add(i);
+                    break;
+                }
+            }
+            if (routingIndexes.Count != keys.Length)
+            {
+                //The parameter names don't match the partition keys
+                return false;
+            }
+            RoutingIndexes = routingIndexes.ToArray();
+            return true;
+        }
+
+        /// <summary>
+        /// Set the routing key for this query.
+        /// <para>
+        /// The routing key is a hint for token aware load balancing policies but is never mandatory.
+        /// This method allows you to manually provide a routing key for this query.
+        /// </para>
+        /// <para>
+        /// Use this method ONLY if the partition keys are the same for all query executions (hard-coded parameters).
+        /// </para>
+        /// <para>
+        /// If the partition key is composite, you should provide multiple routing key components.
+        /// </para>
+        /// </summary>
+        /// <param name="routingKeyComponents"> the raw (binary) values to compose to
+        ///  obtain the routing key. </param>
+        /// <returns>this <c>PreparedStatement</c> object.  <see>Query#GetRoutingKey</see></returns>
+        public PreparedStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
+        {
+            _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
         }
     }
 }

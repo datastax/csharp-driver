@@ -82,12 +82,17 @@ namespace Cassandra
             }
         }
 
-        public void Info(string msg)
+        public void Info(string msg, params object[] args)
         {
-            if (Diagnostics.CassandraTraceSwitch.TraceInfo)
+            if (!Diagnostics.CassandraTraceSwitch.TraceInfo)
             {
-                Trace.WriteLine(string.Format("{0} : {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
+                return;
             }
+            if (args != null && args.Length > 0)
+            {
+                msg = String.Format(msg, args);
+            }
+            Trace.WriteLine(string.Format("{0} : {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), msg), _category);
         }
 
         public void Verbose(string msg)

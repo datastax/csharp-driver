@@ -60,6 +60,7 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName);
 
             var preparedStatement = _session.Prepare(insertQuery);
+            CollectionAssert.AreEqual(new[] {0}, preparedStatement.RoutingIndexes);
             
             var firstRowValues = new object[] 
             { 
@@ -113,14 +114,15 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_AllSingleTypesNullValues()
         {
+            const string columns = "id, text_sample, int_sample, bigint_sample, float_sample, double_sample, " +
+                                   "decimal_sample, blob_sample, boolean_sample, timestamp_sample, inet_sample";
             var insertQuery = String.Format(@"
                 INSERT INTO {0} 
-                (id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample, 
-                    blob_sample, boolean_sample, timestamp_sample, inet_sample) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName);
+                ({1}) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = _session.Prepare(insertQuery);
-
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
             var nullRowValues = new object[] 
             { 
                 Guid.NewGuid(), null, null, null, null, null, null, null, null, null, null
@@ -144,6 +146,7 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?, ?, ?)", AllTypesTableName);
 
             var preparedStatement = _session.Prepare(insertQuery);
+            CollectionAssert.AreEqual(new[] { 0 }, preparedStatement.RoutingIndexes);
 
             var firstRowValues = new object[] 
             { 
@@ -213,6 +216,8 @@ namespace Cassandra.IntegrationTests.Core
         public void Prepared_NoParams()
         {
             var preparedStatement = _session.Prepare("SELECT * FROM " + AllTypesTableName);
+            //No parameters => no routing indexes
+            Assert.Null(preparedStatement.RoutingIndexes);
             var rs = _session.Execute(preparedStatement.Bind());
             //Just check that it works
             Assert.NotNull(rs);
@@ -236,6 +241,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = _session.Prepare(query);
+            Assert.Null(preparedStatement.RoutingIndexes);
             Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
             Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
         }
@@ -244,15 +250,16 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Bound_NamedParameters()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :id)", AllTypesTableName);
             var preparedStatement = _session.Prepare(insertQuery);
+            CollectionAssert.AreEqual(new [] {3}, preparedStatement.RoutingIndexes);
             Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
-            Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual("my_text, my_int, my_bigint, id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
 
             var id = Guid.NewGuid();
             _session.Execute(
                 preparedStatement.Bind(
-                    new { my_int = 100, my_bigint = -500L, my_id = id, my_text = "named params ftw!" }));
+                    new { my_int = 100, my_bigint = -500L, id = id, my_text = "named params ftw!" }));
 
             var row = _session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
@@ -284,13 +291,15 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Bound_NamedParameters_CaseInsensitive()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_TeXt, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_TeXt, :my_int, :my_bigint, :id)", AllTypesTableName);
             var preparedStatement = _session.Prepare(insertQuery);
+            //The routing key is at position 3
+            CollectionAssert.AreEqual(new[] { 3 }, preparedStatement.RoutingIndexes);
 
             var id = Guid.NewGuid();
             _session.Execute(
                 preparedStatement.Bind(
-                    new { MY_int = -100, MY_BigInt = 1511L, MY_id = id, MY_text = "yeah!" }));
+                    new { MY_int = -100, MY_BigInt = 1511L, ID = id, MY_text = "yeah!" }));
 
             var row = _session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
@@ -573,6 +582,23 @@ namespace Cassandra.IntegrationTests.Core
                 session.ChangeKeyspace("bound_changeks_test");
                 Assert.DoesNotThrow(() => TestHelper.Invoke(() => session.Execute(ps.Bind()), 10));
             }
+        }
+
+        [Test]
+        public void Prepare_With_Composite_Partition_Key()
+        {
+            _session.Execute("CREATE TABLE tbl_ps_multiple_pk (a uuid, b text, c text, d text, primary key ((a, b), c))");
+            var ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?");
+            //Parameters at position 2 and 0 are part of the routing key
+            CollectionAssert.AreEqual(new[] { 2, 0 }, ps.RoutingIndexes);
+
+            ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :b AND a = :a AND c = :ce");
+            //Parameters at position 1 and 0 are part of the routing key
+            CollectionAssert.AreEqual(new[] { 1, 0 }, ps.RoutingIndexes);
+
+            ps = _session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
+            //Parameters names are different from partition keys
+            Assert.Null(ps.RoutingIndexes);
         }
 
         [Test]

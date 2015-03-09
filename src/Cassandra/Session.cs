@@ -283,10 +283,38 @@ namespace Cassandra
             return task.Result;
         }
 
+        /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            var request = new PrepareRequest(this.BinaryProtocolVersion, query);
-            return new RequestHandler<PreparedStatement>(this, request, null).Send();
+            var request = new PrepareRequest(BinaryProtocolVersion, query);
+            return new RequestHandler<PreparedStatement>(this, request, null)
+                .Send()
+                .Continue(SetPrepareTableInfo);
+        }
+
+        /// <inheritdoc />
+        private PreparedStatement SetPrepareTableInfo(Task<PreparedStatement> t)
+        {
+            const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
+            var ps = t.Result;
+            var column = ps.Metadata.Columns.FirstOrDefault();
+            if (column == null || column.Keyspace == null)
+            {
+                //The prepared statement does not contain parameters
+                return ps;
+            }
+            var table = Cluster.Metadata.GetTable(column.Keyspace, column.Table);
+            if (table == null)
+            {
+                _logger.Info(msgRoutingNotSet, ps.Cql);
+                return ps;
+            }
+            var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
+            if (!routingSet)
+            {
+                _logger.Info(msgRoutingNotSet, ps.Cql);
+            }
+            return ps;
         }
 
         public void WaitForSchemaAgreement(RowSet rs)
