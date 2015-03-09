@@ -253,6 +253,7 @@ namespace Cassandra
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
+                s.ProtocolVersion = BinaryProtocolVersion;
                 var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
                 options.ValueNames = s.QueryValueNames;
                 return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
@@ -266,6 +267,7 @@ namespace Cassandra
             if (statement is BatchStatement)
             {
                 var s = (BatchStatement)statement;
+                s.ProtocolVersion = BinaryProtocolVersion;
                 var consistency = Configuration.QueryOptions.GetConsistencyLevel();
                 if (s.ConsistencyLevel != null)
                 {

@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Cassandra
@@ -27,6 +28,8 @@ namespace Cassandra
     {
         private string _query;
         private volatile RoutingKey _routingKey;
+        private int[] _routingIndexes;
+        private string[] _routingNames;
 
         /// <summary>
         ///  Gets the query string.
@@ -44,7 +47,40 @@ namespace Cassandra
         /// </summary>
         public override RoutingKey RoutingKey
         {
-            get { return _routingKey; }
+            get
+            {
+                if (_routingKey != null)
+                {
+                    return _routingKey;   
+                }
+                if (QueryValues == null)
+                {
+                    return null;
+                }
+                //Try to calculate the routing key
+                if (_routingIndexes != null && _routingIndexes.Length <= QueryValues.Length)
+                {
+                    return RoutingKey.Compose(_routingIndexes
+                        .Select(index => new RoutingKey(TypeCodec.Encode(ProtocolVersion, QueryValues[index])))
+                        .ToArray());
+                }
+                if (_routingNames != null && QueryValueNames !=  null && _routingNames.Length <= QueryValues.Length)
+                {
+                    var keys = new List<RoutingKey>(_routingNames.Length);
+                    foreach (var name in _routingNames)
+                    {
+                        var index = QueryValueNames.IndexOf(name.ToLowerInvariant());
+                        if (index < 0)
+                        {
+                            //Routing names are invalid
+                            return null;
+                        }
+                        keys.Add(new RoutingKey(TypeCodec.Encode(ProtocolVersion, QueryValues[index])));
+                    }
+                    return RoutingKey.Compose(keys.ToArray());
+                }
+                return null;
+            }
         }
 
         public SimpleStatement()
@@ -70,6 +106,7 @@ namespace Cassandra
             // ReSharper disable once DoNotCallOverridableMethodsInConstructor
             SetValues(values);
         }
+
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually
         ///  provide a routing key for this query. It is thus optional since the routing
@@ -85,6 +122,24 @@ namespace Cassandra
         public SimpleStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the parameter indexes that are part of the partition key
+        /// </summary>
+        public SimpleStatement SetRoutingIndexes(params int[] indexes)
+        {
+            _routingIndexes = indexes;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the parameter names that are part of the partition key
+        /// </summary>
+        public SimpleStatement SetRoutingNames(params string[] names)
+        {
+            _routingNames = names;
             return this;
         }
 

@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 
 namespace Cassandra
 {
@@ -130,6 +131,41 @@ namespace Cassandra
             //Uses the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateFromQuery(this, new QueryOptions());
             return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, options);
+        }
+
+        internal void CalculateRoutingKey(bool useNamedParameters, int[] routingIndexes, string[] routingNames, object[] valuesByPosition, object[] rawValues)
+        {
+            if (_routingKey != null)
+            {
+                //The routing key was specified by the user
+                return;
+            }
+            if (routingIndexes != null)
+            {
+                var keys = new RoutingKey[routingIndexes.Length];
+                for (var i = 0; i < routingIndexes.Length; i++)
+                {
+                    var index = routingIndexes[i];
+                    keys[i] = new RoutingKey(TypeCodec.Encode(ProtocolVersion, valuesByPosition[index]));
+                }
+                SetRoutingKey(keys);
+                return;
+            }
+            if (routingNames != null && useNamedParameters)
+            {
+                var keys = new RoutingKey[routingNames.Length];
+                var routingValues = Utils.GetValues(routingNames, rawValues[0]).ToArray();
+                if (routingValues.Length != keys.Length)
+                {
+                    //The routing names are not valid
+                    return;
+                }
+                for (var i = 0; i < routingValues.Length; i++)
+                {
+                    keys[i] = new RoutingKey(TypeCodec.Encode(ProtocolVersion, routingValues[i]));
+                }
+                SetRoutingKey(keys);
+            }
         }
     }
 }

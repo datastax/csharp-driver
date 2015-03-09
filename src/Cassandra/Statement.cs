@@ -95,11 +95,14 @@ namespace Cassandra
         /// <inheritdoc />
         public abstract RoutingKey RoutingKey { get; }
 
+        /// <summary>
+        /// Gets or sets the protocol version used for Routing Key parts encoding
+        /// </summary>
+        internal int ProtocolVersion { get; set; }
 
-        // We don't want to expose the constructor, because the code rely on this being only subclassed by Statement and BoundStatement
         protected Statement()
         {
-            //this._consistency = QueryOptions.DefaultConsistencyLevel;
+            ProtocolVersion = 1;
         }
         
         /// <inheritdoc />

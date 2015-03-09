@@ -105,7 +105,11 @@ namespace Cassandra
         ///  bound to <c>values</c>. </returns>
         public BoundStatement Bind(params object[] values)
         {
-            var bs = new BoundStatement(this);
+            var bs = new BoundStatement(this)
+            {
+                ProtocolVersion = _protocolVersion
+            };
+            bs.SetRoutingKey(_routingKey);
             if (values == null)
             {
                 return bs;
@@ -114,43 +118,12 @@ namespace Cassandra
             var useNamedParameters = values.Length == 1 && Utils.IsAnonymousType(values[0]);
             if (useNamedParameters)
             {
-                //Using named params
+                //Using named parameters
                 //Reorder the params according the position in the query
                 valuesByPosition = Utils.GetValues(Metadata.Columns.Select(c => c.Name), values[0]).ToArray();
             }
             bs.SetValues(valuesByPosition);
-            if (_routingKey != null)
-            {
-                //The routing key was specified by the user
-                return bs;
-            }
-            if (RoutingIndexes != null)
-            {
-                var keys = new RoutingKey[RoutingIndexes.Length];
-                for (var i = 0; i < RoutingIndexes.Length; i++)
-                {
-                    var index = RoutingIndexes[i];
-                    keys[i] = new RoutingKey(TypeCodec.Encode(_protocolVersion, valuesByPosition[index]));
-                }
-                bs.SetRoutingKey(keys);
-                return bs;
-            }
-            if (_routingNames != null && useNamedParameters)
-            {
-                var keys = new RoutingKey[_routingNames.Length];
-                var routingValues = Utils.GetValues(_routingNames, values[0]).ToArray();
-                if (routingValues.Length != keys.Length)
-                {
-                    //The routing names are not valid
-                    return bs;
-                }
-                for (var i = 0; i < routingValues.Length; i++)
-                {
-                    keys[i] = new RoutingKey(TypeCodec.Encode(_protocolVersion, routingValues[i]));
-                }
-                bs.SetRoutingKey(keys);
-                return bs;
-            }
+            bs.CalculateRoutingKey(useNamedParameters, RoutingIndexes, _routingNames, valuesByPosition, values);
             return bs;
         }
 
