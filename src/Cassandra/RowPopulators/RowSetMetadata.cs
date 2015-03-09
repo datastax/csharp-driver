@@ -154,7 +154,7 @@ namespace Cassandra
         /// </summary>
         public Dictionary<string, int> ColumnIndexes { get; protected set; }
 
-        private readonly CqlColumn[] _columns;
+        private CqlColumn[] _columns;
 
         private readonly ColumnDesc[] _rawColumns;
 
@@ -163,10 +163,16 @@ namespace Cassandra
         public CqlColumn[] Columns
         {
             get { return _columns; }
+            internal set { _columns = value; }
         }
 
         internal RowSetMetadata(BEBinaryReader reader)
         {
+            if (reader == null)
+            {
+                //Allow to be created for unit tests
+                return;
+            }
             var coldat = new List<ColumnDesc>();
             var flags = (RowSetMetadataFlags) reader.ReadInt32();
             int numberOfcolumns = reader.ReadInt32();

@@ -75,7 +75,7 @@ namespace Cassandra.Tests.Mapping
         /// </summary>
         protected PreparedStatement GetPrepared(string query = null)
         {
-            return new PreparedStatement(null, null, query, null, null);
+            return new PreparedStatement(null, null, query, null, null, 2);
         }
 
         [TearDown]

@@ -256,7 +256,7 @@ namespace Cassandra
                 throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
             }
             var prepared = (OutputPrepared)output;
-            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, _connection.Keyspace, prepared.ResultMetadata);
+            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, _connection.Keyspace, prepared.ResultMetadata, _session.BinaryProtocolVersion);
             _tcs.TrySetResult((T)(object)statement);
         }
 

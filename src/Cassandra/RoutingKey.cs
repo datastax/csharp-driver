@@ -30,6 +30,13 @@ namespace Cassandra
         /// </summary>
         public byte[] RawRoutingKey { get; set; }
 
+        public RoutingKey() { }
+
+        public RoutingKey(byte[] rawKey)
+        {
+            RawRoutingKey = rawKey;
+        }
+
         internal static RoutingKey Compose(params RoutingKey[] components)
         {
             if (components.Length == 0)

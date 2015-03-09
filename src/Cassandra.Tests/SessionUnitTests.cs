@@ -31,6 +31,11 @@ namespace Cassandra.Tests
             }
         }
 
+        private static PreparedStatement GetPrepared()
+        {
+            return new PreparedStatement(null, null, "DUMMY QUERY", null, null, 1);
+        }
+
         [Test]
         public void SimpleStatement_Default_QueryOptions_Are_Used()
         {
@@ -78,7 +83,7 @@ namespace Cassandra.Tests
         [Test]
         public void BoundStatement_Default_QueryOptions_Are_Used()
         {
-            var ps = new PreparedStatement(null, null, "DUMMY QUERY", null, null);
+            var ps = GetPrepared();
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
@@ -91,7 +96,7 @@ namespace Cassandra.Tests
         [Test]
         public void BoundStatement_QueryOptions_Are_Used()
         {
-            var ps = new PreparedStatement(null, null, "DUMMY QUERY", null, null);
+            var ps = GetPrepared();
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
@@ -107,7 +112,7 @@ namespace Cassandra.Tests
         [Test]
         public void BoundStatement_Statement_Level_Settings_Are_Used()
         {
-            var ps = new PreparedStatement(null, null, "DUMMY QUERY", null, null);
+            var ps = GetPrepared();
             var stmt = ps.Bind();
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
             stmt.SetPageSize(350);

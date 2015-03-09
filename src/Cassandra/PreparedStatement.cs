@@ -31,6 +31,7 @@ namespace Cassandra
     {
         internal readonly RowSetMetadata Metadata;
         internal readonly RowSetMetadata ResultMetadata;
+        private readonly int _protocolVersion;
         private volatile RoutingKey _routingKey;
 
         /// <summary>
@@ -75,13 +76,14 @@ namespace Cassandra
             private set;
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, RowSetMetadata resultMetadata)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, RowSetMetadata resultMetadata, int protocolVersion)
         {
             Metadata = metadata;
             Id = id;
             Cql = cql;
             ResultMetadata = resultMetadata;
             Keyspace = keyspace;
+            _protocolVersion = protocolVersion;
         }
 
         /// <summary>
@@ -103,13 +105,27 @@ namespace Cassandra
         public BoundStatement Bind(params object[] values)
         {
             var bs = new BoundStatement(this);
-            if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
+            bs.SetValues(values);
+            if (values == null)
+            {
+                return bs;
+            }
+            if (values.Length == 1 && Utils.IsAnonymousType(values[0]))
             {
                 //Using named params
                 //Reorder the params according the position in the query
                 values = Utils.GetValues(Metadata.Columns.Select(c => c.Name), values[0]).ToArray();
             }
-            bs.SetValues(values);
+            if (_routingKey == null && RoutingIndexes != null)
+            {
+                var keys = new RoutingKey[RoutingIndexes.Length];
+                for (var i = 0; i < RoutingIndexes.Length; i++)
+                {
+                    var index = RoutingIndexes[i];
+                    keys[i] = new RoutingKey(TypeCodec.Encode(_protocolVersion, values[index]));
+                }
+                bs.SetRoutingKey(keys);
+            }
             return bs;
         }
 

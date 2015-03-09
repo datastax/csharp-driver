@@ -34,7 +34,7 @@ namespace Cassandra
     /// </summary>
     public class BoundStatement : Statement
     {
-        private readonly PreparedStatement _statement;
+        private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Cassandra
         /// </summary>
         public PreparedStatement PreparedStatement
         {
-            get { return _statement; }
+            get { return _preparedStatement; }
         }
 
 
@@ -70,7 +70,7 @@ namespace Cassandra
         /// <param name="statement"> the prepared statement from which to create a <c>BoundStatement</c>.</param>
         public BoundStatement(PreparedStatement statement)
         {
-            _statement = statement;
+            _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
             SetConsistencyLevel(statement.ConsistencyLevel);
         }
@@ -84,7 +84,7 @@ namespace Cassandra
         /// <param name="routingKeyComponents"> the raw (binary) values to compose the routing key.</param>
         public BoundStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
-            this._routingKey = RoutingKey.Compose(routingKeyComponents);
+            _routingKey = RoutingKey.Compose(routingKeyComponents);
             return this;
         }
 
