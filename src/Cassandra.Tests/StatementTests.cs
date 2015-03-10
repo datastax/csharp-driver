@@ -143,5 +143,63 @@ namespace Cassandra.Tests
                 .Concat(new byte[] {0});
             CollectionAssert.AreEqual(expectedRoutingKey, bound.RoutingKey.RawRoutingKey);
         }
+
+        [Test]
+        public void SimpleStatement_Bind_SetsRoutingValues_Single()
+        {
+            const int protocolVersion = 2;
+            var stmt = new SimpleStatement(Query, "id1");
+            Assert.Null(stmt.RoutingKey);
+            stmt.SetRoutingValues("id1");
+            stmt.ProtocolVersion = protocolVersion;
+            CollectionAssert.AreEqual(TypeCodec.Encode(protocolVersion, "id1"), stmt.RoutingKey.RawRoutingKey);
+        }
+
+        [Test]
+        public void SimpleStatement_Bind_SetsRoutingValues_Multiple()
+        {
+            const int protocolVersion = 2;
+            var stmt = new SimpleStatement(Query, "id1", "id2", "val1");
+            Assert.Null(stmt.RoutingKey);
+            stmt.SetRoutingValues("id1", "id2");
+            stmt.ProtocolVersion = protocolVersion;
+            var expectedRoutingKey = new byte[0]
+                .Concat(new byte[] { 0, 3 })
+                .Concat(TypeCodec.Encode(protocolVersion, "id1"))
+                .Concat(new byte[] { 0 })
+                .Concat(new byte[] { 0, 3 })
+                .Concat(TypeCodec.Encode(protocolVersion, "id2"))
+                .Concat(new byte[] { 0 });
+            CollectionAssert.AreEqual(expectedRoutingKey, stmt.RoutingKey.RawRoutingKey);
+        }
+
+        [Test]
+        public void BatchStatement_Bind_SetsRoutingValues_Single()
+        {
+            const int protocolVersion = 2;
+            var batch = new BatchStatement();
+            Assert.Null(batch.RoutingKey);
+            batch.SetRoutingValues("id1-value");
+            batch.ProtocolVersion = protocolVersion;
+            CollectionAssert.AreEqual(TypeCodec.Encode(protocolVersion, "id1-value"), batch.RoutingKey.RawRoutingKey);
+        }
+
+        [Test]
+        public void BatchStatement_Bind_SetsRoutingValues_Multiple()
+        {
+            const int protocolVersion = 2;
+            var batch = new BatchStatement();
+            Assert.Null(batch.RoutingKey);
+            batch.SetRoutingValues("id11", "id22");
+            batch.ProtocolVersion = protocolVersion;
+            var expectedRoutingKey = new byte[0]
+                .Concat(new byte[] { 0, 4 })
+                .Concat(TypeCodec.Encode(protocolVersion, "id11"))
+                .Concat(new byte[] { 0 })
+                .Concat(new byte[] { 0, 4 })
+                .Concat(TypeCodec.Encode(protocolVersion, "id22"))
+                .Concat(new byte[] { 0 });
+            CollectionAssert.AreEqual(expectedRoutingKey, batch.RoutingKey.RawRoutingKey);
+        }
     }
 }

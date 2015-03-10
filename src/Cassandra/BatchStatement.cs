@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Cassandra
 {
@@ -26,7 +27,8 @@ namespace Cassandra
     {
         private readonly List<Statement> _queries = new List<Statement>();
         private BatchType _batchType = BatchType.Logged;
-        private volatile RoutingKey _routingKey;
+        private RoutingKey _routingKey;
+        private object[] _routingValues;
 
         /// <summary>
         /// Gets the batch type
@@ -50,14 +52,29 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Gets the routing key for the query. <p> Note that unless the routing key has been
-        ///  explicitly set through <link>#setRoutingKey</link>, this will method will
-        ///  return <c>null</c> (to avoid having to parse the query string to
-        ///  retrieve the partition key).</p>
+        /// Gets the routing key for the query.
+        /// <para>
+        /// Routing key can be provided using the <see cref="SetRoutingValues"/> method.
+        /// </para>
         /// </summary>
         public override RoutingKey RoutingKey
         {
-            get { return _routingKey; }
+            get
+            {
+                if (_routingKey != null)
+                {
+                    return _routingKey;
+                }
+                if (_routingValues == null)
+                {
+                    return null;
+                }
+                //Calculate the routing key
+                return RoutingKey.Compose(
+                    _routingValues
+                    .Select(key => new RoutingKey(TypeCodec.Encode(ProtocolVersion, key)))
+                    .ToArray());
+            }
         }
 
         /// <summary>
@@ -73,6 +90,17 @@ namespace Cassandra
         public BatchStatement SetRoutingKey(params RoutingKey[] routingKeyComponents)
         {
             _routingKey = RoutingKey.Compose(routingKeyComponents);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the partition key values in order to route the query to the correct replicas.
+        /// <para>For simple partition keys, set the partition key value.</para>
+        /// <para>For composite partition keys, set the multiple the partition key values in correct order.</para>
+        /// </summary>
+        public BatchStatement SetRoutingValues(params object[] keys)
+        {
+            _routingValues = keys;
             return this;
         }
 

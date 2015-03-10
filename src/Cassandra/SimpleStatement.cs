@@ -28,8 +28,7 @@ namespace Cassandra
     {
         private string _query;
         private volatile RoutingKey _routingKey;
-        private int[] _routingIndexes;
-        private string[] _routingNames;
+        private object[] _routingValues;
 
         /// <summary>
         ///  Gets the query string.
@@ -40,10 +39,10 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Gets the routing key for the query. <p> Note that unless the routing key has been
-        ///  explicitly set through <link>#setRoutingKey</link>, this will method will
-        ///  return <c>null</c> (to avoid having to parse the query string to
-        ///  retrieve the partition key).</p>
+        /// Gets the routing key for the query.
+        /// <para>
+        /// Routing key can be provided using the <see cref="SetRoutingValues"/> method.
+        /// </para>
         /// </summary>
         public override RoutingKey RoutingKey
         {
@@ -53,33 +52,15 @@ namespace Cassandra
                 {
                     return _routingKey;   
                 }
-                if (QueryValues == null)
+                if (_routingValues == null)
                 {
                     return null;
                 }
-                //Try to calculate the routing key
-                if (_routingIndexes != null && _routingIndexes.Length <= QueryValues.Length)
-                {
-                    return RoutingKey.Compose(_routingIndexes
-                        .Select(index => new RoutingKey(TypeCodec.Encode(ProtocolVersion, QueryValues[index])))
-                        .ToArray());
-                }
-                if (_routingNames != null && QueryValueNames !=  null && _routingNames.Length <= QueryValues.Length)
-                {
-                    var keys = new List<RoutingKey>(_routingNames.Length);
-                    foreach (var name in _routingNames)
-                    {
-                        var index = QueryValueNames.IndexOf(name.ToLowerInvariant());
-                        if (index < 0)
-                        {
-                            //Routing names are invalid
-                            return null;
-                        }
-                        keys.Add(new RoutingKey(TypeCodec.Encode(ProtocolVersion, QueryValues[index])));
-                    }
-                    return RoutingKey.Compose(keys.ToArray());
-                }
-                return null;
+                //Calculate the routing key
+                return RoutingKey.Compose(
+                    _routingValues
+                    .Select(key => new RoutingKey(TypeCodec.Encode(ProtocolVersion, key)))
+                    .ToArray());
             }
         }
 
@@ -126,20 +107,13 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sets the parameter indexes that are part of the partition key
+        /// Sets the partition key values in order to route the query to the correct replicas.
+        /// <para>For simple partition keys, set the partition key value.</para>
+        /// <para>For composite partition keys, set the multiple the partition key values in correct order.</para>
         /// </summary>
-        public SimpleStatement SetRoutingIndexes(params int[] indexes)
+        public SimpleStatement SetRoutingValues(params object[] keys)
         {
-            _routingIndexes = indexes;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the parameter names that are part of the partition key
-        /// </summary>
-        public SimpleStatement SetRoutingNames(params string[] names)
-        {
-            _routingNames = names;
+            _routingValues = keys;
             return this;
         }
 
