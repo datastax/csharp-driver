@@ -385,7 +385,7 @@ APPLY BATCH".Replace("\r", ""));
 
             var cqlInsert = table.Insert(row).IfNotExists();
             object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
+            var cql = cqlInsert.GetCql(out values);
 
             StringAssert.EndsWith("IF NOT EXISTS", cql);
         }

@@ -157,6 +157,9 @@ namespace Cassandra.Data.Linq
             return ret;
         }
 
+        /// <summary>
+        /// Returns a representation of a DELETE cql statement
+        /// </summary>
         public static CqlDelete Delete<TSource>(this CqlQuery<TSource> source)
         {
             var ret = new CqlDelete(source.Expression, source.Table, source.StatementFactory, source.PocoData);
@@ -164,15 +167,21 @@ namespace Cassandra.Data.Linq
             return ret;
         }
 
-        public static CqlDelete DeleteIf<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
+        /// <summary>
+        /// Returns a representation of a DELETE ... IF ... cql statement, for Lightweight Transactions support
+        /// </summary>
+        public static CqlConditionalCommand<TSource> DeleteIf<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
-            var ret = new CqlDelete(Expression.Call(
+            var delete = new CqlDelete(Expression.Call(
                 null, CqlMthHelps.DeleteIfMi,
                  new Expression[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
-            source.CopyQueryPropertiesTo(ret);
-            return ret;
+            source.CopyQueryPropertiesTo(delete);
+            return new CqlConditionalCommand<TSource>(delete, source.MapperFactory);
         }
 
+        /// <summary>
+        /// Returns a representation of a UPDATE cql statement
+        /// </summary>
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
             var ret = new CqlUpdate(source.Expression, source.Table, source.StatementFactory, source.PocoData);
@@ -180,13 +189,16 @@ namespace Cassandra.Data.Linq
             return ret;
         }
 
-        public static CqlUpdate UpdateIf<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
+        /// <summary>
+        /// Returns a representation of a UPDATE ... IF ... cql statement, for Lightweight Transactions support
+        /// </summary>
+        public static CqlConditionalCommand<TSource> UpdateIf<TSource>(this CqlQuery<TSource> source, Expression<Func<TSource, bool>> predicate)
         {
-            var ret = new CqlUpdate(Expression.Call(
+            var update = new CqlUpdate(Expression.Call(
                 null, CqlMthHelps.UpdateIfMi,
                 new[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
-            source.CopyQueryPropertiesTo(ret);
-            return ret;
+            source.CopyQueryPropertiesTo(update);
+            return new CqlConditionalCommand<TSource>(update, source.MapperFactory);
         }
 
         /// <summary>
@@ -256,6 +268,9 @@ namespace Cassandra.Data.Linq
         }
 
 
+        /// <summary>
+        /// Sorts the elements, which are returned from CqlQuery, in ascending order according to a key.
+        /// </summary>
         public static CqlQuery<TSource> ThenBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {
             var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(
@@ -265,6 +280,9 @@ namespace Cassandra.Data.Linq
             return ret;
         }
 
+        /// <summary>
+        /// Sorts the elements, which are returned from CqlQuery, in descending order according to a key.
+        /// </summary>
         public static CqlQuery<TSource> ThenByDescending<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> func)
         {
             var ret = (CqlQuery<TSource>) source.Table.CreateQuery<TSource>(Expression.Call(

@@ -30,9 +30,11 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.IntValue)
                 .TableName("tbl1");
             var table = GetTable<AllTypesEntity>(session, map);
-            table.Where(t => t.IntValue == 100).DeleteIf(t => t.StringValue == "some value").Execute();
+            var appliedInfo = table.Where(t => t.IntValue == 100).DeleteIf(t => t.StringValue == "some value").Execute();
             Assert.AreEqual("DELETE FROM tbl1 WHERE id = ? IF val2 = ?", query);
             CollectionAssert.AreEqual(parameters, new object[] { 100, "some value" });
+            //By default applied info will say it was applied
+            Assert.True(appliedInfo.Applied);
         }
 
         [Test]

@@ -50,8 +50,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .Where(m => m.Title == actualMovie.Title && m.MovieMaker == actualMovie.MovieMaker && m.Director == actualMovie.Director)
                 .DeleteIf(m => m.MainActor == actualMovie.MainActor);
 
-            deleteIfStatement.Execute();
-            count = -1;
+            var appliedInfo = deleteIfStatement.Execute();
+            Assert.True(appliedInfo.Applied);
+            Assert.Null(appliedInfo.Existing);
             count = table.Count().Execute();
             Assert.AreEqual(0, count);
         }
@@ -70,8 +71,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .Where(m => m.Title == actualMovie.Title && m.MovieMaker == actualMovie.MovieMaker && m.Director == actualMovie.Director)
                 .DeleteIf(m => m.MainActor == Randomm.RandomAlphaNum(16));
 
-            deleteIfStatement.Execute();
-            count = -1;
+            var appliedInfo = deleteIfStatement.Execute();
+            Assert.False(appliedInfo.Applied);
+            Assert.NotNull(appliedInfo.Existing);
+            Assert.AreEqual(actualMovie.MainActor, appliedInfo.Existing.MainActor);
             count = table.Count().Execute();
             Assert.AreEqual(1, count);
         }
@@ -155,7 +158,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             string deleteIfQueryToString = deleteIfQuery.ToString();
             Console.WriteLine(deleteIfQueryToString);
 
-            Assert.DoesNotThrow(() => deleteIfQuery.Execute());
+            var appliedInfo = deleteIfQuery.Execute();
+            Assert.False(appliedInfo.Applied);
         }
 
 

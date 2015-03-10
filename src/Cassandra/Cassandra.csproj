@@ -86,6 +86,7 @@
     <Compile Include="Data\Linq\ClusteringKeyAttribute.cs" />
     <Compile Include="Data\Linq\ColumnAttribute.cs" />
     <Compile Include="Data\Linq\CompactStorageAttribute.cs" />
+    <Compile Include="Data\Linq\CqlConditionalCommand.cs" />
     <Compile Include="Data\Linq\CounterAttribute.cs" />
     <Compile Include="Data\Linq\CqlArgumentException.cs" />
     <Compile Include="Data\Linq\CqlCommand.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="DefaultAddressTranslator.cs" />
     <Compile Include="IAddressTranslator.cs" />
     <Compile Include="ICqlRequest.cs" />
+    <Compile Include="Mapping\AppliedInfo.cs" />
     <Compile Include="Mapping\IPage.cs" />
     <Compile Include="ListBackedStream.cs" />
     <Compile Include="AtomicValue.cs" />
