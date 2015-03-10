@@ -146,7 +146,14 @@ namespace Cassandra
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    keys[i] = new RoutingKey(TypeCodec.Encode(ProtocolVersion, valuesByPosition[index]));
+                    var key = TypeCodec.Encode(ProtocolVersion, valuesByPosition[index]);
+                    if (key == null)
+                    {
+                        //The partition key can not be null
+                        //Get out and let any node reply a Response Error
+                        return;
+                    }
+                    keys[i] = new RoutingKey(key);
                 }
                 SetRoutingKey(keys);
                 return;
@@ -162,7 +169,13 @@ namespace Cassandra
                 }
                 for (var i = 0; i < routingValues.Length; i++)
                 {
-                    keys[i] = new RoutingKey(TypeCodec.Encode(ProtocolVersion, routingValues[i]));
+                    var key = TypeCodec.Encode(ProtocolVersion, routingValues[i]);
+                    if (key == null)
+                    {
+                        //The partition key can not be null
+                        return;
+                    }
+                    keys[i] = new RoutingKey(key);
                 }
                 SetRoutingKey(keys);
             }
