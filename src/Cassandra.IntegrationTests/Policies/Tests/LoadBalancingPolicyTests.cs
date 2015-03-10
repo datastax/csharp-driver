@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -389,6 +390,43 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                         new RoutingKey() {RawRoutingKey = Encoding.UTF8.GetBytes(i.ToString())},
                         new RoutingKey() {RawRoutingKey = BitConverter.GetBytes(i).Reverse().ToArray()})
                     .EnableTracing();
+                var rs = session.Execute(statement);
+                traces.Add(rs.Info.QueryTrace);
+            }
+            //Check that there weren't any hops
+            foreach (var t in traces)
+            {
+                //The coordinator must be the only one executing the query
+                Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+            }
+        }
+
+        /// <summary>
+        /// Validate that no hops occur when inserting into a composite key with a prepared statement
+        /// @test_category load_balancing:token_aware
+        /// </summary>
+        [Test]
+        public void TokenAware_Prepared_Composite_NoHops()
+        {
+            // Setup
+            PolicyTestTools policyTestTools = new PolicyTestTools();
+            ITestCluster testCluster = TestClusterManager.GetTestCluster(3);
+            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            testCluster.InitClient();
+
+            // Test
+            var session = testCluster.Session;
+            policyTestTools.CreateSchema(session);
+            policyTestTools.TableName = TestUtils.GetUniqueTableName();
+            session.Execute(String.Format("CREATE TABLE {0} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))", policyTestTools.TableName));
+            Thread.Sleep(1000);
+            var ps = session.Prepare(String.Format("INSERT INTO {0} (k1, k2, i) VALUES (?, ?, ?)", policyTestTools.TableName));
+            var traces = new List<QueryTrace>();
+            for (var i = 0; i < 10; i++)
+            {
+                var statement = ps.Bind(i.ToString(), i, i).EnableTracing();
+                //Routing key is calculated by the driver
+                Assert.NotNull(statement.RoutingKey);
                 var rs = session.Execute(statement);
                 traces.Add(rs.Info.QueryTrace);
             }
