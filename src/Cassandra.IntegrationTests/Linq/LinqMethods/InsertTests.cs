@@ -13,35 +13,34 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
-    public class Insert : TestGlobals
+    public class InsertTests : TestGlobals
     {
-        ISession _session = null;
+        private ISession _session;
+        private ICluster _cluster;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
 
-        [SetUp]
-        public void SetupTest()
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            var testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            _cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            _session = _cluster.Connect();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
-            // drop table if exists, re-create
-            MappingConfiguration movieMappingConfig = new MappingConfiguration();
-            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
-            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable = new Table<Movie>(_session, new MappingConfiguration());
             _movieTable.Create();
         }
 
-        [TearDown]
-        public void TeardownTest()
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
         {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
+            _cluster.Dispose();
         }
 
         [Test, TestCassandraVersion(2, 0)]
-        public void LinqInsert_Batch()
+        public void LinqInsert_Batch_Test()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
             Batch batch = _session.CreateBatch();
@@ -78,7 +77,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test, TestCassandraVersion(2, 0)]
-        public void LinqInsert_WithSetTimestamp()
+        public void LinqInsert_WithSetTimestamp_Test()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
             Movie movie1 = Movie.GetRandomMovie();
@@ -93,14 +92,15 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .Execute();
 
             Movie updatedMovie = nerdMoviesTable
+                .Where(m => m.Title == movie1.Title && m.MovieMaker == movie1.MovieMaker)
                 .Execute()
-                .FirstOrDefault();
+                .First();
 
             Assert.AreEqual(updatedMovie.MainActor, mainActor);
         }
 
         [Test, TestCassandraVersion(2, 0)]
-        public void LinqInsert_Batch_MissingPartitionKeyPart()
+        public void LinqInsert_Batch_MissingPartitionKeyPart_Test()
         {
             Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
             Batch batch = _session.CreateBatch();
@@ -135,7 +135,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
-        public void LinqInsert_MissingPartitionKey_Sync()
+        public void LinqInsert_MissingPartitionKey_Sync_Test()
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
             Movie objectMissingPartitionKey = new Movie() {MainActor = "doesntmatter"};
@@ -151,7 +151,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
-        public void LinqInsert_MissingPartitionKey_Async()
+        public void LinqInsert_MissingPartitionKey_Async_Test()
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
             Movie objectMissingPartitionKey = new Movie() {MainActor = "doesntmatter"};
@@ -173,6 +173,33 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
         }
 
+        [Test]
+        public void LinqInsert_IfNotExists_Test()
+        {
+            var nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
+            var movie = Movie.GetRandomMovie();
 
+            var appliedInfo = nerdMoviesTable.
+                Insert(movie)
+                .IfNotExists()
+                .Execute();
+            Assert.True(appliedInfo.Applied);
+            Assert.Null(appliedInfo.Existing);
+
+            Assert.NotNull(nerdMoviesTable
+                .Where(m => m.Title == movie.Title && m.MovieMaker == movie.MovieMaker)
+                .Execute()
+                .FirstOrDefault());
+
+            //Try to create another with the same partition and clustering keys
+            appliedInfo = nerdMoviesTable
+                .Insert(new Movie { Title = movie.Title, Director = movie.Director, MovieMaker = movie.MovieMaker})
+                .IfNotExists()
+                .Execute();
+
+            Assert.False(appliedInfo.Applied);
+            Assert.NotNull(appliedInfo.Existing);
+            Assert.AreEqual(movie.Year, appliedInfo.Existing.Year);
+        }
     }
 }

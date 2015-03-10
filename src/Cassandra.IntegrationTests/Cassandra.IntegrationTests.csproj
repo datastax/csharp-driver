@@ -74,14 +74,14 @@
     <Compile Include="Linq\LinqMethods\DeleteIf.cs" />
     <Compile Include="Linq\LinqMethods\First.cs" />
     <Compile Include="Linq\LinqMethods\FirstOrDefault.cs" />
-    <Compile Include="Linq\LinqMethods\Insert.cs" />
+    <Compile Include="Linq\LinqMethods\InsertTests.cs" />
     <Compile Include="Linq\LinqTable\LinqUdtTests.cs" />
     <Compile Include="Linq\LinqMethods\OrderBy.cs" />
     <Compile Include="Linq\LinqMethods\Select.cs" />
     <Compile Include="Linq\LinqMethods\TableSelectDefault.cs" />
     <Compile Include="Linq\LinqMethods\Take.cs" />
     <Compile Include="Linq\LinqMethods\Update.cs" />
-    <Compile Include="Linq\LinqMethods\UpdateIf.cs" />
+    <Compile Include="Linq\LinqMethods\UpdateIfTests.cs" />
     <Compile Include="Linq\LinqMethods\Where.cs" />
     <Compile Include="Linq\LinqTable\GetTable.cs" />
     <Compile Include="Linq\LinqTable\TableSelectDefault.cs" />
