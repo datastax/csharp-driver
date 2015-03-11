@@ -21,29 +21,34 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class Insert : TestGlobals
+    public class InsertTests : TestGlobals
     {
         private ISession _session;
-        string _uniqueKsName;
+        private ICluster _cluster;
+        private string _uniqueKsName;
+        private readonly Logger _logger = new Logger(typeof(CreateTable));
 
-        [SetUp]
-        public void SetupTest()
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            var testCluster = TestClusterManager.GetTestCluster(1);
+            _cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            _session = _cluster.Connect();
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
         }
 
-        [TearDown]
-        public void TeardownTest()
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
         {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
+            _cluster.Shutdown();
         }
 
         /// <summary>
@@ -53,7 +58,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_Sync()
         {
             // Setup
-            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>()
+                .TableName(TestUtils.GetUniqueTableName().ToLowerInvariant()).PartitionKey(c => c.somepartitionkey).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
             Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
@@ -62,7 +68,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
             var mapper = new Mapper(_session, mappingConfig);
             mapper.Insert(privateClassInstance);
-            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>("SELECT * from " + table.Name).ToList();
+            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
@@ -105,9 +111,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_WithConsistency_Success()
         {
             // Setup
-            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>()
+                .TableName(TestUtils.GetUniqueTableName().ToLowerInvariant()).PartitionKey(c => c.somepartitionkey).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
             var mapper = new Mapper(_session, mappingConfig);
 
@@ -128,7 +134,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 mapper.Insert(pocoInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel));
 
                 // Assert final state of C* data
-                string cql = "Select * from " + typeof(lowercaseclassnamepklowercase).Name + " where somepartitionkey ='" + pocoInstance.somepartitionkey + "'";
+                string cql = "Select * from " + table.Name + " where somepartitionkey ='" + pocoInstance.somepartitionkey + "'";
                 List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>(cql).ToList();
                 DateTime futureDateTime = DateTime.Now.AddSeconds(2);
                 while (instancesQueried.Count < 1 && futureDateTime > DateTime.Now)
@@ -149,9 +155,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_WithConsistency_Serial()
         {
             // Setup
-            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>()
+                .TableName(TestUtils.GetUniqueTableName().ToLowerInvariant()).PartitionKey(c => c.somepartitionkey).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             // Insert the data
@@ -174,10 +180,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_WithConsistencyLevel_Fail()
         {
             // Setup
+            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
             var mappingConfig =
-                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).TableName(tableName).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             // Insert the data
@@ -186,10 +192,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 ConsistencyLevel.Three,
                 ConsistencyLevel.Two
             };
+            var mapper = new Mapper(_session, mappingConfig);
             foreach (var consistencyLevel in consistencyLevels)
             {
                 lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
-                var mapper = new Mapper(_session, mappingConfig);
                 Assert.Throws<UnavailableException>(() => mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel)));
             }
         }
@@ -205,9 +211,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mappingConfig =
                 new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
-            table.Create();
-
             // Insert the data
             lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
             var mapper = new Mapper(_session, mappingConfig);
@@ -225,8 +228,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mappingConfig =
                 new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
-            table.Create();
 
             // Insert the data
             lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
@@ -285,11 +286,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_WithSessionExecuteTableInsert()
         {
             // Setup
-            string uniqueTableName = TestUtils.GetUniqueTableName();
-            Assert.AreNotEqual(uniqueTableName.ToLower(), uniqueTableName);
-            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
+            string uniqueTableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().TableName(uniqueTableName).PartitionKey(c => c.somepartitionkey).CaseSensitive());
             var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             // Insert the data
@@ -381,16 +380,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Insert_TableNameLowerCase_PartitionKeyLowerCase()
         {
-            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey));
+            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().TableName(tableName).PartitionKey(c => c.somepartitionkey));
             Table<lowercaseclassnamepklowercase> table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            Assert.AreEqual(table.Name, table.Name.ToLower());
             table.Create();
 
             var cqlClient = new Mapper(_session, new MappingConfiguration());
             lowercaseclassnamepklowercase defaultPocoInstance = new lowercaseclassnamepklowercase();
 
             cqlClient.Insert(defaultPocoInstance);
-            List<lowercaseclassnamepklowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepklowercase>("SELECT * from " + table.Name).ToList();
+            List<lowercaseclassnamepklowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepklowercase>().ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
@@ -418,6 +417,27 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Validate expected exception
             var ex = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
             StringAssert.Contains("Unknown identifier someotherstring", ex.Message);
+        }
+
+        [Test]
+        public void InsertIfNotExists_Applied_Test()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_insert"));
+            //Use linq to create the table
+            new Table<Song>(_session, config).Create();
+            var mapper = new Mapper(_session, config);
+            var song = new Song {Id = Guid.NewGuid(), Artist = "Led Zeppelin", Title = "Good Times Bad Times"};
+            //It is the first song there, it should apply it
+            var appliedInfo = mapper.InsertIfNotExists(song);
+            Assert.True(appliedInfo.Applied);
+            Assert.Null(appliedInfo.Existing);
+            //Following times, it should not apply the mutation as the partition key is the same
+            var nextSong = new Song { Id = song.Id, Title = "Communication Breakdown" };
+            appliedInfo = mapper.InsertIfNotExists(nextSong);
+            Assert.False(appliedInfo.Applied);
+            Assert.NotNull(appliedInfo.Existing);
+            Assert.AreEqual(song.Title, appliedInfo.Existing.Title);
         }
 
 

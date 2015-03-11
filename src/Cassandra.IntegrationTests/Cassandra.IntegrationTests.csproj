@@ -116,7 +116,7 @@
     <Compile Include="Mapping\Tests\Fetch.cs" />
     <Compile Include="Mapping\Tests\First.cs" />
     <Compile Include="Mapping\Tests\FluentMapping.cs" />
-    <Compile Include="Mapping\Tests\Insert.cs" />
+    <Compile Include="Mapping\Tests\InsertTests.cs" />
     <Compile Include="Mapping\Tests\Single.cs" />
     <Compile Include="Mapping\Tests\Update.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
