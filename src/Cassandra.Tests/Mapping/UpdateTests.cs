@@ -5,6 +5,7 @@ using System.Text;
 using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
+using Cassandra.Tests.Mapping.TestData;
 using Moq;
 using NUnit.Framework;
 
@@ -142,7 +143,7 @@ namespace Cassandra.Tests.Mapping
                     consistency = b.ConsistencyLevel;
                     serialConsistency = b.SerialConsistencyLevel;
                 })
-                .Returns(TaskHelper.ToTask(new RowSet()))
+                .Returns(TestHelper.DelayedTask(new RowSet()))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
@@ -157,6 +158,54 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(ConsistencyLevel.Two, consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, serialConsistency);
             sessionMock.Verify();
+        }
+
+        [Test]
+        public void UpdateInfo_AppliedInfo_True_Test()
+        {
+            string query = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]" }, new [] { true })))
+                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            const string partialQuery = "SET title = ?, releasedate = ? WHERE id = ? IF artist = ?";
+            var appliedInfo = mapper.UpdateIf<Song>(Cql.New(partialQuery, "Ramble On", new DateTime(1969, 1, 1), Guid.NewGuid(), "Led Zeppelin"));
+            sessionMock.Verify();
+            Assert.AreEqual("UPDATE Song " + partialQuery, query);
+            Assert.True(appliedInfo.Applied);
+            Assert.Null(appliedInfo.Existing);
+        }
+
+        [Test]
+        public void UpdateInfo_AppliedInfo_False_Test()
+        {
+            var id = Guid.NewGuid();
+            string query = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new [] { "[applied]", "id", "artist" }, new object[] { false, id, "Jimmy Page" })))
+                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            const string partialQuery = "SET title = ?, releasedate = ? WHERE id = ? IF artist = ?";
+            var appliedInfo = mapper.UpdateIf<Song>(Cql.New(partialQuery, "Kashmir", new DateTime(1975, 1, 1), id, "Led Zeppelin"));
+            sessionMock.Verify();
+            Assert.AreEqual("UPDATE Song " + partialQuery, query);
+            Assert.False(appliedInfo.Applied);
+            Assert.NotNull(appliedInfo.Existing);
+            Assert.AreEqual("Jimmy Page", appliedInfo.Existing.Artist);
         }
     }
 }

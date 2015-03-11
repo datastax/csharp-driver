@@ -5,6 +5,7 @@ namespace Cassandra.Mapping
     /// <summary>
     /// A client for creating, updating, deleting, and reading POCOs from a Cassandra cluster.
     /// </summary>
+    /// <seealso cref="Mapper"/>
     public interface IMapper : ICqlQueryAsyncClient, ICqlWriteAsyncClient, ICqlQueryClient, ICqlWriteClient
     {
         /// <summary>
@@ -32,5 +33,60 @@ namespace Cassandra.Mapping
         /// <param name="value">The value to convert.</param>
         /// <returns>The converted value.</returns>
         TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value);
+
+        //Lightweight transaction support methods must be included at IMapper level as 
+        //  conditional queries are not supported in batches
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
+        /// <para>
+        /// Returns a information whether it was applied or not. If it was not applied, it returns provides details of the existing values.
+        /// </para>
+        /// </summary>
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
+        /// <para>
+        /// Returns a information whether it was applied or not. If it was not applied, it returns provides details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.
+        /// Prepends "UPDATE tablename" to the CQL statement you specify, getting the table name appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> UpdateIf<T>(Cql cql);
+
+        /// <summary>
+        /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.
+        /// Prepends "UPDATE tablename" to the CQL statement you specify, getting the table name appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> UpdateIf<T>(string cql, params object[] args);
+
+        /// <summary>
+        /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.
+        /// Prepends "UPDATE tablename" to the CQL statement you specify, getting the table name appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        Task<AppliedInfo<T>> UpdateIfAsync<T>(Cql cql);
+
+        /// <summary>
+        /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.
+        /// Prepends "UPDATE tablename" to the CQL statement you specify, getting the table name appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        Task<AppliedInfo<T>> UpdateIfAsync<T>(string cql, params object[] args);
     }
 }

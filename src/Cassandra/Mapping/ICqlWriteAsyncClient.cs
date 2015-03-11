@@ -13,12 +13,6 @@ namespace Cassandra.Mapping
         Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null);
 
         /// <summary>
-        /// Inserts the specified POCO in Cassandra, if not exists.
-        /// It returns information regarding it was applied or not.
-        /// </summary>
-        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null);
-
-        /// <summary>
         /// Updates the POCO specified in Cassandra.
         /// </summary>
         Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null);

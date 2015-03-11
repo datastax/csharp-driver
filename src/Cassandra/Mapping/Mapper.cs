@@ -60,7 +60,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Executes asynchronously and uses the delegate to adapt the RowSet into the return value.
         /// </summary>
-        private Task<TResult> ExecuteAsyncAndAdapt<T, TResult>(Cql cql, Func<Statement, RowSet, TResult> adaptation)
+        private Task<TResult> ExecuteAsyncAndAdapt<TResult>(Cql cql, Func<Statement, RowSet, TResult> adaptation)
         {
             return _statementFactory
                 .GetStatementAsync(_session, cql)
@@ -86,7 +86,7 @@ namespace Cassandra.Mapping
         {
             //Use ExecuteAsyncAndAdapt with a delegate to handle the adaptation from RowSet to IEnumerable<T>
             _cqlGenerator.AddSelect<T>(cql);
-            return ExecuteAsyncAndAdapt<T, IEnumerable<T>>(cql, (s, rs) =>
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return rs.Select(mapper);
@@ -101,7 +101,7 @@ namespace Cassandra.Mapping
             }
             cql.AutoPage = true;
             _cqlGenerator.AddSelect<T>(cql);
-            return ExecuteAsyncAndAdapt<T, IPage<T>>(cql, (stmt, rs) =>
+            return ExecuteAsyncAndAdapt<IPage<T>>(cql, (stmt, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return new Page<T>(rs.Select(mapper), stmt.PagingState, rs.PagingState);
@@ -126,7 +126,7 @@ namespace Cassandra.Mapping
         public Task<T> SingleAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
-            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return mapper(rs.Single());
@@ -141,7 +141,7 @@ namespace Cassandra.Mapping
         public Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
-            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
             {
                 var row = rs.SingleOrDefault();
                 // Map to return type
@@ -162,7 +162,7 @@ namespace Cassandra.Mapping
         public Task<T> FirstAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
-            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
             {
                 var row = rs.First();
                 // Map to return type
@@ -179,7 +179,7 @@ namespace Cassandra.Mapping
         public Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
-            return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
             {
                 var row = rs.FirstOrDefault();
                 // Map to return type
@@ -208,7 +208,7 @@ namespace Cassandra.Mapping
             var cql = _cqlGenerator.GenerateInsert<T>(true);
             var getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             var values = getBindValues(poco);
-            return ExecuteAsyncAndAdapt<T, AppliedInfo<T>>(
+            return ExecuteAsyncAndAdapt(
                 Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None), 
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
         }
@@ -232,6 +232,17 @@ namespace Cassandra.Mapping
         {
             _cqlGenerator.PrependUpdate<T>(cql);
             return ExecuteAsync(cql);
+        }
+
+        public Task<AppliedInfo<T>> UpdateIfAsync<T>(string cql, params object[] args)
+        {
+            return UpdateIfAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public Task<AppliedInfo<T>> UpdateIfAsync<T>(Cql cql)
+        {
+            _cqlGenerator.PrependUpdate<T>(cql);
+            return ExecuteAsyncAndAdapt(cql, (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql.Statement, rs));
         }
 
         public Task DeleteAsync<T>(T poco, CqlQueryOptions queryOptions = null)
@@ -424,6 +435,17 @@ namespace Cassandra.Mapping
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(UpdateAsync(cql), _queryAbortTimeout);
+        }
+
+        public AppliedInfo<T> UpdateIf<T>(string cql, params object[] args)
+        {
+            return UpdateIf<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+        
+        public AppliedInfo<T> UpdateIf<T>(Cql cql)
+        {
+            //Wait async method to be completed or throw
+            return TaskHelper.WaitToComplete(UpdateIfAsync<T>(cql), _queryAbortTimeout);
         }
 
         public void Delete<T>(T poco, CqlQueryOptions queryOptions = null)
