@@ -50,6 +50,7 @@ namespace Cassandra.Tests.Mapping
                 rs = new RowSet();
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(() => TaskHelper.ToTask(rs))

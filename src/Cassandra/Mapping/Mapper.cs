@@ -314,6 +314,27 @@ namespace Cassandra.Mapping
             return _mapperFactory.TypeConverter.ConvertCqlArgument<TValue, TDatabase>(value);
         }
 
+        public AppliedInfo<T> DeleteIf<T>(string cql, params object[] args)
+        {
+            return DeleteIf<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public AppliedInfo<T> DeleteIf<T>(Cql cql)
+        {
+            return TaskHelper.WaitToComplete(DeleteIfAsync<T>(cql), _queryAbortTimeout);
+        }
+
+        public Task<AppliedInfo<T>> DeleteIfAsync<T>(string cql, params object[] args)
+        {
+            return DeleteIfAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
+        }
+
+        public Task<AppliedInfo<T>> DeleteIfAsync<T>(Cql cql)
+        {
+            _cqlGenerator.PrependDelete<T>(cql);
+            return ExecuteAsyncAndAdapt(cql, (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql.Statement, rs));
+        }
+
         public IEnumerable<T> Fetch<T>(CqlQueryOptions queryOptions = null)
         {
             // Just let the SQL be auto-generated
@@ -434,7 +455,7 @@ namespace Cassandra.Mapping
         public void Update<T>(Cql cql)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(UpdateAsync(cql), _queryAbortTimeout);
+            TaskHelper.WaitToComplete(UpdateAsync<T>(cql), _queryAbortTimeout);
         }
 
         public AppliedInfo<T> UpdateIf<T>(string cql, params object[] args)
@@ -462,7 +483,7 @@ namespace Cassandra.Mapping
         public void Delete<T>(Cql cql)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(DeleteAsync(cql), _queryAbortTimeout);
+            TaskHelper.WaitToComplete(DeleteAsync<T>(cql), _queryAbortTimeout);
         }
 
         public void Execute(string cql, params object[] args)

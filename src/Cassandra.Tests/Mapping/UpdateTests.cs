@@ -161,7 +161,17 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
-        public void UpdateInfo_AppliedInfo_True_Test()
+        public void Update_Cql_Prepends()
+        {
+            string query = null;
+            var session = GetSession((q, args) => query = q, new RowSet());
+            var mapper = new Mapper(session, new MappingConfiguration());
+            mapper.Update<Song>(Cql.New("SET title = ? WHERE id = ?", "White Room"));
+            Assert.AreEqual("UPDATE Song SET title = ? WHERE id = ?", query);
+        }
+
+        [Test]
+        public void UpdateIf_AppliedInfo_True_Test()
         {
             string query = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
@@ -184,7 +194,7 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
-        public void UpdateInfo_AppliedInfo_False_Test()
+        public void UpdateIf_AppliedInfo_False_Test()
         {
             var id = Guid.NewGuid();
             string query = null;

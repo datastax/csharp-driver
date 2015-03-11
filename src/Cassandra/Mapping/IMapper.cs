@@ -38,9 +38,45 @@ namespace Cassandra.Mapping
         //  conditional queries are not supported in batches
 
         /// <summary>
+        /// Deletes from the table for the POCO type specified (T) using the CQL string specified and query parameters specified.  
+        /// Prepends "DELETE FROM tablename " to the CQL statement you specify, getting the tablename appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> DeleteIf<T>(string cql, params object[] args);
+
+        /// <summary>
+        /// Deletes from the table for the POCO type specified (T) using the Cql query specified.  
+        /// Prepends "DELETE FROM tablename " to the CQL statement you specify, getting the tablename appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> DeleteIf<T>(Cql cql);
+
+        /// <summary>
+        /// Deletes from the table for the POCO type specified (T) using the CQL string specified and query parameters specified.  
+        /// Prepends "DELETE FROM tablename " to the CQL statement you specify, getting the tablename appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        Task<AppliedInfo<T>> DeleteIfAsync<T>(string cql, params object[] args);
+
+        /// <summary>
+        /// Deletes from the table for the POCO type specified (T) using the Cql query specified.  
+        /// Prepends "DELETE FROM tablename " to the CQL statement you specify, getting the tablename appropriately from the POCO Type T.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        Task<AppliedInfo<T>> DeleteIfAsync<T>(Cql cql);
+
+        /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
         /// <para>
-        /// Returns a information whether it was applied or not. If it was not applied, it returns provides details of the existing values.
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
         /// </summary>
         Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null);
@@ -48,7 +84,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
         /// <para>
-        /// Returns a information whether it was applied or not. If it was not applied, it returns provides details of the existing values.
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
         /// </summary>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
