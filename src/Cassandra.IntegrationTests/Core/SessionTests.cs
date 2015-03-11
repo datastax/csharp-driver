@@ -348,5 +348,22 @@ namespace Cassandra.IntegrationTests.Core
                 }
             });
         }
+
+        [Test]
+        public void Session_Execute_Logging_With_Verbose_Level_Test()
+        {
+            var originalLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            Assert.DoesNotThrow(() =>
+            {
+                using (var localCluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build())
+                {
+                    var localSession = localCluster.Connect("system");
+                    var ps = localSession.Prepare("SELECT * FROM local");
+                    TestHelper.ParallelInvoke(() => localSession.Execute(ps.Bind()), 100);
+                }
+            });
+            Diagnostics.CassandraTraceSwitch.Level = originalLevel;
+        }
     }
 }

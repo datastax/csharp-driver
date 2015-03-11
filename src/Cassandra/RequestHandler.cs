@@ -197,6 +197,7 @@ namespace Cassandra
         /// </summary>
         private void HandleException(Exception ex)
         {
+            _logger.Info("RequestHandler received exception {0}", ex.ToString());
             if (ex is PreparedQueryNotFoundException && (_statement is BoundStatement || _statement is BatchStatement))
             {
                 PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
@@ -397,6 +398,7 @@ namespace Cassandra
                 //Set the new consistency to be used for the new request
                 ((ICqlRequest)_request).Consistency = consistency.Value;
             }
+            _logger.Info("Retrying request: {0}", _request.GetType().Name);
             TrySend();
         }
 

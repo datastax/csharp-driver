@@ -142,7 +142,7 @@ namespace Cassandra
                     {
                         return;
                     }
-                    _logger.Info("Connection to host " + Address + " switching to keyspace " + value);
+                    _logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
                     var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
                     var request = new QueryRequest(ProtocolVersion, String.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
                     TaskHelper.WaitToComplete(this.Send(request), timeout);
@@ -259,11 +259,11 @@ namespace Cassandra
             lock (_cancelLock)
             {
                 _isCanceled = true;
+                _logger.Info("Canceling pending operations {0} and write queue {1}", _pendingOperations.Count, _writeQueue.Count);
                 if (socketError != null)
                 {
-                    _logger.Verbose("Socket error " + socketError.Value);   
+                    _logger.Verbose("The socket status received was {0}", socketError.Value);
                 }
-                _logger.Info("Canceling pending operations " + _pendingOperations.Count + " and write queue " + _writeQueue.Count);
                 if (_pendingOperations.Count == 0 && _writeQueue.Count == 0)
                 {
                     return;
@@ -513,7 +513,7 @@ namespace Cassandra
                 //Nothing finished
                 return false;
             }
-            _logger.Verbose("Read #" + state.Header.StreamId + " for Opcode " + state.Header.Opcode);
+            _logger.Verbose("Read #{0} for Opcode {1} from host {2}", state.Header.StreamId, state.Header.Opcode, Address);
             //Stop reference it as the current receiving operation
             _receivingOperation = null;
             if (state.Header.Opcode != EventResponse.OpCode)
@@ -639,7 +639,7 @@ namespace Cassandra
                 //Queue it up for later.
                 //When receiving the next complete message, we can process it.
                 _writeQueue.Enqueue(state);
-                _logger.Info("Enqueued: " + _writeQueue.Count + ", if this message is recurrent consider configuring more connections per host or lower the pressure");
+                _logger.Info("Enqueued: {0}, if this message is recurrent consider configuring more connections per host or lower the pressure", _writeQueue.Count);
                 Interlocked.Exchange(ref _canWriteNext, 1);
                 return;
             }
@@ -647,7 +647,7 @@ namespace Cassandra
             //Only 1 thread at a time can be here.
             try
             {
-                _logger.Verbose("Sending #" + streamId + " for " + state.Request.GetType().Name);
+                _logger.Verbose("Sending #{0} for {1} to host {2}", streamId, state.Request.GetType().Name, Address);
                 var frameStream = state.Request.GetFrame(streamId).Stream;
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
                 //We will not use the request, stop reference it.
