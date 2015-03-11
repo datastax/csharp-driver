@@ -8,9 +8,11 @@ using Cassandra.Tasks;
 namespace Cassandra.Mapping
 {
     /// <summary>
-    /// The default CQL client implementation which uses the DataStax driver ISession provided in the constructor
+    /// The default CQL client implementation which uses the DataStax driver <see cref="ISession"/> provided in the constructor
     /// for running queries against a Cassandra cluster.
     /// </summary>
+    /// <seealso cref="IMapper"/>
+    /// <inheritdoc />
     public class Mapper : IMapper
     {
         private readonly ISession _session;
@@ -60,7 +62,6 @@ namespace Cassandra.Mapping
         /// </summary>
         private Task<TResult> ExecuteAsyncAndAdapt<T, TResult>(Cql cql, Func<Statement, RowSet, TResult> adaptation)
         {
-            _cqlGenerator.AddSelect<T>(cql);
             return _statementFactory
                 .GetStatementAsync(_session, cql)
                 .Continue(t1 =>
@@ -84,6 +85,7 @@ namespace Cassandra.Mapping
         public Task<IEnumerable<T>> FetchAsync<T>(Cql cql)
         {
             //Use ExecuteAsyncAndAdapt with a delegate to handle the adaptation from RowSet to IEnumerable<T>
+            _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<T, IEnumerable<T>>(cql, (s, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
@@ -98,6 +100,7 @@ namespace Cassandra.Mapping
                 throw new ArgumentNullException("cql");
             }
             cql.AutoPage = true;
+            _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<T, IPage<T>>(cql, (stmt, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
@@ -122,6 +125,7 @@ namespace Cassandra.Mapping
 
         public Task<T> SingleAsync<T>(Cql cql)
         {
+            _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
@@ -136,6 +140,7 @@ namespace Cassandra.Mapping
 
         public Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
+            _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
             {
                 var row = rs.SingleOrDefault();
@@ -156,6 +161,7 @@ namespace Cassandra.Mapping
 
         public Task<T> FirstAsync<T>(Cql cql)
         {
+            _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
             {
                 var row = rs.First();
@@ -172,7 +178,7 @@ namespace Cassandra.Mapping
 
         public Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
-
+            _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<T, T>(cql, (s, rs) =>
             {
                 var row = rs.FirstOrDefault();
@@ -194,6 +200,17 @@ namespace Cassandra.Mapping
             object[] values = getBindValues(poco);
 
             return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
+        }
+
+        public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null)
+        {
+            // Get statement and bind values from POCO
+            var cql = _cqlGenerator.GenerateInsert<T>(true);
+            var getBindValues = _mapperFactory.GetValueCollector<T>(cql);
+            var values = getBindValues(poco);
+            return ExecuteAsyncAndAdapt<T, AppliedInfo<T>>(
+                Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None), 
+                (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
         }
 
         public Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null)
@@ -385,6 +402,11 @@ namespace Cassandra.Mapping
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(InsertAsync(poco, queryOptions), _queryAbortTimeout);
+        }
+
+        public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
+        {
+            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, queryOptions), _queryAbortTimeout);
         }
 
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)

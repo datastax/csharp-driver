@@ -48,31 +48,9 @@ namespace Cassandra.Data.Linq
                     this.CopyQueryPropertiesTo(stmt);
                     return session
                         .ExecuteAsync(stmt)
-                        .Continue(t => AdaptRowSet(cql, t.Result));
+                        .Continue(t => AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, t.Result));
                 })
                 .Unwrap();
-        }
-
-        /// <summary>
-        /// Adapts a LWT RowSet to an AppliedInfo
-        /// </summary>
-        private AppliedInfo<TEntity> AdaptRowSet(string cql, RowSet rs)
-        {
-            var row = rs.FirstOrDefault();
-            const string appliedColumn = "[applied]";
-            if (row == null || row.GetColumn(appliedColumn) == null || row.GetValue<bool>(appliedColumn))
-            {
-                //The change was applied correctly
-                return new AppliedInfo<TEntity>(true);
-            }
-            if (rs.Columns.Length == 1)
-            {
-                //There isn't more information on why it was not applied
-                return new AppliedInfo<TEntity>(false);
-            }
-            //It was not applied, map the information returned
-            var mapper = _mapperFactory.GetMapper<TEntity>(cql, rs);
-            return new AppliedInfo<TEntity>(mapper(row));
         }
 
         /// <summary>

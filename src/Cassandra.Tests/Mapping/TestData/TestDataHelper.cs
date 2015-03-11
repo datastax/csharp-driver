@@ -68,7 +68,17 @@ namespace Cassandra.Tests.Mapping.TestData
             for (var i = 0; i < columnNames.Length; i++)
             {
                 IColumnInfo typeInfo;
-                var typeCode = TypeCodec.GetColumnTypeCodeInfo(typeof(T), out typeInfo);
+                var type = typeof (T);
+                if (type == typeof (Object))
+                {
+                    //Try to guess by value
+                    if (genericValues[i] == null)
+                    {
+                        throw new Exception("Test data could not be generated, value at index " + i + " could not be encoded");
+                    }
+                    type = genericValues[i].GetType();
+                }
+                var typeCode = TypeCodec.GetColumnTypeCodeInfo(type, out typeInfo);
                 rs.Columns[i] =
                     new CqlColumn { Name = columnNames[i], TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = i };
             }

@@ -95,5 +95,13 @@ namespace Cassandra.Mapping
         {
             return _mapperFactory.TypeConverter.ConvertCqlArgument<TValue, TDatabase>(value);
         }
+
+        /// <summary>
+        /// Not supported for batches
+        /// </summary>
+        public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
+        {
+            throw new NotSupportedException("It is not possible to include lightweight transactions in batches");
+        }
     }
 }

@@ -11,6 +11,12 @@
         void Insert<T>(T poco, CqlQueryOptions queryOptions = null);
 
         /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
+        /// It returns information regarding it was applied or not.
+        /// </summary>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
         /// Updates the POCO specified in Cassandra.
         /// </summary>
         void Update<T>(T poco, CqlQueryOptions queryOptions = null);

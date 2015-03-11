@@ -142,7 +142,7 @@ namespace Cassandra.Tests
             return dateTime.Value.ToMillisecondPrecision();
         }
 
-        public static Task<T> DelayedTask<T>(T result, int dueTimeMs)
+        public static Task<T> DelayedTask<T>(T result, int dueTimeMs = 50)
         {
             var tcs = new TaskCompletionSource<T>();
             var timer = new Timer(delegate(object self)
