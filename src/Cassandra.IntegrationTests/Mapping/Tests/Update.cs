@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
@@ -104,6 +106,29 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
             Assert.IsTrue(Movie.ListContains(actualMovieList, expectedMovie));
             Movie.AssertListContains(actualMovieList, movieToUpdate);
+        }
+
+        [Test]
+        public void UpdateIf_Applied_Test()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_update_if"));
+            //Use linq to create the table
+            new Table<Song>(_session, config).Create();
+            var mapper = new Mapper(_session, config);
+            var song = new Song { Id = Guid.NewGuid(), Artist = "Cream", Title = "Crossroad", ReleaseDate = DateTimeOffset.Parse("1970/1/1")};
+            //It is the first song there, it should apply it
+            mapper.Insert(song);
+            const string query = "SET artist = ?, title = ? WHERE id = ? IF releasedate = ?";
+            var appliedInfo = mapper.UpdateIf<Song>(Cql.New(query, song.Artist, "Crossroad2", song.Id, song.ReleaseDate));
+            Assert.True(appliedInfo.Applied);
+            Assert.Null(appliedInfo.Existing);
+            //Following times, it should not apply the mutation as the condition is not valid
+            appliedInfo = mapper.UpdateIf<Song>(Cql.New(query, song.Artist, "Crossroad3", song.Id, DateTimeOffset.Now));
+            Assert.False(appliedInfo.Applied);
+            Assert.NotNull(appliedInfo.Existing);
+            Assert.AreEqual(song.ReleaseDate, appliedInfo.Existing.ReleaseDate);
+            Assert.AreEqual("Crossroad2", mapper.First<Song>("WHERE id = ?", song.Id).Title);
         }
 
         /// <summary>

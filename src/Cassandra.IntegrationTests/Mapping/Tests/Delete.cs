@@ -5,6 +5,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
@@ -175,6 +176,27 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Error expected
             var ex = Assert.Throws<InvalidQueryException>(() => _mapper.Delete(movieToDelete));
             Assert.AreEqual("Invalid null value for partition key part moviemaker", ex.Message);
+        }
+
+        [Test]
+        public void DeleteIf_Applied_Test()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_delete_if"));
+            //Use linq to create the table
+            new Table<Song>(_session, config).Create();
+            var mapper = new Mapper(_session, config);
+            var song = new Song { Id = Guid.NewGuid(), Artist = "Cream", Title = "Crossroad", ReleaseDate = DateTimeOffset.Parse("1970/1/1") };
+            mapper.Insert(song);
+            //It should not apply it as the condition will NOT be satisfied
+            var appliedInfo = mapper.DeleteIf<Song>(Cql.New("WHERE id = ? IF title = ?", song.Id, "Crossroad2"));
+            Assert.False(appliedInfo.Applied);
+            Assert.NotNull(appliedInfo.Existing);
+            Assert.AreEqual("Crossroad", appliedInfo.Existing.Title);
+            //It should apply it as the condition will be satisfied
+            appliedInfo = mapper.DeleteIf<Song>(Cql.New("WHERE id = ? IF title = ?", song.Id, song.Title));
+            Assert.True(appliedInfo.Applied);
+            Assert.Null(appliedInfo.Existing);
         }
 
         public class ExtMovie
