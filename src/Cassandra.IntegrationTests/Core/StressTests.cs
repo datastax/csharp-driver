@@ -24,6 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -42,7 +43,7 @@ namespace Cassandra.IntegrationTests.Core
         /// Insert and select records in parallel them using Session.Execute sync methods.
         /// </summary>
         [Test]
-        public void ParallelInsertAndSelectSync()
+        public void Parallel_Insert_And_Select_Sync()
         {
             var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
                         ITestCluster testCluster = TestClusterManager.GetTestCluster(3);
@@ -105,7 +106,7 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         [Test]
         [TestCassandraVersion(2, 0), Category(TestCategories.CcmOnly)]
-        public void ParallelInsertAndSelectSyncWithNodesFailing()
+        public void Parallel_Insert_And_Select_Sync_With_Nodes_Failing()
         {
             var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
@@ -164,6 +165,49 @@ namespace Cassandra.IntegrationTests.Core
             parallelOptions.MaxDegreeOfParallelism = 1000;
             Parallel.Invoke(parallelOptions, actions.ToArray());
             Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
+        }
+
+        /// <summary>
+        /// Creates thousands of Session instances and checks memory consumption before and after Dispose and dereferencing
+        /// </summary>
+        [Test]
+        public void Memory_Consumption_After_Cluster_Dispose()
+        {
+            var testCluster = TestClusterManager.GetTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
+            //Only warning as tracing through console slows it down.
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
+            var start = GC.GetTotalMemory(false);
+            long diff = 0;
+            Trace.TraceInformation("--Initial memory: {0}", start / 1024);
+            Action multipleConnect = () =>
+            {
+                var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+                for (var i = 0; i < 200; i++)
+                {
+                    var session = cluster.Connect();
+                    TestHelper.ParallelInvoke(() => session.Execute("select * from system.local"), 20);
+                }
+                Trace.TraceInformation("--Before disposing: {0}", GC.GetTotalMemory(false) / 1024);
+                cluster.Dispose();
+                Trace.TraceInformation("--After disposing: {0}", GC.GetTotalMemory(false) / 1024);
+            };
+            multipleConnect();
+            var handle = new AutoResetEvent(false);
+            //Collect all generations
+            GC.Collect();
+            //Wait 5 seconds for all the connections resources to be freed
+            var timer = new Timer(s =>
+            {
+                GC.Collect();
+                handle.Set();
+                diff = GC.GetTotalMemory(false) - start;
+                Trace.TraceInformation("--End, diff memory: {0}", diff / 1024);
+            });
+            timer.Change(5000, Timeout.Infinite);
+            handle.WaitOne();
+            //the end memory usage can not be greater than double the start memory
+            //If there is a memory leak, it should be an order of magnitude greater...
+            Assert.Less(diff, start / 2);
         }
 
         public Action GetInsertAction(ISession session, object bindableStatement, ConsistencyLevel consistency, int rowsPerId)
