@@ -15,14 +15,10 @@
 //
 
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace Cassandra
 {
@@ -40,7 +36,7 @@ namespace Cassandra
         private SocketAsyncEventArgs _sendSocketEvent;
         private Stream _socketStream;
         private byte[] _receiveBuffer;
-        private volatile bool _isClosing = false;
+        private volatile bool _isClosing;
         
         public IPEndPoint IPEndPoint { get; protected set; }
 
@@ -70,9 +66,9 @@ namespace Cassandra
         /// </summary>
         public TcpSocket(IPEndPoint ipEndPoint, SocketOptions options, SSLOptions sslOptions)
         {
-            this.IPEndPoint = ipEndPoint;
-            this.Options = options;
-            this.SSLOptions = sslOptions;
+            IPEndPoint = ipEndPoint;
+            Options = options;
+            SSLOptions = sslOptions;
         }
 
         /// <summary>
@@ -81,12 +77,11 @@ namespace Cassandra
         public void Init()
         {
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket.SendTimeout = Options.ConnectTimeoutMillis;
             if (Options.KeepAlive != null)
             {
                 _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, Options.KeepAlive.Value);
             }
-
-            _socket.SendTimeout = Options.ConnectTimeoutMillis;
             if (Options.SoLinger != null)
             {
                 _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, new LingerOption(true, Options.SoLinger.Value));
@@ -97,7 +92,7 @@ namespace Cassandra
             }
             if (Options.SendBufferSize != null)
             {
-                _socket.ReceiveBufferSize = Options.SendBufferSize.Value;
+                _socket.SendBufferSize = Options.SendBufferSize.Value;
             }
             if (Options.TcpNoDelay != null)
             {
@@ -359,7 +354,7 @@ namespace Cassandra
             }
             else
             {
-                _socketStream.BeginWrite(buffer, 0, buffer.Length, new AsyncCallback(OnSendStreamCallback), null);
+                _socketStream.BeginWrite(buffer, 0, buffer.Length, OnSendStreamCallback, null);
             }
         }
 
