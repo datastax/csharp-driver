@@ -104,16 +104,18 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  The port to use to connect to the Cassandra host. If not set through this
+        ///  The port to use to connect to all Cassandra hosts. If not set through this
         ///  method, the default port (9042) will be used instead.
         /// </summary>
         /// <param name="port"> the port to set. </param>
-        /// 
         /// <returns>this Builder</returns>
         public Builder WithPort(int port)
         {
             _port = port;
-            _addresses.ForEach(addr => addr.Port = port);
+            foreach (var addr in _addresses)
+            {
+                addr.Port = port;
+            }
             return this;
         }
 
@@ -249,7 +251,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPAddress> addresses)
         {
-            AddContactPoints(addresses.Select(p => new IPEndPoint(p, ProtocolOptions.DefaultPort)));
+            AddContactPoints(addresses.Select(p => new IPEndPoint(p, _port)));
             return this;
         }
 

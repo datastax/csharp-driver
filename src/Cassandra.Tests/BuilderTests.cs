@@ -112,5 +112,36 @@ namespace Cassandra.Tests
         	cluster = builder.Build();
         	Assert.True( cluster.AllHosts().All(h => h.Address.Port == port));
         }
+
+        [Test]
+        public void AddContactPointsWithDefaultPort()
+        {
+            const string host1 = "127.0.0.1";
+            const string host2 = "127.0.0.2";
+
+            var builder = Cluster.Builder().AddContactPoint(host1);
+            var cluster = builder.Build();
+            Assert.AreEqual(ProtocolOptions.DefaultPort, cluster.AllHosts().Last().Address.Port);
+
+            builder = Cluster.Builder().AddContactPoints(host1, host2);
+            cluster = builder.Build();
+            Assert.True(cluster.AllHosts().All(h => h.Address.Port == ProtocolOptions.DefaultPort));
+        }
+
+        [Test]
+        public void AddContactPointsWithPortBeforeContactPoints()
+        {
+            const string host1 = "127.0.0.1";
+            const string host2 = "127.0.0.2";
+
+            const int port = 9999;
+            var builder = Cluster.Builder().WithPort(port).AddContactPoint(host1);
+            var cluster = builder.Build();
+            Assert.AreEqual(port, cluster.AllHosts().Last().Address.Port);
+
+            builder = Cluster.Builder().WithPort(port).AddContactPoints(host1, host2);
+            cluster = builder.Build();
+            Assert.True(cluster.AllHosts().All(h => h.Address.Port == port));
+        }
     }
 }
