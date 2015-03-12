@@ -239,5 +239,36 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(ConsistencyLevel.EachQuorum, consistency);
             Assert.AreEqual(ConsistencyLevel.Serial, serialConsistency);
         }
+
+        [Test]
+        public void Fetch_Maps_NullableDateTime_Test()
+        {
+            var rs = new RowSet
+            {
+                Columns = new[]
+                {
+                    new CqlColumn {Name = "id", TypeCode = ColumnTypeCode.Uuid, Type = typeof (Guid), Index = 0},
+                    new CqlColumn {Name = "title", TypeCode = ColumnTypeCode.Text, Type = typeof (string), Index = 1},
+                    new CqlColumn {Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp, Type = typeof (DateTimeOffset), Index = 2}
+                }
+            };
+            var values = new object[] { Guid.NewGuid(), "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0")}
+                .Select(v => TypeCodec.Encode(2, v));
+            var row = new Row(2, values.ToArray(), rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
+            rs.AddRow(row);
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(rs, 100))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            var song = mapper.Fetch<Song2>(new Cql("SELECT * FROM songs")).First();
+            Assert.AreEqual("Come Away with Me", song.Title);
+            Assert.AreEqual(DateTimeOffset.Parse("2002-01-01 +0").DateTime, song.ReleaseDate);
+        }
     }
 }
