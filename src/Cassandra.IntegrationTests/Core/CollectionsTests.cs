@@ -28,22 +28,15 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class CollectionsTests : TestGlobals
+    public class CollectionsTests : SharedClusterTest
     {
-        private ISession _session;
-        private ITestCluster _testCluster;
-        private string _contactPoint = DefaultInitialContactPoint;
-
-        [TestFixtureSetUp]
-        public void SetupFixture()
-        {
-            _testCluster = TestClusterManager.GetTestCluster(1);
-            _contactPoint = _testCluster.InitialContactPoint;
-            _session = _testCluster.Session;
-            _session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
-        }
-
         private const string AllTypesTableName = "all_types_table_collections";
+
+        protected override void TestFixtureSetUp()
+        {
+            base.TestFixtureSetUp();
+            Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
+        }
 
         [Test]
         public void DecodeCollectionTest()
@@ -56,8 +49,8 @@ namespace Cassandra.IntegrationTests.Core
                 "['one', 'two']", 
                 "{'set_1one', 'set_2two'}");
 
-            _session.Execute(insertQuery);
-            var row = _session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
+            Session.Execute(insertQuery);
+            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
             var expectedMap = new SortedDictionary<string, string> { { "fruit", "apple" }, { "band", "Beatles" } };
             var expectedList = new List<string> { "one", "two" };
             var expectedSet = new List<string> { "set_1one", "set_2two" };
@@ -94,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             var tableName = "table" + Guid.NewGuid().ToString("N");
             try
             {
-                QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
                     tweet_id uuid PRIMARY KEY,
                     some_collection {1}<{2}{3}>
                     );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
@@ -123,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             longQ.AppendLine("APPLY BATCH;");
-            QueryTools.ExecuteSyncNonQuery(_session, longQ.ToString(), "Inserting...");
+            QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
 
             if (CassandraCollectionType == "set")
             {
@@ -133,8 +126,8 @@ namespace Cassandra.IntegrationTests.Core
             else if (CassandraCollectionType == "list" && pendingMode == "prepending")
                 orderedAsInputed.Reverse();
 
-            var rs = _session.Execute(string.Format("SELECT * FROM {0};", tableName),
-                                            _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            var rs = Session.Execute(string.Format("SELECT * FROM {0};", tableName),
+                                            Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
             {
                 int ind = 0;
                 foreach (Row row in rs.GetRows())
@@ -145,9 +138,8 @@ namespace Cassandra.IntegrationTests.Core
                     }
             }
 
-            QueryTools.ExecuteSyncQuery(_session, string.Format("SELECT * FROM {0};", tableName),
-                                        _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            QueryTools.ExecuteSyncNonQuery(_session, string.Format("DROP TABLE {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
 
         public void InsertingSingleCollection(string cassandraCollectionType, Type typeOfDataToBeInputed, Type typeOfKeyForMap = null)
@@ -185,7 +177,7 @@ namespace Cassandra.IntegrationTests.Core
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
          tweet_id uuid PRIMARY KEY,
          some_collection {1}<{2}{3}>
          );", tableName, cassandraCollectionType, mapSyntax, cassandraDataTypeName));
@@ -197,7 +189,7 @@ namespace Cassandra.IntegrationTests.Core
             Guid tweet_id = Guid.NewGuid();
 
 
-            QueryTools.ExecuteSyncNonQuery(_session,
+            QueryTools.ExecuteSyncNonQuery(Session,
                                            string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES ({1}, {2});", tableName, tweet_id,
                                                          openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue) ? "" : " : ") +
                                                          randomValue + closeBracket));
@@ -218,11 +210,10 @@ namespace Cassandra.IntegrationTests.Core
                                    openBracket + randomKeyValue + (string.IsNullOrEmpty(randomKeyValue) ? "" : " : ") + val + closeBracket, tweet_id);
             }
             longQ.AppendLine("APPLY BATCH;");
-            QueryTools.ExecuteSyncNonQuery(_session, longQ.ToString(), "Inserting...");
+            QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
 
-            QueryTools.ExecuteSyncQuery(_session, string.Format("SELECT * FROM {0};", tableName),
-                                        _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            QueryTools.ExecuteSyncNonQuery(_session, string.Format("DROP TABLE {0};", tableName));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
 
         public void insertingSingleCollectionPrepared(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null)
@@ -275,7 +266,7 @@ namespace Cassandra.IntegrationTests.Core
             var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             try
             {
-                QueryTools.ExecuteSyncNonQuery(_session, string.Format(@"CREATE TABLE {0}(
+                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
                  tweet_id uuid PRIMARY KEY,
                  some_collection {1}<{2}{3}>
                  );", tableName, CassandraCollectionType, mapSyntax, cassandraDataTypeName));
@@ -285,12 +276,11 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             Guid tweet_id = Guid.NewGuid();
-            PreparedStatement prepInsert = QueryTools.PrepareQuery(_session,
+            PreparedStatement prepInsert = QueryTools.PrepareQuery(Session,
                                                                    string.Format("INSERT INTO {0}(tweet_id,some_collection) VALUES (?, ?);", tableName));
-            _session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
-            QueryTools.ExecuteSyncQuery(_session, string.Format("SELECT * FROM {0};", tableName),
-                                        _session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            QueryTools.ExecuteSyncNonQuery(_session, string.Format("DROP TABLE {0};", tableName));
+            Session.Execute(prepInsert.Bind(tweet_id, valueCollection).SetConsistencyLevel(ConsistencyLevel.Quorum));
+            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
 
         [Test]

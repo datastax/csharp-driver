@@ -18,24 +18,12 @@ using Cassandra.IntegrationTests.TestBase;
 using Moq;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class RequestHandlerTests : TestGlobals
+    public class RequestHandlerTests : SharedClusterTest
     {
-        private Session Session
-        {
-            get
-            {
-                // We will need the solid session for the internal methods.
-                return (Session)TestClusterManager.GetTestCluster(1).Session;
-            }
-        }
-
         [Test]
         public void RequestHandlerRetryDecisionTest()
         {
@@ -74,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             var statement = new SimpleStatement("SELECT WILL FAIL").SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             var request = Session.GetRequest(statement);
             //We will need a mock to fake the responses of Cassandra
-            var mock = new Moq.Mock<RequestHandler<RowSet>>(Session, request, statement)
+            var mock = new Mock<RequestHandler<RowSet>>(Session, request, statement)
             {
                 CallBase = true
             };

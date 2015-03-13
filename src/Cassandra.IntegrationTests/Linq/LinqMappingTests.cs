@@ -11,30 +11,23 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq
 {
     [Category("short")]
-    public class LinqMappingTests : TestGlobals
+    public class LinqMappingTests : SharedClusterTest
     {
         private const string TableName = "linqalltypestable";
-        ISession _session = null;
-
-        [SetUp]
-        public void SetupFixture()
-        {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-        }
 
         [Test]
         public void CreateTableTest()
         {
-            var table = _session.GetTable<AllTypesEntity>(TableName);
+            var table = Session.GetTable<AllTypesEntity>(TableName);
             table.CreateIfNotExists();
             Assert.DoesNotThrow(() =>
-                _session.Execute("SELECT * FROM " + TableName));
+                Session.Execute("SELECT * FROM " + TableName));
         }
 
         [Test]
         public void MappingAsyncTest()
         {
-            var table = _session.GetTable<AllTypesEntity>(TableName);
+            var table = Session.GetTable<AllTypesEntity>(TableName);
             const int length = 100;
             var tasks = new List<Task>(length);
             for (var i = 0; i < length; i++)

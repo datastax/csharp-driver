@@ -28,32 +28,29 @@ using System.Diagnostics;
 namespace Cassandra.IntegrationTests.Linq
 {
     [Category("short")]
-    public class LinqSessionTests : TestGlobals
+    public class LinqSessionTests : SharedClusterTest
     {
-        ISession _session = null;
-
-        [SetUp]
-        public void SetupFixture()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-            var table = _session.GetTable<NerdMovie>();
+            base.TestFixtureSetUp();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             //Insert some data
-            var ps = _session.Prepare("INSERT INTO \"nerdiStuff\" " +
+            var ps = Session.Prepare("INSERT INTO \"nerdiStuff\" " +
                             "(\"movieTile\", \"movieMaker\", \"diri\", \"mainGuy\") VALUES " +
                             "(?, ?, ?, ?)");
-            //dont mind the schema, it does not make much sense
-            _session.Execute(ps.Bind("title1", "maker1", "director1", "actor1"));
-            _session.Execute(ps.Bind("title2", "maker2", "director2", "actor2"));
-            _session.Execute(ps.Bind("title3", "maker3", "director3", null));
-            _session.Execute(ps.Bind("title4", "maker4", "director4a", null));
-            _session.Execute(ps.Bind("title4", "maker4", "director4b", null));
+            //don't mind the schema, it does not make much sense
+            Session.Execute(ps.Bind("title1", "maker1", "director1", "actor1"));
+            Session.Execute(ps.Bind("title2", "maker2", "director2", "actor2"));
+            Session.Execute(ps.Bind("title3", "maker3", "director3", null));
+            Session.Execute(ps.Bind("title4", "maker4", "director4a", null));
+            Session.Execute(ps.Bind("title4", "maker4", "director4b", null));
         }
 
         [Test]
         public void InsertAndSelectExecuteAsync()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             var movie = new NerdMovie
             {
@@ -102,7 +99,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void FirstOrDefaultTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             var first = table.FirstOrDefault(m => m.Director == "whatever").Execute();
             Assert.IsNull(first);
@@ -121,7 +118,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void FirstTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             //sync
             var first = table.First(m => m.Director == "director1" && m.Movie == "title1" && m.Maker == "maker1").Execute();
@@ -136,7 +133,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void CountTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             //global count
             var count = table.Count().Execute();
@@ -151,7 +148,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void TakeTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             //with where clause
             var results = table
@@ -175,7 +172,7 @@ namespace Cassandra.IntegrationTests.Linq
         [TestCassandraVersion(2, 0)]
         public void UpdateIfTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
             var movie = new NerdMovie()
             {
@@ -226,7 +223,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void OrderByTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
 
             var results = table
@@ -255,7 +252,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void CqlQueryExceptiosnTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             //No translation in CQL
             Assert.Throws<SyntaxError>(() => table.Where(m => m.Year is int).Execute());
             //No partition key in Query
@@ -271,7 +268,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void CqlQuerySingleElementExceptionsTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             //No translation in CQL
             Assert.Throws<SyntaxError>(() => table.First(m => m.Year is int).Execute());
             //No partition key in Query
@@ -284,7 +281,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void CqlScalarExceptionsTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             //No translation in CQL
             Assert.Throws<SyntaxError>(() => table.Where(m => m.Year is int).Count().Execute());
             //No partition key in Query
@@ -297,7 +294,7 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void CqlCommandExceptionsTest()
         {
-            var table = _session.GetTable<NerdMovie>();
+            var table = Session.GetTable<NerdMovie>();
             //No translation in CQL
             Assert.Throws<SyntaxError>(() => table
                 .Where(m => m.Year is int)
@@ -323,12 +320,12 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void LinqBatchInsertUpdateSelectTest()
         {
-            Table<NerdMovie> table = _session.GetTable<NerdMovie>();
+            Table<NerdMovie> table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
 
 
             {
-                Batch batch = _session.CreateBatch();
+                Batch batch = Session.CreateBatch();
 
                 var movies = new List<NerdMovie>
                 {
@@ -370,17 +367,16 @@ namespace Cassandra.IntegrationTests.Linq
                  .Update()
                  .Execute();
 
-            List<NerdMovie> all2 = table.Where(m => CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar")).Execute().ToList();
+            table.Where(m => CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar")).Execute();
             List<NerdMovie> all =
                 (from m in table where CqlToken.Create(m.Movie, m.Maker) > CqlToken.Create("Pulp Fiction", "Pixar") select m).Execute().ToList();
 
-            List<ExtMovie> nmT =
-                (from m in table
-                 where m.Director == "Quentin Tarantino"
-                 select new ExtMovie {TheDirector = m.MainActor, Size = all.Count, TheMaker = m.Director}).Execute().ToList();
-            var nm1 = (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Z = 10, Y = m.Year}).Execute().ToList();
+            (from m in table
+             where m.Director == "Quentin Tarantino"
+             select new ExtMovie {TheDirector = m.MainActor, Size = all.Count, TheMaker = m.Director}).Execute();
+            (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Z = 10, Y = m.Year}).Execute();
 
-            var nmX = (from m in table where m.Director == "Quentin Tarantino" select new {m.MainActor, Z = 10, m.Year}).Execute().ToList();
+            (from m in table where m.Director == "Quentin Tarantino" select new {m.MainActor, Z = 10, m.Year}).Execute();
 
             (from m in table
              where m.Movie.Equals("Pulp Fiction") && m.Maker.Equals("Pixar") && m.Director == "Quentin Tarantino"
@@ -391,21 +387,21 @@ namespace Cassandra.IntegrationTests.Linq
                  .Update()
                  .Execute();
 
-            var nm2 = table.Where(m => m.Director == "Quentin Tarantino").Select(m => new {MA = m.MainActor, Y = m.Year}).Execute().ToList();
+            table.Where(m => m.Director == "Quentin Tarantino").Select(m => new {MA = m.MainActor, Y = m.Year}).Execute();
 
             (from m in table where m.Movie == "Pulp Fiction" && m.Maker == "Pixar" && m.Director == "Quentin Tarantino" select m).Delete().Execute();
 
-            var nm3 = (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Y = m.Year}).Execute().ToList();
+            (from m in table where m.Director == "Quentin Tarantino" select new {MA = m.MainActor, Y = m.Year}).Execute();
         }
 
         [Test]
         public void LinqBatchInsertAndSelectTestTpl()
         {
-            Table<NerdMovie> table = _session.GetTable<NerdMovie>();
+            Table<NerdMovie> table = Session.GetTable<NerdMovie>();
             table.CreateIfNotExists();
 
             {
-                Batch batch = _session.CreateBatch();
+                Batch batch = Session.CreateBatch();
 
                 var movies = new List<NerdMovie>
                 {

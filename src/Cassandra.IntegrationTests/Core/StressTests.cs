@@ -110,8 +110,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
-            var builder = Cluster.Builder()
-                .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            Cluster.Builder()
+                   .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             CcmCluster ccmCluster = (CcmCluster)TestClusterManager.GetTestCluster(3);
             var session = ccmCluster.Session;
             string uniqueKsName = "keyspace_" + Randomm.RandomAlphaNum(10);
@@ -218,8 +218,8 @@ namespace Cassandra.IntegrationTests.Core
                 var id = Guid.NewGuid();
                 for (var i = 0; i < rowsPerId; i++)
                 {
-                    var paramsArray = new object[] { id, DateTime.Now, DateTime.Now.ToString() };
-                    IStatement statement = null;
+                    var paramsArray = new object[] { id, DateTime.Now, DateTime.Now.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+                    IStatement statement;
                     if (bindableStatement is SimpleStatement)
                     {
                         statement = ((SimpleStatement)bindableStatement).Bind(paramsArray).SetConsistencyLevel(consistency);
@@ -245,7 +245,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 for (var i = 0; i < executeLength; i++)
                 {
-                    var rs = session.Execute(new SimpleStatement(query).SetPageSize(500).SetConsistencyLevel(consistency).SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
+                    session.Execute(new SimpleStatement(query).SetPageSize(500).SetConsistencyLevel(consistency).SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
                     //Count will iterate through the result set and it will likely to page results
                     //Assert.True(rs.Count() > 0);
                 }

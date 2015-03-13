@@ -135,7 +135,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                var cluster = Cluster.Builder().AddContactPoint(ipAddress).Build();
+                Cluster.Builder().AddContactPoint(ipAddress).Build();
             }
             catch (NoHostAvailableException e)
             {

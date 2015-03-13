@@ -58,7 +58,8 @@ namespace Cassandra.IntegrationTests.FoundBugs
             batch.Append(table.Insert(order));
             batch.Execute();
 
-            List<SalesOrder> lst = (from x in table select x).Execute().ToList();
+            // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+            (from x in table select x).Execute().Count();
 
             Trace.TraceInformation("done!");
         }

@@ -20,7 +20,6 @@ namespace Cassandra.Tests
         {
             var rp = new ConstantReconnectionPolicy(1000);
             var metadata = new Metadata(rp);
-            var config = new Configuration();
             var cc = new ControlConnection(Mock.Of<ICluster>(), metadata);
             cc.Host = new Host(IPAddress.Parse("127.0.0.1"), rp);
             var row = TestHelper.CreateRow(new Dictionary<string, object>
@@ -38,7 +37,6 @@ namespace Cassandra.Tests
         {
             var rp = new ConstantReconnectionPolicy(1000);
             var metadata = new Metadata(rp);
-            var config = new Configuration();
             var cc = new ControlConnection(Mock.Of<ICluster>(), metadata);
             cc.Host = new Host(IPAddress.Parse("127.0.0.1"), rp);
             metadata.AddHost(cc.Host.Address);

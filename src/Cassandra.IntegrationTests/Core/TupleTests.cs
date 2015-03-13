@@ -25,36 +25,29 @@ namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
     [TestCassandraVersion(2, 1)]
-    public class TupleTests : TestGlobals
+    public class TupleTests : SharedClusterTest
     {
-        ISession _session = null;
-        string _tableName = "users_tuples";
+        private const string TableName = "users_tuples";
 
-        [SetUp]
-        public void TestSetup()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-        }
-
-        [TestFixtureSetUp]
-        public void FixtureSetup()
-        {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-            if (CassandraVersion >= new Version(2, 1))
+            base.TestFixtureSetUp();
+            if (CassandraVersion < new Version(2, 1))
             {
-                string cqlTable1 = "CREATE TABLE " + _tableName + " (id int PRIMARY KEY, phone frozen<tuple<text, text, int>>, achievements list<frozen<tuple<text,int>>>)";
-                _session.Execute(cqlTable1);
+                return;
             }
+            var cqlTable1 = "CREATE TABLE " + TableName + " (id int PRIMARY KEY, phone frozen<tuple<text, text, int>>, achievements list<frozen<tuple<text,int>>>)";
+            Session.Execute(cqlTable1);
         }
 
         [Test]
         public void DecodeTupleValuesSingleTest()
         {
-            _session.Execute(
-                "INSERT INTO " + _tableName + " (id, phone) values " +
+            Session.Execute(
+                "INSERT INTO " + TableName + " (id, phone) values " +
                 "(1, " +
                 "('home', '1234556', 1))");
-            var row = _session.Execute("SELECT * FROM " + _tableName + " WHERE id = 1").First();
+            var row = Session.Execute("SELECT * FROM " + TableName + " WHERE id = 1").First();
             var phone1 = row.GetValue<Tuple<string, string, int>>("phone");
             var phone2 = row.GetValue<Tuple<string, string, int>>("phone");
             Assert.IsNotNull(phone1);
@@ -67,22 +60,22 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void DecodeTupleNullValuesSingleTest()
         {
-            _session.Execute(
-                "INSERT INTO " + _tableName + " (id, phone) values " +
+            Session.Execute(
+                "INSERT INTO " + TableName + " (id, phone) values " +
                 "(11, " +
                 "('MOBILE'))");
-            var row = _session.Execute("SELECT * FROM " + _tableName + " WHERE id = 11").First();
+            var row = Session.Execute("SELECT * FROM " + TableName + " WHERE id = 11").First();
             var phone = row.GetValue<Tuple<string, string, int>>("phone");
             Assert.IsNotNull(phone);
             Assert.AreEqual("MOBILE", phone.Item1);
             Assert.AreEqual(null, phone.Item2);
             Assert.AreEqual(0, phone.Item3);
 
-            _session.Execute(
-                "INSERT INTO " + _tableName + " (id, phone) values " +
+            Session.Execute(
+                "INSERT INTO " + TableName + " (id, phone) values " +
                 "(12, " +
                 "(null, '1222345'))");
-            row = _session.Execute("SELECT * FROM " + _tableName + " WHERE id = 12").First();
+            row = Session.Execute("SELECT * FROM " + TableName + " WHERE id = 12").First();
             phone = row.GetValue<Tuple<string, string, int>>("phone");
             Assert.IsNotNull(phone);
             Assert.AreEqual(null, phone.Item1);
@@ -93,11 +86,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void DecodeTupleAsNestedTest()
         {
-            _session.Execute(
-                "INSERT INTO " + _tableName + " (id, achievements) values " +
+            Session.Execute(
+                "INSERT INTO " + TableName + " (id, achievements) values " +
                 "(21, " +
                 "[('Tenacious', 100), ('Altruist', 12)])");
-            var row = _session.Execute("SELECT * FROM " + _tableName + " WHERE id = 21").First();
+            var row = Session.Execute("SELECT * FROM " + TableName + " WHERE id = 21").First();
 
             var achievements = row.GetValue<List<Tuple<string, int>>>("achievements");
             Assert.IsNotNull(achievements);
@@ -112,9 +105,9 @@ namespace Cassandra.IntegrationTests.Core
                 new Tuple<string, int>(null, 100),
                 new Tuple<string, int>(@"¯\_(ツ)_/¯", 150)
             };
-            var insert = new SimpleStatement("INSERT INTO " + _tableName + " (id, achievements) values (?, ?)");
-            _session.Execute(insert.Bind(31, achievements));
-            var row = _session.Execute("SELECT * FROM " + _tableName + " WHERE id = 31").First();
+            var insert = new SimpleStatement("INSERT INTO " + TableName + " (id, achievements) values (?, ?)");
+            Session.Execute(insert.Bind(31, achievements));
+            var row = Session.Execute("SELECT * FROM " + TableName + " WHERE id = 31").First();
 
             Assert.AreEqual(achievements, row.GetValue<List<Tuple<string, int>>>("achievements"));
         }

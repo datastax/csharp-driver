@@ -61,6 +61,7 @@
     </Compile>
     <Compile Include="Core\CollectionsNestedTests.cs" />
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
+    <Compile Include="SharedClusterTest.cs" />
     <Compile Include="TestBase\TestCategories.cs" />
     <Compile Include="Core\ConnectionTests.cs" />
     <Compile Include="Core\ConsistencyTests.cs" />

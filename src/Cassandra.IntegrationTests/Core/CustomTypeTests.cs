@@ -22,35 +22,8 @@ using System.Collections.Generic;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class CustomTypeTests : TestGlobals
+    public class CustomTypeTests : SharedClusterTest
     {
-        ISession _session = null;
-
-        [SetUp]
-        public void SetupFixture()
-        {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-        }
-
-        /** Test for paging
-            *
-            * The simplePagingTest inserts 100 rows into a Cassandra cluster. It then limits the fetch size to be
-            * 5 and fetches a page of results, asserting that the results are not fully fetched. Finally, it fetches
-            * the remaining pages in batches of 5, asserting along the way that the inserted values match the expected.
-            *
-            *
-            * @expected_errors UnsupportedFeatureException If run on cassandra version < 2.0 (protocol v1)
-            * @throws Throwable
-            * @since 2.0
-            *
-            * @expected_result The driver should be able to fetch pages with specified fetchSize, and know
-            * when the result is fully fetched.
-            *
-            * @test_assumptions
-            *   - A running Cassandra cluster > 2.0
-            *   - Datastax java-driver > 2.0
-            *
-        */
         [Test]
         public void DynamicCompositeTypeTest()
         {
@@ -62,13 +35,13 @@ namespace Cassandra.IntegrationTests.Core
                               + "    PRIMARY KEY (k, c)"
                               + ") WITH COMPACT STORAGE";
 
-            _session.WaitForSchemaAgreement(_session.Execute(tabledef));
+            Session.WaitForSchemaAgreement(Session.Execute(tabledef));
 
-            _session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 's@foo:i@32', 1)");
-            _session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 'i@42', 2)");
-            _session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 'i@12:i@3', 3)");
+            Session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 's@foo:i@32', 1)");
+            Session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 'i@42', 2)");
+            Session.Execute("INSERT INTO " + uniqueTableName + "(k, c, v) VALUES (0, 'i@12:i@3', 3)");
 
-            var rs = _session.Execute("SELECT * FROM " + uniqueTableName);
+            var rs = Session.Execute("SELECT * FROM " + uniqueTableName);
             {
                 IEnumerator<Row> ren = rs.GetRows().GetEnumerator();
                 ren.MoveNext();

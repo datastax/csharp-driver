@@ -27,7 +27,7 @@ using System.Linq;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("long")]
     public class ConsistencyTests : TestGlobals
     {
         private ISession _session;

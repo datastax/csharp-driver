@@ -303,7 +303,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithDefaultKeyspace("DOES_NOT_EXISTS_" + Randomm.RandomAlphaNum(12))
                 .Build();
 
-            var ex = Assert.Throws<InvalidQueryException>(() => cluster.Connect());
+            Assert.Throws<InvalidQueryException>(() => cluster.Connect());
             Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES"));
         }
 
@@ -316,7 +316,7 @@ namespace Cassandra.IntegrationTests.Core
                 .AddContactPoint(testCluster.InitialContactPoint)
                 .Build();
 
-            var session = testCluster.Cluster.Connect("system");
+            testCluster.Cluster.Connect("system");
             StringAssert.StartsWith(testCluster.InitialContactPoint, cluster.AllHosts().First().Address.ToString());
         }
 

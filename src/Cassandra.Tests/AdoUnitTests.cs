@@ -35,7 +35,6 @@ namespace Cassandra.Tests
         {
             var connection = new CqlConnection();
             var sessionMock = new Mock<ISession>();
-            var session = sessionMock.Object;
             var rowset = new RowSet();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>(), It.IsAny<ConsistencyLevel>()))
