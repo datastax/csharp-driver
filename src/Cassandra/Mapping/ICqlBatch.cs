@@ -22,5 +22,10 @@ namespace Cassandra.Mapping
         /// <param name="value">The value to convert.</param>
         /// <returns>The converted value.</returns>
         TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra if not exists.
+        /// </summary>
+        void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
     }
 }

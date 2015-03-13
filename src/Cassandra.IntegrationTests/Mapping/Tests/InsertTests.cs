@@ -32,7 +32,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private ISession _session;
         private ICluster _cluster;
         private string _uniqueKsName;
-        private readonly Logger _logger = new Logger(typeof(CreateTable));
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -118,7 +117,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mapper = new Mapper(_session, mappingConfig);
 
             // Insert the data
-            var consistencyLevels = new ConsistencyLevel[]
+            var consistencyLevels = new []
             {
                 ConsistencyLevel.All,
                 ConsistencyLevel.Any,
@@ -187,7 +186,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
 
             // Insert the data
-            var consistencyLevels = new ConsistencyLevel[]
+            var consistencyLevels = new []
             {
                 ConsistencyLevel.Three,
                 ConsistencyLevel.Two
@@ -210,7 +209,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Setup
             var mappingConfig =
                 new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
-            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
             // Insert the data
             lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
             var mapper = new Mapper(_session, mappingConfig);
@@ -227,7 +225,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Setup
             var mappingConfig =
                 new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
-            var table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
 
             // Insert the data
             lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
@@ -275,7 +272,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey1\" = '" + instance.PartitionKey1 + "'"));
             Assert.AreEqual("Partition key part PartitionKey2 must be restricted since preceding part is", err.Message);
 
-            err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey2\" = '" + instance.PartitionKey2 + "'"));
+            Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey2\" = '" + instance.PartitionKey2 + "'"));
         }
 
         /// <summary>

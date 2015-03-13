@@ -124,5 +124,21 @@ namespace Cassandra.Mapping
         /// </para>
         /// </summary>
         Task<AppliedInfo<T>> UpdateIfAsync<T>(string cql, params object[] args);
+
+        /// <summary>
+        /// Executes a batch that contains a Lightweight transaction. 
+        /// </summary>
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch);
+
+        /// <summary>
+        /// Executes a batch that contains a Lightweight transaction. 
+        /// </summary>
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch);
     }
 }

@@ -496,5 +496,26 @@ namespace Cassandra.Mapping
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(ExecuteAsync(cql), _queryAbortTimeout);
         }
+
+        public Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch)
+        {
+            if (batch == null) throw new ArgumentNullException("batch");
+            return _statementFactory
+                .GetBatchStatementAsync(_session, batch.Statements)
+                .Continue(t1 =>
+                {
+                    //Use the concatenation of cql strings as hash for the mapper
+                    var cqlString = String.Join(";", batch.Statements.Select(s => s.Statement));
+                    var batchStatement = t1.Result;
+                    return _session.ExecuteAsync(batchStatement)
+                        .Continue(t2 => AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, t2.Result));
+                })
+                .Unwrap();
+        }
+
+        public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch)
+        {
+            return TaskHelper.WaitToComplete(ExecuteConditionalAsync<T>(batch), _queryAbortTimeout);
+        }
     }
 }
