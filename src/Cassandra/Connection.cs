@@ -644,26 +644,29 @@ namespace Cassandra
             }
             //We have a valid stream id
             //Only 1 thread at a time can be here.
+            _logger.Verbose("Sending #" + streamId + " for " + state.Request.GetType().Name);
+            _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
             try
             {
-                _logger.Verbose("Sending #" + streamId + " for " + state.Request.GetType().Name);
                 var frameStream = state.Request.GetFrame(streamId).Stream;
-                _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-                //We will not use the request, stop reference it.
+                //We will not use the request any more, stop reference it.
                 state.Request = null;
                 //Start sending it
                 _tcpSocket.Write(frameStream);
             }
             catch (Exception ex)
             {
+                //There was an error while serializing or begin sending
                 _logger.Error(ex);
-                //The request was not written
+                //The request was not written, clear it from pending operations
                 _pendingOperations.TryRemove(streamId, out state);
+                //Leave the stream id
                 _freeOperations.Push(streamId);
-                //We are done with it
+                //Callback with the Exception
                 state.InvokeCallback(ex);
             }
         }
+
         /// <summary>
         /// Try to write the next item in the write queue. Thread safe.
         /// </summary>
