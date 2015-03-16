@@ -85,5 +85,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// This is relevant for CCM, all other tools should be a no-op
         /// </summary>
         void SwitchToThisCluster();
+
+        void UseVNodes(string nodesToPopulate);
     }
 }

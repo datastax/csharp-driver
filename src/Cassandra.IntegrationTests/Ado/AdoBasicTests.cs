@@ -23,20 +23,18 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Data
 {
     [TestFixture, Category("short")]
-    public class AdoBasicTests : TestGlobals
+    public class AdoBasicTests : SharedClusterTest
     {
         private CqlConnection _connection;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        protected override void TestFixtureSetUp()
         {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
-
-            // tests are 
-            string host = testCluster.InitialContactPoint;
-            var cb = new CassandraConnectionStringBuilder();
-            cb.ContactPoints = new[] {host};
-            cb.Port = 9042;
+            base.TestFixtureSetUp();
+            var cb = new CassandraConnectionStringBuilder
+            {
+                ContactPoints = new[] { TestCluster.InitialContactPoint }, 
+                Port = 9042
+            };
             _connection = new CqlConnection(cb.ToString());
         }
 
@@ -87,12 +85,6 @@ namespace Cassandra.IntegrationTests.Data
             }
 
             Assert.AreEqual(RowsNo, counter);
-
-            cmd.CommandText = string.Format(@"DROP TABLE {0};", tableName);
-            cmd.ExecuteNonQuery();
-
-            cmd.CommandText = string.Format(@"DROP KEYSPACE {0};", keyspaceName);
-            cmd.ExecuteNonQuery();
         }
 
         [Test]

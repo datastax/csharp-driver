@@ -32,8 +32,7 @@ namespace Cassandra.Tests
         [Test]
         public void UpdateLocalNodeInfoModifiesHost()
         {
-            var config = new Configuration();
-            var metadata = new Metadata(config);
+            var metadata = new Metadata(new Configuration());
             var cc = new ControlConnection(GetCluster(), metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
@@ -49,8 +48,7 @@ namespace Cassandra.Tests
         [Test]
         public void UpdatePeersInfoModifiesPool()
         {
-            var config = new Configuration();
-            var metadata = new Metadata(config);
+            var metadata = new Metadata(new Configuration());
             var cc = new ControlConnection(GetCluster(), metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

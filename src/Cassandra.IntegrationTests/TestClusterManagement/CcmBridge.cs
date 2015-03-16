@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             string clusterStartStr = "";
             if (startTheCluster)
                 clusterStartStr = "-s";
-            ProcessOutput processOutput = ccmBridge.ExecuteCcm(string.Format("Create {0} -n {1} {2} -i {3} -b -v {4}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion));
+            ccmBridge.ExecuteCcm(string.Format("Create {0} -n {1} {2} -i {3} -b -v {4}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion));
             return ccmBridge;
         }
 
@@ -137,7 +137,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void Remove()
         {
             Stop();
-            ExecuteCcm(string.Format("remove"));
+            ExecuteCcm("remove");
         }
 
         public void Ring(int n)

@@ -94,6 +94,7 @@
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
     <Compile Include="Core\CollectionsNestedTests.cs" />
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
+    <Compile Include="SharedClusterTest.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />
     <Compile Include="Linq\Structures\Movie.cs" />

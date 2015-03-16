@@ -29,7 +29,7 @@ using Cassandra.Mapping.Statements;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("long")]
     public class ConsistencyTests : TestGlobals
     {
         private ISession _session;

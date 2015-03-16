@@ -74,6 +74,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new NotImplementedException();
         }
 
+        public void UseVNodes(string nodesToPopulate)
+        {
+            throw new NotImplementedException();
+        }
+
         public void ShutDown()
         {
             if (Cluster != null)

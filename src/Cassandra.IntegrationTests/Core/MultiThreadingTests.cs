@@ -171,14 +171,11 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(RowsNo, ret.GetRows().ToList().Count);
 
 
-                localSession.Execute(string.Format(@"DROP TABLE {0};", tableName));
-
                 for (int idx = 0; idx < RowsNo; idx++)
                 {
                     threads[idx].Join();
                 }
             }
-            localSession.Execute(string.Format(@"DROP KEYSPACE {0};", keyspaceName));
         }
 
         [Test]

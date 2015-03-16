@@ -34,12 +34,11 @@ namespace Cassandra.IntegrationTests.FoundBugs
         {
             try
             {
-                using (Cluster cluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
+                using (var cluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
                 {
-                    ISession session = null;
                     try
                     {
-                        using (session = cluster.Connect())
+                        using (cluster.Connect())
                         {
                         }
                     }
@@ -75,7 +74,6 @@ namespace Cassandra.IntegrationTests.FoundBugs
             }
 
             nonShareableTestCluster.StopForce(1);
-            List<Host> hosts = new List<Host>();
 
             // now wait until node is down
             bool noHostAvailableExceptionWasCaught = false;
@@ -83,7 +81,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
             {
                 try
                 {
-                    ISession unusedSession = nonShareableTestCluster.Cluster.Connect();
+                    nonShareableTestCluster.Cluster.Connect();
                 }
                 catch (Exception e)
                 {
@@ -107,7 +105,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
             {
                 try
                 {
-                    var result = session.Execute(query);
+                    session.Execute(query);
                     hostWasReconnected = true;
                 }
                 catch (Exception e)

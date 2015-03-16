@@ -317,7 +317,7 @@ namespace Cassandra.IntegrationTests.Core
                 .AddContactPoint(testCluster.InitialContactPoint)
                 .Build();
 
-            var session = testCluster.Cluster.Connect("system");
+            testCluster.Cluster.Connect("system");
             StringAssert.StartsWith(testCluster.InitialContactPoint, cluster.AllHosts().First().Address.ToString());
         }
 

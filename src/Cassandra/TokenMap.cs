@@ -37,7 +37,7 @@ namespace Cassandra
             _primaryReplicas = primaryReplicas;
         }
 
-        public static TokenMap Build(string partitioner, IEnumerable<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
+        public static TokenMap Build(string partitioner, ICollection<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
         {
             var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
@@ -82,7 +82,7 @@ namespace Cassandra
                 Dictionary<IToken, HashSet<Host>> replicas;
                 if (ks.StrategyClass == ReplicationStrategies.SimpleStrategy)
                 {
-                    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], ring, primaryReplicas);
+                    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], hosts.Count, ring, primaryReplicas);
                 }
                 else if (ks.StrategyClass == ReplicationStrategies.NetworkTopologyStrategy)
                 {
@@ -163,16 +163,17 @@ namespace Cassandra
         /// <summary>
         /// Converts token-primary to token-replicas
         /// </summary>
-        private static Dictionary<IToken, HashSet<Host>> ComputeTokenToReplicaSimple(int replicationFactor, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
+        private static Dictionary<IToken, HashSet<Host>> ComputeTokenToReplicaSimple(int replicationFactor, int hostCount, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
         {
-            var rf = Math.Min(replicationFactor, ring.Count);
+            var rf = Math.Min(replicationFactor, hostCount);
             var tokenToReplicas = new Dictionary<IToken, HashSet<Host>>(ring.Count);
             for (var i = 0; i < ring.Count; i++)
             {
                 var token = ring[i];
                 var replicas = new HashSet<Host>();
                 replicas.Add(primaryReplicas[token]);
-                for (var j = 1; j < rf; j++)
+                var j = 1;
+                while (replicas.Count < rf)
                 {
                     var nextReplicaIndex = i + j;
                     if (nextReplicaIndex >= ring.Count)
@@ -182,6 +183,7 @@ namespace Cassandra
                     }
                     var nextReplica = primaryReplicas[ring[nextReplicaIndex]];
                     replicas.Add(nextReplica);
+                    j++;
                 }
                 tokenToReplicas.Add(token, replicas);
             }

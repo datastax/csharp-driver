@@ -186,5 +186,43 @@ namespace Cassandra.Tests
             replicas = tokenMap.GetReplicas("ks4", new M3PToken(0));
             Assert.AreEqual("0,1,2", String.Join(",", replicas.Select(TestHelper.GetLastAddressByte)));
         }
+
+        [Test]
+        public void TokenMap_Build_NetworkTopology_Adjacent_Ranges_Test()
+        {
+            const string strategy = ReplicationStrategies.NetworkTopologyStrategy;
+            var hosts = new[]
+            {
+                //0 and 100 are adjacent
+                TestHelper.CreateHost("192.168.0.1", "dc1", "rack1", new HashSet<string> {"0", "100", "1000"}),
+                TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string> {"200",      "2000", "20000"}),
+                TestHelper.CreateHost("192.168.0.3", "dc1", "rack1", new HashSet<string> {"300",      "3000", "30000"})
+            };
+            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> { { "dc1", 2 } });
+            var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
+            var replicas = map.GetReplicas("ks1", new M3PToken(0));
+            Assert.AreEqual(2, replicas.Count);
+            //It should contain the first host and the second, even though the first host contains adjacent 
+            CollectionAssert.AreEqual(new byte[] { 1, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
+        }
+
+        [Test]
+        public void TokenMap_Build_SimpleStrategy_Adjacent_Ranges_Test()
+        {
+            const string strategy = ReplicationStrategies.SimpleStrategy;
+            var hosts = new[]
+            {
+                //0 and 100 are adjacent
+                TestHelper.CreateHost("192.168.0.1", "dc1", "rack1", new HashSet<string> {"0", "100", "1000"}),
+                TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string> {"200",      "2000", "20000"}),
+                TestHelper.CreateHost("192.168.0.3", "dc1", "rack1", new HashSet<string> {"300",      "3000", "30000"})
+            };
+            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> { { "replication_factor", 2 } });
+            var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
+            var replicas = map.GetReplicas("ks1", new M3PToken(0));
+            Assert.AreEqual(2, replicas.Count);
+            //It should contain the first host and the second, even though the first host contains adjacent 
+            CollectionAssert.AreEqual(new byte[] { 1, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
+        }
     }
 }

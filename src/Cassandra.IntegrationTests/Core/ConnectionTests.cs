@@ -245,11 +245,20 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Init();
+                var createKeyspaceTask = Query(connection, "CREATE KEYSPACE ks_conn_consume WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
+                TaskHelper.WaitToComplete(createKeyspaceTask, 3000);
+                var createTableTask = Query(connection, "CREATE TABLE ks_conn_consume.tbl1 (id uuid primary key)");
+                TaskHelper.WaitToComplete(createTableTask, 3000);
+                var id = Guid.NewGuid().ToString("D");
+                var insertTask = Query(connection, "INSERT INTO ks_conn_consume.tbl1 (id) VALUES (" + id + ")");
+                TaskHelper.WaitToComplete(insertTask, 3000);
+                Assert.AreEqual(TaskStatus.RanToCompletion, createTableTask.Status);
                 var taskList = new List<Task>();
                 //Run the query more times than the max allowed
+                var selectQuery = "SELECT id FROM ks_conn_consume.tbl1 WHERE id = " + id;
                 for (var i = 0; i < connection.MaxConcurrentRequests * 2; i++)
                 {
-                    taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                    taskList.Add(Query(connection, selectQuery, QueryProtocolOptions.Default));
                 }
                 Task.WaitAll(taskList.ToArray());
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
