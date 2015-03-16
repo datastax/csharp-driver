@@ -136,6 +136,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmBridge.SwitchToThis();
         }
 
+        public void UseVNodes(string nodesToPopulate)
+        {
+            CcmBridge.ExecuteCcm("remove");
+            CcmBridge.ExecuteCcm(String.Format("create {0} -v {1}", CcmBridge.Name, CassandraVersion));
+            CcmBridge.ExecuteCcm(String.Format("populate -n {0} -i {1} --vnodes", nodesToPopulate, CcmBridge.IpPrefix), CcmBridge.DefaultCmdTimeout, true);
+            CcmBridge.ExecuteCcm("start", CcmBridge.DefaultCmdTimeout, true);
+        }
+
         public void SwitchToThisAndStart()
         {
             // only send the 'start' command if it isn't already in the process of starting

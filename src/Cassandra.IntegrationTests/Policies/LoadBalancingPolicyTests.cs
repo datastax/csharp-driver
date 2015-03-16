@@ -481,6 +481,49 @@ namespace Cassandra.IntegrationTests.Policies
         }
 
         /// <summary>
+        /// Token Aware with vnodes test
+        /// </summary>
+        [Test]
+        public void TokenAware_VNodes_Test()
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(3, DefaultMaxClusterCreateRetries, false, false);
+            try
+            {
+                testCluster.UseVNodes("3");
+                var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+                var session = cluster.Connect();
+                Assert.AreEqual(256, cluster.AllHosts().First().Tokens.Count());
+                session.Execute("CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
+                Thread.Sleep(3000);
+                session.ChangeKeyspace("ks1");
+                session.Execute("CREATE TABLE tbl1 (id uuid primary key)");
+                Thread.Sleep(3000);
+                var ps = session.Prepare("INSERT INTO tbl1 (id) VALUES (?)");
+                var traces = new List<QueryTrace>();
+                for (var i = 0; i < 10; i++)
+                {
+                    var id = Guid.NewGuid();
+                    var bound = ps
+                        .Bind(id)
+                        .SetRoutingKey( new RoutingKey() { RawRoutingKey = TypeCodec.GuidShuffle(id.ToByteArray()) })
+                        .EnableTracing();
+                    var rs = session.Execute(bound);
+                    traces.Add(rs.Info.QueryTrace);
+                }
+                //Check that there weren't any hops
+                foreach (var t in traces)
+                {
+                    //The coordinator must be the only one executing the query
+                    Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
+                }
+            }
+            finally
+            {
+                testCluster.Remove();
+            }
+        }
+
+        /// <summary>
         /// Validate that the expected nodes are queried when using a TokenAware RoundRobin policy, 
         /// executing non-prepared statements 
         /// </summary>

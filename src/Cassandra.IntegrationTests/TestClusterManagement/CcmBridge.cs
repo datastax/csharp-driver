@@ -137,7 +137,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void Remove()
         {
             Stop();
-            ExecuteCcm(string.Format("remove"));
+            ExecuteCcm("remove");
         }
 
         public void Ring(int n)
