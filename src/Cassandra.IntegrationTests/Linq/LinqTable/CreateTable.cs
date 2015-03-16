@@ -31,9 +31,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     [Category("short")]
     public class CreateTable : TestGlobals
     {
-        ISession _session = null;
-        ITestCluster _testCluster = null;
-        private readonly Logger _logger = new Logger(typeof(CreateTable));
+        ISession _session;
+        private ITestCluster _testCluster;
         string _uniqueKsName;
 
         [SetUp]

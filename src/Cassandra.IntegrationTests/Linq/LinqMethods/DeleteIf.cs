@@ -18,7 +18,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         ISession _session = null;
         private List<AllDataTypesEntity> _entityList;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-        private Table<AllDataTypesEntity> _table;
 
         [SetUp]
         public void SetupTest()
@@ -28,7 +27,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             _session.ChangeKeyspace(_uniqueKsName);
 
             _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
-            _table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
 
         }
 

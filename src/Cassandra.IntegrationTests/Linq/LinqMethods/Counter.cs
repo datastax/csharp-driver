@@ -13,8 +13,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     public class Counter : TestGlobals
     {
-        ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(Counter));
+        ISession _session;
         string _uniqueKsName;
 
         [SetUp]

@@ -16,8 +16,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     [Category("short")]
     public class GetTable : TestGlobals
     {
-        ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(global::Cassandra.IntegrationTests.Linq.LinqTable.CreateTable));
+        private ISession _session;
         string _uniqueKsName;
 
         [SetUp]

@@ -370,7 +370,7 @@ namespace Cassandra.IntegrationTests.Core
                         CREATE KEYSPACE {0} 
                         WITH replication = {{ 'class' : '{1}', 'replication_factor' : {2} }}
                         AND durable_writes={3};", keyspaceName, strategyClass, 1, durableWrites);
-            var rowSet = session.Execute(cql);
+            session.Execute(cql);
             session.ChangeKeyspace(keyspaceName);
 
             for (var i = 0; i < 10; i++)

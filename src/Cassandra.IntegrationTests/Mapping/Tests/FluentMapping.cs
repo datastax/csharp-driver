@@ -17,8 +17,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class FluentMappingPredefined : TestGlobals
     {
-        ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(Attributes));
+        private ISession _session;
         string _uniqueKsName;
 
         [SetUp]

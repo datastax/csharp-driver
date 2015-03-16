@@ -28,8 +28,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class Insert : TestGlobals
     {
-        ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(CreateTable));
+        private ISession _session;
         string _uniqueKsName;
 
         [SetUp]

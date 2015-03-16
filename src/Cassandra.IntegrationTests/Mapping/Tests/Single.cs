@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             try
             {
-                Movie result = _mapper.Single<Movie>(_selectAllDefaultCql);
+                _mapper.Single<Movie>(_selectAllDefaultCql);
             }
             catch (InvalidOperationException e)
             {
@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             try
             {
-                Movie result = _mapper.SingleAsync<Movie>(_selectAllDefaultCql).Result;
+                _mapper.SingleAsync<Movie>(_selectAllDefaultCql).Wait();
             }
             catch (AggregateException e)
             {
@@ -142,7 +142,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string cqlToFindNothing = _selectAllDefaultCql + " where moviemaker ='" + Randomm.RandomAlphaNum(20) + "'";
             try
             {
-                Movie result = _mapper.SingleAsync<Movie>(cqlToFindNothing).Result;
+                _mapper.SingleAsync<Movie>(cqlToFindNothing).Wait();
             }
             catch (AggregateException e)
             {

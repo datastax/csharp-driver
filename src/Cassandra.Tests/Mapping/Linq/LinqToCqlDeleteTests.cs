@@ -39,12 +39,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Delete_With_Keyspace_Defined_Test()
         {
             string query = null;
-            object[] parameters = null;
-            var session = GetSession((q, v) =>
-            {
-                query = q;
-                parameters = v;
-            });
+            var session = GetSession((q, v) => query = q);
             var map = new Map<AllTypesEntity>()
                 .ExplicitColumns()
                 .Column(t => t.DoubleValue, cm => cm.WithName("val"))

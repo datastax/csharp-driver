@@ -29,7 +29,7 @@ namespace Cassandra.Tests.Mapping
             //Get first user where user id doesn't exist and verify it throws
             //Empty rowset
             var mappingClient = GetMappingClient(new RowSet());
-            var ex = Assert.Throws<AggregateException>(() => { var r = mappingClient.FirstAsync<PlainUser>("SELECT * FROM users").Result; });
+            var ex = Assert.Throws<AggregateException>(() => { mappingClient.FirstAsync<PlainUser>("SELECT * FROM users").Wait(); });
             Assert.IsInstanceOf<InvalidOperationException>(ex.InnerException);
         }
 
@@ -82,7 +82,7 @@ namespace Cassandra.Tests.Mapping
             //Get first user where user id doesn't exist and verify it throws
             //Empty rowset
             var mappingClient = GetMappingClient(new RowSet());
-            var ex = Assert.Throws<AggregateException>(() => { var r = mappingClient.FirstAsync<Guid>("SELECT userid FROM users").Result; });
+            var ex = Assert.Throws<AggregateException>(() => { mappingClient.FirstAsync<Guid>("SELECT userid FROM users").Wait(); });
             Assert.IsInstanceOf<InvalidOperationException>(ex.InnerException);
         }
 

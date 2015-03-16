@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string cqlToFindNothing = _selectAllDefaultCql + " where moviemaker ='" + Randomm.RandomAlphaNum(20) + "'";
             try
             {
-                Movie result = _mapper.FirstAsync<Movie>(cqlToFindNothing).Result;
+                _mapper.FirstAsync<Movie>(cqlToFindNothing).Wait();
             }
             catch (AggregateException e)
             {

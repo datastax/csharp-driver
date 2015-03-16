@@ -92,7 +92,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
-            AllDataTypesEntity entityToDelete = _entityList[0];
 
             List<string> uniqueStringKeys = _entityList.Select(m => m.StringType).ToList();
             var deleteRequest = table.Where(m => uniqueStringKeys.Contains(m.StringType)).Delete();

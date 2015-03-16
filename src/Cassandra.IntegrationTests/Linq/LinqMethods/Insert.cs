@@ -122,7 +122,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
             catch (Exception e) // Exception is gathered from the async task
             {
-                Exception exceptionBeingChecked = e;
                 int maxLayers = 50;
                 int layersChecked = 0;
                 while (layersChecked < maxLayers && !e.InnerException.Message.Contains(expectedErrMsg))
@@ -159,11 +158,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             string expectedErrMsg = "Invalid null value for partition key part unique_movie_title";
             try
             {
-                RowSet rowSet = table.Insert(objectMissingPartitionKey).ExecuteAsync().Result;
+                table.Insert(objectMissingPartitionKey).ExecuteAsync().Wait();
             }
             catch (Exception e) // Exception is gathered from the async task
             {
-                Exception exceptionBeingChecked = e;
                 int maxLayers = 50;
                 int layersChecked = 0;
                 while (layersChecked < maxLayers && !e.InnerException.Message.Contains(expectedErrMsg))

@@ -19,8 +19,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class Attributes : TestGlobals
     {
-        ISession _session = null;
-        private readonly Logger _logger = new Logger(typeof(Attributes));
+        ISession _session;
         string _uniqueKsName;
         private const string IgnoredStringAttribute = "ignoredstringattribute";
 
@@ -341,7 +340,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.Execute(createTableCql);
 
             var cqlClient = GetMapper();
-            List<string> stringList = new List<string>() { "string1", "string2" };
             PocoWithOnlyPartitionKeyNotLabeled pocoWithOnlyCustomAttributes = new PocoWithOnlyPartitionKeyNotLabeled();
             cqlClient.Insert(pocoWithOnlyCustomAttributes); 
 
@@ -349,7 +347,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<PocoWithOnlyPartitionKeyNotLabeled> records = cqlClient.Fetch<PocoWithOnlyPartitionKeyNotLabeled>("SELECT * from " + tableName).ToList();
             Assert.AreEqual(1, records.Count);
             Assert.AreEqual(pocoWithOnlyCustomAttributes.SomeString, records[0].SomeString);
-            PocoWithOnlyPartitionKeyNotLabeled defaultPocoWithOnlyIgnoredAttributes = new PocoWithOnlyPartitionKeyNotLabeled();
 
             // Query for the column that the Linq table create created, verify no value was uploaded to it
             List<Row> rows = _session.Execute("SELECT * from " + tableName).GetRows().ToList();
@@ -475,8 +472,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PocoWithCompositeKey), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithCompositeKey)));
             var table = new Table<PocoWithCompositeKey>(_session, config);
             table.Create();
-            List<Guid> listOfGuids = new List<Guid>() { new Guid(), new Guid() };
-
             var cqlClient = GetMapper();
             PocoWithCompositeKey pocoWithCustomAttributes = new PocoWithCompositeKey
             {

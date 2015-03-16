@@ -90,13 +90,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             try
             {
-                var nonUsedEnumerable = _movieTable.OrderBy(m => m.MainActor).ExecuteAsync().Result;
+                _movieTable.OrderBy(m => m.MainActor).ExecuteAsync().Wait();
                 Assert.Fail("Expected Exception was not thrown!");
             }
             catch (Exception e) // Exception is gathered from the async task
             {
                 string expectedException = "ORDER BY is only supported when the partition key is restricted by an EQ or an IN.";
-                Exception exceptionBeingChecked = e;
                 int maxLayers = 50;
                 int layersChecked = 0;
                 while (layersChecked < maxLayers && !e.InnerException.Message.Contains(expectedException))

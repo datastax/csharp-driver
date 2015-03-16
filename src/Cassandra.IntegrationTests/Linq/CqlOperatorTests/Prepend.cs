@@ -104,9 +104,6 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             Table<EntityWithArrayType> table = tupleArrayType.Item1;
             List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
 
-            // this is failing right now because translation from Cassandra list -> back to array is failing
-            var existingEntities = table.ExecuteAsync().Result.ToList();
-
             string[] arrToAdd = new string[] { "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), };
             EntityWithArrayType singleEntity = expectedEntities.First();
             // Append the values

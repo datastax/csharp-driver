@@ -15,8 +15,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
     {
         private ISession _session = null;
         private List<EntityWithTimeUuid> _expectedTimeUuidObjectList;
-        private List<EntityWithNullableTimeUuid> _expectedNullableTimeUuidObjectList;
-        private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<EntityWithTimeUuid> _tableEntityWithTimeUuid;
         private Table<EntityWithNullableTimeUuid> _tableEntityWithNullableTimeUuid;
 
@@ -51,9 +50,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             {
                 _expectedTimeUuidObjectList[i].StringType = i.ToString();
             }
-            _expectedNullableTimeUuidObjectList = EntityWithNullableTimeUuid.GetDefaultObjectList();
-
-
         }
 
         /// <summary>

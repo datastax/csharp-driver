@@ -393,7 +393,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 
             // Attempt to remove the data
             var updateStatement = table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.SubstractAssign(dictToDelete) }).Update();
-            var err = Assert.Throws<InvalidQueryException>(() => updateStatement.Execute());
+            Assert.Throws<InvalidQueryException>(() => updateStatement.Execute());
         }
 
 
