@@ -625,5 +625,63 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(columnLength + 1, table.TableColumns.Length);
             Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
         }
+
+        [Test]
+        public void TableMetadataNestedCollectionsTest()
+        {
+            if (CassandraVersion < Version.Parse("2.1.3"))
+            {
+                Assert.Ignore("Nested frozen collections are supported in 2.1.3 and above");
+            }
+            var keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            const string tableName = "tbl_nested_cols_meta";
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount);
+            var cluster = testCluster.Cluster;
+            var session = testCluster.Session;
+
+            session.CreateKeyspaceIfNotExists(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            session.Execute(String.Format("CREATE TABLE {0} (" +
+                                          "id uuid primary key, " +
+                                          "map1 map<text, frozen<list<text>>>," +
+                                          "map2 map<int, frozen<map<text, bigint>>>," +
+                                          "list1 list<frozen<map<uuid, int>>>)", tableName));
+            var table = cluster.Metadata
+                               .GetKeyspace(keyspaceName)
+                               .GetTableMetadata(tableName);
+
+            Assert.AreEqual(4, table.TableColumns.Length);
+            var map1 = table.TableColumns.First(c => c.Name == "map1");
+            Assert.AreEqual(ColumnTypeCode.Map, map1.TypeCode);
+            Assert.IsInstanceOf<MapColumnInfo>(map1.TypeInfo);
+            var map1Info = (MapColumnInfo)map1.TypeInfo;
+            Assert.AreEqual(ColumnTypeCode.Varchar, map1Info.KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.List, map1Info.ValueTypeCode);
+            Assert.IsInstanceOf<ListColumnInfo>(map1Info.ValueTypeInfo);
+            var map1ListInfo = (ListColumnInfo)map1Info.ValueTypeInfo;
+            Assert.AreEqual(ColumnTypeCode.Varchar, map1ListInfo.ValueTypeCode);
+
+            var map2 = table.TableColumns.First(c => c.Name == "map2");
+            Assert.AreEqual(ColumnTypeCode.Map, map2.TypeCode);
+            Assert.IsInstanceOf<MapColumnInfo>(map2.TypeInfo);
+            var map2Info = (MapColumnInfo)map2.TypeInfo;
+            Assert.AreEqual(ColumnTypeCode.Int, map2Info.KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Map, map2Info.ValueTypeCode);
+            Assert.IsInstanceOf<MapColumnInfo>(map2Info.ValueTypeInfo);
+            var map2MapInfo = (MapColumnInfo)map2Info.ValueTypeInfo;
+            Assert.AreEqual(ColumnTypeCode.Varchar, map2MapInfo.KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Bigint, map2MapInfo.ValueTypeCode);
+
+            var list1 = table.TableColumns.First(c => c.Name == "list1");
+            Assert.AreEqual(ColumnTypeCode.List, list1.TypeCode);
+            Assert.IsInstanceOf<ListColumnInfo>(list1.TypeInfo);
+            var list1Info = (ListColumnInfo)list1.TypeInfo;
+            Assert.AreEqual(ColumnTypeCode.Map, list1Info.ValueTypeCode);
+            Assert.IsInstanceOf<MapColumnInfo>(list1Info.ValueTypeInfo);
+            var list1MapInfo = (MapColumnInfo)list1Info.ValueTypeInfo;
+            Assert.AreEqual(ColumnTypeCode.Uuid, list1MapInfo.KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Int, list1MapInfo.ValueTypeCode);
+        }
     }
 }
