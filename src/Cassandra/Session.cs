@@ -305,7 +305,15 @@ namespace Cassandra
                 //The prepared statement does not contain parameters
                 return ps;
             }
-            var table = Cluster.Metadata.GetTable(column.Keyspace, column.Table);
+            TableMetadata table = null;
+            try
+            {
+                table = Cluster.Metadata.GetTable(column.Keyspace, column.Table);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", column.Keyspace, column.Table, ex.ToString());
+            }
             if (table == null)
             {
                 _logger.Info(msgRoutingNotSet, ps.Cql);
