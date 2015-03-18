@@ -39,6 +39,7 @@ namespace Cassandra
         private const string MapTypeName = "org.apache.cassandra.db.marshal.MapType";
         private const string UdtTypeName = "org.apache.cassandra.db.marshal.UserType";
         private const string TupleTypeName = "org.apache.cassandra.db.marshal.TupleType";
+        private const string FrozenTypeName = "org.apache.cassandra.db.marshal.FrozenType";
         public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
         public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
@@ -1322,6 +1323,13 @@ namespace Cassandra
                 //We don't care if the clustering order is reversed
                 startIndex += ReversedTypeName.Length + 1;
                 length -= ReversedTypeName.Length + 2;
+            }
+            if (length > FrozenTypeName.Length && typeName.Substring(startIndex, FrozenTypeName.Length) == FrozenTypeName)
+            {
+                //Remove the frozen
+                //We can later store that it is frozen, if needed
+                startIndex += FrozenTypeName.Length + 1;
+                length -= FrozenTypeName.Length + 2;
             }
             //Quick check if its a single type
             if (length <= SingleTypeNamesLength)

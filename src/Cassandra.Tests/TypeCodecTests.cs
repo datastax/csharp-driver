@@ -317,6 +317,23 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void ParseDataTypeNameFrozenTest()
+        {
+            var dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.TimeUUIDType))");
+            Assert.AreEqual(ColumnTypeCode.List, dataType.TypeCode);
+            Assert.IsInstanceOf<ListColumnInfo>(dataType.TypeInfo);
+            Assert.AreEqual(ColumnTypeCode.Timeuuid, (dataType.TypeInfo as ListColumnInfo).ValueTypeCode);
+
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.Int32Type)))");
+            Assert.AreEqual(ColumnTypeCode.Map, dataType.TypeCode);
+            Assert.IsInstanceOf<MapColumnInfo>(dataType.TypeInfo);
+            Assert.AreEqual(ColumnTypeCode.Varchar, (dataType.TypeInfo as MapColumnInfo).KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.List, (dataType.TypeInfo as MapColumnInfo).ValueTypeCode);
+            var subType = (ListColumnInfo) ((dataType.TypeInfo as MapColumnInfo).ValueTypeInfo);
+            Assert.AreEqual(ColumnTypeCode.Int, subType.ValueTypeCode);
+        }
+
+        [Test]
         public void ParseDataTypeNameUdtTest()
         {
             var typeText =
