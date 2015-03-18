@@ -33,13 +33,9 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         private static readonly int[] UdtProtocolVersionSupported = new[] {3};
 
-        private int _maxProtocolVersion;
-
         protected override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
-
-            _maxProtocolVersion = Cluster.MaxProtocolVersion;
 
             if (CassandraVersion < new Version(2, 1))
             {
