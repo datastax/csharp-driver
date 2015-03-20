@@ -89,7 +89,7 @@ namespace Cassandra.IntegrationTests.Core
                 var taskList = new List<Task>();
                 for (var i = 0; i < 512; i++)
                 {
-                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement("INSERT INTO tbl_wait_pending (id) VALUES (uuid())")));
+                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement(String.Format("INSERT INTO tbl_wait_pending (id) VALUES ({0})", Guid.NewGuid()))));
                 }
                 //Most task should be pending
                 Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");

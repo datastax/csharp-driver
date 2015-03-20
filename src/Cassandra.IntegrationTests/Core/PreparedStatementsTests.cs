@@ -502,6 +502,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void Bound_With_Named_Parameters_Routing_Key()
         {
             Func<string, string, byte[]> calculateKey = (id1, id2) =>
@@ -541,6 +542,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
         public void Prepared_With_Composite_Routing_Key()
         {
             Session.Execute("CREATE TABLE tbl_ps_multiple_pk (a uuid, b text, c text, d text, primary key ((a, b), c))");
