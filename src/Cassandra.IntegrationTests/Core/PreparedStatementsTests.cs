@@ -417,6 +417,13 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void Bound_With_Parameters_That_Can_Not_Be_Encoded()
+        {
+            var ps = Session.Prepare("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?");
+            Assert.Throws<InvalidTypeException>(() => ps.Bind(new Object()));
+        }
+
+        [Test]
         public void Bound_Int_Valids()
         {
             var psInt32 = Session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
