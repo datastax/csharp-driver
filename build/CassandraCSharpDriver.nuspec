@@ -14,7 +14,7 @@
         <copyright>Copyright (C) 2015 DataStax Inc.</copyright>
         <tags>cassandra apache datastax driver database nosql</tags>
         <dependencies>
-            <dependency id="lz4net" version="1.0.3.93" />
+            <dependency id="lz4net" version="1.0.5.93" />
         </dependencies>
     </metadata>
     <files>
