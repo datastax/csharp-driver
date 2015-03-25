@@ -104,12 +104,12 @@ namespace Cassandra
         {
             ProtocolVersion = 1;
         }
-        
+
         /// <inheritdoc />
         protected Statement(QueryProtocolOptions queryProtocolOptions)
         {
         }
-        
+
         /// <inheritdoc />
         internal Statement SetSkipMetadata(bool val)
         {
@@ -141,22 +141,26 @@ namespace Cassandra
             _autoPage = autoPage;
             return this;
         }
-        
+
         /// <inheritdoc />
         public IStatement SetPagingState(byte[] pagingState)
         {
             _pagingState = pagingState;
-            //Disable automatic paging
-            return SetAutoPage(false);
+            //Disable automatic paging only if paging state is set to something other then null
+            if (pagingState != null && pagingState.Length > 0)
+            {
+                return SetAutoPage(false);
+            }
+            return this;
         }
-        
+
         /// <inheritdoc />
         public IStatement SetConsistencyLevel(ConsistencyLevel? consistency)
         {
             _consistency = consistency;
             return this;
         }
-        
+
         /// <inheritdoc />
         public IStatement SetSerialConsistencyLevel(ConsistencyLevel serialConsistency)
         {
@@ -181,7 +185,7 @@ namespace Cassandra
             _traceQuery = enable;
             return this;
         }
-        
+
         /// <inheritdoc />
         public IStatement DisableTracing()
         {
