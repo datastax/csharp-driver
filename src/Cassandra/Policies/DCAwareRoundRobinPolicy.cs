@@ -138,7 +138,7 @@ namespace Cassandra
 
             // try to connect to one node in every datacenter
             var tasks = firstHostByDatacenter
-                .Select(item => new TaskFactory().StartNew(state => new TcpClient().Connect(item.EndPoint), item.EndPoint))
+                .Select(item => new TaskFactory().StartNew(() => new TcpClient().Connect(item.EndPoint)))
                 .ToArray();
             // the index of first task that returns
             var index = Task.WaitAny(tasks);
