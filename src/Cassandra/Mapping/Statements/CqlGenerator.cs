@@ -88,7 +88,7 @@ namespace Cassandra.Mapping.Statements
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}{4}", 
                 Escape(pocoData.TableName, pocoData), columns, placeholders,
                 ifNotExists ? " IF NOT EXISTS" : null,
-                insertOptions != null ? insertOptions.GenerateQueryOptions() : null);
+                insertOptions != null ? insertOptions.GetCql() : null);
         }
         
         /// <summary>

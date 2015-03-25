@@ -182,7 +182,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             //Execute
-            mappingClient.Insert(newUser, new CqlInsertOptions { Ttl = 42 });
+            mappingClient.Insert(newUser, new CqlInsertOptions { Ttl = TimeSpan.FromSeconds(42) });
             sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
                 stmt.QueryValues.Length == TestHelper.ToDictionary(newUser).Count &&
                 stmt.PreparedStatement.Cql.StartsWith("INSERT INTO users (")
@@ -305,7 +305,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             //Execute
-            var appliedInfo = mappingClient.InsertIfNotExists(newUser, new CqlInsertOptions().SetTtl(42));
+            var appliedInfo = mappingClient.InsertIfNotExists(newUser, new CqlInsertOptions().SetTtl(TimeSpan.FromSeconds(42)));
             sessionMock.Verify();
             StringAssert.StartsWith("INSERT INTO users (", query);
             StringAssert.EndsWith(") IF NOT EXISTS USING TTL 42", query);
@@ -338,10 +338,12 @@ namespace Cassandra.Tests.Mapping
             var mappingClient = GetMappingClient(sessionMock);
             //Execute
             var appliedInfo = mappingClient.InsertIfNotExists(newUser,
-                new CqlInsertOptions().SetTtl(42).SetTimestamp(44));
+                new CqlInsertOptions()
+                    .SetTtl(TimeSpan.FromSeconds(42))
+                    .SetTimestamp(DateTimeOffset.Parse("2014-2-1")));
             sessionMock.Verify();
             StringAssert.StartsWith("INSERT INTO users (", query);
-            StringAssert.EndsWith(") IF NOT EXISTS USING TTL 42 AND TIMESTAMP 44", query);
+            StringAssert.EndsWith(") IF NOT EXISTS USING TTL 42 AND TIMESTAMP 1391212800000000", query);
             Assert.False(appliedInfo.Applied);
             Assert.AreEqual(newUser.Id, appliedInfo.Existing.Id);
             Assert.AreEqual("existing-name", appliedInfo.Existing.Name);
