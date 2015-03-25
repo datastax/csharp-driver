@@ -10,7 +10,12 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
-        Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null);
+        Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra.
+        /// </summary>
+        Task InsertAsync<T>(T poco, CqlInsertOptions insertOptions);
 
         /// <summary>
         /// Updates the POCO specified in Cassandra.

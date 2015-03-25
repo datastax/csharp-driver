@@ -26,6 +26,11 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Inserts the specified POCO in Cassandra if not exists.
         /// </summary>
-        void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
+        void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra if not exists.
+        /// </summary>
+        void InsertIfNotExists<T>(T poco, CqlInsertOptions insertOptions);
     }
 }

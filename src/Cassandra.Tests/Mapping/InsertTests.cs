@@ -161,6 +161,35 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Verify();
         }
 
+        public void Insert_WithTtl()
+        {
+            //Just a few props as it is just to test that it runs
+            var user = TestDataHelper.GetUserList().First();
+            var newUser = new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = user.Name
+            };
+
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            //Execute
+            mappingClient.Insert(newUser, new CqlInsertOptions { Ttl = 42 });
+            sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
+                stmt.QueryValues.Length == TestHelper.ToDictionary(newUser).Count &&
+                stmt.PreparedStatement.Cql.StartsWith("INSERT INTO users (")
+                )), Times.Exactly(1));
+            sessionMock.Verify();
+        }
+
         [Test]
         public void Insert_Poco_Returns_WhenResponse_IsReceived()
         {
@@ -248,6 +277,71 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Verify();
             StringAssert.StartsWith("INSERT INTO users (", query);
             StringAssert.EndsWith(") IF NOT EXISTS", query);
+            Assert.False(appliedInfo.Applied);
+            Assert.AreEqual(newUser.Id, appliedInfo.Existing.Id);
+            Assert.AreEqual("existing-name", appliedInfo.Existing.Name);
+        }
+
+        [Test]
+        public void InsertWithTtl_Poco_AppliedInfo_False_Test()
+        {
+            //Just a few props as it is just to test that it runs
+            var user = TestDataHelper.GetUserList().First();
+            var newUser = new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = user.Name
+            };
+            string query = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]", "userid", "name" }, new object[] { false, newUser.Id, "existing-name" })))
+                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            //Execute
+            var appliedInfo = mappingClient.InsertIfNotExists(newUser, new CqlInsertOptions().SetTtl(42));
+            sessionMock.Verify();
+            StringAssert.StartsWith("INSERT INTO users (", query);
+            StringAssert.EndsWith(") IF NOT EXISTS USING TTL 42", query);
+            Assert.False(appliedInfo.Applied);
+            Assert.AreEqual(newUser.Id, appliedInfo.Existing.Id);
+            Assert.AreEqual("existing-name", appliedInfo.Existing.Name);
+        }
+
+        [Test]
+        public void InsertWithTtlAndTimestamp_Poco_AppliedInfo_False_Test()
+        {
+            //Just a few props as it is just to test that it runs
+            var user = TestDataHelper.GetUserList().First();
+            var newUser = new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = user.Name
+            };
+            string query = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]", "userid", "name" }, new object[] { false, newUser.Id, "existing-name" })))
+                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            //Execute
+            var appliedInfo = mappingClient.InsertIfNotExists(newUser,
+                new CqlInsertOptions().SetTtl(42).SetTimestamp(44));
+            sessionMock.Verify();
+            StringAssert.StartsWith("INSERT INTO users (", query);
+            StringAssert.EndsWith(") IF NOT EXISTS USING TTL 42 AND TIMESTAMP 44", query);
             Assert.False(appliedInfo.Applied);
             Assert.AreEqual(newUser.Id, appliedInfo.Existing.Id);
             Assert.AreEqual("existing-name", appliedInfo.Existing.Name);

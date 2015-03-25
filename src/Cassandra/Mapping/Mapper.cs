@@ -192,25 +192,35 @@ namespace Cassandra.Mapping
             });
         }
 
-        public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
+        public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null)
         {
             // Get statement and bind values from POCO
-            string cql = _cqlGenerator.GenerateInsert<T>();
+            string cql = _cqlGenerator.GenerateInsert<T>(false, insertOptions);
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             object[] values = getBindValues(poco);
 
             return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 
-        public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null)
+        public Task InsertAsync<T>(T poco, CqlInsertOptions insertOptions)
+        {
+            return InsertAsync(poco, null, insertOptions);
+        }
+
+        public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null)
         {
             // Get statement and bind values from POCO
-            var cql = _cqlGenerator.GenerateInsert<T>(true);
+            var cql = _cqlGenerator.GenerateInsert<T>(true, insertOptions);
             var getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             var values = getBindValues(poco);
             return ExecuteAsyncAndAdapt(
                 Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None), 
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
+        }
+
+        public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlInsertOptions insertOptions = null)
+        {
+            return InsertIfNotExistsAsync(poco, null, insertOptions);
         }
 
         public Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null)
@@ -430,15 +440,25 @@ namespace Cassandra.Mapping
             return t.Result;
         }
 
-        public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)
+        public void Insert<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(InsertAsync(poco, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToComplete(InsertAsync(poco, queryOptions, insertOptions), _queryAbortTimeout);
         }
 
-        public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
+        public void Insert<T>(T poco, CqlInsertOptions insertOptions)
         {
-            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, queryOptions), _queryAbortTimeout);
+            Insert(poco, null, insertOptions);
+        }
+
+        public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null)
+        {
+            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, queryOptions, insertOptions), _queryAbortTimeout);
+        }
+
+        public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlInsertOptions insertOptions)
+        {
+            return InsertIfNotExists(poco, null, insertOptions);
         }
 
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)

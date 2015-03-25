@@ -130,6 +130,7 @@
     <Compile Include="IAddressTranslator.cs" />
     <Compile Include="ICqlRequest.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
+    <Compile Include="Mapping\CqlInsertOptions.cs" />
     <Compile Include="Mapping\IPage.cs" />
     <Compile Include="ListBackedStream.cs" />
     <Compile Include="AtomicValue.cs" />
