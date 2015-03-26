@@ -88,9 +88,19 @@ namespace Cassandra.Tests
         {
             var statement = new SimpleStatement();
             Assert.True(statement.AutoPage);
-            statement.SetPagingState(new byte[0]);
+            statement.SetPagingState(new byte[] { 1, 2, 3, 4, 5, 6 });
             Assert.False(statement.AutoPage);
             Assert.NotNull(statement.PagingState);
+        }
+
+        [Test]
+        public void Statement_SetPagingState_Null_Does_Not_Disable_AutoPage()
+        {
+            var statement = new SimpleStatement();
+            Assert.True(statement.AutoPage);
+            statement.SetPagingState(null);
+            Assert.True(statement.AutoPage);
+            Assert.Null(statement.PagingState);
         }
 
         [Test]

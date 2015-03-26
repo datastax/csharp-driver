@@ -25,11 +25,11 @@ namespace Cassandra.Mapping.Statements
 
         public Task<Statement> GetStatementAsync(ISession session, Cql cql)
         {
-            // Use a SimpleStatement if we're not supposed to prepare
             if (cql.QueryOptions.NoPrepare)
             {
+                // Use a SimpleStatement if we're not supposed to prepare
                 Statement statement = new SimpleStatement(cql.Statement, cql.Arguments);
-                cql.QueryOptions.CopyOptionsToStatement(statement);
+                SetStatementProperties(statement, cql);
                 return TaskHelper.ToTask(statement);
             }
             return _statementCache
@@ -40,10 +40,16 @@ namespace Cassandra.Mapping.Statements
                     {
                         Logger.Warning(String.Format("The prepared statement cache contains {0} queries. Use parameter markers for queries. You can configure this warning threshold using MappingConfiguration.SetMaxStatementPreparedThreshold() method.", _statementCache.Count));
                     }
-                    var boundStatement = t.Result.Bind(cql.Arguments);
-                    cql.QueryOptions.CopyOptionsToStatement(boundStatement);
-                    return (Statement)boundStatement;
+                    Statement boundStatement = t.Result.Bind(cql.Arguments);
+                    SetStatementProperties(boundStatement, cql);
+                    return boundStatement;
                 });
+        }
+
+        private void SetStatementProperties(IStatement stmt, Cql cql)
+        {
+            cql.QueryOptions.CopyOptionsToStatement(stmt);
+            stmt.SetAutoPage(cql.AutoPage);
         }
 
         public Statement GetStatement(ISession session, Cql cql)

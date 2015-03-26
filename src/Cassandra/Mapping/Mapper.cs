@@ -99,7 +99,7 @@ namespace Cassandra.Mapping
             {
                 throw new ArgumentNullException("cql");
             }
-            cql.AutoPage = true;
+            cql.AutoPage = false;
             _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt<IPage<T>>(cql, (stmt, rs) =>
             {

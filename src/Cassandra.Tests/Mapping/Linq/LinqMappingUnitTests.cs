@@ -106,5 +106,39 @@ namespace Cassandra.Tests.Mapping.Linq
             CollectionAssert.AreEqual(rs.PagingState, page.PagingState);
             CollectionAssert.AreEqual(new [] { 100, 200, 300}, page.ToArray(), new TestHelper.PropertyComparer());
         }
+
+        [Test]
+        public void Linq_CqlQuery_Automatically_Pages()
+        {
+            const int pageLength = 100;
+            var rs = TestDataHelper.GetSingleColumnRowSet("int_val", Enumerable.Repeat(1, pageLength).ToArray());
+            BoundStatement stmt = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(rs))
+                .Callback<IStatement>(s => stmt = (BoundStatement)s)
+                .Verifiable();
+            sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
+            sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
+            rs.AutoPage = true;
+            rs.PagingState = new byte[] { 0, 0, 0 };
+            var counter = 0;
+            rs.FetchNextPage = state =>
+            {
+                var rs2 = TestDataHelper.GetSingleColumnRowSet("int_val", Enumerable.Repeat(1, pageLength).ToArray());
+                if (++counter < 2)
+                {
+                    rs2.PagingState = new byte[] {0, 0, (byte) counter};
+                }
+                return rs2;
+            };
+            var table = new Table<int>(sessionMock.Object);
+            IEnumerable<int> results = table.Execute();
+            Assert.True(stmt.AutoPage);
+            Assert.AreEqual(0, counter);
+            Assert.AreEqual(pageLength * 3, results.Count());
+            Assert.AreEqual(2, counter);
+        }
     }
 }

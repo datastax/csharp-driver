@@ -27,7 +27,8 @@ namespace Cassandra.Data.Linq
                .SetConsistencyLevel(src.ConsistencyLevel)
                .SetPageSize(src.PageSize)
                .SetPagingState(src.PagingState)
-               .SetRetryPolicy(src.RetryPolicy);
+               .SetRetryPolicy(src.RetryPolicy).
+                SetAutoPage(src.AutoPage);
             if (src.SerialConsistencyLevel != ConsistencyLevel.Any)
             {
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);

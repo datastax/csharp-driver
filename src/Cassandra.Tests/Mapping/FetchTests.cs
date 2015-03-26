@@ -189,6 +189,33 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void FetchPageAsync_Pocos_Uses_Defaults()
+        {
+            var rs = TestDataHelper.GetUsersRowSet(TestDataHelper.GetUserList());
+            rs.AutoPage = false;
+            rs.PagingState = new byte[] { 1, 2, 3 };
+            BoundStatement stmt = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Callback<IStatement>(s => stmt = (BoundStatement)s)
+                .Returns(() => TestHelper.DelayedTask(rs))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            var mappingClient = GetMappingClient(sessionMock);
+            IPage<PlainUser> page = mappingClient.FetchPageAsync<PlainUser>(Cql.New("SELECT * FROM users")).Result;
+            Assert.Null(page.CurrentPagingState);
+            Assert.NotNull(page.PagingState);
+            Assert.AreEqual(rs.PagingState, page.PagingState);
+            sessionMock.Verify();
+            Assert.False(stmt.AutoPage);
+            Assert.AreEqual(0, stmt.PageSize);
+        }
+
+        [Test]
         public void FetchPageAsync_Pocos_WithCqlAndOptions()
         {
             const int pageSize = 10;
@@ -196,10 +223,11 @@ namespace Cassandra.Tests.Mapping
             var rs = TestDataHelper.GetUsersRowSet(usersExpected);
             rs.AutoPage = false;
             rs.PagingState = new byte[] {1, 2, 3};
-
+            BoundStatement stmt = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt => !stmt.AutoPage && stmt.PageSize == pageSize)))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Callback<IStatement>(s => stmt = (BoundStatement)s)
                 .Returns(() => TestHelper.DelayedTask(rs, 50))
                 .Verifiable();
             sessionMock
@@ -213,6 +241,8 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(rs.PagingState, page.PagingState);
             CollectionAssert.AreEqual(page, usersExpected, new TestHelper.PropertyComparer());
             sessionMock.Verify();
+            Assert.False(stmt.AutoPage);
+            Assert.AreEqual(pageSize, stmt.PageSize);
         }
 
         [Test]
