@@ -113,6 +113,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 parameters = v;
             });
             var table = session.GetTable<AllTypesDecorated>();
+
             table
                 .Where(t => t.BooleanValue == true && t.DoubleValue > 1d)
                 .Select(t => new AllTypesDecorated { StringValue = "updated value" })
@@ -122,6 +123,52 @@ namespace Cassandra.Tests.Mapping.Linq
                 @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
                 query);
             CollectionAssert.AreEqual(new object[] {"updated value", true, 1d, 100}, parameters);
+        }
+
+        [Test]
+        public void UpdateIf_Set_From_Variable_With_Where_Clause()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var table = session.GetTable<AllTypesDecorated>();
+            var dateTimeValue = DateTime.Now;
+            table
+                .Where(t => t.BooleanValue == true && t.DoubleValue > 1d)
+                .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
+                .UpdateIf(t => t.IntValue == 100)
+                .Execute();
+            Assert.AreEqual(
+                @"UPDATE ""atd"" SET ""datetime_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
+                query);
+            CollectionAssert.AreEqual(new object[] { dateTimeValue, true, 1d, 100 }, parameters);
+        }
+
+        [Test]
+        public void Update_Set_From_Variable_With_Where_Clause()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var table = session.GetTable<AllTypesDecorated>();
+            var dateTimeValue = DateTime.Now;
+            table
+                .Where(t => t.IntValue == 100 && t.BooleanValue == true && t.DoubleValue > 1d)
+                .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
+                .Update()
+                .Execute();
+            Assert.AreEqual(
+                @"UPDATE ""atd"" SET ""datetime_VALUE"" = ? WHERE ""int_VALUE"" = ? AND ""boolean_VALUE"" = ? AND ""double_VALUE"" > ?",
+                query);
+            CollectionAssert.AreEqual(new object[] { dateTimeValue, 100, true, 1d }, parameters);
         }
     }
 }

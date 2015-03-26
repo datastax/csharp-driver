@@ -889,8 +889,9 @@ namespace Cassandra.Data.Linq
                     var columnName = _pocoData.GetColumnName(node.Member);
                     if (columnName == null)
                     {
-                        //Not valid: Trying to select fields that are not part of PocoType
-                        break;
+                        // When in Select() for Update() we have a value here, not a column.
+                        var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                        columnName = column.ColumnName;
                     }
                     if (node.Expression == null)
                     {
