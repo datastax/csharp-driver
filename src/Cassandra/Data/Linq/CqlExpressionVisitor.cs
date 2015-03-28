@@ -407,6 +407,11 @@ namespace Cassandra.Data.Linq
                 {
                     throw new CqlLinqNotSupportedException(binding, _parsePhase.Get());
                 }
+                if (binding.NodeType == ExpressionType.New)
+                {
+                    //Its a projection constructing a new instance
+                    return AddProjection(node);
+                }
 
                 string bindingName;
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
@@ -421,7 +426,6 @@ namespace Cassandra.Data.Linq
                     {
                         throw new CqlLinqNotSupportedException(binding, _parsePhase.Get());
                     }
-
                     bindingName = memberExpression.Member.Name;
                 }
 
@@ -515,13 +519,36 @@ namespace Cassandra.Data.Linq
             {
                 return EvaluateConditionFunction(node);
             }
-            else if (_parsePhase.Get() == ParsePhase.SelectBinding)
+            if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
-                //Applied operators and functions to UPDATE or SELECT statement
-                return EvaluateProjectionFunction(node);
+                if (EvaluateOperatorMethod(node))
+                {
+                    //Applied operators and functions to UPDATE or SELECT statement
+                    return node;
+                }
+                //Try to evaluate the expression
+                return AddProjection(node);
             }
 
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
+        }
+
+        /// <summary>
+        /// Tries to evaluate the current expression and add it as a projection
+        /// </summary>
+        private Expression AddProjection(Expression node, string columnName = null)
+        {
+            var value = Expression.Lambda(node).Compile().DynamicInvoke();
+            if (columnName == null)
+            {
+                columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
+                if (columnName == null)
+                {
+                    throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
+                } 
+            }
+            _projections.Add(Tuple.Create(columnName, value, ExpressionType.Assign));
+            return node;
         }
 
         private Expression EvaluateConditionFunction(MethodCallExpression node)
@@ -619,8 +646,12 @@ namespace Cassandra.Data.Linq
             return false;
         }
 
-        private Expression EvaluateProjectionFunction(MethodCallExpression node)
+        private bool EvaluateOperatorMethod(MethodCallExpression node)
         {
+            if (node.Method.DeclaringType != typeof (CqlOperator))
+            {
+                return false;
+            }
             var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
             object value = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke();
             ExpressionType expressionType;
@@ -636,10 +667,10 @@ namespace Cassandra.Data.Linq
                     expressionType = ExpressionType.SubtractAssign;
                     break;
                 default:
-                    throw new ArgumentException(String.Format("Projection {0} not supported", node.Method.Name));
+                    return false;
             }
             _projections.Add(Tuple.Create(column.ColumnName, value, expressionType));
-            return node;
+            return true;
         }
 
         private static Expression DropNullableConversion(Expression node)
@@ -762,13 +793,12 @@ namespace Cassandra.Data.Linq
             }
             else if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
-                var val = Expression.Lambda(node).Compile().DynamicInvoke();
                 var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
                 if (column == null)
                 {
                     throw new ArgumentException("Trying to select a column does it excluded in the mappings");
                 }
-                _projections.Add(Tuple.Create(column.ColumnName, val, ExpressionType.Assign));
+                AddProjection(node, column.ColumnName);
                 _selectFields.Add(column.ColumnName);
                 return node;
             }
@@ -886,34 +916,18 @@ namespace Cassandra.Data.Linq
                 }
                 case ParsePhase.SelectBinding:
                 {
-                    var columnName = _pocoData.GetColumnName(node.Member);
-                    if (columnName == null)
+                    string columnName;
+                    if (node.Expression == null || node.Expression.NodeType != ExpressionType.Parameter)
                     {
-                        // When in Select() for Update() we have a value here, not a column.
-                        var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
-                        columnName = column.ColumnName;
-                    }
-                    if (node.Expression == null)
-                    {
-                        var value = Expression.Lambda(node).Compile().DynamicInvoke();
                         columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
-                        _projections.Add(Tuple.Create(columnName, value, ExpressionType.Assign));
-                        return node;
-                    }
-                    if (node.Expression.NodeType == ExpressionType.Constant || node.Expression.NodeType == ExpressionType.MemberAccess)
-                    {
-                        var value = Expression.Lambda(node).Compile().DynamicInvoke();
-                        _projections.Add(Tuple.Create(columnName, value, ExpressionType.Assign));
+                        AddProjection(node, columnName);
                         _selectFields.Add(columnName);
                         return node;
                     }
-                    if (node.Expression.NodeType == ExpressionType.Parameter)
-                    {
-                        _projections.Add(Tuple.Create(columnName, (object)columnName, ExpressionType.Assign));
-                        _selectFields.Add(columnName);
-                        return node;
-                    }
-                    break;
+                    columnName = _pocoData.GetColumnName(node.Member);
+                    _projections.Add(Tuple.Create(columnName, (object)columnName, ExpressionType.Assign));
+                    _selectFields.Add(columnName);
+                    return node;
                 }
                 case ParsePhase.OrderByDescending:
                 case ParsePhase.OrderBy:

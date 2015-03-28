@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Cassandra.Data.Linq;
@@ -160,15 +161,80 @@ namespace Cassandra.Tests.Mapping.Linq
             });
             var table = session.GetTable<AllTypesDecorated>();
             var dateTimeValue = DateTime.Now;
+            var anon = new { Prop1 = 1L };
             table
                 .Where(t => t.IntValue == 100 && t.BooleanValue == true && t.DoubleValue > 1d)
-                .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
+                .Select(t => new AllTypesDecorated
+                {
+                    DateTimeValue = dateTimeValue, 
+                    StringValue = dateTimeValue.ToString(), 
+                    Int64Value = anon.Prop1
+                })
                 .Update()
                 .Execute();
             Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""datetime_VALUE"" = ? WHERE ""int_VALUE"" = ? AND ""boolean_VALUE"" = ? AND ""double_VALUE"" > ?",
+                @"UPDATE ""atd"" SET ""datetime_VALUE"" = ?, ""string_VALUE"" = ?, ""int64_VALUE"" = ? WHERE ""int_VALUE"" = ? AND ""boolean_VALUE"" = ? AND ""double_VALUE"" > ?",
                 query);
-            CollectionAssert.AreEqual(new object[] { dateTimeValue, 100, true, 1d }, parameters);
+            CollectionAssert.AreEqual(new object[] { dateTimeValue, dateTimeValue.ToString(), anon.Prop1, 100, true, 1d }, parameters);
+        }
+
+        [Test]
+        public void Update_Set_From_Other_Instances_With_Where_Clause()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var table = new Table<Song>(session);
+            var other = new Song()
+            {
+                Id = Guid.NewGuid(),
+                Artist = "The Rolling Stones",
+                Title = "Paint It Black"
+            };
+            table
+                .Where(t => t.Id == Guid.Empty)
+                .Select(t => new Song
+                {
+                    Title = other.Artist,
+                    Artist = other.Artist,
+                    ReleaseDate = DateTimeOffset.MinValue
+                })
+                .Update()
+                .Execute();
+            Assert.AreEqual(
+                @"UPDATE Song SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ?",
+                query);
+            CollectionAssert.AreEqual(new object[] { other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty }, parameters);
+        }
+
+        [Test]
+        public void Update_Set_From_New_Instance_Expression_With_Where_Clause()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var table = new Table<Song>(session);
+            table
+                .Where(t => t.Id == Guid.Empty)
+                .Select(t => new Song
+                {
+                    Artist = Convert.ToString("The Rolling Stones").ToUpperInvariant(),
+                    ReleaseDate = new DateTimeOffset(new DateTime(1999, 12, 31))
+                })
+                .Update()
+                .Execute();
+            Assert.AreEqual(
+                @"UPDATE Song SET Artist = ?, ReleaseDate = ? WHERE Id = ?",
+                query);
+            CollectionAssert.AreEqual(new object[] { "The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty }, parameters);
         }
     }
 }
