@@ -295,7 +295,7 @@ namespace Cassandra
             //Use one of the worker/executor threads to wait on the schema change
             Task.Factory.StartNew(() =>
             {
-                _session.Cluster.Metadata.WaitForSchemaAgreement();
+                _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
                 //Set the result from the worker thread
                 _tcs.TrySetResult((T)(object)FillRowSet(new RowSet(), output));
             });

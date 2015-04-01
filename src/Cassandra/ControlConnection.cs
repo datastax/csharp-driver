@@ -421,16 +421,32 @@ namespace Cassandra
                     //Try to execute again without retry
                     return Query(cqlQuery, false);
                 }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
-            if (!(task.Result is ResultResponse) && !(((ResultResponse)task.Result).Output is OutputRows))
+            return GetRowSet(task.Result);
+        }
+
+        /// <summary>
+        /// Validates that the result contains a RowSet and returns it.
+        /// </summary>
+        /// <exception cref="NullReferenceException" />
+        /// <exception cref="DriverInternalError" />
+        public static RowSet GetRowSet(AbstractResponse response)
+        {
+            if (response == null)
             {
-                throw new DriverInternalError("Expected rows " + task.Result);
+                throw new NullReferenceException("Response can not be null");
             }
-            return (((ResultResponse)task.Result).Output as OutputRows).RowSet;
+            if (!(response is ResultResponse))
+            {
+                throw new DriverInternalError("Expected rows, obtained " + response.GetType().FullName);
+            }
+            var result = (ResultResponse) response;
+            if (!(result.Output is OutputRows))
+            {
+                throw new DriverInternalError("Expected rows output, obtained " + result.Output.GetType().FullName);
+            }
+            return ((OutputRows) result.Output).RowSet;
         }
     }
 }
