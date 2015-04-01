@@ -21,6 +21,9 @@ using System.Linq;
 
 namespace Cassandra
 {
+    using System.Net.Sockets;
+    using System.Threading.Tasks;
+
     /// <summary>
     ///  A data-center aware Round-robin load balancing policy. <p> This policy
     ///  provides round-robin queries over the node of the local datacenter. It also
@@ -103,13 +106,7 @@ namespace Cassandra
             _cluster.HostRemoved += _ => ClearHosts();
             if (_localDc == null)
             {
-                //Use the first host to determine the datacenter
-                var firstHost = _cluster.AllHosts().FirstOrDefault(h => h.Datacenter != null);
-                if (firstHost == null)
-                {
-                    throw new DriverInternalError("Local datacenter could not be determined");
-                }
-                _localDc = firstHost.Datacenter;
+                _localDc = GetNearestDatacenter();
             }
             else
             {
@@ -120,6 +117,35 @@ namespace Cassandra
                     throw new ArgumentException(String.Format("Datacenter {0} does not match any of the nodes, available datacenters: {1}.", _localDc, availableDcs));
                 }
             }
+        }
+
+        private string GetNearestDatacenter()
+        {
+            // Select the first host per datacenter
+            var firstHostByDatacenter = _cluster.AllHosts()
+                .Where(item => item.Datacenter != null)
+                .GroupBy(item => item.Datacenter)
+                .Select(item => new { Datacenter = item.Key, FirstHost = item.FirstOrDefault() })
+                .Where(item => item.FirstHost != null)
+                .Select(item => new { item.Datacenter, EndPoint = item.FirstHost.Address })
+                .Where(item => item.EndPoint != null)
+                .ToList();
+
+            if (!firstHostByDatacenter.Any())
+            {
+                throw new DriverInternalError("Local datacenter could not be determined");
+            }
+
+            // try to connect to one node in every datacenter
+            var tasks = firstHostByDatacenter
+                .Select(item => new TaskFactory().StartNew(() => new TcpClient().Connect(item.EndPoint)))
+                .ToArray();
+            // the index of first task that returns
+            var index = Task.WaitAny(tasks);
+
+            var firstHost = firstHostByDatacenter[index];
+
+            return firstHost.Datacenter;
         }
 
         /// <summary>
