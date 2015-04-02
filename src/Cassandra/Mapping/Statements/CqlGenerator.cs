@@ -33,7 +33,7 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Adds "SELECT columnlist" and "FROM tablename" to a CQL statement if they don't already exist for a POCO of Type T.
         /// </summary>
-        public void AddSelect<T>(Cql cql)
+        public void AddSelect<T>(Cql cql, string table = null)
         {
             // If it's already got a SELECT clause, just bail
             if (SelectRegex.IsMatch(cql.Statement))
@@ -42,11 +42,12 @@ namespace Cassandra.Mapping.Statements
             // Get the PocoData so we can generate a list of columns
             var pocoData = _pocoDataFactory.GetPocoData<T>();
             var allColumns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
+            var concreteTable = table ?? pocoData.TableName;
 
             // If it's got the from clause, leave FROM intact, otherwise add it
             cql.SetStatement(FromRegex.IsMatch(cql.Statement)
                                  ? string.Format("SELECT {0} {1}", allColumns, cql.Statement)
-                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, Escape(pocoData.TableName, pocoData), cql.Statement));
+                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, Escape(concreteTable, pocoData), cql.Statement));
         }
 
         /// <summary>
@@ -92,7 +93,7 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Generates an "UPDATE tablename SET columns = ? WHERE pkColumns = ?" statement for a POCO of Type T.
         /// </summary>
-        public string GenerateUpdate<T>()
+        public string GenerateUpdate<T>(string table = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
 
@@ -105,24 +106,26 @@ namespace Cassandra.Mapping.Statements
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
             }
 
+            var concreteTable = table ?? pocoData.TableName;
             var nonPkColumns = pocoData.GetNonPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")).ToCommaDelimitedString();
             var pkColumns = string.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")));
-            return string.Format("UPDATE {0} SET {1} WHERE {2}", Escape(pocoData.TableName, pocoData), nonPkColumns, pkColumns);
+            return string.Format("UPDATE {0} SET {1} WHERE {2}", Escape(concreteTable, pocoData), nonPkColumns, pkColumns);
         }
 
         /// <summary>
         /// Prepends the CQL statement specified with "UPDATE tablename " for a POCO of Type T.
         /// </summary>
-        public void PrependUpdate<T>(Cql cql)
+        public void PrependUpdate<T>(Cql cql, string table = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
-            cql.SetStatement(string.Format("UPDATE {0} {1}", Escape(pocoData.TableName, pocoData), cql.Statement));
+            var concreteTable = table ?? pocoData.TableName;
+            cql.SetStatement(string.Format("UPDATE {0} {1}", Escape(concreteTable, pocoData), cql.Statement));
         }
 
         /// <summary>
         /// Generates a "DELETE FROM tablename WHERE pkcolumns = ?" statement for a POCO of Type T.
         /// </summary>
-        public string GenerateDelete<T>()
+        public string GenerateDelete<T>(string table = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
 
@@ -137,17 +140,19 @@ namespace Cassandra.Mapping.Statements
                                                                   pocoData.MissingPrimaryKeyColumns.ToCommaDelimitedString()));
             }
 
+            var concreteTable = table ?? pocoData.TableName;
             var pkColumns = String.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")));
-            return string.Format("DELETE FROM {0} WHERE {1}", Escape(pocoData.TableName, pocoData), pkColumns);
+            return string.Format("DELETE FROM {0} WHERE {1}", Escape(concreteTable, pocoData), pkColumns);
         }
 
         /// <summary>
         /// Prepends the CQL statement specified with "DELETE FROM tablename " for a POCO of Type T.
         /// </summary>
-        public void PrependDelete<T>(Cql cql)
+        public void PrependDelete<T>(Cql cql, string table = null)
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            cql.SetStatement(string.Format("DELETE FROM {0} {1}", pocoData.TableName, cql.Statement));
+            var concreteTable = table ?? pocoData.TableName;
+            cql.SetStatement(string.Format("DELETE FROM {0} {1}", concreteTable, cql.Statement));
         }
 
         private static string GetTypeString(PocoColumn column)
