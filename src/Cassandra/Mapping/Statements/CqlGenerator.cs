@@ -1,9 +1,9 @@
+using Cassandra.Mapping.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Mapping.Statements
 {
@@ -76,18 +76,19 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Generates an "INSERT INTO tablename (columns) VALUES (?)" statement for a POCO of Type T.
         /// </summary>
-        public string GenerateInsert<T>(bool ifNotExists = false)
+        public string GenerateInsert<T>(bool ifNotExists = false, string table = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
 
             if (pocoData.Columns.Count == 0)
                 throw new InvalidOperationException(string.Format(NoColumns, "INSERT", typeof(T).Name));
 
+            var concreteTable = table ?? pocoData.TableName;
             var columns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
             var placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
-            return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}", Escape(pocoData.TableName, pocoData), columns, placeholders, ifNotExists ? " IF NOT EXISTS" : null);
+            return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}", Escape(concreteTable, pocoData), columns, placeholders, ifNotExists ? " IF NOT EXISTS" : null);
         }
-        
+
         /// <summary>
         /// Generates an "UPDATE tablename SET columns = ? WHERE pkColumns = ?" statement for a POCO of Type T.
         /// </summary>
@@ -188,7 +189,7 @@ namespace Cassandra.Mapping.Statements
                     .Append(columnName)
                     .Append(" ");
                 var columnType = column.IsCounter ? "counter" : GetTypeString(column);
-                createTable    
+                createTable
                     .Append(columnType);
                 if (column.IsStatic)
                 {

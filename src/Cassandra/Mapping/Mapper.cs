@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Cassandra.Mapping.Statements;
+using Cassandra.Tasks;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Mapping.Statements;
-using Cassandra.Tasks;
 
 namespace Cassandra.Mapping
 {
@@ -20,27 +20,30 @@ namespace Cassandra.Mapping
         private readonly StatementFactory _statementFactory;
         private readonly CqlGenerator _cqlGenerator;
         private readonly int _queryAbortTimeout = 3000;
+        private readonly string _table;
 
         /// <summary>
         /// Creates a new instance of the mapper using the configuration provided
         /// </summary>
         /// <param name="session">Session to be used to execute the statements</param>
         /// <param name="config">Mapping definitions for the POCOs</param>
-        public Mapper(ISession session, MappingConfiguration config) 
-            : this(session, config.MapperFactory, config.StatementFactory, new CqlGenerator(config.MapperFactory.PocoDataFactory))
+        /// <param name="table">Concrete table for mapping instance</param>
+        public Mapper(ISession session, MappingConfiguration config, string table = null)
+            : this(session, config.MapperFactory, config.StatementFactory, new CqlGenerator(config.MapperFactory.PocoDataFactory), table)
         {
-            
+
         }
 
         /// <summary>
         /// Creates a new instance of the mapper using <see cref="MappingConfiguration.Global"/> mapping definitions.
         /// </summary>
-        public Mapper(ISession session) : this(session, MappingConfiguration.Global)
+        public Mapper(ISession session, string table = null)
+            : this(session, MappingConfiguration.Global, table)
         {
-            
+
         }
 
-        internal Mapper(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator)
+        internal Mapper(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator, string table = null)
         {
             if (session == null) throw new ArgumentNullException("session");
             if (mapperFactory == null) throw new ArgumentNullException("mapperFactory");
@@ -51,6 +54,7 @@ namespace Cassandra.Mapping
             _mapperFactory = mapperFactory;
             _statementFactory = statementFactory;
             _cqlGenerator = cqlGenerator;
+            _table = table;
             if (session.Cluster != null && session.Cluster.Configuration != null)
             {
                 _queryAbortTimeout = session.Cluster.Configuration.ClientOptions.QueryAbortTimeout;
@@ -195,7 +199,7 @@ namespace Cassandra.Mapping
         public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get statement and bind values from POCO
-            string cql = _cqlGenerator.GenerateInsert<T>();
+            string cql = _cqlGenerator.GenerateInsert<T>(table: _table);
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             object[] values = getBindValues(poco);
 
@@ -209,7 +213,7 @@ namespace Cassandra.Mapping
             var getBindValues = _mapperFactory.GetValueCollector<T>(cql);
             var values = getBindValues(poco);
             return ExecuteAsyncAndAdapt(
-                Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None), 
+                Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None),
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
         }
 
@@ -254,7 +258,7 @@ namespace Cassandra.Mapping
 
             return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
-        
+
         public Task DeleteAsync<T>(string cql, params object[] args)
         {
             return DeleteAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
@@ -462,7 +466,7 @@ namespace Cassandra.Mapping
         {
             return UpdateIf<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
-        
+
         public AppliedInfo<T> UpdateIf<T>(Cql cql)
         {
             //Wait async method to be completed or throw
