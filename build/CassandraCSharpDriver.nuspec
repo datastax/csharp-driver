@@ -9,10 +9,15 @@
         <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
         <projectUrl>https://github.com/datastax/csharp-driver</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <description>A C# client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language version 3 (CQL3) and the CQL Native Protocol available from Cassandra 1.2.</description>
+        <summary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra</summary>
+        <description>
+          A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra&#39;s binary protocol and Cassandra Query Language v3.
+          Features: Sync and Async API; Simple, Prepared and Batch statements; Asynchronous IO, parallel execution, request pipelining; Connection pooling; Auto node discovery.
+          Works with any Cassandra cluster size.
+        </description>
         <releaseNotes />
         <copyright>Copyright (C) 2015 DataStax Inc.</copyright>
-        <tags>cassandra apache datastax driver database nosql</tags>
+        <tags>cassandra apache datastax driver database nosql dotnet</tags>
         <dependencies>
             <dependency id="lz4net" version="1.0.5.93" />
         </dependencies>
