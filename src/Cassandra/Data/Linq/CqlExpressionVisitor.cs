@@ -715,6 +715,20 @@ namespace Cassandra.Data.Linq
                 {
                     return Visit(node.Operand);
                 }
+                var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                if (column != null && column.IsCounter)
+                {
+                    var value = Expression.Lambda(node).Compile().DynamicInvoke();
+                    if (!(value is long || value is int))
+                    {
+                        throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                    }
+                    var expressionType = Convert.ToInt64(value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
+                    _projections.Add(Tuple.Create(column.ColumnName, value, expressionType));
+                    _selectFields.Add(column.ColumnName);
+                    return node;
+                }
+
             }
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
