@@ -253,11 +253,13 @@ namespace Cassandra.Data.Linq
                         break;
                     case ExpressionType.Increment:
                         //Counter
-                        operation = " = " + columnName + " + 1";
+                        operation = " = " + columnName + " + ?";
+                        parameters.Add(projection.Item2);
                         break;
                     case ExpressionType.Decrement:
                         //Counter
-                        operation = " = " + columnName + " - 1";
+                        operation = " = " + columnName + " - ?";
+                        parameters.Add(projection.Item2);
                         break;
                     default:
                         operation = " = ?";
@@ -947,9 +949,24 @@ namespace Cassandra.Data.Linq
                     PocoColumn column;
                     if (node.Expression == null || node.Expression.NodeType != ExpressionType.Parameter)
                     {
-                        column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                        var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                        if (column == null)
+                            break;
+                        columnName = column.ColumnName;
+                        if (column.IsCounter)
+                        {
+                            var value = Expression.Lambda(node).Compile().DynamicInvoke();
+                            if (!(value is long || value is int))
+                            {
+                                throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                            }
+                            var expressionType = Convert.ToInt64(value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
+                            _projections.Add(Tuple.Create(columnName, value, expressionType));
+                            _selectFields.Add(columnName);
+                            return node;
+                        }
                         AddProjection(node, column);
-                        _selectFields.Add(column.ColumnName);
+                        _selectFields.Add(columnName);
                         return node;
                     }
                     column = _pocoData.GetColumnByMemberName(node.Member.Name);
