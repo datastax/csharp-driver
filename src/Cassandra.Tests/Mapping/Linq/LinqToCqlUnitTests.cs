@@ -371,11 +371,17 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<CounterTestTable1>(null);
             var query = table
                 .Where(r => r.RowKey1 == 5 && r.RowKey2 == 6)
-                .Select(r => new CounterTestTable1() { Value = 1 })
+                .Select(r => new CounterTestTable1() { Value = 2 })
                 .Update()
                 .ToString();
-            const string expectedQuery = "UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + 1 WHERE \"RowKey1\" = ? AND \"RowKey2\" = ?";
-            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual("UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + ? WHERE \"RowKey1\" = ? AND \"RowKey2\" = ?", query);
+            int x = 4;
+            query = table
+                .Where(r => r.RowKey1 == 5 && r.RowKey2 == 6)
+                .Select(r => new CounterTestTable1() { Value = x })
+                .Update()
+                .ToString();
+            Assert.AreEqual("UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + ? WHERE \"RowKey1\" = ? AND \"RowKey2\" = ?", query);
         }
 
         private class InsertNullTable
