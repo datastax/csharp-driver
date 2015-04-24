@@ -22,11 +22,11 @@
     public enum BatchType
     {
         /// <summary>
-        /// A logged batch: Cassandra will first the batch to its distributed batch log to ensure the atomicity of the batch.
+        /// A logged batch: Cassandra will first write the batch to its distributed batch log to ensure the atomicity of the batch.
         /// </summary>
         Logged = 0,
         /// <summary>
-        /// A logged batch: Cassandra will first the batch to its distributed batch log to ensure the atomicity of the batch.
+        /// An unlogged batch: The batch will not be written to the batch log and atomicity of the batch is NOT guaranteed.
         /// </summary>
         Unlogged = 1,
         /// <summary>
