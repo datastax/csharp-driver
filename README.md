@@ -195,6 +195,9 @@ var statement = new SimpleStatement(query)
   .SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
   .SetPageSize(1000);
 ```
+## Feedback Requested
+
+**Help us focus our efforts!** Provide your input on the [Platform and Runtime Survey][survey] (we kept it short).
 
 ## Building and running the tests
 
@@ -231,3 +234,4 @@ limitations under the License.
   [policies]: http://docs.datastax.com/en/developer/csharp-driver/2.5/common/drivers/reference/tuningPolicies_c.html
   [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
   [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
+  [survey]: http://goo.gl/forms/3BxcP8nKs6
