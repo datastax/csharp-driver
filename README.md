@@ -1,7 +1,6 @@
 # DataStax C# Driver for Apache Cassandra
 
-A C# client driver for Apache Cassandra. This driver works exclusively with
-the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.
+A modern, [feature-rich](#features) and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
 
 ## Installation
 
@@ -14,12 +13,14 @@ PM> Install-Package CassandraCSharpDriver
 
 ## Features
 
+- Sync and [Async](#asynchronous-api) API
+- Simple, [Prepared](#prepared-statements), and [Batch](#batching-statements) statements
+- Asynchronous IO, parallel execution, request pipelining
 - Connection pooling
-- Node discovery
-- Automatic failover
-- Several load balancing and retry policies
-- Result paging
-- Query batching
+- Auto node discovery
+- Automatic reconnection
+- Configurable [load balancing][policies] and [retry policies][policies]
+- Works with any cluster size
 - [Linq2Cql][linq] and Ado.Net support
 
 ## Documentation
@@ -227,5 +228,6 @@ limitations under the License.
   [linq]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/linqComponent.html
   [mapper]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/mapperComponent.html
   [components]: http://www.datastax.com/documentation/developer/csharp-driver/2.5/csharp-driver/reference/driverComponents.html
+  [policies]: http://docs.datastax.com/en/developer/csharp-driver/2.5/common/drivers/reference/tuningPolicies_c.html
   [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
   [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
