@@ -103,15 +103,9 @@ namespace Cassandra.Data.Linq
             var query = new StringBuilder();
             var parameters = new List<object>();
             query.Append("SELECT ");
-            if (_selectFields.Count == 0)
-            {
-                //Select all columns
-                query.Append("*");
-            }
-            else
-            {
-                query.Append(String.Join(", ", _selectFields.Select(Escape)));   
-            }
+            query.Append(_selectFields.Count == 0
+                ? _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString()
+                : _selectFields.Select(Escape).ToCommaDelimitedString());
 
             query.Append(" FROM ");
             query.Append(GetEscapedTableName());

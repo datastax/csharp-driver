@@ -34,12 +34,12 @@ namespace Cassandra.Tests.Mapping.Linq
 
             var table = GetTable<AllTypesEntity>(session, map);
             table.Where(t => t.DecimalValue > 100M).AllowFiltering().Execute();
-            Assert.AreEqual("SELECT * FROM values WHERE val2 > ? ALLOW FILTERING", query);
+            Assert.AreEqual("SELECT val2, val, StringValue, id FROM values WHERE val2 > ? ALLOW FILTERING", query);
             Assert.AreEqual(parameters.Length, 1);
             Assert.AreEqual(parameters[0], 100M);
 
             table.AllowFiltering().Execute();
-            Assert.AreEqual("SELECT * FROM values ALLOW FILTERING", query);
+            Assert.AreEqual("SELECT val2, val, StringValue, id FROM values ALLOW FILTERING", query);
             Assert.AreEqual(0, parameters.Length);
         }
 
@@ -108,11 +108,11 @@ namespace Cassandra.Tests.Mapping.Linq
             var id = Guid.NewGuid();
             var table = GetTable<AllTypesEntity>(session, map);
             (from t in table where t.UuidValue == id orderby t.StringValue descending select t).Execute();
-            Assert.AreEqual("SELECT * FROM tbl1 WHERE id = ? ORDER BY string_val DESC", query);
+            Assert.AreEqual("SELECT val2, val, string_val, id FROM tbl1 WHERE id = ? ORDER BY string_val DESC", query);
             CollectionAssert.AreEqual(parameters, new object[] { id });
 
             (from t in table where t.UuidValue == id orderby t.StringValue select t).Execute();
-            Assert.AreEqual("SELECT * FROM tbl1 WHERE id = ? ORDER BY string_val", query);
+            Assert.AreEqual("SELECT val2, val, string_val, id FROM tbl1 WHERE id = ? ORDER BY string_val", query);
             CollectionAssert.AreEqual(parameters, new object[] { id });
         }
 
