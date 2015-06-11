@@ -51,9 +51,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     // first stop any existing CCM clusters
                     ShutDownAllCcmTestClusters();
-
                     // Create new cluster via ccm
-                    CcmCluster testCluster = new CcmCluster(CassandraVersion, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
+                    CcmCluster testCluster = new CcmCluster(CassandraVersionStr, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
                     testCluster.Create(startCluster);
                     _testClusters.Add(testCluster);
                     return testCluster;

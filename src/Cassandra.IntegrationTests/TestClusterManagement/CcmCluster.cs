@@ -9,18 +9,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class CcmCluster : ITestCluster
     {
-        public CcmBridge CcmBridge;
-        public CcmClusterInfo CcmClusterInfo = null;
-        public Version CassandraVersion;
+        public CcmBridge CcmBridge { get; private set; }
+        private readonly string _version;
 
-        public CcmCluster(Version cassandraVersion, string name, int dc1NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true) :
-            this(cassandraVersion, name, dc1NodeCount, 0, clusterIpPrefix, defaultKeyspace, isUsingDefaultConfig)
+        public CcmCluster(string version, string name, int dc1NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true) :
+            this(version, name, dc1NodeCount, 0, clusterIpPrefix, defaultKeyspace, isUsingDefaultConfig)
         {
         }
 
-        public CcmCluster(Version cassandraVersion, string name, int dc1NodeCount, int dc2NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true)
+        public CcmCluster(string version, string name, int dc1NodeCount, int dc2NodeCount, string clusterIpPrefix, string defaultKeyspace, bool isUsingDefaultConfig = true)
         {
-            CassandraVersion = cassandraVersion;
+            _version = version;
             Name = name;
             Dc1NodeCount = dc1NodeCount;
             Dc2NodeCount = dc2NodeCount;
@@ -70,9 +69,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 IsBeingCreated = true;
                 if (Dc2NodeCount > 0)
-                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, Dc2NodeCount, CassandraVersion.ToString(), startTheCluster);
+                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, Dc2NodeCount, _version, startTheCluster);
                 else
-                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, CassandraVersion.ToString(), startTheCluster);
+                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster);
                 IsBeingCreated = false;
                 IsCreated = true;
                 if (startTheCluster)
@@ -139,7 +138,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void UseVNodes(string nodesToPopulate)
         {
             CcmBridge.ExecuteCcm("remove");
-            CcmBridge.ExecuteCcm(String.Format("create {0} -v {1}", CcmBridge.Name, CassandraVersion));
+            CcmBridge.ExecuteCcm(String.Format("create {0} -v {1}", CcmBridge.Name, _version));
             CcmBridge.ExecuteCcm(String.Format("populate -n {0} -i {1} --vnodes", nodesToPopulate, CcmBridge.IpPrefix), CcmBridge.DefaultCmdTimeout, true);
             CcmBridge.ExecuteCcm("start", CcmBridge.DefaultCmdTimeout, true);
         }
