@@ -1,0 +1,69 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net;
+using System.Text;
+using NUnit.Framework;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
+
+namespace Cassandra.IntegrationTests.Core
+{
+    [Category("short")]
+    public class ControlConnectionTests : TestGlobals
+    {
+        private ITestCluster _testCluster;
+
+        [TestFixtureSetUp]
+        public void SetupFixture()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            // Test ccm cluster without client
+            _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+        }
+
+        [Test]
+        public void Should_Initialize_Using_Correct_Protocol_Version()
+        {
+            var cc = NewInstance();
+            cc.Init();
+            Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
+            cc.Dispose();
+        }
+
+        private ControlConnection NewInstance(Configuration config = null, Metadata metadata = null)
+        {
+            if (config == null)
+            {
+                config = new Configuration();   
+            }
+            if (metadata == null)
+            {
+                metadata = new Metadata(config);
+                metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
+            }
+            var cc = new ControlConnection(config, metadata);
+            metadata.ControlConnection = cc;
+            return cc;
+        }
+
+        private byte GetExpectedProtocolVersion()
+        {
+            var expectedVersion = (byte)Cluster.MaxProtocolVersion;
+            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            {
+                expectedVersion = 3;
+            }
+            if (TestClusterManager.CassandraVersion < Version.Parse("2.1"))
+            {
+                expectedVersion = 2;
+            }
+            if (TestClusterManager.CassandraVersion < Version.Parse("2.0"))
+            {
+                expectedVersion = 1;
+            }
+            return expectedVersion;
+        }
+    }
+}

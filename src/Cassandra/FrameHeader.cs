@@ -102,5 +102,13 @@ namespace Cassandra
             header.Len = buffer.Skip(offset).Take(4).ToArray();
             return header;
         }
+
+        /// <summary>
+        /// Gets the protocol version based on the first byte of the header
+        /// </summary>
+        public static byte GetProtocolVersion(byte[] buffer)
+        {
+            return (byte)(buffer[0] & 0x7F);
+        }
     }
 }

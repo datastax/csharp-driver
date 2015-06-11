@@ -28,7 +28,7 @@ namespace Cassandra
     /// <inheritdoc />
     public class Cluster : ICluster
     {
-        private static int _maxProtocolVersion = 3;
+        private static int _maxProtocolVersion = 4;
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private int _binaryProtocolVersion;
         private readonly ConcurrentBag<Session> _connectedSessions = new ConcurrentBag<Session>();
@@ -127,16 +127,12 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                _controlConnection = new ControlConnection(this, _metadata);
+                _controlConnection = new ControlConnection(Configuration, _metadata);
                 _metadata.ControlConnection = _controlConnection;
                 try
                 {
                     _controlConnection.Init();
                     _binaryProtocolVersion = _controlConnection.ProtocolVersion;
-                    if (_controlConnection.ProtocolVersion > MaxProtocolVersion)
-                    {
-                        _binaryProtocolVersion = MaxProtocolVersion;
-                    }
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                 }
                 catch (NoHostAvailableException)

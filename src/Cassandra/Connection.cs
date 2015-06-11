@@ -62,6 +62,7 @@ namespace Cassandra
         private volatile byte[] _minimalBuffer;
         private volatile string _keyspace;
         private readonly object _keyspaceLock = new object();
+        private volatile byte _frameHeaderSize;
         /// <summary> TaskScheduler used to handle write tasks</summary>
         private readonly TaskScheduler _writeScheduler = new LimitedParallelismTaskScheduler(1);
         /// <summary>
@@ -475,7 +476,13 @@ namespace Cassandra
                     offset = 0;
                     count = buffer.Length;
                 }
-                var headerSize = FrameHeader.GetSize(ProtocolVersion);
+                if (_frameHeaderSize == 0)
+                {
+                    //Read the first byte of the message to determine the version of the response
+                    ProtocolVersion = FrameHeader.GetProtocolVersion(buffer);
+                    _frameHeaderSize = FrameHeader.GetSize(ProtocolVersion);
+                }
+                var headerSize = _frameHeaderSize;
                 if (count < headerSize)
                 {
                     //There is not enough data to read the header
