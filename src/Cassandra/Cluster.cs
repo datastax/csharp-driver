@@ -29,8 +29,9 @@ namespace Cassandra
     public class Cluster : ICluster
     {
         private static int _maxProtocolVersion = 4;
+        // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
-        private int _binaryProtocolVersion;
+        private byte _protocolVersion;
         private readonly ConcurrentBag<Session> _connectedSessions = new ConcurrentBag<Session>();
         private ControlConnection _controlConnection;
         private volatile bool _initialized;
@@ -72,7 +73,11 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets or sets the maximum protocol version used by this driver
+        /// Gets or sets the maximum protocol version used by this driver.
+        /// <para>
+        /// While property value is maintained for backward-compatibility, 
+        /// use <see cref="ProtocolOptions.SetMaxProtocolVersion(byte)"/> to set the maximum protocol version used by the driver.
+        /// </para>
         /// </summary>
         public static int MaxProtocolVersion
         {
@@ -127,12 +132,19 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                _controlConnection = new ControlConnection(Configuration, _metadata);
+                _protocolVersion = (byte) MaxProtocolVersion;
+                if (Configuration.ProtocolOptions.MaxProtocolVersion != null &&
+                    Configuration.ProtocolOptions.MaxProtocolVersion < MaxProtocolVersion
+                    )
+                {
+                    _protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersion.Value;
+                }
+                _controlConnection = new ControlConnection(_protocolVersion, Configuration, _metadata);
                 _metadata.ControlConnection = _controlConnection;
                 try
                 {
                     _controlConnection.Init();
-                    _binaryProtocolVersion = _controlConnection.ProtocolVersion;
+                    _protocolVersion = _controlConnection.ProtocolVersion;
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                 }
                 catch (NoHostAvailableException)
@@ -148,7 +160,7 @@ namespace Cassandra
                     //Throw the actual exception for the first time
                     throw;
                 }
-                _logger.Info("Cluster Connected using binary protocol version: [" + _binaryProtocolVersion + "]");
+                _logger.Info("Cluster Connected using binary protocol version: [" + _protocolVersion + "]");
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
@@ -177,7 +189,7 @@ namespace Cassandra
         public ISession Connect(string keyspace)
         {
             Init();
-            var session = new Session(this, Configuration, keyspace, _binaryProtocolVersion);
+            var session = new Session(this, Configuration, keyspace, _protocolVersion);
             session.Init(true);
             _connectedSessions.Add(session);
             _logger.Info("Session connected!");

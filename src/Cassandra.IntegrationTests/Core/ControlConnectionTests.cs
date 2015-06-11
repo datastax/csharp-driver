@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Initialize_Using_Correct_Protocol_Version()
+        public void Should_Use_Maximum_Protocol_Version_Supported()
         {
             var cc = NewInstance();
             cc.Init();
@@ -32,8 +32,22 @@ namespace Cassandra.IntegrationTests.Core
             cc.Dispose();
         }
 
-        private ControlConnection NewInstance(Configuration config = null, Metadata metadata = null)
+        [Test, TestCassandraVersion(2, 0)]
+        public void Should_Use_Maximum_Protocol_Version_Provided()
         {
+            const byte version = 2;
+            var cc = NewInstance(version);
+            cc.Init();
+            Assert.AreEqual(version, cc.ProtocolVersion);
+            cc.Dispose();
+        }
+
+        private ControlConnection NewInstance(byte version = 0, Configuration config = null, Metadata metadata = null)
+        {
+            if (version == 0)
+            {
+                version = (byte) Cluster.MaxProtocolVersion;
+            }
             if (config == null)
             {
                 config = new Configuration();   
@@ -43,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
                 metadata = new Metadata(config);
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
-            var cc = new ControlConnection(config, metadata);
+            var cc = new ControlConnection(version, config, metadata);
             metadata.ControlConnection = cc;
             return cc;
         }

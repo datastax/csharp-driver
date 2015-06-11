@@ -34,12 +34,13 @@ namespace Cassandra
 
         private volatile Host _host;
         private volatile Connection _connection;
+        // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof (ControlConnection));
         private readonly Configuration _config;
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
-        private int _isShutdown = 0;
+        private int _isShutdown;
         private readonly object _refreshLock = new Object();
 
         /// <summary>
@@ -70,13 +71,13 @@ namespace Cassandra
             }
         }
 
-        internal ControlConnection(Configuration config, Metadata metadata)
+        internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
         {
             Metadata = metadata;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(_ => Refresh(true), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
-            ProtocolVersion = (byte) Cluster.MaxProtocolVersion;
+            ProtocolVersion = initialProtocolVersion;
         }
 
         public void Dispose()

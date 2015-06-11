@@ -31,7 +31,7 @@ namespace Cassandra.Tests
 
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
-            return new ControlConnection(config, metadata);
+            return new ControlConnection((byte)Cluster.MaxProtocolVersion, config, metadata);
         }
 
         private ControlConnection NewInstance(Metadata metadata)
