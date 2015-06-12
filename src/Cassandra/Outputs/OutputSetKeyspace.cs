@@ -14,11 +14,15 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
-    internal class OutputSetKeyspace : IOutput, IWaitableForDispose
+    internal class OutputSetKeyspace : IOutput
     {
-        public string Value;
+        public string Value { get; set; }
+
+        public Guid? TraceId { get; internal set; }
 
         internal OutputSetKeyspace(string val)
         {
@@ -27,16 +31,6 @@ namespace Cassandra
 
         public void Dispose()
         {
-        }
-
-        public void WaitForDispose()
-        {
-        }
-
-        public System.Guid? TraceId
-        {
-            get;
-            internal set;
         }
     }
 }

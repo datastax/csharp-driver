@@ -18,9 +18,11 @@ using System.Collections.Generic;
 
 namespace Cassandra
 {
-    internal class OutputOptions : IOutput, IWaitableForDispose
+    internal class OutputOptions : IOutput
     {
         private readonly Dictionary<string, string[]> _options;
+
+        public System.Guid? TraceId { get; internal set; }
 
         public IDictionary<string, string[]> Options
         {
@@ -41,16 +43,6 @@ namespace Cassandra
 
         public void Dispose()
         {
-        }
-
-        public void WaitForDispose()
-        {
-        }
-
-        public System.Guid? TraceId
-        {
-            get;
-            internal set;
         }
     }
 }

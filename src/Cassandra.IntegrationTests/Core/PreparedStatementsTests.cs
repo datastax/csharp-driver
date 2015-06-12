@@ -237,7 +237,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(query);
-            Assert.Null(preparedStatement.RoutingIndexes);
+            if (CassandraVersion < new Version(2, 2))
+            {
+                //For older versions, there is no way to determine that my_id is actually id column
+                Assert.Null(preparedStatement.RoutingIndexes);   
+            }
             Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
             Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
         }
@@ -540,7 +544,11 @@ namespace Cassandra.IntegrationTests.Core
             //With another query, named parameters are different
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE b = :nice_name_b AND a = :nice_name_a AND c = :nice_name_c");
             //Parameters names are different from partition keys
-            Assert.Null(ps.RoutingIndexes);
+            if (CassandraVersion < new Version(2, 2))
+            {
+                //For older versions, there is no way to determine that nice_name_a is actually partition column
+                Assert.Null(ps.RoutingIndexes);
+            }
             ps.SetRoutingNames("nice_name_a", "nice_name_b");
             var anon2 = new { nice_name_b = "b", nice_name_a = "a", nice_name_c = "c" };
             statement = ps.Bind(anon2);
@@ -564,7 +572,11 @@ namespace Cassandra.IntegrationTests.Core
 
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
             //Parameters names are different from partition keys
-            Assert.Null(ps.RoutingIndexes);
+            if (CassandraVersion < new Version(2, 2))
+            {
+                //For older versions, there is no way to determine that nice_name_a is actually partition column
+                Assert.Null(ps.RoutingIndexes);
+            }
         }
 
         [Test]

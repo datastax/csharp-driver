@@ -30,7 +30,6 @@ namespace Cassandra
     public class PreparedStatement
     {
         internal readonly RowSetMetadata Metadata;
-        internal readonly RowSetMetadata ResultMetadata;
         private readonly int _protocolVersion;
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
@@ -77,12 +76,11 @@ namespace Cassandra
             private set;
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, RowSetMetadata resultMetadata, int protocolVersion)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, int protocolVersion)
         {
             Metadata = metadata;
             Id = id;
             Cql = cql;
-            ResultMetadata = resultMetadata;
             Keyspace = keyspace;
             _protocolVersion = protocolVersion;
         }

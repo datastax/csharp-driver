@@ -19,7 +19,7 @@ using System.Collections.Generic;
 
 namespace Cassandra
 {
-    internal abstract class OutputError : IOutput, IWaitableForDispose
+    internal abstract class OutputError : IOutput
     {
         // Cache of methods for creating instances of OutputError, indexed by the error code
         private static readonly Dictionary<int, Func<OutputError>> OutputErrorFactoryMethods = new Dictionary<int, Func<OutputError>>()
@@ -50,10 +50,6 @@ namespace Cassandra
         }
 
         public void Dispose()
-        {
-        }
-
-        public void WaitForDispose()
         {
         }
 

@@ -305,6 +305,18 @@ namespace Cassandra
                 //The prepared statement does not contain parameters
                 return ps;
             }
+            if (ps.Metadata.PartitionKeys != null)
+            {
+                //The routing indexes where parsed in the prepared response
+                if (ps.Metadata.PartitionKeys.Length == 0)
+                {
+                    //zero-length partition keys means that none of the parameters are partition keys
+                    //the partition key is hard-coded.
+                    return ps;
+                }
+                ps.RoutingIndexes = ps.Metadata.PartitionKeys;
+                return ps;
+            }
             TableMetadata table = null;
             try
             {

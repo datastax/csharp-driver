@@ -33,7 +33,7 @@ namespace Cassandra.Tests
 
         private static PreparedStatement GetPrepared()
         {
-            return new PreparedStatement(null, null, "DUMMY QUERY", null, null, 1);
+            return new PreparedStatement(null, null, "DUMMY QUERY", null, 1);
         }
 
         [Test]

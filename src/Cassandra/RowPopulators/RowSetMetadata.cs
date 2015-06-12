@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 
+// ReSharper disable once CheckNamespace
 namespace Cassandra
 {
     [Flags]
@@ -154,19 +155,17 @@ namespace Cassandra
         /// </summary>
         public Dictionary<string, int> ColumnIndexes { get; protected set; }
 
-        private CqlColumn[] _columns;
+        internal byte[] PagingState { get; private set; }
 
-        private readonly ColumnDesc[] _rawColumns;
+        public CqlColumn[] Columns { get; internal set; }
 
-        internal readonly byte[] PagingState = null;
+        /// <summary>
+        /// Gets or sets the column index of the partition keys.
+        /// It returns null when partition keys were not parsed.
+        /// </summary>
+        internal int[] PartitionKeys { get; private set; }
 
-        public CqlColumn[] Columns
-        {
-            get { return _columns; }
-            internal set { _columns = value; }
-        }
-
-        internal RowSetMetadata(BEBinaryReader reader)
+        internal RowSetMetadata(BEBinaryReader reader, bool parsePartitionKeys = false)
         {
             if (reader == null)
             {
@@ -175,65 +174,73 @@ namespace Cassandra
             }
             var coldat = new List<ColumnDesc>();
             var flags = (RowSetMetadataFlags) reader.ReadInt32();
-            int numberOfcolumns = reader.ReadInt32();
+            var numberOfcolumns = reader.ReadInt32();
 
-            _rawColumns = new ColumnDesc[numberOfcolumns];
+            if (parsePartitionKeys)
+            {
+                PartitionKeys = new int[reader.ReadInt32()];
+                for (var i = 0; i < PartitionKeys.Length; i++)
+                {
+                    PartitionKeys[i] = reader.ReadInt16();
+                }
+            }
+
             string gKsname = null;
             string gTablename = null;
 
             if ((flags & RowSetMetadataFlags.HasMorePages) == RowSetMetadataFlags.HasMorePages)
-                PagingState = reader.ReadBytes();
-            else
-                PagingState = null;
-
-            if ((flags & RowSetMetadataFlags.NoMetadata) != RowSetMetadataFlags.NoMetadata)
             {
-                if ((flags & RowSetMetadataFlags.GlobalTablesSpec) == RowSetMetadataFlags.GlobalTablesSpec)
-                {
-                    gKsname = reader.ReadString();
-                    gTablename = reader.ReadString();
-                }
+                PagingState = reader.ReadBytes();
+            }
 
-                for (int i = 0; i < numberOfcolumns; i++)
-                {
-                    var col = new ColumnDesc();
-                    if ((flags & RowSetMetadataFlags.GlobalTablesSpec) != RowSetMetadataFlags.GlobalTablesSpec)
-                    {
-                        col.Keyspace = reader.ReadString();
-                        col.Table = reader.ReadString();
-                    }
-                    else
-                    {
-                        col.Keyspace = gKsname;
-                        col.Table = gTablename;
-                    }
-                    col.Name = reader.ReadString();
-                    col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
-                    col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
-                    coldat.Add(col);
-                }
-                _rawColumns = coldat.ToArray();
+            if ((flags & RowSetMetadataFlags.NoMetadata) == RowSetMetadataFlags.NoMetadata)
+            {
+                return;
+            }
+            if ((flags & RowSetMetadataFlags.GlobalTablesSpec) == RowSetMetadataFlags.GlobalTablesSpec)
+            {
+                gKsname = reader.ReadString();
+                gTablename = reader.ReadString();
+            }
 
-                _columns = new CqlColumn[_rawColumns.Length];
-                ColumnIndexes = new Dictionary<string, int>();
-                for (int i = 0; i < _rawColumns.Length; i++)
+            for (var i = 0; i < numberOfcolumns; i++)
+            {
+                var col = new ColumnDesc();
+                if ((flags & RowSetMetadataFlags.GlobalTablesSpec) != RowSetMetadataFlags.GlobalTablesSpec)
                 {
-                    _columns[i] = new CqlColumn
-                    {
-                        Name = _rawColumns[i].Name,
-                        Keyspace = _rawColumns[i].Keyspace,
-                        Table = _rawColumns[i].Table,
-                        Type = TypeCodec.GetDefaultTypeFromCqlType(
-                            _rawColumns[i].TypeCode,
-                            _rawColumns[i].TypeInfo),
-                        TypeCode = _rawColumns[i].TypeCode,
-                        TypeInfo = _rawColumns[i].TypeInfo,
-                        Index = i
-                    };
-                    //TODO: what with full long column names?
-                    if (!ColumnIndexes.ContainsKey(_rawColumns[i].Name))
-                        ColumnIndexes.Add(_rawColumns[i].Name, i);
+                    col.Keyspace = reader.ReadString();
+                    col.Table = reader.ReadString();
                 }
+                else
+                {
+                    col.Keyspace = gKsname;
+                    col.Table = gTablename;
+                }
+                col.Name = reader.ReadString();
+                col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
+                col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
+                coldat.Add(col);
+            }
+            var rawColumns = coldat.ToArray();
+
+            Columns = new CqlColumn[rawColumns.Length];
+            ColumnIndexes = new Dictionary<string, int>();
+            for (var i = 0; i < rawColumns.Length; i++)
+            {
+                Columns[i] = new CqlColumn
+                {
+                    Name = rawColumns[i].Name,
+                    Keyspace = rawColumns[i].Keyspace,
+                    Table = rawColumns[i].Table,
+                    Type = TypeCodec.GetDefaultTypeFromCqlType(
+                        rawColumns[i].TypeCode,
+                        rawColumns[i].TypeInfo),
+                    TypeCode = rawColumns[i].TypeCode,
+                    TypeInfo = rawColumns[i].TypeInfo,
+                    Index = i
+                };
+
+                ColumnIndexes[rawColumns[i].Name] = i;
             }
         }
 

@@ -167,7 +167,6 @@
     <Compile Include="IStatement.cs" />
     <Compile Include="IToken.cs" />
     <Compile Include="ITypeAdapter.cs" />
-    <Compile Include="IWaitableForDispose.cs" />
     <Compile Include="KeyType.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Compression\LZ4Compressor.cs" />
