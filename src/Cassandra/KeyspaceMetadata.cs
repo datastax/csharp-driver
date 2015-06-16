@@ -89,18 +89,38 @@ namespace Cassandra
                 return table;
             }
             var keyspaceName = Name;
-            var cols = new Dictionary<string, TableColumn>();
-            TableOptions options = null;
+            var columns = new Dictionary<string, TableColumn>();
+            var partitionKeys = new List<Tuple<int, TableColumn>>();
             var tableMetadataRow = _cc.Query(String.Format(SelectSingleTable, tableName, keyspaceName), true).FirstOrDefault();
             if (tableMetadataRow == null)
             {
                 return null;
             }
+            //Read table options
+            var options = new TableOptions
+            {
+                isCompactStorage = false,
+                bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
+                caching = tableMetadataRow.GetValue<string>("caching"),
+                comment = tableMetadataRow.GetValue<string>("comment"),
+                gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
+                localReadRepair = tableMetadataRow.GetValue<double>("local_read_repair_chance"),
+                readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
+                compactionOptions = GetCompactionStrategyOptions(tableMetadataRow),
+                compressionParams =
+                    (SortedDictionary<string, string>)Utils.ConvertStringToMap(tableMetadataRow.GetValue<string>("compression_parameters"))
+            };
+            //replicate_on_write column not present in C* >= 2.1
+            if (tableMetadataRow.GetColumn("replicate_on_write") != null)
+            {
+                options.replicateOnWrite = tableMetadataRow.GetValue<bool>("replicate_on_write");
+            }
+
             var columnsMetadata = _cc.Query(String.Format(SelectColumns, tableName, keyspaceName), true);
             foreach (var row in columnsMetadata)
             {
                 var dataType = TypeCodec.ParseDataType(row.GetValue<string>("validator"));
-                var dsc = new TableColumn
+                var col = new TableColumn
                 {
                     Name = row.GetValue<string>("column_name"),
                     Keyspace = row.GetValue<string>("keyspace_name"),
@@ -114,98 +134,97 @@ namespace Cassandra
                             ? KeyType.SecondaryIndex
                             : KeyType.None,
                 };
-                cols.Add(dsc.Name, dsc);
-            }
-            
-            var colNames = tableMetadataRow.GetValue<string>("column_aliases");
-            var rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');
-            for (var i = 0; i < rowKeys.Length; i++)
-            {
-                if (rowKeys[i].StartsWith("\""))
+                if (row.GetColumn("type") != null && row.GetValue<string>("type") == "partition_key")
                 {
-                    rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
+                    partitionKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, col));
                 }
+                columns.Add(col.Name, col);
             }
-            if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
+            var comparator = tableMetadataRow.GetValue<string>("comparator");
+            var comparatorComposite = false;
+            if (comparator.StartsWith(TypeCodec.CompositeTypeName))
             {
-                bool isCompact = true;
-                var comparator = tableMetadataRow.GetValue<string>("comparator");
-                //Remove reversed type
-                comparator = comparator.Replace(TypeCodec.ReversedTypeName, "");
-                if (comparator.StartsWith(TypeCodec.CompositeTypeName))
-                {
-                    comparator = comparator.Replace(TypeCodec.CompositeTypeName, "");
-                    isCompact = false;
-                }
-
-                var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");
-                var rowKeysTypes = rg.Matches(comparator);
-
+                comparator = comparator.Replace(TypeCodec.CompositeTypeName, "");
+                comparatorComposite = true;
+            }
+            //Remove reversed type
+            comparator = comparator.Replace(TypeCodec.ReversedTypeName, "");
+            if (partitionKeys.Count == 0 && tableMetadataRow.GetColumn("key_aliases") != null)
+            {
+                //In C* 1.2, keys are not stored on the schema_columns table
+                var colNames = tableMetadataRow.GetValue<string>("column_aliases");
+                var rowKeys = colNames.Substring(1, colNames.Length - 2).Split(',');
                 for (var i = 0; i < rowKeys.Length; i++)
                 {
-                    var keyName = rowKeys[i];
-                    var dataType = TypeCodec.ParseDataType(rowKeysTypes[i].ToString());
-                    var dsc = new TableColumn
+                    if (rowKeys[i].StartsWith("\""))
                     {
-                        Name = keyName,
+                        rowKeys[i] = rowKeys[i].Substring(1, rowKeys[i].Length - 2).Replace("\"\"", "\"");
+                    }
+                }
+                if (rowKeys.Length > 0 && rowKeys[0] != string.Empty)
+                {
+                    var rg = new Regex(@"org\.apache\.cassandra\.db\.marshal\.\w+");
+                    var rowKeysTypes = rg.Matches(comparator);
+
+                    for (var i = 0; i < rowKeys.Length; i++)
+                    {
+                        var keyName = rowKeys[i];
+                        var dataType = TypeCodec.ParseDataType(rowKeysTypes[i].ToString());
+                        var dsc = new TableColumn
+                        {
+                            Name = keyName,
+                            Keyspace = tableMetadataRow.GetValue<string>("keyspace_name"),
+                            Table = tableMetadataRow.GetValue<string>("columnfamily_name"),
+                            TypeCode = dataType.TypeCode,
+                            TypeInfo = dataType.TypeInfo,
+                            KeyType = KeyType.Clustering,
+                        };
+                        columns[dsc.Name] = dsc;
+                    }
+                }
+                var keys = tableMetadataRow.GetValue<string>("key_aliases")
+                    .Replace("[", "")
+                    .Replace("]", "")
+                    .Split(',');
+                var keyTypes = tableMetadataRow.GetValue<string>("key_validator")
+                    .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
+                    .Replace("(", "")
+                    .Replace(")", "")
+                    .Split(',');
+                
+                
+                for (var i = 0; i < keys.Length; i++)
+                {
+                    var name = keys[i].Replace("\"", "").Trim();
+                    var dataType = TypeCodec.ParseDataType(keyTypes[i].Trim());
+                    var c = new TableColumn()
+                    {
+                        Name = name,
                         Keyspace = tableMetadataRow.GetValue<string>("keyspace_name"),
                         Table = tableMetadataRow.GetValue<string>("columnfamily_name"),
                         TypeCode = dataType.TypeCode,
                         TypeInfo = dataType.TypeInfo,
-                        KeyType = KeyType.Clustering,
+                        KeyType = KeyType.Partition
                     };
-                    cols[dsc.Name] = dsc;
-                }
-
-                options = new TableOptions
-                {
-                    isCompactStorage = isCompact,
-                    bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
-                    caching = tableMetadataRow.GetValue<string>("caching"),
-                    comment = tableMetadataRow.GetValue<string>("comment"),
-                    gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
-                    localReadRepair = tableMetadataRow.GetValue<double>("local_read_repair_chance"),
-                    readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
-                    compactionOptions = GetCompactionStrategyOptions(tableMetadataRow),
-                    compressionParams =
-                        (SortedDictionary<string, string>)Utils.ConvertStringToMap(tableMetadataRow.GetValue<string>("compression_parameters"))
-                };
-                //replicate_on_write column not present in C* >= 2.1
-                if (tableMetadataRow.GetColumn("replicate_on_write") != null)
-                {
-                    options.replicateOnWrite = tableMetadataRow.GetValue<bool>("replicate_on_write");
+                    columns[name] = c;
+                    partitionKeys.Add(Tuple.Create(i, c));
                 }
             }
-            //In Cassandra 1.2, the keys are not stored in the system.schema_columns table
-            //But you can get it from system.schema_columnfamilies
-            var keys = tableMetadataRow.GetValue<string>("key_aliases")
-                            .Replace("[", "")
-                            .Replace("]", "")
-                            .Split(',');
-            var keyTypes = tableMetadataRow.GetValue<string>("key_validator")
-                                .Replace("org.apache.cassandra.db.marshal.CompositeType", "")
-                                .Replace("(", "")
-                                .Replace(")", "")
-                                .Split(',');
-            var partitionKeys = new TableColumn[keys.Length];
-            for (var i = 0; i < keys.Length; i++)
+
+            options.isCompactStorage = tableMetadataRow.GetColumn("is_dense") != null && tableMetadataRow.GetValue<bool>("is_dense");
+            if (!options.isCompactStorage)
             {
-                var name = keys[i].Replace("\"", "").Trim();
-                var dataType = TypeCodec.ParseDataType(keyTypes[i].Trim());
-                var c = new TableColumn()
-                {
-                    Name = name,
-                    Keyspace = tableMetadataRow.GetValue<string>("keyspace_name"),
-                    Table = tableMetadataRow.GetValue<string>("columnfamily_name"),
-                    TypeCode = dataType.TypeCode,
-                    TypeInfo = dataType.TypeInfo,
-                    KeyType = KeyType.Partition
-                };
-                cols[name] = c;
-                partitionKeys[i] = c;
+                //is_dense column does not exist in previous versions of Cassandra
+                //also, compact pk, ck and val appear as is_dense false
+                // clusteringKeys != comparator types - 1
+                // or not composite (comparator)
+                options.isCompactStorage = !comparatorComposite;
             }
 
-            table = new TableMetadata(tableName, cols.Values.ToArray(), partitionKeys, options);
+            table = new TableMetadata(
+                tableName, columns.Values.ToArray(), 
+                partitionKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(), 
+                options);
             //Cache it
             _tables.AddOrUpdate(tableName, table, (k, o) => table);
             return table;

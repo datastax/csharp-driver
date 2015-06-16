@@ -289,6 +289,14 @@ namespace Cassandra.Tests
             Assert.AreEqual(ColumnTypeCode.Timeuuid, dataType.TypeCode);
             dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.AsciiType");
             Assert.AreEqual(ColumnTypeCode.Ascii, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.SimpleDateType");
+            Assert.AreEqual(ColumnTypeCode.Date, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.TimeType");
+            Assert.AreEqual(ColumnTypeCode.Time, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.ShortType");
+            Assert.AreEqual(ColumnTypeCode.SmallInt, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.ByteType");
+            Assert.AreEqual(ColumnTypeCode.TinyInt, dataType.TypeCode);
         }
 
         [Test]
