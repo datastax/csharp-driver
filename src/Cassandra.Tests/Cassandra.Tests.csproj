@@ -62,6 +62,7 @@
     <Compile Include="CqlCommandTest.cs" />
     <Compile Include="CqlParameterCollectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
+    <Compile Include="LocalDateTests.cs" />
     <Compile Include="Mapping\AttributeBasedTypeDefinitionTests.cs" />
     <Compile Include="Mapping\BatchTests.cs" />
     <Compile Include="Mapping\DeleteTests.cs" />
