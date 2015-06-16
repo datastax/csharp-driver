@@ -98,13 +98,42 @@ namespace Cassandra
             return Encoding.UTF8.GetString(bytes);
         }
 
-        public List<string> ReadStringList()
+        /// <summary>
+        /// Reads a protocol string list
+        /// </summary>
+        public string[] ReadStringList()
         {
-            ushort length = ReadUInt16();
-            var l = new List<string>();
-            for (int i = 0; i < length; i++)
-                l.Add(ReadString());
-            return l;
+            var length = ReadInt16();
+            if (length <= 0)
+            {
+                return new string[0];
+            }
+            var arr = new string[length];
+            for (var i = 0; i < length; i++)
+            {
+                arr[i] = ReadString();
+            }
+            return arr;
+        }
+
+        /// <summary>
+        /// Reads a protocol bytes map
+        /// </summary>
+        public Dictionary<string, byte[]> ReadBytesMap()
+        {
+            //A [short] n, followed by n pair <k><v> where <k> is a
+            //[string] and <v> is a [bytes].
+            var length = ReadInt16();
+            if (length < 0)
+            {
+                return null;
+            }
+            var map = new Dictionary<string, byte[]>();
+            for (var i = 0; i < length; i++) 
+            {
+                map[ReadString()] = ReadBytes();
+            }
+            return map;
         }
 
         public byte[] ReadBytes()

@@ -47,6 +47,8 @@ namespace Cassandra
             get { return _queryOptions.SerialConsistency; }
         }
 
+        public string Query { get { return _cqlQuery; }}
+
         public int ProtocolVersion { get; set; }
 
         private readonly string _cqlQuery;

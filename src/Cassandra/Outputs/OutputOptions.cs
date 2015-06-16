@@ -33,10 +33,10 @@ namespace Cassandra
         {
             _options = new Dictionary<string, string[]>();
             int n = reader.ReadUInt16();
-            for (int i = 0; i < n; i++)
+            for (var i = 0; i < n; i++)
             {
-                string k = reader.ReadString();
-                string[] v = reader.ReadStringList().ToArray();
+                var k = reader.ReadString();
+                var v = reader.ReadStringList();
                 _options.Add(k, v);
             }
         }

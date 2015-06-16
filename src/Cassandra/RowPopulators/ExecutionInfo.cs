@@ -42,6 +42,22 @@ namespace Cassandra
         /// being the last host the one that replied correctly.
         /// </summary>
         public IList<IPEndPoint> TriedHosts { get; private set; }
+
+        /// <summary>
+        /// Returns the server-side warnings for this query.
+        /// <para>
+        /// This feature is only available for Cassandra 2.2 or above; with lower versions, this property always returns null.
+        /// </para>
+        /// </summary>
+        public string[] Warnings { get; internal set; }
+
+        /// <summary>
+        /// Returns the incoming custom payload set by the server with its response, or null if the server have not include any custom payload.
+        /// <para>
+        /// This feature is only available for Cassandra 2.2 or above; with lower versions, this property always returns null.
+        /// </para>
+        /// </summary>
+        public IDictionary<string, byte[]> IncomingPayload { get; internal set; }
         
         /// <summary>
         /// Retrieves the coordinator that responded to the request

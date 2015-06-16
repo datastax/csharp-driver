@@ -564,7 +564,7 @@ namespace Cassandra
         {
             //Start at the first byte
             body.Position = 0;
-            if ((header.Flags & 0x01) > 0)
+            if ((header.Flags & FrameHeader.HeaderFlag.Compression) != 0)
             {
                 body = Compressor.Decompress(body);
             }

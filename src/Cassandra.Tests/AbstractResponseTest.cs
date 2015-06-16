@@ -60,7 +60,7 @@ namespace Cassandra.Tests
         public void Ctor_TraceFlagSet_TraceIdIsSet()
         {
             // Arrange
-            var header = new FrameHeader {Flags = AbstractResponse.TraceFlagValue};
+            var header = new FrameHeader {Flags = FrameHeader.HeaderFlag.Tracing};
             var rnd = new Random();
             var buffer = new byte[16];
             rnd.NextBytes(buffer);
@@ -79,7 +79,7 @@ namespace Cassandra.Tests
         public void Ctor_TraceFlagSet_BytesReadFromFrame()
         {
             // Arrange
-            var header = new FrameHeader { Flags = AbstractResponse.TraceFlagValue };
+            var header = new FrameHeader { Flags = FrameHeader.HeaderFlag.Tracing };
             var body = new MemoryStream(new byte[20]);
             var frame = new ResponseFrame(header, body);
 

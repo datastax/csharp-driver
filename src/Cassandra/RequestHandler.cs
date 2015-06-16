@@ -72,11 +72,33 @@ namespace Cassandra
         /// <summary>
         /// Fills the common properties of the RowSet
         /// </summary>
-        private RowSet FillRowSet(RowSet rs, IOutput output)
+        private RowSet FillRowSet(RowSet rs, ResultResponse response)
         {
-            if (output != null && output.TraceId != null)
+            if (response != null)
             {
-                rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
+                if (response.Output.TraceId != null)
+                {
+                    rs.Info.SetQueryTrace(new QueryTrace(response.Output.TraceId.Value, _session));   
+                }
+                if (response.Warnings != null)
+                {
+                    rs.Info.Warnings = response.Warnings;
+                    //Log the warnings
+                    for (var i = 0; i < response.Warnings.Length; i++)
+                    {
+                        var query = "BATCH";
+                        if (_request is QueryRequest)
+                        {
+                            query = ((QueryRequest) _request).Query;
+                        }
+                        else if (_statement is BoundStatement)
+                        {
+                            query = ((BoundStatement) _statement).PreparedStatement.Cql;
+                        }
+                        _logger.Warning("Received warning ({0} of {1}): \"{2}\" for \"{3}\"", i + 1, response.Warnings.Length, response.Warnings[i], query);
+                    }
+                }
+                rs.Info.IncomingPayload = response.CustomPayload;
             }
             rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
             if (_request is ICqlRequest)
@@ -267,37 +289,37 @@ namespace Cassandra
         private void HandleRowSetResult(AbstractResponse response)
         {
             ValidateResult(response);
-            var output = ((ResultResponse)response).Output; 
-            if (output is OutputSchemaChange)
+            var resultResponse = (ResultResponse)response;
+            if (resultResponse.Output is OutputSchemaChange)
             {
                 //Schema changes need to do blocking operations
-                HandleSchemaChange(output);
+                HandleSchemaChange(resultResponse);
                 return;
             }
             RowSet rs;
-            if (output is OutputRows)
+            if (resultResponse.Output is OutputRows)
             {
-                rs = ((OutputRows)output).RowSet;
+                rs = ((OutputRows)resultResponse.Output).RowSet;
             }
             else
             {
-                if (output is OutputSetKeyspace)
+                if (resultResponse.Output is OutputSetKeyspace)
                 {
-                    _session.Keyspace = ((OutputSetKeyspace)output).Value;
+                    _session.Keyspace = ((OutputSetKeyspace)resultResponse.Output).Value;
                 }
                 rs = new RowSet();
             }
-            _tcs.TrySetResult((T)(object)FillRowSet(rs, output));
+            _tcs.TrySetResult((T)(object)FillRowSet(rs, resultResponse));
         }
 
-        private void HandleSchemaChange(IOutput output)
+        private void HandleSchemaChange(ResultResponse response)
         {
             //Use one of the worker/executor threads to wait on the schema change
             Task.Factory.StartNew(() =>
             {
                 _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
                 //Set the result from the worker thread
-                _tcs.TrySetResult((T)(object)FillRowSet(new RowSet(), output));
+                _tcs.TrySetResult((T)(object)FillRowSet(new RowSet(), response));
             });
         }
 
