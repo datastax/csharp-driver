@@ -557,6 +557,40 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
+        public void Bound_SmallInt_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_smallint_prep (id int PRIMARY KEY, v smallint)");
+            var insert = Session.Prepare("INSERT INTO tbl_smallint_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_smallint_prep WHERE id = ?");
+            var values = new short[] { Int16.MinValue, -31000, -1, 0, 1, 2, 0xff, 0x0101, Int16.MaxValue };
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(Convert.ToInt32(v), v));
+                var rs = Session.Execute(select.Bind(Convert.ToInt32(v))).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<short>("v"));
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void Bound_TinyInt_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_tinyint_prep (id int PRIMARY KEY, v tinyint)");
+            var insert = Session.Prepare("INSERT INTO tbl_tinyint_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_tinyint_prep WHERE id = ?");
+            var values = new sbyte[] { sbyte.MinValue, -4, -1, 0, 1, 2, 126, sbyte.MaxValue };
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(Convert.ToInt32(v), v));
+                var rs = Session.Execute(select.Bind(Convert.ToInt32(v))).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<sbyte>("v"));
+            }
+        }
+
+        [Test]
         [TestCassandraVersion(2, 0)]
         public void Prepared_With_Composite_Routing_Key()
         {

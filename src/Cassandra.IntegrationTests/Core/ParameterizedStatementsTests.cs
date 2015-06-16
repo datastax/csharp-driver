@@ -143,6 +143,44 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementSmallIntTests()
+        {
+            Session.Execute("CREATE TABLE tbl_smallint_param (id int PRIMARY KEY, v smallint, m map<smallint, text>)");
+            var values = new short[] { Int16.MinValue, -3, -2, 0, 1, 2, 0xff, 0x0101, Int16.MaxValue };
+            foreach (var v in values)
+            {
+                var insert = new SimpleStatement("INSERT INTO tbl_smallint_param (id, v, m) VALUES (?, ?, ?)",
+                    Convert.ToInt32(v), v, new SortedDictionary<short, string> { { v, v.ToString() } });
+                var select = new SimpleStatement("SELECT * FROM tbl_smallint_param WHERE id = ?", Convert.ToInt32(v));
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<short>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<short, string>>("m")[v]);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementTinyIntTests()
+        {
+            Session.Execute("CREATE TABLE tbl_tinyint_param (id int PRIMARY KEY, v tinyint, m map<tinyint, text>)");
+            var values = new sbyte[] { sbyte.MinValue, -4, -3, 0, 1, 2, 126, sbyte.MaxValue };
+            foreach (var v in values)
+            {
+                var insert = new SimpleStatement("INSERT INTO tbl_tinyint_param (id, v, m) VALUES (?, ?, ?)", 
+                    Convert.ToInt32(v), v, new SortedDictionary<sbyte, string> { { v, v.ToString()} });
+                var select = new SimpleStatement("SELECT * FROM tbl_tinyint_param WHERE id = ?", Convert.ToInt32(v));
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<sbyte>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<sbyte, string>>("m")[v]);
+            }
+        }
+
+        [Test]
         public void Text()
         {
             ParameterizedStatement(typeof(string));

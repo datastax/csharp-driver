@@ -468,6 +468,42 @@ namespace Cassandra.Tests
             }
         }
 
+        [Test]
+        public void EncodeDecodeTinyInt()
+        {
+            var values = new[]
+            {
+                Tuple.Create<sbyte, byte>(-1, 0xff),
+                Tuple.Create<sbyte, byte>(-2, 0xfe),
+                Tuple.Create<sbyte, byte>(0, 0),
+                Tuple.Create<sbyte, byte>(1, 1),
+                Tuple.Create<sbyte, byte>(2, 2),
+                Tuple.Create<sbyte, byte>(127, 127)
+            };
+            foreach (var v in values)
+            {
+                var encoded = TypeCodec.EncodeSByte(4, null, v.Item1);
+                CollectionAssert.AreEqual(encoded, new[] { v.Item2 });
+                var decoded = (sbyte)TypeCodec.DecodeSByte(4, null, encoded, null);
+                Assert.AreEqual(v.Item1, decoded);
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeSmallInt()
+        {
+            for (var i = Int16.MinValue; ; i++ )
+            {
+                var encoded = TypeCodec.EncodeShort(4, null, i);
+                var decoded = (short)TypeCodec.DecodeShort(4, null, encoded, null);
+                Assert.AreEqual(i, decoded);
+                if (i == Int16.MaxValue)
+                {
+                    break;
+                }
+            }
+        }
+
         /// <summary>
         /// Helper method to generate a list column info of nested lists
         /// </summary>
