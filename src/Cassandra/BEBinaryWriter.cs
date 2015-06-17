@@ -144,12 +144,15 @@ namespace Cassandra
             if (buffer == null)
             {
                 WriteInt32(-1);
+                return;
             }
-            else
+            if (buffer == TypeCodec.UnsetBuffer)
             {
-                WriteInt32(buffer.Length);
-                this.Write(buffer);
+                WriteInt32(-2);
+                return;
             }
+            WriteInt32(buffer.Length);
+            Write(buffer);
         }
 
         /// <summary>

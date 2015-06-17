@@ -42,6 +42,10 @@ namespace Cassandra
         private const string FrozenTypeName = "org.apache.cassandra.db.marshal.FrozenType";
         public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
         public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
+        /// <summary>
+        /// An instance of a buffer that represents the value Unset
+        /// </summary>
+        internal static readonly byte[] UnsetBuffer = new byte[0];
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
         private static readonly ConcurrentDictionary<string, UdtMap> UdtMapsByName = new ConcurrentDictionary<string, UdtMap>();
         private static readonly ConcurrentDictionary<Type, UdtMap> UdtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
@@ -393,8 +397,18 @@ namespace Cassandra
         /// <summary>
         /// Takes an object and serializes it into bytes using the protocol format
         /// </summary>
+        /// <exception cref="InvalidTypeException" />
         public static byte[] Encode(int protocolVersion, object value)
         {
+            if (value == Unset.Value)
+            {
+                if (protocolVersion < 4)
+                {
+                    throw new InvalidTypeException("Unset is not supported by this Cassandra version");   
+                }
+                //Return a buffer that represents the value Unset
+                return UnsetBuffer;
+            }
             if (value == null)
             {
                 return null;

@@ -394,6 +394,7 @@
     <Compile Include="TypeAdapters.cs" />
     <Compile Include="UdtMap.cs" />
     <Compile Include="UdtMappingDefinitions.cs" />
+    <Compile Include="Unset.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>

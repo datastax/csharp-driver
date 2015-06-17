@@ -134,6 +134,53 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void Bound_String_Empty()
+        {
+            const string columns = "id, text_sample";
+            var insertQuery = String.Format(@"
+                INSERT INTO {0} 
+                ({1}) 
+                VALUES (?, ?)", AllTypesTableName, columns);
+
+            var preparedStatement = Session.Prepare(insertQuery);
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            var nullRowValues = new object[] 
+            { 
+                Guid.NewGuid(), ""
+            };
+
+            Session.Execute(preparedStatement.Bind(nullRowValues));
+
+            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
+            var row = rs.First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual("", row.GetValue<string>("text_sample"));
+        }
+
+        [Test, TestCassandraVersion(2, 2)]
+        public void Bound_Unset_Specified_Tests()
+        {
+            const string columns = "id, text_sample, int_sample";
+            var insertQuery = String.Format(@"
+                INSERT INTO {0} 
+                ({1}) 
+                VALUES (?, ?, ?)", AllTypesTableName, columns);
+
+            var preparedStatement = Session.Prepare(insertQuery);
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            var id = Guid.NewGuid();
+
+            Session.Execute(preparedStatement.Bind(id, Unset.Value, Unset.Value));
+
+            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id));
+            var row = rs.First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual(id, row.GetValue<Guid>("id"));
+            Assert.Null(row.GetValue<string>("text_sample"));
+            Assert.Null(row.GetValue<int?>("int_sample"));
+        }
+
+        [Test]
         public void Bound_CollectionTypes()
         {
             var insertQuery = String.Format(@"
