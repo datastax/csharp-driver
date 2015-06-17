@@ -43,7 +43,7 @@ namespace Cassandra
         public string[] Warnings { get; private set; }
 
         /// <summary>
-        /// Incoming custom payload
+        /// Gets or sets the incoming custom payload
         /// </summary>
         public IDictionary<string, byte[]> CustomPayload { get; private set; }
 

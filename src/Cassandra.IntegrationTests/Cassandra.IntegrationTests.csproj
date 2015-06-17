@@ -59,6 +59,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Core\ControlConnectionTests.cs" />
+    <Compile Include="Core\CustomPayloadWarningTests.cs" />
     <Compile Include="CqlFunctions\Structures\EntityWithNullableTimeUuid.cs" />
     <Compile Include="CqlFunctions\Structures\EntityWithTimeUuid.cs" />
     <Compile Include="CqlFunctions\Tests\MaxTimeUuid.cs" />

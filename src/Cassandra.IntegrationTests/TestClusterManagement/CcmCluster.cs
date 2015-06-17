@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         // So far, for CCM only
         private ProcessOutput _proc { get; set; }
 
-        public void Create(bool startTheCluster = true)
+        public void Create(bool startTheCluster = true, string[] jvmArgs = null)
         {
             // if it's already being created in another thread, then wait until this step is complete
             if (!IsBeingCreated)
@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 if (Dc2NodeCount > 0)
                     CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, Dc2NodeCount, _version, startTheCluster);
                 else
-                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster);
+                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster, jvmArgs);
                 IsBeingCreated = false;
                 IsCreated = true;
                 if (startTheCluster)

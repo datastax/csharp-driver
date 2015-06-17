@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -23,15 +24,8 @@ namespace Cassandra
     /// </summary>
     public abstract class Statement : IStatement
     {
-        private ConsistencyLevel? _consistency;
-        private int _pageSize;
-        private byte[] _pagingState;
-        private IRetryPolicy _retryPolicy;
         private ConsistencyLevel _serialConsistency = QueryProtocolOptions.Default.SerialConsistency;
-        private bool _skipMetadata;
-        private bool _traceQuery;
         private object[] _values;
-        private DateTimeOffset? _timestamp;
         private bool _autoPage = true;
 
         public virtual object[] QueryValues
@@ -39,15 +33,10 @@ namespace Cassandra
             get { return _values; }
         }
         /// <inheritdoc />
-        public bool SkipMetadata
-        {
-            get { return _skipMetadata; }
-        }
+        public bool SkipMetadata { get; private set; }
+
         /// <inheritdoc />
-        public ConsistencyLevel? ConsistencyLevel
-        {
-            get { return _consistency; }
-        }
+        public ConsistencyLevel? ConsistencyLevel { get; private set; }
 
         /// <summary>
         /// Gets the serial consistency level for this query.
@@ -58,39 +47,28 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public int PageSize
-        {
-            get { return _pageSize; }
-        }
+        public int PageSize { get; private set; }
 
         /// <inheritdoc />
-        public bool IsTracing
-        {
-            get { return _traceQuery; }
-        }
+        public bool IsTracing { get; private set; }
 
         /// <inheritdoc />
-        public IRetryPolicy RetryPolicy
-        {
-            get { return _retryPolicy; }
-        }
-        /// <inheritdoc />
-        public byte[] PagingState
-        {
-            get { return _pagingState; }
-        }
+        public IRetryPolicy RetryPolicy { get; private set; }
 
         /// <inheritdoc />
-        public DateTimeOffset? Timestamp
-        {
-            get { return _timestamp; }
-        }
+        public byte[] PagingState { get; private set; }
+
+        /// <inheritdoc />
+        public DateTimeOffset? Timestamp { get; private set; }
 
         /// <inheritdoc />
         public bool AutoPage
         {
             get { return _autoPage; }
         }
+
+        /// <inheritdoc />
+        public IDictionary<string, byte[]> OutgoingPayload { get; private set; }
 
         /// <inheritdoc />
         public abstract RoutingKey RoutingKey { get; }
@@ -108,12 +86,13 @@ namespace Cassandra
         /// <inheritdoc />
         protected Statement(QueryProtocolOptions queryProtocolOptions)
         {
+            //the unused parameter is maintained for backward compatibility
         }
 
         /// <inheritdoc />
         internal Statement SetSkipMetadata(bool val)
         {
-            _skipMetadata = val;
+            SkipMetadata = val;
             return this;
         }
 
@@ -145,7 +124,7 @@ namespace Cassandra
         /// <inheritdoc />
         public IStatement SetPagingState(byte[] pagingState)
         {
-            _pagingState = pagingState;
+            PagingState = pagingState;
             //Disable automatic paging only if paging state is set to something other then null
             if (pagingState != null && pagingState.Length > 0)
             {
@@ -157,7 +136,7 @@ namespace Cassandra
         /// <inheritdoc />
         public IStatement SetConsistencyLevel(ConsistencyLevel? consistency)
         {
-            _consistency = consistency;
+            ConsistencyLevel = consistency;
             return this;
         }
 
@@ -175,28 +154,28 @@ namespace Cassandra
         /// <inheritdoc />
         public IStatement SetTimestamp(DateTimeOffset value)
         {
-            _timestamp = value;
+            Timestamp = value;
             return this;
         }
 
         /// <inheritdoc />
         public IStatement EnableTracing(bool enable = true)
         {
-            _traceQuery = enable;
+            IsTracing = enable;
             return this;
         }
 
         /// <inheritdoc />
         public IStatement DisableTracing()
         {
-            _traceQuery = false;
+            IsTracing = false;
             return this;
         }
 
         /// <inheritdoc />
         public IStatement SetRetryPolicy(IRetryPolicy policy)
         {
-            _retryPolicy = policy;
+            RetryPolicy = policy;
             return this;
         }
 
@@ -208,7 +187,14 @@ namespace Cassandra
         /// <inheritdoc />
         public IStatement SetPageSize(int pageSize)
         {
-            _pageSize = pageSize;
+            PageSize = pageSize;
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IStatement SetOutgoingPayload(IDictionary<string, byte[]> payload)
+        {
+            OutgoingPayload = payload;
             return this;
         }
     }

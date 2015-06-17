@@ -250,19 +250,20 @@ namespace Cassandra
         /// </summary>
         internal IRequest GetRequest(IStatement statement)
         {
+            ICqlRequest request = null;
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
                 s.ProtocolVersion = BinaryProtocolVersion;
                 var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
                 options.ValueNames = s.QueryValueNames;
-                return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
+                request = new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
-                return new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
+                request = new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)
             {
@@ -273,14 +274,25 @@ namespace Cassandra
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                return new BatchRequest(BinaryProtocolVersion, s, consistency);
+                request = new BatchRequest(BinaryProtocolVersion, s, consistency);
             }
-            throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
+            if (request == null)
+            {
+                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");   
+            }
+            //Set the outgoing payload for the request
+            request.Payload = statement.OutgoingPayload;
+            return request;
         }
 
         public PreparedStatement Prepare(string cqlQuery)
         {
-            var task = PrepareAsync(cqlQuery);
+            return Prepare(cqlQuery, null);
+        }
+
+        public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
+        {
+            var task = PrepareAsync(cqlQuery, customPayload);
             TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
             return task.Result;
         }
@@ -288,7 +300,15 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            var request = new PrepareRequest(BinaryProtocolVersion, query);
+            return PrepareAsync(query, null);
+        }
+
+        public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        {
+            var request = new PrepareRequest(BinaryProtocolVersion, query)
+            {
+                Payload = customPayload
+            };
             return new RequestHandler<PreparedStatement>(this, request, null)
                 .Send()
                 .Continue(SetPrepareTableInfo);

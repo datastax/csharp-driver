@@ -96,7 +96,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new NotImplementedException();
         }
 
-        public void Create(bool startCluster = true)
+        public void Create(bool startCluster = true, string[] jvmArgs = null)
         {
             throw new NotImplementedException();
         }

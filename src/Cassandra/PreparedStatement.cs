@@ -50,6 +50,17 @@ namespace Cassandra
         internal string Keyspace { get; private set; }
 
         /// <summary>
+        /// Gets the the incoming payload, that is, the payload that the server
+        /// sent back with its prepared response, or null if the server did not include any custom payload.
+        /// </summary>
+        public IDictionary<string, byte[]> IncomingPayload { get; internal set; }
+
+        /// <summary>
+        /// Gets custom payload for that will be included when executing an Statement.
+        /// </summary>
+        public IDictionary<string, byte[]> OutgoingPayload { get; private set; }
+
+        /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
         /// </summary>
         public RowSetMetadata Variables
@@ -206,6 +217,17 @@ namespace Cassandra
                 return this;
             }
             _routingNames = names;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a custom outgoing payload for this statement.
+        /// Each time an statement generated using this prepared statement is executed, this payload will be included in the request.
+        /// Once it is set using this method, the payload should not be modified.
+        /// </summary>
+        public PreparedStatement SetOutgoingPayload(IDictionary<string, byte[]> payload)
+        {
+            OutgoingPayload = payload;
             return this;
         }
     }

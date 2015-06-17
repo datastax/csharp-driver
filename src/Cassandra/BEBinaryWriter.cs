@@ -220,5 +220,18 @@ namespace Cassandra
         {
             _stream.Write(buffer, 0, buffer.Length);
         }
+        
+        /// <summary>
+        /// Writes a protocol bytes maps
+        /// </summary>
+        public void WriteBytesMap(IDictionary<string, byte[]> map)
+        {
+            WriteInt16((short)map.Count);
+            foreach (var kv in map)
+            {
+                WriteString(kv.Key);
+                WriteBytes(kv.Value);
+            }
+        }
     }
 }

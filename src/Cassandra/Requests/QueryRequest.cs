@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -49,10 +50,12 @@ namespace Cassandra
 
         public string Query { get { return _cqlQuery; }}
 
+        public IDictionary<string, byte[]> Payload { get; set; }
+
         public int ProtocolVersion { get; set; }
 
         private readonly string _cqlQuery;
-        private readonly byte _headerFlags;
+        private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions _queryOptions;
 
         public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
@@ -63,7 +66,7 @@ namespace Cassandra
             _queryOptions = queryOptions;
             if (tracingEnabled)
             {
-                _headerFlags = 0x02;
+                _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
             if (queryOptions == null)
             {
@@ -94,11 +97,18 @@ namespace Cassandra
         public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader((byte)ProtocolVersion, _headerFlags, streamId, OpCode);
+            if (Payload != null)
+            {
+                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
+            }
+            wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
+            if (Payload != null)
+            {
+                //A custom payload for this request
+                wb.WriteBytesMap(Payload);
+            }
             wb.WriteLongString(_cqlQuery);
-
             _queryOptions.Write(wb, (byte)ProtocolVersion, false);
-
             return wb.GetFrame();
         }
 

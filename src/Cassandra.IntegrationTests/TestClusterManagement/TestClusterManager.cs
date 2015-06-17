@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return CreateNewClusterAndAddToList(clusterName, dc1NodeCount, 0, keyspaceName, isUsingDefaultConfig, startCluster, maxTries);
         }
 
-        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries)
+        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries, string[] jvmArgs = null)
         {
             try
             {
@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     ShutDownAllCcmTestClusters();
                     // Create new cluster via ccm
                     CcmCluster testCluster = new CcmCluster(CassandraVersionStr, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
-                    testCluster.Create(startCluster);
+                    testCluster.Create(startCluster, jvmArgs);
                     _testClusters.Add(testCluster);
                     return testCluster;
                 }
@@ -83,13 +83,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (startCluster == false)
                 initClient = false;
 
-            // This is a non-shareable cluster with a single DC
-            bool thisClusterShouldBeShareable = false;
-            int secondDcNodeCount = 0;
-            return GetTestCluster(dc1NodeCount, secondDcNodeCount, thisClusterShouldBeShareable, maxTries, startCluster, initClient);
+            return GetTestCluster(dc1NodeCount, 0, false, maxTries, startCluster, initClient);
         }
 
-        public ITestCluster GetTestCluster(int dc1NodeCount, int dc2NodeCount, bool shareable = true, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true, int currentRetryCount = 0)
+        public ITestCluster GetTestCluster(int dc1NodeCount, int dc2NodeCount, bool shareable = true, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true, int currentRetryCount = 0, string[] jvmArgs = null)
         {
             ITestCluster testCluster = null;
             if (shareable)
@@ -106,7 +103,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             else
             {
                 testCluster = CreateNewClusterAndAddToList(
-                    TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, DefaultKeyspaceName, shareable, startCluster, 2);
+                    TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), 
+                    dc1NodeCount, 
+                    dc2NodeCount, 
+                    DefaultKeyspaceName, 
+                    shareable, 
+                    startCluster, 
+                    2,
+                    jvmArgs);
             }
 
             // Try to initialize the cluster / session

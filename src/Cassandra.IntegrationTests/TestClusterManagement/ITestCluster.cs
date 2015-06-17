@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Creates the cluster with the option of starting it as well
         /// </summary>
-        void Create(bool startCluster = true);
+        void Create(bool startCluster = true, string[] jvmArgs = null);
 
         /// <summary>
         /// Force Stop a specific node in the cluster
