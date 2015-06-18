@@ -54,7 +54,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Start a specific node in the cluster
         /// </summary>
-        void Start(int nodeIdToStart);
+        void Start(int nodeIdToStart, string additionalArgs = null);
+
+        /// <summary>
+        /// Updates the yaml config
+        /// </summary>
+        void UpdateConfig(params string[] yamlChanges);
 
         /// <summary>
         /// Initialize the Builder, Cluster and Session objects associated with the current Test Cluster

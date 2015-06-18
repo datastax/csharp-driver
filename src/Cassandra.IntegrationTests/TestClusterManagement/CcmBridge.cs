@@ -125,9 +125,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecuteCcm("stop --not-gently");
         }
 
-        public void Start(int n)
+        public void Start(int n, string additionalArgs = null)
         {
-            ExecuteCcm(string.Format("node{0} start", n));
+            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1}", n, additionalArgs));
         }
 
         public void Stop(int n)

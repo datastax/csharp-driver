@@ -47,6 +47,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             IsCreated = true;
         }
 
+        public void UpdateConfig(params string[] yamlChanges)
+        {
+            throw new NotImplementedException();
+        }
+
         public void InitClient()
         {
             Session = new Builder().AddContactPoint(InitialContactPoint).Build().Connect();
@@ -111,7 +116,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new NotImplementedException();
         }
 
-        public void Start(int nodeIdToStart)
+        public void Start(int nodeIdToStart, string additionalArgs = null)
         {
             throw new NotImplementedException();
         }

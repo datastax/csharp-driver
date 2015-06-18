@@ -170,9 +170,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             IsStarted = true;
         }
 
-        public void Start(int nodeIdToStart)
+        public void Start(int nodeIdToStart, string additionalArgs = null)
         {
-            CcmBridge.Start(nodeIdToStart);
+            CcmBridge.Start(nodeIdToStart, additionalArgs);
         }
 
         public void BootstrapNode(int nodeIdToStart)
@@ -185,6 +185,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmBridge.BootstrapNode(nodeIdToStart, dataCenterName);
         }
 
-
+        public void UpdateConfig(params string[] yamlChanges)
+        {
+            if (yamlChanges == null) return;
+            foreach (var setting in yamlChanges)
+            {
+                CcmBridge.ExecuteCcm("updateconf \"" + setting + "\"");
+            }
+        }
     }
 }

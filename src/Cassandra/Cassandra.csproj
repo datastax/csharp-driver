@@ -124,7 +124,10 @@
     <Compile Include="DSE\SASL.cs" />
     <Compile Include="DSE\SSPI.cs" />
     <Compile Include="DSE\WindowsAPI.cs" />
+    <Compile Include="Exceptions\FunctionFailureException.cs" />
+    <Compile Include="Exceptions\ReadFailureException.cs" />
     <Compile Include="Exceptions\RequestInvalidException.cs" />
+    <Compile Include="Exceptions\WriteFailureException.cs" />
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />
     <Compile Include="IAddressTranslator.cs" />
@@ -272,6 +275,7 @@
     <Compile Include="Outputs\OutputAlreadyExists.cs" />
     <Compile Include="Outputs\OutputBadCredentials.cs" />
     <Compile Include="Outputs\OutputConfigError.cs" />
+    <Compile Include="Outputs\OutputFunctionFailure.cs" />
     <Compile Include="Outputs\OutputInvalid.cs" />
     <Compile Include="Outputs\OutputIsBootstrapping.cs" />
     <Compile Include="Outputs\OutputOptions.cs" />
@@ -295,11 +299,8 @@
     <Compile Include="Outputs\OverloadedException.cs" />
     <Compile Include="Outputs\PreparedQueryNotFoundInfo.cs" />
     <Compile Include="Outputs\ProtocolErrorException.cs" />
-    <Compile Include="Outputs\ReadTimeoutInfo.cs" />
     <Compile Include="Outputs\ServerErrorException.cs" />
-    <Compile Include="Outputs\UnavailableInfo.cs" />
     <Compile Include="Exceptions\UnsupportedProtocolVersionException.cs" />
-    <Compile Include="Outputs\WriteTimeoutInfo.cs" />
     <Compile Include="PlainTextAuthProvider.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
     <Compile Include="Policies\FixedReconnectionPolicy.cs" />

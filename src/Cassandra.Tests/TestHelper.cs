@@ -104,6 +104,17 @@ namespace Cassandra.Tests
             }
         }
 
+        /// <summary>
+        /// Invokes the same action multiple times serially using the current thread
+        /// </summary>
+        internal static void Invoke(Action<int> action, int times)
+        {
+            for (var i = 0; i < times; i++)
+            {
+                action(i);
+            }
+        }
+
         public static void AssertPropertiesEqual(object actual, object expected)
         {
             var properties = expected.GetType().GetProperties();

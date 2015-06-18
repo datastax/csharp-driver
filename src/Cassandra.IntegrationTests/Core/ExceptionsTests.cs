@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -381,6 +382,93 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(1, rs.InnerQueueCount);
         }
 
+        [Test]
+        public void WriteFailureExceptionTest()
+        {
+            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            {
+                Assert.Ignore("Write failure error were introduced in Cassandra 2.2");
+            }
+            const string keyspace = "ks_wfail";
+            const string table = keyspace + ".tbl1";
+            var testCluster = TestClusterManager.GetTestCluster(2, 0, false, DefaultMaxClusterCreateRetries, false, false);
+            testCluster.Start(1, "--jvm_arg=-Dcassandra.test.fail_writes_ks=" + keyspace);
+            testCluster.Start(2);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 2));
+                session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
+                var query = String.Format("INSERT INTO {0} (k, t) VALUES ('ONE', 'ONE VALUES')", table);
+                Assert.Throws<WriteFailureException>(() => 
+                    session.Execute(new SimpleStatement(query).SetConsistencyLevel(ConsistencyLevel.All)));
+            }
+        }
+
+        [Test]
+        public void ReadFailureExceptionTest()
+        {
+            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            {
+                Assert.Ignore("Read failure error were introduced in Cassandra 2.2");
+            }
+            const string keyspace = "ks_rfail";
+            const string table = keyspace + ".tbl1";
+            var testCluster = TestClusterManager.GetTestCluster(2, 0, false, DefaultMaxClusterCreateRetries, false, false);
+            testCluster.UpdateConfig("tombstone_failure_threshold: 1000");
+            TestHelper.ParallelInvoke(new Action[]
+            {
+                () => testCluster.Start(1),
+                () => testCluster.Start(2)
+            });
+            var builder = Cluster
+                .Builder()
+                .WithLoadBalancingPolicy(new WhiteListLoadBalancingPolicy(2))
+                .AddContactPoint(testCluster.ClusterIpPrefix + "2");
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1));
+                session.Execute(String.Format("CREATE TABLE {0} (pk int, cc int, v int, primary key (pk, cc))", table));
+                // The rest of the test relies on the fact that the PK '1' will be placed on node1 with MurmurPartitioner
+                var ps = session.Prepare(String.Format("INSERT INTO {0} (pk, cc, v) VALUES (1, ?, null)", table));
+                var counter = 0;
+                TestHelper.ParallelInvoke(() =>
+                {
+                    var rs = session.Execute(ps.Bind(Interlocked.Increment(ref counter)));
+                    Assert.AreEqual(2, TestHelper.GetLastAddressByte(rs.Info.QueriedHost));
+                }, 1100);
+                Assert.Throws<ReadFailureException>(() => 
+                    session.Execute(String.Format("SELECT * FROM {0} WHERE pk = 1", table)));
+            }
+        }
+
+        [Test]
+        public void FunctionFailureExceptionTest()
+        {
+            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            {
+                Assert.Ignore("Function failure error were introduced in Cassandra 2.2");
+            }
+            var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
+            testCluster.UpdateConfig("enable_user_defined_functions: true");
+            testCluster.Start(1);
+            var builder = Cluster
+                .Builder()
+                .AddContactPoint(testCluster.InitialContactPoint);
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, "ks_func", 1));
+                session.Execute("CREATE TABLE ks_func.tbl1 (id int PRIMARY KEY, v1 int, v2 int)");
+                session.Execute("INSERT INTO ks_func.tbl1 (id, v1, v2) VALUES (1, 1, 0)");
+                session.Execute("CREATE FUNCTION ks_func.div(a int, b int) RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE java AS 'return a / b;'");
+
+                Assert.Throws<FunctionFailureException>(() =>
+                    session.Execute("SELECT ks_func.div(v1,v2) FROM ks_func.tbl1 where id = 1"));
+            }
+        }
+
         ///////////////////////
         /// Helper Methods
         ///////////////////////
@@ -406,5 +494,31 @@ namespace Cassandra.IntegrationTests.Core
             return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
         }
 
+        private class WhiteListLoadBalancingPolicy: ILoadBalancingPolicy
+        {
+            private readonly ILoadBalancingPolicy _childPolicy = new RoundRobinPolicy();
+            private readonly byte[] _list;
+
+            public WhiteListLoadBalancingPolicy(params byte[] listLastOctet)
+            {
+                _list = listLastOctet;
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _childPolicy.Initialize(cluster);
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _childPolicy.Distance(host);
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                var hosts = _childPolicy.NewQueryPlan(keyspace, query);
+                return hosts.Where(h => _list.Contains(TestHelper.GetLastAddressByte(h)));
+            }
+        }
     }
 }
