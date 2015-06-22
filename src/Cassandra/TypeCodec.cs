@@ -133,6 +133,7 @@ namespace Cassandra
             {ColumnTypeCode.Timeuuid,     _ => typeof (Guid)},
             {ColumnTypeCode.Inet,         _ => typeof (IPAddress)},
             {ColumnTypeCode.Date,         _ => typeof (LocalDate)},
+            {ColumnTypeCode.Time,         _ => typeof (LocalTime)},
             {ColumnTypeCode.SmallInt,     _ => typeof (short)},
             {ColumnTypeCode.TinyInt,      _ => typeof (sbyte)},
             {ColumnTypeCode.List,         GetDefaultTypeFromList},
@@ -162,6 +163,7 @@ namespace Cassandra
             { typeof(Guid), ColumnTypeCode.Uuid },
             { typeof(TimeUuid), ColumnTypeCode.Timeuuid },
             { typeof(LocalDate), ColumnTypeCode.Date },
+            { typeof(LocalTime), ColumnTypeCode.Time },
             { typeof(short), ColumnTypeCode.SmallInt },
             { typeof(sbyte), ColumnTypeCode.TinyInt },
             { TypeAdapters.DecimalTypeAdapter.GetDataType(), ColumnTypeCode.Decimal },
@@ -1013,7 +1015,7 @@ namespace Cassandra
 
         public static object DecodeTime(int protocolVersion, IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
         {
-            throw new NotImplementedException();
+            return new LocalTime(BytesToInt64(buffer, 0));
         }
 
         public static object DecodeShort(int protocolVersion, IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
@@ -1047,7 +1049,8 @@ namespace Cassandra
 
         public static byte[] EncodeTime(int protocolVersion, IColumnInfo typeInfo, object value)
         {
-            throw new NotImplementedException();
+            CheckArgument<LocalTime>(value);
+            return Int64ToBytes(((LocalTime)value).TotalNanoseconds);
         }
 
         public static byte[] EncodeShort(int protocolVersion, IColumnInfo typeInfo, object value)

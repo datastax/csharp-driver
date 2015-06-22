@@ -207,6 +207,32 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementTimeTests()
+        {
+            Session.Execute("CREATE TABLE tbl_time_param (id int PRIMARY KEY, v time, m map<time, text>)");
+            var values = new[] {
+                new LocalTime(0, 0, 0, 0),
+                new LocalTime(0, 1, 1, 789),
+                new LocalTime(6, 1, 59, 0),
+                new LocalTime(10, 31, 5, 789776),
+                new LocalTime(23, 59, 59, 999999999),
+            };
+            for (var i = 0; i < values.Length; i++)
+            {
+                var v = values[i];
+                var insert = new SimpleStatement("INSERT INTO tbl_time_param (id, v, m) VALUES (?, ?, ?)",
+                    i, v, new SortedDictionary<LocalTime, string> { { v, v.ToString() } });
+                var select = new SimpleStatement("SELECT * FROM tbl_time_param WHERE id = ?", i);
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalTime>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<LocalTime, string>>("m")[v]);
+            }
+        }
+
+        [Test]
         public void Text()
         {
             ParameterizedStatement(typeof(string));

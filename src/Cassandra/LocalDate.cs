@@ -188,16 +188,6 @@ namespace Cassandra
             return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
         }
 
-        private static string FillZeros(int value, int length = 2)
-        {
-            var textValue = value.ToString();
-            if (textValue.Length >= length)
-            {
-                return textValue;
-            }
-            return String.Join("", Enumerable.Repeat("0", length - textValue.Length)) + textValue;
-        }
-
         /// <summary>
         /// Compares this instance value to another and returns an indication of their relative values.
         /// </summary>
@@ -240,9 +230,9 @@ namespace Cassandra
             var yearString = Year.ToString();
             if (Year >= 0 && Year < 1000)
             {
-                yearString = FillZeros(Year, 4);
+                yearString = Utils.FillZeros(Year, 4);
             }
-            return yearString + "-" + FillZeros(Month) + "-" + FillZeros(Day);
+            return yearString + "-" + Utils.FillZeros(Month) + "-" + Utils.FillZeros(Day);
         }
 
         public static bool operator ==(LocalDate value1, LocalDate value2)

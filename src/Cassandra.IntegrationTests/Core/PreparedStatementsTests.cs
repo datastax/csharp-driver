@@ -577,6 +577,25 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 2)]
+        public void Bound_Time_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_time_prep (id int PRIMARY KEY, v time)");
+            var insert = Session.Prepare("INSERT INTO tbl_time_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_time_prep WHERE id = ?");
+            var values = new[] { new LocalTime(0, 0, 0, 0), new LocalTime(12, 11, 1, 10), new LocalTime(0, 58, 31, 991809111) };
+            var index = 0;
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(index, v));
+                var rs = Session.Execute(select.Bind(index)).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalTime>("v"));
+                index++;
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
         public void Bound_SmallInt_Tests()
         {
             Session.Execute("CREATE TABLE tbl_smallint_prep (id int PRIMARY KEY, v smallint)");
