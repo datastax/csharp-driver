@@ -181,6 +181,32 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementDateTests()
+        {
+            Session.Execute("CREATE TABLE tbl_date_param (id int PRIMARY KEY, v date, m map<date, text>)");
+            var values = new[] { 
+                new LocalDate(2010, 4, 29),
+                new LocalDate(0, 3, 12),
+                new LocalDate(-10, 2, 4),
+                new LocalDate(5881580, 7, 11),
+                new LocalDate(-5877641, 6, 23) 
+            };
+            for (var i = 0; i < values.Length; i++)
+            {
+                var v = values[i];
+                var insert = new SimpleStatement("INSERT INTO tbl_date_param (id, v, m) VALUES (?, ?, ?)",
+                    i, v, new SortedDictionary<LocalDate, string> { { v, v.ToString() } });
+                var select = new SimpleStatement("SELECT * FROM tbl_date_param WHERE id = ?", i);
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalDate>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<LocalDate, string>>("m")[v]);
+            }
+        }
+
+        [Test]
         public void Text()
         {
             ParameterizedStatement(typeof(string));

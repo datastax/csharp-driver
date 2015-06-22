@@ -558,6 +558,25 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 2)]
+        public void Bound_Date_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_date_prep (id int PRIMARY KEY, v date)");
+            var insert = Session.Prepare("INSERT INTO tbl_date_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_date_prep WHERE id = ?");
+            var values = new[] { new LocalDate(2010, 4, 29), new LocalDate(0, 1, 1), new LocalDate(-1, 12, 31) };
+            var index = 0;
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(index, v));
+                var rs = Session.Execute(select.Bind(index)).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalDate>("v"));
+                index++;
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
         public void Bound_SmallInt_Tests()
         {
             Session.Execute("CREATE TABLE tbl_smallint_prep (id int PRIMARY KEY, v smallint)");

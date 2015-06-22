@@ -66,6 +66,8 @@ namespace Cassandra
             {ColumnTypeCode.Varchar,      EncodeVarchar},
             {ColumnTypeCode.Timeuuid,     EncodeTimeuuid},
             {ColumnTypeCode.Inet,         EncodeInet},
+            {ColumnTypeCode.Date,         EncodeDate},
+            {ColumnTypeCode.Time,         EncodeTime},
             {ColumnTypeCode.SmallInt,     EncodeShort},
             {ColumnTypeCode.TinyInt,      EncodeSByte},
             {ColumnTypeCode.List,         EncodeList},
@@ -97,6 +99,8 @@ namespace Cassandra
             {ColumnTypeCode.Varchar,      DecodeVarchar},
             {ColumnTypeCode.Timeuuid,     DecodeTimeuuid},
             {ColumnTypeCode.Inet,         DecodeInet},
+            {ColumnTypeCode.Date,         DecodeDate},
+            {ColumnTypeCode.Time,         DecodeTime},
             {ColumnTypeCode.SmallInt,     DecodeShort},
             {ColumnTypeCode.TinyInt,      DecodeSByte},
             {ColumnTypeCode.List,         DecodeList},
@@ -128,6 +132,7 @@ namespace Cassandra
             {ColumnTypeCode.Varchar,      _ => typeof (string)},
             {ColumnTypeCode.Timeuuid,     _ => typeof (Guid)},
             {ColumnTypeCode.Inet,         _ => typeof (IPAddress)},
+            {ColumnTypeCode.Date,         _ => typeof (LocalDate)},
             {ColumnTypeCode.SmallInt,     _ => typeof (short)},
             {ColumnTypeCode.TinyInt,      _ => typeof (sbyte)},
             {ColumnTypeCode.List,         GetDefaultTypeFromList},
@@ -156,6 +161,7 @@ namespace Cassandra
             { typeof(DateTime), ColumnTypeCode.Timestamp },
             { typeof(Guid), ColumnTypeCode.Uuid },
             { typeof(TimeUuid), ColumnTypeCode.Timeuuid },
+            { typeof(LocalDate), ColumnTypeCode.Date },
             { typeof(short), ColumnTypeCode.SmallInt },
             { typeof(sbyte), ColumnTypeCode.TinyInt },
             { TypeAdapters.DecimalTypeAdapter.GetDataType(), ColumnTypeCode.Decimal },
@@ -996,6 +1002,20 @@ namespace Cassandra
             return BytesToInt32(buffer, 0);
         }
 
+        public static object DecodeDate(int protocolVersion, IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
+        {
+            var days = unchecked((uint)((buffer[0] << 24)
+                   | (buffer[1] << 16)
+                   | (buffer[2] << 8)
+                   | (buffer[3])));
+            return new LocalDate(days);
+        }
+
+        public static object DecodeTime(int protocolVersion, IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
+        {
+            throw new NotImplementedException();
+        }
+
         public static object DecodeShort(int protocolVersion, IColumnInfo typeInfo, byte[] buffer, Type cSharpType)
         {
             return BytesToInt16(buffer, 0);
@@ -1010,6 +1030,24 @@ namespace Cassandra
         {
             CheckArgument<int>(value);
             return Int32ToBytes((int)value);
+        }
+
+        public static byte[] EncodeDate(int protocolVersion, IColumnInfo typeInfo, object value)
+        {
+            CheckArgument<LocalDate>(value);
+            var val = ((LocalDate) value).DaysSinceEpochCentered;
+            return new []
+            {
+                (byte) ((val & 0xFF000000) >> 24),
+                (byte) ((val & 0xFF0000) >> 16),
+                (byte) ((val & 0xFF00) >> 8),
+                (byte) (val & 0xFF)
+            };
+        }
+
+        public static byte[] EncodeTime(int protocolVersion, IColumnInfo typeInfo, object value)
+        {
+            throw new NotImplementedException();
         }
 
         public static byte[] EncodeShort(int protocolVersion, IColumnInfo typeInfo, object value)

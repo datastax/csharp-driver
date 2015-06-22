@@ -498,6 +498,26 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void EncodeDecodeDate()
+        {
+            var values = new[]
+            {
+                new LocalDate(2010, 4, 29),
+                new LocalDate(2005, 8, 5),
+                new LocalDate(0, 3, 12),
+                new LocalDate(-10, 2, 4),
+                new LocalDate(5881580, 7, 11),
+                new LocalDate(-5877641, 6, 23)
+            };
+            foreach (var v in values)
+            {
+                var encoded = TypeCodec.EncodeDate(4, null, v);
+                var decoded = (LocalDate)TypeCodec.DecodeDate(4, null, encoded, null);
+                Assert.AreEqual(v, decoded);
+            }
+        }
+
+        [Test]
         public void EncodeDecodeSmallInt()
         {
             for (var i = Int16.MinValue; ; i++ )

@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 
 namespace Cassandra
 {
     /// <summary>
-    /// A date with no time components, no time zone, in the ISO 8601 calendar.
-    /// This class implements these differences, so that year/month/day fields match exactly the ones in
-    /// CQL string literals.
-    /// 
+    /// A date without a time-zone in the ISO-8601 calendar system.
+    /// LocalDate is an immutable date-time object that represents a date, often viewed as year-month-day.
+    /// This class is implemented to match the Date representation CQL string literals.
     /// </summary>
     public class LocalDate: IComparable<LocalDate>, IEquatable<LocalDate>
     {
@@ -16,7 +16,7 @@ namespace Cassandra
         /// </summary>
         private static readonly int[] DaysToMonth = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
         private static readonly int[] DaysToMonthLeap = {  0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366};
-        //                              2 ^ 31
+        // unix epoch is represented by the number  2 ^ 31
         private const long DateCenter = 2147483648L;
         private const long DaysFromYear0ToUnixEpoch = 719528L;
         private const int DaysIn4Years = 4 * 365 + 1;
@@ -40,6 +40,7 @@ namespace Cassandra
         /// <param name="days">An unsigned integer representing days with epoch centered at 2^31.</param>
         internal LocalDate(uint days)
         {
+            DaysSinceEpochCentered = days;
             var d0 = Convert.ToInt64(days - DateCenter +  DaysFromYear0ToUnixEpoch);
             var y400 = d0 / DaysIn400Years;
             var d = d0 % DaysIn400Years;
@@ -91,10 +92,21 @@ namespace Cassandra
         /// <param name="day">A day of the month from 1 to 31.</param>
         public LocalDate(int year, int month, int day)
         {
-            //TODO: Validation year
+            if (year > 5881580 || year < -5877641)
+            {
+                throw new ArgumentOutOfRangeException("year", month, "Year is out of range");
+            }
             if (month < 1 || month > 12)
             {
-                throw new ArgumentOutOfRangeException("month", month, "Month value out of range");
+                throw new ArgumentOutOfRangeException("month", month, "Month is out of range");
+            }
+            if (year == 5881580 && month * 100 + day > 711)
+            {
+                throw new ArgumentOutOfRangeException("year", "Date is outside the boundaries of a LocalDate representation");
+            }
+            if (year == -5877641 && month * 100 + day < 623)
+            {
+                throw new ArgumentOutOfRangeException("year", "Date is outside the boundaries of a LocalDate representation");
             }
 
             Year = year;
@@ -163,7 +175,6 @@ namespace Cassandra
         /// <param name="year">0-based year number: 0 equals to 1 AD</param>
         private static long LeapDays(long year)
         {
-            //if (yearIndex <= 0) yearIndex--;
             var result = year/4 - year/100 + year/400;
             if (year > 0 && IsLeapYear((int)year))
             {
@@ -174,32 +185,75 @@ namespace Cassandra
 
         private static bool IsLeapYear(int year)
         {
-            //if (year <= 0) year--;
             return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
         }
 
-        public override string ToString()
+        private static string FillZeros(int value, int length = 2)
         {
-            return Year + "-" + Month + "-" + Day;
+            var textValue = value.ToString();
+            if (textValue.Length >= length)
+            {
+                return textValue;
+            }
+            return String.Join("", Enumerable.Repeat("0", length - textValue.Length)) + textValue;
         }
 
+        /// <summary>
+        /// Compares this instance value to another and returns an indication of their relative values.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         public int CompareTo(LocalDate other)
         {
-            if (other == null)
+            if ((object) other == null)
             {
                 return 1;
             }
             return DaysSinceEpochCentered.CompareTo(other.DaysSinceEpochCentered);
         }
 
+        /// <summary>
+        /// Determines if the value is equal to this instance.
+        /// </summary>
         public bool Equals(LocalDate other)
         {
             return CompareTo(other) == 0;
         }
 
+        /// <summary>
+        /// Returns the DateTimeOffset representation of the LocalDate for dates between 0001-01-01 and 9999-12-31
+        /// </summary>
+        public DateTimeOffset ToDateTimeOffset()
+        {
+            if (Year < 1 || Year > 9999)
+            {
+                throw new ArgumentOutOfRangeException("The LocalDate can not be converted to DateTimeOffset", (Exception) null);
+            }
+            return new DateTimeOffset(Year, Month, Day, 0, 0, 0, 0, TimeSpan.Zero);
+        }
+
+        /// <summary>
+        /// Returns the string representation of the LocalDate in yyyy-MM-dd format
+        /// </summary>
+        public override string ToString()
+        {
+            var yearString = Year.ToString();
+            if (Year >= 0 && Year < 1000)
+            {
+                yearString = FillZeros(Year, 4);
+            }
+            return yearString + "-" + FillZeros(Month) + "-" + FillZeros(Day);
+        }
+
         public static bool operator ==(LocalDate value1, LocalDate value2)
         {
-            if (value1 == null)
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(value1, value2))
+            {
+                return true;
+            }
+            // If one is null, but not both, return false.
+            if (((object)value1 == null) || ((object)value2 == null))
             {
                 return false;
             }
@@ -208,45 +262,35 @@ namespace Cassandra
 
         public static bool operator >=(LocalDate value1, LocalDate value2)
         {
-            if (value1 == null)
-            {
-                return false;
-            }
             return value1.CompareTo(value2) >= 0;
         }
 
         public static bool operator >(LocalDate value1, LocalDate value2)
         {
-            if (value1 == null)
-            {
-                return false;
-            }
             return value1.CompareTo(value2) > 0;
         }
 
         public static bool operator <=(LocalDate value1, LocalDate value2)
         {
-            if (value1 == null)
-            {
-                return false;
-            }
             return value1.CompareTo(value2) <= 0;
         }
 
         public static bool operator <(LocalDate value1, LocalDate value2)
         {
-            if (value1 == null)
-            {
-                return false;
-            }
             return value1.CompareTo(value2) < 0;
         }
 
         public static bool operator !=(LocalDate value1, LocalDate value2)
         {
-            if (value1 == null)
+            // If both are null, or both are same instance, return false.
+            if (ReferenceEquals(value1, value2))
             {
                 return false;
+            }
+            // If one is null, but not both, return true.
+            if (((object)value1 == null) || ((object)value2 == null))
+            {
+                return true;
             }
             return !value1.Equals(value2);
         }

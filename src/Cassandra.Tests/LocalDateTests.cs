@@ -83,5 +83,89 @@ namespace Cassandra.Tests
                 Assert.AreEqual(v.Item1.Day, calculated.Day, "Day for Date " + v.Item1);
             }
         }
+
+        [Test]
+        public void Can_Be_Used_As_Dictionary_Key()
+        {
+            var dictionary = Values.ToDictionary(v => v.Item1, v => v.Item1.ToString());
+            Assert.AreEqual(Values.Length, dictionary.Count);
+        }
+
+        [Test]
+        public void Should_Support_Operators()
+        {
+            LocalDate value1 = null;
+            Assert.True(value1 == null);
+            Assert.False(value1 != null);
+            value1 = new LocalDate(2010, 3, 15);
+            Assert.False(value1 == null);
+            Assert.True(value1 != null);
+            Assert.AreEqual(value1, new LocalDate(2010, 3, 15));
+        }
+
+        [Test]
+        public void ToString_Should_Return_String_Representation()
+        {
+            var values = new []
+            {
+                Tuple.Create(2010, 4, 29, "2010-04-29"),
+                Tuple.Create(2005, 8, 5,  "2005-08-05"),
+                Tuple.Create(101, 10, 5,  "0101-10-05"),
+                Tuple.Create(-10, 10, 5,  "-10-10-05"),
+                Tuple.Create(-110, 1, 23, "-110-01-23")
+            };
+            foreach (var v in values)
+            {
+                Assert.AreEqual(v.Item4, new LocalDate(v.Item1, v.Item2, v.Item3).ToString());
+            }
+        }
+
+        [Test]
+        public void Constructor_Should_Validate_Boundaries()
+        {
+            var values = new[]
+            {
+                Tuple.Create(5881581, 1, 1),
+                Tuple.Create(5881580, 7, 12),
+                Tuple.Create(-5877641, 6, 22),
+                Tuple.Create(-5877642, 1, 1)
+            };
+            foreach (var v in values)
+            {
+                // ReSharper disable once ObjectCreationAsStatement
+                Assert.Throws<ArgumentOutOfRangeException>(() => new LocalDate(v.Item1, v.Item2, v.Item3));
+            }
+        }
+
+        [Test]
+        public void ToDateTimeOffset_Should_Convert()
+        {
+            var values = new[]
+            {
+                Tuple.Create(2010, 4, 29),
+                Tuple.Create(2005, 8, 5),
+                Tuple.Create(101, 10, 5)
+            };
+            foreach (var v in values)
+            {
+                var expected = new DateTimeOffset(v.Item1, v.Item2, v.Item3, 0, 0, 0, TimeSpan.Zero);
+                Assert.AreEqual(expected, new LocalDate(v.Item1, v.Item2, v.Item3).ToDateTimeOffset());
+            }
+        }
+
+        [Test]
+        public void ToDateTimeOffset_Should_Throw_When_Can_Not_Represent()
+        {
+            var values = new[]
+            {
+                Tuple.Create(-1, 4, 29),
+                Tuple.Create(0, 8, 5),
+                Tuple.Create(10123, 10, 5)
+            };
+            foreach (var v in values)
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() => new LocalDate(v.Item1, v.Item2, v.Item3).ToDateTimeOffset());
+            }
+        }
     }
 }
