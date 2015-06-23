@@ -29,7 +29,9 @@ namespace Cassandra
         private const String SelectTables = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='{0}'";
         private const String SelectColumns = "SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
         private const String SelectUdts = "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
+        private const String SelectFunctions = "SELECT * FROM system.schema_functions WHERE keyspace_name = '{0}' AND function_name = '{1}' AND signature = {2}";
         private readonly ConcurrentDictionary<string, TableMetadata> _tables = new ConcurrentDictionary<string, TableMetadata>();
+        private readonly ConcurrentDictionary<Tuple<string, string[]>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string[]>, FunctionMetadata>();
         private readonly ControlConnection _cc;
 
         /// <summary>
@@ -249,7 +251,6 @@ namespace Cassandra
             return result;
         }
 
-
         /// <summary>
         ///  Returns metadata of all tables defined in this keyspace.
         /// </summary>
@@ -340,6 +341,34 @@ namespace Cassandra
                 udt.Fields.Add(field);
             }
             return udt;
+        }
+
+        /// <summary>
+        /// Gets a CQL function by name and signature
+        /// </summary>
+        /// <returns>The function metadata or null if not found.</returns>
+        public FunctionMetadata GetFunction(string functionName, string[] signature)
+        {
+            if (signature == null)
+            {
+                signature = new string[0];
+            }
+            FunctionMetadata func;
+            var key = Tuple.Create(functionName, signature);
+            if (_functions.TryGetValue(key, out func))
+            {
+                return func;
+            }
+            //Try to retrieve
+            var signatureString = "[" + String.Join(",", signature) + "]";
+            var row = _cc.Query(String.Format(SelectFunctions, Name, functionName, signatureString), true).FirstOrDefault();
+            if (row == null)
+            {
+                return null;
+            }
+            func = FunctionMetadata.Build(row);
+            _functions.AddOrUpdate(key, func, (k, v) => func);
+            return func;
         }
     }
 }

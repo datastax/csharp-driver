@@ -57,6 +57,7 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AggregateMetadata.cs" />
     <Compile Include="Compression\Snappy\CorruptionException.cs" />
     <Compile Include="Compression\Snappy\Memory.cs" />
     <Compile Include="Compression\Snappy\SlowMemory.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="Exceptions\ReadFailureException.cs" />
     <Compile Include="Exceptions\RequestInvalidException.cs" />
     <Compile Include="Exceptions\WriteFailureException.cs" />
+    <Compile Include="FunctionMetadata.cs" />
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />
     <Compile Include="IAddressTranslator.cs" />
