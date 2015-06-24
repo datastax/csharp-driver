@@ -29,14 +29,35 @@ namespace Cassandra
         /// The keyspace affected
         /// </summary>
         public string Keyspace { get; set; }
+
         /// <summary>
         /// The table affected
         /// </summary>
         public string Table { get; set; }
+
+        /// <summary>
+        /// The type of change in the schema object
+        /// </summary>
         public Reason What { get; set; }
+
         /// <summary>
         /// The custom type affected
         /// </summary>
         public string Type { get; set; }
+
+        /// <summary>
+        /// Name of the Cql function affected
+        /// </summary>
+        public string FunctionName { get; set; }
+
+        /// <summary>
+        /// Name of the aggregate affected
+        /// </summary>
+        public string AggregateName { get; set; }
+
+        /// <summary>
+        /// Signature of the function or aggregate
+        /// </summary>
+        public string[] Signature { get; set; }
     }
 }

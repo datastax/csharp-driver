@@ -30,8 +30,10 @@ namespace Cassandra
         private const String SelectColumns = "SELECT * FROM system.schema_columns WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
         private const String SelectUdts = "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
         private const String SelectFunctions = "SELECT * FROM system.schema_functions WHERE keyspace_name = '{0}' AND function_name = '{1}' AND signature = {2}";
+        private const String SelectAggregates = "SELECT * FROM system.schema_aggregates WHERE keyspace_name = '{0}' AND aggregate_name = '{1}' AND signature = {2}";
         private readonly ConcurrentDictionary<string, TableMetadata> _tables = new ConcurrentDictionary<string, TableMetadata>();
-        private readonly ConcurrentDictionary<Tuple<string, string[]>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string[]>, FunctionMetadata>();
+        private readonly ConcurrentDictionary<Tuple<string, string>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string>, FunctionMetadata>();
+        private readonly ConcurrentDictionary<Tuple<string, string>, AggregateMetadata> _aggregates = new ConcurrentDictionary<Tuple<string,string>,AggregateMetadata>();
         private readonly ControlConnection _cc;
 
         /// <summary>
@@ -241,6 +243,24 @@ namespace Cassandra
             _tables.TryRemove(tableName, out table);
         }
 
+        /// <summary>
+        /// Removes function metadata forcing refresh the next time the function metadata is retrieved
+        /// </summary>
+        internal void ClearFunction(string name, string[] signature)
+        {
+            FunctionMetadata element;
+            _functions.TryRemove(GetFunctionKey(name, signature), out element);
+        }
+
+        /// <summary>
+        /// Removes aggregate metadata forcing refresh the next time the function metadata is retrieved
+        /// </summary>
+        internal void ClearAggregate(string name, string[] signature)
+        {
+            AggregateMetadata element;
+            _aggregates.TryRemove(GetFunctionKey(name, signature), out element);
+        }
+
         private SortedDictionary<string, string> GetCompactionStrategyOptions(Row row)
         {
             var result = new SortedDictionary<string, string> { { "class", row.GetValue<string>("compaction_strategy_class") } };
@@ -354,14 +374,14 @@ namespace Cassandra
                 signature = new string[0];
             }
             FunctionMetadata func;
-            var key = Tuple.Create(functionName, signature);
+            var key = GetFunctionKey(functionName, signature);
             if (_functions.TryGetValue(key, out func))
             {
                 return func;
             }
-            //Try to retrieve
-            var signatureString = "[" + String.Join(",", signature) + "]";
-            var row = _cc.Query(String.Format(SelectFunctions, Name, functionName, signatureString), true).FirstOrDefault();
+            var signatureString = "[" + String.Join(",", signature.Select(s => "'" + s + "'")) + "]";
+            var query = String.Format(SelectFunctions, Name, functionName, signatureString);
+            var row = _cc.Query(query, true).FirstOrDefault();
             if (row == null)
             {
                 return null;
@@ -369,6 +389,39 @@ namespace Cassandra
             func = FunctionMetadata.Build(row);
             _functions.AddOrUpdate(key, func, (k, v) => func);
             return func;
+        }
+
+        /// <summary>
+        /// Gets a CQL aggregate by name and signature
+        /// </summary>
+        /// <returns>The aggregate metadata or null if not found.</returns>
+        public AggregateMetadata GetAggregate(string aggregateName, string[] signature)
+        {
+            if (signature == null)
+            {
+                signature = new string[0];
+            }
+            AggregateMetadata aggregate;
+            var key = GetFunctionKey(aggregateName, signature);
+            if (_aggregates.TryGetValue(key, out aggregate))
+            {
+                return aggregate;
+            }
+            var signatureString = "[" + String.Join(",", signature.Select(s => "'" + s + "'")) + "]";
+            var query = String.Format(SelectAggregates, Name, aggregateName, signatureString);
+            var row = _cc.Query(query, true).FirstOrDefault();
+            if (row == null)
+            {
+                return null;
+            }
+            aggregate = AggregateMetadata.Build(_cc.ProtocolVersion, row);
+            _aggregates.AddOrUpdate(key, aggregate, (k, v) => aggregate);
+            return aggregate;
+        }
+
+        private static Tuple<string, string> GetFunctionKey(string name, string[] signature)
+        {
+            return Tuple.Create(name, String.Join(",", signature));
         }
     }
 }

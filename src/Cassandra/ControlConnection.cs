@@ -251,54 +251,66 @@ namespace Cassandra
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
-            Task.Factory.StartNew(() =>
+            //This event is invoked from a worker thread (not a IO thread)
+            if (e is TopologyChangeEventArgs)
             {
-                if (e is TopologyChangeEventArgs)
+                var tce = (TopologyChangeEventArgs)e;
+                if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
                 {
-                    var tce = (TopologyChangeEventArgs) e;
-                    if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
-                    {
-                        Refresh(false);
-                        return;
-                    }
-                    if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
-                    {
-                        Refresh(false);
-                        return;
-                    }
+                    Refresh(false);
+                    return;
                 }
-                if (e is StatusChangeEventArgs)
+                if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
-                    var sce = (StatusChangeEventArgs) e;
-                    //The address in the Cassandra event message needs to be translated
-                    var address = TranslateAddress(sce.Address);
-                    if (sce.What == StatusChangeEventArgs.Reason.Up)
-                    {
-                        Metadata.BringUpHost(address, this);
-                        return;
-                    }
-                    if (sce.What == StatusChangeEventArgs.Reason.Down)
-                    {
-                        Metadata.SetDownHost(address, this);
-                        return;
-                    }
+                    Refresh(false);
+                    return;
                 }
-                if (e is SchemaChangeEventArgs)
+            }
+            if (e is StatusChangeEventArgs)
+            {
+                var sce = (StatusChangeEventArgs)e;
+                //The address in the Cassandra event message needs to be translated
+                var address = TranslateAddress(sce.Address);
+                if (sce.What == StatusChangeEventArgs.Reason.Up)
                 {
-                    var ssc = (SchemaChangeEventArgs) e;
-                    if (!String.IsNullOrEmpty(ssc.Table))
-                    {
-                        Metadata.RefreshTable(ssc.Keyspace, ssc.Table);
-                        return;
-                    }
-                    if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
-                    {
-                        Metadata.RemoveKeyspace(ssc.Keyspace);
-                        return;
-                    }
-                    Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
+                    Metadata.BringUpHost(address, this);
+                    return;
                 }
-            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                if (sce.What == StatusChangeEventArgs.Reason.Down)
+                {
+                    Metadata.SetDownHost(address, this);
+                    return;
+                }
+            }
+            if (e is SchemaChangeEventArgs)
+            {
+                var ssc = (SchemaChangeEventArgs)e;
+                if (!String.IsNullOrEmpty(ssc.Table))
+                {
+                    Metadata.RefreshTable(ssc.Keyspace, ssc.Table);
+                    return;
+                }
+                if (ssc.FunctionName != null)
+                {
+                    Metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature);
+                    return;
+                }
+                if (ssc.AggregateName != null)
+                {
+                    Metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature);
+                    return;
+                }
+                if (ssc.Type != null)
+                {
+                    return;
+                }
+                if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
+                {
+                    Metadata.RemoveKeyspace(ssc.Keyspace);
+                    return;
+                }
+                Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
+            }
         }
 
         private IPEndPoint TranslateAddress(IPEndPoint value)

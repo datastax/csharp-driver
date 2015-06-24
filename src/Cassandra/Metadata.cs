@@ -238,6 +238,34 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets the definition associated with a User Defined Function from Cassandra
+        /// </summary>
+        /// <returns>The function metadata or null if not found.</returns>
+        public FunctionMetadata GetFunction(string keyspace, string name, string[] signature)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetFunction(name, signature);
+        }
+
+        /// <summary>
+        /// Gets the definition associated with a aggregate from Cassandra
+        /// </summary>
+        /// <returns>The aggregate metadata or null if not found.</returns>
+        public AggregateMetadata GetAggregate(string keyspace, string name, string[] signature)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetAggregate(name, signature);
+        }
+
+        /// <summary>
         /// Updates the keyspace and token information
         /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
@@ -324,6 +352,24 @@ namespace Cassandra
             if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
             {
                 ksMetadata.ClearTableMetadata(tableName);
+            }
+        }
+
+        internal void ClearFunction(string keyspaceName, string functionName, string[] signature)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
+            {
+                ksMetadata.ClearFunction(functionName, signature);
+            }
+        }
+
+        internal void ClearAggregate(string keyspaceName, string aggregateName, string[] signature)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
+            {
+                ksMetadata.ClearAggregate(aggregateName, signature);
             }
         }
 

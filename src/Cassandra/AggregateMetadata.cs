@@ -26,11 +26,6 @@ namespace Cassandra
         public string[] Signature { get; private set; }
 
         /// <summary>
-        /// List of the function argument names.
-        /// </summary>
-        public string[] ArgumentNames { get; private set; }
-
-        /// <summary>
         /// List of the function argument types.
         /// </summary>
         public ColumnDesc[] ArgumentTypes { get; private set; }
@@ -65,19 +60,39 @@ namespace Cassandra
             
         }
 
-        public AggregateMetadata(string name, string keyspaceName, string[] signature, string[] argumentNames, ColumnDesc[] argumentTypes, 
+        public AggregateMetadata(string name, string keyspaceName, string[] signature, ColumnDesc[] argumentTypes, 
                                  string stateFunction, ColumnDesc stateType, string finalFunction, object initialCondition, ColumnDesc returnType)
         {
             Name = name;
             KeyspaceName = keyspaceName;
             Signature = signature;
-            ArgumentNames = argumentNames;
             ArgumentTypes = argumentTypes;
             StateFunction = stateFunction;
             StateType = stateType;
             FinalFunction = finalFunction;
             InitialCondition = initialCondition;
             ReturnType = returnType;
+        }
+
+        /// <summary>
+        /// Creates a new instance of function metadata based on a schema_function row.
+        /// </summary>
+        internal static AggregateMetadata Build(int protocolVersion, Row row)
+        {
+            var emptyArray = new string[0];
+            var aggregate = new AggregateMetadata
+            {
+                Name = row.GetValue<string>("aggregate_name"),
+                KeyspaceName = row.GetValue<string>("keyspace_name"),
+                Signature = row.GetValue<string[]>("signature") ?? emptyArray,
+                StateFunction = row.GetValue<string>("state_func"),
+                StateType = TypeCodec.ParseDataType(row.GetValue<string>("state_type")),
+                FinalFunction = row.GetValue<string>("final_func"),
+                ReturnType = TypeCodec.ParseDataType(row.GetValue<string>("return_type")),
+                ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => TypeCodec.ParseDataType(s)).ToArray(),
+            };
+            aggregate.InitialCondition = TypeCodec.Decode(protocolVersion, row.GetValue<byte[]>("initcond"), aggregate.StateType.TypeCode, aggregate.StateType.TypeInfo);
+            return aggregate;
         }
     }
 }
