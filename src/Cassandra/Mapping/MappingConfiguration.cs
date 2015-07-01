@@ -71,6 +71,7 @@ namespace Cassandra.Mapping
         {
             if (typeConverter == null) throw new ArgumentNullException("typeConverter");
             _typeConverter = typeConverter;
+            MapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
             return this;
         }
 
