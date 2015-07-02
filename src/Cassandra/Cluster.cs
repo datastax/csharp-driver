@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -160,6 +161,7 @@ namespace Cassandra
                     //Throw the actual exception for the first time
                     throw;
                 }
+                Configuration.Timer = new HashedWheelTimer();
                 _logger.Info("Cluster Connected using binary protocol version: [" + _protocolVersion + "]");
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;
@@ -276,7 +278,7 @@ namespace Cassandra
             }
             _metadata.ShutDown(timeoutMs);
             _controlConnection.Dispose();
-
+            Configuration.Timer.Dispose();
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
     }

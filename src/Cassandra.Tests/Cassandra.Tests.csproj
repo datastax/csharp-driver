@@ -115,6 +115,7 @@
     <Compile Include="StatementTests.cs" />
     <Compile Include="TestHelper.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
+    <Compile Include="TimeoutTests.cs" />
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
     <Compile Include="TypeCodecTests.cs" />
