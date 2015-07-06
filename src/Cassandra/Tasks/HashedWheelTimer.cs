@@ -34,7 +34,7 @@ namespace Cassandra.Tasks
         /// </summary>
         internal int Index { get; set; }
 
-        public HashedWheelTimer(int tickDuration = 200, int ticksPerWheel = 256)
+        public HashedWheelTimer(int tickDuration = 200, int ticksPerWheel = 512)
         {
             if (ticksPerWheel < 1)
             {
@@ -85,6 +85,9 @@ namespace Cassandra.Tasks
             _timer.Change(_tickDuration, Timeout.Infinite);
         }
 
+        /// <summary>
+        /// Releases the underlying timer instance.
+        /// </summary>
         public void Dispose()
         {
             //Allow multiple calls to dispose
@@ -221,7 +224,11 @@ namespace Cassandra.Tasks
         {
             bool IsCancelled { get; }
 
-            void Cancel();
+            /// <summary>
+            /// Marks the timeout as cancelled if it hasn't expired yet.
+            /// </summary>
+            /// <returns>True if it has been cancelled by this call</returns>
+            bool Cancel();
         }
 
         internal class TimeoutItem : ITimeout
@@ -246,9 +253,9 @@ namespace Cassandra.Tasks
                 Action = action;
             }
 
-            public void Cancel()
+            public bool Cancel()
             {
-                Interlocked.Exchange(ref _state, CancelledState);
+                return Interlocked.CompareExchange(ref _state, CancelledState, InitState) == InitState;
             }
 
             /// <summary>

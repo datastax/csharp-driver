@@ -45,6 +45,7 @@ namespace Cassandra
         private readonly object _cancelLock = new object();
         private readonly Timer _idleTimer;
         private AutoResetEvent _pendingWaitHandle;
+        private int _timedOutOperations;
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
@@ -83,10 +84,7 @@ namespace Cassandra
 
         public IPEndPoint Address
         {
-            get
-            {
-                return _tcpSocket.IPEndPoint;
-            }
+            get { return _tcpSocket.IPEndPoint; }
         }
 
         /// <summary>
@@ -94,10 +92,15 @@ namespace Cassandra
         /// </summary>
         public int InFlight
         { 
-            get
-            {
-                return _pendingOperations.Count;
-            }
+            get { return _pendingOperations.Count; }
+        }
+
+        /// <summary>
+        /// Gets the amount of operations that timed out and didn't get a response
+        /// </summary>
+        public int TimedOutOperations
+        {
+            get { return Thread.VolatileRead(ref _timedOutOperations); }
         }
 
         /// <summary>
@@ -178,8 +181,8 @@ namespace Cassandra
 
         public Connection(byte protocolVersion, IPEndPoint endpoint, Configuration configuration)
         {
-            this.ProtocolVersion = protocolVersion;
-            this.Configuration = configuration;
+            ProtocolVersion = protocolVersion;
+            Configuration = configuration;
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
         }
@@ -515,10 +518,7 @@ namespace Cassandra
                 else
                 {
                     //Its an event
-                    state = new OperationState
-                    {
-                        Callback = EventHandler
-                    };
+                    state = new OperationState(EventHandler);
                 }
                 state.Header = header;
                 _receivingOperation = state;
@@ -600,7 +600,7 @@ namespace Cassandra
         public Task<AbstractResponse> Send(IRequest request)
         {
             var tcs = new TaskCompletionSource<AbstractResponse>();
-            this.Send(request, tcs.TrySet);
+            Send(request, tcs.TrySet);
             return tcs.Task;
         }
 
@@ -614,10 +614,9 @@ namespace Cassandra
                 callback(new SocketException((int)SocketError.NotConnected), null);
             }
             //thread safe write queue
-            var state = new OperationState
+            var state = new OperationState(callback)
             {
-                Request = request,
-                Callback = callback
+                Request = request
             };
             SendQueueProcess(state, true);
         }
@@ -671,6 +670,12 @@ namespace Cassandra
                 state.Request = null;
                 //Start sending it
                 _tcpSocket.Write(frameStream);
+                //Closure state variable
+                var delegateState = state;
+                if (Configuration.SocketOptions.ReadTimeoutMillis > 0)
+                {
+                    state.Timeout = Configuration.Timer.NewTimeout(() => OnTimeout(delegateState), Configuration.SocketOptions.ReadTimeoutMillis);   
+                }
             }
             catch (Exception ex)
             {
@@ -683,6 +688,21 @@ namespace Cassandra
                 //Callback with the Exception
                 state.InvokeCallback(ex);
             }
+        }
+
+        private void OnTimeout(OperationState state)
+        {
+            var ex = new OperationTimedOutException(Address, Configuration.SocketOptions.ReadTimeoutMillis);
+            //Invoke if it hasn't been invoked yet
+            //If the response is obtained, we decrement the timed out counter
+            var timedout = state.InvokeCallback(ex, null, (_, __) => Interlocked.Decrement(ref _timedOutOperations) );
+            if (!timedout)
+            {
+                //The response was obtained since the timer elapsed, move on
+                return;
+            }
+            //Increase timed-out counter
+            Interlocked.Increment(ref _timedOutOperations);
         }
 
         /// <summary>

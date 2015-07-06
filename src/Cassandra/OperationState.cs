@@ -21,6 +21,7 @@ using System.Linq;
 using System.Text;
 ﻿using System.Threading;
 ﻿using System.Threading.Tasks;
+﻿using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -29,7 +30,7 @@ namespace Cassandra
     /// </summary>
     internal class OperationState
     {
-        private static Logger _logger = new Logger(typeof(OperationState));
+        private Action<Exception, AbstractResponse> _callback;
         /// <summary>
         /// Gets a readable stream representing the body
         /// </summary>
@@ -61,7 +62,18 @@ namespace Cassandra
 
         public IRequest Request { get; set; }
 
-        public Action<Exception, AbstractResponse> Callback { get; set; }
+        /// <summary>
+        /// Read timeout associated with the request
+        /// </summary>
+        public HashedWheelTimer.ITimeout Timeout { get; set; }
+
+        /// <summary>
+        /// Creates a new operation state with the provided callback
+        /// </summary>
+        public OperationState(Action<Exception, AbstractResponse> callback)
+        {
+            _callback = callback;
+        }
 
         /// <summary>
         /// Appends to the body stream
@@ -78,8 +90,8 @@ namespace Cassandra
                 if (Header.BodyLength <= count)
                 {
                     //There is no need to copy the buffer: Use the inner buffer
-                    BodyStream = new MemoryStream(value, offset, this.Header.BodyLength, false, false);
-                    return this.Header.BodyLength;
+                    BodyStream = new MemoryStream(value, offset, Header.BodyLength, false, false);
+                    return Header.BodyLength;
                 }
                 BodyStream = new ListBackedStream();
             }
@@ -92,24 +104,35 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Invokes the callback in a new thread using the default task scheduler
+        /// Invokes the callback in a new thread using the default task scheduler.
         /// </summary>
-        public void InvokeCallback(Exception ex, AbstractResponse response = null)
+        /// <remarks>
+        /// It only invokes the callback if it hasn't been invoked yet, replacing it for a new callback if necessary.
+        /// </remarks>
+        /// <returns>True</returns>
+        public bool InvokeCallback(Exception ex, AbstractResponse response = null, Action<Exception, AbstractResponse> replaceCallback = null)
         {
+            var callback = _callback;
+            if (callback == null || Interlocked.CompareExchange(ref _callback, replaceCallback, callback) != callback)
+            {
+                //Callback has already been called, we are done here
+                return false;
+            }
+            if (Timeout != null)
+            {
+                //Cancel it if it hasn't expired
+                Timeout.Cancel();
+            }
             if (response is ErrorResponse)
             {
                 //Create an exception from the response error
                 ex = ((ErrorResponse)response).Output.CreateException();
                 response = null;
             }
-            if (Callback == null)
-            {
-                _logger.Error("No callback for response");
-                return;
-            }
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
-            Task.Factory.StartNew(() => Callback(ex, response), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => callback(ex, response), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            return true;
         }
     }
 }

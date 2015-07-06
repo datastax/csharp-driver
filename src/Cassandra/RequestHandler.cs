@@ -38,6 +38,7 @@ namespace Cassandra
         private readonly Session _session;
         private readonly IStatement _statement;
         private readonly bool _autoPage = true;
+        private readonly bool _retryOnTimeout = true;
         private int _retryCount;
         private readonly TaskCompletionSource<T> _tcs;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
@@ -58,6 +59,10 @@ namespace Cassandra
             if (session != null && session.Policies != null && session.Policies.RetryPolicy != null)
             {
                 _retryPolicy = session.Policies.RetryPolicy;
+                if (session.Configuration != null)
+                {
+                    _retryOnTimeout = session.Configuration.QueryOptions.RetryOnTimeout;
+                }
             }
             if (statement != null)
             {
@@ -144,12 +149,11 @@ namespace Cassandra
                 }
                 Host = host;
                 _triedHosts[host.Address] = null;
-                Connection connection = null;
                 try
                 {
                     var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
-                    var hostPool = _session.GetConnectionPool(host, distance);
-                    connection = hostPool.BorrowConnection();
+                    var hostPool = _session.GetOrCreateConnectionPool(host, distance);
+                    var connection = hostPool.BorrowConnection();
                     if (connection == null)
                     {
                         continue;
@@ -159,7 +163,7 @@ namespace Cassandra
                 }
                 catch (SocketException ex)
                 {
-                    SetHostDown(host, connection, ex);
+                    host.SetDown();
                     _triedHosts[host.Address] = ex;
                 }
                 catch (InvalidQueryException)
@@ -225,10 +229,15 @@ namespace Cassandra
                 PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
                 return;
             }
+            if (ex is OperationTimedOutException)
+            {
+                OnTimeout(ex);
+                return;
+            }
             if (ex is SocketException)
             {
                 _logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                SetHostDown(Host, _connection, ex);
+                Host.SetDown();
             }
             var decision = GetRetryDecision(ex);
             switch (decision.DecisionType)
@@ -256,12 +265,27 @@ namespace Cassandra
             }
         }
 
-        // ReSharper disable UnusedParameter.Local
-        private void SetHostDown(Host host, Connection connection, Exception ex)
+        /// <summary>
+        /// It handles the steps required when there is a client-level read timeout.
+        /// It is invoked by a thread from the default TaskScheduler
+        /// </summary>
+        private void OnTimeout(Exception ex)
         {
-            host.SetDown();
+            _logger.Warning(ex.Message);
+            if (_session == null || Host == null || _connection == null)
+            {
+                _logger.Error("Session, Host and Connection must not be null");
+                return;
+            }
+            var pool = _session.GetExistingPool(Host);
+            pool.CheckHealth(_connection);
+            if (_retryOnTimeout || _request is PrepareRequest)
+            {
+                TrySend();
+                return;
+            }
+            _tcs.TrySetException(ex);
         }
-        // ReSharper restore UnusedParameter.Local
 
         /// <summary>
         /// Creates the prepared statement and transitions the task to completed

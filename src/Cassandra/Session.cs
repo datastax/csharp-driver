@@ -235,14 +235,24 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the connection pool for a given host
+        /// Gets or creates the connection pool for a given host
         /// </summary>
-        internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
+        internal HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address => new HostConnectionPool(host, distance, Configuration));
             //It can change from the last time, when trying lower protocol versions
             hostPool.ProtocolVersion = (byte) BinaryProtocolVersion;
             return hostPool;
+        }
+
+        /// <summary>
+        /// Gets the existing connection pool for this host and session or null when it does not exists
+        /// </summary>
+        internal HostConnectionPool GetExistingPool(Host host)
+        {
+            HostConnectionPool pool;
+            _connectionPool.TryGetValue(host.Address, out pool);
+            return pool;
         }
 
         /// <summary>
