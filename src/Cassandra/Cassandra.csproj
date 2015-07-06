@@ -57,6 +57,7 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Collections\CopyOnWriteList.cs" />
     <Compile Include="Compression\Snappy\CorruptionException.cs" />
     <Compile Include="Compression\Snappy\Memory.cs" />
     <Compile Include="Compression\Snappy\SlowMemory.cs" />
@@ -124,6 +125,7 @@
     <Compile Include="DSE\SASL.cs" />
     <Compile Include="DSE\SSPI.cs" />
     <Compile Include="DSE\WindowsAPI.cs" />
+    <Compile Include="Exceptions\OperationTimedOutException.cs" />
     <Compile Include="Exceptions\RequestInvalidException.cs" />
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />

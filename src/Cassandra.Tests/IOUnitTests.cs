@@ -82,7 +82,7 @@ namespace Cassandra.Tests
                 //256 bytes
                 Len = new byte[] { 0, 0, 1, 0}
             };
-            var operationState = new OperationState();
+            var operationState = new OperationState((ex, r) => { });
             operationState.Header = header;
             operationState.AppendBody(writeBuffer, 0, 256);
 
@@ -91,7 +91,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(writeBuffer, readBuffer);
 
 
-            operationState = new OperationState();
+            operationState = new OperationState((ex, r) => { });
             operationState.Header = header;
             operationState.AppendBody(writeBuffer, 0, 100);
             operationState.AppendBody(writeBuffer, 100, 100);

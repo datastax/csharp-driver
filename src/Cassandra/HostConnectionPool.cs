@@ -15,10 +15,12 @@
 //
 
 ﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections;
+﻿using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
+﻿using Cassandra.Collections;
 
 namespace Cassandra
 {
@@ -27,10 +29,11 @@ namespace Cassandra
     /// </summary>
     internal class HostConnectionPool : IDisposable
     {
+        // ReSharper disable once InconsistentNaming
         private readonly static Logger _logger = new Logger(typeof(HostConnectionPool));
-        private ConcurrentBag<Connection> _connections;
+        private readonly ICollection<Connection> _connections = new CopyOnWriteList<Connection>();
         private readonly object _poolCreationLock = new object();
-        private int _creating = 0;
+        private int _creating;
 
         private Configuration Configuration { get; set; }
 
@@ -41,10 +44,6 @@ namespace Cassandra
         { 
             get
             {
-                if (_connections == null)
-                {
-                    return new Connection[] { };
-                }
                 return _connections;
             }
         }
@@ -85,7 +84,7 @@ namespace Cassandra
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         private Connection CreateConnection()
         {
-            _logger.Info("Creating a new connection to the host " + Host.Address.ToString());
+            _logger.Info("Creating a new connection to the host " + Host.Address);
             var c = new Connection(ProtocolVersion, Host.Address, Configuration);
             c.Init();
             if (Configuration.PoolingOptions.GetHeartBeatInterval() != null)
@@ -108,13 +107,9 @@ namespace Cassandra
         {
             //Dispose all current connections
             //Connection allows multiple calls to Dispose
-            var currentPool = _connections;
-            if (currentPool != null)
+            foreach (var c in _connections)
             {
-                foreach (var c in currentPool)
-                {
-                    c.Dispose();
-                }
+                c.Dispose();
             }
         }
 
@@ -124,18 +119,18 @@ namespace Cassandra
         private void MaybeCreateCorePool()
         {
             var coreConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(HostDistance);
-            if (_connections == null || _connections.All(c => c.IsClosed))
+            if (_connections.Count == 0 || _connections.All(c => c.IsClosed))
             {
                 lock(_poolCreationLock)
                 {
-                    if (!Host.IsConsiderablyUp || (_connections != null && !_connections.All(c => c.IsClosed)))
+                    if (!Host.IsConsiderablyUp || !_connections.All(c => c.IsClosed))
                     {
                         //While waiting for the lock
                         //The connections have been created
                         //Or the host was set as down again
                         return;
                     }
-                    _connections = new ConcurrentBag<Connection>();
+                    _connections.Clear();
                     while (_connections.Count < coreConnections)
                     {
                         try
@@ -145,11 +140,6 @@ namespace Cassandra
                         catch
                         {
                             _logger.Warning(String.Format("Could not create connections to host {0}", Host.Address));
-                            if (_connections.Count == 0)
-                            {
-                                //Leave the pool to its previous state
-                                _connections = null;
-                            }
                             throw;
                         }
                     }
@@ -171,7 +161,7 @@ namespace Cassandra
                     _logger.Warning("Max amount of connections and max amount of in-flight operations reached");
                     return;
                 }
-                //Only one creation at a time
+                //Only grow connections creation at a time
                 if (Interlocked.Increment(ref _creating) == 1)
                 {
                     _connections.Add(CreateConnection());
@@ -180,20 +170,30 @@ namespace Cassandra
             }
         }
 
-        public void Dispose()
+        public void CheckHealth(Connection c)
         {
-            Host.Down -= OnHostDown;
-            var connections = _connections;
-            if (connections == null)
+            if (c.TimedOutOperations < Configuration.SocketOptions.DefunctReadTimeoutThreshold)
             {
                 return;
             }
-            _logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", Host.Address, connections.Count));
-            foreach (var c in connections)
+            //Defunct: close it and remove it from the pool
+            _connections.Remove(c);
+            c.Dispose();
+        }
+
+        public void Dispose()
+        {
+            Host.Down -= OnHostDown;
+            if (_connections.Count == 0)
+            {
+                return;
+            }
+            _logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", Host.Address, _connections.Count));
+            foreach (var c in _connections)
             {
                 c.Dispose();
             }
-            _connections = null;
+            _connections.Clear();
         }
     }
 }

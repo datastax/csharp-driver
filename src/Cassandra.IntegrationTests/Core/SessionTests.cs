@@ -277,8 +277,8 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     localSession1.Execute("SELECT * FROM system.local");
                 }
-                var pool11 = localSession1.GetConnectionPool(hosts1[0], HostDistance.Local);
-                var pool12 = localSession1.GetConnectionPool(hosts1[1], HostDistance.Local);
+                var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
+                var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
                 Assert.That(pool11.OpenConnections.Count(), Is.EqualTo(3));
                 Assert.That(pool12.OpenConnections.Count(), Is.EqualTo(3));
                 
@@ -294,8 +294,8 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     localSession2.Execute("SELECT * FROM system.local");
                 }
-                var pool21 = localSession2.GetConnectionPool(hosts2[0], HostDistance.Local);
-                var pool22 = localSession2.GetConnectionPool(hosts2[1], HostDistance.Local);
+                var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
+                var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
                 Assert.That(pool21.OpenConnections.Count(), Is.EqualTo(1));
                 Assert.That(pool22.OpenConnections.Count(), Is.EqualTo(1));
             }
