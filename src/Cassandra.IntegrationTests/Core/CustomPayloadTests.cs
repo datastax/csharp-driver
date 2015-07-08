@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("short")]
-    public class CustomPayloadWarningTests : TestGlobals
+    public class CustomPayloadTests : TestGlobals
     {
         public ISession Session { get; set; }
 
@@ -79,25 +79,6 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(outgoing.Count, prepared.IncomingPayload.Count);
             CollectionAssert.AreEqual(outgoing["k1-prep"], prepared.IncomingPayload["k1-prep"]);
             CollectionAssert.AreEqual(outgoing["k2-prep"], prepared.IncomingPayload["k2-prep"]);
-        }
-
-        [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_Batch_Exceeding_Length_Test()
-        {
-            const string query = "BEGIN UNLOGGED BATCH INSERT INTO {0} (k, t) VALUES ('{1}', '{2}') APPLY BATCH";
-            var rs = Session.Execute(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5 * 1025))));
-            Assert.NotNull(rs.Info.Warnings);
-            Assert.AreEqual(1, rs.Info.Warnings.Length);
-            StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
-            StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
-        }
-
-        [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_Is_Null_Test()
-        {
-            var rs = Session.Execute("SELECT * FROM system.local");
-            //It should be null for queries that do not generate warnings
-            Assert.Null(rs.Info.Warnings);
         }
     }
 }

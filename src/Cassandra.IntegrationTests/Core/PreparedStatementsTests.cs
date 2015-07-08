@@ -180,6 +180,46 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Null(row.GetValue<int?>("int_sample"));
         }
 
+        private void Check_Expected(PreparedStatement select, object[] expected)
+        {
+            var row = Session.Execute(select.Bind(0)).First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual(expected[1], row.GetValue<int?>("v0"));
+            Assert.AreEqual(expected[2], row.GetValue<int?>("v1"));
+        }
+
+        [Test, TestCassandraVersion(2, 2)]
+        public void Bound_Unset_Values_Tests()
+        {
+            Session.Execute("CREATE TABLE IF NOT EXISTS test_unset_values (k int PRIMARY KEY, v0 int, v1 int)");
+            var insert = Session.Prepare("INSERT INTO test_unset_values (k, v0, v1) VALUES (?, ?, ?)");
+            var select = Session.Prepare("SELECT * FROM test_unset_values WHERE k=?");
+
+            // initial condition
+            Session.Execute(insert.Bind(0, 0, 0));
+            Check_Expected(select, new object[] {0, 0, 0});
+
+            // explicit unset
+            Session.Execute(insert.Bind(0, 1, Unset.Value));
+            Check_Expected(select, new object[] {0, 1, 0});
+            Session.Execute(insert.Bind(0, Unset.Value, 2));
+            Check_Expected(select, new object[] {0, 1, 2});
+            
+            Session.Execute(insert.Bind(new {k = 0, v0 = 3, v1 = Unset.Value}));
+            Check_Expected(select, new object[] {0, 3, 2});
+            Session.Execute(insert.Bind(new {k = 0, v0 = Unset.Value,  v1 = 4}));
+            Check_Expected(select, new object[] {0, 3, 4});
+
+            // nulls still work
+            Session.Execute(insert.Bind(0, null, null));
+            Check_Expected(select, new object[] {0, null, null});
+
+            // PKs cannot be UNSET
+            Assert.Throws(Is.InstanceOf<InvalidQueryException>(), () => Session.Execute(insert.Bind(Unset.Value, 0, 0)));
+
+            Session.Execute("DROP TABLE test_unset_values");
+        }
+
         [Test]
         public void Bound_CollectionTypes()
         {
