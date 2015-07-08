@@ -81,6 +81,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         void DecommissionNode(int nodeId);
 
         /// <summary>
+        /// Pause the node (SIGSTOP) associated with provided node ID
+        /// </summary>
+        void PauseNode(int nodeId);
+
+        /// <summary>
+        /// Resumes the node (SIGCONT) associated with provided node ID
+        /// </summary>
+        void ResumeNode(int nodeId);
+
+        /// <summary>
         /// Puts focus on this cluster
         /// This is relevant for CCM, all other tools should be a no-op
         /// </summary>
