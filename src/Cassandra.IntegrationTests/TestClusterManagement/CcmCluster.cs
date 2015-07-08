@@ -130,6 +130,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmBridge.DecommissionNode(nodeId);
         }
 
+        public void PauseNode(int nodeId)
+        {
+            CcmBridge.ExecuteCcm(string.Format("node{0} pause", nodeId));
+        }
+
+        public void ResumeNode(int nodeId)
+        {
+            CcmBridge.ExecuteCcm(string.Format("node{0} resume", nodeId));
+        }
+
         public void SwitchToThisCluster()
         {
             CcmBridge.SwitchToThis();

@@ -74,6 +74,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new NotImplementedException();
         }
 
+        public void PauseNode(int nodeId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ResumeNode(int nodeId)
+        {
+            throw new NotImplementedException();
+        }
+
         public void SwitchToThisCluster()
         {
             throw new NotImplementedException();

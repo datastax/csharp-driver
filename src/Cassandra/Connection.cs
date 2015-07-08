@@ -672,7 +672,7 @@ namespace Cassandra
                 _tcpSocket.Write(frameStream);
                 //Closure state variable
                 var delegateState = state;
-                if (Configuration.SocketOptions.ReadTimeoutMillis > 0)
+                if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
                 {
                     state.Timeout = Configuration.Timer.NewTimeout(() => OnTimeout(delegateState), Configuration.SocketOptions.ReadTimeoutMillis);   
                 }

@@ -58,6 +58,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AggregateMetadata.cs" />
+    <Compile Include="Collections\CopyOnWriteDictionary.cs" />
     <Compile Include="Collections\CopyOnWriteList.cs" />
     <Compile Include="Compression\Snappy\CorruptionException.cs" />
     <Compile Include="Compression\Snappy\Memory.cs" />

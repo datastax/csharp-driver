@@ -9,7 +9,6 @@ namespace Cassandra.Collections
     /// <summary>
     /// A thread-safe variant of List{T} in which all mutative operations (Add and Remove) are implemented by making a copy of the underlying array.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     internal class CopyOnWriteList<T> : ICollection<T>
     {
         private static readonly T[] Empty = new T[0];
@@ -69,13 +68,13 @@ namespace Cassandra.Collections
 
         public bool Remove(T item)
         {
-            var index = Array.IndexOf(_array, item);
-            if (index < 0)
-            {
-                return false;
-            }
             lock (_writeLock)
             {
+                var index = Array.IndexOf(_array, item);
+                if (index < 0)
+                {
+                    return false;
+                }
                 if (_array.Length == 1 && index == 0)
                 {
                     //Do not allocate an extra array
