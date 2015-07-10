@@ -751,8 +751,7 @@ namespace Cassandra.Data.Linq
                     {
                         throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                     }
-                    var expressionType = Convert.ToInt64(value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
-                    _projections.Add(Tuple.Create(column.ColumnName, value, expressionType));
+                    _projections.Add(Tuple.Create(column.ColumnName, value, ExpressionType.Increment));
                     _selectFields.Add(column.ColumnName);
                     return node;
                 }
@@ -876,7 +875,7 @@ namespace Cassandra.Data.Linq
                         {
                             throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                         }
-                        expressionType = Convert.ToInt64(node.Value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
+                        expressionType = ExpressionType.Increment;
                     }
                     _projections.Add(Tuple.Create(column, node.Value, expressionType));
                     _selectFields.Add(column.ColumnName);
@@ -974,8 +973,7 @@ namespace Cassandra.Data.Linq
                             {
                                 throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                             }
-                            var expressionType = Convert.ToInt64(value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
-                            _projections.Add(Tuple.Create(columnName, value, expressionType));
+                            _projections.Add(Tuple.Create(columnName, value, ExpressionType.Increment));
                             _selectFields.Add(columnName);
                             return node;
                         }
