@@ -72,6 +72,17 @@ namespace Cassandra
         /// </summary>
         RoutingKey RoutingKey { get; }
         ConsistencyLevel SerialConsistencyLevel { get; }
+        bool SkipMetadata { get; }
+        /// <summary>
+        /// Determines if this statement is idempotent, i.e. whether it can be applied multiple times without 
+        /// changing the result beyond the initial application.
+        /// <para>
+        /// Idempotence of the statement plays a role in <see cref="ISpeculativeExecutionPolicy"/>.
+        /// If a statement is <em>not idempotent</em>, the driver will not schedule speculative executions for it.
+        /// </para>
+        /// When the property is null, the driver will use the default value from the <see cref="QueryOptions.GetDefaultIdempotence()"/>.
+        /// </summary>
+        bool? IsIdempotent { get; }
         /// <summary>
         /// Sets the paging behavior.
         /// When set to true (default), the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages.
@@ -144,6 +155,13 @@ namespace Cassandra
         /// timestamp as default timestamp. Note that a timestamp in the query itself will still override this timestamp.
         /// </summary>
         IStatement SetTimestamp(DateTimeOffset value);
-        bool SkipMetadata { get; }
+        /// <summary>
+        /// Sets whether this statement is idempotent.
+        /// <para>
+        /// Idempotence of the statement plays a role in <see cref="ISpeculativeExecutionPolicy"/>.
+        /// If a statement is <em>not idempotent</em>, the driver will not schedule speculative executions for it.
+        /// </para>
+        /// </summary>
+        IStatement SetIdempotence(bool value);
     }
 }

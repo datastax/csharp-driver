@@ -21,6 +21,7 @@ using System.Threading;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
  using Cassandra.Tasks;
+using Cassandra.Requests;
 
 namespace Cassandra
 {
@@ -154,18 +155,11 @@ namespace Cassandra
         /// <summary>
         /// Initialize the session
         /// </summary>
-        /// <param name="createConnection">Determine if a connection must be created to test the host</param>
-        internal void Init(bool createConnection)
+        internal void Init()
         {
-            Policies.LoadBalancingPolicy.Initialize(Cluster);
-
-            if (!createConnection)
-            {
-                return;
-            }
             var handler = new RequestHandler<RowSet>(this, null, null);
-            //Borrow a connection
-            handler.GetNextConnection(null);
+            //Borrow a connection, trying to fail fast
+            handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>());
         }
 
         /// <inheritdoc />
@@ -248,10 +242,10 @@ namespace Cassandra
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
         /// </summary>
-        internal HostConnectionPool GetExistingPool(Host host)
+        internal HostConnectionPool GetExistingPool(Connection connection)
         {
             HostConnectionPool pool;
-            _connectionPool.TryGetValue(host.Address, out pool);
+            _connectionPool.TryGetValue(connection.Address, out pool);
             return pool;
         }
 

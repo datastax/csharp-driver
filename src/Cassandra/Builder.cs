@@ -45,6 +45,7 @@ namespace Cassandra
         private SSLOptions _sslOptions;
         private bool _withoutRowSetBuffering;
         private IAddressTranslator _addressTranslator = new DefaultAddressTranslator();
+        private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -88,8 +89,8 @@ namespace Cassandra
             var policies = new Policies(
                 _loadBalancingPolicy ?? Policies.DefaultLoadBalancingPolicy,
                 _reconnectionPolicy ?? Policies.DefaultReconnectionPolicy,
-                _retryPolicy ?? Policies.DefaultRetryPolicy
-                );
+                _retryPolicy ?? Policies.DefaultRetryPolicy,
+                _speculativeExecutionPolicy ?? Policies.DefaultSpeculativeExecutionPolicy);
 
             return new Configuration(policies,
                                      new ProtocolOptions(_port, _sslOptions).SetCompression(_compression).SetCustomCompressor(_customCompressor),
@@ -289,7 +290,6 @@ namespace Cassandra
         ///  <link>Policies.DefaultLoadBalancingPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the load balancing policy to use </param>
-        /// 
         /// <returns>this Builder</returns>
         public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
@@ -322,6 +322,20 @@ namespace Cassandra
         public Builder WithRetryPolicy(IRetryPolicy policy)
         {
             _retryPolicy = policy;
+            return this;
+        }
+
+        /// <summary>
+        ///  Configure the speculative execution to use for the new cluster. 
+        /// <para> 
+        /// If no speculative execution policy is set through this method, <see cref="Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
+        /// </para>
+        /// </summary>
+        /// <param name="policy"> the speculative execution policy to use </param>
+        /// <returns>this Builder</returns>
+        public Builder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy policy)
+        {
+            _speculativeExecutionPolicy = policy;
             return this;
         }
 

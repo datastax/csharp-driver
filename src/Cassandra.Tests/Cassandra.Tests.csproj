@@ -107,6 +107,7 @@
     <Compile Include="ObsoletedMemberTests.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RequestHandlerTests.cs" />
     <Compile Include="ResponseFrameTest.cs" />
     <Compile Include="RowSetUnitTests.cs" />
     <Compile Include="SessionUnitTests.cs" />

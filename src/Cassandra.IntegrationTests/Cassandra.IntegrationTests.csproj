@@ -143,7 +143,6 @@
     <Compile Include="TestBase\QueryTools.cs" />
     <Compile Include="TestBase\Randomm.cs" />
     <Compile Include="Policies\Tests\ReconnectionPolicyTests.cs" />
-    <Compile Include="Core\RequestHandlerTests.cs" />
     <Compile Include="Policies\Tests\RetryPolicyTests.cs" />
     <Compile Include="Core\SessionAuthenticationTests.cs" />
     <Compile Include="Core\SessionExecuteAsyncTests.cs" />

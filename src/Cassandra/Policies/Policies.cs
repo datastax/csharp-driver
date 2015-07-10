@@ -23,8 +23,10 @@ namespace Cassandra
     public class Policies
     {
         /// <summary>
-        ///  The default load balancing policy. <p> The default load balancing policy is
-        ///  <link>RoundRobinPolicy</link>.</p>
+        ///  The default load balancing policy. 
+        /// <para> 
+        /// The default load balancing policy is <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
+        /// </para>
         /// </summary>
         public static ILoadBalancingPolicy DefaultLoadBalancingPolicy
         {
@@ -59,18 +61,32 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// The <see cref="ISpeculativeExecutionPolicy"/> to be used by default.
+        /// <para> 
+        /// The default is <see cref="NoSpeculativeExecutionPolicy"/>.
+        /// </para>
+        /// </summary>
+        public static ISpeculativeExecutionPolicy DefaultSpeculativeExecutionPolicy
+        {
+            get
+            {
+                return NoSpeculativeExecutionPolicy.Instance;
+            }
+        }
+
         public static Policies DefaultPolicies
         {
             get
             {
-                return new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy);
+                return new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy, DefaultSpeculativeExecutionPolicy);
             }
         }
-
 
         private readonly ILoadBalancingPolicy _loadBalancingPolicy;
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private readonly IRetryPolicy _retryPolicy;
+        private readonly ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
 
         /// <summary>
         ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
@@ -99,6 +115,14 @@ namespace Cassandra
             get { return _retryPolicy; }
         }
 
+        /// <summary>
+        /// Gets the <see cref="SpeculativeExecutionPolicy"/> in use.
+        /// </summary>
+        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy
+        {
+            get { return _speculativeExecutionPolicy; }
+        }
+
         public Policies()
         {
         }
@@ -112,10 +136,20 @@ namespace Cassandra
         public Policies(ILoadBalancingPolicy loadBalancingPolicy,
                         IReconnectionPolicy reconnectionPolicy,
                         IRetryPolicy retryPolicy)
+            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, NoSpeculativeExecutionPolicy.Instance)
+        {
+            //Part of the public API can not be removed
+        }
+
+        internal Policies(ILoadBalancingPolicy loadBalancingPolicy,
+            IReconnectionPolicy reconnectionPolicy,
+            IRetryPolicy retryPolicy,
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy)
         {
             _loadBalancingPolicy = loadBalancingPolicy;
             _reconnectionPolicy = reconnectionPolicy;
             _retryPolicy = retryPolicy;
+            _speculativeExecutionPolicy = speculativeExecutionPolicy;
         }
     }
 }

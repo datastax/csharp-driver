@@ -596,7 +596,6 @@ namespace Cassandra
             {
                 callback(new SocketException((int)SocketError.NotConnected), null);
             }
-            //thread safe write queue
             var state = new OperationState(callback)
             {
                 Request = request
