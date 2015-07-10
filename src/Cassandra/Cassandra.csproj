@@ -310,9 +310,12 @@
     <Compile Include="Exceptions\UnsupportedProtocolVersionException.cs" />
     <Compile Include="PlainTextAuthProvider.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
+    <Compile Include="Policies\ConstantSpeculativeExecutionPolicy.cs" />
     <Compile Include="Policies\FixedReconnectionPolicy.cs" />
     <Compile Include="Policies\IReconnectionSchedule.cs" />
     <Compile Include="Policies\IRetryPolicy.cs" />
+    <Compile Include="Policies\ISpeculativeExecutionPlan.cs" />
+    <Compile Include="Policies\NoSpeculativeExecutionPolicy.cs" />
     <Compile Include="Policies\RetryLoadBalancingPolicy.cs" />
     <Compile Include="Policies\DCAwareRoundRobinPolicy.cs" />
     <Compile Include="Policies\DefaultRetryPolicy.cs" />
@@ -326,11 +329,13 @@
     <Compile Include="Policies\RetryLoadBalancingPolicyEventArgs.cs" />
     <Compile Include="Policies\RetryDecision.cs" />
     <Compile Include="Policies\RoundRobinPolicy.cs" />
+    <Compile Include="Policies\ISpeculativeExecutionPolicy.cs" />
     <Compile Include="Policies\TokenAwarePolicy.cs" />
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />
-    <Compile Include="RequestHandler.cs" />
+    <Compile Include="Requests\RequestHandler.cs" />
     <Compile Include="ProtocolOptions.cs" />
+    <Compile Include="Requests\RequestExecution.cs" />
     <Compile Include="Statement.cs" />
     <Compile Include="QueryOptions.cs" />
     <Compile Include="QueryProtocolOptions.cs" />

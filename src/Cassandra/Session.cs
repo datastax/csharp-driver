@@ -21,6 +21,7 @@ using System.Threading;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
  using Cassandra.Tasks;
+using Cassandra.Requests;
 
 namespace Cassandra
 {
@@ -154,18 +155,11 @@ namespace Cassandra
         /// <summary>
         /// Initialize the session
         /// </summary>
-        /// <param name="createConnection">Determine if a connection must be created to test the host</param>
-        internal void Init(bool createConnection)
+        internal void Init()
         {
-            Policies.LoadBalancingPolicy.Initialize(Cluster);
-
-            if (!createConnection)
-            {
-                return;
-            }
-            var handler = new RequestHandler<RowSet>(this, null, null);
-            //Borrow a connection
-            handler.GetNextConnection(null);
+            var handler = new RequestHandler<RowSet>(this);
+            //Borrow a connection, trying to fail fast
+            handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>());
         }
 
         /// <inheritdoc />
@@ -213,7 +207,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler<RowSet>(this, GetRequest(statement), statement).Send();
+            return new RequestHandler<RowSet>(this, statement).Send();
         }
 
         /// <summary>
@@ -248,51 +242,11 @@ namespace Cassandra
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
         /// </summary>
-        internal HostConnectionPool GetExistingPool(Host host)
+        internal HostConnectionPool GetExistingPool(Connection connection)
         {
             HostConnectionPool pool;
-            _connectionPool.TryGetValue(host.Address, out pool);
+            _connectionPool.TryGetValue(connection.Address, out pool);
             return pool;
-        }
-
-        /// <summary>
-        /// Gets the Request to send to a cassandra node based on the statement type
-        /// </summary>
-        internal IRequest GetRequest(IStatement statement)
-        {
-            ICqlRequest request = null;
-            if (statement is RegularStatement)
-            {
-                var s = (RegularStatement)statement;
-                s.ProtocolVersion = BinaryProtocolVersion;
-                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
-                options.ValueNames = s.QueryValueNames;
-                request = new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
-            }
-            if (statement is BoundStatement)
-            {
-                var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
-                request = new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
-            }
-            if (statement is BatchStatement)
-            {
-                var s = (BatchStatement)statement;
-                s.ProtocolVersion = BinaryProtocolVersion;
-                var consistency = Configuration.QueryOptions.GetConsistencyLevel();
-                if (s.ConsistencyLevel != null)
-                {
-                    consistency = s.ConsistencyLevel.Value;
-                }
-                request = new BatchRequest(BinaryProtocolVersion, s, consistency);
-            }
-            if (request == null)
-            {
-                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");   
-            }
-            //Set the outgoing payload for the request
-            request.Payload = statement.OutgoingPayload;
-            return request;
         }
 
         public PreparedStatement Prepare(string cqlQuery)
@@ -319,7 +273,7 @@ namespace Cassandra
             {
                 Payload = customPayload
             };
-            return new RequestHandler<PreparedStatement>(this, request, null)
+            return new RequestHandler<PreparedStatement>(this, request)
                 .Send()
                 .Continue(SetPrepareTableInfo);
         }

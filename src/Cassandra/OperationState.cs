@@ -30,7 +30,14 @@ namespace Cassandra
     /// </summary>
     internal class OperationState
     {
-        private Action<Exception, AbstractResponse> _callback;
+        private const int StateInit = 0;
+        private const int StateCancelled = 1;
+        private const int StateTimedout = 2;
+        private const int StateCompleted = 3;
+        private static readonly Action<Exception, AbstractResponse> Noop = (_, __) => { };
+
+        private volatile Action<Exception, AbstractResponse> _callback;
+        private int _state = StateInit;
         /// <summary>
         /// Gets a readable stream representing the body
         /// </summary>
@@ -104,20 +111,15 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Invokes the callback in a new thread using the default task scheduler.
+        /// Invokes the callback in a new thread using the default task scheduler, and marks this operation as completed.
         /// </summary>
-        /// <remarks>
-        /// It only invokes the callback if it hasn't been invoked yet, replacing it for a new callback if necessary.
-        /// </remarks>
-        /// <returns>True</returns>
-        public bool InvokeCallback(Exception ex, AbstractResponse response = null, Action<Exception, AbstractResponse> replaceCallback = null)
+        public void InvokeCallback(Exception ex, AbstractResponse response = null)
         {
+            //Change the state
+            Interlocked.Exchange(ref _state, StateCompleted);
+            //Set the status before getting the callback
+            Thread.MemoryBarrier();
             var callback = _callback;
-            if (callback == null || Interlocked.CompareExchange(ref _callback, replaceCallback, callback) != callback)
-            {
-                //Callback has already been called, we are done here
-                return false;
-            }
             if (Timeout != null)
             {
                 //Cancel it if it hasn't expired
@@ -132,7 +134,54 @@ namespace Cassandra
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
             Task.Factory.StartNew(() => callback(ex, response), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+        }
+
+        /// <summary>
+        /// Marks this operation as timed-out, callbacks with the exception 
+        /// and sets a handler when the response is received
+        /// </summary>
+        public bool SetTimedOut(OperationTimedOutException ex, Action onReceive)
+        {
+            var callback = _callback;
+            //When the data is received, invoke on receive callback
+            _callback = (_, __) => onReceive();
+            //Set the _callback first, as the Invoke method does not check previous state
+            Thread.MemoryBarrier();
+            var previousState = Interlocked.Exchange(ref _state, StateTimedout);
+            switch (previousState)
+            {
+                case StateInit:
+                    //Call the original callback
+                    Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                    return true;
+                case StateCompleted:
+                    //it arrived while changing the state
+                    //Invoke on receive
+                    _callback = Noop;
+                    //it hasn't actually timed out
+                    return false;
+            }
+            //For cancelled, do not invoke the previous
             return true;
+        }
+
+        /// <summary>
+        /// Removes the context associated with this request, if possible
+        /// </summary>
+        public void Cancel()
+        {
+            if (Interlocked.CompareExchange(ref _state, StateCancelled, StateInit) != StateInit)
+            {
+                return;
+            }
+            //If it was init and now is cancelled, change the final callback to a noop
+            _callback = Noop;
+            if (Timeout != null)
+            {
+                //Cancel it if it hasn't expired
+                //We should not worry about yielding OperationTimedOutExceptions when this is cancelled.
+                Timeout.Cancel();
+            }
         }
     }
 }

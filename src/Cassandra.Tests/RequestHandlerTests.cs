@@ -1,29 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
+//
+//      Copyright (C) 2012-2014 DataStax Inc.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+using System;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
+using System.Threading;
+using Cassandra.Requests;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
 {
     [TestFixture]
-    public class SessionUnitTests
+    public class RequestHandlerTests
     {
-        private static Session GetInstance(QueryOptions queryOptions = null)
+        private static Configuration GetConfig(QueryOptions queryOptions = null)
         {
-            var config = new Configuration(new Policies(),
+            return new Configuration(new Policies(),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
                 new ClientOptions(),
                 NoneAuthProvider.Instance,
                 null,
-                queryOptions ?? new QueryOptions(), 
+                queryOptions ?? DefaultQueryOptions,
                 new DefaultAddressTranslator());
-            return new Session(null, config, null, 2);
         }
 
-        private static QueryOptions DefaultQueryOptions 
+        private static QueryOptions DefaultQueryOptions
         {
             get
             {
@@ -37,26 +53,24 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void SimpleStatement_Default_QueryOptions_Are_Used()
+        public void RequestHandler_GetRequest_SimpleStatement_Default_QueryOptions_Are_Used()
         {
             var stmt = new SimpleStatement("DUMMY QUERY");
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var session = GetInstance();
-            var request = (QueryRequest)session.GetRequest(stmt);
+            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
         [Test]
-        public void SimpleStatement_QueryOptions_Are_Used()
+        public void RequestHandler_GetRequest_SimpleStatement_QueryOptions_Are_Used()
         {
             var stmt = new SimpleStatement("DUMMY QUERY");
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var session = GetInstance(queryOptions);
-            var request = (QueryRequest)session.GetRequest(stmt);
+            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -64,7 +78,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void SimpleStatement_Statement_Level_Settings_Are_Used()
+        public void RequestHandler_GetRequest_SimpleStatement_Statement_Level_Settings_Are_Used()
         {
             var stmt = new SimpleStatement("DUMMY QUERY");
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
@@ -73,36 +87,33 @@ namespace Cassandra.Tests
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var session = GetInstance();
-            var request = (QueryRequest)session.GetRequest(stmt);
+            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
         }
 
         [Test]
-        public void BoundStatement_Default_QueryOptions_Are_Used()
+        public void RequestHandler_GetRequest_BoundStatement_Default_QueryOptions_Are_Used()
         {
             var ps = GetPrepared();
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var session = GetInstance();
-            var request = (ExecuteRequest)session.GetRequest(stmt);
+            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
         [Test]
-        public void BoundStatement_QueryOptions_Are_Used()
+        public void RequestHandler_GetRequest_BoundStatement_QueryOptions_Are_Used()
         {
             var ps = GetPrepared();
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var session = GetInstance(queryOptions);
-            var request = (ExecuteRequest)session.GetRequest(stmt);
+            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -110,7 +121,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void BoundStatement_Statement_Level_Settings_Are_Used()
+        public void RequestHandler_GetRequest_BoundStatement_Statement_Level_Settings_Are_Used()
         {
             var ps = GetPrepared();
             var stmt = ps.Bind();
@@ -120,43 +131,68 @@ namespace Cassandra.Tests
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var session = GetInstance();
-            var request = (ExecuteRequest)session.GetRequest(stmt);
+            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
         }
 
         [Test]
-        public void BatchStatement_Default_QueryOptions_Are_Used()
+        public void RequestHandler_GetRequest_BatchStatement_Default_QueryOptions_Are_Used()
         {
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
-            var session = GetInstance();
-            var request = (BatchRequest)session.GetRequest(stmt);
+            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
         [Test]
-        public void BatchStatement_QueryOptions_Are_Used()
+        public void RequestHandler_GetRequest_BatchStatement_QueryOptions_Are_Used()
         {
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            var session = GetInstance(queryOptions);
-            var request = (BatchRequest)session.GetRequest(stmt);
+            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig(queryOptions));
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
         [Test]
-        public void BatchStatement_Statement_Level_Settings_Are_Used()
+        public void RequestHandler_GetRequest_BatchStatement_Statement_Level_Settings_Are_Used()
         {
             var stmt = new BatchStatement();
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
-            var session = GetInstance();
-            var request = (BatchRequest)session.GetRequest(stmt);
+            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
+        }
+
+        [Test]
+        public void RequestExecution_GetRetryDecision_Test()
+        {
+            var policy = Cassandra.Policies.DefaultRetryPolicy;
+            var statement = new SimpleStatement("SELECT WILL FAIL");
+            //Using default retry policy the decision will always be to rethrow on read/write timeout
+            var expected = RetryDecision.RetryDecisionType.Rethrow;
+            var decision = RequestExecution<RowSet>.GetRetryDecision(new ReadTimeoutException(ConsistencyLevel.Quorum, 1, 2, true), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
+
+            decision = RequestExecution<RowSet>.GetRetryDecision(new WriteTimeoutException(ConsistencyLevel.Quorum, 1, 2, "SIMPLE"), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
+
+            decision = RequestExecution<RowSet>.GetRetryDecision(new UnavailableException(ConsistencyLevel.Quorum, 2, 1), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
+
+            decision = RequestExecution<RowSet>.GetRetryDecision(new Exception(), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
+
+            //Expecting to retry when a Cassandra node is Bootstrapping/overloaded
+            expected = RetryDecision.RetryDecisionType.Retry;
+            decision = RequestExecution<RowSet>.GetRetryDecision(new OverloadedException(null), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
+            decision = RequestExecution<RowSet>.GetRetryDecision(new IsBootstrappingException(null), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
+            decision = RequestExecution<RowSet>.GetRetryDecision(new TruncateException(null), policy, statement, 0);
+            Assert.AreEqual(expected, decision.DecisionType);
         }
     }
 }

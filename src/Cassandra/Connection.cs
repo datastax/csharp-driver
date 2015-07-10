@@ -607,18 +607,18 @@ namespace Cassandra
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
-        public void Send(IRequest request, Action<Exception, AbstractResponse> callback)
+        public OperationState Send(IRequest request, Action<Exception, AbstractResponse> callback)
         {
             if (_isCanceled)
             {
                 callback(new SocketException((int)SocketError.NotConnected), null);
             }
-            //thread safe write queue
             var state = new OperationState(callback)
             {
                 Request = request
             };
             SendQueueProcess(state, true);
+            return state;
         }
 
         /// <summary>
@@ -694,8 +694,8 @@ namespace Cassandra
         {
             var ex = new OperationTimedOutException(Address, Configuration.SocketOptions.ReadTimeoutMillis);
             //Invoke if it hasn't been invoked yet
-            //If the response is obtained, we decrement the timed out counter
-            var timedout = state.InvokeCallback(ex, null, (_, __) => Interlocked.Decrement(ref _timedOutOperations) );
+            //Once the response is obtained, we decrement the timed out counter
+            var timedout = state.SetTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations) );
             if (!timedout)
             {
                 //The response was obtained since the timer elapsed, move on

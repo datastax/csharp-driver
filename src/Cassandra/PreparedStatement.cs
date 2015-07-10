@@ -81,11 +81,21 @@ namespace Cassandra
         /// </summary>
         public int[] RoutingIndexes { get; internal set; }
 
-        public ConsistencyLevel? ConsistencyLevel
-        {
-            get;
-            private set;
-        }
+        /// <summary>
+        /// Gets the default consistency level for all executions using this instance
+        /// </summary>
+        public ConsistencyLevel? ConsistencyLevel { get; private set; }
+
+        /// <summary>
+        /// Determines if the query is idempotent, i.e. whether it can be applied multiple times without 
+        /// changing the result beyond the initial application.
+        /// <para>
+        /// Idempotence of the prepared statement plays a role in <see cref="ISpeculativeExecutionPolicy"/>.
+        /// If a query is <em>not idempotent</em>, the driver will not schedule speculative executions for it.
+        /// </para>
+        /// When the property is null, the driver will use the default value from the <see cref="QueryOptions.GetDefaultIdempotence()"/>.
+        /// </summary>
+        public bool? IsIdempotent { get; private set; }
 
         internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, int protocolVersion)
         {
@@ -221,6 +231,19 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Sets whether the prepared statement is idempotent.
+        /// <para>
+        /// Idempotence of the query plays a role in <see cref="ISpeculativeExecutionPolicy"/>.
+        /// If a query is <em>not idempotent</em>, the driver will not schedule speculative executions for it.
+        /// </para>
+        /// </summary>
+        public PreparedStatement SetIdempotence(bool value)
+        {
+            IsIdempotent = value;
+            return this;
+        }
+
+        /// <summary>
         /// Sets a custom outgoing payload for this statement.
         /// Each time an statement generated using this prepared statement is executed, this payload will be included in the request.
         /// Once it is set using this method, the payload should not be modified.
@@ -229,6 +252,5 @@ namespace Cassandra
         {
             OutgoingPayload = payload;
             return this;
-        }
-    }
+        }    }
 }

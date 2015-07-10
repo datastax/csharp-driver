@@ -74,6 +74,10 @@ namespace Cassandra
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
             SetConsistencyLevel(statement.ConsistencyLevel);
+            if (statement.IsIdempotent != null)
+            {
+                SetIdempotence(statement.IsIdempotent.Value);
+            }
         }
         
         /// <summary>

@@ -134,6 +134,7 @@ namespace Cassandra
                     c.Init();
                     _connection = c;
                     _host = host;
+                    _logger.Info("Connection established to {0}", c.Address);
                     return;
                 }
                 catch (UnsupportedProtocolVersionException)

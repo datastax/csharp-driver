@@ -46,63 +46,67 @@ namespace Cassandra
             Ignore
         };
 
-        private readonly ConsistencyLevel? _retryCl;
-        private readonly RetryDecisionType _type;
-
         /// <summary>
         ///  Gets the type of this retry decision.
         /// </summary>
-        public RetryDecisionType DecisionType
-        {
-            get { return _type; }
-        }
+        public RetryDecisionType DecisionType { get; private set; }
 
         /// <summary>
         ///  Gets the consistency level for a retry decision or <c>null</c> if
         ///  this retry decision is an <c>Ignore</c> or a
         ///  <c>Rethrow</c>.</summary>
-        public ConsistencyLevel? RetryConsistencyLevel
-        {
-            get { return _retryCl; }
-        }
+        public ConsistencyLevel? RetryConsistencyLevel { get; private set; }
 
-        private RetryDecision(RetryDecisionType type, ConsistencyLevel? retryCL)
+        /// <summary>
+        /// Determines whether the retry policy uses the same host for retry decision. Default: true.
+        /// </summary>
+        public bool UseCurrentHost { get; private set; }
+
+        private RetryDecision(RetryDecisionType type, ConsistencyLevel? retryConsistencyLevel, bool useCurrentHost)
         {
-            _type = type;
-            _retryCl = retryCL;
+            DecisionType = type;
+            RetryConsistencyLevel = retryConsistencyLevel;
+            UseCurrentHost = useCurrentHost;
         }
 
         /// <summary>
         ///  Creates a Rethrow retry decision.
         /// </summary>
-        /// 
         /// <returns>a Rethrow retry decision.</returns>
         public static RetryDecision Rethrow()
         {
-            return new RetryDecision(RetryDecisionType.Rethrow, QueryOptions.DefaultConsistencyLevel);
+            return new RetryDecision(RetryDecisionType.Rethrow, QueryOptions.DefaultConsistencyLevel, true);
         }
 
         /// <summary>
-        ///  Creates a Retry retry decision using the provided consistency level.
+        ///  Creates a decision to retry using the provided consistency level.
         /// </summary>
-        /// <param name="consistency"> the consistency level to use for the retry.
-        ///  </param>
-        /// 
+        /// <param name="consistency"> the consistency level to use for the retry.</param>
+        /// <param name="useCurrentHost">Determines if the retry is made using the current host.</param>
         /// <returns>a Retry with consistency level <c>consistency</c> retry
         ///  decision.</returns>
+        public static RetryDecision Retry(ConsistencyLevel? consistency, bool useCurrentHost)
+        {
+            return new RetryDecision(RetryDecisionType.Retry, consistency, useCurrentHost);
+        }
+
+        /// <summary>
+        ///  Creates a decision to retry using the provided consistency level on the same host.
+        /// </summary>
+        /// <param name="consistency"> the consistency level to use for the retry.</param>
+        /// <returns>a Retry with consistency level <c>consistency</c> retry decision.</returns>
         public static RetryDecision Retry(ConsistencyLevel? consistency)
         {
-            return new RetryDecision(RetryDecisionType.Retry, consistency);
+            return Retry(consistency, true);
         }
 
         /// <summary>
         ///  Creates an Ignore retry decision.
         /// </summary>
-        /// 
         /// <returns>an Ignore retry decision.</returns>
         public static RetryDecision Ignore()
         {
-            return new RetryDecision(RetryDecisionType.Ignore, QueryOptions.DefaultConsistencyLevel);
+            return new RetryDecision(RetryDecisionType.Ignore, QueryOptions.DefaultConsistencyLevel, true);
         }
     }
 }

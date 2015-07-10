@@ -146,7 +146,9 @@ namespace Cassandra
                 {
                     _controlConnection.Init();
                     _protocolVersion = _controlConnection.ProtocolVersion;
+                    //Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
+                    Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
                 }
                 catch (NoHostAvailableException)
                 {
@@ -192,7 +194,7 @@ namespace Cassandra
         {
             Init();
             var session = new Session(this, Configuration, keyspace, _protocolVersion);
-            session.Init(true);
+            session.Init();
             _connectedSessions.Add(session);
             _logger.Info("Session connected!");
             return session;
@@ -279,6 +281,7 @@ namespace Cassandra
             _metadata.ShutDown(timeoutMs);
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
+            Configuration.Policies.SpeculativeExecutionPolicy.Dispose();
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
     }

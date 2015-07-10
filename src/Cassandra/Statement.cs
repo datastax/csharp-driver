@@ -78,6 +78,9 @@ namespace Cassandra
         /// </summary>
         internal int ProtocolVersion { get; set; }
 
+        /// <inheritdoc />
+        public bool? IsIdempotent { get; private set; }
+
         protected Statement()
         {
             ProtocolVersion = 1;
@@ -182,6 +185,13 @@ namespace Cassandra
         internal virtual IQueryRequest CreateBatchRequest(int protocolVersion)
         {
             throw new InvalidOperationException("Cannot insert this query into the batch");
+        }
+        
+        /// <inheritdoc />
+        public IStatement SetIdempotence(bool value)
+        {
+            IsIdempotent = value;
+            return this;
         }
 
         /// <inheritdoc />
