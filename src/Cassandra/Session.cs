@@ -157,7 +157,7 @@ namespace Cassandra
         /// </summary>
         internal void Init()
         {
-            var handler = new RequestHandler<RowSet>(this, null, null);
+            var handler = new RequestHandler<RowSet>(this);
             //Borrow a connection, trying to fail fast
             handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>());
         }
@@ -207,7 +207,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler<RowSet>(this, GetRequest(statement), statement).Send();
+            return new RequestHandler<RowSet>(this, statement).Send();
         }
 
         /// <summary>
@@ -249,39 +249,6 @@ namespace Cassandra
             return pool;
         }
 
-        /// <summary>
-        /// Gets the Request to send to a cassandra node based on the statement type
-        /// </summary>
-        internal IRequest GetRequest(IStatement statement)
-        {
-            if (statement is RegularStatement)
-            {
-                var s = (RegularStatement)statement;
-                s.ProtocolVersion = BinaryProtocolVersion;
-                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
-                options.ValueNames = s.QueryValueNames;
-                return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
-            }
-            if (statement is BoundStatement)
-            {
-                var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
-                return new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
-            }
-            if (statement is BatchStatement)
-            {
-                var s = (BatchStatement)statement;
-                s.ProtocolVersion = BinaryProtocolVersion;
-                var consistency = Configuration.QueryOptions.GetConsistencyLevel();
-                if (s.ConsistencyLevel != null)
-                {
-                    consistency = s.ConsistencyLevel.Value;
-                }
-                return new BatchRequest(BinaryProtocolVersion, s, consistency);
-            }
-            throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
-        }
-
         public PreparedStatement Prepare(string cqlQuery)
         {
             var task = PrepareAsync(cqlQuery);
@@ -293,7 +260,7 @@ namespace Cassandra
         public Task<PreparedStatement> PrepareAsync(string query)
         {
             var request = new PrepareRequest(BinaryProtocolVersion, query);
-            return new RequestHandler<PreparedStatement>(this, request, null)
+            return new RequestHandler<PreparedStatement>(this, request)
                 .Send()
                 .Continue(SetPrepareTableInfo);
         }

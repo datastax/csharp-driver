@@ -164,26 +164,31 @@ namespace Cassandra.Requests
             {
                 rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
             }
-            //TODO: Define autopaging
-//            rs.AutoPage = _autoPage;
-//            if (_autoPage && rs.PagingState != null && _request is IQueryRequest && typeof(T) == typeof(RowSet))
-//            {
-//                //Automatic paging is enabled and there are following result pages
-//                //Set the Handler for fetching the next page.
-//                rs.FetchNextPage = pagingState =>
-//                {
-//                    if (_session.IsDisposed)
-//                    {
-//                        _logger.Warning("Trying to page results using a Session already disposed.");
-//                        return new RowSet();
-//                    }
-//                    ((IQueryRequest)_request).PagingState = pagingState;
-//                    var task = new RequestHandler<RowSet>(_session, _request, _statement).Send();
-//                    TaskHelper.WaitToComplete(task, _session.Configuration.ClientOptions.QueryAbortTimeout);
-//                    return (RowSet)(object)task.Result;
-//                };
-//            }
+            SetAutoPage(rs, _session, _parent.Statement);
             return rs;
+        }
+
+        private void SetAutoPage(RowSet rs, ISession session, IStatement statement)
+        {
+            rs.AutoPage = statement != null && statement.AutoPage;
+            if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest && typeof(T) == typeof(RowSet))
+            {
+                //Automatic paging is enabled and there are following result pages
+                //Set the Handler for fetching the next page.
+                rs.FetchNextPage = pagingState =>
+                {
+                    if (_session.IsDisposed)
+                    {
+                        Logger.Warning("Trying to page results using a Session already disposed.");
+                        return new RowSet();
+                    }
+                    var request = (IQueryRequest)RequestHandler<RowSet>.GetRequest(statement, session.BinaryProtocolVersion, session.Cluster.Configuration);
+                    request.PagingState = pagingState;
+                    var task = new RequestHandler<RowSet>(session, request, statement).Send();
+                    TaskHelper.WaitToComplete(task, session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
+                    return (RowSet)(object)task.Result;
+                };
+            }
         }
 
         /// <summary>
@@ -200,6 +205,12 @@ namespace Cassandra.Requests
             if (ex is OperationTimedOutException)
             {
                 OnTimeout(ex);
+                return;
+            }
+            if (ex is NoHostAvailableException)
+            {
+                //A NoHostAvailableException when trying to retrieve
+                _parent.SetNoMoreHosts((NoHostAvailableException)ex, this);
                 return;
             }
             if (ex is SocketException)

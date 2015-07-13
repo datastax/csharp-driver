@@ -26,8 +26,148 @@ namespace Cassandra.Tests
     [TestFixture]
     public class RequestHandlerTests
     {
+        private static Configuration GetConfig(QueryOptions queryOptions = null)
+        {
+            return new Configuration(new Policies(),
+                new ProtocolOptions(),
+                null,
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                queryOptions ?? DefaultQueryOptions,
+                new DefaultAddressTranslator());
+        }
+
+        private static QueryOptions DefaultQueryOptions
+        {
+            get
+            {
+                return new QueryOptions();
+            }
+        }
+
+        private static PreparedStatement GetPrepared()
+        {
+            return new PreparedStatement(null, null, "DUMMY QUERY", null, null, 1);
+        }
+
         [Test]
-        public void RequestHandlerRetryDecisionTest()
+        public void RequestHandler_GetRequest_SimpleStatement_Default_QueryOptions_Are_Used()
+        {
+            var stmt = new SimpleStatement("DUMMY QUERY");
+            Assert.AreEqual(0, stmt.PageSize);
+            Assert.Null(stmt.ConsistencyLevel);
+            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
+            Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
+            Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_SimpleStatement_QueryOptions_Are_Used()
+        {
+            var stmt = new SimpleStatement("DUMMY QUERY");
+            Assert.AreEqual(0, stmt.PageSize);
+            Assert.Null(stmt.ConsistencyLevel);
+            var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
+            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig(queryOptions));
+            Assert.AreEqual(100, request.PageSize);
+            Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
+            Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
+            Assert.AreEqual(ConsistencyLevel.Any, request.SerialConsistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_SimpleStatement_Statement_Level_Settings_Are_Used()
+        {
+            var stmt = new SimpleStatement("DUMMY QUERY");
+            stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
+            stmt.SetPageSize(350);
+            stmt.SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+            Assert.AreEqual(350, stmt.PageSize);
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
+            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
+            Assert.AreEqual(350, request.PageSize);
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_BoundStatement_Default_QueryOptions_Are_Used()
+        {
+            var ps = GetPrepared();
+            var stmt = ps.Bind();
+            Assert.AreEqual(0, stmt.PageSize);
+            Assert.Null(stmt.ConsistencyLevel);
+            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
+            Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
+            Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_BoundStatement_QueryOptions_Are_Used()
+        {
+            var ps = GetPrepared();
+            var stmt = ps.Bind();
+            Assert.AreEqual(0, stmt.PageSize);
+            Assert.Null(stmt.ConsistencyLevel);
+            var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
+            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig(queryOptions));
+            Assert.AreEqual(100, request.PageSize);
+            Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
+            Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
+            Assert.AreEqual(ConsistencyLevel.Any, request.SerialConsistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_BoundStatement_Statement_Level_Settings_Are_Used()
+        {
+            var ps = GetPrepared();
+            var stmt = ps.Bind();
+            stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
+            stmt.SetPageSize(350);
+            stmt.SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+            Assert.AreEqual(350, stmt.PageSize);
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
+            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
+            Assert.AreEqual(350, request.PageSize);
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_BatchStatement_Default_QueryOptions_Are_Used()
+        {
+            var stmt = new BatchStatement();
+            Assert.Null(stmt.ConsistencyLevel);
+            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
+            Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_BatchStatement_QueryOptions_Are_Used()
+        {
+            var stmt = new BatchStatement();
+            Assert.Null(stmt.ConsistencyLevel);
+            var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
+            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig(queryOptions));
+            Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
+        }
+
+        [Test]
+        public void RequestHandler_GetRequest_BatchStatement_Statement_Level_Settings_Are_Used()
+        {
+            var stmt = new BatchStatement();
+            stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
+            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, 2, GetConfig());
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
+        }
+
+        [Test]
+        public void RequestExecution_GetRetryDecision_Test()
         {
             var policy = Cassandra.Policies.DefaultRetryPolicy;
             var statement = new SimpleStatement("SELECT WILL FAIL");

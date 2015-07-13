@@ -37,7 +37,7 @@ namespace Cassandra
         private static readonly Action<Exception, AbstractResponse> Noop = (_, __) => { };
 
         private volatile Action<Exception, AbstractResponse> _callback;
-        private int _status = StateInit;
+        private int _state = StateInit;
         /// <summary>
         /// Gets a readable stream representing the body
         /// </summary>
@@ -116,7 +116,7 @@ namespace Cassandra
         public void InvokeCallback(Exception ex, AbstractResponse response = null)
         {
             //Change the state
-            Interlocked.Exchange(ref _status, StateCompleted);
+            Interlocked.Exchange(ref _state, StateCompleted);
             //Set the status before getting the callback
             Thread.MemoryBarrier();
             var callback = _callback;
@@ -147,7 +147,7 @@ namespace Cassandra
             _callback = (_, __) => onReceive();
             //Set the _callback first, as the Invoke method does not check previous state
             Thread.MemoryBarrier();
-            var previousState = Interlocked.Exchange(ref _status, StateTimedout);
+            var previousState = Interlocked.Exchange(ref _state, StateTimedout);
             switch (previousState)
             {
                 case StateInit:
@@ -170,7 +170,7 @@ namespace Cassandra
         /// </summary>
         public void Cancel()
         {
-            if (Interlocked.CompareExchange(ref _status, StateCancelled, StateInit) != StateInit)
+            if (Interlocked.CompareExchange(ref _state, StateCancelled, StateInit) != StateInit)
             {
                 return;
             }
