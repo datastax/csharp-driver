@@ -208,6 +208,7 @@ namespace Cassandra.Requests
             _running.Remove(execution);
             if (_running.Count > 0)
             {
+                Logger.Info("Could not obtain an available host for speculative execution");
                 return;
             }
             SetCompleted(ex);
@@ -369,6 +370,7 @@ namespace Cassandra.Requests
                 {
                     return;
                 }
+                Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
                 StartNewExecution();
             }, delay);
         }
