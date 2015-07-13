@@ -239,7 +239,7 @@ namespace Cassandra.Requests
             {
                 //TODO: Copy the request
                 var execution = new RequestExecution<T>(this, _session, _request);
-                execution.Send();
+                execution.Start();
                 _running.Add(execution);
                 ScheduleNext();
             }

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using NUnit.Framework;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
@@ -29,7 +30,7 @@ namespace Cassandra.Tests
     public class IOUnitTests
     {
         [Test]
-        public void ListBackedStreamReads()
+        public void ListBackedStream_Reads()
         {
             var stream = new ListBackedStream();
             var writeBuffer = new byte[100];
@@ -69,7 +70,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void OperationStateAppendsBuffers()
+        public void OperationState_Appends_Buffers()
         {
             var readBuffer = new byte[256];
             var writeBuffer = new byte[256];
@@ -106,6 +107,53 @@ namespace Cassandra.Tests
             operationState.BodyStream.Read(readBuffer, 0, 128);
             operationState.BodyStream.Read(readBuffer, 128, 128);
             Assert.AreEqual(writeBuffer, readBuffer);
+        }
+
+        [Test]
+        public void OperationState_Can_Concurrently_Get_Timeout_And_Response()
+        {
+            var counter = 0;
+            var timedOutReceived = 0;
+            TestHelper.Invoke(() =>
+            {
+                var clientCallbackCounter = 0;
+                Action<Exception, AbstractResponse> clientCallback = (ex, r) =>
+                {
+                    Interlocked.Increment(ref clientCallbackCounter);
+                };
+                var state = new OperationState(clientCallback);
+                var actions = new Action[]
+                {
+                    () => state.SetTimedOut(new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived)),
+                    () => { state.InvokeCallback(null); }
+                };
+                if ((counter++)%2 == 0)
+                {
+                    //invert order
+                    actions = actions.Reverse().ToArray();
+                }
+                TestHelper.ParallelInvoke(actions);
+                //Allow callbacks to be called using the default scheduler
+                Thread.Sleep(20);
+                Assert.AreEqual(1, clientCallbackCounter);
+            }, 50);
+            Trace.WriteLine(timedOutReceived);
+        }
+
+        [Test]
+        public void OperationState_Cancel_Should_Never_Callback_Client()
+        {
+            var clientCallbackCounter = 0;
+            Action<Exception, AbstractResponse> clientCallback = (ex, r) =>
+            {
+                Interlocked.Increment(ref clientCallbackCounter);
+            };
+            var state = new OperationState(clientCallback);
+            state.Cancel();
+            state.InvokeCallback(null);
+            //Allow callbacks to be called using the default scheduler
+            Thread.Sleep(20);
+            Assert.AreEqual(0, clientCallbackCounter);
         }
 
         [Test]

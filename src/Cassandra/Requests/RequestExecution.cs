@@ -19,11 +19,10 @@ namespace Cassandra.Requests
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
         private Connection _connection;
         private int _retryCount;
+        private volatile OperationState _operation;
 
         public RequestExecution(RequestHandler<T> parent, ISession session, IRequest request)
         {
-            //TODO: Expose them as parent properties
-            //TODO: Check if parent has finished before retrying
             _parent = parent;
             _session = session;
             _request = request;
@@ -31,10 +30,14 @@ namespace Cassandra.Requests
 
         public void Cancel()
         {
-            //TODO: Cancel response handler
+            _operation.Cancel();
         }
 
-        public void Send(bool useCurrentHost = false)
+        /// <summary>
+        /// Starts a new execution using the current request
+        /// </summary>
+        /// <param name="useCurrentHost"></param>
+        public void Start(bool useCurrentHost = false)
         {
             if (!useCurrentHost)
             {
@@ -45,14 +48,14 @@ namespace Cassandra.Requests
             {
                 throw new DriverInternalError("No current connection set");
             }
-            _connection.Send(_request, HandleResponse);
+            Send(_request, HandleResponse);
         }
 
-        private void TrySend(bool useCurrentHost)
+        private void TryStartNew(bool useCurrentHost)
         {
             try
             {
-                Send(useCurrentHost);
+                Start(useCurrentHost);
             }
             catch (Exception ex)
             {
@@ -60,6 +63,14 @@ namespace Cassandra.Requests
                 //This will mark the Task as faulted.
                 HandleException(ex);
             }
+        }
+
+        /// <summary>
+        /// Sends a new request using the active connection
+        /// </summary>
+        private void Send(IRequest request, Action<Exception, AbstractResponse> callback)
+        {
+            _operation = _connection.Send(request, callback);
         }
 
         public void HandleResponse(Exception ex, AbstractResponse response)
@@ -101,7 +112,7 @@ namespace Cassandra.Requests
                 ((ICqlRequest)_request).Consistency = consistency.Value;
             }
             Logger.Info("Retrying request: {0}", _request.GetType().Name);
-            TrySend(useCurrentHost);
+            TryStartNew(useCurrentHost);
         }
 
         /// <summary>
@@ -242,7 +253,7 @@ namespace Cassandra.Requests
                 {
                     return;
                 }
-                TrySend(false);
+                TryStartNew(false);
                 return;
             }
             _parent.SetCompleted(ex);
@@ -312,11 +323,11 @@ namespace Cassandra.Requests
                 {
                     //Change the keyspace is a blocking operation
                     _connection.Keyspace = boundStatement.PreparedStatement.Keyspace;
-                    _connection.Send(request, ReprepareResponseHandler);
+                    Send(request, ReprepareResponseHandler);
                 });
                 return;
             }
-            _connection.Send(request, ReprepareResponseHandler);
+            Send(request, ReprepareResponseHandler);
         }
 
         /// <summary>
@@ -337,7 +348,7 @@ namespace Cassandra.Requests
                 {
                     throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
                 }
-                _connection.Send(_request, HandleResponse);
+                Send(_request, HandleResponse);
             }
             catch (Exception exception)
             {
