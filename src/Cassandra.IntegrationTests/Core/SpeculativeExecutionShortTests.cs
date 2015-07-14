@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -20,14 +21,21 @@ namespace Cassandra.IntegrationTests.Core
         private IPAddress _addressNode1;
         private IPAddress _addressNode2;
 
-        private ISession GetSession(ISpeculativeExecutionPolicy speculativeExecutionPolicy = null, bool warmup = true, ILoadBalancingPolicy lbp = null)
+        private ISession GetSession(
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy = null, bool warmup = true, 
+            ILoadBalancingPolicy lbp = null, PoolingOptions pooling = null)
         {
-            var cluster = Cluster.Builder()
+            var builder = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithSpeculativeExecutionPolicy(speculativeExecutionPolicy)
                 .WithLoadBalancingPolicy(lbp ?? Cassandra.Policies.DefaultLoadBalancingPolicy)
-                .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0))
-                .Build();
+                .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
+                .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0));
+            if (pooling != null)
+            {
+                builder.WithPoolingOptions(pooling);
+            }
+            var cluster = builder.Build();
             _clusters.Add(cluster);
             var session = cluster.Connect();
             if (warmup)
@@ -95,6 +103,71 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.ResumeNode(2);
             Thread.Sleep(200);
             Assert.AreEqual(TaskStatus.RanToCompletion, t.Status);
+        }
+
+        [Test]
+        public void SpeculativeExecution_Should_Not_Schedule_More_Than_Once_On_A_Healthy_Cluster()
+        {
+            var policy = new LoggedSpeculativeExecutionPolicy();
+            var session = GetSession(policy);
+            var semaphore = new SemaphoreSlim(10);
+            TestHelper.ParallelInvoke(() =>
+            {
+                semaphore.Wait();
+                session.Execute(new SimpleStatement(QueryLocal).SetIdempotence(true));
+                semaphore.Release();
+            }, 512);
+            Assert.AreEqual(0, policy.ScheduledMoreThanOnce.Count, "Scheduled more than once: [" + String.Join(", ", policy.ScheduledMoreThanOnce.Select(x => x.ToString())) + "]");
+        }
+
+        private class LoggedSpeculativeExecutionPolicy : ISpeculativeExecutionPolicy
+        {
+            private readonly ConcurrentDictionary<ISpeculativeExecutionPlan, int> _scheduledMore = new ConcurrentDictionary<ISpeculativeExecutionPlan, int>();
+
+            private void SetScheduledMore(ISpeculativeExecutionPlan plan, int executions)
+            {
+                _scheduledMore.AddOrUpdate(plan, executions, (k, v) => executions);
+            }
+
+            public ICollection<int> ScheduledMoreThanOnce
+            {
+                get { return _scheduledMore.Values; }
+            }
+
+            public void Dispose()
+            {
+                
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+
+            }
+
+            public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
+            {
+                return new LoggedSpeculativeExecutionPlan(this);
+            }
+
+            private class LoggedSpeculativeExecutionPlan : ISpeculativeExecutionPlan
+            {
+                private readonly LoggedSpeculativeExecutionPolicy _policy;
+                private int _executions;
+                public LoggedSpeculativeExecutionPlan(LoggedSpeculativeExecutionPolicy policy)
+                {
+                    _policy = policy;
+                }
+
+                public long NextExecution(Host lastQueried)
+                {
+                    if (_executions++ < 1)
+                    {
+                        return 500L;
+                    }
+                    _policy.SetScheduledMore(this, _executions);
+                    return 0L;
+                }
+            }
         }
 
         private class OrderedLoadBalancingPolicy : ILoadBalancingPolicy

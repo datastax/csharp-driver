@@ -34,7 +34,7 @@ namespace Cassandra.Tasks
         /// </summary>
         internal int Index { get; set; }
 
-        public HashedWheelTimer(int tickDuration = 200, int ticksPerWheel = 512)
+        public HashedWheelTimer(int tickDuration = 100, int ticksPerWheel = 512)
         {
             if (ticksPerWheel < 1)
             {
@@ -68,7 +68,6 @@ namespace Cassandra.Tasks
                 {
                     timeout.Expire();
                     bucket.Remove(timeout);
-
                 }
                 else if (timeout.IsCancelled)
                 {
