@@ -154,12 +154,12 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute("CREATE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE java AS 'return Integer.toString(i);'");
             var ks = cluster.Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
-            var func = ks.GetFunction("stringify", new[] { "int"});
+            var func = cluster.Metadata.GetFunction("ks_udf", "stringify", new[] { "int" });
             Assert.NotNull(func);
             Assert.AreEqual("return Integer.toString(i);", func.Body);
             session.Execute("CREATE OR REPLACE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE java AS 'return Integer.toString(i) + \"hello\";'");
             Thread.Sleep(10000);
-            func = ks.GetFunction("stringify", new[] { "int" });
+            func = cluster.Metadata.GetFunction("ks_udf", "stringify", new[] { "int" });
             Assert.NotNull(func);
             Assert.AreEqual("return Integer.toString(i) + \"hello\";", func.Body);
         }
@@ -220,11 +220,11 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute("CREATE AGGREGATE ks_udf.sum2(int) SFUNC plus STYPE int INITCOND 0");
             var ks = cluster.Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
-            var aggregate = ks.GetAggregate("sum2", new[] {"int"});
+            var aggregate = cluster.Metadata.GetAggregate("ks_udf", "sum2", new[] {"int"});
             Assert.AreEqual(0, aggregate.InitialCondition);
             session.Execute("CREATE OR REPLACE AGGREGATE ks_udf.sum2(int) SFUNC plus STYPE int INITCOND 200");
             Thread.Sleep(5000);
-            aggregate = ks.GetAggregate("sum2", new[] { "int" });
+            aggregate = cluster.Metadata.GetAggregate("ks_udf", "sum2", new[] { "int" });
             Assert.AreEqual(200, aggregate.InitialCondition);
         }
     }
