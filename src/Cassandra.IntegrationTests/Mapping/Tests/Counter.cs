@@ -145,8 +145,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Validate Error Message
             var e = Assert.Throws<InvalidQueryException>(() => table.Insert(pocoAndLinqAttributesPocos).Execute());
-            string expectedErrMsg = "INSERT statement are not allowed on counter tables, use UPDATE instead";
-            Assert.AreEqual(expectedErrMsg, e.Message);
+            string expectedErrMsg = "INSERT statement(s)? are not allowed on counter tables, use UPDATE instead";
+            StringAssert.IsMatch(expectedErrMsg, e.Message);
         }
 
 

@@ -224,7 +224,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
             string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            string expectedErrMsg = string.Format("Cannot add column family '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
+            string expectedErrMsg = string.Format("Cannot add (column family|table) '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
 
             try
@@ -234,7 +234,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             }
             catch (InvalidConfigurationInQueryException e)
             {
-                Assert.AreEqual(expectedErrMsg, e.Message);
+                StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }
 
@@ -247,7 +247,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
             string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            string expectedErrMsg = string.Format("Cannot add column family '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
+            string expectedErrMsg = string.Format("Cannot add (column family|table) '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
 
             try
@@ -257,7 +257,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             }
             catch (InvalidConfigurationInQueryException e)
             {
-                Assert.AreEqual(expectedErrMsg, e.Message);
+                StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }
 

@@ -187,7 +187,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 IgnoredStringAttribute = Guid.NewGuid().ToString(),
             };
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Insert(pocoWithCustomAttributesLynqAndMappingIncluded));
-            Assert.AreEqual("Invalid null value for partition key part somepartitionkey", err.Message);
+            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey";
+            StringAssert.IsMatch(expectedErrMsg, err.Message);
         }
 
 
@@ -212,7 +213,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 IgnoredStringAttribute = Guid.NewGuid().ToString(),
             };
             var err = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributesLinqAndMapping));
-            Assert.AreEqual("Invalid null value for partition key part somepartitionkey", err.Message);
+            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey";
+            StringAssert.IsMatch(expectedErrMsg, err.Message);
         }
 
         /// <summary>
@@ -458,7 +460,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 IgnoredString = Guid.NewGuid().ToString(),
             };
             var err = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
-            Assert.AreEqual("Invalid null value for partition key part somepartitionkey2", err.Message);
+            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey2";
+            StringAssert.IsMatch(expectedErrMsg, err.Message);
         }
 
         /// <summary>
@@ -482,7 +485,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
 
             var err = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
-            Assert.AreEqual("Invalid null value for partition key part somepartitionkey1", err.Message);
+            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey1"; 
+            StringAssert.IsMatch(expectedErrMsg, err.Message);
         }
 
         /// <summary>
