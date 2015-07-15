@@ -126,6 +126,18 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void PreparedStatement_Bind_SetsIdempotence()
+        {
+            var ps = GetPrepared("SELECT * FROM tbl1 WHERE name = ? and id = ?");
+            ps.SetIdempotence(true);
+            var bound = ps.Bind("dummy name 1", 1000);
+            Assert.True(bound.IsIdempotent ?? false);
+            ps.SetIdempotence(false);
+            bound = ps.Bind("dummy name 2", 1000);
+            Assert.False(bound.IsIdempotent ?? true);
+        }
+
+        [Test]
         public void PreparedStatement_Bind_SetsRoutingKey_Multiple()
         {
             const int protocolVersion = 2;
