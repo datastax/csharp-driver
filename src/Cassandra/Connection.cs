@@ -191,22 +191,12 @@ namespace Cassandra
         /// Starts the authentication flow
         /// </summary>
         /// <exception cref="AuthenticationException" />
-        private void Authenticate()
+        private Task<AbstractResponse> Authenticate()
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
             var isPatchedVersion = ProtocolVersion == 1 && !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
-            if (ProtocolVersion >= 2 || isPatchedVersion)
-            {
-                //Use protocol v2+ authentication flow
-
-                //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
-                var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
-
-                var initialResponse = authenticator.InitialResponse() ?? new byte[0];
-                Authenticate(initialResponse, authenticator);
-            }
-            else
+            if (ProtocolVersion < 2 && !isPatchedVersion)
             {
                 //Use protocol v1 authentication flow
                 if (Configuration.AuthInfoProvider == null)
@@ -218,40 +208,52 @@ namespace Cassandra
                 var credentialsProvider = Configuration.AuthInfoProvider;
                 var credentials = credentialsProvider.GetAuthInfos(Address);
                 var request = new CredentialsRequest(ProtocolVersion, credentials);
-                var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
-                //If Cassandra replied with a auth response error
-                //The task already is faulted and the exception was already thrown.
-                if (response is ReadyResponse)
-                {
-                    return;
-                }
-                throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
+                return Send(request)
+                    .ContinueSync(response =>
+                    {
+                        if (!(response is ReadyResponse))
+                        {
+                            //If Cassandra replied with a auth response error
+                            //The task already is faulted and the exception was already thrown.
+                            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
+                        }
+                        return response;
+                    });
             }
+            //Use protocol v2+ authentication flow
+
+            //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
+            var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
+
+            var initialResponse = authenticator.InitialResponse() ?? new byte[0];
+            return Authenticate(initialResponse, authenticator);
         }
 
         /// <exception cref="AuthenticationException" />
-        private void Authenticate(byte[] token, IAuthenticator authenticator)
+        private Task<AbstractResponse> Authenticate(byte[] token, IAuthenticator authenticator)
         {
-            var request = new AuthResponseRequest(this.ProtocolVersion, token);
-            var response = TaskHelper.WaitToComplete(this.Send(request), Configuration.SocketOptions.ConnectTimeoutMillis);
-            if (response is AuthSuccessResponse)
-            {
-                //It is now authenticated
-                return;
-            }
-            if (response is AuthChallengeResponse)
-            {
-                token = authenticator.EvaluateChallenge((response as AuthChallengeResponse).Token);
-                if (token == null)
+            var request = new AuthResponseRequest(ProtocolVersion, token);
+            return Send(request)
+                .Then(response =>
                 {
-                    // If we get a null response, then authentication has completed
-                    //return without sending a further response back to the server.
-                    return;
-                }
-                Authenticate(token, authenticator);
-                return;
-            }
-            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
+                    if (response is AuthSuccessResponse)
+                    {
+                        //It is now authenticated
+                        return TaskHelper.ToTask(response);
+                    }
+                    if (response is AuthChallengeResponse)
+                    {
+                        token = authenticator.EvaluateChallenge(((AuthChallengeResponse)response).Token);
+                        if (token == null)
+                        {
+                            // If we get a null response, then authentication has completed
+                            //return without sending a further response back to the server.
+                            return TaskHelper.ToTask(response);
+                        }
+                        return Authenticate(token, authenticator);
+                    }
+                    throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
+                });
         }
 
         /// <summary>
@@ -329,7 +331,7 @@ namespace Cassandra
             }
             if (CassandraEventResponse != null)
             {
-                CassandraEventResponse(this, (response as EventResponse).CassandraEventArgs);
+                CassandraEventResponse(this, ((EventResponse) response).CassandraEventArgs);
             }
         }
 
@@ -341,7 +343,7 @@ namespace Cassandra
             //Ensure there are no more idle timeouts until the query finished sending
             if (_isCanceled)
             {
-                if (!this.IsDisposed)
+                if (!IsDisposed)
                 {
                     //If it was not manually disposed
                     _logger.Warning("Can not issue an heartbeat request as connection is closed");
@@ -370,13 +372,14 @@ namespace Cassandra
             });
         }
 
+
         /// <summary>
-        /// Initializes the connection. Thread safe.
+        /// Initializes the connection.
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        public virtual void Init()
+        public Task<AbstractResponse> Open()
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
@@ -402,7 +405,76 @@ namespace Cassandra
             //Read and write event handlers are going to be invoked using IO Threads
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
-            _tcpSocket.Connect();
+            return _tcpSocket
+                .Connect()
+                .Then(_ => Startup())
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted && t.Exception != null)
+                    {
+                        //Adapt the inner exception and rethrow
+                        var ex = t.Exception.InnerException;
+                        if (ex is ProtocolErrorException)
+                        {
+                            //As we are starting up, check for protocol version errors
+                            //There is no other way than checking the error message from Cassandra
+                            if (ex.Message.Contains("Invalid or unsupported protocol version"))
+                            {
+                                throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                            }
+                        }
+                        throw ex;
+                    }
+                    return t.Result;
+                }, TaskContinuationOptions.ExecuteSynchronously)
+                .Then(response =>
+                {
+                    if (response is AuthenticateResponse)
+                    {
+                        return Authenticate();
+                    }
+                    if (response is ReadyResponse)
+                    {
+                        return TaskHelper.ToTask(response);
+                    }
+                    throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
+                });
+        }
+
+        /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        public virtual void Init()
+        {
+            //TODO: REMOVE
+            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
+            _pendingOperations = new ConcurrentDictionary<short, OperationState>();
+            _writeQueue = new ConcurrentQueue<OperationState>();
+
+            if (Options.CustomCompressor != null)
+            {
+                Compressor = Options.CustomCompressor;
+            }
+            else if (Options.Compression == CompressionType.LZ4)
+            {
+                Compressor = new LZ4Compressor();
+            }
+            else if (Options.Compression == CompressionType.Snappy)
+            {
+                Compressor = new SnappyCompressor();
+            }
+
+            //Init TcpSocket
+            _tcpSocket.Init();
+            _tcpSocket.Error += CancelPending;
+            _tcpSocket.Closing += () => CancelPending(null, null);
+            //Read and write event handlers are going to be invoked using IO Threads
+            _tcpSocket.Read += ReadHandler;
+            _tcpSocket.WriteCompleted += WriteCompletedHandler;
+            _tcpSocket.Connect().Wait();
 
             var startupTask = Startup();
             try
@@ -431,7 +503,7 @@ namespace Cassandra
             }
             if (startupTask.Result is AuthenticateResponse)
             {
-                Authenticate();
+                Authenticate().Wait();
             }
             else if (!(startupTask.Result is ReadyResponse))
             {

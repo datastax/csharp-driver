@@ -55,7 +55,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var connection = CreateConnection())
             {
-                Assert.DoesNotThrow(connection.Init);
+                Assert.DoesNotThrow(connection.Open().Wait);
             }
         }
 
@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var connection = CreateConnection())
             {
-                connection.Init();
+                connection.Open().Wait();
                 //Start a query
                 var request = new QueryRequest(connection.ProtocolVersion, "SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default);
                 var task = connection.Send(request);
@@ -356,7 +356,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var connection = CreateConnection(new ProtocolOptions(), new SocketOptions().SetStreamMode(true)))
             {
-                connection.Init();
+                connection.Open().Wait();
 
                 var taskList = new List<Task<AbstractResponse>>();
                 //Run the query multiple times

@@ -24,19 +24,23 @@ namespace Cassandra.Tasks
     internal static class TaskHelper
     {
         private static readonly MethodInfo PreserveStackMethod;
-        private static readonly Action<Exception> PreserveStackHandler = (ex) => { };
+        private static readonly Action<Exception> PreserveStackHandler = ex => { };
+        private static readonly Task<bool> CompletedTask;
 
         static TaskHelper()
         {
             try
             {
+                TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+                tcs.SetResult(true);
+                CompletedTask = tcs.Task;
                 PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)
                 {
                     return;
                 }
                 //Only under .NET Framework
-                PreserveStackHandler = (ex) =>
+                PreserveStackHandler = ex =>
                 {
                     try
                     {
@@ -58,6 +62,14 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
+        /// Gets a single completed task
+        /// </summary>
+        public static Task<bool> Completed
+        {
+            get { return CompletedTask; }
+        }
+
+        /// <summary>
         /// Returns an AsyncResult according to the .net async programming model (Begin)
         /// </summary>
         public static Task<TResult> ToApm<TResult>(this Task<TResult> task, AsyncCallback callback, object state)
@@ -66,7 +78,7 @@ namespace Cassandra.Tasks
             {
                 if (callback != null)
                 {
-                    task.ContinueWith((t) => callback(t), TaskContinuationOptions.ExecuteSynchronously);
+                    task.ContinueWith(t => callback(t), TaskContinuationOptions.ExecuteSynchronously);
                 }
                 return task;
             }
@@ -76,6 +88,7 @@ namespace Cassandra.Tasks
             {
                 if (task.IsFaulted)
                 {
+                    // ReSharper disable once PossibleNullReferenceException
                     tcs.TrySetException(task.Exception.InnerExceptions);
                 }
                 else if (task.IsCanceled)
@@ -194,7 +207,27 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
-        /// Invokes the next task immediately
+        /// Smart ContinueWith that executes the sync delegate once the initial task is completed and returns 
+        /// a Task of the result of sync delegate while propagating exceptions
+        /// </summary>
+        public static Task<TOut> ContinueSync<TIn, TOut>(this Task<TIn> task, Func<TIn, TOut> next)
+        {
+            const TaskContinuationOptions options = TaskContinuationOptions.ExecuteSynchronously;
+            var tcs = new TaskCompletionSource<TOut>();
+            if (task.IsCompleted)
+            {
+                DoNextAndHandle(tcs, task, next);
+                return tcs.Task;
+            }
+            task.ContinueWith(previousTask =>
+            {
+                DoNextAndHandle(tcs, previousTask, next);
+            }, options);
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Invokes the next function immediately and assigns the result to a Task
         /// </summary>
         private static Task<TOut> DoNext<TIn, TOut>(Task<TIn> task, Func<Task<TIn>, TOut> next)
         {
@@ -211,11 +244,129 @@ namespace Cassandra.Tasks
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Invokes the next function immediately and assigns the result to a Task, propagating exceptions to the new Task
+        /// </summary>
+        private static void DoNextAndHandle<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask, Func<TIn, TOut> next)
+        {
+            try
+            {
+                if (previousTask.IsFaulted && previousTask.Exception != null)
+                {
+                    SetInnerException(tcs, previousTask.Exception);
+                    return;
+                }
+                if (previousTask.IsCanceled)
+                {
+                    tcs.TrySetCanceled();
+                    return;
+                }
+                tcs.TrySetResult(next(previousTask.Result));
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        }
+
+        /// <summary>
+        /// Once Task is completed with another Task, returning the second task, propagating exceptions to the second Task.
+        /// </summary>
+        public static Task<TOut> Then<TIn, TOut>(this Task<TIn> task, Func<TIn, Task<TOut>> next)
+        {
+            const TaskContinuationOptions options = TaskContinuationOptions.ExecuteSynchronously;
+            var tcs = new TaskCompletionSource<TOut>();
+            if (task.IsCompleted)
+            {
+                //RanToCompletion, Faulted, or Canceled.
+                DoNextThen(tcs, task, next, options);
+                return tcs.Task;
+            }
+            task.ContinueWith(previousTask =>
+            {
+                DoNextThen(tcs, task, next, options);
+            }, options);
+
+            return tcs.Task;
+        }
+
+        private static void DoNextThen<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask, Func<TIn, Task<TOut>> next, TaskContinuationOptions options)
+        {
+            if (previousTask.IsFaulted && previousTask.Exception != null)
+            {
+                SetInnerException(tcs, previousTask.Exception);
+                return;
+            }
+            if (previousTask.IsCanceled)
+            {
+                tcs.TrySetCanceled();
+                return;
+            }
+            try
+            {
+                next(previousTask.Result).ContinueWith(nextTask =>
+                {
+                    if (nextTask.IsFaulted && nextTask.Exception != null)
+                    {
+                        SetInnerException(tcs, nextTask.Exception);
+                        return;
+                    }
+                    if (nextTask.IsCanceled)
+                    {
+                        tcs.TrySetCanceled();
+                        return;
+                    }
+                    try
+                    {
+                        tcs.TrySetResult(nextTask.Result);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                }, options);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        }
+
+        private static void SetInnerException<T>(TaskCompletionSource<T> tcs, AggregateException ex)
+        {
+            tcs.TrySetException(ex.InnerException);
+        }
+
         public static Task<T> ToTask<T>(T value)
         {
             var tcs = new TaskCompletionSource<T>();
             tcs.SetResult(value);
             return tcs.Task;
+        }
+
+        /// <summary>
+        /// Returns a Cancellation Token that cancels the Task after milliseconds passed.
+        /// </summary>
+        public static CancellationToken CancelAfterToken(int milliseconds)
+        {
+            var cts = new CancellationTokenSource();
+            Timer timer = null;
+            Action<object> timerCallback = _ =>
+            {
+                try
+                {
+                    //Cancel the source
+                    cts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    //It was disposed, due nothing
+                }
+                // ReSharper disable once PossibleNullReferenceException, AccessToModifiedClosure
+                timer.Dispose();
+            };
+            timer = new Timer(new TimerCallback(timerCallback), cts, milliseconds, Timeout.Infinite);
+            return cts.Token;
         }
     }
 }
