@@ -29,6 +29,8 @@ namespace Cassandra.Data.Linq
 {
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
+        private readonly string _utf8MaxValue = Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF });
+
         private static readonly Dictionary<ExpressionType, string> CqlTags = new Dictionary<ExpressionType, string>
         {
             {ExpressionType.Not, "NOT"},
@@ -608,6 +610,30 @@ namespace Cassandra.Data.Linq
                         .Append(")");
                     return true;
                 }
+                case "StartsWith":
+                    Visit(node.Object);
+                    var startsWithArgument = node.Arguments[0];
+                    var startString = (string)Expression.Lambda(startsWithArgument).Compile().DynamicInvoke();
+                    var endString = startString + _utf8MaxValue;
+
+                    parameters.Add(startString);
+                    parameters.Add(endString);
+
+                    clause
+                        .Append(" ")
+                        .Append(CqlTags[ExpressionType.GreaterThanOrEqual])
+                        .Append(" ? ")
+                        .Append(CqlTags[ExpressionType.And])
+                        .Append(" ");
+
+                    Visit(node.Object);
+
+                    clause
+                        .Append(" ")
+                        .Append(CqlTags[ExpressionType.LessThan])
+                        .Append(" ?");
+                    
+                    return true;
                 case "CompareTo":
                     Visit(node.Object);
                     clause
