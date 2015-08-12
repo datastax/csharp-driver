@@ -44,6 +44,28 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_Contains_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.DecimalValue, cm => cm.WithName("val2"))
+                .Column(t => t.DateTimeValue, cm => cm.WithName("d"))
+                .TableName("values");
+
+            var table = GetTable<AllTypesEntity>(session, map);
+            table.Where(t => new [] {1M, 2M}.Contains(t.DecimalValue)).Select(t => new AllTypesEntity { DateTimeValue = t.DateTimeValue}).Execute();
+            Assert.AreEqual("SELECT d FROM values WHERE val2 IN (?, ?)", query);
+            CollectionAssert.AreEqual(new [] {1M, 2M}, parameters);
+        }
+
+        [Test]
         public void Select_Project_To_New_Type_Constructor()
         {
             string query = null;

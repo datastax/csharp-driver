@@ -321,6 +321,23 @@ namespace Cassandra.Mapping
             return Expression.Call(converter.Target == null ? null : Expression.Constant(converter.Target), converter.Method, getValueFromPoco);
         }
 
+        public object AdaptValue(PocoData pocoData, PocoColumn column, object value)
+        {
+            if (column.MemberInfoType == column.ColumnType)
+            {
+                return value;
+            }
+            // See if there is a converter available for between the two types
+            var converter =  _typeConverter.GetToDbConverter(column.MemberInfoType, column.ColumnType);
+            if (converter == null)
+            {
+                // No converter available, at least try a cast:
+                // (TColumn) poco.SomeFieldOrProp
+                return Convert.ChangeType(value, column.ColumnType);
+            }
+            return converter.DynamicInvoke(value);
+        }
+
         /// <summary>
         /// Gets an Expression that represents calling Row.GetValue&lt;T&gt;(columnIndex) and applying any type conversion necessary to
         /// convert it to the destination type on the POCO.

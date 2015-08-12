@@ -173,7 +173,9 @@ namespace Cassandra.Mapping.TypeConversion
             // Allow for user-defined conversions
             Delegate converter = GetUserDefinedToDbConverter<TPoco, TDatabase>();
             if (converter != null)
+            {
                 return converter;
+            }
 
             Type pocoType = typeof (TPoco);
             Type dbType = typeof (TDatabase);

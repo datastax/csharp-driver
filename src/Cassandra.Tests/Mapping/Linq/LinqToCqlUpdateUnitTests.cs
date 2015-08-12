@@ -74,6 +74,56 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Update_Set_Enum_Int()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<PlainUser>()
+                .Column(t => t.HairColor, cm => cm.WithDbType<int>())
+                .PartitionKey(t => t.UserId)
+                .TableName("tbl1");
+            var id = Guid.NewGuid();
+            var table = GetTable<PlainUser>(session, map);
+            table
+                .Where(t => t.UserId == id)
+                .Select(t => new PlainUser { HairColor = HairColor.Red })
+                .Update()
+                .Execute();
+            Assert.AreEqual("UPDATE tbl1 SET HairColor = ? WHERE UserId = ?", query);
+            CollectionAssert.AreEqual(new object[] { (int)HairColor.Red, id}, parameters);
+        }
+
+        [Test]
+        public void Update_Set_Enum_String()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<PlainUser>()
+                .Column(t => t.HairColor, cm => cm.WithDbType<string>())
+                .PartitionKey(t => t.UserId)
+                .TableName("tbl1");
+            var id = Guid.NewGuid();
+            var table = GetTable<PlainUser>(session, map);
+            table
+                .Where(t => t.UserId == id)
+                .Select(t => new PlainUser { HairColor = HairColor.Red })
+                .Update()
+                .Execute();
+            Assert.AreEqual("UPDATE tbl1 SET HairColor = ? WHERE UserId = ?", query);
+            CollectionAssert.AreEqual(new object[] { HairColor.Red.ToString(), id }, parameters);
+        }
+
+        [Test]
         public void Update_With_Keyspace_Defined_Test()
         {
             string query = null;

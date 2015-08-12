@@ -185,7 +185,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public static CqlUpdate Update<TSource>(this CqlQuery<TSource> source)
         {
-            var ret = new CqlUpdate(source.Expression, source.Table, source.StatementFactory, source.PocoData);
+            var ret = new CqlUpdate(source.Expression, source.Table, source.StatementFactory, source.PocoData, source.MapperFactory);
             source.CopyQueryPropertiesTo(ret);
             return ret;
         }
@@ -197,7 +197,7 @@ namespace Cassandra.Data.Linq
         {
             var update = new CqlUpdate(Expression.Call(
                 null, CqlMthHelps.UpdateIfMi,
-                new[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
+                new[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData, source.MapperFactory);
             source.CopyQueryPropertiesTo(update);
             return new CqlConditionalCommand<TSource>(update, source.MapperFactory);
         }
