@@ -59,7 +59,7 @@ namespace Cassandra
                     else
                     {
                         datacenters[host.Datacenter]++;
-                    }   
+                    }
                 }
                 foreach (var tokenStr in host.Tokens)
                 {
@@ -77,12 +77,14 @@ namespace Cassandra
             }
             var ring = new List<IToken>(allSorted);
             var tokenToHosts = new Dictionary<string, Dictionary<IToken, HashSet<Host>>>(keyspaces.Count);
+            //Only consider nodes that have tokens
+            var hostCount = hosts.Count(h => h.Tokens.Any());
             foreach (var ks in keyspaces)
             {
                 Dictionary<IToken, HashSet<Host>> replicas;
                 if (ks.StrategyClass == ReplicationStrategies.SimpleStrategy)
                 {
-                    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], hosts.Count, ring, primaryReplicas);
+                    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], hostCount, ring, primaryReplicas);
                 }
                 else if (ks.StrategyClass == ReplicationStrategies.NetworkTopologyStrategy)
                 {
