@@ -202,7 +202,7 @@ namespace Cassandra
 					}
 					PagingState = rs.PagingState;
 					_pagers.AddOrUpdate( pageState, true, ( k, v ) => v );
-				} );
+				}, TaskContinuationOptions.ExecuteSynchronously );
             }
         }
 
