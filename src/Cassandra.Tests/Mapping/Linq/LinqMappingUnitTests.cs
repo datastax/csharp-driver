@@ -124,14 +124,14 @@ namespace Cassandra.Tests.Mapping.Linq
             rs.AutoPage = true;
             rs.PagingState = new byte[] { 0, 0, 0 };
             var counter = 0;
-            rs.FetchNextPage = state =>
+            rs.FetchNextPageAsync = state =>
             {
                 var rs2 = TestDataHelper.GetSingleColumnRowSet("int_val", Enumerable.Repeat(1, pageLength).ToArray());
                 if (++counter < 2)
                 {
                     rs2.PagingState = new byte[] {0, 0, (byte) counter};
                 }
-                return rs2;
+                return TaskHelper.ToTask( rs2 );
             };
             var table = new Table<int>(sessionMock.Object);
             IEnumerable<int> results = table.Execute();

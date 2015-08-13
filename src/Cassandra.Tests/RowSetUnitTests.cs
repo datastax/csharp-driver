@@ -22,6 +22,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 using Moq;
 
 namespace Cassandra.Tests
@@ -88,9 +89,9 @@ namespace Cassandra.Tests
             //It has paging state, stating that there are more pages
             rs.PagingState = new byte[] { 0 };
             //Add a handler to fetch next
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
-                return CreateStringsRowset(1, 1, "b_");
+                return TaskHelper.ToTask( CreateStringsRowset(1, 1, "b_") );
             };
 
             //use linq to iterate and map it to a list
@@ -111,10 +112,10 @@ namespace Cassandra.Tests
             rs.PagingState = new byte[] { 0 };
             //Add a handler to fetch next
             var called = false;
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
                 called = true;
-                return CreateStringsRowset(1, 1, "b_");
+                return TaskHelper.ToTask( CreateStringsRowset( 1, 1, "b_") );
             };
 
             //use linq to iterate and map it to a list
@@ -133,7 +134,7 @@ namespace Cassandra.Tests
             //It has paging state, stating that there are more pages.
             rs.PagingState = new byte[] { 0 };
             //Throw a test exception when fetching the next page.
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
                 throw new TestException();
             };
@@ -152,7 +153,7 @@ namespace Cassandra.Tests
         {
             var rowLength = 10;
             var rs = CreateStringsRowset(2, rowLength);
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
                 Assert.Fail("Event to get next page must not be called as there is no paging state.");
                 return null;
@@ -181,12 +182,12 @@ namespace Cassandra.Tests
             var rs = CreateStringsRowset(10, pageSize);
             rs.PagingState = new byte[0];
             var fetchCounter = 0;
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
                 fetchCounter++;
                 //fake a fetch
                 Thread.Sleep(1000);
-                return CreateStringsRowset(10, pageSize);
+                return TaskHelper.ToTask( CreateStringsRowset( 10, pageSize) );
             };
             var counterList = new ConcurrentBag<int>();
             Action iteration = () =>
@@ -219,7 +220,7 @@ namespace Cassandra.Tests
             var rs = CreateStringsRowset(10, rowLength, "page_0_");
             rs.PagingState = new byte[0];
             var fetchCounter = 0;
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
                 fetchCounter++;
                 var pageRowSet = CreateStringsRowset(10, rowLength, "page_" + fetchCounter + "_");
@@ -233,7 +234,7 @@ namespace Cassandra.Tests
                     //On the 3rd page, state that there aren't any more pages.
                     pageRowSet.PagingState = null;
                 }
-                return pageRowSet;
+                return TaskHelper.ToTask( pageRowSet );
             };
 
             //Use Linq to iterate
@@ -257,7 +258,7 @@ namespace Cassandra.Tests
             var rs = CreateStringsRowset(10, rowLength, "page_0_");
             rs.PagingState = new byte[0];
             var fetchCounter = 0;
-            rs.FetchNextPage = (pagingState) =>
+            rs.FetchNextPageAsync = (pagingState) =>
             {
                 fetchCounter++;
                 var pageRowSet = CreateStringsRowset(10, rowLength, "page_" + fetchCounter + "_");
@@ -275,7 +276,7 @@ namespace Cassandra.Tests
                 {
                     throw new Exception("It should not be called more than 3 times.");
                 }
-                return pageRowSet;
+                return TaskHelper.ToTask( pageRowSet );
             };
             Assert.AreEqual(rowLength * 1, rs.InnerQueueCount);
             rs.FetchMoreResults();

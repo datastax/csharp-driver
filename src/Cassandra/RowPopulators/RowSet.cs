@@ -20,6 +20,8 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
+
 // ReSharper disable DoNotCallOverridableMethodsInConstructor
 // ReSharper disable CheckNamespace
 
@@ -44,7 +46,7 @@ namespace Cassandra
         /// <summary>
         /// Delegate that is called to get the next page.
         /// </summary>
-        protected internal Func<byte[], RowSet> FetchNextPage { get; set; }
+        protected internal Func<byte[], Task<RowSet>> FetchNextPageAsync { get; set; }
 
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
@@ -82,7 +84,7 @@ namespace Cassandra
             {
                 return false;
             }
-            PageNext();
+            PageNextAsync();
 
             return RowQueue.Count == 0;
         }
@@ -119,7 +121,7 @@ namespace Cassandra
         /// </summary>
         public void FetchMoreResults()
         {
-            PageNext();
+            PageNextAsync().Wait();
         }
 
         /// <summary>
@@ -127,7 +129,7 @@ namespace Cassandra
         /// </summary>
         public Task FetchMoreResultsAsync()
         {
-            return Task.Factory.StartNew(FetchMoreResults);
+	        return PageNextAsync();
         }
 
         /// <summary>
@@ -168,38 +170,39 @@ namespace Cassandra
         /// <summary>
         /// Gets the next results and add the rows to the current RowSet queue
         /// </summary>
-        protected virtual void PageNext()
+        protected virtual Task PageNextAsync()
         {
             if (IsFullyFetched)
             {
-                return;
+                return TaskHelper.Completed;
             }
-            if (FetchNextPage == null)
+            if (FetchNextPageAsync == null)
             {
                 //There is no handler, clear the paging state
                 this.PagingState = null;
-                return;
-            }
+				return TaskHelper.Completed;
+			}
             lock (_pageLock)
             {
                 var pageState = this.PagingState;
                 if (pageState == null)
                 {
-                    return;
-                }
+					return TaskHelper.Completed;
+				}
                 bool value;
                 bool alreadyPresent = _pagers.TryGetValue(pageState, out value);
                 if (alreadyPresent)
                 {
-                    return;
-                }
-                var rs = FetchNextPage(pageState);
-                foreach (var newRow in rs.RowQueue)
-                {
-                    RowQueue.Enqueue(newRow);
-                }
-                PagingState = rs.PagingState;
-                _pagers.AddOrUpdate(pageState, true, (k, v) => v);
+					return TaskHelper.Completed;
+				}
+	            return FetchNextPageAsync( pageState ).ContinueWith( t => {
+		            var rs = t.Result;
+					foreach( var newRow in rs.RowQueue ) {
+						RowQueue.Enqueue( newRow );
+					}
+					PagingState = rs.PagingState;
+					_pagers.AddOrUpdate( pageState, true, ( k, v ) => v );
+				} );
             }
         }
 

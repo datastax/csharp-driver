@@ -26,8 +26,13 @@ namespace Cassandra.Tasks
         private static readonly MethodInfo PreserveStackMethod;
         private static readonly Action<Exception> PreserveStackHandler = (ex) => { };
 
-        static TaskHelper()
-        {
+
+		public static readonly Task Completed;
+
+
+		static TaskHelper()
+		{
+			Completed = ToTask( true );
             try
             {
                 PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);

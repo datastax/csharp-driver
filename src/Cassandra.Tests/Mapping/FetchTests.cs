@@ -170,7 +170,7 @@ namespace Cassandra.Tests.Mapping
             const int totalPages = 4;
             var rs = TestDataHelper.CreateMultipleValuesRowSet(new[] {"title", "artist"}, new[] {"Once in a Livetime", "Dream Theater"}, pageSize);
             rs.PagingState = new byte[] {1};
-            rs.FetchNextPage = state =>
+            rs.FetchNextPageAsync = state =>
             {
                 var pageNumber = state[0];
                 pageNumber++;
@@ -179,7 +179,7 @@ namespace Cassandra.Tests.Mapping
                 {
                     nextRs.PagingState = new[] { pageNumber };
                 }
-                return nextRs;
+                return TaskHelper.ToTask( nextRs );
             };
             var mappingClient = GetMappingClient(rs);
             var songs = mappingClient.Fetch<Song>("SELECT * FROM songs");
