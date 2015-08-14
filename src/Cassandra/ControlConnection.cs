@@ -41,7 +41,7 @@ namespace Cassandra
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private int _isShutdown;
-        private readonly object _refreshLock = new Object();
+        private int _refreshCounter;
 
         /// <summary>
         /// Gets the recommended binary protocol version to be used for this cluster.
@@ -93,7 +93,7 @@ namespace Cassandra
         internal void Init()
         {
             _logger.Info("Trying to connect the ControlConnection");
-            Connect(true);
+            TaskHelper.WaitToComplete(Connect(true), _config.SocketOptions.ConnectTimeoutMillis);
             try
             {
                 SubscribeEventHandlers();
@@ -115,70 +115,91 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        private void Connect(bool firstTime)
+        private Task<bool> Connect(bool firstTime)
         {
-            var triedHosts = new Dictionary<IPEndPoint, Exception>();
-            IEnumerable<Host> hostIterator = Metadata.Hosts;
+            IEnumerable<Host> hosts = Metadata.Hosts;
             if (!firstTime)
             {
                 _logger.Info("Trying to reconnect the ControlConnection");
                 //Use the load balancing policy to determine which host to use
-                hostIterator = _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null);
+                hosts = _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null);
             }
-            foreach (var host in hostIterator)
-            {
-                var address = host.Address;
-                var c = new Connection(ProtocolVersion, address, _config);
-                try
-                {
-                    c.Init();
-                    _connection = c;
-                    _host = host;
-                    _logger.Info("Connection established to {0}", c.Address);
-                    return;
-                }
-                catch (UnsupportedProtocolVersionException)
-                {
-                    //Use the protocol version used to parse the response message
-                    var nextVersion = c.ProtocolVersion;
-                    if (nextVersion >= ProtocolVersion)
-                    {
-                        //Processor could reorder instructions in such way that the connection protocol version is not up to date.
-                        nextVersion = (byte)(ProtocolVersion - 1);
-                    }
-                    _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
-                    ProtocolVersion = nextVersion;
-                    c.Dispose();
-                    if (ProtocolVersion < 1)
-                    {
-                        throw new DriverInternalError("Invalid protocol version");
-                    }
-                    //Retry using the new protocol version
-                    Connect(firstTime);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    //There was a socket exception or an authentication exception
-                    triedHosts.Add(host.Address, ex);
-                    c.Dispose();
-                }
-            }
-            throw new NoHostAvailableException(triedHosts);
+            return IterateAndConnect(hosts.GetEnumerator(), new Dictionary<IPEndPoint, Exception>());
         }
 
-        internal void Refresh(bool reconnect = false, bool throwExceptions = false)
+        private Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
         {
-            lock (_refreshLock)
+            var available = hostsEnumerator.MoveNext();
+            if (!available)
             {
+                throw new NoHostAvailableException(triedHosts);
+            }
+            var host = hostsEnumerator.Current;
+            var c = new Connection(ProtocolVersion, host.Address, _config);
+            return ((Task) c
+                .Open())
+                .ContinueWith(t =>
+                {
+                    if (t.Status == TaskStatus.RanToCompletion)
+                    {
+                        _connection = c;
+                        _host = host;
+                        _logger.Info("Connection established to {0}", c.Address);
+                        return TaskHelper.ToTask(true);
+                    }
+                    if (t.IsFaulted && t.Exception != null)
+                    {
+                        var ex = t.Exception.InnerException;
+                        if (ex is UnsupportedProtocolVersionException)
+                        {
+                            //Use the protocol version used to parse the response message
+                            var nextVersion = c.ProtocolVersion;
+                            if (nextVersion >= ProtocolVersion)
+                            {
+                                //Processor could reorder instructions in such way that the connection protocol version is not up to date.
+                                nextVersion = (byte)(ProtocolVersion - 1);
+                            }
+                            _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
+                            ProtocolVersion = nextVersion;
+                            c.Dispose();
+                            if (ProtocolVersion < 1)
+                            {
+                                throw new DriverInternalError("Invalid protocol version");
+                            }
+                            //Retry using the new protocol version
+                            return Connect(true);
+                        }
+                        //There was a socket exception or an authentication exception
+                        triedHosts.Add(host.Address, ex);
+                        c.Dispose();
+                        return IterateAndConnect(hostsEnumerator, triedHosts);
+                    }
+                    throw new TaskCanceledException("The ControlConnection could not be connected.");
+                }, TaskContinuationOptions.ExecuteSynchronously)
+                .Unwrap();
+        }
+
+        internal Task<bool> Refresh(bool reconnect = false, bool throwExceptions = false)
+        {
+            if (Interlocked.Increment(ref _refreshCounter) != 1)
+            {
+                //Only one refresh at a time
+                Interlocked.Decrement(ref _refreshCounter);
+            }
+            var task = TaskHelper.Completed;
+            if (reconnect)
+            {
+                Unsubscribe();
+                task = Connect(false);
+            }
+            return task.ContinueSync(_ =>
+            {
+                if (reconnect)
+                {
+                    SubscribeEventHandlers();
+                }
                 try
                 {
-                    if (reconnect)
-                    {
-                        Unsubscribe();
-                        Connect(false);
-                        SubscribeEventHandlers();
-                    }
                     RefreshNodeList();
                     Metadata.RefreshKeyspaces(false);
                     _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
@@ -192,7 +213,8 @@ namespace Cassandra
                         throw;
                     }
                 }
-            }
+                return true;
+            });
         }
 
         public void Shutdown()
@@ -416,7 +438,7 @@ namespace Cassandra
                 if (retry)
                 {
                     //Try to connect to another host
-                    Refresh(reconnect:true, throwExceptions:true);
+                    Refresh(reconnect:true);
                     //Try to execute again without retry
                     return Query(cqlQuery, false);
                 }

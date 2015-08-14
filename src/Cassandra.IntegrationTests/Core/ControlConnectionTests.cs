@@ -42,6 +42,16 @@ namespace Cassandra.IntegrationTests.Core
             cc.Dispose();
         }
 
+        [Test, TestCassandraVersion(2, 2, TestBase.Comparison.LessThan)]
+        public void Should_Downgrade_The_Protocol_Version()
+        {
+            //Use a higher protocol version
+            var version = (byte) (GetExpectedProtocolVersion() + 1);
+            var cc = NewInstance(version);
+            cc.Init();
+            Assert.AreEqual(version - 1, cc.ProtocolVersion);
+        }
+
         private ControlConnection NewInstance(byte version = 0, Configuration config = null, Metadata metadata = null)
         {
             if (version == 0)

@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 ﻿using Cassandra.Collections;
+﻿using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -86,7 +87,7 @@ namespace Cassandra
         {
             _logger.Info("Creating a new connection to the host " + Host.Address);
             var c = new Connection(ProtocolVersion, Host.Address, Configuration);
-            c.Init();
+            TaskHelper.WaitToComplete(c.Open());
             if (Configuration.PoolingOptions.GetHeartBeatInterval() != null)
             {
                 //Heartbeat is enabled, subscribe for possible exceptions
