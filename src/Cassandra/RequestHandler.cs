@@ -110,17 +110,17 @@ namespace Cassandra
             {
                 //Automatic paging is enabled and there are following result pages
                 //Set the Handler for fetching the next page.
-                rs.FetchNextPage = pagingState =>
+                rs.FetchNextPageAsync = pagingState =>
                 {
                     if (_session.IsDisposed)
                     {
                         _logger.Warning("Trying to page results using a Session already disposed.");
-                        return new RowSet();
+	                    return TaskHelper.ToTask( new RowSet() );
                     }
                     ((IQueryRequest)_request).PagingState = pagingState;
-                    var task = new RequestHandler<RowSet>(_session, _request, _statement).Send();
-                    TaskHelper.WaitToComplete(task, _session.Configuration.ClientOptions.QueryAbortTimeout);
-                    return (RowSet)(object)task.Result;
+                    return new RequestHandler<RowSet>(_session, _request, _statement).Send();
+                    //TaskHelper.WaitToComplete(task, _session.Configuration.ClientOptions.QueryAbortTimeout);
+                    //return (RowSet)(object)task.Result;
                 };
             }
             return rs;
